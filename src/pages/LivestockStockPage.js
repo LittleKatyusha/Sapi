@@ -1,10 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { PlusCircle, Eye, Edit, Trash2, X, MoreVertical, AlertTriangle } from 'lucide-react';
 
-// Mengimpor komponen StatusBadge dari file terpisah
-import StatusBadge from '../components/StatusBadge';
+// --- Komponen-komponen ---
 
-// --- MODAL-MODAL TETAP DI SINI, SESUAI PERMINTAAN ---
+const StatusBadge = ({ status }) => {
+    const baseClasses = "px-2.5 py-1 text-xs font-semibold rounded-full inline-block";
+    let specificClasses = "";
+    switch (status.toLowerCase()) {
+        case 'tersedia': specificClasses = 'bg-green-100 text-green-800'; break;
+        case 'karantina': specificClasses = 'bg-purple-100 text-purple-800'; break;
+        case 'terjual': specificClasses = 'bg-gray-500 text-white'; break;
+        default: specificClasses = 'bg-gray-100 text-gray-800';
+    }
+    return <span className={`${baseClasses} ${specificClasses}`}>{status}</span>;
+};
+
+// --- MODAL UNTUK SETIAP AKSI ---
 
 const AddLivestockModal = ({ isOpen, onClose }) => {
     if (!isOpen) return null;
@@ -64,7 +75,8 @@ const DeleteConfirmationModal = ({ item, onConfirm, onCancel }) => {
     );
 };
 
-// --- Data untuk halaman ini ---
+
+// --- Komponen Utama Halaman ---
 const allLivestockData = [
     { id: 'L-001', breed: 'Limousin', age: '2 tahun', weight: 750, entryDate: '2025-04-15', status: 'Tersedia' },
     { id: 'B-012', breed: 'Brahman', age: '1.5 tahun', weight: 600, entryDate: '2025-05-01', status: 'Tersedia' },
@@ -73,7 +85,6 @@ const allLivestockData = [
     { id: 'P-007', breed: 'Peranakan Ongole', age: '2.2 tahun', weight: 650, entryDate: '2025-05-20', status: 'Tersedia' },
 ];
 
-// --- Komponen Utama Halaman ---
 const LivestockStockPage = () => {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [itemToView, setItemToView] = useState(null);
@@ -82,7 +93,7 @@ const LivestockStockPage = () => {
     const [openActionMenuId, setOpenActionMenuId] = useState(null);
 
     const handleConfirmDelete = () => {
-        console.log("Menghapus item:", itemToDelete.id);
+        console.log("Deleting item:", itemToDelete.id);
         setItemToDelete(null); 
     };
     
@@ -93,15 +104,23 @@ const LivestockStockPage = () => {
                     <h2 className="text-2xl font-bold text-gray-800 mb-4 sm:mb-0">Manajemen Stok Ternak</h2>
                     <button onClick={() => setIsAddModalOpen(true)} className="flex items-center bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"><PlusCircle size={20} className="mr-2"/> Tambah Ternak</button>
                 </div>
-                <div className="w-full overflow-x-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100">
-                    <table className="min-w-[700px] w-full text-sm text-left text-gray-600">
-                        <thead className="text-xs text-gray-700 uppercase bg-gray-50"><tr><th className="px-6 py-3">ID Ternak</th><th className="px-6 py-3">Jenis</th><th className="px-6 py-3 hidden md:table-cell text-right">Bobot (kg)</th><th className="px-6 py-3 text-center">Status</th><th className="px-6 py-3 text-center">Aksi</th></tr></thead>
+                <div className="overflow-x-auto">
+                    <table className="w-full min-w-max text-sm text-left text-gray-600">
+                        <thead className="text-xs text-gray-700 uppercase bg-gray-50">
+                            <tr>
+                                <th className="px-6 py-3 whitespace-nowrap">ID Ternak</th>
+                                <th className="px-6 py-3 whitespace-nowrap">Jenis</th>
+                                <th className="px-6 py-3 hidden md:table-cell text-right whitespace-nowrap">Bobot (kg)</th>
+                                <th className="px-6 py-3 text-center whitespace-nowrap">Status</th>
+                                <th className="px-6 py-3 text-center whitespace-nowrap">Aksi</th>
+                            </tr>
+                        </thead>
                         <tbody>
                             {allLivestockData.map(cow => (
                                 <tr key={cow.id} className="bg-white border-b hover:bg-gray-50">
-                                    <td className="px-6 py-4 font-medium text-red-600">{cow.id}</td>
-                                    <td className="px-6 py-4">{cow.breed}</td>
-                                    <td className="px-6 py-4 hidden md:table-cell text-right">{cow.weight} kg</td>
+                                    <td className="px-6 py-4 font-medium text-red-600 whitespace-nowrap">{cow.id}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap">{cow.breed}</td>
+                                    <td className="px-6 py-4 hidden md:table-cell text-right whitespace-nowrap">{cow.weight} kg</td>
                                     <td className="px-6 py-4 text-center"><StatusBadge status={cow.status} /></td>
                                     <td className="px-6 py-4 text-center">
                                         <div className="hidden md:flex justify-center space-x-2">
