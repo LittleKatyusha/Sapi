@@ -3,17 +3,8 @@ import { PlusCircle, Eye, Edit, Trash2, X, MoreVertical, AlertTriangle } from 'l
 
 // --- Komponen-komponen ---
 
-const StatusBadge = ({ status }) => {
-    const baseClasses = "px-2.5 py-1 text-xs font-semibold rounded-full inline-block";
-    let specificClasses = "";
-    switch (status.toLowerCase()) {
-        case 'tersedia': specificClasses = 'bg-green-100 text-green-800'; break;
-        case 'karantina': specificClasses = 'bg-purple-100 text-purple-800'; break;
-        case 'terjual': specificClasses = 'bg-gray-500 text-white'; break;
-        default: specificClasses = 'bg-gray-100 text-gray-800';
-    }
-    return <span className={`${baseClasses} ${specificClasses}`}>{status}</span>;
-};
+import StatusBadge from '../components/StatusBadge';
+
 
 // --- MODAL UNTUK SETIAP AKSI ---
 

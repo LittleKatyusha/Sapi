@@ -2,7 +2,7 @@ import React from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { ShoppingCart, DollarSign, Warehouse, Beef } from 'lucide-react';
 
-// Mengimpor komponen StatCard dari folder components
+// Mengimpor komponen dari folder components
 import StatCard from '../components/StatCard';
 
 // --- DATA KHUSUS UNTUK HALAMAN INI ---
