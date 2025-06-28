@@ -49,7 +49,7 @@ export default function App() {
   };
 
   return (
-    <div className="flex bg-gray-100 font-sans h-screen overflow-hidden">
+    <div className="flex bg-gray-100 font-sans h-screen">
       {/* Menambahkan beberapa style global di sini */}
       <style>{`
         .input-field { background-color: #F9FAFB; border: 1px solid #D1D5DB; padding: 0.5rem 0.75rem; border-radius: 0.5rem; } 
@@ -67,7 +67,7 @@ export default function App() {
       />
       
       <div className="flex-1 flex flex-col transition-all duration-300 relative">
-          <main className="flex-1 p-4 sm:p-6 overflow-y-auto">
+          <main className="flex-1 p-4 sm:p-6 overflow-y-auto max-h-screen">
               <Header onMenuClick={() => setIsSidebarOpen(true)} />
               {/* 4. Render konten halaman yang aktif */}
               {renderContent()}
