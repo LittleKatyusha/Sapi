@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { PlusCircle, Eye, Edit, Trash2, X, MoreVertical, AlertTriangle } from 'lucide-react';
 
 // --- Komponen-komponen ---
@@ -105,7 +105,7 @@ const LivestockStockPage = () => {
                     <button onClick={() => setIsAddModalOpen(true)} className="flex items-center bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"><PlusCircle size={20} className="mr-2"/> Tambah Ternak</button>
                 </div>
                 <div className="overflow-x-auto">
-                    <table className="w-full min-w-max text-sm text-left text-gray-600">
+                    <table className="min-w-[700px] w-full text-sm text-left text-gray-600">
                         <thead className="text-xs text-gray-700 uppercase bg-gray-50">
                             <tr>
                                 <th className="px-6 py-3 whitespace-nowrap">ID Ternak</th>
