@@ -3,7 +3,7 @@ import { Search, ChevronDown, Menu } from 'lucide-react';
 
 const Header = ({ onMenuClick }) => {
     return (
-        <header className="bg-white p-4 flex justify-between items-center rounded-xl shadow-md mb-6 sticky top-0 z-20">
+        <header className="bg-white p-4 flex justify-between items-center rounded-xl shadow-md mb-6">
             <div className="flex items-center">
                 <button onClick={onMenuClick} className="md:hidden mr-4 p-2 rounded-md hover:bg-gray-100">
                     <Menu size={24} className="text-gray-600"/>
