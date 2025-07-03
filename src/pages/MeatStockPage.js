@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import { PlusCircle, Eye, Edit, Trash2, X, MoreVertical, AlertTriangle } from 'lucide-react';
+import { PlusCircle, Eye, Edit, Trash2, X, MoreVertical, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
 
-// --- Komponen-komponen ---
-
+// Mengimpor komponen StatusBadge dari file terpisah
 import StatusBadge from '../components/StatusBadge';
 
-// --- MODAL UNTUK SETIAP AKSI ---
+// --- KOMPONEN-KOMPONEN ---
 
 const AddMeatStockModal = ({ isOpen, onClose }) => {
     if (!isOpen) return null;
@@ -65,6 +64,35 @@ const DeleteConfirmationModal = ({ item, onConfirm, onCancel }) => {
     );
 };
 
+const Pagination = ({ totalItems, itemsPerPage, currentPage, onPageChange }) => {
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+    if (totalPages <= 1) return null;
+
+    return (
+        <div className="flex justify-between items-center mt-6">
+            <span className="text-sm text-gray-700">
+                Halaman <span className="font-semibold">{currentPage}</span> dari <span className="font-semibold">{totalPages}</span>
+            </span>
+            <div className="flex space-x-2">
+                <button 
+                    onClick={() => onPageChange(currentPage - 1)} 
+                    disabled={currentPage === 1}
+                    className="px-3 py-1 border rounded-md bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    <ChevronLeft size={16}/>
+                </button>
+                 <button 
+                    onClick={() => onPageChange(currentPage + 1)} 
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-1 border rounded-md bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                 >
+                    <ChevronRight size={16}/>
+                </button>
+            </div>
+        </div>
+    );
+};
+
 
 // --- Komponen Utama Halaman ---
 const allMeatStockData = [
@@ -83,9 +111,22 @@ const MeatStockPage = () => {
     const [itemToDelete, setItemToDelete] = useState(null);
     const [openActionMenuId, setOpenActionMenuId] = useState(null);
 
+    // State untuk paging
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 5;
+
     const handleConfirmDelete = () => {
         console.log("Deleting item:", itemToDelete.sku);
         setItemToDelete(null);
+    };
+
+    // Logika untuk memotong data sesuai halaman
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentMeatStock = allMeatStockData.slice(indexOfFirstItem, indexOfLastItem);
+
+    const handlePageChange = (pageNumber) => {
+        setCurrentPage(pageNumber);
     };
     
     return (
@@ -95,31 +136,31 @@ const MeatStockPage = () => {
                     <h2 className="text-2xl font-bold text-gray-800 mb-4 sm:mb-0">Manajemen Stok Daging</h2>
                     <button onClick={() => setIsAddModalOpen(true)} className="flex items-center bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"><PlusCircle size={20} className="mr-2"/> Tambah Stok</button>
                 </div>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left text-gray-600">
-                        <thead className="text-xs text-gray-700 uppercase bg-gray-50"><tr><th className="px-6 py-3">ID</th><th className="px-6 py-3">Jenis</th><th className="px-6 py-3 hidden md:table-cell text-right">Bobot (kg)</th><th className="px-6 py-3 text-center">Status</th><th className="px-6 py-3 text-center">Aksi</th></tr></thead>
+                
+                {/* Tampilan Tabel untuk Desktop */}
+                <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full min-w-max text-sm text-left text-gray-600">
+                        <thead className="text-xs text-gray-700 uppercase bg-gray-50">
+                            <tr>
+                                <th className="px-6 py-3 whitespace-nowrap">ID</th>
+                                <th className="px-6 py-3 whitespace-nowrap">Jenis</th>
+                                <th className="px-6 py-3 text-right whitespace-nowrap">Bobot (kg)</th>
+                                <th className="px-6 py-3 text-center whitespace-nowrap">Status</th>
+                                <th className="px-6 py-3 text-center whitespace-nowrap">Aksi</th>
+                            </tr>
+                        </thead>
                         <tbody>
-                            {allMeatStockData.map(meat => (
+                            {currentMeatStock.map(meat => (
                                 <tr key={meat.sku} className="bg-white border-b hover:bg-gray-50">
                                     <td className="px-6 py-4 font-medium text-red-600">{meat.sku}</td>
                                     <td className="px-6 py-4">{meat.type}</td>
-                                    <td className="px-6 py-4 hidden md:table-cell text-right">{meat.weight.toFixed(1)} kg</td>
+                                    <td className="px-6 py-4 text-right">{meat.weight.toFixed(1)} kg</td>
                                     <td className="px-6 py-4 text-center"><StatusBadge status={meat.status} /></td>
                                     <td className="px-6 py-4 text-center">
-                                        <div className="hidden md:flex justify-center space-x-2">
+                                        <div className="flex justify-center space-x-2">
                                             <button onClick={() => setItemToView(meat)} className="p-1 text-blue-600 hover:text-blue-800" title="Lihat Detail"><Eye size={18}/></button>
                                             <button onClick={() => setItemToEdit(meat)} className="p-1 text-green-600 hover:text-green-800" title="Edit Data"><Edit size={18}/></button>
                                             <button onClick={() => setItemToDelete(meat)} className="p-1 text-red-600 hover:text-red-800" title="Hapus Data"><Trash2 size={18}/></button>
-                                        </div>
-                                        <div className="md:hidden relative">
-                                            <button onClick={() => setOpenActionMenuId(openActionMenuId === meat.sku ? null : meat.sku)} className="p-2 rounded-full hover:bg-gray-100"><MoreVertical size={18}/></button>
-                                            {openActionMenuId === meat.sku && (
-                                                <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border">
-                                                    <button onClick={() => {setItemToView(meat); setOpenActionMenuId(null);}} className="w-full text-left flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><Eye size={14} className="mr-2"/> Lihat Detail</button>
-                                                    <button onClick={() => {setItemToEdit(meat); setOpenActionMenuId(null);}} className="w-full text-left flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><Edit size={14} className="mr-2"/> Edit Data</button>
-                                                    <button onClick={() => {setItemToDelete(meat); setOpenActionMenuId(null);}} className="w-full text-left flex items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100"><Trash2 size={14} className="mr-2"/> Hapus Data</button>
-                                                </div>
-                                            )}
                                         </div>
                                     </td>
                                 </tr>
@@ -127,6 +168,41 @@ const MeatStockPage = () => {
                         </tbody>
                     </table>
                 </div>
+
+                {/* Tampilan Kartu untuk Mobile */}
+                <div className="md:hidden space-y-4">
+                    {currentMeatStock.map(meat => (
+                        <div key={meat.sku} className="bg-gray-50 p-4 rounded-lg shadow">
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <p className="font-bold text-red-600 text-sm">{meat.sku}</p>
+                                    <p className="text-gray-800 font-semibold">{meat.type}</p>
+                                </div>
+                                <div className="relative">
+                                    <button onClick={() => setOpenActionMenuId(openActionMenuId === meat.sku ? null : meat.sku)} className="p-2 rounded-full hover:bg-gray-200"><MoreVertical size={18}/></button>
+                                    {openActionMenuId === meat.sku && (
+                                        <div className="absolute right-0 mt-2 w-40 bg-white rounded-md shadow-lg z-10 border">
+                                            <button onClick={() => {setItemToView(meat); setOpenActionMenuId(null);}} className="w-full text-left flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><Eye size={14} className="mr-2"/> Lihat Detail</button>
+                                            <button onClick={() => {setItemToEdit(meat); setOpenActionMenuId(null);}} className="w-full text-left flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><Edit size={14} className="mr-2"/> Edit Data</button>
+                                            <button onClick={() => {setItemToDelete(meat); setOpenActionMenuId(null);}} className="w-full text-left flex items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100"><Trash2 size={14} className="mr-2"/> Hapus Data</button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="mt-4 pt-4 border-t flex justify-between items-center">
+                                <p className="font-semibold text-gray-700">{meat.weight.toFixed(1)} kg</p>
+                                <StatusBadge status={meat.status} />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                <Pagination 
+                    totalItems={allMeatStockData.length}
+                    itemsPerPage={itemsPerPage}
+                    currentPage={currentPage}
+                    onPageChange={handlePageChange}
+                />
             </div>
             
             <AddMeatStockModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} />
