@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import { PlusCircle, Eye, Edit, Trash2, X, MoreVertical, AlertTriangle } from 'lucide-react';
+import { PlusCircle, Eye, Edit, Trash2, X, MoreVertical, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
 
-// --- Komponen-komponen ---
-
+// Mengimpor komponen StatusBadge dari file terpisah
 import StatusBadge from '../components/StatusBadge';
 
-// --- MODAL UNTUK SETIAP AKSI ---
+// --- KOMPONEN-KOMPONEN ---
 
 const AddPurchaseModal = ({ isOpen, onClose }) => {
     if (!isOpen) return null;
@@ -65,6 +64,35 @@ const DeleteConfirmationModal = ({ item, onConfirm, onCancel }) => {
     );
 };
 
+const Pagination = ({ totalItems, itemsPerPage, currentPage, onPageChange }) => {
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+    if (totalPages <= 1) return null;
+
+    return (
+        <div className="flex justify-between items-center mt-6">
+            <span className="text-sm text-gray-700">
+                Halaman <span className="font-semibold">{currentPage}</span> dari <span className="font-semibold">{totalPages}</span>
+            </span>
+            <div className="flex space-x-2">
+                <button 
+                    onClick={() => onPageChange(currentPage - 1)} 
+                    disabled={currentPage === 1}
+                    className="px-3 py-1 border rounded-md bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    <ChevronLeft size={16}/>
+                </button>
+                 <button 
+                    onClick={() => onPageChange(currentPage + 1)} 
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-1 border rounded-md bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                 >
+                    <ChevronRight size={16}/>
+                </button>
+            </div>
+        </div>
+    );
+};
+
 
 // --- Komponen Utama Halaman ---
 const allPurchasesData = [
@@ -72,6 +100,8 @@ const allPurchasesData = [
     { id: 'TXN-P-8811', supplier: 'Supplier Pakan Ternak', date: '2025-06-24', item: 'Pakan Konsentrat 1 Ton', total: 8500000, status: 'Diterima' },
     { id: 'TXN-P-8810', supplier: 'Peternakan Sumber Rejeki', date: '2025-06-22', item: '2 Ekor Sapi Limousin', total: 45000000, status: 'Dipesan' },
     { id: 'TXN-P-8809', supplier: 'Distributor Obat Hewan Nasional', date: '2025-06-21', item: 'Vitamin Ternak', total: 1500000, status: 'Dibatalkan' },
+    { id: 'TXN-P-8808', supplier: 'Peternakan Sejahtera', date: '2025-06-20', item: '10 Ekor Sapi Simental', total: 220000000, status: 'Diterima' },
+    { id: 'TXN-P-8807', supplier: 'CV Pakan Abadi', date: '2025-06-19', item: 'Dedak Padi 500kg', total: 2500000, status: 'Diterima' },
 ];
 
 const PurchasePage = () => {
@@ -81,9 +111,22 @@ const PurchasePage = () => {
     const [itemToDelete, setItemToDelete] = useState(null);
     const [openActionMenuId, setOpenActionMenuId] = useState(null);
 
+    // State untuk paging
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 5;
+
     const handleConfirmDelete = () => {
         console.log("Deleting item:", itemToDelete.id);
         setItemToDelete(null);
+    };
+
+    // Logika untuk memotong data sesuai halaman
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentPurchases = allPurchasesData.slice(indexOfFirstItem, indexOfLastItem);
+
+    const handlePageChange = (pageNumber) => {
+        setCurrentPage(pageNumber);
     };
     
     return (
@@ -93,46 +136,33 @@ const PurchasePage = () => {
                     <h2 className="text-2xl font-bold text-gray-800 mb-4 sm:mb-0">Manajemen Pembelian</h2>
                     <button onClick={() => setIsAddModalOpen(true)} className="flex items-center bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"><PlusCircle size={20} className="mr-2"/> Tambah Pembelian</button>
                 </div>
-                <div className="overflow-x-auto">
+                
+                {/* Tampilan Tabel untuk Desktop */}
+                <div className="hidden md:block overflow-x-auto">
                     <table className="w-full min-w-max text-sm text-left text-gray-600">
                         <thead className="text-xs text-gray-700 uppercase bg-gray-50">
                             <tr>
                                 <th className="px-6 py-3 whitespace-nowrap">ID Transaksi</th>
                                 <th className="px-6 py-3 whitespace-nowrap">Pemasok</th>
-                                <th className="px-6 py-3 hidden md:table-cell whitespace-nowrap">Tanggal</th>
-                                <th className="px-6 py-3 text-right whitespace-nowrap hidden sm:table-cell">Total</th>
+                                <th className="px-6 py-3 whitespace-nowrap">Tanggal</th>
+                                <th className="px-6 py-3 text-right whitespace-nowrap">Total</th>
                                 <th className="px-6 py-3 text-center whitespace-nowrap">Status</th>
                                 <th className="px-6 py-3 text-center whitespace-nowrap">Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {allPurchasesData.map(purchase => (
+                            {currentPurchases.map(purchase => (
                                 <tr key={purchase.id} className="bg-white border-b hover:bg-gray-50">
-                                    <td className="px-6 py-4 font-medium text-red-600 whitespace-nowrap">{purchase.id}</td>
-                                    <td className="px-6 py-4 max-w-[150px] sm:max-w-xs">
-                                      <div className="truncate font-semibold text-gray-800" title={purchase.supplier}>{purchase.supplier}</div>
-                                      <div className="sm:hidden text-xs text-gray-500 font-semibold mt-1">
-                                        {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(purchase.total)}
-                                      </div>
-                                    </td>
-                                    <td className="px-6 py-4 hidden md:table-cell whitespace-nowrap">{purchase.date}</td>
-                                    <td className="px-6 py-4 text-right font-semibold whitespace-nowrap hidden sm:table-cell">{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(purchase.total)}</td>
+                                    <td className="px-6 py-4 font-medium text-red-600">{purchase.id}</td>
+                                    <td className="px-6 py-4">{purchase.supplier}</td>
+                                    <td className="px-6 py-4">{purchase.date}</td>
+                                    <td className="px-6 py-4 text-right font-semibold">{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(purchase.total)}</td>
                                     <td className="px-6 py-4 text-center"><StatusBadge status={purchase.status} /></td>
                                     <td className="px-6 py-4 text-center">
-                                        <div className="hidden md:flex justify-center space-x-2">
+                                        <div className="flex justify-center space-x-2">
                                             <button onClick={() => setItemToView(purchase)} className="p-1 text-blue-600 hover:text-blue-800" title="Lihat Detail"><Eye size={18}/></button>
                                             <button onClick={() => setItemToEdit(purchase)} className="p-1 text-green-600 hover:text-green-800" title="Edit Data"><Edit size={18}/></button>
                                             <button onClick={() => setItemToDelete(purchase)} className="p-1 text-red-600 hover:text-red-800" title="Hapus Data"><Trash2 size={18}/></button>
-                                        </div>
-                                        <div className="md:hidden relative">
-                                            <button onClick={() => setOpenActionMenuId(openActionMenuId === purchase.id ? null : purchase.id)} className="p-2 rounded-full hover:bg-gray-100"><MoreVertical size={18}/></button>
-                                            {openActionMenuId === purchase.id && (
-                                                <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border">
-                                                    <button onClick={() => {setItemToView(purchase); setOpenActionMenuId(null);}} className="w-full text-left flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><Eye size={14} className="mr-2"/> Lihat Detail</button>
-                                                    <button onClick={() => {setItemToEdit(purchase); setOpenActionMenuId(null);}} className="w-full text-left flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><Edit size={14} className="mr-2"/> Edit Data</button>
-                                                    <button onClick={() => {setItemToDelete(purchase); setOpenActionMenuId(null);}} className="w-full text-left flex items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100"><Trash2 size={14} className="mr-2"/> Hapus Data</button>
-                                                </div>
-                                            )}
                                         </div>
                                     </td>
                                 </tr>
@@ -140,6 +170,44 @@ const PurchasePage = () => {
                         </tbody>
                     </table>
                 </div>
+
+                {/* Tampilan Kartu untuk Mobile */}
+                <div className="md:hidden space-y-4">
+                    {currentPurchases.map(purchase => (
+                        <div key={purchase.id} className="bg-gray-50 p-4 rounded-lg shadow">
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <p className="font-bold text-red-600 text-sm">{purchase.id}</p>
+                                    <p className="text-gray-800 font-semibold">{purchase.supplier}</p>
+                                </div>
+                                <div className="relative">
+                                    <button onClick={() => setOpenActionMenuId(openActionMenuId === purchase.id ? null : purchase.id)} className="p-2 rounded-full hover:bg-gray-200"><MoreVertical size={18}/></button>
+                                    {openActionMenuId === purchase.id && (
+                                        <div className="absolute right-0 mt-2 w-40 bg-white rounded-md shadow-lg z-10 border">
+                                            <button onClick={() => {setItemToView(purchase); setOpenActionMenuId(null);}} className="w-full text-left flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><Eye size={14} className="mr-2"/> Lihat Detail</button>
+                                            <button onClick={() => {setItemToEdit(purchase); setOpenActionMenuId(null);}} className="w-full text-left flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><Edit size={14} className="mr-2"/> Edit Data</button>
+                                            <button onClick={() => {setItemToDelete(purchase); setOpenActionMenuId(null);}} className="w-full text-left flex items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100"><Trash2 size={14} className="mr-2"/> Hapus Data</button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="mt-4 pt-4 border-t flex justify-between items-center">
+                                <div>
+                                    <p className="text-xs text-gray-500">{purchase.date}</p>
+                                    <p className="font-semibold text-gray-700">{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(purchase.total)}</p>
+                                </div>
+                                <StatusBadge status={purchase.status} />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                <Pagination 
+                    totalItems={allPurchasesData.length}
+                    itemsPerPage={itemsPerPage}
+                    currentPage={currentPage}
+                    onPageChange={handlePageChange}
+                />
             </div>
             
             <AddPurchaseModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} />
