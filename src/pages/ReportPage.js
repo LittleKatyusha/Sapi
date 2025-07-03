@@ -1,6 +1,6 @@
 import React from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
-import { Download, TrendingUp, UserCheck, Award, Filter, DollarSign, ShoppingCart } from 'lucide-react';
+import { Download, Filter, Award, UserCheck } from 'lucide-react';
 
 // Data untuk halaman ini
 const topProductsData = [
@@ -22,13 +22,13 @@ const ReportPage = () => (
     <div className="space-y-6">
         {/* Header dan Filter */}
         <div className="bg-white p-4 sm:p-6 rounded-xl shadow-md">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 border-b pb-4">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4">
                 <h2 className="text-2xl font-bold text-gray-800 mb-4 md:mb-0">Pusat Laporan</h2>
-                <div className="flex items-center gap-4">
-                    <div className="flex items-center space-x-2">
-                        <input type="date" className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500" defaultValue="2025-01-01"/>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto">
+                    <div className="flex items-center gap-2">
+                        <input type="date" className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500" defaultValue="2025-01-01"/>
                         <span className="text-gray-500 font-medium">-</span>
-                        <input type="date" className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500" defaultValue="2025-06-28"/>
+                        <input type="date" className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500" defaultValue="2025-06-28"/>
                     </div>
                     <button className="flex items-center justify-center bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors">
                         <Filter size={20} className="mr-2"/> Terapkan
@@ -36,7 +36,7 @@ const ReportPage = () => (
                 </div>
             </div>
              {/* Ringkasan Keuangan */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="bg-red-50 p-4 rounded-lg">
                     <p className="text-sm text-red-700">Total Penjualan</p>
                     <p className="text-2xl font-bold text-red-900">Rp 689 Jt</p>
@@ -57,16 +57,15 @@ const ReportPage = () => (
             {/* Grafik Produk Terlaris */}
             <div className="lg:col-span-3 bg-white p-4 sm:p-6 rounded-xl shadow-md">
                 <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-bold text-gray-700 flex items-center"><Award className="mr-2 text-red-500"/>Produk Terlaris (berdasarkan berat)</h3>
-                    <button className="text-sm flex items-center text-gray-600 hover:text-red-600"><Download size={16} className="mr-1"/> Unduh Grafik</button>
+                    <h3 className="text-lg font-bold text-gray-700 flex items-center"><Award className="mr-2 text-red-500"/>Produk Terlaris</h3>
+                    <button className="text-sm flex items-center text-gray-600 hover:text-red-600"><Download size={16} className="mr-1"/> Unduh</button>
                 </div>
                 <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={topProductsData} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                    <BarChart data={topProductsData} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
                         <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                         <XAxis type="number" unit="kg" tick={{fill: '#6b7280', fontSize: 12}} />
-                        <YAxis type="category" dataKey="name" tick={{fill: '#6b7280', fontSize: 12}} width={100} />
+                        <YAxis type="category" dataKey="name" tick={{fill: '#6b7280', fontSize: 12}} width={90} dx={-5} />
                         <Tooltip cursor={{fill: '#fef2f2'}} contentStyle={{backgroundColor: '#fff', border: '1px solid #ddd', borderRadius: '0.5rem'}}/>
-                        <Legend wrapperStyle={{paddingTop: '10px'}}/>
                         <Bar dataKey="sold" name="Terjual" fill="#ef4444" radius={[0, 4, 4, 0]}/>
                     </BarChart>
                 </ResponsiveContainer>
@@ -76,7 +75,7 @@ const ReportPage = () => (
              <div className="lg:col-span-2 bg-white p-4 sm:p-6 rounded-xl shadow-md">
                 <div className="flex justify-between items-center mb-4">
                     <h3 className="text-lg font-bold text-gray-700 flex items-center"><UserCheck className="mr-2 text-red-500"/>Pelanggan Terbaik</h3>
-                    <button className="text-sm flex items-center text-gray-600 hover:text-red-600"><Download size={16} className="mr-1"/> Unduh Daftar</button>
+                    <button className="text-sm flex items-center text-gray-600 hover:text-red-600"><Download size={16} className="mr-1"/> Unduh</button>
                 </div>
                  <div className="space-y-4">
                     {topCustomersData.map((customer, index) => (
