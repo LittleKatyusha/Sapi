@@ -15,7 +15,7 @@ import ReportPage from './pages/ReportPage';
 import SettingsPage from './pages/SettingsPage';
 import AttendancePage from './pages/AttendancePage';
 import LeaveRequestPage from './pages/LeaveRequestPage';
-import DeliveryOrderPage from './pages/DeliveryOrderPage'; // <-- IMPORT HALAMAN BARU
+import DeliveryOrderPage from './pages/DeliveryOrderPage';
 
 // --- KOMPONEN APLIKASI UTAMA ---
 export default function App() {
@@ -29,7 +29,7 @@ export default function App() {
         case 'pembelian': return <PurchasePage />;
         case 'stok_ternak': return <LivestockStockPage />;
         case 'stok_daging': return <MeatStockPage />;
-        case 'surat_jalan': return <DeliveryOrderPage />; // <-- TAMBAHKAN CASE BARU
+        case 'surat_jalan': return <DeliveryOrderPage />;
         case 'laporan': return <ReportPage />;
         case 'karyawan': return <EmployeePage />;
         case 'absensi': return <AttendancePage />;
@@ -55,7 +55,8 @@ export default function App() {
         setIsSidebarOpen={setIsSidebarOpen} 
       />
       
-      <div className="flex-1 flex flex-col transition-all duration-300 relative">
+      {/* PERBAIKAN: Menambahkan min-w-0 untuk mencegah kontainer melebar */}
+      <div className="flex-1 flex flex-col transition-all duration-300 relative min-w-0">
           <main className="flex-1 p-4 sm:p-6 overflow-y-auto">
               <Header onMenuClick={() => setIsSidebarOpen(true)} />
               {renderContent()}
