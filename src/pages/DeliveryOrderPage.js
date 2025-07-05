@@ -136,6 +136,15 @@ const FilterModal = ({ isOpen, onClose, currentFilters, onApplyFilters }) => {
             <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full m-4 relative animate-fade-in-up">
                 <div className="flex justify-between items-center p-6 border-b"><h2 className="text-xl font-bold text-gray-800">Filter Surat Jalan</h2><button onClick={onClose} className="p-2 rounded-full hover:bg-gray-200 transition-colors"><CloseIcon size={24} className="text-gray-600" /></button></div>
                 <div className="p-6 space-y-4">
+                    <div>
+                        <label className="text-sm font-medium text-gray-700">Jenis</label>
+                        <select name="type" value={localFilters.type} onChange={handleInputChange} className="w-full mt-1 input-field">
+                            <option value="Semua">Semua</option>
+                            <option value="Penjualan">Penjualan</option>
+                            <option value="Pembelian">Pembelian</option>
+                            <option value="Antar Kandang">Antar Kandang</option>
+                        </select>
+                    </div>
                     <div><label className="text-sm font-medium text-gray-700">Asal</label><input type="text" name="origin" value={localFilters.origin} onChange={handleInputChange} placeholder="Cari asal..." className="w-full mt-1 input-field"/></div>
                     <div><label className="text-sm font-medium text-gray-700">Tujuan</label><input type="text" name="destination" value={localFilters.destination} onChange={handleInputChange} placeholder="Cari tujuan..." className="w-full mt-1 input-field"/></div>
                     <div><label className="text-sm font-medium text-gray-700">Status</label><select name="status" value={localFilters.status} onChange={handleInputChange} className="w-full mt-1 input-field"><option>Semua</option><option>Menunggu Persetujuan</option><option>Disetujui</option><option>Dalam Pengantaran</option><option>Selesai</option></select></div>
@@ -150,10 +159,36 @@ const FilterModal = ({ isOpen, onClose, currentFilters, onApplyFilters }) => {
     );
 };
 
-const Pagination = ({ totalItems, itemsPerPage, currentPage, onPageChange }) => {
+const Pagination = ({ totalItems, itemsPerPage, currentPage, onPageChange, onItemsPerPageChange }) => {
     const totalPages = Math.ceil(totalItems / itemsPerPage);
-    if (totalPages <= 1) return null;
-    return ( <div className="flex justify-between items-center mt-6"><span className="text-sm text-gray-700"> Halaman <span className="font-semibold">{currentPage}</span> dari <span className="font-semibold">{totalPages}</span></span><div className="flex space-x-2"><button onClick={() => onPageChange(currentPage - 1)} disabled={currentPage === 1} className="px-3 py-1 border rounded-md bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"><ChevronLeft size={16}/></button><button onClick={() => onPageChange(currentPage + 1)} disabled={currentPage === totalPages} className="px-3 py-1 border rounded-md bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"><ChevronRight size={16}/></button></div></div> );
+    if (totalItems === 0) {
+        return <div className="text-center text-gray-500 py-4">Tidak ada data untuk ditampilkan.</div>;
+    }
+
+    const startItem = (currentPage - 1) * itemsPerPage + 1;
+    const endItem = Math.min(currentPage * itemsPerPage, totalItems);
+
+    return (
+        <div className="flex flex-col sm:flex-row justify-between items-center mt-6 pt-4 border-t">
+            <div className="flex items-center gap-2 text-sm text-gray-700 mb-4 sm:mb-0">
+                <span>Tampilkan</span>
+                <select id="items-per-page" value={itemsPerPage} onChange={(e) => onItemsPerPageChange(Number(e.target.value))} className="border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-1 focus:ring-red-500">
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                </select>
+                <span>entri</span>
+            </div>
+            {totalPages > 1 && (
+                <div className="flex items-center gap-4">
+                    <span className="text-sm text-gray-700">{startItem}-{endItem} dari <span className="font-semibold">{totalItems}</span></span>
+                    <div className="flex space-x-1">
+                        <button onClick={() => onPageChange(currentPage - 1)} disabled={currentPage === 1} className="px-3 py-1 border rounded-md bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"><ChevronLeft size={16}/></button>
+                        <button onClick={() => onPageChange(currentPage + 1)} disabled={currentPage === totalPages} className="px-3 py-1 border rounded-md bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"><ChevronRight size={16}/></button>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
 };
 
 // --- KOMPONEN UTAMA HALAMAN ---
@@ -166,14 +201,14 @@ const DeliveryOrderPage = () => {
     const [itemToDelete, setItemToDelete] = useState(null);
     const [openActionMenuId, setOpenActionMenuId] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 5;
+    const [itemsPerPage, setItemsPerPage] = useState(5);
 
     const [filters, setFilters] = useState({
-        status: 'Semua', origin: '', destination: '', startDate: '', endDate: '',
+        status: 'Semua', origin: '', destination: '', startDate: '', endDate: '', type: 'Semua',
     });
 
     const resetFilters = () => {
-        setFilters({ status: 'Semua', origin: '', destination: '', startDate: '', endDate: '' });
+        setFilters({ status: 'Semua', type: 'Semua', origin: '', destination: '', startDate: '', endDate: '' });
         setCurrentPage(1);
     };
 
@@ -185,9 +220,9 @@ const DeliveryOrderPage = () => {
             if (startDate) startDate.setHours(0,0,0,0);
             if (endDate) endDate.setHours(23,59,59,999);
 
-            // PERBAIKAN: Menggunakan pengecekan yang lebih aman
             return (
                 (filters.status === 'Semua' || order.status === filters.status) &&
+                (filters.type === 'Semua' || order.type === filters.type) &&
                 ((order.origin || '').toLowerCase().includes(filters.origin.toLowerCase())) &&
                 ((order.destination || '').toLowerCase().includes(filters.destination.toLowerCase())) &&
                 (!startDate || orderDate >= startDate) &&
@@ -199,6 +234,11 @@ const DeliveryOrderPage = () => {
     const handleConfirmDelete = () => {
         setOrders(orders.filter(order => order.id !== itemToDelete.id));
         setItemToDelete(null);
+    };
+    
+    const handleItemsPerPageChange = (value) => {
+        setItemsPerPage(value);
+        setCurrentPage(1);
     };
 
     const indexOfLastItem = currentPage * itemsPerPage;
@@ -216,36 +256,35 @@ const DeliveryOrderPage = () => {
                     </div>
                 </div>
                 
-                <div className="overflow-x-auto">
-                    <table className="w-full min-w-max text-sm text-left text-gray-600">
+                <div className="overflow-x-auto min-h-[320px] max-h-[320px]">
+                    <table className="w-full text-sm text-left text-gray-600">
                         <thead className="text-xs text-gray-700 uppercase bg-gray-50">
                             <tr>
-                                <th className="px-6 py-3 whitespace-nowrap">ID Surat Jalan</th>
-                                <th className="px-6 py-3 whitespace-nowrap">Rute Pengiriman</th>
-                                <th className="px-6 py-3 hidden md:table-cell whitespace-nowrap">Tanggal</th>
-                                <th className="px-6 py-3 text-center whitespace-nowrap">Status</th>
-                                <th className="px-6 py-3 text-center whitespace-nowrap">Aksi</th>
+                                <th className="px-6 py-3 sticky left-0 bg-gray-50 z-20 min-w-[180px]">ID Surat Jalan</th>
+                                <th className="px-6 py-3 min-w-[120px]">Jenis</th>
+                                <th className="px-6 py-3 min-w-[150px]">Asal</th>
+                                <th className="px-6 py-3 min-w-[150px]">Tujuan</th>
+                                <th className="px-6 py-3 min-w-[120px]">Tgl Kirim</th>
+                                <th className="px-6 py-3 min-w-[120px]">Tgl Sampai</th>
+                                <th className="px-6 py-3 text-center min-w-[180px]">Status</th>
+                                <th className="px-6 py-3 text-center sticky right-0 bg-gray-50 z-20 min-w-[100px]">Aksi</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody className="bg-white">
                             {currentOrders.map(order => (
-                                <tr key={order.id} className="bg-white border-b hover:bg-gray-50">
-                                    <td className="px-6 py-4 font-medium text-red-600">{order.id}</td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-2">
-                                            <span className="font-semibold text-gray-600">{order.origin}</span>
-                                            <Truck size={14} className="text-gray-400"/>
-                                            <span className="font-semibold text-gray-800">{order.destination}</span>
-                                        </div>
-                                        <div className="text-xs text-gray-500">{order.type}</div>
-                                    </td>
-                                    <td className="px-6 py-4 hidden md:table-cell">{order.date}</td>
+                                <tr key={order.id} className="border-b hover:bg-gray-50 group">
+                                    <td className="px-6 py-4 font-medium text-red-600 sticky left-0 bg-white group-hover:bg-gray-50 z-10 border-r">{order.id}</td>
+                                    <td className="px-6 py-4">{order.type}</td>
+                                    <td className="px-6 py-4">{order.origin}</td>
+                                    <td className="px-6 py-4">{order.destination}</td>
+                                    <td className="px-6 py-4">{order.date}</td>
+                                    <td className="px-6 py-4">{order.completionDate || '-'}</td>
                                     <td className="px-6 py-4 text-center"><DeliveryStatusBadge status={order.status} /></td>
-                                    <td className="px-6 py-4 text-center">
+                                    <td className="px-6 py-4 text-center sticky right-0 bg-white group-hover:bg-gray-50 z-10 border-l">
                                          <div className="relative flex justify-center">
                                             <button onClick={() => setOpenActionMenuId(openActionMenuId === order.id ? null : order.id)} className="p-2 rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-800 transition-colors"><MoreVertical size={18}/></button>
                                             {openActionMenuId === order.id && (
-                                                <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-md shadow-lg z-10 border">
+                                                <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-md shadow-lg z-20 border">
                                                     <button onClick={() => {setItemToView(order); setOpenActionMenuId(null);}} className="w-full text-left flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><Eye size={14} className="mr-2"/> Lihat Detail</button>
                                                     <button onClick={() => {setItemToEdit(order); setOpenActionMenuId(null);}} className="w-full text-left flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><Edit size={14} className="mr-2"/> Edit Data</button>
                                                     <button onClick={() => {setItemToDelete(order); setOpenActionMenuId(null);}} className="w-full text-left flex items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100"><Trash2 size={14} className="mr-2"/> Hapus Data</button>
@@ -260,7 +299,13 @@ const DeliveryOrderPage = () => {
                     </table>
                 </div>
                 
-                <Pagination totalItems={filteredOrders.length} itemsPerPage={itemsPerPage} currentPage={currentPage} onPageChange={setCurrentPage} />
+                <Pagination 
+                    totalItems={filteredOrders.length} 
+                    itemsPerPage={itemsPerPage} 
+                    currentPage={currentPage} 
+                    onPageChange={setCurrentPage}
+                    onItemsPerPageChange={handleItemsPerPageChange}
+                />
             </div>
             
             <AddEditDeliveryOrderModal isOpen={isAddModalOpen || !!itemToEdit} order={itemToEdit} onClose={() => {setIsAddModalOpen(false); setItemToEdit(null);}} />
