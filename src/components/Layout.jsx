@@ -4,7 +4,7 @@ import {
     LayoutDashboard, ShoppingCart, DollarSign, Warehouse, Beef, FileText, Settings,
     Users, X, CalendarCheck, Truck, Home, List, Store, Package, Tag, ChevronDown, Menu
 } from 'lucide-react';
-import MobileBottomNav from './MobileBottomNav'; // Asumsikan komponen ini ada
+// MobileBottomNav import is removed as it's no longer used.
 
 // --- Konfigurasi Menu (Struktur Baru yang Profesional) ---
 const menuConfig = [
@@ -148,7 +148,6 @@ const Layout = ({ children, title = "Dashboard" }) => {
                 }`}
             >
                 <div className="p-5 border-b border-red-700/50">
-                    {/* PERUBAHAN DI SINI: Ikon truk dihapus */}
                     <div className="flex items-center mb-6">
                         <h1 className="text-xl font-bold tracking-tight">
                            CV Puput<span className="text-red-300">Bersaudara</span>
@@ -200,13 +199,12 @@ const Layout = ({ children, title = "Dashboard" }) => {
                     </div>
                 </header>
 
-                <main className="flex-1 p-4 md:p-6 overflow-y-auto pb-20 md:pb-6">
+                {/* PERUBAHAN DI SINI: padding-bottom (pb) disesuaikan */}
+                <main className="flex-1 p-4 md:p-6 overflow-y-auto pb-6">
                     {children}
                 </main>
                 
-                <div className="md:hidden">
-                    <MobileBottomNav />
-                </div>
+                {/* PERUBAHAN DI SINI: MobileBottomNav dihapus */}
             </div>
         </div>
     );
