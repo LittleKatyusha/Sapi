@@ -125,6 +125,22 @@ const Layout = ({ children, title = "Dashboard" }) => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
+    // --- PERUBAHAN DI SINI: Efek untuk mengontrol scroll pada body ---
+    useEffect(() => {
+        if (isSidebarOpen && window.innerWidth < 768) {
+            // Menonaktifkan scroll pada body saat sidebar terbuka di mobile
+            document.body.style.overflow = 'hidden';
+        } else {
+            // Mengaktifkan kembali scroll
+            document.body.style.overflow = 'auto';
+        }
+
+        // Cleanup function untuk memastikan scroll kembali normal saat komponen di-unmount
+        return () => {
+            document.body.style.overflow = 'auto';
+        };
+    }, [isSidebarOpen]);
+
     const handleCloseSidebar = () => {
         if (window.innerWidth < 768) {
             setIsSidebarOpen(false);
@@ -199,12 +215,10 @@ const Layout = ({ children, title = "Dashboard" }) => {
                     </div>
                 </header>
 
-                {/* PERUBAHAN DI SINI: padding-bottom (pb) disesuaikan */}
                 <main className="flex-1 p-4 md:p-6 overflow-y-auto pb-6">
                     {children}
                 </main>
                 
-                {/* PERUBAHAN DI SINI: MobileBottomNav dihapus */}
             </div>
         </div>
     );
