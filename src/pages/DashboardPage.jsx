@@ -16,7 +16,7 @@ const salesData = [
 // --- KOMPONEN UTAMA HALAMAN ---
 const DashboardPage = () => (
     <>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6">
           <StatCard icon={<DollarSign size={24} className="text-red-500"/>} title="Penjualan (Bulan Ini)" value="Rp 345 Jt" change="+12%"/>
           <StatCard icon={<ShoppingCart size={24} className="text-red-500"/>} title="Pembelian (Bulan Ini)" value="Rp 243 Jt" change="+5%"/>
           <StatCard icon={<Warehouse size={24} className="text-red-500"/>} title="Jumlah Ternak" value="152 Ekor" change="+5 ekor"/>
