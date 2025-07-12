@@ -1,7 +1,7 @@
 import React from 'react';
 import { X as CloseIcon } from 'lucide-react';
 import BaseModal from './BaseModal';
-import PurchaseStatusBadge from './PurchaseStatusBadge';
+import PurchaseStatusBadge from '../components/PurchaseStatusBadge';
 
 /**
  * Modal for displaying detailed purchase information

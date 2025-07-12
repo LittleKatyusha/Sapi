@@ -1,242 +1,32 @@
-import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import DataTable from 'react-data-table-component';
 import {
     PlusCircle,
-    Eye,
-    Edit,
-    Trash2,
     MoreVertical,
     RotateCcw,
     Search,
-    Info,
-    PackageCheck,
 } from 'lucide-react';
 
-// ===== PURCHASE COMPONENTS IMPORTS =====
-import {
-    AddEditPurchaseModal,
-    PurchaseDetailModal,
-    DeleteConfirmationModal,
-    PurchaseStatusBadge
-} from './purchase';
-
-// ========================================================================================
-// CUSTOM HOOKS
-// ========================================================================================
-
-/**
- * Custom hook for managing purchase data and operations
- * @param {Array} initialPurchases - Initial purchase data
- * @returns {Object} Purchase operations and state
- */
-const usePurchases = (initialPurchases = []) => {
-    const [purchases, setPurchases] = useState(initialPurchases);
-    const [loading, setLoading] = useState(false);
-
-    const addPurchase = useCallback((newItemData) => {
-        setLoading(true);
-        return new Promise(resolve => {
-            setTimeout(() => {
-                const newItem = {
-                    ...newItemData,
-                    id: `TXN-P-${String(Math.floor(Math.random() * 9000) + 1000)}`,
-                };
-                setPurchases(prev => [newItem, ...prev]);
-                setLoading(false);
-                resolve(newItem);
-            }, 500);
-        });
-    }, []);
-
-    const updatePurchase = useCallback((updatedItemData) => {
-        setLoading(true);
-        return new Promise(resolve => {
-            setTimeout(() => {
-                setPurchases(prev => 
-                    prev.map(item => 
-                        item.id === updatedItemData.id ? updatedItemData : item
-                    )
-                );
-                setLoading(false);
-                resolve(updatedItemData);
-            }, 500);
-        });
-    }, []);
-
-    const deletePurchase = useCallback((purchaseId) => {
-        setLoading(true);
-        return new Promise(resolve => {
-            setTimeout(() => {
-                setPurchases(prev => prev.filter(item => item.id !== purchaseId));
-                setLoading(false);
-                resolve();
-            }, 500);
-        });
-    }, []);
-
-    return { 
-        purchases, 
-        addPurchase, 
-        updatePurchase, 
-        deletePurchase, 
-        loading 
-    };
-};
-
-// ========================================================================================
-// UI COMPONENTS
-// ========================================================================================
-
-const TableSkeletonLoader = ({ rows = 5, cols = 6 }) => (
-    <tbody>
-        {[...Array(rows)].map((_, i) => (
-            <tr key={i} className="border-b">
-                {[...Array(cols)].map((_, j) => (
-                    <td key={j} className="px-6 py-4">
-                        <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
-                    </td>
-                ))}
-            </tr>
-        ))}
-    </tbody>
-);
-
-const EmptyState = ({ onClearFilters }) => (
-    <div className="text-center py-16 px-6">
-        <Search size={48} className="mx-auto text-gray-400 mb-4" />
-        <h3 className="text-lg font-semibold text-gray-800 mb-2">
-            Tidak Ada Transaksi Ditemukan
-        </h3>
-        <p className="text-sm text-gray-500 mb-6">
-            Coba sesuaikan filter Anda atau reset untuk melihat semua data.
-        </p>
-        <button
-            onClick={onClearFilters}
-            className="flex items-center mx-auto bg-red-50 text-red-600 px-4 py-2 rounded-lg hover:bg-red-100 transition-colors text-sm font-semibold"
-        >
-            <RotateCcw size={14} className="mr-2" /> 
-            Reset Filter
-        </button>
-    </div>
-);
-
-const ActionMenu = ({ item, onAction, onClose }) => {
-    const menuRef = useRef(null);
-    const [positionClass, setPositionClass] = useState('top-full mt-2');
-
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            if (menuRef.current) {
-                // Find the nearest scrollable container that might clip the menu
-                let scrollParent = menuRef.current.parentElement;
-                
-                while (scrollParent) {
-                    const style = window.getComputedStyle(scrollParent);
-                    if (style.overflow !== 'visible' && style.overflow !== '') {
-                        break;
-                    }
-                    if (scrollParent.tagName === 'BODY') {
-                        scrollParent = null; 
-                        break;
-                    }
-                    scrollParent = scrollParent.parentElement;
-                }
-
-                const menuRect = menuRef.current.getBoundingClientRect();
-                const containerRect = scrollParent 
-                    ? scrollParent.getBoundingClientRect() 
-                    : { top: 0, bottom: window.innerHeight };
-
-                const isClippedBottom = menuRect.bottom > containerRect.bottom;
-                
-                if (isClippedBottom) {
-                    setPositionClass('bottom-full mb-2');
-                } else {
-                    setPositionClass('top-full mt-2');
-                }
-            }
-        }, 0);
-
-        const handleClickOutside = (event) => {
-            if (menuRef.current && !menuRef.current.contains(event.target)) {
-                onClose();
-            }
-        };
-        
-        document.addEventListener("mousedown", handleClickOutside);
-        
-        return () => {
-            clearTimeout(timer);
-            document.removeEventListener("mousedown", handleClickOutside);
-        };
-    }, [onClose]);
-
-    const actions = [
-        { 
-            label: 'Lihat Detail', 
-            icon: Eye, 
-            action: 'view',
-            className: 'text-gray-700'
-        },
-        { 
-            label: 'Edit Data', 
-            icon: Edit, 
-            action: 'edit',
-            className: 'text-gray-700'
-        },
-        { 
-            label: 'Hapus Data', 
-            icon: Trash2, 
-            action: 'delete', 
-            className: 'text-red-600' 
-        },
-    ];
-
-    return (
-        <div 
-            ref={menuRef} 
-            className={`absolute right-0 ${positionClass} w-48 bg-white rounded-md shadow-lg z-30 border animate-fade-in-up-sm`}
-        >
-            {actions.map(({ label, icon: Icon, action, className }) => (
-                <button
-                    key={action}
-                    onClick={() => { 
-                        onAction(action, item); 
-                        onClose(); 
-                    }}
-                    className={`w-full text-left flex items-center px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${className}`}
-                >
-                    <Icon size={14} className="mr-3" /> 
-                    {label}
-                </button>
-            ))}
-        </div>
-    );
-};
-
-/**
- * Notification component for displaying temporary messages
- * @param {string} message - Message to display
- * @param {string} type - Type of notification (success, info, etc.)
- * @param {function} onDismiss - Callback to dismiss notification
- */
-const Notification = ({ message, type, onDismiss }) => {
-    useEffect(() => {
-        const timer = setTimeout(onDismiss, 3000);
-        return () => clearTimeout(timer);
-    }, [onDismiss]);
-
-    const isSuccess = type === 'success';
-    
-    return (
-        <div className={`fixed top-5 right-5 flex items-center p-4 rounded-lg shadow-lg text-white ${isSuccess ? 'bg-green-500' : 'bg-blue-500'} animate-fade-in-down z-[100]`}>
-            {isSuccess ? <PackageCheck size={20} className="mr-3"/> : <Info size={20} className="mr-3"/>}
-            <span>{message}</span>
-        </div>
-    );
-};
-
-// ===== MAIN COMPONENT =====
+// Import modular components
+import { 
+    PURCHASE_STATUSES, 
+    ACTION_TYPES,
+    NOTIFICATION_TYPES,
+    CURRENCY_CONFIG
+} from './purchase/constants';
+import { usePurchases } from './purchase/hooks';
+import { 
+    PurchaseStatusBadge, 
+    ActionMenu, 
+    TableSkeletonLoader, 
+    EmptyState, 
+    Notification 
+} from './purchase/components';
+import { 
+    AddEditPurchaseModal, 
+    PurchaseDetailModal, 
+    DeleteConfirmationModal 
+} from './purchase/modals';
 
 /**
  * PurchasePage - Main component for managing purchase transactions
@@ -244,7 +34,6 @@ const Notification = ({ message, type, onDismiss }) => {
  */
 const PurchasePage = () => {
     // ===== STATE MANAGEMENT =====
-    const [viewMode, setViewMode] = useState('table'); // 'table' or 'grid'
     const [isMobile, setIsMobile] = useState(false);
     const [modalState, setModalState] = useState({ 
         view: null, 
@@ -254,21 +43,15 @@ const PurchasePage = () => {
     });
     const [openActionMenuId, setOpenActionMenuId] = useState(null);
     const [itemsPerPage, setItemsPerPage] = useState(5);
+    const [currentPage, setCurrentPage] = useState(1);
     const [searchTerm, setSearchTerm] = useState('');
-    const [filters, setFilters] = useState({ status: 'Semua' });
+    const [filters, setFilters] = useState({ status: PURCHASE_STATUSES.ALL });
     const [notification, setNotification] = useState(null);
 
     // ===== RESPONSIVE HANDLING =====
     useEffect(() => {
         const handleResize = () => {
-            const mobile = window.innerWidth < 768;
-            setIsMobile(mobile);
-            // Default to grid view when switching to mobile
-            if (mobile) {
-                setViewMode('grid');
-            } else {
-                setViewMode('table');
-            }
+            setIsMobile(window.innerWidth < 768);
         };
         
         handleResize();
@@ -284,7 +67,7 @@ const PurchasePage = () => {
             date: '2025-06-25', 
             item: '5 Ekor Sapi Brahman', 
             total: 110000000, 
-            status: 'Diterima' 
+            status: PURCHASE_STATUSES.RECEIVED 
         },
         { 
             id: 'TXN-P-8811', 
@@ -292,7 +75,7 @@ const PurchasePage = () => {
             date: '2025-06-24', 
             item: 'Pakan Konsentrat 1 Ton', 
             total: 8500000, 
-            status: 'Diterima' 
+            status: PURCHASE_STATUSES.RECEIVED 
         },
         { 
             id: 'TXN-P-8810', 
@@ -300,7 +83,7 @@ const PurchasePage = () => {
             date: '2025-06-22', 
             item: '2 Ekor Sapi Limousin', 
             total: 45000000, 
-            status: 'Dipesan' 
+            status: PURCHASE_STATUSES.ORDERED 
         },
         { 
             id: 'TXN-P-8809', 
@@ -308,7 +91,7 @@ const PurchasePage = () => {
             date: '2025-06-21', 
             item: 'Vitamin Ternak', 
             total: 1500000, 
-            status: 'Dibatalkan' 
+            status: PURCHASE_STATUSES.CANCELLED 
         },
         { 
             id: 'TXN-P-8808', 
@@ -316,7 +99,7 @@ const PurchasePage = () => {
             date: '2025-06-20', 
             item: '10 Ekor Sapi Simental', 
             total: 220000000, 
-            status: 'Diterima' 
+            status: PURCHASE_STATUSES.RECEIVED 
         },
         { 
             id: 'TXN-P-8807', 
@@ -324,117 +107,197 @@ const PurchasePage = () => {
             date: '2025-06-19', 
             item: 'Dedak Padi 500kg', 
             total: 2500000, 
-            status: 'Diterima' 
+            status: PURCHASE_STATUSES.RECEIVED 
         },
     ], []);
 
     // ===== CUSTOM HOOKS =====
-    const { purchases, addPurchase, updatePurchase, deletePurchase, loading } = usePurchases(initialPurchasesData);
+    const { purchases, addPurchase, updatePurchase, deletePurchase, loading, error } = usePurchases(initialPurchasesData);
 
     // ===== UTILITY FUNCTIONS =====
-    const formatCurrency = (value) => new Intl.NumberFormat('id-ID', { 
+    const formatCurrency = (value) => new Intl.NumberFormat(CURRENCY_CONFIG.LOCALE, { 
         style: 'currency', 
-        currency: 'IDR', 
-        minimumFractionDigits: 0 
+        currency: CURRENCY_CONFIG.CURRENCY, 
+        minimumFractionDigits: CURRENCY_CONFIG.MIN_FRACTION_DIGITS 
     }).format(value);
 
     // ===== DATA FILTERING =====
     const filteredPurchases = useMemo(() => {
-        return purchases.filter(item => {
+        const filtered = purchases.filter(item => {
             const searchMatch = searchTerm === '' || 
                 Object.values(item).some(val => 
                     String(val).toLowerCase().includes(searchTerm.toLowerCase())
                 );
-            const statusMatch = filters.status === 'Semua' || item.status === filters.status;
+            const statusMatch = filters.status === PURCHASE_STATUSES.ALL || item.status === filters.status;
             return searchMatch && statusMatch;
         });
+        
+        // Reset to page 1 when filters change
+        setCurrentPage(1);
+        return filtered;
     }, [purchases, searchTerm, filters]);
 
-    // ===== MOBILE GRID VIEW COMPONENT =====
-    const GridView = () => (
-        <div className="grid grid-cols-1 gap-4">
-            {filteredPurchases.map(item => (
-                <div key={item.id} className="bg-white rounded-lg shadow p-4 border border-gray-200 relative">
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <div className="font-mono font-medium text-red-600">
-                                {item.id}
+    // ===== MOBILE CARD VIEW COMPONENT =====
+    const CardView = () => {
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const endIndex = startIndex + itemsPerPage;
+        const paginatedData = filteredPurchases.slice(startIndex, endIndex);
+        const totalPages = Math.ceil(filteredPurchases.length / itemsPerPage);
+
+        return (
+            <>
+                <div className="space-y-4">
+                    {paginatedData.length === 0 ? (
+                        <EmptyState onClearFilters={resetFilters} />
+                    ) : (
+                        paginatedData.map(item => (
+                            <div key={item.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 relative">
+                                {/* Header dengan ID dan Status */}
+                                <div className="flex justify-between items-start mb-3">
+                                    <div className="flex-1">
+                                        <div className="font-mono font-medium text-red-600 text-sm">
+                                            {item.id}
+                                        </div>
+                                        <div className="font-semibold text-gray-800 mt-1 pr-8">
+                                            {item.supplier}
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <PurchaseStatusBadge status={item.status} />
+                                        <button 
+                                            onClick={() => setOpenActionMenuId(openActionMenuId === item.id ? null : item.id)} 
+                                            className="p-1 rounded-full text-gray-500 hover:bg-gray-100 transition-colors"
+                                            aria-label={`Menu aksi untuk ${item.id}`}
+                                            aria-expanded={openActionMenuId === item.id}
+                                            aria-haspopup="true"
+                                        >
+                                            <MoreVertical size={16}/>
+                                        </button>
+                                        {openActionMenuId === item.id && (
+                                            <ActionMenu 
+                                                item={item} 
+                                                onClose={() => setOpenActionMenuId(null)} 
+                                                onAction={handleAction} 
+                                            />
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Content */}
+                                <div className="space-y-2">
+                                    <div className="text-sm text-gray-600">
+                                        <span className="font-medium">Item:</span> {item.item}
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <div className="text-sm text-gray-500">
+                                            {new Date(item.date).toLocaleDateString('id-ID', {
+                                                day: 'numeric',
+                                                month: 'long',
+                                                year: 'numeric'
+                                            })}
+                                        </div>
+                                        <div className="font-semibold text-gray-800">
+                                            {formatCurrency(item.total)}
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <div className="font-semibold mt-1 pr-12">
-                                {item.supplier}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                                {item.date}
-                            </div>
-                        </div>
-                        <PurchaseStatusBadge status={item.status} />
-                    </div>
-                    
-                    <div className="mt-3">
-                        <div className="text-sm text-gray-700">
-                            {item.item}
-                        </div>
-                        <div className="font-semibold mt-1 text-right">
-                            {formatCurrency(item.total)}
-                        </div>
-                    </div>
-                    
-                    <div className="absolute top-2 right-2">
-                        <button 
-                            onClick={() => setOpenActionMenuId(openActionMenuId === item.id ? null : item.id)} 
-                            className="p-2 rounded-full text-gray-500 hover:bg-gray-200 transition-colors"
-                        >
-                            <MoreVertical size={18}/>
-                        </button>
-                        {openActionMenuId === item.id && (
-                            <ActionMenu 
-                                item={item} 
-                                onClose={() => setOpenActionMenuId(null)} 
-                                onAction={handleAction} 
-                            />
-                        )}
-                    </div>
+                        ))
+                    )}
                 </div>
-            ))}
-        </div>
-    );
+
+                {/* Mobile Pagination */}
+                {totalPages > 1 && (
+                    <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-200">
+                        <div className="text-sm text-gray-600">
+                            Halaman {currentPage} dari {totalPages}
+                        </div>
+                        <div className="flex space-x-2">
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                disabled={currentPage === 1}
+                                className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Prev
+                            </button>
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                disabled={currentPage === totalPages}
+                                className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Next
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </>
+        );
+    };
 
     // ===== EVENT HANDLERS =====
     const handleAction = useCallback((action, item) => {
-        if (action === 'view') setModalState(s => ({ ...s, view: item }));
-        if (action === 'edit') setModalState(s => ({ ...s, edit: item }));
-        if (action === 'delete') setModalState(s => ({ ...s, delete: item }));
+        switch (action) {
+            case ACTION_TYPES.VIEW:
+                setModalState(s => ({ ...s, view: item }));
+                break;
+            case ACTION_TYPES.EDIT:
+                setModalState(s => ({ ...s, edit: item }));
+                break;
+            case ACTION_TYPES.DELETE:
+                setModalState(s => ({ ...s, delete: item }));
+                break;
+            default:
+                break;
+        }
     }, []);
 
     const handleSave = useCallback(async (data) => {
         const isEdit = !!data.id;
-        if (isEdit) {
-            await updatePurchase(data);
+        
+        try {
+            if (isEdit) {
+                await updatePurchase(data);
+                setNotification({ 
+                    type: NOTIFICATION_TYPES.SUCCESS, 
+                    message: 'Transaksi berhasil diperbarui!' 
+                });
+            } else {
+                await addPurchase(data);
+                setNotification({ 
+                    type: NOTIFICATION_TYPES.SUCCESS, 
+                    message: 'Transaksi baru berhasil ditambahkan!' 
+                });
+            }
+            setModalState({ view: null, edit: null, delete: null, add: false });
+        } catch (error) {
             setNotification({ 
-                type: 'success', 
-                message: 'Transaksi berhasil diperbarui!' 
-            });
-        } else {
-            await addPurchase(data);
-            setNotification({ 
-                type: 'success', 
-                message: 'Transaksi baru berhasil ditambahkan!' 
+                type: NOTIFICATION_TYPES.ERROR, 
+                message: 'Terjadi kesalahan saat menyimpan data.' 
             });
         }
     }, [addPurchase, updatePurchase]);
 
     const handleConfirmDelete = useCallback(async (id) => {
-        await deletePurchase(id);
-        setNotification({ 
-            type: 'success', 
-            message: 'Transaksi berhasil dihapus.' 
-        });
+        try {
+            await deletePurchase(id);
+            setNotification({ 
+                type: NOTIFICATION_TYPES.SUCCESS, 
+                message: 'Transaksi berhasil dihapus.' 
+            });
+            setModalState(s => ({ ...s, delete: null }));
+        } catch (error) {
+            setNotification({ 
+                type: NOTIFICATION_TYPES.ERROR, 
+                message: 'Terjadi kesalahan saat menghapus data.' 
+            });
+        }
     }, [deletePurchase]);
     
-    const resetFilters = () => {
+    const resetFilters = useCallback(() => {
         setSearchTerm('');
-        setFilters({ status: 'Semua' });
-    };
+        setFilters({ status: PURCHASE_STATUSES.ALL });
+        setCurrentPage(1);
+    }, []);
 
     // ===== TABLE CONFIGURATION =====
     const columns = [
@@ -482,11 +345,13 @@ const PurchasePage = () => {
             name: 'Aksi', 
             button: true, 
             cell: (row) => (
-                <div className="relative flex justify-center">
-                    <button 
-                        onClick={() => setOpenActionMenuId(openActionMenuId === row.id ? null : row.id)} 
-                        className="p-2 rounded-full text-gray-500 hover:bg-gray-200 transition-colors"
-                    >
+                <div className="relative flex justify-center">                        <button 
+                            onClick={() => setOpenActionMenuId(openActionMenuId === row.id ? null : row.id)} 
+                            className="p-2 rounded-full text-gray-500 hover:bg-gray-200 transition-colors"
+                            aria-label={`Menu aksi untuk ${row.id}`}
+                            aria-expanded={openActionMenuId === row.id}
+                            aria-haspopup="true"
+                        >
                         <MoreVertical size={18}/>
                     </button>
                     {openActionMenuId === row.id && (
@@ -516,6 +381,7 @@ const PurchasePage = () => {
                         setSearchTerm(e.target.value); 
                     }}
                     className="w-full input-field pl-10 text-sm sm:text-base"
+                    aria-label="Pencarian transaksi pembelian"
                 />
             </div>
             <select 
@@ -524,11 +390,12 @@ const PurchasePage = () => {
                     setFilters(f => ({...f, status: e.target.value})); 
                 }} 
                 className="input-field w-full md:w-56 text-sm sm:text-base"
+                aria-label="Filter berdasarkan status"
             >
-                <option value="Semua">Semua Status</option>
-                <option>Dipesan</option>
-                <option>Diterima</option>
-                <option>Dibatalkan</option>
+                <option value={PURCHASE_STATUSES.ALL}>Semua Status</option>
+                <option value={PURCHASE_STATUSES.ORDERED}>Dipesan</option>
+                <option value={PURCHASE_STATUSES.RECEIVED}>Diterima</option>
+                <option value={PURCHASE_STATUSES.CANCELLED}>Dibatalkan</option>
             </select>
             <button 
                 onClick={resetFilters} 
@@ -550,6 +417,13 @@ const PurchasePage = () => {
                     onDismiss={() => setNotification(null)} 
                 />
             )}
+            
+            {/* Error Display */}
+            {error && (
+                <div className="fixed top-5 right-5 bg-red-500 text-white p-4 rounded-lg shadow-lg z-[100]" role="alert">
+                    {error}
+                </div>
+            )}
 
             {/* Main Content */}
             <div className="bg-white p-4 sm:p-6 rounded-xl shadow-lg mx-2 sm:mx-0">
@@ -560,24 +434,6 @@ const PurchasePage = () => {
                     </h2>
                     
                     <div className="flex items-center space-x-2 w-full sm:w-auto">
-                        {/* View Mode Toggle (Desktop Only) */}
-                        {!isMobile && (
-                            <div className="flex bg-gray-100 rounded-lg p-1">
-                                <button 
-                                    onClick={() => setViewMode('table')} 
-                                    className={`px-3 py-1 rounded-md text-sm ${viewMode === 'table' ? 'bg-white shadow' : ''}`}
-                                >
-                                    Tabel
-                                </button>
-                                <button 
-                                    onClick={() => setViewMode('grid')} 
-                                    className={`px-3 py-1 rounded-md text-sm ${viewMode === 'grid' ? 'bg-white shadow' : ''}`}
-                                >
-                                    Grid
-                                </button>
-                            </div>
-                        )}
-
                         {/* Add Button */}
                         <button 
                             onClick={() => setModalState(s => ({ ...s, add: true }))} 
@@ -590,46 +446,96 @@ const PurchasePage = () => {
                 </div>
                 
                 {/* Data Display */}
-                <div className="overflow-x-auto border rounded-lg">
-                    {viewMode === 'grid' && isMobile ? (
-                        <GridView />
+                <div className="border rounded-lg">
+                    {isMobile ? (
+                        <div className="p-4">
+                            {/* Mobile Search and Filter */}
+                            <div className="mb-4">
+                                <div className="space-y-3">
+                                    <div className="relative">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                                        <input
+                                            type="text"
+                                            placeholder="Cari ID, pemasok, item..."
+                                            value={searchTerm}
+                                            onChange={e => setSearchTerm(e.target.value)}
+                                            className="w-full input-field pl-10 text-sm"
+                                            aria-label="Pencarian transaksi pembelian"
+                                        />
+                                    </div>
+                                    <div className="flex space-x-2">
+                                        <select 
+                                            value={filters.status} 
+                                            onChange={e => setFilters(f => ({...f, status: e.target.value}))} 
+                                            className="flex-1 input-field text-sm"
+                                            aria-label="Filter berdasarkan status"
+                                        >
+                                            <option value={PURCHASE_STATUSES.ALL}>Semua Status</option>
+                                            <option value={PURCHASE_STATUSES.ORDERED}>Dipesan</option>
+                                            <option value={PURCHASE_STATUSES.RECEIVED}>Diterima</option>
+                                            <option value={PURCHASE_STATUSES.CANCELLED}>Dibatalkan</option>
+                                        </select>
+                                        <button 
+                                            onClick={resetFilters} 
+                                            title="Reset Filter" 
+                                            className="p-2 bg-gray-100 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-200 transition-colors"
+                                        >
+                                            <RotateCcw size={16} />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {/* Loading State */}
+                            {loading ? (
+                                <div className="space-y-4">
+                                    {[...Array(5)].map((_, i) => (
+                                        <div key={i} className="bg-gray-100 rounded-lg h-24 animate-pulse"></div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <CardView />
+                            )}
+                        </div>
                     ) : (
-                        <DataTable
-                            columns={columns}
-                            data={filteredPurchases}
-                            progressPending={loading}
-                            progressComponent={<TableSkeletonLoader rows={5} cols={6} />}
-                            noDataComponent={<EmptyState onClearFilters={resetFilters} />}
-                            pagination
-                            paginationPerPage={itemsPerPage}
-                            paginationRowsPerPageOptions={[5, 10, 20]}
-                            paginationTotalRows={filteredPurchases.length}
-                            onChangeRowsPerPage={perPage => setItemsPerPage(perPage)}
-                            subHeader
-                            subHeaderComponent={subHeaderComponent}
-                            responsive
-                            customStyles={{
-                                headCells: { 
-                                    style: { 
-                                        backgroundColor: '#f9fafb', 
-                                        fontWeight: '600', 
-                                        textTransform: 'uppercase', 
-                                        fontSize: '0.75rem' 
-                                    } 
-                                },
-                                rows: { 
-                                    style: { 
-                                        minHeight: '60px', 
-                                        overflow: 'visible' 
-                                    } 
-                                },
-                                cells: { 
-                                    style: { 
-                                        overflow: 'visible' 
-                                    } 
-                                }
-                            }}
-                        />
+                        <div className="overflow-x-auto">
+                            <DataTable
+                                columns={columns}
+                                data={filteredPurchases}
+                                progressPending={loading}
+                                progressComponent={<TableSkeletonLoader rows={5} cols={6} />}
+                                noDataComponent={<EmptyState onClearFilters={resetFilters} />}
+                                pagination
+                                paginationPerPage={itemsPerPage}
+                                paginationRowsPerPageOptions={[5, 10, 20]}
+                                paginationTotalRows={filteredPurchases.length}
+                                onChangeRowsPerPage={perPage => setItemsPerPage(perPage)}
+                                subHeader
+                                subHeaderComponent={subHeaderComponent}
+                                responsive
+                                customStyles={{
+                                    headCells: { 
+                                        style: { 
+                                            backgroundColor: '#f9fafb', 
+                                            fontWeight: '600', 
+                                            textTransform: 'uppercase', 
+                                            fontSize: '0.75rem' 
+                                        } 
+                                    },
+                                    rows: { 
+                                        style: { 
+                                            minHeight: '60px', 
+                                            overflow: 'visible' 
+                                        } 
+                                    },
+                                    cells: { 
+                                        style: { 
+                                            overflow: 'visible' 
+                                        } 
+                                    }
+                                }}
+                            />
+                        </div>
                     )}
                 </div>
             </div>
