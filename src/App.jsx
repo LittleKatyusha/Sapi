@@ -2,6 +2,10 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import Layout from './components/Layout';
+import ProtectedRoute from './components/ProtectedRoute';
+
+// Import halaman authentication
+import LoginPage from './pages/LoginPage';
 
 // Import semua halaman
 import DashboardPage from './pages/DashboardPage';
@@ -34,6 +38,7 @@ const AppWrapper = () => (
 
 // Peta Judul Halaman dengan struktur baru
 const pageTitleMap = {
+    '/login': 'Login',
     '/dashboard': 'Dashboard',
     '/sales': 'Penjualan',
     '/purchases': 'Pembelian',
@@ -58,66 +63,97 @@ const pageTitleMap = {
 function App() {
     const location = useLocation();
     const title = pageTitleMap[location.pathname] || 'Dashboard';
+    const isLoginPage = location.pathname === '/login';
+
+    // Jika halaman login, tampilkan tanpa layout
+    if (isLoginPage) {
+        return (
+            <>
+                <style>{`
+                    .input-field {
+                        background-color: #F9FAFB; border: 1px solid #D1D5DB;
+                        padding: 0.5rem 0.75rem; border-radius: 0.5rem;
+                        transition: all 0.2s ease-in-out;
+                    }
+                    .input-field:focus {
+                        outline: none; --tw-ring-color: #F87171;
+                        box-shadow: 0 0 0 2px var(--tw-ring-color);
+                        border-color: #EF4444;
+                    }
+                    @keyframes fade-in-up {
+                        0% { opacity: 0; transform: translateY(20px); }
+                        100% { opacity: 1; transform: translateY(0); }
+                    }
+                    .animate-fade-in-up { animation: fade-in-up 0.3s ease-out; }
+                `}</style>
+                <Routes>
+                    <Route path="/login" element={<LoginPage />} />
+                </Routes>
+            </>
+        );
+    }
 
     return (
-        <Layout title={title}>
-            <style>{`
-                .input-field {
-                    background-color: #F9FAFB; border: 1px solid #D1D5DB;
-                    padding: 0.5rem 0.75rem; border-radius: 0.5rem;
-                    transition: all 0.2s ease-in-out;
-                }
-                .input-field:focus {
-                    outline: none; --tw-ring-color: #F87171;
-                    box-shadow: 0 0 0 2px var(--tw-ring-color);
-                    border-color: #EF4444;
-                }
-                @keyframes fade-in-up {
-                    0% { opacity: 0; transform: translateY(20px); }
-                    100% { opacity: 1; transform: translateY(0); }
-                }
-                .animate-fade-in-up { animation: fade-in-up 0.3s ease-out; }
-            `}</style>
+        <ProtectedRoute>
+            <Layout title={title}>
+                <style>{`
+                    .input-field {
+                        background-color: #F9FAFB; border: 1px solid #D1D5DB;
+                        padding: 0.5rem 0.75rem; border-radius: 0.5rem;
+                        transition: all 0.2s ease-in-out;
+                    }
+                    .input-field:focus {
+                        outline: none; --tw-ring-color: #F87171;
+                        box-shadow: 0 0 0 2px var(--tw-ring-color);
+                        border-color: #EF4444;
+                    }
+                    @keyframes fade-in-up {
+                        0% { opacity: 0; transform: translateY(20px); }
+                        100% { opacity: 1; transform: translateY(0); }
+                    }
+                    .animate-fade-in-up { animation: fade-in-up 0.3s ease-out; }
+                `}</style>
 
-            <Routes>
-                {/* Rute Utama */}
-                <Route path="/" element={<DashboardPage />} />
-                <Route path="/dashboard" element={<DashboardPage />} />
-                
-                {/* Rute Operasional */}
-                <Route path="/sales" element={<SalesPage />} />
-                <Route path="/purchases" element={<PurchasePage />} />
-                <Route path="/delivery-orders" element={<DeliveryOrderPage />} />
-                
-                {/* Rute Inventaris */}
-                <Route path="/inventory/livestock" element={<LivestockStockPage />} />
-                <Route path="/inventory/meat" element={<MeatStockPage />} />
-                
-                {/* Rute Laporan */}
-                <Route path="/reports" element={<ReportPage />} />
+                <Routes>
+                    {/* Rute Utama */}
+                    <Route path="/" element={<DashboardPage />} />
+                    <Route path="/dashboard" element={<DashboardPage />} />
+                    
+                    {/* Rute Operasional */}
+                    <Route path="/sales" element={<SalesPage />} />
+                    <Route path="/purchases" element={<PurchasePage />} />
+                    <Route path="/delivery-orders" element={<DeliveryOrderPage />} />
+                    
+                    {/* Rute Inventaris */}
+                    <Route path="/inventory/livestock" element={<LivestockStockPage />} />
+                    <Route path="/inventory/meat" element={<MeatStockPage />} />
+                    
+                    {/* Rute Laporan */}
+                    <Route path="/reports" element={<ReportPage />} />
 
-                {/* Rute SDM */}
-                <Route path="/hr/employees" element={<EmployeePage />} />
-                <Route path="/hr/attendance" element={<AttendancePage />} />
-                <Route path="/hr/leave-requests" element={<LeaveRequestPage />} />
+                    {/* Rute SDM */}
+                    <Route path="/hr/employees" element={<EmployeePage />} />
+                    <Route path="/hr/attendance" element={<AttendancePage />} />
+                    <Route path="/hr/leave-requests" element={<LeaveRequestPage />} />
 
-                {/* Rute Pengaturan */}
-                <Route path="/settings" element={<SettingsPage />} />
+                    {/* Rute Pengaturan */}
+                    <Route path="/settings" element={<SettingsPage />} />
 
-                {/* Rute Data Master */}
-                <Route path="/master-data/kandang-office" element={<KandangOfficePage />} />
-                <Route path="/master-data/jenis-hewan" element={<JenisHewanPage />} />
-                <Route path="/master-data/klasifikasi-hewan" element={<KlasifikasiHewanPage />} />
-                <Route path="/master-data/supplier" element={<SupplierPage />} />
-                <Route path="/master-data/pelanggan" element={<PelangganPage />} />
-                <Route path="/master-data/outlet" element={<OutletPage />} />
-                <Route path="/master-data/produk-gds" element={<ProdukGDSPage />} />
-                <Route path="/master-data/eartag" element={<EartagPage />} />
+                    {/* Rute Data Master */}
+                    <Route path="/master-data/kandang-office" element={<KandangOfficePage />} />
+                    <Route path="/master-data/jenis-hewan" element={<JenisHewanPage />} />
+                    <Route path="/master-data/klasifikasi-hewan" element={<KlasifikasiHewanPage />} />
+                    <Route path="/master-data/supplier" element={<SupplierPage />} />
+                    <Route path="/master-data/pelanggan" element={<PelangganPage />} />
+                    <Route path="/master-data/outlet" element={<OutletPage />} />
+                    <Route path="/master-data/produk-gds" element={<ProdukGDSPage />} />
+                    <Route path="/master-data/eartag" element={<EartagPage />} />
 
-                {/* Rute Fallback */}
-                <Route path="*" element={<DashboardPage />} />
-            </Routes>
-        </Layout>
+                    {/* Rute Fallback */}
+                    <Route path="*" element={<DashboardPage />} />
+                </Routes>
+            </Layout>
+        </ProtectedRoute>
     );
 }
 
