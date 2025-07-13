@@ -1,244 +1,294 @@
-import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import DataTable from 'react-data-table-component';
-import { PlusCircle, Search, Edit, Trash2, X, MoreVertical } from 'lucide-react';
+import React, { useState, useMemo, useCallback } from "react";
+import DataTable from "react-data-table-component";
+import { PlusCircle, Search, LayoutGrid, List } from "lucide-react";
+import ActionButton from "./eartag/components/ActionButton";
 
-// --- DATA & LOGIC HOOK ---
-// Custom hook untuk mengelola data Jenis Hewan
-const useAnimalTypes = (initialData = []) => {
-    const [animalTypes, setAnimalTypes] = useState(initialData);
-    const [loading, setLoading] = useState(false);
+// Komponen dan hooks terpisah
+import CardView from "./jenisHewan/components/CardView";
+import AddEditJenisHewanModal from "./jenisHewan/modals/AddEditJenisHewanModal";
+import JenisHewanDetailModal from "./jenisHewan/modals/JenisHewanDetailModal";
+import DeleteConfirmationModal from "./jenisHewan/modals/DeleteConfirmationModal";
+import useJenisHewan from "./jenisHewan/hooks/useJenisHewan";
+import customTableStyles from "./jenisHewan/constants/tableStyles";
 
-    const simulateApiCall = (action) => {
-        setLoading(true);
-        return new Promise(resolve => {
-            setTimeout(() => {
-                action();
-                setLoading(false);
-                resolve();
-            }, 500);
-        });
-    };
-
-    const addAnimalType = useCallback(async (newItemData) => {
-        await simulateApiCall(() => {
-            const newItem = {
-                ...newItemData,
-                id: `JH-${String(Math.floor(Math.random() * 9000) + 1000)}`,
-            };
-            setAnimalTypes(prev => [newItem, ...prev]);
-        });
-    }, []);
-
-    const updateAnimalType = useCallback(async (updatedItemData) => {
-        await simulateApiCall(() => {
-            setAnimalTypes(prev => 
-                prev.map(item => item.id === updatedItemData.id ? updatedItemData : item)
-            );
-        });
-    }, []);
-
-    const deleteAnimalType = useCallback(async (itemId) => {
-        await simulateApiCall(() => {
-            setAnimalTypes(prev => prev.filter(item => item.id !== itemId));
-        });
-    }, []);
-
-    return { animalTypes, loading, addAnimalType, updateAnimalType, deleteAnimalType };
-};
-
-
-// --- UI COMPONENTS ---
-
-const ActionMenu = ({ row, onEdit, onDelete, onClose }) => {
-    const menuRef = useRef(null);
-
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (menuRef.current && !menuRef.current.contains(event.target)) {
-                onClose();
-            }
-        };
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, [onClose]);
-
-    return (
-        <div ref={menuRef} className="absolute right-0 top-full mt-2 w-40 bg-white rounded-md shadow-lg z-20 border">
-            <button onClick={() => { onEdit(row); onClose(); }} className="w-full text-left flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                <Edit size={14} className="mr-3" /> Edit
-            </button>
-            <button onClick={() => { onDelete(row); onClose(); }} className="w-full text-left flex items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100">
-                <Trash2 size={14} className="mr-3" /> Hapus
-            </button>
-        </div>
-    );
-};
-
-const AddEditModal = ({ item, onClose, onSave, loading }) => {
-    const [formData, setFormData] = useState(
-        item || { name: '' }
-    );
-    const isEditMode = !!item;
-
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
-    };
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        if (loading) return;
-        onSave(formData);
-    };
-
-    return (
-        <div className="fixed inset-0 bg-black/60 flex justify-center items-center z-50 p-4 animate-fade-in-up">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
-                <form onSubmit={handleSubmit}>
-                    <div className="flex justify-between items-center p-6 border-b">
-                        <h3 className="text-xl font-bold text-gray-800">{isEditMode ? 'Edit Jenis Hewan' : 'Tambah Jenis Hewan'}</h3>
-                        <button type="button" onClick={onClose} className="p-2 rounded-full hover:bg-gray-100"><X size={24} className="text-gray-600" /></button>
-                    </div>
-                    <div className="p-6 space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Nama Jenis Hewan</label>
-                            <input type="text" name="name" value={formData.name} onChange={handleChange} className="input-field w-full" placeholder="Contoh: Sapi" required />
-                        </div>
-                    </div>
-                    <div className="flex justify-end p-4 bg-gray-50 border-t rounded-b-xl">
-                        <button type="button" onClick={onClose} disabled={loading} className="px-5 py-2 mr-2 text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-lg disabled:opacity-50">Batal</button>
-                        <button type="submit" disabled={loading} className="px-5 py-2 text-white bg-red-600 hover:bg-red-700 rounded-lg disabled:opacity-75 w-36 text-center">
-                            {loading ? 'Menyimpan...' : (isEditMode ? 'Simpan' : 'Tambah')}
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    );
-};
-
-const CardView = ({ data, onEdit, onDelete, openMenuId, setOpenMenuId }) => (
-    <div className="space-y-4">
-        {data.map(item => (
-            <div key={item.id} className="bg-white p-4 rounded-lg shadow border border-gray-200">
-                <div className="flex justify-between items-start">
-                    <p className="font-semibold text-gray-800">{item.name}</p>
-                    <div className="relative">
-                        <button onClick={() => setOpenMenuId(openMenuId === item.id ? null : item.id)} className="p-2 text-gray-500 hover:bg-gray-200 rounded-full">
-                            <MoreVertical size={18} />
-                        </button>
-                        {openMenuId === item.id && (
-                            <ActionMenu row={item} onEdit={onEdit} onDelete={onDelete} onClose={() => setOpenMenuId(null)} />
-                        )}
-                    </div>
-                </div>
-                <p className="text-sm text-gray-500 font-mono mt-1">{item.id}</p>
-            </div>
-        ))}
-    </div>
-);
-
-
-// --- MAIN PAGE COMPONENT ---
+// Main Page
 const JenisHewanPage = () => {
-    const initialData = useMemo(() => [
-        { id: 'JH-001', name: 'Sapi' },
-        { id: 'JH-002', name: 'Domba' },
-        { id: 'JH-003', name: 'Kambing' },
-    ], []);
+  // State
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [editData, setEditData] = useState(null);
+  const [detailData, setDetailData] = useState(null);
+  const [deleteData, setDeleteData] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const [viewMode, setViewMode] = useState("table");
 
-    const { animalTypes, loading, addAnimalType, updateAnimalType, deleteAnimalType } = useAnimalTypes(initialData);
-    
-    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [modalState, setModalState] = useState({ isOpen: false, item: null });
-    const [openMenuId, setOpenMenuId] = useState(null);
+  // Custom hook
+  const {
+    jenisHewan,
+    loading,
+    addJenisHewan,
+    updateJenisHewan,
+    deleteJenisHewan,
+    searchTerm,
+    setSearchTerm,
+    filterNama,
+    setFilterNama,
+    stats,
+  } = useJenisHewan();
 
-    useEffect(() => {
-        const handleResize = () => setIsMobile(window.innerWidth < 768);
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
+  // Event handlers
+  const handleAdd = useCallback(() => {
+    setEditData(null);
+    setShowAddModal(true);
+  }, []);
 
-    const filteredData = useMemo(() => 
-        animalTypes.filter(item =>
-            item.name.toLowerCase().includes(searchTerm.toLowerCase())
-        ), [animalTypes, searchTerm]
-    );
+  const handleEdit = useCallback((item) => {
+    setEditData(item);
+    setShowEditModal(true);
+  }, []);
 
-    const handleSave = useCallback(async (formData) => {
-        if (formData.id) {
-            await updateAnimalType(formData);
-        } else {
-            await addAnimalType(formData);
-        }
-        setModalState({ isOpen: false, item: null });
-    }, [addAnimalType, updateAnimalType]);
+  const handleDetail = useCallback((item) => {
+    setDetailData(item);
+    setShowDetailModal(true);
+  }, []);
 
-    const handleDelete = useCallback(async (item) => {
-        if (window.confirm(`Yakin ingin menghapus "${item.name}"?`)) {
-            await deleteAnimalType(item.id);
-        }
-    }, [deleteAnimalType]);
+  const handleDelete = useCallback((item) => {
+    setDeleteData(item);
+  }, []);
 
-    const columns = useMemo(() => [
-        { name: 'ID', selector: row => row.id, sortable: true, width: '150px', cell: row => <span className="font-mono">{row.id}</span> },
-        { name: 'Nama Jenis Hewan', selector: row => row.name, sortable: true, style: { fontWeight: 600 }, grow: 2 },
-        {
-            name: 'Aksi',
-            cell: (row) => (
-                <div className="relative">
-                    <button onClick={() => setOpenMenuId(openMenuId === row.id ? null : row.id)} className="p-2 text-gray-500 hover:bg-gray-200 rounded-full" aria-label="Aksi">
-                        <MoreVertical size={18} />
-                    </button>
-                    {openMenuId === row.id && (
-                        <ActionMenu row={row} onEdit={() => setModalState({ isOpen: true, item: row })} onDelete={handleDelete} onClose={() => setOpenMenuId(null)} />
-                    )}
-                </div>
-            ),
-            ignoreRowClick: true, allowOverflow: true, button: true, center: true,
-        },
-    ], [handleDelete, openMenuId]);
+  const handleConfirmDelete = useCallback(async () => {
+    if (!deleteData) return;
+    setIsDeleting(true);
+    await deleteJenisHewan(deleteData.id);
+    setIsDeleting(false);
+    setDeleteData(null);
+  }, [deleteData, deleteJenisHewan]);
 
-    return (
-        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-lg">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-800 mb-4 sm:mb-0">Manajemen Jenis Hewan</h2>
-                <button onClick={() => setModalState({ isOpen: true, item: null })} className="flex items-center bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors shadow-sm w-full sm:w-auto justify-center">
-                    <PlusCircle size={20} className="mr-2" />
-                    <span>Tambah Jenis Hewan</span>
-                </button>
-            </div>
+  const handleSave = useCallback(async (formData) => {
+    if (formData.id) {
+      await updateJenisHewan(formData);
+    } else {
+      await addJenisHewan(formData);
+    }
+    setShowAddModal(false);
+    setShowEditModal(false);
+    setEditData(null);
+  }, [addJenisHewan, updateJenisHewan]);
 
-            <div className="mb-4">
-                <div className="w-full max-w-xs">
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                        <input type="text" placeholder="Cari jenis hewan..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full input-field pl-10" />
-                    </div>
-                </div>
-            </div>
-
-            {isMobile ? (
-                <CardView data={filteredData} onEdit={(item) => setModalState({ isOpen: true, item })} onDelete={handleDelete} openMenuId={openMenuId} setOpenMenuId={setOpenMenuId} />
-            ) : (
-                <DataTable
-                    columns={columns}
-                    data={filteredData}
-                    progressPending={loading}
-                    pagination
-                    paginationPerPage={10}
-                    paginationRowsPerPageOptions={[10, 20, 50]}
-                    customStyles={{ headCells: { style: { backgroundColor: '#f9fafb', fontWeight: '600', textTransform: 'uppercase', fontSize: '0.75rem' }}}}
-                    noDataComponent={<div className="py-10 text-center text-gray-500">Tidak ada data untuk ditampilkan.</div>}
-                />
-            )}
-
-            {modalState.isOpen && (
-                <AddEditModal item={modalState.item} onClose={() => setModalState({ isOpen: false, item: null })} onSave={handleSave} loading={loading} />
-            )}
+  // Table columns (kolom aksi di pojok kanan, dummy di tengah)
+  const columns = useMemo(() => [
+    {
+      name: "ID Jenis",
+      selector: row => row.id,
+      sortable: true,
+      cell: row => (
+        <div className="font-mono font-bold text-gray-800 text-sm">
+          {row.id}
         </div>
-    );
+      )
+    },
+    {
+      name: "Nama Jenis Hewan",
+      selector: row => row.name,
+      cell: row => (
+        <span className="text-sm text-gray-700 bg-gray-100 px-3 py-1 rounded-full">
+          {row.name}
+        </span>
+      )
+    },
+    {
+      name: "Aksi",
+      cell: row => (
+        <div style={{ position: "relative", right: 0, background: "#fff", zIndex: 10, overflow: "hidden" }}>
+          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", width: "100%" }}>
+            <ActionButton
+              row={row}
+              openMenuId={openMenuId}
+              setOpenMenuId={setOpenMenuId}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onDetail={handleDetail}
+              isActive={openMenuId === row.id}
+              usePortal={true}
+            />
+          </div>
+        </div>
+      ),
+      ignoreRowClick: true,
+      allowOverflow: true,
+      center: true
+    }
+  ], [openMenuId, handleEdit, handleDelete, handleDetail]);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-2 sm:p-4 md:p-6">
+      <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
+        {/* Header Section */}
+        <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-xl border border-gray-100">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-1 sm:mb-2">
+                Manajemen Jenis Hewan
+              </h1>
+              <p className="text-gray-600 text-sm sm:text-base">
+                Kelola daftar jenis hewan ternak dengan mudah
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row sm:gap-4">
+              <button
+                onClick={handleAdd}
+                className="bg-gradient-to-r from-red-500 to-rose-600 text-white px-4 py-2 sm:px-6 sm:py-3 rounded-xl sm:rounded-2xl hover:from-red-600 hover:to-rose-700 transition-all duration-300 flex items-center gap-2 font-medium shadow-lg hover:shadow-xl text-sm sm:text-base"
+              >
+                <PlusCircle className="w-5 h-5" />
+                Tambah Jenis Hewan
+              </button>
+            </div>
+          </div>
+        </div>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4 md:gap-6">
+          <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg">
+            <h3 className="text-xs sm:text-sm font-medium opacity-90">Total Jenis Hewan</h3>
+            <p className="text-xl sm:text-3xl font-bold">{stats.total}</p>
+          </div>
+          <div className="bg-gradient-to-br from-green-500 to-emerald-600 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg">
+            <h3 className="text-xs sm:text-sm font-medium opacity-90">Sapi</h3>
+            <p className="text-xl sm:text-3xl font-bold">{stats.sapi}</p>
+          </div>
+          <div className="bg-gradient-to-br from-orange-500 to-amber-600 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg">
+            <h3 className="text-xs sm:text-sm font-medium opacity-90">Domba</h3>
+            <p className="text-xl sm:text-3xl font-bold">{stats.domba}</p>
+          </div>
+          <div className="bg-gradient-to-br from-red-500 to-rose-600 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg">
+            <h3 className="text-xs sm:text-sm font-medium opacity-90">Kambing</h3>
+            <p className="text-xl sm:text-3xl font-bold">{stats.kambing}</p>
+          </div>
+        </div>
+        {/* Filters and Search */}
+        <div className="bg-white rounded-2xl p-3 sm:p-6 shadow-lg border border-gray-100">
+          <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 sm:items-center sm:justify-between">
+            <div className="relative flex-1 max-w-full sm:max-w-md">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Cari jenis hewan..."
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                className="w-full pl-12 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors duration-200 text-sm sm:text-base"
+              />
+            </div>
+            <div className="flex flex-wrap gap-2 sm:gap-3">
+              <select
+                value={filterNama}
+                onChange={e => setFilterNama(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 text-xs sm:text-sm"
+              >
+                <option value="all">Semua Jenis</option>
+                <option value="sapi">Sapi</option>
+                <option value="domba">Domba</option>
+                <option value="kambing">Kambing</option>
+              </select>
+              <div className="flex bg-gray-100 rounded-xl p-1">
+                <button
+                  onClick={() => setViewMode("table")}
+                  className={`px-2.5 py-2 rounded-lg transition-colors duration-200 text-xs sm:text-base ${
+                    viewMode === "table"
+                      ? "bg-white text-red-600 shadow-sm"
+                      : "text-gray-600 hover:text-red-600"
+                  }`}
+                >
+                  <List className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode("card")}
+                  className={`px-2.5 py-2 rounded-lg transition-colors duration-200 text-xs sm:text-base ${
+                    viewMode === "card"
+                      ? "bg-white text-red-600 shadow-sm"
+                      : "text-gray-600 hover:text-red-600"
+                  }`}
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        {/* Data Display */}
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-x-auto">
+          <div>
+            {viewMode === "table" ? (
+              <div className="w-full min-w-[600px]">
+                <DataTable
+                  columns={columns}
+                  data={jenisHewan}
+                  pagination
+                  paginationPerPage={10}
+                  paginationRowsPerPageOptions={[5, 10, 15, 20]}
+                  customStyles={customTableStyles}
+                  noDataComponent={
+                    <div className="text-center py-12">
+                      <p className="text-gray-500 text-lg">Tidak ada data jenis hewan ditemukan</p>
+                    </div>
+                  }
+                  progressPending={loading}
+                  responsive
+                  highlightOnHover={true}
+                  pointerOnHover={true}
+                  tableLayout="auto"
+                  style={{ width: '100%' }}
+                />
+              </div>
+            ) : (
+              <div className="p-2 sm:p-6">
+                <CardView
+                  data={jenisHewan}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  onDetail={handleDetail}
+                  openMenuId={openMenuId}
+                  setOpenMenuId={setOpenMenuId}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+        {/* Modals */}
+        {(showAddModal || showEditModal) && (
+          <AddEditJenisHewanModal
+            item={editData}
+            onClose={() => {
+              setShowAddModal(false);
+              setShowEditModal(false);
+              setEditData(null);
+            }}
+            onSave={handleSave}
+            loading={loading}
+          />
+        )}
+        <JenisHewanDetailModal
+          isOpen={showDetailModal}
+          onClose={() => {
+            setShowDetailModal(false);
+            setDetailData(null);
+          }}
+          data={detailData}
+        />
+        <DeleteConfirmationModal
+          isOpen={!!deleteData}
+          onClose={() => {
+            setDeleteData(null);
+            setIsDeleting(false);
+          }}
+          onConfirm={handleConfirmDelete}
+          title={`Hapus Jenis Hewan "${deleteData?.name || ""}"?`}
+          description="Tindakan ini akan menghapus jenis hewan secara permanen dan tidak dapat dibatalkan."
+          loading={isDeleting}
+        />
+      </div>
+    </div>
+  );
 };
 
 export default JenisHewanPage;
