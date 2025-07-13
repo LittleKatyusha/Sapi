@@ -66,18 +66,33 @@ const LoginPage = () => {
     setError('');
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Mock successful login
-      if (formData.email === 'admin@example.com' && formData.password === 'password') {
+      // Request ke backend untuk login
+      const response = await fetch('https://puput-api.ternasys.com/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+          captcha: captchaToken
+        })
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.token) {
+        // Simpan token ke localStorage (tidak menyimpan PID)
+        localStorage.setItem('token', result.token);
         localStorage.setItem('isAuthenticated', 'true');
+        
+        // Redirect ke dashboard
         navigate('/dashboard');
       } else {
-        setError('Invalid email or password');
+        setError(result.message || 'Email atau password salah');
       }
     } catch (err) {
-      setError('An error occurred. Please try again.');
+      setError('Terjadi kesalahan koneksi. Silakan coba lagi.');
     } finally {
       setIsLoading(false);
     }
