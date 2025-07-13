@@ -87,7 +87,6 @@ const EartagPage = () => {
             name: 'ID Eartag',
             selector: row => row.id,
             sortable: true,
-            width: '180px',
             cell: row => (
                 <div className="font-mono font-bold text-gray-800 text-sm">
                     {row.id}
@@ -98,7 +97,6 @@ const EartagPage = () => {
             name: 'Jenis Hewan',
             selector: row => row.jenisHewan,
             sortable: true,
-            width: '160px',
             cell: row => (
                 <span className="text-sm text-gray-700 bg-gray-100 px-3 py-1 rounded-full">
                     {row.jenisHewan}
@@ -109,14 +107,12 @@ const EartagPage = () => {
             name: 'Status',
             selector: row => row.status,
             sortable: true,
-            width: '140px',
             cell: row => <StatusBadge status={row.status} />
         },
         {
             name: 'Tanggal Pemasangan',
             selector: row => row.tanggalPemasangan,
             sortable: true,
-            width: '220px',
             cell: row => (
                 <span className="text-sm text-gray-600">
                     {row.tanggalPemasangan || (
@@ -129,9 +125,8 @@ const EartagPage = () => {
         },
         {
             name: 'Aksi',
-            width: '120px',
             cell: row => (
-                <div className="sticky right-0 bg-white z-10">
+                <div className="sticky bg-white z-10 flex items-center justify-center" style={{ maxWidth: 60, minWidth: 40 }}>
                     <ActionButton
                         row={row}
                         openMenuId={openMenuId}
@@ -264,7 +259,7 @@ const EartagPage = () => {
                 </div>
 
                 {/* Data Display */}
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 relative overflow-x-auto">
+                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 relative overflow-x-auto flex flex-col min-h-[400px]">
                     {/* Overlay anti-hover row, hanya muncul saat menu aktif */}
                     {openMenuId && viewMode === 'table' && (
                         <div
@@ -272,30 +267,66 @@ const EartagPage = () => {
                             style={{cursor: 'default'}}
                         />
                     )}
-                    <div>
+                    <div className="flex-1 flex flex-col">
                         {viewMode === 'table' ? (
-                            <div className={`w-full overflow-x-auto ${openMenuId ? 'pointer-events-none' : ''}`}>
-                                <div className="min-w-[340px] sm:min-w-0">
-                                    <DataTable
-                                        columns={columns}
-                                        data={filteredData}
-                                        pagination
-                                        paginationPerPage={10}
-                                        paginationRowsPerPageOptions={[5, 10, 15, 20]}
-                                        customStyles={customTableStyles}
-                                        noDataComponent={
-                                            <div className="text-center py-12">
-                                                <p className="text-gray-500 text-lg">Tidak ada data eartag ditemukan</p>
-                                            </div>
-                                        }
-                                        responsive
-                                        highlightOnHover={true}
-                                        pointerOnHover={true}
-                                    />
+                            <div className={`w-full h-full overflow-x-auto ${openMenuId ? 'pointer-events-none' : ''} flex-1 flex flex-col`}>
+                                <div className="min-w-[340px] sm:min-w-0 h-full flex-1 flex flex-col">
+                                    <div className="w-full" style={{display: 'flex', flexDirection: 'column', height: '100%'}}>
+                                        <DataTable
+                                            columns={columns}
+                                            data={filteredData}
+                                            pagination
+                                            paginationPerPage={10}
+                                            paginationRowsPerPageOptions={[5, 10, 15, 20]}
+                                            style={{ width: '100%' }}
+                                            customStyles={{
+                                                ...customTableStyles,
+                                                table: {
+                                                    style: {
+                                                        minHeight: '100%',
+                                                        height: '100%',
+                                                        width: '100%',
+                                                        display: 'flex',
+                                                        flexDirection: 'column',
+                                                    }
+                                                },
+                                                headRow: {
+                                                    style: {
+                                                        flex: '0 0 auto',
+                                                    }
+                                                },
+                                                body: {
+                                                    style: {
+                                                        flex: '1 1 auto',
+                                                        minHeight: '250px',
+                                                        display: 'flex',
+                                                        flexDirection: 'column',
+                                                        justifyContent: 'stretch',
+                                                        width: '100%',
+                                                    }
+                                                },
+                                                rows: {
+                                                    style: {
+                                                        minHeight: '48px',
+                                                        flex: '1 0 auto',
+                                                        width: '100%',
+                                                    }
+                                                },
+                                            }}
+                                            noDataComponent={
+                                                <div className="text-center py-12">
+                                                    <p className="text-gray-500 text-lg">Tidak ada data eartag ditemukan</p>
+                                                </div>
+                                            }
+                                            responsive
+                                            highlightOnHover={true}
+                                            pointerOnHover={true}
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         ) : (
-                            <div className="p-2 sm:p-6">
+                            <div className="p-2 sm:p-6 flex-1 flex flex-col">
                                 <CardView
                                     data={filteredData}
                                     onEdit={handleEdit}

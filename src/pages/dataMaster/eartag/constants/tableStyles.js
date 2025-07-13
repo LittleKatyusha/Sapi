@@ -5,9 +5,12 @@ const customTableStyles = {
             backgroundColor: '#fff',
             borderRadius: '18px',
             boxShadow: '0 6px 24px rgba(0,0,0,0.07)',
-            minWidth: '900px',
             width: '100%',
-            overflowX: 'visible',
+            maxWidth: '100%',
+            overflowX: 'auto',
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
         }
     },
     headRow: {
@@ -16,20 +19,21 @@ const customTableStyles = {
             borderRadius: '18px 18px 0 0',
             borderBottom: '2px solid #e2e8f0',
             minHeight: '62px',
+            flex: '0 0 auto',
         }
     },
     headCells: {
         style: {
-            fontSize: '15px',
+            fontSize: '14px',
             fontWeight: '700',
             color: '#334155',
-            paddingLeft: '18px',
-            paddingRight: '18px',
-            minWidth: '90px',
+            paddingLeft: '12px',
             letterSpacing: '0.03em',
             background: 'transparent',
             borderRight: '1px solid #e2e8f0',
             overflow: 'visible',
+            whiteSpace: 'normal',
+            wordBreak: 'break-word',
         }
     },
     rows: {
@@ -39,6 +43,7 @@ const customTableStyles = {
             transition: 'all 0.18s cubic-bezier(.4,2,.3,1)',
             overflow: 'visible',
             background: 'linear-gradient(90deg, #fff 0%, #f8fafc 100%)',
+            flex: '1 0 auto',
             '&.active-row, &.active-row:hover': {
                 backgroundColor: '#e0e7ff',
             },
@@ -51,13 +56,13 @@ const customTableStyles = {
     },
     cells: {
         style: {
-            paddingLeft: '18px',
-            paddingRight: '18px',
-            fontSize: '15px',
-            minWidth: '90px',
+            paddingLeft: '12px',
+            fontSize: '14px',
             color: '#475569',
             overflow: 'visible',
             borderRight: '1px solid #f1f5f9',
+            whiteSpace: 'normal',
+            wordBreak: 'break-word',
         }
     }
 };
