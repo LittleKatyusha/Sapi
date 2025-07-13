@@ -10,6 +10,7 @@ import CardView from './eartag/components/CardView';
 // Import modal yang sudah dipisahkan
 import AddEditEartagModal from './eartag/modals/AddEditEartagModal';
 import EartagDetailModal from './eartag/modals/EartagDetailModal';
+import DeleteConfirmationModal from './eartag/modals/DeleteConfirmationModal';
 
 // Import custom hook yang sudah dipisahkan
 import useEartags from './eartag/hooks/useEartags';
@@ -24,6 +25,8 @@ const EartagPage = () => {
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [editData, setEditData] = useState(null);
     const [detailData, setDetailData] = useState(null);
+    const [deleteData, setDeleteData] = useState(null);
+    const [isDeleting, setIsDeleting] = useState(false);
     const [openMenuId, setOpenMenuId] = useState(null);
     const [viewMode, setViewMode] = useState('table'); // 'table' atau 'card'
     
@@ -51,11 +54,20 @@ const EartagPage = () => {
     }, []);
 
     const handleDelete = useCallback((item) => {
-        if (window.confirm(`Yakin ingin menghapus eartag "${item.id}"?\n\nTindakan ini akan menghapus kode eartag secara permanen dan tidak dapat dibatalkan.`)) {
-            console.log('Delete item:', item.id);
-            // Implementasi delete logic
-        }
+        setDeleteData(item);
     }, []);
+
+    const handleConfirmDelete = useCallback(() => {
+        if (!deleteData) return;
+        setIsDeleting(true);
+        // Simulasi async delete
+        setTimeout(() => {
+            console.log('Delete item:', deleteData.id);
+            // TODO: implementasi delete logic asli
+            setIsDeleting(false);
+            setDeleteData(null);
+        }, 1200);
+    }, [deleteData]);
 
     const handleDetail = useCallback((item) => {
         setDetailData(item);
@@ -137,24 +149,23 @@ const EartagPage = () => {
     ], [openMenuId, handleEdit, handleDelete, handleDetail]);
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-6">
-            <div className="max-w-7xl mx-auto space-y-8">
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-2 sm:p-4 md:p-6">
+            <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
                 {/* Header Section */}
-                <div className="bg-white rounded-3xl p-8 shadow-xl border border-gray-100">
-                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-xl border border-gray-100">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div>
-                            <h1 className="text-3xl font-bold text-gray-800 mb-2">
+                            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-1 sm:mb-2">
                                 Manajemen Eartag
                             </h1>
-                            <p className="text-gray-600">
+                            <p className="text-gray-600 text-sm sm:text-base">
                                 Kelola dan pantau eartag ternak dengan mudah
                             </p>
                         </div>
-                        
-                        <div className="flex flex-col sm:flex-row gap-4">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:gap-4">
                             <button
                                 onClick={handleAdd}
-                                className="bg-gradient-to-r from-red-500 to-rose-600 text-white px-6 py-3 rounded-2xl hover:from-red-600 hover:to-rose-700 transition-all duration-300 flex items-center gap-2 font-medium shadow-lg hover:shadow-xl"
+                                className="bg-gradient-to-r from-red-500 to-rose-600 text-white px-4 py-2 sm:px-6 sm:py-3 rounded-xl sm:rounded-2xl hover:from-red-600 hover:to-rose-700 transition-all duration-300 flex items-center gap-2 font-medium shadow-lg hover:shadow-xl text-sm sm:text-base"
                             >
                                 <PlusCircle className="w-5 h-5" />
                                 Tambah Eartag
@@ -164,48 +175,48 @@ const EartagPage = () => {
                 </div>
 
                 {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-6 rounded-2xl shadow-lg">
-                        <h3 className="text-sm font-medium opacity-90">Total Eartag</h3>
-                        <p className="text-3xl font-bold">{stats.total}</p>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4 md:gap-6">
+                    <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg">
+                        <h3 className="text-xs sm:text-sm font-medium opacity-90">Total Eartag</h3>
+                        <p className="text-xl sm:text-3xl font-bold">{stats.total}</p>
                     </div>
-                    <div className="bg-gradient-to-br from-green-500 to-emerald-600 text-white p-6 rounded-2xl shadow-lg">
-                        <h3 className="text-sm font-medium opacity-90">Aktif</h3>
-                        <p className="text-3xl font-bold">{stats.active}</p>
+                    <div className="bg-gradient-to-br from-green-500 to-emerald-600 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg">
+                        <h3 className="text-xs sm:text-sm font-medium opacity-90">Aktif</h3>
+                        <p className="text-xl sm:text-3xl font-bold">{stats.active}</p>
                     </div>
-                    <div className="bg-gradient-to-br from-orange-500 to-amber-600 text-white p-6 rounded-2xl shadow-lg">
-                        <h3 className="text-sm font-medium opacity-90">Digunakan</h3>
-                        <p className="text-3xl font-bold">{stats.inUse}</p>
+                    <div className="bg-gradient-to-br from-orange-500 to-amber-600 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg">
+                        <h3 className="text-xs sm:text-sm font-medium opacity-90">Digunakan</h3>
+                        <p className="text-xl sm:text-3xl font-bold">{stats.inUse}</p>
                     </div>
-                    <div className="bg-gradient-to-br from-red-500 to-rose-600 text-white p-6 rounded-2xl shadow-lg">
-                        <h3 className="text-sm font-medium opacity-90">Nonaktif</h3>
-                        <p className="text-3xl font-bold">{stats.inactive}</p>
+                    <div className="bg-gradient-to-br from-red-500 to-rose-600 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg">
+                        <h3 className="text-xs sm:text-sm font-medium opacity-90">Nonaktif</h3>
+                        <p className="text-xl sm:text-3xl font-bold">{stats.inactive}</p>
                     </div>
                 </div>
 
                 {/* Filters and Search */}
-                <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-                    <div className="flex flex-col lg:flex-row gap-4 lg:items-center lg:justify-between">
+                <div className="bg-white rounded-2xl p-3 sm:p-6 shadow-lg border border-gray-100">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 sm:items-center sm:justify-between">
                         {/* Search */}
-                        <div className="relative flex-1 max-w-md">
+                        <div className="relative flex-1 max-w-full sm:max-w-md">
                             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                             <input
                                 type="text"
                                 placeholder="Cari eartag..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors duration-200"
+                                className="w-full pl-12 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors duration-200 text-sm sm:text-base"
                             />
                         </div>
 
                         {/* Filters */}
-                        <div className="flex flex-wrap gap-3">
+                        <div className="flex flex-wrap gap-2 sm:gap-3">
                             <div className="flex items-center gap-2">
                                 <Filter className="w-4 h-4 text-gray-500" />
                                 <select
                                     value={filterStatus}
                                     onChange={(e) => setFilterStatus(e.target.value)}
-                                    className="px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 text-sm"
+                                    className="px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 text-xs sm:text-sm"
                                 >
                                     <option value="all">Semua Status</option>
                                     <option value="active">Aktif</option>
@@ -216,7 +227,7 @@ const EartagPage = () => {
                             <select
                                 value={filterJenis}
                                 onChange={(e) => setFilterJenis(e.target.value)}
-                                className="px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 text-sm"
+                                className="px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 text-xs sm:text-sm"
                             >
                                 <option value="all">Semua Jenis</option>
                                 <option value="Sapi">Sapi</option>
@@ -229,7 +240,7 @@ const EartagPage = () => {
                             <div className="flex bg-gray-100 rounded-xl p-1">
                                 <button
                                     onClick={() => setViewMode('table')}
-                                    className={`px-3 py-2 rounded-lg transition-colors duration-200 ${
+                                    className={`px-2.5 py-2 rounded-lg transition-colors duration-200 text-xs sm:text-base ${
                                         viewMode === 'table'
                                             ? 'bg-white text-red-600 shadow-sm'
                                             : 'text-gray-600 hover:text-red-600'
@@ -239,7 +250,7 @@ const EartagPage = () => {
                                 </button>
                                 <button
                                     onClick={() => setViewMode('card')}
-                                    className={`px-3 py-2 rounded-lg transition-colors duration-200 ${
+                                    className={`px-2.5 py-2 rounded-lg transition-colors duration-200 text-xs sm:text-base ${
                                         viewMode === 'card'
                                             ? 'bg-white text-red-600 shadow-sm'
                                             : 'text-gray-600 hover:text-red-600'
@@ -253,7 +264,7 @@ const EartagPage = () => {
                 </div>
 
                 {/* Data Display */}
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 relative">
+                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 relative overflow-x-auto">
                     {/* Overlay anti-hover row, hanya muncul saat menu aktif */}
                     {openMenuId && (
                         <div
@@ -263,26 +274,28 @@ const EartagPage = () => {
                     )}
                     <div>
                         {viewMode === 'table' ? (
-                            <div className={`w-full min-w-0 ${openMenuId ? 'pointer-events-none' : ''}`}>
-                                <DataTable
-                                    columns={columns}
-                                    data={filteredData}
-                                    pagination
-                                    paginationPerPage={10}
-                                    paginationRowsPerPageOptions={[5, 10, 15, 20]}
-                                    customStyles={customTableStyles}
-                                    noDataComponent={
-                                        <div className="text-center py-12">
-                                            <p className="text-gray-500 text-lg">Tidak ada data eartag ditemukan</p>
-                                        </div>
-                                    }
-                                    responsive
-                                    highlightOnHover={true}
-                                    pointerOnHover={true}
-                                />
+                            <div className={`w-full overflow-x-auto ${openMenuId ? 'pointer-events-none' : ''}`}>
+                                <div className="min-w-[340px] sm:min-w-0">
+                                    <DataTable
+                                        columns={columns}
+                                        data={filteredData}
+                                        pagination
+                                        paginationPerPage={10}
+                                        paginationRowsPerPageOptions={[5, 10, 15, 20]}
+                                        customStyles={customTableStyles}
+                                        noDataComponent={
+                                            <div className="text-center py-12">
+                                                <p className="text-gray-500 text-lg">Tidak ada data eartag ditemukan</p>
+                                            </div>
+                                        }
+                                        responsive
+                                        highlightOnHover={true}
+                                        pointerOnHover={true}
+                                    />
+                                </div>
                             </div>
                         ) : (
-                            <div className="p-6">
+                            <div className="p-2 sm:p-6">
                                 <CardView
                                     data={filteredData}
                                     onEdit={handleEdit}
@@ -316,6 +329,15 @@ const EartagPage = () => {
                     setDetailData(null);
                 }}
                 data={detailData}
+            />
+
+            <DeleteConfirmationModal
+                isOpen={!!deleteData}
+                onClose={() => { setDeleteData(null); setIsDeleting(false); }}
+                onConfirm={handleConfirmDelete}
+                title={`Hapus Eartag "${deleteData?.id || ''}"?`}
+                description="Tindakan ini akan menghapus kode eartag secara permanen dan tidak dapat dibatalkan."
+                loading={isDeleting}
             />
         </div>
     );
