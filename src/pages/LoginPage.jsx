@@ -76,13 +76,14 @@ const LoginPage = () => {
           email: formData.email,
           password: formData.password,
           captcha: captchaToken
-        })
+        }),
+        credentials: 'include' // agar cookie/session dikirim ke backend
       });
 
       const result = await response.json();
 
-      if (response.ok && result.token) {
-        localStorage.setItem('token', result.token);
+      if (response.ok && result.data && result.data.token) {
+        localStorage.setItem('token', result.data.token);
         localStorage.setItem('isAuthenticated', 'true');
         navigate('/dashboard');
       } else if (result && result.message) {

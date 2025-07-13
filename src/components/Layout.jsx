@@ -1,12 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useLocation, Link } from 'react-router-dom';
-import { 
+import { useLocation, Link, useNavigate } from 'react-router-dom';
+import {
     LayoutDashboard, ShoppingCart, DollarSign, Warehouse, Beef, FileText, Settings,
-    Users, X, CalendarCheck, Truck, Home, List, Store, Package, Tag, ChevronDown, Menu
+    Users, X, CalendarCheck, Truck, Home, List, Store, Package, Tag, ChevronDown, Menu, LogOut, User
 } from 'lucide-react';
-// MobileBottomNav import is removed as it's no longer used.
-
-// --- Konfigurasi Menu (Struktur Baru yang Profesional) ---
+import LogoutModal from './LogoutModal';
 const menuConfig = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, to: '/dashboard' },
     { id: 'sales', label: 'Penjualan', icon: DollarSign, to: '/sales' },
@@ -113,29 +111,32 @@ const SidebarAccordion = ({ item, onClick }) => {
 
 const Layout = ({ children, title = "Dashboard" }) => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [logoutError, setLogoutError] = useState('');
     const sidebarRef = useRef(null);
+    const dropdownRef = useRef(null);
+    const navigate = useNavigate();
 
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (sidebarRef.current && !sidebarRef.current.contains(event.target)) {
                 setIsSidebarOpen(false);
             }
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsDropdownOpen(false);
+            }
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    // --- PERUBAHAN DI SINI: Efek untuk mengontrol scroll pada body ---
     useEffect(() => {
         if (isSidebarOpen && window.innerWidth < 768) {
-            // Menonaktifkan scroll pada body saat sidebar terbuka di mobile
             document.body.style.overflow = 'hidden';
         } else {
-            // Mengaktifkan kembali scroll
             document.body.style.overflow = 'auto';
         }
-
-        // Cleanup function untuk memastikan scroll kembali normal saat komponen di-unmount
         return () => {
             document.body.style.overflow = 'auto';
         };
@@ -145,6 +146,35 @@ const Layout = ({ children, title = "Dashboard" }) => {
         if (window.innerWidth < 768) {
             setIsSidebarOpen(false);
         }
+    };
+
+    // Fungsi logout
+    const handleLogout = async () => {
+        setIsDropdownOpen(false);
+        setLogoutError('');
+        try {
+            const token = localStorage.getItem('token');
+            if (token) {
+                const response = await fetch('https://puput-api.ternasys.com/api/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    }
+                });
+                if (!response.ok) {
+                    // Jika gagal (misal 419), tampilkan pesan error
+                    setLogoutError('Logout gagal: Sesi kadaluarsa atau autentikasi tidak valid.');
+                    return;
+                }
+            }
+        } catch (error) {
+            setLogoutError('Logout gagal: Terjadi kesalahan jaringan.');
+            return;
+        }
+        localStorage.removeItem('token');
+        localStorage.removeItem('isAuthenticated');
+        navigate('/login');
     };
 
     return (
@@ -211,8 +241,79 @@ const Layout = ({ children, title = "Dashboard" }) => {
                             <h2 className="text-lg font-semibold text-gray-800">{title}</h2>
                         </div>
                         <div className="flex items-center space-x-4">
+                            {/* Dropdown User */}
+                            <div className="relative" ref={dropdownRef}>
+                                <div
+                                    className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition-colors"
+                                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                                >
+                                    <img src="https://placehold.co/40x40/E2E8F0/4A5568?text=A" alt="Avatar" className="w-10 h-10 rounded-full" />
+                                    <div className="hidden md:block">
+                                        <p className="font-semibold text-sm">Budi Santoso</p>
+                                        <p className="text-xs text-gray-500">Admin</p>
+                                    </div>
+                                    <ChevronDown
+                                        size={16}
+                                        className={`text-gray-500 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}
+                                    />
+                                </div>
+                                {isDropdownOpen && (
+                                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                                        <div className="px-4 py-2 border-b border-gray-100">
+                                            <p className="font-semibold text-sm text-gray-900">Budi Santoso</p>
+                                            <p className="text-xs text-gray-500">admin@example.com</p>
+                                        </div>
+                                        <button
+                                            onClick={() => {
+                                                setIsDropdownOpen(false);
+                                                navigate('/settings');
+                                            }}
+                                            className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                                        >
+                                            <User size={16} className="mr-3" />
+                                            Profile
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setIsDropdownOpen(false);
+                                                navigate('/settings');
+                                            }}
+                                            className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                                        >
+                                            <Settings size={16} className="mr-3" />
+                                            Settings
+                                        </button>
+                                        <hr className="my-1" />
+                                        <button
+                                            onClick={() => {
+                                                setIsDropdownOpen(false);
+                                                setIsLogoutModalOpen(true);
+                                            }}
+                                            className="w-full flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                                        >
+                                            <LogOut size={16} className="mr-3" />
+                                            Logout
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
+                    {/* Logout Modal */}
+                    <LogoutModal
+                        isOpen={isLogoutModalOpen}
+                        onClose={() => {
+                            setIsLogoutModalOpen(false);
+                            setLogoutError('');
+                        }}
+                        onConfirm={handleLogout}
+                    >
+                        {logoutError && (
+                            <div className="mt-2 text-sm text-red-600 text-center">
+                                {logoutError}
+                            </div>
+                        )}
+                    </LogoutModal>
                 </header>
 
                 <main className="flex-1 p-4 md:p-6 overflow-y-auto pb-6">
