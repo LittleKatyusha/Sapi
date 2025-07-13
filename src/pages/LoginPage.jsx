@@ -82,14 +82,15 @@ const LoginPage = () => {
       const result = await response.json();
 
       if (response.ok && result.token) {
-        // Simpan token ke localStorage (tidak menyimpan PID)
         localStorage.setItem('token', result.token);
         localStorage.setItem('isAuthenticated', 'true');
-        
-        // Redirect ke dashboard
         navigate('/dashboard');
+      } else if (result && result.message) {
+        setError(result.message);
+      } else if (response.status === 401) {
+        setError('Email atau password salah');
       } else {
-        setError(result.message || 'Email atau password salah');
+        setError('Login gagal. Silakan coba lagi.');
       }
     } catch (err) {
       setError('Terjadi kesalahan koneksi. Silakan coba lagi.');
@@ -238,20 +239,6 @@ const LoginPage = () => {
                 )}
               </button>
             </form>
-
-            {/* Demo Credentials */}
-            <div className="mt-8 p-4 bg-white/5 border border-white/10 rounded-xl backdrop-blur-sm">
-              <h4 className="text-sm font-semibold text-white mb-3 flex items-center">
-                <svg className="w-4 h-4 mr-2 text-red-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Demo Credentials
-              </h4>
-              <div className="space-y-1">
-                <p className="text-xs text-red-100"><span className="font-medium">Email:</span> admin@example.com</p>
-                <p className="text-xs text-red-100"><span className="font-medium">Password:</span> password</p>
-              </div>
-            </div>
           </div>
         </div>
       </div>

@@ -1,9 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Search, ChevronDown, Menu, LogOut, User, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import LogoutModal from './LogoutModal';
 
 const Header = ({ onMenuClick }) => {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
     const dropdownRef = useRef(null);
     const navigate = useNavigate();
 
@@ -21,9 +23,34 @@ const Header = ({ onMenuClick }) => {
         };
     }, []);
 
-    const handleLogout = () => {
-        localStorage.removeItem('isAuthenticated');
-        navigate('/login');
+    const handleLogout = async () => {
+        setIsDropdownOpen(false);
+        
+        try {
+            // Ambil token dari localStorage
+            const token = localStorage.getItem('token');
+            
+            if (token) {
+                // Kirim request logout ke backend
+                await fetch('https://puput-api.ternasys.com/api/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    }
+                });
+            }
+        } catch (error) {
+            console.log('Logout error:', error);
+            // Tetap lanjutkan proses logout meskipun ada error
+        } finally {
+            // Hapus semua data autentikasi dari localStorage
+            localStorage.removeItem('token');
+            localStorage.removeItem('isAuthenticated');
+            
+            // Redirect ke halaman login
+            navigate('/login');
+        }
     };
 
     return (
@@ -90,7 +117,10 @@ const Header = ({ onMenuClick }) => {
                     <hr className="my-1" />
                     
                     <button
-                      onClick={handleLogout}
+                      onClick={() => {
+                        setIsDropdownOpen(false);
+                        setIsLogoutModalOpen(true);
+                      }}
                       className="w-full flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
                     >
                       <LogOut size={16} className="mr-3" />
@@ -99,9 +129,16 @@ const Header = ({ onMenuClick }) => {
                   </div>
                 )}
               </div>
-            </div>
-        </header>
-    );
+           </div>
+
+           {/* Logout Confirmation Modal */}
+           <LogoutModal
+               isOpen={isLogoutModalOpen}
+               onClose={() => setIsLogoutModalOpen(false)}
+               onConfirm={handleLogout}
+           />
+       </header>
+   );
 };
 
 export default Header;
