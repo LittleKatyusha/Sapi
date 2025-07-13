@@ -266,7 +266,7 @@ const EartagPage = () => {
                 {/* Data Display */}
                 <div className="bg-white rounded-2xl shadow-lg border border-gray-100 relative overflow-x-auto">
                     {/* Overlay anti-hover row, hanya muncul saat menu aktif */}
-                    {openMenuId && (
+                    {openMenuId && viewMode === 'table' && (
                         <div
                             className="absolute inset-0 z-[99998] bg-transparent pointer-events-auto"
                             style={{cursor: 'default'}}
