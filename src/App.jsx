@@ -1,3 +1,4 @@
+
 // App.js
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
@@ -29,6 +30,7 @@ import PelangganPage from './pages/dataMaster/PelangganPage';
 import OutletPage from './pages/dataMaster/OutletPage';
 import ProdukGDSPage from './pages/dataMaster/ProdukGDSPage';
 import EartagPage from './pages/dataMaster/EartagPage';
+
 
 const AppWrapper = () => (
     <Router>
