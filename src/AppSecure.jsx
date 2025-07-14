@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import LayoutSecure from './components/LayoutSecure';
@@ -31,7 +30,6 @@ import OutletPage from './pages/dataMaster/OutletPage';
 import ProdukGDSPage from './pages/dataMaster/ProdukGDSPage';
 import EartagPage from './pages/dataMaster/EartagPage';
 
-
 const AppWrapperSecure = () => (
   <Router>
     <AppSecure />
@@ -42,23 +40,23 @@ const AppWrapperSecure = () => (
 const pageTitleMap = {
   '/login': 'Secure Login',
   '/dashboard': 'Dashboard Aman',
-    '/sales': 'Penjualan',
-    '/purchases': 'Pembelian',
-    '/delivery-orders': 'Surat Jalan',
-    '/inventory/livestock': 'Stok Ternak',
-    '/inventory/meat': 'Stok Daging',
-    '/master-data/kandang-office': 'Data Master: Kandang & Office',
-    '/master-data/jenis-hewan': 'Data Master: Jenis Hewan',
-    '/master-data/klasifikasi-hewan': 'Data Master: Klasifikasi Hewan',
-    '/master-data/supplier': 'Data Master: Supplier',
-    '/master-data/pelanggan': 'Data Master: Pelanggan',
-    '/master-data/outlet': 'Data Master: Outlet',
-    '/master-data/produk-gds': 'Data Master: Produk Gudang',
-    '/master-data/eartag': 'Data Master: Eartag',
-    '/reports': 'Laporan',
-    '/hr/employees': 'Data Karyawan',
-    '/hr/attendance': 'Absensi',
-    '/hr/leave-requests': 'Pengajuan Cuti',
+  '/sales': 'Penjualan',
+  '/purchases': 'Pembelian',
+  '/delivery-orders': 'Surat Jalan',
+  '/inventory/livestock': 'Stok Ternak',
+  '/inventory/meat': 'Stok Daging',
+  '/master-data/kandang-office': 'Data Master: Kandang & Office',
+  '/master-data/jenis-hewan': 'Data Master: Jenis Hewan',
+  '/master-data/klasifikasi-hewan': 'Data Master: Klasifikasi Hewan',
+  '/master-data/supplier': 'Data Master: Supplier',
+  '/master-data/pelanggan': 'Data Master: Pelanggan',
+  '/master-data/outlet': 'Data Master: Outlet',
+  '/master-data/produk-gds': 'Data Master: Produk Gudang',
+  '/master-data/eartag': 'Data Master: Eartag',
+  '/reports': 'Laporan',
+  '/hr/employees': 'Data Karyawan',
+  '/hr/attendance': 'Absensi',
+  '/hr/leave-requests': 'Pengajuan Cuti',
   '/settings': 'Pengaturan Keamanan',
 };
 
@@ -132,7 +130,7 @@ function AppSecure() {
         url: window.location.href,
         userAgent: navigator.userAgent.slice(0, 100),
         timestamp: new Date().toISOString(),
-        screenResolution: `${window.screen.width}x${window.screen.height}`, // eslint-disable-line no-restricted-globals
+        screenResolution: `${screen.width}x${screen.height}`,
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         language: navigator.language
       });
@@ -203,7 +201,7 @@ function AppSecure() {
         // Disable common developer shortcuts
         document.addEventListener('keydown', (e) => {
           // F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U
-          if (e.key === 'F12' ||
+          if (e.key === 'F12' || 
               (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J')) ||
               (e.ctrlKey && e.key === 'U')) {
             e.preventDefault();

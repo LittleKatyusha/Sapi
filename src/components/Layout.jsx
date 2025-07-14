@@ -5,6 +5,7 @@ import {
     Users, X, CalendarCheck, Truck, Home, List, Store, Package, Tag, ChevronDown, Menu, LogOut, User
 } from 'lucide-react';
 import LogoutModal from './LogoutModal';
+import { useAuth } from '../hooks/useAuth';
 const menuConfig = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, to: '/dashboard' },
     { id: 'sales', label: 'Penjualan', icon: DollarSign, to: '/sales' },
@@ -117,6 +118,26 @@ const Layout = ({ children, title = "Dashboard" }) => {
     const sidebarRef = useRef(null);
     const dropdownRef = useRef(null);
     const navigate = useNavigate();
+    const { user, logout } = useAuth();
+
+    // Utility functions for user data
+    const getUserName = () => {
+        return user?.name || 'Admin User';
+    };
+
+    const getUserEmail = () => {
+        return user?.email || 'admin@example.com';
+    };
+
+    const getUserInitials = () => {
+        const name = getUserName();
+        return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+    };
+
+    const getAvatarUrl = () => {
+        const initials = getUserInitials();
+        return `https://placehold.co/40x40/FFD5D5/B91C1C?text=${initials}`;
+    };
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -153,28 +174,10 @@ const Layout = ({ children, title = "Dashboard" }) => {
         setIsDropdownOpen(false);
         setLogoutError('');
         try {
-            const token = localStorage.getItem('token');
-            if (token) {
-                const response = await fetch('https://puput-api.ternasys.com/api/logout', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json',
-                    }
-                });
-                if (!response.ok) {
-                    // Jika gagal (misal 419), tampilkan pesan error
-                    setLogoutError('Logout gagal: Sesi kadaluarsa atau autentikasi tidak valid.');
-                    return;
-                }
-            }
+            await logout();
         } catch (error) {
             setLogoutError('Logout gagal: Terjadi kesalahan jaringan.');
-            return;
         }
-        localStorage.removeItem('token');
-        localStorage.removeItem('isAuthenticated');
-        navigate('/login');
     };
 
     return (
@@ -200,13 +203,13 @@ const Layout = ({ children, title = "Dashboard" }) => {
                         </h1>
                     </div>
                     <div className="flex items-center gap-3">
-                        <img 
-                           src="https://placehold.co/40x40/FFD5D5/B91C1C?text=A" 
-                           alt="Admin User" 
+                        <img
+                           src={getAvatarUrl()}
+                           alt={getUserName()}
                            className="w-10 h-10 rounded-full border-2 border-red-600"
                         />
                         <div>
-                            <p className="font-semibold text-sm">Admin User</p>
+                            <p className="font-semibold text-sm">{getUserName()}</p>
                             <p className="text-xs text-red-300">Administrator</p>
                         </div>
                     </div>
@@ -247,9 +250,9 @@ const Layout = ({ children, title = "Dashboard" }) => {
                                     className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition-colors"
                                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                                 >
-                                    <img src="https://placehold.co/40x40/E2E8F0/4A5568?text=A" alt="Avatar" className="w-10 h-10 rounded-full" />
+                                    <img src={getAvatarUrl()} alt="Avatar" className="w-10 h-10 rounded-full" />
                                     <div className="hidden md:block">
-                                        <p className="font-semibold text-sm">Budi Santoso</p>
+                                        <p className="font-semibold text-sm">{getUserName()}</p>
                                         <p className="text-xs text-gray-500">Admin</p>
                                     </div>
                                     <ChevronDown
@@ -260,8 +263,8 @@ const Layout = ({ children, title = "Dashboard" }) => {
                                 {isDropdownOpen && (
                                     <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
                                         <div className="px-4 py-2 border-b border-gray-100">
-                                            <p className="font-semibold text-sm text-gray-900">Budi Santoso</p>
-                                            <p className="text-xs text-gray-500">admin@example.com</p>
+                                            <p className="font-semibold text-sm text-gray-900">{getUserName()}</p>
+                                            <p className="text-xs text-gray-500">{getUserEmail()}</p>
                                         </div>
                                         <button
                                             onClick={() => {

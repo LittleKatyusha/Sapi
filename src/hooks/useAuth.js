@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 export const useAuth = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [token, setToken] = useState(null);
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -11,13 +12,26 @@ export const useAuth = () => {
   useEffect(() => {
     const checkAuth = () => {
       const storedToken = localStorage.getItem('token');
+      const storedUser = localStorage.getItem('user');
       const authStatus = localStorage.getItem('isAuthenticated');
       
       if (storedToken && authStatus === 'true') {
         setToken(storedToken);
         setIsAuthenticated(true);
+        
+        // Parse and set user data if available
+        if (storedUser) {
+          try {
+            const parsedUser = JSON.parse(storedUser);
+            setUser(parsedUser);
+          } catch (error) {
+            console.error('Error parsing stored user data:', error);
+            setUser(null);
+          }
+        }
       } else {
         setToken(null);
+        setUser(null);
         setIsAuthenticated(false);
       }
       setLoading(false);
@@ -39,12 +53,20 @@ export const useAuth = () => {
 
       const result = await response.json();
 
-      if (response.ok && result.token) {
-        localStorage.setItem('token', result.token);
+      if (response.ok && result.data && result.data.token) {
+        const { token, user } = result.data;
+        
+        // Store token and user data
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(user));
         localStorage.setItem('isAuthenticated', 'true');
-        setToken(result.token);
+        
+        // Update state
+        setToken(token);
+        setUser(user);
         setIsAuthenticated(true);
-        return { success: true, token: result.token };
+        
+        return { success: true, token, user };
       } else {
         return { success: false, message: result.message || 'Login gagal' };
       }
@@ -71,8 +93,10 @@ export const useAuth = () => {
     } finally {
       // Clear local storage and state
       localStorage.removeItem('token');
+      localStorage.removeItem('user');
       localStorage.removeItem('isAuthenticated');
       setToken(null);
+      setUser(null);
       setIsAuthenticated(false);
       navigate('/login');
     }
@@ -95,14 +119,77 @@ export const useAuth = () => {
     }
   }, [token]);
 
+  // Update user profile function
+  const updateProfile = useCallback(async (profileData) => {
+    try {
+      const response = await fetch('https://puput-api.ternasys.com/api/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeader()
+        },
+        body: JSON.stringify(profileData)
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.data) {
+        const updatedUser = { ...user, ...result.data };
+        
+        // Update local storage
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        
+        // Update state
+        setUser(updatedUser);
+        
+        return { success: true, user: updatedUser };
+      } else {
+        return { success: false, message: result.message || 'Gagal memperbarui profile' };
+      }
+    } catch (error) {
+      return { success: false, message: 'Terjadi kesalahan koneksi' };
+    }
+  }, [user, getAuthHeader]);
+
+  // Change password function
+  const changePassword = useCallback(async (passwordData) => {
+    try {
+      const response = await fetch('https://puput-api.ternasys.com/api/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeader()
+        },
+        body: JSON.stringify({
+          current_password: passwordData.currentPassword,
+          new_password: passwordData.newPassword,
+          new_password_confirmation: passwordData.confirmPassword
+        })
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        return { success: true, message: result.message || 'Kata sandi berhasil diubah' };
+      } else {
+        return { success: false, message: result.message || 'Gagal mengubah kata sandi' };
+      }
+    } catch (error) {
+      return { success: false, message: 'Terjadi kesalahan koneksi' };
+    }
+  }, [getAuthHeader]);
+
   return {
     isAuthenticated,
     token,
+    user,
     loading,
     login,
     logout,
     getAuthHeader,
-    isTokenExpired
+    isTokenExpired,
+    updateProfile,
+    changePassword
   };
 };
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
 
 const LoginPage = () => {
   const [formData, setFormData] = useState({
@@ -11,6 +12,7 @@ const LoginPage = () => {
   const [error, setError] = useState('');
   const [captchaToken, setCaptchaToken] = useState('');
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   // Load Cloudflare Turnstile script and handle callbacks
   useEffect(() => {
@@ -66,32 +68,17 @@ const LoginPage = () => {
     setError('');
 
     try {
-      // Request ke backend untuk login
-      const response = await fetch('https://puput-api.ternasys.com/api/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-          captcha: captchaToken
-        }),
-        credentials: 'include' // agar cookie/session dikirim ke backend
+      // Use the login function from useAuth hook
+      const result = await login({
+        email: formData.email,
+        password: formData.password,
+        captcha: captchaToken
       });
 
-      const result = await response.json();
-
-      if (response.ok && result.data && result.data.token) {
-        localStorage.setItem('token', result.data.token);
-        localStorage.setItem('isAuthenticated', 'true');
+      if (result.success) {
         navigate('/dashboard');
-      } else if (result && result.message) {
-        setError(result.message);
-      } else if (response.status === 401) {
-        setError('Email atau password salah');
       } else {
-        setError('Login gagal. Silakan coba lagi.');
+        setError(result.message || 'Login gagal. Silakan coba lagi.');
       }
     } catch (err) {
       setError('Terjadi kesalahan koneksi. Silakan coba lagi.');
