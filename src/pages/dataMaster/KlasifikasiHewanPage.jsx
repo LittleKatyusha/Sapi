@@ -1,263 +1,372 @@
-import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import DataTable from 'react-data-table-component';
-import { PlusCircle, Search, Edit, Trash2, X, MoreVertical } from 'lucide-react';
+import React, { useState, useMemo, useCallback, useEffect } from "react";
+import DataTable from "react-data-table-component";
+import { PlusCircle, Search, LayoutGrid, List } from "lucide-react";
+import ActionButton from "./klasifikasiHewan/components/ActionButton";
 
-// --- DATA & LOGIC HOOK ---
-const useClassifications = (initialData = []) => {
-    const [classifications, setClassifications] = useState(initialData);
-    const [loading, setLoading] = useState(false);
+// Komponen dan hooks terpisah
+import CardView from "./klasifikasiHewan/components/CardView";
+import AddEditKlasifikasiHewanModal from "./klasifikasiHewan/modals/AddEditKlasifikasiHewanModal";
+import KlasifikasiHewanDetailModal from "./klasifikasiHewan/modals/KlasifikasiHewanDetailModal";
+import DeleteConfirmationModal from "./klasifikasiHewan/modals/DeleteConfirmationModal";
+import useKlasifikasiHewan from "./klasifikasiHewan/hooks/useKlasifikasiHewan";
+import customTableStyles from "./klasifikasiHewan/constants/tableStyles";
 
-    const simulateApiCall = (action) => {
-        setLoading(true);
-        return new Promise(resolve => {
-            setTimeout(() => {
-                action();
-                setLoading(false);
-                resolve();
-            }, 500);
-        });
-    };
-
-    const addClassification = useCallback(async (newItemData) => {
-        await simulateApiCall(() => {
-            const newItem = {
-                ...newItemData,
-                id: `KL-${String(Math.floor(Math.random() * 9000) + 1000)}`,
-            };
-            setClassifications(prev => [newItem, ...prev]);
-        });
-    }, []);
-
-    const updateClassification = useCallback(async (updatedItemData) => {
-        await simulateApiCall(() => {
-            setClassifications(prev => 
-                prev.map(item => item.id === updatedItemData.id ? updatedItemData : item)
-            );
-        });
-    }, []);
-
-    const deleteClassification = useCallback(async (itemId) => {
-        await simulateApiCall(() => {
-            setClassifications(prev => prev.filter(item => item.id !== itemId));
-        });
-    }, []);
-
-    return { classifications, loading, addClassification, updateClassification, deleteClassification };
-};
-
-
-// --- UI COMPONENTS ---
-
-const ActionMenu = ({ row, onEdit, onDelete, onClose }) => {
-    const menuRef = useRef(null);
-
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (menuRef.current && !menuRef.current.contains(event.target)) {
-                onClose();
-            }
-        };
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, [onClose]);
-
-    return (
-        <div ref={menuRef} className="absolute right-0 top-full mt-2 w-40 bg-white rounded-md shadow-lg z-20 border">
-            <button onClick={() => { onEdit(row); onClose(); }} className="w-full text-left flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                <Edit size={14} className="mr-3" /> Edit
-            </button>
-            <button onClick={() => { onDelete(row); onClose(); }} className="w-full text-left flex items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100">
-                <Trash2 size={14} className="mr-3" /> Hapus
-            </button>
-        </div>
-    );
-};
-
-const AddEditModal = ({ item, onClose, onSave, loading }) => {
-    const [formData, setFormData] = useState(
-        item || { name: '', jenis: 'Sapi', description: '' }
-    );
-    const isEditMode = !!item;
-
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
-    };
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        if (loading) return;
-        onSave(formData);
-    };
-
-    return (
-        <div className="fixed inset-0 bg-black/60 flex justify-center items-center z-50 p-4 animate-fade-in-up">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
-                <form onSubmit={handleSubmit}>
-                    <div className="flex justify-between items-center p-6 border-b">
-                        <h3 className="text-xl font-bold text-gray-800">{isEditMode ? 'Edit Klasifikasi' : 'Tambah Klasifikasi Baru'}</h3>
-                        <button type="button" onClick={onClose} className="p-2 rounded-full hover:bg-gray-100"><X size={24} className="text-gray-600" /></button>
-                    </div>
-                    <div className="p-6 space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Nama Klasifikasi</label>
-                            <input type="text" name="name" value={formData.name} onChange={handleChange} className="input-field w-full" placeholder="Contoh: Sapi Limousin" required />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Jenis Hewan</label>
-                            <select name="jenis" value={formData.jenis} onChange={handleChange} className="input-field w-full">
-                                <option>Sapi</option> <option>Domba</option> <option>Kambing</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Deskripsi</label>
-                            <textarea name="description" value={formData.description} onChange={handleChange} rows="3" className="input-field w-full" placeholder="Deskripsi singkat..."/>
-                        </div>
-                    </div>
-                    <div className="flex justify-end p-4 bg-gray-50 border-t rounded-b-xl">
-                        <button type="button" onClick={onClose} disabled={loading} className="px-5 py-2 mr-2 text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-lg disabled:opacity-50">Batal</button>
-                        <button type="submit" disabled={loading} className="px-5 py-2 text-white bg-red-600 hover:bg-red-700 rounded-lg disabled:opacity-75 w-36 text-center">
-                            {loading ? 'Menyimpan...' : (isEditMode ? 'Simpan' : 'Tambah')}
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    );
-};
-
-// Komponen Card untuk tampilan mobile
-const CardView = ({ data, onEdit, onDelete, openMenuId, setOpenMenuId }) => (
-    <div className="space-y-4">
-        {data.map(item => (
-            <div key={item.id} className="bg-white p-4 rounded-lg shadow border border-gray-200">
-                <div className="flex justify-between items-start">
-                    <div>
-                        <p className="font-semibold text-gray-800">{item.name}</p>
-                        <p className="text-sm text-gray-500 font-mono">{item.id}</p>
-                    </div>
-                    <div className="relative">
-                        <button onClick={() => setOpenMenuId(openMenuId === item.id ? null : item.id)} className="p-2 text-gray-500 hover:bg-gray-200 rounded-full">
-                            <MoreVertical size={18} />
-                        </button>
-                        {openMenuId === item.id && (
-                            <ActionMenu row={item} onEdit={onEdit} onDelete={onDelete} onClose={() => setOpenMenuId(null)} />
-                        )}
-                    </div>
-                </div>
-                <div className="mt-2 text-sm">
-                    <p><span className="font-medium text-gray-600">Jenis:</span> {item.jenis}</p>
-                    <p className="mt-1 text-gray-700">{item.description}</p>
-                </div>
-            </div>
-        ))}
-    </div>
-);
-
-
-// --- MAIN PAGE COMPONENT ---
+// Main Page
 const KlasifikasiHewanPage = () => {
-    const initialData = useMemo(() => [
-        { id: 'KL-001', name: 'Sapi Brahman', jenis: 'Sapi', description: 'Jenis sapi potong hasil persilangan.' },
-        { id: 'KL-002', name: 'Sapi Limousin', jenis: 'Sapi', description: 'Sapi potong dengan warna bulu emas-merah.' },
-        { id: 'KL-003', name: 'Domba Garut', jenis: 'Domba', description: 'Domba aduan dan pedaging asli Garut.' },
-    ], []);
+  // State
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [editData, setEditData] = useState(null);
+  const [detailData, setDetailData] = useState(null);
+  const [deleteData, setDeleteData] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const [viewMode, setViewMode] = useState("table");
 
-    const { classifications, loading, addClassification, updateClassification, deleteClassification } = useClassifications(initialData);
+  // Custom hook
+  const {
+    klasifikasiHewan,
+    loading,
+    error,
+    createKlasifikasiHewan,
+    updateKlasifikasiHewan,
+    deleteKlasifikasiHewan,
+    fetchKlasifikasiHewan,
+    searchTerm,
+    setSearchTerm,
+    filterJenis,
+    setFilterJenis,
+    stats,
+    jenisHewanOptions,
+    fetchJenisHewanOptions,
+  } = useKlasifikasiHewan();
+
+  // Load data on component mount (same pattern as JenisHewanPage)
+  useEffect(() => {
+    fetchKlasifikasiHewan();
+  }, [fetchKlasifikasiHewan]);
+
+  // Load jenis hewan options for dropdowns
+  useEffect(() => {
+    fetchJenisHewanOptions();
+  }, [fetchJenisHewanOptions]);
+
+  // Event handlers
+  const handleAdd = useCallback(() => {
+    setEditData(null);
+    setShowAddModal(true);
+  }, []);
+
+  const handleEdit = useCallback((item) => {
+    setEditData(item);
+    setShowEditModal(true);
+  }, []);
+
+  const handleDetail = useCallback((item) => {
+    setDetailData(item);
+    setShowDetailModal(true);
+  }, []);
+
+  const handleDelete = useCallback((item) => {
+    setDeleteData(item);
+  }, []);
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!deleteData) return;
+    setIsDeleting(true);
+    const result = await deleteKlasifikasiHewan(deleteData.pubid);
+    setIsDeleting(false);
+    setDeleteData(null);
     
-    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [modalState, setModalState] = useState({ isOpen: false, item: null });
-    const [openMenuId, setOpenMenuId] = useState(null);
+    if (!result.success) {
+      console.error('Delete error:', result.message);
+      // Bisa ditambahkan notifikasi error di sini
+    }
+  }, [deleteData, deleteKlasifikasiHewan]);
 
-    useEffect(() => {
-        const handleResize = () => setIsMobile(window.innerWidth < 768);
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
+  const handleSave = useCallback(async (formData) => {
+    let result;
+    
+    if (formData.pubid) {
+      result = await updateKlasifikasiHewan(formData.pubid, formData);
+    } else {
+      result = await createKlasifikasiHewan(formData);
+    }
+    
+    if (result.success) {
+      setShowAddModal(false);
+      setShowEditModal(false);
+      setEditData(null);
+    } else {
+      console.error('Save error:', result.message);
+      // Bisa ditambahkan notifikasi error di sini
+    }
+  }, [createKlasifikasiHewan, updateKlasifikasiHewan]);
 
-    const filteredData = useMemo(() => 
-        classifications.filter(item =>
-            item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            item.id.toLowerCase().includes(searchTerm.toLowerCase())
-        ), [classifications, searchTerm]
-    );
-
-    const handleSave = useCallback(async (formData) => {
-        if (formData.id) {
-            await updateClassification(formData);
-        } else {
-            await addClassification(formData);
-        }
-        setModalState({ isOpen: false, item: null });
-    }, [addClassification, updateClassification]);
-
-    const handleDelete = useCallback(async (item) => {
-        if (window.confirm(`Yakin ingin menghapus "${item.name}"?`)) {
-            await deleteClassification(item.id);
-        }
-    }, [deleteClassification]);
-
-    const columns = useMemo(() => [
-        { name: 'ID', selector: row => row.id, sortable: true, width: '120px', cell: row => <span className="font-mono">{row.id}</span> },
-        { name: 'Nama Klasifikasi', selector: row => row.name, sortable: true, style: { fontWeight: 600 } },
-        { name: 'Jenis Hewan', selector: row => row.jenis, sortable: true },
-        { name: 'Deskripsi', selector: row => row.description, grow: 2, wrap: true },
-        {
-            name: 'Aksi',
-            cell: (row) => (
-                <div className="relative">
-                    <button onClick={() => setOpenMenuId(openMenuId === row.id ? null : row.id)} className="p-2 text-gray-500 hover:bg-gray-200 rounded-full" aria-label="Aksi">
-                        <MoreVertical size={18} />
-                    </button>
-                    {openMenuId === row.id && (
-                        <ActionMenu row={row} onEdit={() => setModalState({ isOpen: true, item: row })} onDelete={handleDelete} onClose={() => setOpenMenuId(null)} />
-                    )}
-                </div>
-            ),
-            ignoreRowClick: true, allowOverflow: true, button: true, center: true,
-        },
-    ], [handleDelete, openMenuId]);
-
-    return (
-        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-lg">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-800 mb-4 sm:mb-0">Manajemen Klasifikasi Hewan</h2>
-                <button onClick={() => setModalState({ isOpen: true, item: null })} className="flex items-center bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors shadow-sm w-full sm:w-auto justify-center">
-                    <PlusCircle size={20} className="mr-2" />
-                    <span>Tambah Klasifikasi</span>
-                </button>
-            </div>
-
-            <div className="mb-4">
-                <div className="w-full max-w-xs">
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                        <input type="text" placeholder="Cari..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full input-field pl-10" />
-                    </div>
-                </div>
-            </div>
-
-            {isMobile ? (
-                <CardView data={filteredData} onEdit={(item) => setModalState({ isOpen: true, item })} onDelete={handleDelete} openMenuId={openMenuId} setOpenMenuId={setOpenMenuId} />
-            ) : (
-                <DataTable
-                    columns={columns}
-                    data={filteredData}
-                    progressPending={loading}
-                    pagination
-                    paginationPerPage={10}
-                    paginationRowsPerPageOptions={[10, 20, 50]}
-                    customStyles={{ headCells: { style: { backgroundColor: '#f9fafb', fontWeight: '600', textTransform: 'uppercase', fontSize: '0.75rem' }}}}
-                    noDataComponent={<div className="py-10 text-center text-gray-500">Tidak ada data untuk ditampilkan.</div>}
-                />
-            )}
-
-            {modalState.isOpen && (
-                <AddEditModal item={modalState.item} onClose={() => setModalState({ isOpen: false, item: null })} onSave={handleSave} loading={loading} />
-            )}
+  // Table columns (mengikuti styling halaman jenis hewan)
+  const columns = useMemo(() => [
+    {
+      name: "No",
+      selector: row => row.order_no,
+      sortable: true,
+      cell: row => (
+        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm font-medium">
+          {row.order_no}
+        </span>
+      ),
+      width: "100px"
+    },
+    {
+      name: "Nama Klasifikasi",
+      selector: row => row.name,
+      sortable: true,
+      cell: row => (
+        <div className="flex flex-col">
+          <span className="font-semibold text-gray-800">{row.name}</span>
+          <span className="text-xs text-gray-500 truncate">{row.description}</span>
         </div>
-    );
+      )
+    },
+    {
+      name: "Jenis Hewan",
+      selector: row => row.jenis,
+      sortable: true,
+      cell: row => (
+        <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${
+          row.jenis === 'Sapi' ? 'bg-blue-100 text-blue-800' :
+          row.jenis === 'Domba' ? 'bg-green-100 text-green-800' :
+          row.jenis === 'Kambing' ? 'bg-orange-100 text-orange-800' :
+          'bg-gray-100 text-gray-800'
+        }`}>
+          {row.jenis}
+        </span>
+      ),
+      width: "150px"
+    },
+    {
+      name: "Status",
+      selector: row => row.status,
+      sortable: true,
+      cell: row => (
+        <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
+          row.status === 1
+            ? 'bg-green-100 text-green-800'
+            : 'bg-red-100 text-red-800'
+        }`}>
+          {row.status === 1 ? 'Aktif' : 'Tidak Aktif'}
+        </span>
+      ),
+      width: "120px"
+    },
+    {
+      name: "Aksi",
+      cell: row => (
+        <div style={{ position: "relative", right: 0, background: "#fff", zIndex: 10, overflow: "hidden" }}>
+          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", width: "100%" }}>
+            <ActionButton
+              row={row}
+              openMenuId={openMenuId}
+              setOpenMenuId={setOpenMenuId}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onDetail={handleDetail}
+              isActive={openMenuId === row.pubid}
+              usePortal={true}
+            />
+          </div>
+        </div>
+      ),
+      ignoreRowClick: true,
+      allowOverflow: true,
+      center: true,
+      width: "80px"
+    }
+  ], [openMenuId, handleEdit, handleDelete, handleDetail]);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-2 sm:p-4 md:p-6">
+      <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
+        {/* Header Section */}
+        <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-xl border border-gray-100">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-1 sm:mb-2">
+                Manajemen Klasifikasi Hewan
+              </h1>
+              <p className="text-gray-600 text-sm sm:text-base">
+                Kelola daftar klasifikasi hewan ternak dengan mudah
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row sm:gap-4">
+              <button
+                onClick={handleAdd}
+                className="bg-gradient-to-r from-red-500 to-rose-600 text-white px-4 py-2 sm:px-6 sm:py-3 rounded-xl sm:rounded-2xl hover:from-red-600 hover:to-rose-700 transition-all duration-300 flex items-center gap-2 font-medium shadow-lg hover:shadow-xl text-sm sm:text-base"
+              >
+                <PlusCircle className="w-5 h-5" />
+                Tambah Klasifikasi
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        {/* Stats Cards - Dynamic based on available jenis hewan */}
+        <div className={`grid grid-cols-1 gap-3 sm:grid-cols-2 ${jenisHewanOptions.length <= 2 ? 'md:grid-cols-3' : 'md:grid-cols-4'} md:gap-6`}>
+          <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg">
+            <h3 className="text-xs sm:text-sm font-medium opacity-90">Total Klasifikasi</h3>
+            <p className="text-xl sm:text-3xl font-bold">{stats.total}</p>
+          </div>
+          {jenisHewanOptions.map((jenisOption, index) => {
+            const jenisName = jenisOption.name.toLowerCase();
+            const count = stats[jenisName] || 0;
+            
+            // Color scheme for different jenis
+            const colorSchemes = [
+              'from-green-500 to-emerald-600',
+              'from-orange-500 to-amber-600',
+              'from-red-500 to-rose-600',
+              'from-purple-500 to-indigo-600',
+              'from-pink-500 to-rose-600',
+              'from-cyan-500 to-blue-600'
+            ];
+            
+            const colorScheme = colorSchemes[index % colorSchemes.length];
+            
+            return (
+              <div key={jenisOption.id} className={`bg-gradient-to-br ${colorScheme} text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg`}>
+                <h3 className="text-xs sm:text-sm font-medium opacity-90">{jenisOption.name}</h3>
+                <p className="text-xl sm:text-3xl font-bold">{count}</p>
+              </div>
+            );
+          })}
+        </div>
+        
+        {/* Filters and Search */}
+        <div className="bg-white rounded-2xl p-3 sm:p-6 shadow-lg border border-gray-100">
+          <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 sm:items-center sm:justify-between">
+            <div className="relative flex-1 max-w-full sm:max-w-md">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Cari klasifikasi hewan..."
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                className="w-full pl-12 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors duration-200 text-sm sm:text-base"
+              />
+            </div>
+            <div className="flex flex-wrap gap-2 sm:gap-3">
+              <select
+                value={filterJenis}
+                onChange={e => setFilterJenis(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 text-xs sm:text-sm"
+              >
+                <option value="all">Semua Jenis</option>
+                {jenisHewanOptions.map(option => (
+                  <option key={option.id} value={option.name}>
+                    {option.name}
+                  </option>
+                ))}
+              </select>
+              <div className="flex bg-gray-100 rounded-xl p-1">
+                <button
+                  onClick={() => setViewMode("table")}
+                  className={`px-2.5 py-2 rounded-lg transition-colors duration-200 text-xs sm:text-base ${
+                    viewMode === "table"
+                      ? "bg-white text-red-600 shadow-sm"
+                      : "text-gray-600 hover:text-red-600"
+                  }`}
+                >
+                  <List className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode("card")}
+                  className={`px-2.5 py-2 rounded-lg transition-colors duration-200 text-xs sm:text-base ${
+                    viewMode === "card"
+                      ? "bg-white text-red-600 shadow-sm"
+                      : "text-gray-600 hover:text-red-600"
+                  }`}
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Data Display */}
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-x-auto">
+          <div>
+            {viewMode === "table" ? (
+              <div className="w-full min-w-[600px]">
+                <DataTable
+                  columns={columns}
+                  data={klasifikasiHewan}
+                  pagination
+                  paginationPerPage={10}
+                  paginationRowsPerPageOptions={[5, 10, 15, 20]}
+                  customStyles={customTableStyles}
+                  noDataComponent={
+                    <div className="text-center py-12">
+                      <p className="text-gray-500 text-lg">Tidak ada data klasifikasi hewan ditemukan</p>
+                    </div>
+                  }
+                  progressPending={loading}
+                  responsive={true}
+                  highlightOnHover={true}
+                  pointerOnHover={true}
+                />
+              </div>
+            ) : (
+              <div className="p-2 sm:p-6">
+                <CardView
+                  data={klasifikasiHewan}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  onDetail={handleDetail}
+                  openMenuId={openMenuId}
+                  setOpenMenuId={setOpenMenuId}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+        
+        {/* Modals */}
+        {(showAddModal || showEditModal) && (
+          <AddEditKlasifikasiHewanModal
+            item={editData}
+            onClose={() => {
+              setShowAddModal(false);
+              setShowEditModal(false);
+              setEditData(null);
+            }}
+            onSave={handleSave}
+            loading={loading}
+            jenisHewanOptions={jenisHewanOptions}
+          />
+        )}
+        <KlasifikasiHewanDetailModal
+          isOpen={showDetailModal}
+          onClose={() => {
+            setShowDetailModal(false);
+            setDetailData(null);
+          }}
+          data={detailData}
+        />
+        <DeleteConfirmationModal
+          isOpen={!!deleteData}
+          onClose={() => {
+            setDeleteData(null);
+            setIsDeleting(false);
+          }}
+          onConfirm={handleConfirmDelete}
+          title={`Hapus Klasifikasi "${deleteData?.name || ""}"?`}
+          description="Tindakan ini akan menghapus klasifikasi hewan secara permanen dan tidak dapat dibatalkan."
+          loading={isDeleting}
+        />
+      </div>
+    </div>
+  );
 };
 
 export default KlasifikasiHewanPage;
