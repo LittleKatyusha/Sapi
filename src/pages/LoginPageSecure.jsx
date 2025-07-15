@@ -211,6 +211,13 @@ const LoginPageSecure = () => {
     setError('');
 
     try {
+      console.log('🔵 DEBUG: Attempting login with data:', {
+        email: formData.email.trim(),
+        hasPassword: !!formData.password,
+        hasCaptcha: !!captchaToken,
+        rememberMe: formData.rememberMe
+      });
+
       const result = await login({
         email: formData.email.trim(),
         password: formData.password,
@@ -218,11 +225,22 @@ const LoginPageSecure = () => {
         rememberMe: formData.rememberMe
       });
 
+      console.log('🔵 DEBUG: Login result:', {
+        success: result.success,
+        hasToken: !!result.token,
+        hasUser: !!result.user,
+        message: result.message,
+        attempts: result.attempts,
+        blocked: result.blocked
+      });
+
       if (result.success) {
+        console.log('✅ DEBUG: Login successful, redirecting...');
         securityAudit.log('LOGIN_SUCCESS_REDIRECT');
         
         // Redirect ke halaman tujuan atau dashboard
         const redirectTo = location.state?.from?.pathname || '/dashboard';
+        console.log('🔄 DEBUG: Redirecting to:', redirectTo);
         navigate(redirectTo, { replace: true });
         
         setNotification({

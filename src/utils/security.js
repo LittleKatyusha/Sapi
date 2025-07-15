@@ -77,27 +77,53 @@ export const decryptData = (encryptedData) => {
  */
 export const secureStorage = {
   setItem: (key, value) => {
-    const encrypted = encryptData(value);
-    if (encrypted) {
-      localStorage.setItem(key, encrypted);
-      return true;
+    try {
+      const encrypted = encryptData(value);
+      if (encrypted) {
+        localStorage.setItem(key, encrypted);
+        console.log(`🔒 DEBUG: SecureStorage SET ${key}:`, {
+          success: true,
+          valueType: typeof value,
+          encryptedLength: encrypted.length
+        });
+        return true;
+      }
+      console.error(`🔒 DEBUG: SecureStorage SET ${key} failed - encryption failed`);
+      return false;
+    } catch (error) {
+      console.error(`🔒 DEBUG: SecureStorage SET ${key} error:`, error);
+      return false;
     }
-    return false;
   },
   
   getItem: (key) => {
-    const encrypted = localStorage.getItem(key);
-    if (encrypted) {
-      return decryptData(encrypted);
+    try {
+      const encrypted = localStorage.getItem(key);
+      if (encrypted) {
+        const decrypted = decryptData(encrypted);
+        console.log(`🔒 DEBUG: SecureStorage GET ${key}:`, {
+          success: !!decrypted,
+          hasEncrypted: !!encrypted,
+          encryptedLength: encrypted.length,
+          decryptedType: typeof decrypted
+        });
+        return decrypted;
+      }
+      console.log(`🔒 DEBUG: SecureStorage GET ${key}: not found`);
+      return null;
+    } catch (error) {
+      console.error(`🔒 DEBUG: SecureStorage GET ${key} error:`, error);
+      return null;
     }
-    return null;
   },
   
   removeItem: (key) => {
+    console.log(`🔒 DEBUG: SecureStorage REMOVE ${key}`);
     localStorage.removeItem(key);
   },
   
   clear: () => {
+    console.log(`🔒 DEBUG: SecureStorage CLEAR ALL`);
     localStorage.clear();
   }
 };

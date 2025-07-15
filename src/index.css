@@ -69,3 +69,232 @@ input[type="file"] {
   white-space: nowrap;
   border: 0;
 }
+
+/* Sidebar hover animation styles */
+@layer utilities {
+  .sidebar-hover-transition {
+    transition-property: width, transform;
+    transition-duration: 300ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .sidebar-content-fade {
+    transition: opacity 200ms ease-in-out;
+  }
+  
+  .sidebar-text-slide {
+    transition: all 200ms ease-in-out;
+    transform: translateX(0);
+  }
+  
+  .sidebar-text-slide-hidden {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+}
+
+/* Responsive sidebar styles */
+@media (max-width: 1024px) {
+  .sidebar-mobile-overlay {
+    backdrop-filter: blur(4px);
+    transition: backdrop-filter 200ms ease-in-out;
+  }
+}
+
+/* Prevent text selection during hover transitions */
+.sidebar-no-select {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Enhanced hover effects for sidebar items */
+.sidebar-item-hover {
+  transition: all 200ms ease-in-out;
+}
+
+.sidebar-item-hover:hover {
+  transform: translateX(2px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Smooth submenu animation */
+.submenu-slide-down {
+  animation: slideDown 250ms ease-out;
+  transform-origin: top;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scaleY(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+  }
+}
+
+/* Logo fade animation */
+.logo-fade-in {
+  animation: logoFadeIn 300ms ease-out;
+}
+
+@keyframes logoFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* User section animation */
+.user-section-expand {
+  animation: userSectionExpand 250ms ease-out;
+}
+
+@keyframes userSectionExpand {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Fixed Sidebar Layout Styles */
+@layer utilities {
+  .scrollbar-custom {
+    scrollbar-width: thin;
+    scrollbar-color: #dc2626 rgba(127, 29, 29, 0.3);
+  }
+  
+  .scrollbar-custom::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .scrollbar-custom::-webkit-scrollbar-track {
+    background: rgba(127, 29, 29, 0.2);
+    border-radius: 3px;
+  }
+  
+  .scrollbar-custom::-webkit-scrollbar-thumb {
+    background: #dc2626;
+    border-radius: 3px;
+    transition: background-color 200ms ease;
+  }
+  
+  .scrollbar-custom::-webkit-scrollbar-thumb:hover {
+    background: #b91c1c;
+  }
+  
+  /* Smooth scrolling for navigation */
+  .scrollbar-custom {
+    scroll-behavior: smooth;
+  }
+  
+  /* Fixed positioning adjustments */
+  .sidebar-fixed-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 40;
+    transition: width 300ms ease-in-out;
+  }
+  
+  .sidebar-fixed-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    z-index: 40;
+    transition: width 300ms ease-in-out;
+  }
+  
+  /* Navigation spacing for fixed elements */
+  .sidebar-nav-spacing {
+    margin-top: 73px; /* Header height */
+    margin-bottom: 140px; /* Footer height */
+  }
+  
+  /* Enhanced hover effects for fixed sidebar */
+  .sidebar-fixed-item:hover {
+    transform: translateX(1px);
+    background-color: rgba(127, 29, 29, 0.3);
+  }
+  
+  /* Responsive adjustments for mobile */
+  @media (max-width: 768px) {
+    .sidebar-nav-spacing {
+      margin-top: 65px;
+      margin-bottom: 120px;
+    }
+  }
+  
+  /* Loading state for sidebar content */
+  .sidebar-content-loading {
+    opacity: 0.7;
+    pointer-events: none;
+  }
+  
+  /* Ensure proper z-index layering */
+  .sidebar-overlay-layer {
+    z-index: 35;
+  }
+  
+  .sidebar-fixed-layer {
+    z-index: 40;
+  }
+  
+  .sidebar-content-layer {
+    z-index: 30;
+  }
+}
+
+/* Responsive design improvements */
+@media (max-width: 1024px) {
+  .sidebar-mobile-fixed {
+    position: fixed !important;
+    height: 100vh !important;
+    z-index: 50 !important;
+  }
+}
+
+/* Performance optimization for animations */
+.sidebar-hover-transition,
+.sidebar-fixed-header,
+.sidebar-fixed-footer {
+  will-change: width;
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-hover-transition,
+  .sidebar-fixed-header,
+  .sidebar-fixed-footer,
+  .scrollbar-custom {
+    transition: none !important;
+    animation: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .scrollbar-custom::-webkit-scrollbar-thumb {
+    background: #ffffff;
+    border: 1px solid #000000;
+  }
+  
+  .scrollbar-custom::-webkit-scrollbar-track {
+    background: #000000;
+    border: 1px solid #ffffff;
+  }
+}

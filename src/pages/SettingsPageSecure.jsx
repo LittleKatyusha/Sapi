@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Lock, Upload, X, Eye, EyeOff, Save, Edit2, Check, AlertCircle, Shield, LogOut, History, Smartphone } from 'lucide-react';
+import { User, Lock, Upload, X, Eye, EyeOff, Save, Edit2, Check, AlertCircle, Shield, LogOut, Smartphone } from 'lucide-react';
 import { useAuthSecure } from '../hooks/useAuthSecure';
 import { 
   sanitizeHtml, 
@@ -487,10 +487,6 @@ const SettingsPageSecure = () => {
     }
   };
 
-  // Get security logs
-  const getSecurityLogs = () => {
-    return securityAudit.getLogs().slice(-10); // Last 10 logs
-  };
 
   return (
     <>
@@ -708,35 +704,6 @@ const SettingsPageSecure = () => {
           </div>
         </div>
 
-        {/* Security Activity Log */}
-        <div className="bg-white p-6 md:p-8 rounded-xl shadow-md">
-          <h2 className="text-xl font-bold text-gray-800 border-b pb-4 mb-6 flex items-center">
-            <History className="mr-3 text-red-500"/> 
-            Aktivitas Keamanan Terbaru
-          </h2>
-          
-          <div className="space-y-3">
-            {getSecurityLogs().map((log, index) => (
-              <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div>
-                  <p className="text-sm font-medium text-gray-800">{log.event}</p>
-                  <p className="text-xs text-gray-600">
-                    {new Date(log.timestamp).toLocaleString('id-ID')}
-                  </p>
-                </div>
-                <div className="text-xs text-gray-500">
-                  {log.details.url && new URL(log.details.url).pathname}
-                </div>
-              </div>
-            ))}
-            
-            {getSecurityLogs().length === 0 && (
-              <p className="text-center text-gray-500 py-4">
-                Belum ada aktivitas keamanan yang tercatat
-              </p>
-            )}
-          </div>
-        </div>
 
         {/* Account Info Section */}
         <div className="bg-white p-6 md:p-8 rounded-xl shadow-md">

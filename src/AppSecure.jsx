@@ -130,7 +130,7 @@ function AppSecure() {
         url: window.location.href,
         userAgent: navigator.userAgent.slice(0, 100),
         timestamp: new Date().toISOString(),
-        screenResolution: `${screen.width}x${screen.height}`,
+        screenResolution: `${window.screen.width}x${window.screen.height}`,
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         language: navigator.language
       });
