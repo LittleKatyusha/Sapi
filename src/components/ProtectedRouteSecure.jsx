@@ -68,15 +68,6 @@ const ProtectedRouteSecure = ({ children }) => {
   useEffect(() => {
     const performSecurityCheck = async () => {
       try {
-        // Debug logging untuk tracking masalah
-        console.log('🔍 DEBUG: ProtectedRoute Security Check', {
-          path: location.pathname,
-          isAuthenticated,
-          hasToken: !!token,
-          hasUser: !!user,
-          userRole: user?.role,
-          loading
-        });
 
         // Log access attempt
         securityAudit.log('ROUTE_ACCESS_ATTEMPT', {
@@ -88,11 +79,6 @@ const ProtectedRouteSecure = ({ children }) => {
 
         // Basic authentication check
         if (!isAuthenticated || !token || !user) {
-          console.log('🔴 DEBUG: Basic auth check failed', {
-            isAuthenticated,
-            hasToken: !!token,
-            hasUser: !!user
-          });
           securityAudit.log('ROUTE_ACCESS_DENIED', {
             reason: 'not_authenticated',
             path: location.pathname
@@ -121,15 +107,8 @@ const ProtectedRouteSecure = ({ children }) => {
         const currentFingerprint = generateDeviceFingerprint();
         const storedFingerprint = secureStorage.getItem('deviceFingerprint');
         
-        console.log('🔍 DEBUG: Device Fingerprint Check', {
-          hasStored: !!storedFingerprint,
-          matches: storedFingerprint === currentFingerprint,
-          storedPreview: storedFingerprint?.substring(0, 20) + '...',
-          currentPreview: currentFingerprint?.substring(0, 20) + '...'
-        });
         
         if (storedFingerprint && storedFingerprint !== currentFingerprint) {
-          console.warn('⚠️ Device fingerprint mismatch - temporarily allowing for debugging');
           securityAudit.log('ROUTE_ACCESS_DEVICE_MISMATCH_DEBUG', {
             reason: 'device_mismatch',
             path: location.pathname,
@@ -143,7 +122,6 @@ const ProtectedRouteSecure = ({ children }) => {
           secureStorage.setItem('deviceFingerprint', currentFingerprint);
           
           // Show warning but continue
-          console.log('🔄 DEBUG: Updated device fingerprint');
         }
 
         // Check suspicious activity patterns
@@ -181,16 +159,6 @@ const ProtectedRouteSecure = ({ children }) => {
           const allowedRoles = ['admin', 'administrator', 'manager', 'Administrator', 'Admin', 'Manager'];
           const hasPermission = allowedRoles.includes(userRole) || allowedRoles.includes(userRole.toLowerCase());
           
-          // Enhanced debugging untuk permission check
-          console.log('🔍 DEBUG: Permission Check', {
-            path: location.pathname,
-            userRole,
-            userRoleLowerCase: userRole.toLowerCase(),
-            hasPermission,
-            allowedRoles,
-            isSensitiveRoute,
-            userData: user
-          });
           
           // TEMPORARY: Disable permission check for debugging
           // Uncomment the block below if you want to re-enable strict permission checking
@@ -221,11 +189,6 @@ const ProtectedRouteSecure = ({ children }) => {
           
           // Log warning instead of blocking access
           if (!hasPermission) {
-            console.warn('⚠️ DEBUG: Access would be denied but temporarily allowing', {
-              userRole,
-              requiredRoles: allowedRoles,
-              path: location.pathname
-            });
             securityAudit.log('ROUTE_ACCESS_WARNING_DEBUG', {
               reason: 'insufficient_permissions_but_allowing',
               path: location.pathname,

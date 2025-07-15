@@ -1,7 +1,7 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import DataTable from "react-data-table-component";
 import { PlusCircle, Search, LayoutGrid, List } from "lucide-react";
-import ActionButton from "./eartag/components/ActionButton";
+import ActionButton from "./jenisHewan/components/ActionButton";
 
 // Komponen dan hooks terpisah
 import CardView from "./jenisHewan/components/CardView";
@@ -28,15 +28,22 @@ const JenisHewanPage = () => {
   const {
     jenisHewan,
     loading,
-    addJenisHewan,
+    error,
+    createJenisHewan,
     updateJenisHewan,
     deleteJenisHewan,
+    fetchJenisHewan,
     searchTerm,
     setSearchTerm,
     filterNama,
     setFilterNama,
     stats,
   } = useJenisHewan();
+
+  // Load data on component mount
+  useEffect(() => {
+    fetchJenisHewan();
+  }, [fetchJenisHewan]);
 
   // Event handlers
   const handleAdd = useCallback(() => {
@@ -61,42 +68,73 @@ const JenisHewanPage = () => {
   const handleConfirmDelete = useCallback(async () => {
     if (!deleteData) return;
     setIsDeleting(true);
-    await deleteJenisHewan(deleteData.id);
+    const result = await deleteJenisHewan(deleteData.pubid);
     setIsDeleting(false);
     setDeleteData(null);
+    
+    if (!result.success) {
+      console.error('Delete error:', result.message);
+      // Bisa ditambahkan notifikasi error di sini
+    }
   }, [deleteData, deleteJenisHewan]);
 
   const handleSave = useCallback(async (formData) => {
-    if (formData.id) {
-      await updateJenisHewan(formData);
+    let result;
+    
+    if (formData.pubid) {
+      result = await updateJenisHewan(formData.pubid, formData);
     } else {
-      await addJenisHewan(formData);
+      result = await createJenisHewan(formData);
     }
-    setShowAddModal(false);
-    setShowEditModal(false);
-    setEditData(null);
-  }, [addJenisHewan, updateJenisHewan]);
+    
+    if (result.success) {
+      setShowAddModal(false);
+      setShowEditModal(false);
+      setEditData(null);
+    } else {
+      console.error('Save error:', result.message);
+      // Bisa ditambahkan notifikasi error di sini
+    }
+  }, [createJenisHewan, updateJenisHewan]);
 
   // Table columns (kolom aksi di pojok kanan, dummy di tengah)
   const columns = useMemo(() => [
     {
-      name: "ID Jenis",
-      selector: row => row.id,
+      name: "No",
+      selector: row => row.order_no,
       sortable: true,
       cell: row => (
-        <div className="font-mono font-bold text-gray-800 text-sm">
-          {row.id}
-        </div>
-      )
+        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm font-medium">
+          {row.order_no}
+        </span>
+      ),
+      width: "100px"
     },
     {
       name: "Nama Jenis Hewan",
       selector: row => row.name,
+      sortable: true,
       cell: row => (
-        <span className="text-sm text-gray-700 bg-gray-100 px-3 py-1 rounded-full">
-          {row.name}
-        </span>
+        <div className="flex flex-col">
+          <span className="font-semibold text-gray-800">{row.name}</span>
+          <span className="text-xs text-gray-500 truncate">{row.description}</span>
+        </div>
       )
+    },
+    {
+      name: "Status",
+      selector: row => row.status,
+      sortable: true,
+      cell: row => (
+        <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
+          row.status === 1
+            ? 'bg-green-100 text-green-800'
+            : 'bg-red-100 text-red-800'
+        }`}>
+          {row.status === 1 ? 'Aktif' : 'Tidak Aktif'}
+        </span>
+      ),
+      width: "120px"
     },
     {
       name: "Aksi",
@@ -110,7 +148,7 @@ const JenisHewanPage = () => {
               onEdit={handleEdit}
               onDelete={handleDelete}
               onDetail={handleDetail}
-              isActive={openMenuId === row.id}
+              isActive={openMenuId === row.pubid}
               usePortal={true}
             />
           </div>
@@ -118,7 +156,8 @@ const JenisHewanPage = () => {
       ),
       ignoreRowClick: true,
       allowOverflow: true,
-      center: true
+      center: true,
+      width: "80px"
     }
   ], [openMenuId, handleEdit, handleDelete, handleDetail]);
 

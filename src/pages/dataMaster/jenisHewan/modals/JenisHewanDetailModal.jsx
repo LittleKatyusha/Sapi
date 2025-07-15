@@ -12,14 +12,28 @@ const JenisHewanDetailModal = ({ isOpen, onClose, data }) => {
             <X size={24} className="text-gray-600" />
           </button>
         </div>
-        <div className="p-6 space-y-2">
+        <div className="p-6 space-y-4">
           <div>
-            <span className="block text-xs text-gray-500 mb-1">ID</span>
-            <span className="font-mono text-base font-semibold">{data.id}</span>
+            <span className="block text-xs text-gray-500 mb-1">No</span>
+            <span className="font-mono text-sm font-semibold text-gray-700 bg-gray-100 px-2 py-1 rounded">{data.order_no}</span>
           </div>
           <div>
             <span className="block text-xs text-gray-500 mb-1">Nama Jenis Hewan</span>
-            <span className="font-bold text-lg">{data.name}</span>
+            <span className="font-bold text-lg text-gray-800">{data.name}</span>
+          </div>
+          <div>
+            <span className="block text-xs text-gray-500 mb-1">Deskripsi</span>
+            <p className="text-sm text-gray-700 leading-relaxed">{data.description}</p>
+          </div>
+          <div>
+            <span className="block text-xs text-gray-500 mb-1">Status</span>
+            <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
+              data.status === 1
+                ? 'bg-green-100 text-green-800'
+                : 'bg-red-100 text-red-800'
+            }`}>
+              {data.status === 1 ? 'Aktif' : 'Tidak Aktif'}
+            </span>
           </div>
         </div>
         <div className="flex justify-end p-4 bg-gray-50 border-t rounded-b-xl">

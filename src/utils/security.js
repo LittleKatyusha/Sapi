@@ -81,17 +81,10 @@ export const secureStorage = {
       const encrypted = encryptData(value);
       if (encrypted) {
         localStorage.setItem(key, encrypted);
-        console.log(`🔒 DEBUG: SecureStorage SET ${key}:`, {
-          success: true,
-          valueType: typeof value,
-          encryptedLength: encrypted.length
-        });
         return true;
       }
-      console.error(`🔒 DEBUG: SecureStorage SET ${key} failed - encryption failed`);
       return false;
     } catch (error) {
-      console.error(`🔒 DEBUG: SecureStorage SET ${key} error:`, error);
       return false;
     }
   },
@@ -101,29 +94,19 @@ export const secureStorage = {
       const encrypted = localStorage.getItem(key);
       if (encrypted) {
         const decrypted = decryptData(encrypted);
-        console.log(`🔒 DEBUG: SecureStorage GET ${key}:`, {
-          success: !!decrypted,
-          hasEncrypted: !!encrypted,
-          encryptedLength: encrypted.length,
-          decryptedType: typeof decrypted
-        });
         return decrypted;
       }
-      console.log(`🔒 DEBUG: SecureStorage GET ${key}: not found`);
       return null;
     } catch (error) {
-      console.error(`🔒 DEBUG: SecureStorage GET ${key} error:`, error);
       return null;
     }
   },
   
   removeItem: (key) => {
-    console.log(`🔒 DEBUG: SecureStorage REMOVE ${key}`);
     localStorage.removeItem(key);
   },
   
   clear: () => {
-    console.log(`🔒 DEBUG: SecureStorage CLEAR ALL`);
     localStorage.clear();
   }
 };
@@ -428,10 +411,8 @@ export const securityAudit = {
     
     localStorage.setItem('securityLogs', JSON.stringify(logs));
     
-    // Log to console in development
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Security Event:', logEntry);
-    }
+    // Security events are logged silently for production
+    // Console logging disabled to reduce noise
   },
   
   getLogs: () => {

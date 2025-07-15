@@ -2,7 +2,12 @@ import React, { useState } from "react";
 import { X } from "lucide-react";
 
 const AddEditJenisHewanModal = ({ item, onClose, onSave, loading }) => {
-  const [formData, setFormData] = useState(item || { name: "" });
+  const [formData, setFormData] = useState(item || {
+    name: "",
+    description: "",
+    order_no: "",
+    status: 1
+  });
   const isEditMode = !!item;
 
   const handleChange = (e) => {
@@ -40,8 +45,55 @@ const AddEditJenisHewanModal = ({ item, onClose, onSave, loading }) => {
                 onChange={handleChange}
                 className="input-field w-full"
                 placeholder="Contoh: Sapi"
+                maxLength="200"
                 required
               />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Deskripsi
+              </label>
+              <textarea
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                className="input-field w-full h-24 resize-none"
+                placeholder="Deskripsi jenis hewan..."
+                required
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                No
+              </label>
+              <input
+                type="number"
+                name="order_no"
+                value={formData.order_no}
+                onChange={handleChange}
+                className="input-field w-full"
+                placeholder="Nomor jenis hewan"
+                min="1"
+                required
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Status
+              </label>
+              <select
+                name="status"
+                value={formData.status}
+                onChange={handleChange}
+                className="input-field w-full"
+                required
+              >
+                <option value={1}>Aktif</option>
+                <option value={0}>Tidak Aktif</option>
+              </select>
             </div>
           </div>
           <div className="flex justify-end p-4 bg-gray-50 border-t rounded-b-xl">

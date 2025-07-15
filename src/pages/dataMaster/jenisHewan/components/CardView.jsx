@@ -1,31 +1,38 @@
 import React from "react";
-import { MoreVertical } from "lucide-react";
-import ActionMenu from "./ActionMenu";
+import ActionButton from "./ActionButton";
 
-const CardView = ({ data, onEdit, onDelete, openMenuId, setOpenMenuId }) => (
+const CardView = ({ data, onEdit, onDelete, onDetail, openMenuId, setOpenMenuId }) => (
   <div className="space-y-4">
     {data.map(item => (
-      <div key={item.id} className="bg-white p-4 rounded-lg shadow border border-gray-200">
+      <div key={item.pubid} className="bg-white p-4 rounded-lg shadow border border-gray-200 hover:shadow-md transition-shadow">
         <div className="flex justify-between items-start">
-          <p className="font-semibold text-gray-800">{item.name}</p>
-          <div className="relative">
-            <button
-              onClick={() => setOpenMenuId(openMenuId === item.id ? null : item.id)}
-              className="p-2 text-gray-500 hover:bg-gray-200 rounded-full"
-            >
-              <MoreVertical size={18} />
-            </button>
-            {openMenuId === item.id && (
-              <ActionMenu
-                row={item}
-                onEdit={onEdit}
-                onDelete={onDelete}
-                onClose={() => setOpenMenuId(null)}
-              />
-            )}
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-2">
+              <h3 className="font-semibold text-gray-800">{item.name}</h3>
+              <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
+                item.status === 1
+                  ? 'bg-green-100 text-green-800'
+                  : 'bg-red-100 text-red-800'
+              }`}>
+                {item.status === 1 ? 'Aktif' : 'Tidak Aktif'}
+              </span>
+            </div>
+            <p className="text-sm text-gray-600 mb-2 line-clamp-2">{item.description}</p>
+            <div className="flex items-center justify-between text-xs text-gray-500">
+              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded font-semibold">No: {item.order_no}</span>
+            </div>
+          </div>
+          <div className="ml-2">
+            <ActionButton
+              row={item}
+              openMenuId={openMenuId}
+              setOpenMenuId={setOpenMenuId}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              onDetail={onDetail}
+            />
           </div>
         </div>
-        <p className="text-sm text-gray-500 font-mono mt-1">{item.id}</p>
       </div>
     ))}
   </div>

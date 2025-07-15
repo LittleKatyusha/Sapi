@@ -65,20 +65,10 @@ export const useAuthSecure = () => {
         const authStatus = secureStorage.getItem('isAuthenticated');
         const storedFingerprint = secureStorage.getItem('deviceFingerprint');
         
-        // Debug logging untuk tracking masalah
-        console.log('🔍 DEBUG: Auth Check Details', {
-          hasToken: !!storedToken,
-          hasUser: !!storedUser,
-          authStatus,
-          hasStoredFingerprint: !!storedFingerprint,
-          currentFingerprint: deviceFingerprint.current?.substring(0, 20) + '...',
-          storedFingerprintPreview: storedFingerprint?.substring(0, 20) + '...'
-        });
         
         // Sementara disable device fingerprint check yang terlalu ketat
         // untuk troubleshooting masalah login
         if (storedFingerprint && storedFingerprint !== deviceFingerprint.current) {
-          console.warn('⚠️ Device fingerprint mismatch - temporarily allowing for debugging');
           securityAudit.log('DEVICE_FINGERPRINT_MISMATCH_DEBUG', {
             stored: storedFingerprint.substring(0, 20) + '...',
             current: deviceFingerprint.current.substring(0, 20) + '...',
@@ -91,14 +81,12 @@ export const useAuthSecure = () => {
         if (storedToken && authStatus === true) {
           // Validate token
           if (tokenSecurity.isExpired(storedToken)) {
-            console.log('🔴 DEBUG: Token expired, clearing auth');
             securityAudit.log('STORED_TOKEN_EXPIRED');
             await clearAuthData();
             setLoading(false);
             return;
           }
 
-          console.log('✅ DEBUG: Auth restored successfully');
           setToken(storedToken);
           setIsAuthenticated(true);
           
@@ -111,7 +99,6 @@ export const useAuthSecure = () => {
             deviceFingerprint: deviceFingerprint.current.substring(0, 20) + '...'
           });
         } else {
-          console.log('🔴 DEBUG: No valid auth data found, clearing');
           await clearAuthData();
         }
       } catch (error) {

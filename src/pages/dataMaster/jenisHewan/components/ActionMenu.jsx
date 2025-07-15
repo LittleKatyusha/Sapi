@@ -10,9 +10,10 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef }) => 
         function updatePosition() {
             if (buttonRef?.current) {
                 const btnRect = buttonRef.current.getBoundingClientRect();
+                const menuWidth = 192; // w-48 = 192px
                 setMenuStyle({
                     position: 'absolute',
-                    left: btnRect.left + window.scrollX,
+                    left: btnRect.right + window.scrollX - menuWidth, // Position to the left
                     top: btnRect.bottom + window.scrollY + 8,
                     zIndex: 9999
                 });
