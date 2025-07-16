@@ -1,5 +1,3 @@
-// Security utilities untuk aplikasi dashboard-sapi
-import CryptoJS from 'crypto-js';
 
 // Security constants
 export const SECURITY_CONFIG = {
