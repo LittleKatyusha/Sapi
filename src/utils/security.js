@@ -127,7 +127,7 @@ export const validatePasswordStrength = (password) => {
     errors.push('Password harus mengandung angka');
   }
   
-  if (policy.REQUIRE_SPECIAL_CHAR && !/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+  if (policy.REQUIRE_SPECIAL_CHAR && !/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)) {
     errors.push('Password harus mengandung karakter khusus');
   }
   
@@ -155,7 +155,7 @@ const calculatePasswordStrength = (password) => {
   if (/[a-z]/.test(password)) score += 5;
   if (/[A-Z]/.test(password)) score += 5;
   if (/\d/.test(password)) score += 5;
-  if (/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) score += 10;
+  if (/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)) score += 10;
   
   // Pattern penalties
   if (/(.)\1{2,}/.test(password)) score -= 10; // Repeated characters
@@ -429,7 +429,7 @@ export const setSecurityHeaders = () => {
   });
 };
 
-export default {
+const securityUtils = {
   SECURITY_CONFIG,
   secureStorage,
   sanitizeHtml,
@@ -443,3 +443,5 @@ export default {
   securityAudit,
   setSecurityHeaders
 };
+
+export default securityUtils;
