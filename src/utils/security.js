@@ -40,62 +40,32 @@ const COMMON_PASSWORDS = [
   'welcome', 'login', 'pass', 'root', 'user', 'test'
 ];
 
-// === ENCRYPTION & SECURITY UTILITIES ===
+// === SECURITY UTILITIES ===
 
 /**
- * Encrypt data untuk disimpan di localStorage
- */
-export const encryptData = (data) => {
-  try {
-    const jsonString = JSON.stringify(data);
-    const encrypted = CryptoJS.AES.encrypt(jsonString, SECURITY_CONFIG.ENCRYPTION_KEY).toString();
-    return encrypted;
-  } catch (error) {
-    console.error('Encryption error:', error);
-    return null;
-  }
-};
-
-/**
- * Decrypt data dari localStorage
- */
-export const decryptData = (encryptedData) => {
-  try {
-    const decrypted = CryptoJS.AES.decrypt(encryptedData, SECURITY_CONFIG.ENCRYPTION_KEY);
-    const jsonString = decrypted.toString(CryptoJS.enc.Utf8);
-    return JSON.parse(jsonString);
-  } catch (error) {
-    console.error('Decryption error:', error);
-    return null;
-  }
-};
-
-/**
- * Secure localStorage dengan encryption
+ * Simple localStorage wrapper (without encryption)
  */
 export const secureStorage = {
   setItem: (key, value) => {
     try {
-      const encrypted = encryptData(value);
-      if (encrypted) {
-        localStorage.setItem(key, encrypted);
-        return true;
-      }
-      return false;
+      const jsonString = JSON.stringify(value);
+      localStorage.setItem(key, jsonString);
+      return true;
     } catch (error) {
+      console.error('Storage error:', error);
       return false;
     }
   },
   
   getItem: (key) => {
     try {
-      const encrypted = localStorage.getItem(key);
-      if (encrypted) {
-        const decrypted = decryptData(encrypted);
-        return decrypted;
+      const data = localStorage.getItem(key);
+      if (data) {
+        return JSON.parse(data);
       }
       return null;
     } catch (error) {
+      console.error('Storage retrieval error:', error);
       return null;
     }
   },
@@ -461,8 +431,6 @@ export const setSecurityHeaders = () => {
 
 export default {
   SECURITY_CONFIG,
-  encryptData,
-  decryptData,
   secureStorage,
   sanitizeHtml,
   validateEmail,
