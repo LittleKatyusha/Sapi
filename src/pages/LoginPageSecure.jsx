@@ -26,6 +26,8 @@ const LoginPageSecure = () => {
   const [isBlocked, setIsBlocked] = useState(false);
   const [blockTimeRemaining, setBlockTimeRemaining] = useState(0);
   const [inputErrors, setInputErrors] = useState({});
+  const [captchaLoaded, setCaptchaLoaded] = useState(false);
+  const [captchaRetryCount, setCaptchaRetryCount] = useState(0);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -48,49 +50,148 @@ const LoginPageSecure = () => {
     }
   }, [location.state]);
 
-  // Load Cloudflare Turnstile script dan handle callbacks
+  // Enhanced Cloudflare Turnstile script loading dengan retry mechanism
   useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
-    script.async = true;
-    script.defer = true;
-    script.onload = () => {
-      securityAudit.log('CAPTCHA_LOADED');
+    let mounted = true;
+    let retryTimeout;
+
+    const loadCaptchaScript = () => {
+      // Remove existing script if any
+      const existingScript = document.querySelector('script[src*="turnstile"]');
+      if (existingScript) {
+        existingScript.remove();
+      }
+
+      // Clear existing widget container
+      const captchaContainer = document.querySelector('.cf-turnstile');
+      if (captchaContainer) {
+        captchaContainer.innerHTML = '';
+      }
+
+      const script = document.createElement('script');
+      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+      script.async = true;
+      script.defer = true;
+      
+      script.onload = () => {
+        if (mounted) {
+          setCaptchaLoaded(true);
+          securityAudit.log('CAPTCHA_LOADED');
+          
+          // Force render widget after script loads
+          setTimeout(() => {
+            if (window.turnstile && mounted) {
+              try {
+                window.turnstile.render('.cf-turnstile', {
+                  sitekey: '0x4AAAAAABk4XOgg4RBl7dSz',
+                  callback: 'handleCaptchaSuccess',
+                  'error-callback': 'handleCaptchaError',
+                  'expired-callback': 'handleCaptchaExpired'
+                });
+              } catch (err) {
+                console.warn('Turnstile render error:', err);
+                // Retry if render fails
+                if (captchaRetryCount < 3) {
+                  setCaptchaRetryCount(prev => prev + 1);
+                  retryTimeout = setTimeout(loadCaptchaScript, 2000);
+                }
+              }
+            }
+          }, 500);
+        }
+      };
+      
+      script.onerror = () => {
+        if (mounted) {
+          securityAudit.log('CAPTCHA_LOAD_ERROR');
+          setCaptchaLoaded(false);
+          
+          // Retry loading script
+          if (captchaRetryCount < 3) {
+            setCaptchaRetryCount(prev => prev + 1);
+            retryTimeout = setTimeout(loadCaptchaScript, 2000);
+          } else {
+            setError('Gagal memuat verifikasi keamanan. Refresh halaman.');
+          }
+        }
+      };
+      
+      document.head.appendChild(script);
     };
-    script.onerror = () => {
-      securityAudit.log('CAPTCHA_LOAD_ERROR');
-      setError('Refresh halaman untuk melanjutkan');
-    };
-    document.head.appendChild(script);
 
     // Define callback functions
     window.handleCaptchaSuccess = (token) => {
-      setCaptchaToken(token);
-      securityAudit.log('CAPTCHA_SUCCESS');
+      if (mounted) {
+        setCaptchaToken(token);
+        setError('');
+        securityAudit.log('CAPTCHA_SUCCESS');
+      }
     };
 
     window.handleCaptchaError = () => {
-      setCaptchaToken('');
-      setError('Verifikasi gagal, coba lagi');
-      securityAudit.log('CAPTCHA_ERROR');
+      if (mounted) {
+        setCaptchaToken('');
+        setError('Verifikasi gagal, coba lagi');
+        securityAudit.log('CAPTCHA_ERROR');
+        
+        // Reset and retry widget
+        setTimeout(() => {
+          if (window.turnstile && mounted) {
+            try {
+              window.turnstile.reset();
+            } catch (err) {
+              console.warn('Turnstile reset error:', err);
+            }
+          }
+        }, 1000);
+      }
     };
 
     window.handleCaptchaExpired = () => {
-      setCaptchaToken('');
-      setError('Verifikasi kedaluwarsa, ulangi lagi');
-      securityAudit.log('CAPTCHA_EXPIRED');
+      if (mounted) {
+        setCaptchaToken('');
+        setError('Verifikasi kedaluwarsa, ulangi lagi');
+        securityAudit.log('CAPTCHA_EXPIRED');
+        
+        // Auto reset expired widget
+        setTimeout(() => {
+          if (window.turnstile && mounted) {
+            try {
+              window.turnstile.reset();
+            } catch (err) {
+              console.warn('Turnstile reset error:', err);
+            }
+          }
+        }, 1000);
+      }
     };
 
+    // Initial load
+    loadCaptchaScript();
+
     return () => {
-      if (document.head.contains(script)) {
+      mounted = false;
+      
+      // Clear retry timeout
+      if (retryTimeout) {
+        clearTimeout(retryTimeout);
+      }
+      
+      // Clean up script
+      const script = document.querySelector('script[src*="turnstile"]');
+      if (script && document.head.contains(script)) {
         document.head.removeChild(script);
       }
+      
       // Clean up global functions
       delete window.handleCaptchaSuccess;
       delete window.handleCaptchaError;
       delete window.handleCaptchaExpired;
+      
+      setCaptchaLoaded(false);
+      setCaptchaRetryCount(0);
     };
-  }, []);
+  }, [captchaRetryCount]);
 
   // Check rate limiting status
   useEffect(() => {
@@ -267,21 +368,37 @@ const LoginPageSecure = () => {
           setBlockTimeRemaining(result.remainingTime);
         }
         
-        // Reset captcha on error
+        // Reset captcha on error with enhanced handling
         setCaptchaToken('');
-        if (window.turnstile) {
-          window.turnstile.reset();
-        }
+        setTimeout(() => {
+          if (window.turnstile) {
+            try {
+              window.turnstile.reset();
+            } catch (err) {
+              console.warn('Turnstile reset error:', err);
+              // Force reload widget if reset fails
+              setCaptchaRetryCount(prev => prev + 1);
+            }
+          }
+        }, 500);
       }
     } catch (err) {
       setError('Koneksi bermasalah, coba lagi');
       securityAudit.log('LOGIN_NETWORK_ERROR', { error: err.message });
       
-      // Reset captcha on error
+      // Reset captcha on error with enhanced handling
       setCaptchaToken('');
-      if (window.turnstile) {
-        window.turnstile.reset();
-      }
+      setTimeout(() => {
+        if (window.turnstile) {
+          try {
+            window.turnstile.reset();
+          } catch (err) {
+            console.warn('Turnstile reset error:', err);
+            // Force reload widget if reset fails
+            setCaptchaRetryCount(prev => prev + 1);
+          }
+        }
+      }, 500);
     } finally {
       setIsLoading(false);
     }
@@ -459,15 +576,28 @@ const LoginPageSecure = () => {
                 </label>
               </div>
 
-              {/* Cloudflare Turnstile Captcha */}
+              {/* Cloudflare Turnstile Captcha with Loading State */}
               <div className="flex justify-center py-2">
-                <div 
-                  className="cf-turnstile" 
-                  data-sitekey="0x4AAAAAABk4XOgg4RBl7dSz"
-                  data-callback="handleCaptchaSuccess"
-                  data-error-callback="handleCaptchaError"
-                  data-expired-callback="handleCaptchaExpired"
-                ></div>
+                <div className="relative">
+                  <div
+                    className="cf-turnstile"
+                    data-sitekey="0x4AAAAAABk4XOgg4RBl7dSz"
+                    data-callback="handleCaptchaSuccess"
+                    data-error-callback="handleCaptchaError"
+                    data-expired-callback="handleCaptchaExpired"
+                  ></div>
+                  {!captchaLoaded && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-white/10 rounded-lg">
+                      <div className="flex items-center space-x-2 text-white/70">
+                        <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span className="text-sm">Memuat verifikasi keamanan...</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Submit Button */}
