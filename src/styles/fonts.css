@@ -1,0 +1,98 @@
+/* Local Font Fallback untuk Roboto */
+/* CSS ini akan digunakan jika Google Fonts tidak dapat dimuat */
+
+@font-face {
+  font-family: 'Roboto-Fallback';
+  font-style: normal;
+  font-weight: 100;
+  font-display: swap;
+  src: local('Roboto Thin'), local('Helvetica Neue'), local('Arial'), sans-serif;
+}
+
+@font-face {
+  font-family: 'Roboto-Fallback';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: local('Roboto Light'), local('Helvetica Neue Light'), local('Arial'), sans-serif;
+}
+
+@font-face {
+  font-family: 'Roboto-Fallback';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Roboto Regular'), local('Helvetica Neue'), local('Arial'), sans-serif;
+}
+
+@font-face {
+  font-family: 'Roboto-Fallback';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: local('Roboto Medium'), local('Helvetica Neue Medium'), local('Arial'), sans-serif;
+}
+
+@font-face {
+  font-family: 'Roboto-Fallback';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Roboto Bold'), local('Helvetica Neue Bold'), local('Arial Bold'), sans-serif;
+}
+
+@font-face {
+  font-family: 'Roboto-Fallback';
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: local('Roboto Black'), local('Helvetica Neue Black'), local('Arial Black'), sans-serif;
+}
+
+/* Italic variants */
+@font-face {
+  font-family: 'Roboto-Fallback';
+  font-style: italic;
+  font-weight: 300;
+  font-display: swap;
+  src: local('Roboto Light Italic'), local('Helvetica Neue Light Italic'), local('Arial Italic'), sans-serif;
+}
+
+@font-face {
+  font-family: 'Roboto-Fallback';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Roboto Italic'), local('Helvetica Neue Italic'), local('Arial Italic'), sans-serif;
+}
+
+@font-face {
+  font-family: 'Roboto-Fallback';
+  font-style: italic;
+  font-weight: 500;
+  font-display: swap;
+  src: local('Roboto Medium Italic'), local('Helvetica Neue Medium Italic'), local('Arial Italic'), sans-serif;
+}
+
+@font-face {
+  font-family: 'Roboto-Fallback';
+  font-style: italic;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Roboto Bold Italic'), local('Helvetica Neue Bold Italic'), local('Arial Bold Italic'), sans-serif;
+}
+
+/* CSS Variables untuk font stack */
+:root {
+  --font-roboto-stack: 'Roboto', 'Roboto-Fallback', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, 'Helvetica Neue', Arial, sans-serif;
+  --font-system-stack: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* Utility classes dengan fallback */
+.font-roboto-safe {
+  font-family: var(--font-roboto-stack);
+}
+
+.font-system {
+  font-family: var(--font-system-stack);
+}

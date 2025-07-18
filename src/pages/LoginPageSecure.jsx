@@ -50,143 +50,195 @@ const LoginPageSecure = () => {
     }
   }, [location.state]);
 
-  // Enhanced Cloudflare Turnstile script loading dengan retry mechanism
+  // Simplified and more reliable Cloudflare Turnstile loading
   useEffect(() => {
     let mounted = true;
     let retryTimeout;
+    let widgetId = null;
+    let initTimeout;
+    const TURNSTILE_CONTAINER_ID = 'turnstile-widget-container';
+    const MAX_RETRIES = 3;
+    const LOAD_TIMEOUT = 10000; // 10 seconds
 
-    const loadCaptchaScript = () => {
-      // Remove existing script if any
-      const existingScript = document.querySelector('script[src*="turnstile"]');
-      if (existingScript) {
-        existingScript.remove();
+    const renderWidget = () => {
+      if (!window.turnstile || !mounted) {
+        return;
       }
 
-      // Clear existing widget container
-      const captchaContainer = document.querySelector('.cf-turnstile');
-      if (captchaContainer) {
-        captchaContainer.innerHTML = '';
+      const container = document.getElementById(TURNSTILE_CONTAINER_ID);
+      if (!container) {
+        return;
       }
 
-      const script = document.createElement('script');
-      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
-      script.async = true;
-      script.defer = true;
-      
-      script.onload = () => {
-        if (mounted) {
-          setCaptchaLoaded(true);
-          securityAudit.log('CAPTCHA_LOADED');
-          
-          // Force render widget after script loads
-          setTimeout(() => {
-            if (window.turnstile && mounted) {
-              try {
-                window.turnstile.render('.cf-turnstile', {
-                  sitekey: '0x4AAAAAABk4XOgg4RBl7dSz',
-                  callback: 'handleCaptchaSuccess',
-                  'error-callback': 'handleCaptchaError',
-                  'expired-callback': 'handleCaptchaExpired'
-                });
-              } catch (err) {
-                console.warn('Turnstile render error:', err);
-                // Retry if render fails
-                if (captchaRetryCount < 3) {
-                  setCaptchaRetryCount(prev => prev + 1);
-                  retryTimeout = setTimeout(loadCaptchaScript, 2000);
-                }
+      // Clear existing widget
+      if (widgetId !== null) {
+        try {
+          window.turnstile.remove(widgetId);
+          widgetId = null;
+        } catch (err) {
+          // Silent cleanup
+        }
+      }
+
+      // Clear container
+      container.innerHTML = '';
+
+      try {
+        
+        widgetId = window.turnstile.render(container, {
+          sitekey: '0x4AAAAAABk4XOgg4RBl7dSz',
+          theme: 'dark',
+          size: 'normal',
+          callback: (token) => {
+            if (mounted) {
+              setCaptchaToken(token);
+              setError('');
+              securityAudit.log('CAPTCHA_SUCCESS', { tokenReceived: true });
+            }
+          },
+          'error-callback': (errorCode) => {
+            if (mounted) {
+              setCaptchaToken('');
+              
+              const errorMessages = {
+                '110100': 'Sitekey tidak valid',
+                '110110': 'Domain tidak diizinkan',
+                '110200': 'Request tidak valid',
+                '110420': 'Terlalu banyak request',
+                '110500': 'Server error',
+                '300010': 'Widget expired',
+                '300020': 'Timeout',
+                '300030': 'Widget error'
+              };
+              
+              const errorMsg = errorMessages[errorCode] || `Error code: ${errorCode}`;
+              setError(`Verifikasi error: ${errorMsg}`);
+              securityAudit.log('CAPTCHA_ERROR', { errorCode, errorMsg });
+              
+              // Retry for certain errors
+              if (['300010', '300020', '300030'].includes(errorCode) && captchaRetryCount < MAX_RETRIES) {
+                setCaptchaRetryCount(prev => prev + 1);
+                retryTimeout = setTimeout(() => {
+                  if (mounted) renderWidget();
+                }, 3000);
               }
             }
-          }, 500);
+          },
+          'expired-callback': () => {
+            if (mounted) {
+              setCaptchaToken('');
+              setError('Verifikasi expired, silakan ulangi');
+              securityAudit.log('CAPTCHA_EXPIRED');
+            }
+          },
+          'timeout-callback': () => {
+            if (mounted) {
+              setCaptchaToken('');
+              setError('Verifikasi timeout, silakan ulangi');
+              securityAudit.log('CAPTCHA_TIMEOUT');
+            }
+          }
+        });
+
+        if (widgetId !== null) {
+          setCaptchaLoaded(true);
+          securityAudit.log('CAPTCHA_WIDGET_RENDERED', { widgetId });
         }
+      } catch (err) {
+        securityAudit.log('CAPTCHA_RENDER_ERROR', { error: err.message });
+        
+        if (captchaRetryCount < MAX_RETRIES && mounted) {
+          setCaptchaRetryCount(prev => prev + 1);
+          setError(`Gagal render widget (${captchaRetryCount + 1}/${MAX_RETRIES}). Mencoba lagi...`);
+          retryTimeout = setTimeout(() => {
+            if (mounted) renderWidget();
+          }, 3000);
+        } else {
+          setError('Gagal memuat verifikasi. Refresh halaman.');
+        }
+      }
+    };
+
+    const loadTurnstileScript = () => {
+      // Check if already loaded
+      if (window.turnstile) {
+        renderWidget();
+        return;
+      }
+
+      // Check if script already exists
+      const existingScript = document.querySelector('script[src*="turnstile"]');
+      if (existingScript) {
+        const checkTurnstile = setInterval(() => {
+          if (window.turnstile) {
+            clearInterval(checkTurnstile);
+            renderWidget();
+          }
+        }, 100);
+        
+        // Stop checking after timeout
+        setTimeout(() => {
+          clearInterval(checkTurnstile);
+          if (!window.turnstile) {
+            setError('Gagal memuat verifikasi. Refresh halaman.');
+          }
+        }, LOAD_TIMEOUT);
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+      script.async = true;
+      script.defer = true;
+      script.id = 'turnstile-script';
+      
+      script.onload = () => {
+        securityAudit.log('CAPTCHA_SCRIPT_LOADED');
+        
+        // Wait a bit for Turnstile to initialize
+        setTimeout(() => {
+          if (mounted && window.turnstile) {
+            renderWidget();
+          }
+        }, 300);
       };
       
-      script.onerror = () => {
-        if (mounted) {
-          securityAudit.log('CAPTCHA_LOAD_ERROR');
-          setCaptchaLoaded(false);
-          
-          // Retry loading script
-          if (captchaRetryCount < 3) {
-            setCaptchaRetryCount(prev => prev + 1);
-            retryTimeout = setTimeout(loadCaptchaScript, 2000);
-          } else {
-            setError('Gagal memuat verifikasi keamanan. Refresh halaman.');
-          }
+      script.onerror = (error) => {
+        securityAudit.log('CAPTCHA_SCRIPT_ERROR', { error: error.message });
+        
+        if (captchaRetryCount < MAX_RETRIES) {
+          setCaptchaRetryCount(prev => prev + 1);
+          setError(`Gagal load script (${captchaRetryCount + 1}/${MAX_RETRIES}). Mencoba lagi...`);
+          retryTimeout = setTimeout(loadTurnstileScript, 3000);
+        } else {
+          setError('Gagal memuat script verifikasi. Periksa koneksi internet.');
         }
       };
       
       document.head.appendChild(script);
     };
 
-    // Define callback functions
-    window.handleCaptchaSuccess = (token) => {
+    // Start loading after component mounts
+    initTimeout = setTimeout(() => {
       if (mounted) {
-        setCaptchaToken(token);
-        setError('');
-        securityAudit.log('CAPTCHA_SUCCESS');
+        loadTurnstileScript();
       }
-    };
-
-    window.handleCaptchaError = () => {
-      if (mounted) {
-        setCaptchaToken('');
-        setError('Verifikasi gagal, coba lagi');
-        securityAudit.log('CAPTCHA_ERROR');
-        
-        // Reset and retry widget
-        setTimeout(() => {
-          if (window.turnstile && mounted) {
-            try {
-              window.turnstile.reset();
-            } catch (err) {
-              console.warn('Turnstile reset error:', err);
-            }
-          }
-        }, 1000);
-      }
-    };
-
-    window.handleCaptchaExpired = () => {
-      if (mounted) {
-        setCaptchaToken('');
-        setError('Verifikasi kedaluwarsa, ulangi lagi');
-        securityAudit.log('CAPTCHA_EXPIRED');
-        
-        // Auto reset expired widget
-        setTimeout(() => {
-          if (window.turnstile && mounted) {
-            try {
-              window.turnstile.reset();
-            } catch (err) {
-              console.warn('Turnstile reset error:', err);
-            }
-          }
-        }, 1000);
-      }
-    };
-
-    // Initial load
-    loadCaptchaScript();
+    }, 1000); // Wait 1 second for DOM to be ready
 
     return () => {
       mounted = false;
       
-      // Clear retry timeout
-      if (retryTimeout) {
-        clearTimeout(retryTimeout);
-      }
+      // Clear timeouts
+      if (retryTimeout) clearTimeout(retryTimeout);
+      if (initTimeout) clearTimeout(initTimeout);
       
-      // Clean up script
-      const script = document.querySelector('script[src*="turnstile"]');
-      if (script && document.head.contains(script)) {
-        document.head.removeChild(script);
+      // Remove widget
+      if (widgetId !== null && window.turnstile) {
+        try {
+          window.turnstile.remove(widgetId);
+        } catch (err) {
+          // Silent cleanup
+        }
       }
-      
-      // Clean up global functions
-      delete window.handleCaptchaSuccess;
-      delete window.handleCaptchaError;
-      delete window.handleCaptchaExpired;
       
       setCaptchaLoaded(false);
       setCaptchaRetryCount(0);
@@ -312,13 +364,6 @@ const LoginPageSecure = () => {
     setError('');
 
     try {
-      console.log('🔵 DEBUG: Attempting login with data:', {
-        email: formData.email.trim(),
-        hasPassword: !!formData.password,
-        hasCaptcha: !!captchaToken,
-        rememberMe: formData.rememberMe
-      });
-
       const result = await login({
         email: formData.email.trim(),
         password: formData.password,
@@ -326,22 +371,11 @@ const LoginPageSecure = () => {
         rememberMe: formData.rememberMe
       });
 
-      console.log('🔵 DEBUG: Login result:', {
-        success: result.success,
-        hasToken: !!result.token,
-        hasUser: !!result.user,
-        message: result.message,
-        attempts: result.attempts,
-        blocked: result.blocked
-      });
-
       if (result.success) {
-        console.log('✅ DEBUG: Login successful, redirecting...');
         securityAudit.log('LOGIN_SUCCESS_REDIRECT');
         
         // Redirect ke halaman tujuan atau dashboard
         const redirectTo = location.state?.from?.pathname || '/dashboard';
-        console.log('🔄 DEBUG: Redirecting to:', redirectTo);
         navigate(redirectTo, { replace: true });
         
         setNotification({
@@ -373,9 +407,12 @@ const LoginPageSecure = () => {
         setTimeout(() => {
           if (window.turnstile) {
             try {
-              window.turnstile.reset();
+              // Reset the specific widget instance
+              const container = document.getElementById('turnstile-widget-container');
+              if (container && container.children.length > 0) {
+                window.turnstile.reset();
+              }
             } catch (err) {
-              console.warn('Turnstile reset error:', err);
               // Force reload widget if reset fails
               setCaptchaRetryCount(prev => prev + 1);
             }
@@ -391,9 +428,12 @@ const LoginPageSecure = () => {
       setTimeout(() => {
         if (window.turnstile) {
           try {
-            window.turnstile.reset();
+            // Reset the specific widget instance
+            const container = document.getElementById('turnstile-widget-container');
+            if (container && container.children.length > 0) {
+              window.turnstile.reset();
+            }
           } catch (err) {
-            console.warn('Turnstile reset error:', err);
             // Force reload widget if reset fails
             setCaptchaRetryCount(prev => prev + 1);
           }
@@ -579,15 +619,9 @@ const LoginPageSecure = () => {
               {/* Cloudflare Turnstile Captcha with Loading State */}
               <div className="flex justify-center py-2">
                 <div className="relative">
-                  <div
-                    className="cf-turnstile"
-                    data-sitekey="0x4AAAAAABk4XOgg4RBl7dSz"
-                    data-callback="handleCaptchaSuccess"
-                    data-error-callback="handleCaptchaError"
-                    data-expired-callback="handleCaptchaExpired"
-                  ></div>
+                  <div id="turnstile-widget-container"></div>
                   {!captchaLoaded && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-white/10 rounded-lg">
+                    <div className="absolute inset-0 flex items-center justify-center bg-white/10 rounded-lg min-h-[65px]">
                       <div className="flex items-center space-x-2 text-white/70">
                         <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>

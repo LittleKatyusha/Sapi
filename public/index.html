@@ -1,30 +1,41 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
   <head>
     <meta charset="utf-8" />
     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-    <meta name="theme-color" content="#000000" />
-    <meta
-      name="description"
-      content="Web site created using create-react-app"
-    />
+    <meta name="theme-color" content="#dc2626" />
+    
+    <!-- Security Headers (only those that can be set via meta tags) -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
+    <meta http-equiv="Permissions-Policy" content="geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=(), speaker=(), vibrate=(), fullscreen=(self)" />
+    
+    <!-- Content Security Policy -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https: blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://puput-api.ternasys.com https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; worker-src 'self' blob:" />
+    
+    <!-- Security Headers (Note: X-Frame-Options must be set via HTTP header, not meta tag) -->
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block" />
+    
+    <!-- App Description -->
+    <meta name="description" content="TernaSys - Sistem Manajemen Terintegrasi CV Puput Bersaudara untuk pengelolaan ternak, inventori, dan operasional bisnis" />
+    <meta name="keywords" content="sistem manajemen ternak, CV Puput Bersaudara, dashboard, inventori, livestock management" />
+    <meta name="author" content="CV Puput Bersaudara" />
+    
+    <!-- Open Graph / Social Media -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="TernaSys - Dashboard CV Puput Bersaudara" />
+    <meta property="og:description" content="Sistem Manajemen Terintegrasi untuk CV Puput Bersaudara" />
+    <meta property="og:site_name" content="TernaSys" />
+    
+    <!-- PWA Icons -->
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
-    <!--
-      manifest.json provides metadata used when your web app is installed on a
-      user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
-    -->
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-    <!--
-      Notice the use of %PUBLIC_URL% in the tags above.
-      It will be replaced with the URL of the `public` folder during the build.
-      Only files inside the `public` folder can be referenced from the HTML.
-
-      Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
-      work correctly both with client-side routing and a non-root public URL.
-      Learn how to configure a non-root public URL by running `npm run build`.
-    -->
-    <title>React App</title>
+    
+    <!-- Prevent indexing in development -->
+    <meta name="robots" content="noindex, nofollow" />
+    
+    <title>TernaSys - Dashboard CV Puput Bersaudara</title>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>

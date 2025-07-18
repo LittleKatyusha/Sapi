@@ -1,18 +1,24 @@
-@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,0,1;wght@100;300;400;500;700;900&display=swap');
+/* Import font fallback styles */
+@import './styles/fonts.css';
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Material Design 3 Typography System */
+/* Conditional Google Fonts loading dengan fallback strategy */
+@supports (font-display: swap) {
+  @import url('https://fonts.googleapis.com/css2?family=Roboto:ital,0,1;wght@100;300;400;500;700;900&display=swap');
+}
+
+/* Material Design 3 Typography System dengan Safe Font Stack */
 @layer base {
   .font-roboto {
-    font-family: 'Roboto', sans-serif;
+    font-family: var(--font-roboto-stack, 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif);
   }
   
-  /* Material Design 3 Typography Scale */
+  /* Material Design 3 Typography Scale dengan Safe Font Stack */
   .md3-subtitle1 {
-    font-family: 'Roboto', sans-serif;
+    font-family: var(--font-roboto-stack, 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif);
     font-weight: 500;
     font-size: 16px;
     line-height: 24px;
@@ -20,7 +26,7 @@
   }
   
   .md3-body2 {
-    font-family: 'Roboto', sans-serif;
+    font-family: var(--font-roboto-stack, 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif);
     font-weight: 400;
     font-size: 14px;
     line-height: 20px;
@@ -28,7 +34,7 @@
   }
   
   .md3-body2-medium {
-    font-family: 'Roboto', sans-serif;
+    font-family: var(--font-roboto-stack, 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif);
     font-weight: 500;
     font-size: 14px;
     line-height: 20px;
@@ -36,7 +42,7 @@
   }
   
   .md3-caption {
-    font-family: 'Roboto', sans-serif;
+    font-family: var(--font-roboto-stack, 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif);
     font-weight: 400;
     font-size: 12px;
     line-height: 16px;

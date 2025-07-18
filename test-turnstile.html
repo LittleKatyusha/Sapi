@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Cloudflare Turnstile</title>
+    
+    <!-- Updated CSP untuk testing -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https: blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://puput-api.ternasys.com https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'" />
+    
+    <!-- Security Headers -->
+    <meta http-equiv="X-Frame-Options" content="DENY" />
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block" />
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .container {
+            background: rgba(255,255,255,0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .success { background: rgba(34, 197, 94, 0.3); }
+        .error { background: rgba(239, 68, 68, 0.3); }
+        .warning { background: rgba(245, 158, 11, 0.3); }
+        .info { background: rgba(59, 130, 246, 0.3); }
+        #turnstile-container {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+            min-height: 80px;
+            align-items: center;
+        }
+        .loading {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        button {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 5px;
+            font-weight: bold;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .logs {
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Test Cloudflare Turnstile Widget</h1>
+        
+        <div id="status" class="status info">
+            <div class="loading">
+                <div class="spinner"></div>
+                Memuat Turnstile script...
+            </div>
+        </div>
+        
+        <div id="turnstile-container">
+            <div class="loading">
+                <div class="spinner"></div>
+                <span>Menunggu widget...</span>
+            </div>
+        </div>
+        
+        <div style="text-align: center; margin-top: 20px;">
+            <button id="reload-btn" onclick="reloadWidget()" disabled>🔄 Reload Widget</button>
+            <button id="test-btn" onclick="testToken()" disabled>🧪 Test Token</button>
+            <button onclick="clearLogs()">🗑️ Clear Logs</button>
+        </div>
+        
+        <div id="logs" class="logs">
+            <div>📋 Test logs akan muncul di sini...</div>
+        </div>
+    </div>
+
+    <script>
+        let widgetId = null;
+        let tokenReceived = null;
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logs = document.getElementById('logs');
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            logs.appendChild(logEntry);
+            logs.scrollTop = logs.scrollHeight;
+            
+            console.log(`[Turnstile Test] ${message}`);
+        }
+        
+        function updateStatus(message, type = 'info') {
+            const status = document.getElementById('status');
+            status.className = `status ${type}`;
+            status.innerHTML = message;
+        }
+        
+        function loadTurnstileScript() {
+            log('🚀 Starting Turnstile script load...');
+            updateStatus('📥 Loading Turnstile script...', 'info');
+            
+            // Check if already loaded
+            if (window.turnstile) {
+                log('✅ Turnstile already available');
+                renderWidget();
+                return;
+            }
+            
+            // Check if script exists
+            const existingScript = document.querySelector('script[src*="turnstile"]');
+            if (existingScript) {
+                log('⚠️ Script tag exists, waiting for load...');
+                waitForTurnstile();
+                return;
+            }
+            
+            const script = document.createElement('script');
+            script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+            script.async = true;
+            script.defer = true;
+            script.id = 'turnstile-script';
+            
+            script.onload = () => {
+                log('✅ Turnstile script loaded successfully');
+                setTimeout(() => {
+                    if (window.turnstile) {
+                        renderWidget();
+                    } else {
+                        log('❌ window.turnstile not available after script load');
+                        updateStatus('❌ Turnstile object not found', 'error');
+                    }
+                }, 300);
+            };
+            
+            script.onerror = (error) => {
+                log(`❌ Script load error: ${error.message || 'Unknown error'}`);
+                updateStatus('❌ Failed to load Turnstile script', 'error');
+            };
+            
+            document.head.appendChild(script);
+            log('📤 Script tag added to head');
+        }
+        
+        function waitForTurnstile() {
+            let attempts = 0;
+            const maxAttempts = 50; // 5 seconds
+            
+            const interval = setInterval(() => {
+                attempts++;
+                if (window.turnstile) {
+                    clearInterval(interval);
+                    log('✅ Turnstile object found');
+                    renderWidget();
+                } else if (attempts >= maxAttempts) {
+                    clearInterval(interval);
+                    log('❌ Timeout waiting for Turnstile object');
+                    updateStatus('❌ Timeout waiting for Turnstile', 'error');
+                }
+            }, 100);
+        }
+        
+        function renderWidget() {
+            log('🎨 Starting widget render...');
+            updateStatus('🎨 Rendering widget...', 'info');
+            
+            if (!window.turnstile) {
+                log('❌ Cannot render: window.turnstile not available');
+                updateStatus('❌ Turnstile not available', 'error');
+                return;
+            }
+            
+            const container = document.getElementById('turnstile-container');
+            if (!container) {
+                log('❌ Container not found');
+                updateStatus('❌ Container not found', 'error');
+                return;
+            }
+            
+            // Clear existing widget
+            if (widgetId !== null) {
+                try {
+                    window.turnstile.remove(widgetId);
+                    log('🗑️ Removed existing widget');
+                } catch (err) {
+                    log(`⚠️ Failed to remove existing widget: ${err.message}`);
+                }
+            }
+            
+            // Clear container
+            container.innerHTML = '';
+            
+            try {
+                log('🔧 Calling turnstile.render...');
+                
+                widgetId = window.turnstile.render(container, {
+                    sitekey: '0x4AAAAAABk4XOgg4RBl7dSz',
+                    theme: 'dark',
+                    size: 'normal',
+                    callback: function(token) {
+                        tokenReceived = token;
+                        log(`✅ SUCCESS: Token received (${token.substring(0, 20)}...)`);
+                        updateStatus('✅ Widget loaded and token received!', 'success');
+                        document.getElementById('test-btn').disabled = false;
+                    },
+                    'error-callback': function(errorCode) {
+                        log(`❌ ERROR: ${errorCode}`);
+                        updateStatus(`❌ Widget error: ${errorCode}`, 'error');
+                    },
+                    'expired-callback': function() {
+                        log('⏰ EXPIRED: Token expired');
+                        updateStatus('⏰ Token expired', 'warning');
+                        tokenReceived = null;
+                        document.getElementById('test-btn').disabled = true;
+                    },
+                    'timeout-callback': function() {
+                        log('⏱️ TIMEOUT: Widget timeout');
+                        updateStatus('⏱️ Widget timeout', 'warning');
+                    }
+                });
+                
+                if (widgetId !== null) {
+                    log(`✅ Widget rendered successfully (ID: ${widgetId})`);
+                    updateStatus('✅ Widget rendered successfully!', 'success');
+                    document.getElementById('reload-btn').disabled = false;
+                } else {
+                    log('❌ Widget render returned null');
+                    updateStatus('❌ Widget render failed', 'error');
+                }
+                
+            } catch (error) {
+                log(`❌ Render error: ${error.message}`);
+                updateStatus(`❌ Render error: ${error.message}`, 'error');
+            }
+        }
+        
+        function reloadWidget() {
+            log('🔄 Reloading widget...');
+            tokenReceived = null;
+            document.getElementById('test-btn').disabled = true;
+            renderWidget();
+        }
+        
+        function testToken() {
+            if (tokenReceived) {
+                log(`🧪 Token test: ${tokenReceived.substring(0, 30)}...`);
+                updateStatus('🧪 Token is valid and ready for use!', 'success');
+            } else {
+                log('❌ No token available for testing');
+                updateStatus('❌ No token available', 'error');
+            }
+        }
+        
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '<div>📋 Logs cleared.</div>';
+        }
+        
+        // Start test when page loads
+        window.addEventListener('load', () => {
+            log('🌐 Page loaded, starting test...');
+            setTimeout(loadTurnstileScript, 1000);
+        });
+        
+        // Global error handler
+        window.addEventListener('error', (event) => {
+            log(`🚨 Global error: ${event.error?.message || event.message}`);
+        });
+    </script>
+</body>
+</html>

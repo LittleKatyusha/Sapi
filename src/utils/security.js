@@ -395,37 +395,160 @@ export const securityAudit = {
 // === CONTENT SECURITY POLICY ===
 
 /**
- * Set Content Security Policy (dipanggil saat app init)
+ * Set Content Security Policy and other security headers
+ * Updated untuk mendukung Google Fonts dan Cloudflare Turnstile
  */
 export const setSecurityHeaders = () => {
-  // CSP Meta tag
+  // Hapus CSP meta tag yang lama jika ada
+  const existingCSP = document.querySelector('meta[http-equiv="Content-Security-Policy"]');
+  if (existingCSP) {
+    existingCSP.remove();
+  }
+
+  // CSP Meta tag dengan dukungan Google Fonts
   const cspMeta = document.createElement('meta');
   cspMeta.httpEquiv = 'Content-Security-Policy';
   cspMeta.content = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com",
-    "style-src 'self' 'unsafe-inline'",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "img-src 'self' data: https: blob:",
-    "font-src 'self' data:",
+    "font-src 'self' data: https://fonts.gstatic.com",
     "connect-src 'self' https://puput-api.ternasys.com https://challenges.cloudflare.com",
-    "frame-src https://challenges.cloudflare.com"
+    "frame-src https://challenges.cloudflare.com",
+    "worker-src 'self' blob:",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'"
   ].join('; ');
   
   document.head.appendChild(cspMeta);
   
-  // Additional security headers via meta tags
-  const headers = [
-    { name: 'X-Frame-Options', content: 'DENY' },
+  // Set security headers yang bisa diset via meta tags
+  // Note: X-Frame-Options CANNOT be set via meta tag and must be set as HTTP header
+  const securityHeaders = [
     { name: 'X-Content-Type-Options', content: 'nosniff' },
     { name: 'X-XSS-Protection', content: '1; mode=block' },
     { name: 'Referrer-Policy', content: 'strict-origin-when-cross-origin' }
   ];
   
-  headers.forEach(header => {
-    const meta = document.createElement('meta');
-    meta.httpEquiv = header.name;
-    meta.content = header.content;
-    document.head.appendChild(meta);
+  securityHeaders.forEach(header => {
+    // Check if meta tag already exists
+    const existing = document.querySelector(`meta[http-equiv="${header.name}"]`);
+    if (!existing) {
+      const meta = document.createElement('meta');
+      meta.httpEquiv = header.name;
+      meta.content = header.content;
+      document.head.appendChild(meta);
+    }
+  });
+
+  // Set Permissions Policy untuk security tambahan
+  const permissionsPolicyMeta = document.createElement('meta');
+  permissionsPolicyMeta.httpEquiv = 'Permissions-Policy';
+  permissionsPolicyMeta.content = [
+    'geolocation=()',
+    'microphone=()',
+    'camera=()',
+    'payment=()',
+    'usb=()',
+    'magnetometer=()',
+    'gyroscope=()',
+    'speaker=()',
+    'vibrate=()',
+    'fullscreen=(self)'
+  ].join(', ');
+  
+  if (!document.querySelector('meta[http-equiv="Permissions-Policy"]')) {
+    document.head.appendChild(permissionsPolicyMeta);
+  }
+
+  // Disable right-click untuk development (opsional)
+  if (process.env.REACT_APP_DISABLE_RIGHT_CLICK === 'true') {
+    document.addEventListener('contextmenu', (e) => e.preventDefault());
+  }
+
+  // Disable text selection untuk production (opsional)
+  if (process.env.REACT_APP_ENABLE_TEXT_SELECTION === 'false') {
+    document.body.style.userSelect = 'none';
+    document.body.style.webkitUserSelect = 'none';
+    document.body.style.mozUserSelect = 'none';
+    document.body.style.msUserSelect = 'none';
+  }
+
+  // Log security status
+  securityAudit.log('SECURITY_HEADERS_SET', {
+    cspEnabled: true,
+    fontsAllowed: true,
+    turnstileEnabled: true,
+    timestamp: new Date().toISOString()
+  });
+};
+
+/**
+ * Fungsi untuk memverifikasi apakah Google Fonts dapat dimuat
+ */
+export const verifyFontsLoading = () => {
+  return new Promise((resolve) => {
+    // Test loading Google Fonts
+    const testFont = new FontFace('Roboto-Test', 'url(https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2)');
+    
+    testFont.load().then(() => {
+      securityAudit.log('GOOGLE_FONTS_LOADED', { success: true });
+      resolve(true);
+    }).catch((error) => {
+      securityAudit.log('GOOGLE_FONTS_BLOCKED', {
+        error: error.message,
+        fallbackUsed: true
+      });
+      // Fallback ke font lokal
+      document.documentElement.style.setProperty('--font-roboto-stack', 'var(--font-system-stack)');
+      resolve(false);
+    });
+    
+    // Timeout setelah 5 detik
+    setTimeout(() => {
+      securityAudit.log('GOOGLE_FONTS_TIMEOUT', { fallbackUsed: true });
+      resolve(false);
+    }, 5000);
+  });
+};
+
+/**
+ * Fungsi untuk memverifikasi Cloudflare Turnstile
+ */
+export const verifyTurnstileLoading = () => {
+  return new Promise((resolve) => {
+    // Check jika Turnstile sudah dimuat
+    if (window.turnstile) {
+      securityAudit.log('TURNSTILE_ALREADY_LOADED');
+      resolve(true);
+      return;
+    }
+
+    // Test loading Turnstile script
+    const script = document.createElement('script');
+    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+    script.async = true;
+
+    const timeout = setTimeout(() => {
+      securityAudit.log('TURNSTILE_LOAD_TIMEOUT');
+      resolve(false);
+    }, 10000);
+
+    script.onload = () => {
+      clearTimeout(timeout);
+      securityAudit.log('TURNSTILE_LOAD_SUCCESS');
+      resolve(true);
+    };
+
+    script.onerror = () => {
+      clearTimeout(timeout);
+      securityAudit.log('TURNSTILE_LOAD_ERROR');
+      resolve(false);
+    };
+
+    document.head.appendChild(script);
   });
 };
 
