@@ -30,6 +30,10 @@ const OutletPage = () => {
     const [openMenuId, setOpenMenuId] = useState(null);
     const [viewMode, setViewMode] = useState('table'); // 'table' atau 'card'
     
+    // State untuk pagination card view
+    const [cardCurrentPage, setCardCurrentPage] = useState(1);
+    const [cardItemsPerPage, setCardItemsPerPage] = useState(12);
+    
     // Custom hook untuk data management
     const {
         outlets: filteredData,
@@ -39,18 +43,35 @@ const OutletPage = () => {
         setSearchTerm,
         filterStatus,
         setFilterStatus,
-        filterType,
-        setFilterType,
         stats,
         fetchOutlets,
         createOutlet,
         updateOutlet,
-        deleteOutlet
+        deleteOutlet,
+        serverPagination
     } = useOutlets();
 
-    // Fetch data saat component mount
+    // Handler untuk pagination card view
+    const handleCardPageChange = useCallback((page) => {
+        setCardCurrentPage(page);
+    }, []);
+
+    const handleCardItemsPerPageChange = useCallback((itemsPerPage) => {
+        setCardItemsPerPage(itemsPerPage);
+        setCardCurrentPage(1); // Reset ke halaman pertama
+    }, []);
+
+    // Handler untuk view mode change
+    const handleViewModeChange = useCallback((mode) => {
+        setViewMode(mode);
+        if (mode === 'card') {
+            setCardCurrentPage(1); // Reset ke halaman pertama
+        }
+    }, []);
+
+    // Fetch data saat component mount dengan parameter pagination
     useEffect(() => {
-        fetchOutlets();
+        fetchOutlets(1, 100); // Fetch page 1 dengan 100 items per page
     }, [fetchOutlets]);
 
     // Event handlers
@@ -125,19 +146,25 @@ const OutletPage = () => {
                     {index + 1}
                 </div>
             ),
-            ignoreRowClick: true
+            ignoreRowClick: true,
+            style: {
+                position: 'sticky',
+                left: 0,
+                backgroundColor: 'white',
+                zIndex: 1,
+                borderRight: '1px solid #e5e7eb'
+            }
         },
         {
             name: 'Nama Outlet',
             selector: row => row.name,
             sortable: true,
-            grow: 2,
+            minWidth: '200px',
             cell: row => (
                 <div className="flex items-center">
                     <Store className="w-4 h-4 text-gray-500 mr-2 flex-shrink-0" />
                     <div className="flex flex-col">
-                        <span className="text-sm font-medium text-gray-800">{row.name}</span>
-                        <span className="text-xs text-gray-500">{row.type}</span>
+                        <span className="text-sm font-medium text-gray-800 line-clamp-1">{row.name}</span>
                     </div>
                 </div>
             )
@@ -146,25 +173,13 @@ const OutletPage = () => {
             name: 'Lokasi',
             selector: row => row.location,
             sortable: true,
-            grow: 2,
+            minWidth: '300px',
             cell: row => (
                 <div className="flex items-start text-sm text-gray-600">
                     <MapPin className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0 text-gray-400" />
-                    <span className="truncate" title={row.location}>
+                    <span className="line-clamp-2 max-w-xs" title={row.location}>
                         {row.location}
                     </span>
-                </div>
-            )
-        },
-        {
-            name: 'Manager',
-            selector: row => row.manager,
-            sortable: true,
-            grow: 1,
-            cell: row => (
-                <div className="flex items-center text-sm text-gray-600">
-                    <User className="w-4 h-4 mr-2 flex-shrink-0 text-gray-400" />
-                    <span>{row.manager}</span>
                 </div>
             )
         },
@@ -172,11 +187,11 @@ const OutletPage = () => {
             name: 'Kontak',
             selector: row => row.phone,
             sortable: true,
-            grow: 1,
+            minWidth: '150px',
             cell: row => (
                 <div className="flex items-center text-sm text-gray-600">
                     <Phone className="w-4 h-4 mr-2 flex-shrink-0 text-gray-400" />
-                    <span>{row.phone}</span>
+                    <span className="whitespace-nowrap">{row.phone}</span>
                 </div>
             )
         },
@@ -184,7 +199,7 @@ const OutletPage = () => {
             name: 'Status',
             selector: row => row.status,
             sortable: true,
-            grow: 1,
+            minWidth: '100px',
             cell: row => <StatusBadge status={row.status} />
         },
         {
@@ -204,7 +219,14 @@ const OutletPage = () => {
                     />
                 </div>
             ),
-            ignoreRowClick: true
+            ignoreRowClick: true,
+            style: {
+                position: 'sticky',
+                right: 0,
+                backgroundColor: 'white',
+                zIndex: 1,
+                borderLeft: '1px solid #e5e7eb'
+            }
         }
     ], [openMenuId, handleEdit, handleDelete, handleDetail]);
 
@@ -234,25 +256,6 @@ const OutletPage = () => {
                     </div>
                 </div>
 
-                {/* Stats Cards */}
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4 md:gap-6">
-                    <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg">
-                        <h3 className="text-xs sm:text-sm font-medium opacity-90">Total Outlet</h3>
-                        <p className="text-xl sm:text-3xl font-bold">{stats.total}</p>
-                    </div>
-                    <div className="bg-gradient-to-br from-green-500 to-emerald-600 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg">
-                        <h3 className="text-xs sm:text-sm font-medium opacity-90">Outlet Aktif</h3>
-                        <p className="text-xl sm:text-3xl font-bold">{stats.active}</p>
-                    </div>
-                    <div className="bg-gradient-to-br from-orange-500 to-amber-600 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg">
-                        <h3 className="text-xs sm:text-sm font-medium opacity-90">Retail</h3>
-                        <p className="text-xl sm:text-3xl font-bold">{stats.retail}</p>
-                    </div>
-                    <div className="bg-gradient-to-br from-red-500 to-rose-600 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg">
-                        <h3 className="text-xs sm:text-sm font-medium opacity-90">Wholesale</h3>
-                        <p className="text-xl sm:text-3xl font-bold">{stats.wholesale}</p>
-                    </div>
-                </div>
 
                 {/* Filters and Search */}
                 <div className="bg-white rounded-2xl p-3 sm:p-6 shadow-lg border border-gray-100">
@@ -285,21 +288,11 @@ const OutletPage = () => {
                                 </select>
                             </div>
 
-                            {/* Type Filter */}
-                            <select
-                                value={filterType}
-                                onChange={(e) => setFilterType(e.target.value)}
-                                className="px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 text-xs sm:text-sm"
-                            >
-                                <option value="all">Semua Tipe</option>
-                                <option value="Retail">Retail</option>
-                                <option value="Wholesale">Wholesale</option>
-                            </select>
 
                             {/* View Mode Toggle */}
                             <div className="flex bg-gray-100 rounded-xl p-1">
                                 <button
-                                    onClick={() => setViewMode('table')}
+                                    onClick={() => handleViewModeChange('table')}
                                     className={`px-2.5 py-2 rounded-lg transition-colors duration-200 text-xs sm:text-base ${
                                         viewMode === 'table'
                                             ? 'bg-white text-red-600 shadow-sm'
@@ -309,7 +302,7 @@ const OutletPage = () => {
                                     <List className="w-4 h-4" />
                                 </button>
                                 <button
-                                    onClick={() => setViewMode('card')}
+                                    onClick={() => handleViewModeChange('card')}
                                     className={`px-2.5 py-2 rounded-lg transition-colors duration-200 text-xs sm:text-base ${
                                         viewMode === 'card'
                                             ? 'bg-white text-red-600 shadow-sm'
@@ -342,7 +335,7 @@ const OutletPage = () => {
                             </div>
                         ) : viewMode === 'table' ? (
                             <div className={`w-full h-full overflow-x-auto ${openMenuId ? 'pointer-events-none' : ''} flex-1 flex flex-col`}>
-                                <div className="min-w-[700px] sm:min-w-0 h-full flex-1 flex flex-col">
+                                <div className="min-w-[950px] h-full flex-1 flex flex-col">
                                     <div className="w-full" style={{display: 'flex', flexDirection: 'column', height: '100%'}}>
                                         <DataTable
                                             columns={columns}
@@ -360,11 +353,13 @@ const OutletPage = () => {
                                                         width: '100%',
                                                         display: 'flex',
                                                         flexDirection: 'column',
+                                                        overflowX: 'auto',
                                                     }
                                                 },
                                                 headRow: {
                                                     style: {
                                                         flex: '0 0 auto',
+                                                        minWidth: '950px',
                                                     }
                                                 },
                                                 body: {
@@ -375,6 +370,7 @@ const OutletPage = () => {
                                                         flexDirection: 'column',
                                                         justifyContent: 'stretch',
                                                         width: '100%',
+                                                        overflowX: 'auto',
                                                     }
                                                 },
                                                 rows: {
@@ -382,6 +378,7 @@ const OutletPage = () => {
                                                         minHeight: '48px',
                                                         flex: '1 0 auto',
                                                         width: '100%',
+                                                        minWidth: '950px',
                                                     }
                                                 },
                                             }}
@@ -391,7 +388,6 @@ const OutletPage = () => {
                                                     <p className="text-gray-500 text-lg">Tidak ada data outlet ditemukan</p>
                                                 </div>
                                             }
-                                            responsive
                                             highlightOnHover={true}
                                             pointerOnHover={true}
                                         />
@@ -415,6 +411,13 @@ const OutletPage = () => {
                                         onDetail={handleDetail}
                                         openMenuId={openMenuId}
                                         setOpenMenuId={setOpenMenuId}
+                                        loading={loading}
+                                        error={error}
+                                        currentPage={cardCurrentPage}
+                                        itemsPerPage={cardItemsPerPage}
+                                        onPageChange={handleCardPageChange}
+                                        onItemsPerPageChange={handleCardItemsPerPageChange}
+                                        itemsPerPageOptions={[6, 12, 18, 24]}
                                     />
                                 )}
                             </div>

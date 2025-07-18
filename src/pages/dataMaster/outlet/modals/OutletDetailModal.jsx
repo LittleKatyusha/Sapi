@@ -43,7 +43,7 @@ const OutletDetailModal = ({ isOpen, onClose, data }) => {
                         <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center">
                                 <Store className="w-5 h-5 text-red-600 mr-2" />
-                                <span className="font-semibold text-gray-800">ID Outlet: {data.id}</span>
+                                <span className="font-semibold text-gray-800">Outlet</span>
                             </div>
                             <StatusBadge status={data.status} />
                         </div>
@@ -85,27 +85,6 @@ const OutletDetailModal = ({ isOpen, onClose, data }) => {
                         </div>
                     </div>
 
-                    {/* Operating Hours */}
-                    <div className="bg-blue-50 rounded-2xl p-4 border border-blue-200">
-                        <h5 className="font-semibold text-gray-800 mb-4 flex items-center">
-                            <Clock className="w-5 h-5 mr-2 text-blue-600" />
-                            Jam Operasional
-                        </h5>
-                        <div className="flex items-center justify-between">
-                            <div className="text-center">
-                                <p className="text-xs text-gray-500 mb-1">Buka</p>
-                                <p className="text-lg font-bold text-gray-800">{data.openTime}</p>
-                            </div>
-                            <div className="w-12 h-px bg-gray-300"></div>
-                            <div className="text-center">
-                                <p className="text-xs text-gray-500 mb-1">Tutup</p>
-                                <p className="text-lg font-bold text-gray-800">{data.closeTime}</p>
-                            </div>
-                        </div>
-                        <p className="text-xs text-center text-gray-500 mt-2">
-                            Durasi operasional harian
-                        </p>
-                    </div>
 
                     {/* Additional Information */}
                     <div className="bg-green-50 rounded-2xl p-4 border border-green-200">
@@ -115,20 +94,10 @@ const OutletDetailModal = ({ isOpen, onClose, data }) => {
                         </h5>
                         <div className="space-y-3">
                             <div className="flex items-center justify-between">
-                                <span className="text-sm text-gray-600">Tanggal Berdiri</span>
-                                <span className="text-sm font-medium text-gray-800">
-                                    {new Date(data.established).toLocaleDateString('id-ID', {
-                                        day: 'numeric',
-                                        month: 'long',
-                                        year: 'numeric'
-                                    })}
-                                </span>
-                            </div>
-                            <div className="flex items-center justify-between">
                                 <span className="text-sm text-gray-600">Tipe Outlet</span>
                                 <span className={`text-sm font-medium px-2 py-1 rounded-full ${
-                                    data.type === 'Retail' 
-                                        ? 'bg-blue-100 text-blue-800' 
+                                    data.type === 'Retail'
+                                        ? 'bg-blue-100 text-blue-800'
                                         : 'bg-purple-100 text-purple-800'
                                 }`}>
                                     {data.type}

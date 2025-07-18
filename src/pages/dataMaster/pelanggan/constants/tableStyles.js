@@ -1,69 +1,117 @@
 const customTableStyles = {
     table: {
         style: {
-            backgroundColor: '#fff',
-            borderRadius: '18px',
-            boxShadow: '0 6px 24px rgba(0,0,0,0.07)',
-            width: '100%',
-            maxWidth: '100%',
-            overflowX: 'auto',
-            height: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-        }
+            color: '#1f2937',
+            backgroundColor: '#ffffff',
+        },
     },
     headRow: {
         style: {
-            background: 'linear-gradient(90deg, #f8fafc 0%, #e0e7ff 100%)',
-            borderRadius: '18px 18px 0 0',
-            borderBottom: '2px solid #e2e8f0',
-            minHeight: '62px',
-            flex: '0 0 auto',
-        }
+            backgroundColor: '#f8fafc',
+            borderBottomColor: '#e2e8f0',
+            borderBottomWidth: '1px',
+            borderBottomStyle: 'solid',
+            minHeight: '56px',
+        },
     },
     headCells: {
         style: {
+            color: '#6b7280',
             fontSize: '14px',
-            fontWeight: '700',
-            color: '#334155',
-            paddingLeft: '12px',
-            letterSpacing: '0.03em',
-            background: 'transparent',
-            borderRight: '1px solid #e2e8f0',
-            overflow: 'visible',
-            whiteSpace: 'normal',
-            wordBreak: 'break-word',
-        }
-    },
-    rows: {
-        style: {
-            minHeight: '68px',
-            borderBottom: '1px solid #f1f5f9',
-            transition: 'all 0.18s cubic-bezier(.4,2,.3,1)',
-            overflow: 'visible',
-            background: 'linear-gradient(90deg, #fff 0%, #f8fafc 100%)',
-            flex: '1 0 auto',
-            '&.active-row, &.active-row:hover': {
-                backgroundColor: '#e0e7ff',
-            },
-            '&:hover': {
-                backgroundColor: 'inherit',
-                transform: 'none',
-                boxShadow: 'none',
-            }
-        }
+            fontWeight: '600',
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+            paddingLeft: '16px',
+            paddingRight: '16px',
+            paddingTop: '12px',
+            paddingBottom: '12px',
+        },
     },
     cells: {
         style: {
-            paddingLeft: '12px',
+            paddingLeft: '16px',
+            paddingRight: '16px',
+            paddingTop: '12px',
+            paddingBottom: '12px',
             fontSize: '14px',
-            color: '#475569',
-            overflow: 'visible',
-            borderRight: '1px solid #f1f5f9',
-            whiteSpace: 'normal',
-            wordBreak: 'break-word',
-        }
-    }
+            color: '#374151',
+        },
+    },
+    rows: {
+        style: {
+            backgroundColor: '#ffffff',
+            borderBottomColor: '#f3f4f6',
+            borderBottomWidth: '1px',
+            borderBottomStyle: 'solid',
+            '&:hover': {
+                backgroundColor: '#f9fafb',
+                transition: 'background-color 0.2s ease',
+            },
+        },
+    },
+    pagination: {
+        style: {
+            borderTopColor: '#e5e7eb',
+            borderTopWidth: '1px',
+            borderTopStyle: 'solid',
+            backgroundColor: '#ffffff',
+            color: '#374151',
+            fontSize: '14px',
+            minHeight: '56px',
+        },
+        pageButtonsStyle: {
+            borderRadius: '6px',
+            height: '32px',
+            width: '32px',
+            padding: '0',
+            margin: '0 4px',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            color: '#6b7280',
+            fill: '#6b7280',
+            backgroundColor: 'transparent',
+            '&:disabled': {
+                cursor: 'not-allowed',
+                color: '#d1d5db',
+                fill: '#d1d5db',
+            },
+            '&:hover:not(:disabled)': {
+                backgroundColor: '#f3f4f6',
+                color: '#374151',
+                fill: '#374151',
+            },
+            '&:focus': {
+                outline: 'none',
+                backgroundColor: '#f3f4f6',
+                color: '#374151',
+                fill: '#374151',
+            },
+        },
+    },
+    noData: {
+        style: {
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#ffffff',
+            color: '#6b7280',
+            fontSize: '16px',
+            fontWeight: '500',
+            padding: '48px 16px',
+        },
+    },
+    progress: {
+        style: {
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#ffffff',
+            color: '#6b7280',
+            fontSize: '16px',
+            fontWeight: '500',
+            padding: '48px 16px',
+        },
+    },
 };
 
 export default customTableStyles;

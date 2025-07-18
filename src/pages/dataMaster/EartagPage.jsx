@@ -1,19 +1,19 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import DataTable from 'react-data-table-component';
 import { PlusCircle, Search, Filter, LayoutGrid, List } from 'lucide-react';
 
 // Import komponen UI yang sudah dipisahkan
-import StatusBadge from './eartag/components/StatusBadge';
+import StatusBadgeNew from './eartag/components/StatusBadgeNew';
 import ActionButton from './eartag/components/ActionButton';
 import CardView from './eartag/components/CardView';
 
 // Import modal yang sudah dipisahkan
-import AddEditEartagModal from './eartag/modals/AddEditEartagModal';
-import EartagDetailModal from './eartag/modals/EartagDetailModal';
+import AddEditEartagModalNew from './eartag/modals/AddEditEartagModalNew';
+import EartagDetailModalNew from './eartag/modals/EartagDetailModalNew';
 import DeleteConfirmationModal from './eartag/modals/DeleteConfirmationModal';
 
 // Import custom hook yang sudah dipisahkan
-import useEartags from './eartag/hooks/useEartags';
+import useEartagsAPI from './eartag/hooks/useEartagsAPI';
 
 // Import constants yang sudah dipisahkan
 import customTableStyles from './eartag/constants/tableStyles';
@@ -30,17 +30,32 @@ const EartagPage = () => {
     const [openMenuId, setOpenMenuId] = useState(null);
     const [viewMode, setViewMode] = useState('table'); // 'table' atau 'card'
     
+    // State untuk pagination card view
+    const [cardCurrentPage, setCardCurrentPage] = useState(1);
+    const [cardItemsPerPage, setCardItemsPerPage] = useState(12);
+    
     // Custom hook untuk data management
-    const { 
-        eartags: filteredData, 
-        searchTerm, 
+    const {
+        eartags: filteredData,
+        loading,
+        error,
+        searchTerm,
         setSearchTerm,
-        filterStatus, 
+        filterStatus,
         setFilterStatus,
-        filterJenis, 
-        setFilterJenis,
-        stats 
-    } = useEartags();
+        filterUsedStatus,
+        setFilterUsedStatus,
+        stats,
+        fetchEartags,
+        createEartag,
+        updateEartag,
+        deleteEartag
+    } = useEartagsAPI();
+
+    // Fetch data saat komponen dimuat - fetch semua data dengan pagination yang besar
+    useEffect(() => {
+        fetchEartags(1, 100); // Fetch page 1 dengan 100 items per page
+    }, [fetchEartags]);
 
     // Event handlers
     const handleAdd = useCallback(() => {
@@ -57,57 +72,87 @@ const EartagPage = () => {
         setDeleteData(item);
     }, []);
 
-    const handleConfirmDelete = useCallback(() => {
+    const handleConfirmDelete = useCallback(async () => {
         if (!deleteData) return;
         setIsDeleting(true);
-        // Simulasi async delete
-        setTimeout(() => {
-            console.log('Delete item:', deleteData.id);
-            // TODO: implementasi delete logic asli
-            setIsDeleting(false);
+        
+        const result = await deleteEartag(deleteData.pid);
+        
+        if (result.success) {
             setDeleteData(null);
-        }, 1200);
-    }, [deleteData]);
+        } else {
+            console.error('Error deleting eartag:', result.message);
+        }
+        
+        setIsDeleting(false);
+    }, [deleteData, deleteEartag]);
 
     const handleDetail = useCallback((item) => {
         setDetailData(item);
         setShowDetailModal(true);
     }, []);
 
-    const handleSave = useCallback((formData) => {
-        console.log('Save data:', formData);
-        // Implementasi save logic
-        setShowAddModal(false);
-        setShowEditModal(false);
+    const handleSave = useCallback(async (formData) => {
+        let result;
+        
+        if (editData) {
+            // Update mode
+            result = await updateEartag(editData.pid, formData);
+        } else {
+            // Create mode
+            result = await createEartag(formData);
+        }
+        
+        if (result.success) {
+            setShowAddModal(false);
+            setShowEditModal(false);
+            setEditData(null);
+        } else {
+            console.error('Error saving eartag:', result.message);
+        }
+    }, [editData, updateEartag, createEartag]);
+
+    // Handler untuk pagination card view
+    const handleCardPageChange = useCallback((page) => {
+        setCardCurrentPage(page);
+    }, []);
+
+    const handleCardItemsPerPageChange = useCallback((itemsPerPage) => {
+        setCardItemsPerPage(itemsPerPage);
+        setCardCurrentPage(1); // Reset ke halaman pertama saat mengubah items per page
+    }, []);
+
+    // Reset pagination card view saat viewMode berubah
+    const handleViewModeChange = useCallback((mode) => {
+        setViewMode(mode);
+        if (mode === 'card') {
+            setCardCurrentPage(1); // Reset ke halaman pertama saat switch ke card view
+        }
     }, []);
 
     // Table columns configuration
     const columns = useMemo(() => [
         {
-            name: 'ID Eartag',
-            selector: row => row.id,
+            name: 'Kode Eartag',
+            selector: row => row.kode,
             sortable: true,
             cell: row => (
                 <div className="font-mono font-bold text-gray-800 text-sm">
-                    {row.id}
+                    {row.kode || row.id}
                 </div>
             )
         },
         {
-            name: 'Jenis Hewan',
-            selector: row => row.jenisHewan,
-            sortable: true,
-            cell: row => (
-                <span className="text-sm text-gray-700 bg-gray-100 px-3 py-1 rounded-full">
-                    {row.jenisHewan}
-                </span>
-            )
-        },
-        {
-            name: 'Status',
+            name: 'Status Aktif',
             selector: row => row.status,
             sortable: true,
-            cell: row => <StatusBadge status={row.status} />
+            cell: row => <StatusBadgeNew status={row.status} type="active" />
+        },
+        {
+            name: 'Status Pemasangan',
+            selector: row => row.used_status,
+            sortable: true,
+            cell: row => <StatusBadgeNew status={row.used_status} type="used" />
         },
         {
             name: 'Tanggal Pemasangan',
@@ -134,7 +179,7 @@ const EartagPage = () => {
                         onEdit={handleEdit}
                         onDelete={handleDelete}
                         onDetail={handleDetail}
-                        isActive={openMenuId === row.id}
+                        isActive={openMenuId === row.kode || openMenuId === row.id}
                         usePortal={true}
                     />
                 </div>
@@ -220,21 +265,19 @@ const EartagPage = () => {
                             </div>
 
                             <select
-                                value={filterJenis}
-                                onChange={(e) => setFilterJenis(e.target.value)}
+                                value={filterUsedStatus}
+                                onChange={(e) => setFilterUsedStatus(e.target.value)}
                                 className="px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 text-xs sm:text-sm"
                             >
-                                <option value="all">Semua Jenis</option>
-                                <option value="Sapi">Sapi</option>
-                                <option value="Kambing">Kambing</option>
-                                <option value="Domba">Domba</option>
-                                <option value="Kerbau">Kerbau</option>
+                                <option value="all">Semua Status Pemasangan</option>
+                                <option value="used">Sudah Terpasang</option>
+                                <option value="unused">Belum Terpasang</option>
                             </select>
 
                             {/* View Mode Toggle */}
                             <div className="flex bg-gray-100 rounded-xl p-1">
                                 <button
-                                    onClick={() => setViewMode('table')}
+                                    onClick={() => handleViewModeChange('table')}
                                     className={`px-2.5 py-2 rounded-lg transition-colors duration-200 text-xs sm:text-base ${
                                         viewMode === 'table'
                                             ? 'bg-white text-red-600 shadow-sm'
@@ -244,7 +287,7 @@ const EartagPage = () => {
                                     <List className="w-4 h-4" />
                                 </button>
                                 <button
-                                    onClick={() => setViewMode('card')}
+                                    onClick={() => handleViewModeChange('card')}
                                     className={`px-2.5 py-2 rounded-lg transition-colors duration-200 text-xs sm:text-base ${
                                         viewMode === 'card'
                                             ? 'bg-white text-red-600 shadow-sm'
@@ -313,9 +356,23 @@ const EartagPage = () => {
                                                     }
                                                 },
                                             }}
+                                            progressPending={loading}
+                                            progressComponent={
+                                                <div className="text-center py-12">
+                                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto"></div>
+                                                    <p className="text-gray-500 text-sm mt-2">Memuat data...</p>
+                                                </div>
+                                            }
                                             noDataComponent={
                                                 <div className="text-center py-12">
-                                                    <p className="text-gray-500 text-lg">Tidak ada data eartag ditemukan</p>
+                                                    {error ? (
+                                                        <div className="text-red-600">
+                                                            <p className="text-lg font-semibold">Error</p>
+                                                            <p className="text-sm">{error}</p>
+                                                        </div>
+                                                    ) : (
+                                                        <p className="text-gray-500 text-lg">Tidak ada data eartag ditemukan</p>
+                                                    )}
                                                 </div>
                                             }
                                             responsive
@@ -334,6 +391,13 @@ const EartagPage = () => {
                                     onDetail={handleDetail}
                                     openMenuId={openMenuId}
                                     setOpenMenuId={setOpenMenuId}
+                                    loading={loading}
+                                    error={error}
+                                    currentPage={cardCurrentPage}
+                                    itemsPerPage={cardItemsPerPage}
+                                    onPageChange={handleCardPageChange}
+                                    onItemsPerPageChange={handleCardItemsPerPageChange}
+                                    itemsPerPageOptions={[6, 12, 18, 24]}
                                 />
                             </div>
                         )}
@@ -342,7 +406,7 @@ const EartagPage = () => {
             </div>
 
             {/* Modals */}
-            <AddEditEartagModal
+            <AddEditEartagModalNew
                 isOpen={showAddModal || showEditModal}
                 onClose={() => {
                     setShowAddModal(false);
@@ -353,7 +417,7 @@ const EartagPage = () => {
                 editData={editData}
             />
 
-            <EartagDetailModal
+            <EartagDetailModalNew
                 isOpen={showDetailModal}
                 onClose={() => {
                     setShowDetailModal(false);
@@ -366,7 +430,7 @@ const EartagPage = () => {
                 isOpen={!!deleteData}
                 onClose={() => { setDeleteData(null); setIsDeleting(false); }}
                 onConfirm={handleConfirmDelete}
-                title={`Hapus Eartag "${deleteData?.id || ''}"?`}
+                title={`Hapus Eartag "${deleteData?.kode || deleteData?.id || ''}"?`}
                 description="Tindakan ini akan menghapus kode eartag secara permanen dan tidak dapat dibatalkan."
                 loading={isDeleting}
             />

@@ -1,17 +1,19 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import DataTable from 'react-data-table-component';
-import { PlusCircle, Search, Filter, LayoutGrid, List, Users, Mail, Phone, MapPin, ShoppingBag } from 'lucide-react';
+import { Search, Filter, PlusCircle, AlertCircle, CheckCircle, XCircle, Users, Hash, Activity, LayoutGrid, List, MapPin, Phone } from 'lucide-react';
 
-// Import komponen UI yang sudah dipisahkan
-import ActionButton from './pelanggan/components/ActionButton';
-import StatusBadge from './pelanggan/components/StatusBadge';
-import CardView from './pelanggan/components/CardView';
-
-// Import modal yang sudah dipisahkan - menggunakan modal yang sudah ada
+// Import modal yang sudah dipisahkan
+import AddEditPelangganModal from './pelanggan/modals/AddEditPelangganModal';
+import PelangganDetailModal from './pelanggan/modals/PelangganDetailModal';
 import DeleteConfirmationModal from '../../components/shared/modals/DeleteConfirmationModal';
 
 // Import custom hook yang sudah dipisahkan
 import usePelanggan from './pelanggan/hooks/usePelanggan';
+
+// Import komponen yang sudah dipisahkan
+import ActionButton from './pelanggan/components/ActionButton';
+import StatusBadge from './pelanggan/components/StatusBadge';
+import CardView from './pelanggan/components/CardView';
 
 // Import constants yang sudah dipisahkan
 import customTableStyles from './pelanggan/constants/tableStyles';
@@ -27,6 +29,11 @@ const PelangganPage = () => {
     const [isDeleting, setIsDeleting] = useState(false);
     const [openMenuId, setOpenMenuId] = useState(null);
     const [viewMode, setViewMode] = useState('table'); // 'table' atau 'card'
+    const [notification, setNotification] = useState({ show: false, message: '', type: '' });
+    
+    // State untuk pagination card view
+    const [cardCurrentPage, setCardCurrentPage] = useState(1);
+    const [cardItemsPerPage, setCardItemsPerPage] = useState(12);
     
     // Custom hook untuk data management
     const {
@@ -37,8 +44,6 @@ const PelangganPage = () => {
         setSearchTerm,
         filterStatus,
         setFilterStatus,
-        filterType,
-        setFilterType,
         stats,
         fetchPelanggan,
         createPelanggan,
@@ -46,10 +51,16 @@ const PelangganPage = () => {
         deletePelanggan
     } = usePelanggan();
 
-    // Fetch data saat component mount
+    // Fetch data saat component mount - dengan DataTables parameter
     useEffect(() => {
-        fetchPelanggan();
+        fetchPelanggan(1, 1000); // Fetch page 1 dengan 1000 items per page
     }, [fetchPelanggan]);
+
+    // Show notification
+    const showNotification = useCallback((message, type = 'success') => {
+        setNotification({ show: true, message, type });
+        setTimeout(() => setNotification({ show: false, message: '', type: '' }), 3000);
+    }, []);
 
     // Event handlers
     const handleAdd = useCallback(() => {
@@ -73,16 +84,19 @@ const PelangganPage = () => {
             const result = await deletePelanggan(deleteData.pubid);
             if (result.success) {
                 console.log('Delete success:', result.message);
+                showNotification(result.message || 'Data berhasil dihapus');
             } else {
                 console.error('Delete failed:', result.message);
+                showNotification(result.message || 'Gagal menghapus data', 'error');
             }
         } catch (error) {
             console.error('Delete error:', error);
+            showNotification('Terjadi kesalahan saat menghapus data', 'error');
         } finally {
             setIsDeleting(false);
             setDeleteData(null);
         }
-    }, [deleteData, deletePelanggan]);
+    }, [deleteData, deletePelanggan, showNotification]);
 
     const handleDetail = useCallback((item) => {
         setDetailData(item);
@@ -102,18 +116,39 @@ const PelangganPage = () => {
             
             if (result.success) {
                 console.log('Save success:', result.message);
+                showNotification(result.message || (editData ? 'Data berhasil diperbarui' : 'Data berhasil ditambahkan'));
                 setShowAddModal(false);
                 setShowEditModal(false);
                 setEditData(null);
             } else {
                 console.error('Save failed:', result.message);
+                showNotification(result.message || 'Gagal menyimpan data', 'error');
             }
         } catch (error) {
             console.error('Save error:', error);
+            showNotification('Terjadi kesalahan saat menyimpan data', 'error');
         }
-    }, [editData, updatePelanggan, createPelanggan]);
+    }, [editData, updatePelanggan, createPelanggan, showNotification]);
 
-    // Table columns configuration
+    // Handler untuk pagination card view
+    const handleCardPageChange = useCallback((page) => {
+        setCardCurrentPage(page);
+    }, []);
+
+    const handleCardItemsPerPageChange = useCallback((itemsPerPage) => {
+        setCardItemsPerPage(itemsPerPage);
+        setCardCurrentPage(1); // Reset ke halaman pertama saat mengubah items per page
+    }, []);
+
+    // Reset pagination card view saat viewMode berubah
+    const handleViewModeChange = useCallback((mode) => {
+        setViewMode(mode);
+        if (mode === 'card') {
+            setCardCurrentPage(1); // Reset ke halaman pertama saat switch ke card view
+        }
+    }, []);
+
+    // Table columns configuration - Konsisten dengan SupplierPage
     const columns = useMemo(() => [
         {
             name: 'No.',
@@ -126,7 +161,7 @@ const PelangganPage = () => {
             ignoreRowClick: true
         },
         {
-            name: 'Nama Pelanggan',
+            name: 'Nama',
             selector: row => row.name,
             sortable: true,
             grow: 2,
@@ -135,31 +170,7 @@ const PelangganPage = () => {
                     <Users className="w-4 h-4 text-gray-500 mr-2 flex-shrink-0" />
                     <div className="flex flex-col">
                         <span className="text-sm font-medium text-gray-800">{row.name}</span>
-                        <span className={`text-xs px-2 py-1 rounded-full ${
-                            row.type === 'Premium' 
-                                ? 'bg-purple-100 text-purple-800' 
-                                : 'bg-blue-100 text-blue-800'
-                        }`}>
-                            {row.type}
-                        </span>
-                    </div>
-                </div>
-            )
-        },
-        {
-            name: 'Kontak',
-            selector: row => row.email,
-            sortable: true,
-            grow: 2,
-            cell: row => (
-                <div className="flex flex-col space-y-1">
-                    <div className="flex items-center text-sm text-gray-600">
-                        <Mail className="w-3 h-3 mr-1 flex-shrink-0 text-gray-400" />
-                        <span className="truncate" title={row.email}>{row.email}</span>
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                        <Phone className="w-3 h-3 mr-1 flex-shrink-0 text-gray-400" />
-                        <span>{row.phone}</span>
+                        <span className="text-xs text-gray-500">Pelanggan</span>
                     </div>
                 </div>
             )
@@ -168,25 +179,27 @@ const PelangganPage = () => {
             name: 'Alamat',
             selector: row => row.address,
             sortable: true,
-            grow: 2,
+            grow: 3,
             cell: row => (
                 <div className="flex items-start text-sm text-gray-600">
                     <MapPin className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0 text-gray-400" />
-                    <span className="truncate" title={row.address}>
-                        {row.address}
-                    </span>
+                    <div className="max-w-xs">
+                        <p className="truncate" title={row.address || 'Tidak ada alamat'}>
+                            {row.address || '-'}
+                        </p>
+                    </div>
                 </div>
             )
         },
         {
-            name: 'Total Pesanan',
-            selector: row => row.totalOrders,
+            name: 'Kontak',
+            selector: row => row.phone,
             sortable: true,
-            grow: 1,
+            grow: 2,
             cell: row => (
                 <div className="flex items-center text-sm text-gray-600">
-                    <ShoppingBag className="w-4 h-4 mr-2 flex-shrink-0 text-gray-400" />
-                    <span className="font-medium">{row.totalOrders}</span>
+                    <Phone className="w-4 h-4 mr-2 flex-shrink-0 text-gray-400" />
+                    <span className="whitespace-nowrap">{row.phone}</span>
                 </div>
             )
         },
@@ -195,7 +208,11 @@ const PelangganPage = () => {
             selector: row => row.status,
             sortable: true,
             grow: 1,
-            cell: row => <StatusBadge status={row.status} />
+            cell: row => (
+                <div className="flex items-center text-sm text-gray-600">
+                    <StatusBadge status={row.status} />
+                </div>
+            )
         },
         {
             name: 'Aksi',
@@ -220,16 +237,29 @@ const PelangganPage = () => {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-2 sm:p-4 md:p-6">
+            {/* Notification */}
+            {notification.show && (
+                <div className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg ${
+                    notification.type === 'error' ? 'bg-red-500' : 'bg-green-500'
+                } text-white flex items-center gap-2`}>
+                    {notification.type === 'error' ?
+                        <XCircle className="w-5 h-5" /> :
+                        <CheckCircle className="w-5 h-5" />
+                    }
+                    {notification.message}
+                </div>
+            )}
+
             <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
                 {/* Header Section */}
                 <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-xl border border-gray-100">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div>
                             <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-1 sm:mb-2">
-                                Manajemen Pelanggan
+                                Data Pelanggan
                             </h1>
                             <p className="text-gray-600 text-sm sm:text-base">
-                                Kelola dan pantau data pelanggan dengan mudah
+                                Kelola data pelanggan perusahaan dengan mudah
                             </p>
                         </div>
                         <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
@@ -241,26 +271,6 @@ const PelangganPage = () => {
                                 Tambah Pelanggan
                             </button>
                         </div>
-                    </div>
-                </div>
-
-                {/* Stats Cards */}
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4 md:gap-6">
-                    <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg">
-                        <h3 className="text-xs sm:text-sm font-medium opacity-90">Total Pelanggan</h3>
-                        <p className="text-xl sm:text-3xl font-bold">{stats.total}</p>
-                    </div>
-                    <div className="bg-gradient-to-br from-green-500 to-emerald-600 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg">
-                        <h3 className="text-xs sm:text-sm font-medium opacity-90">Pelanggan Aktif</h3>
-                        <p className="text-xl sm:text-3xl font-bold">{stats.active}</p>
-                    </div>
-                    <div className="bg-gradient-to-br from-orange-500 to-amber-600 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg">
-                        <h3 className="text-xs sm:text-sm font-medium opacity-90">Regular</h3>
-                        <p className="text-xl sm:text-3xl font-bold">{stats.regular}</p>
-                    </div>
-                    <div className="bg-gradient-to-br from-purple-500 to-indigo-600 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg">
-                        <h3 className="text-xs sm:text-sm font-medium opacity-90">Premium</h3>
-                        <p className="text-xl sm:text-3xl font-bold">{stats.premium}</p>
                     </div>
                 </div>
 
@@ -295,36 +305,27 @@ const PelangganPage = () => {
                                 </select>
                             </div>
 
-                            {/* Type Filter */}
-                            <select
-                                value={filterType}
-                                onChange={(e) => setFilterType(e.target.value)}
-                                className="px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 text-xs sm:text-sm"
-                            >
-                                <option value="all">Semua Tipe</option>
-                                <option value="Regular">Regular</option>
-                                <option value="Premium">Premium</option>
-                            </select>
-
                             {/* View Mode Toggle */}
                             <div className="flex bg-gray-100 rounded-xl p-1">
                                 <button
-                                    onClick={() => setViewMode('table')}
+                                    onClick={() => handleViewModeChange('table')}
                                     className={`px-2.5 py-2 rounded-lg transition-colors duration-200 text-xs sm:text-base ${
                                         viewMode === 'table'
                                             ? 'bg-white text-red-600 shadow-sm'
                                             : 'text-gray-600 hover:text-red-600'
                                     }`}
+                                    title="Tampilan Tabel"
                                 >
                                     <List className="w-4 h-4" />
                                 </button>
                                 <button
-                                    onClick={() => setViewMode('card')}
+                                    onClick={() => handleViewModeChange('card')}
                                     className={`px-2.5 py-2 rounded-lg transition-colors duration-200 text-xs sm:text-base ${
                                         viewMode === 'card'
                                             ? 'bg-white text-red-600 shadow-sm'
                                             : 'text-gray-600 hover:text-red-600'
                                     }`}
+                                    title="Tampilan Kartu"
                                 >
                                     <LayoutGrid className="w-4 h-4" />
                                 </button>
@@ -332,6 +333,22 @@ const PelangganPage = () => {
                         </div>
                     </div>
                 </div>
+
+                {/* Error Display */}
+                {error && (
+                    <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+                        <div className="flex items-start">
+                            <Activity className="w-5 h-5 text-red-500 mr-2 mt-0.5 flex-shrink-0" />
+                            <div className="flex-1">
+                                <p className="text-red-700 text-sm font-medium mb-1">Koneksi API Error:</p>
+                                <p className="text-red-600 text-sm">{error}</p>
+                                <p className="text-red-500 text-xs mt-2">
+                                    💡 Menggunakan data dummy sebagai fallback. Coba refresh halaman untuk mencoba lagi.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Data Display */}
                 <div className="bg-white rounded-2xl shadow-lg border border-gray-100 relative overflow-x-auto flex flex-col min-h-[400px]">
@@ -352,7 +369,7 @@ const PelangganPage = () => {
                             </div>
                         ) : viewMode === 'table' ? (
                             <div className={`w-full h-full overflow-x-auto ${openMenuId ? 'pointer-events-none' : ''} flex-1 flex flex-col`}>
-                                <div className="min-w-[800px] sm:min-w-0 h-full flex-1 flex flex-col">
+                                <div className="min-w-[340px] sm:min-w-0 h-full flex-1 flex flex-col">
                                     <div className="w-full" style={{display: 'flex', flexDirection: 'column', height: '100%'}}>
                                         <DataTable
                                             columns={columns}
@@ -425,6 +442,13 @@ const PelangganPage = () => {
                                         onDetail={handleDetail}
                                         openMenuId={openMenuId}
                                         setOpenMenuId={setOpenMenuId}
+                                        loading={loading}
+                                        error={error}
+                                        currentPage={cardCurrentPage}
+                                        itemsPerPage={cardItemsPerPage}
+                                        onPageChange={handleCardPageChange}
+                                        onItemsPerPageChange={handleCardItemsPerPageChange}
+                                        itemsPerPageOptions={[6, 12, 18, 24]}
                                     />
                                 )}
                             </div>
@@ -433,7 +457,28 @@ const PelangganPage = () => {
                 </div>
             </div>
 
-            {/* Modals - Sementara hanya delete confirmation yang tersedia */}
+            {/* Modals */}
+            <AddEditPelangganModal
+                isOpen={showAddModal || showEditModal}
+                onClose={() => {
+                    setShowAddModal(false);
+                    setShowEditModal(false);
+                    setEditData(null);
+                }}
+                onSave={handleSave}
+                editData={editData}
+                loading={loading}
+            />
+
+            <PelangganDetailModal
+                isOpen={showDetailModal}
+                onClose={() => {
+                    setShowDetailModal(false);
+                    setDetailData(null);
+                }}
+                data={detailData}
+            />
+
             <DeleteConfirmationModal
                 isOpen={!!deleteData}
                 onClose={() => { setDeleteData(null); setIsDeleting(false); }}

@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Edit2, Plus, X, Store, MapPin, Phone } from 'lucide-react';
+import { Edit2, Plus, X, Users, MapPin, Phone } from 'lucide-react';
 
-// Modal untuk Add/Edit Outlet - Simplified version
-
-const AddEditOutletModal = ({ isOpen, onClose, onSave, editData = null, loading = false }) => {
+// Modal untuk Add/Edit Pelanggan - Simplified version
+const AddEditPelangganModal = ({ isOpen, onClose, onSave, editData = null, loading = false }) => {
     const [formData, setFormData] = useState({
         name: '',
-        location: '',
+        address: '',
         status: 1,
         phone: '',
         description: ''
@@ -31,7 +30,7 @@ const AddEditOutletModal = ({ isOpen, onClose, onSave, editData = null, loading 
         } else {
             setFormData({
                 name: '',
-                location: '',
+                address: '',
                 status: 1,
                 phone: '',
                 description: ''
@@ -57,10 +56,10 @@ const AddEditOutletModal = ({ isOpen, onClose, onSave, editData = null, loading 
     const validateForm = () => {
         const newErrors = {};
         if (!formData.name.trim()) {
-            newErrors.name = 'Nama outlet harus diisi';
+            newErrors.name = 'Nama pelanggan harus diisi';
         }
-        if (!formData.location.trim()) {
-            newErrors.location = 'Lokasi harus diisi';
+        if (!formData.address.trim()) {
+            newErrors.address = 'Alamat harus diisi';
         }
         if (!formData.phone.trim()) {
             newErrors.phone = 'Nomor telepon harus diisi';
@@ -83,11 +82,11 @@ const AddEditOutletModal = ({ isOpen, onClose, onSave, editData = null, loading 
             <div className="bg-white rounded-3xl w-full max-w-2xl transform transition-all duration-300 scale-100 shadow-2xl overflow-y-auto max-h-[90vh]">
                 <div className="flex items-center justify-between p-6 border-b border-gray-100">
                     <div className="flex items-center">
-                        <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-rose-600 rounded-xl flex items-center justify-center mr-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mr-3">
                             {editData ? <Edit2 className="w-5 h-5 text-white" /> : <Plus className="w-5 h-5 text-white" />}
                         </div>
                         <h3 className="text-xl font-bold text-gray-800">
-                            {editData ? 'Edit Outlet' : 'Tambah Outlet'}
+                            {editData ? 'Edit Pelanggan' : 'Tambah Pelanggan'}
                         </h3>
                     </div>
                     <button
@@ -101,19 +100,19 @@ const AddEditOutletModal = ({ isOpen, onClose, onSave, editData = null, loading 
                 <form onSubmit={handleSubmit} className="p-6 space-y-6">
                     <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-2">
-                            Nama Outlet *
+                            Nama Pelanggan *
                         </label>
                         <div className="relative">
-                            <Store className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                            <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                             <input
                                 type="text"
                                 name="name"
                                 value={formData.name}
                                 onChange={handleInputChange}
-                                className={`w-full pl-11 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors duration-200 ${
+                                className={`w-full pl-11 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 ${
                                     errors.name ? 'border-red-300 bg-red-50' : 'border-gray-300'
                                 }`}
-                                placeholder="Masukkan nama outlet"
+                                placeholder="Masukkan nama pelanggan"
                             />
                         </div>
                         {errors.name && (
@@ -123,23 +122,23 @@ const AddEditOutletModal = ({ isOpen, onClose, onSave, editData = null, loading 
 
                     <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-2">
-                            Lokasi *
+                            Alamat *
                         </label>
                         <div className="relative">
                             <MapPin className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
                             <textarea
-                                name="location"
-                                value={formData.location}
+                                name="address"
+                                value={formData.address}
                                 onChange={handleInputChange}
                                 rows="2"
-                                className={`w-full pl-11 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors duration-200 resize-none ${
-                                    errors.location ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                                className={`w-full pl-11 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 resize-none ${
+                                    errors.address ? 'border-red-300 bg-red-50' : 'border-gray-300'
                                 }`}
-                                placeholder="Masukkan alamat lengkap outlet"
+                                placeholder="Masukkan alamat lengkap pelanggan"
                             />
                         </div>
-                        {errors.location && (
-                            <p className="mt-1 text-sm text-red-600">{errors.location}</p>
+                        {errors.address && (
+                            <p className="mt-1 text-sm text-red-600">{errors.address}</p>
                         )}
                     </div>
 
@@ -154,7 +153,7 @@ const AddEditOutletModal = ({ isOpen, onClose, onSave, editData = null, loading 
                                 name="phone"
                                 value={formData.phone}
                                 onChange={handleInputChange}
-                                className={`w-full pl-11 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors duration-200 ${
+                                className={`w-full pl-11 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 ${
                                     errors.phone ? 'border-red-300 bg-red-50' : 'border-gray-300'
                                 }`}
                                 placeholder="Contoh: 021-1234567"
@@ -173,7 +172,7 @@ const AddEditOutletModal = ({ isOpen, onClose, onSave, editData = null, loading 
                             name="status"
                             value={formData.status}
                             onChange={handleInputChange}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors duration-200"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
                         >
                             <option value={1}>Aktif</option>
                             <option value={0}>Tidak Aktif</option>
@@ -189,8 +188,8 @@ const AddEditOutletModal = ({ isOpen, onClose, onSave, editData = null, loading 
                             value={formData.description}
                             onChange={handleInputChange}
                             rows="3"
-                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors duration-200 resize-none"
-                            placeholder="Masukkan deskripsi outlet (opsional)"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 resize-none"
+                            placeholder="Masukkan deskripsi pelanggan (opsional)"
                         />
                     </div>
 
@@ -206,7 +205,7 @@ const AddEditOutletModal = ({ isOpen, onClose, onSave, editData = null, loading 
                         <button
                             type="submit"
                             disabled={loading}
-                            className="flex-1 px-4 py-3 bg-gradient-to-r from-red-500 to-rose-600 text-white rounded-xl hover:from-red-600 hover:to-rose-700 transition-all duration-200 font-medium shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 font-medium shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {loading ? 'Menyimpan...' : (editData ? 'Update' : 'Simpan')}
                         </button>
@@ -217,4 +216,4 @@ const AddEditOutletModal = ({ isOpen, onClose, onSave, editData = null, loading 
     );
 };
 
-export default AddEditOutletModal;
+export default AddEditPelangganModal;

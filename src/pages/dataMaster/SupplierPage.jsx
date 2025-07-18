@@ -31,6 +31,10 @@ const SupplierPage = () => {
     const [viewMode, setViewMode] = useState('table'); // 'table' atau 'card'
     const [notification, setNotification] = useState({ show: false, message: '', type: '' });
     
+    // State untuk pagination card view
+    const [cardCurrentPage, setCardCurrentPage] = useState(1);
+    const [cardItemsPerPage, setCardItemsPerPage] = useState(12);
+    
     // Custom hook untuk data management
     const {
         suppliers: filteredData,
@@ -51,9 +55,9 @@ const SupplierPage = () => {
         shareSupplier
     } = useSuppliers();
 
-    // Fetch data saat component mount
+    // Fetch data saat component mount - dengan DataTables parameter
     useEffect(() => {
-        fetchSuppliers();
+        fetchSuppliers(1, 100); // Fetch page 1 dengan 100 items per page
     }, [fetchSuppliers]);
 
     // Show notification
@@ -209,6 +213,24 @@ const SupplierPage = () => {
         setShowAddModal(true);
     }, []);
 
+    // Handler untuk pagination card view
+    const handleCardPageChange = useCallback((page) => {
+        setCardCurrentPage(page);
+    }, []);
+
+    const handleCardItemsPerPageChange = useCallback((itemsPerPage) => {
+        setCardItemsPerPage(itemsPerPage);
+        setCardCurrentPage(1); // Reset ke halaman pertama saat mengubah items per page
+    }, []);
+
+    // Reset pagination card view saat viewMode berubah
+    const handleViewModeChange = useCallback((mode) => {
+        setViewMode(mode);
+        if (mode === 'card') {
+            setCardCurrentPage(1); // Reset ke halaman pertama saat switch ke card view
+        }
+    }, []);
+
     // Table columns configuration - Konsisten dengan KandangOfficePage
     const columns = useMemo(() => [
         {
@@ -354,7 +376,7 @@ const SupplierPage = () => {
                             {/* View Mode Toggle */}
                             <div className="flex bg-gray-100 rounded-xl p-1">
                                 <button
-                                    onClick={() => setViewMode('table')}
+                                    onClick={() => handleViewModeChange('table')}
                                     className={`px-2.5 py-2 rounded-lg transition-colors duration-200 text-xs sm:text-base ${
                                         viewMode === 'table'
                                             ? 'bg-white text-red-600 shadow-sm'
@@ -365,7 +387,7 @@ const SupplierPage = () => {
                                     <List className="w-4 h-4" />
                                 </button>
                                 <button
-                                    onClick={() => setViewMode('card')}
+                                    onClick={() => handleViewModeChange('card')}
                                     className={`px-2.5 py-2 rounded-lg transition-colors duration-200 text-xs sm:text-base ${
                                         viewMode === 'card'
                                             ? 'bg-white text-red-600 shadow-sm'
@@ -488,6 +510,13 @@ const SupplierPage = () => {
                                         onDetail={handleDetail}
                                         openMenuId={openMenuId}
                                         setOpenMenuId={setOpenMenuId}
+                                        loading={loading}
+                                        error={error}
+                                        currentPage={cardCurrentPage}
+                                        itemsPerPage={cardItemsPerPage}
+                                        onPageChange={handleCardPageChange}
+                                        onItemsPerPageChange={handleCardItemsPerPageChange}
+                                        itemsPerPageOptions={[6, 12, 18, 24]}
                                     />
                                 )}
                             </div>
