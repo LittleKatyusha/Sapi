@@ -85,7 +85,7 @@ const LayoutSecure = ({ children, title }) => {
       name: 'SDM',
       icon: Users,
       children: [
-        { name: 'Data Karyawan', path: '/hr/employees' },
+        { name: 'Data Karyawan', path: '/hr/karyawan' },
         { name: 'Absensi', path: '/hr/attendance' },
         { name: 'Pengajuan Cuti', path: '/hr/leave-requests' }
       ]

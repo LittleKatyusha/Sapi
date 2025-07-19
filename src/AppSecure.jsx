@@ -14,6 +14,7 @@ import PurchasePage from './pages/operations/PurchasePage';
 import LivestockStockPage from './pages/inventory/LivestockStockPage';
 import MeatStockPage from './pages/inventory/MeatStockPage';
 import EmployeePage from './pages/humanResources/EmployeePage';
+import KaryawanPage from './pages/sdm/KaryawanPage';
 import ReportPage from './pages/reporting/ReportPage';
 import SettingsPageSecure from './pages/SettingsPageSecure'; // Enhanced settings
 import AttendancePage from './pages/humanResources/AttendancePage';
@@ -55,6 +56,7 @@ const pageTitleMap = {
   '/master-data/eartag': 'Data Master: Eartag',
   '/reports': 'Laporan',
   '/hr/employees': 'Data Karyawan',
+  '/hr/karyawan': 'Data Karyawan SDM',
   '/hr/attendance': 'Absensi',
   '/hr/leave-requests': 'Pengajuan Cuti',
   '/settings': 'Pengaturan Keamanan',
@@ -361,6 +363,7 @@ function AppSecure() {
 
             {/* Rute SDM */}
             <Route path="/hr/employees" element={<EmployeePage />} />
+            <Route path="/hr/karyawan" element={<KaryawanPage />} />
             <Route path="/hr/attendance" element={<AttendancePage />} />
             <Route path="/hr/leave-requests" element={<LeaveRequestPage />} />
 

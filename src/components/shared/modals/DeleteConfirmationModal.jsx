@@ -1,61 +1,80 @@
 import React from 'react';
-import { AlertTriangle } from 'lucide-react';
-import BaseModal from './BaseModal';
+import { X, AlertTriangle } from 'lucide-react';
 
-const DeleteConfirmationModal = ({
-  isOpen,
-  title = 'Hapus Data',
-  message = 'Apakah Anda yakin ingin menghapus item ini? Tindakan ini tidak dapat dibatalkan.',
-  itemName = '',
-  onConfirm,
-  onCancel,
-  loading = false,
+const DeleteConfirmationModal = ({ 
+    isOpen, 
+    onClose, 
+    onConfirm, 
+    title = "Hapus Data?", 
+    description = "Tindakan ini tidak dapat dibatalkan.", 
+    loading = false 
 }) => {
-  const handleConfirmClick = () => {
-    if (loading) return;
-    onConfirm(); // biarkan parent mengelola ID atau data lain
-  };
+    if (!isOpen) return null;
 
-  return (
-    <BaseModal isOpen={isOpen} onClose={onCancel} maxWidth="max-w-md" loading={loading}>
-      <div className="p-8 text-center">
-        <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-4">
-          <AlertTriangle className="h-8 w-8 text-red-600" />
+    const handleConfirmClick = async () => {
+        if (loading) return;
+        await onConfirm();
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-3xl w-full max-w-md transform transition-all duration-300 scale-100 shadow-2xl">
+                {/* Header */}
+                <div className="flex items-center justify-between p-6 border-b border-gray-100">
+                    <div className="flex items-center">
+                        <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-rose-600 rounded-xl flex items-center justify-center mr-4">
+                            <AlertTriangle className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-bold text-gray-800">Konfirmasi Hapus</h3>
+                            <p className="text-gray-500 text-sm">Pastikan tindakan Anda</p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        disabled={loading}
+                        className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors duration-200 disabled:opacity-50"
+                    >
+                        <X className="w-5 h-5 text-gray-600" />
+                    </button>
+                </div>
+
+                {/* Content */}
+                <div className="p-6 text-center">
+                    <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-4">
+                        <AlertTriangle className="h-8 w-8 text-red-600" />
+                    </div>
+                    
+                    <h2 className="text-xl font-bold text-gray-800 mb-2">{title}</h2>
+                    <p className="text-gray-600 mb-6">{description}</p>
+
+                    <div className="flex justify-center gap-3">
+                        <button
+                            onClick={onClose}
+                            disabled={loading}
+                            className="px-6 py-3 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors disabled:opacity-50"
+                        >
+                            Batal
+                        </button>
+                        <button
+                            onClick={handleConfirmClick}
+                            disabled={loading}
+                            className="px-6 py-3 bg-gradient-to-r from-red-500 to-rose-600 text-white rounded-xl hover:from-red-600 hover:to-rose-700 transition-all duration-200 disabled:opacity-50 min-w-[120px]"
+                        >
+                            {loading ? (
+                                <div className="flex items-center justify-center">
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                    Menghapus...
+                                </div>
+                            ) : (
+                                'Ya, Hapus'
+                            )}
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
-        <h2 className="text-xl font-bold text-gray-800">{title}</h2>
-        <p className="text-gray-600 mt-2">
-          {message} {itemName && (<strong className="font-mono">({itemName})</strong>)}
-        </p>
-
-        <div className="flex justify-center mt-8 space-x-4">
-          <button
-            onClick={onCancel}
-            disabled={loading}
-            className="px-6 py-2 text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-lg disabled:opacity-50"
-          >
-            Tidak, Batal
-          </button>
-
-          <button
-            onClick={handleConfirmClick}
-            className="px-6 py-2 text-white bg-red-600 hover:bg-red-700 rounded-lg disabled:opacity-75 w-36 text-center"
-            disabled={loading}
-          >
-            {loading ? (
-              <span className="flex items-center justify-center">
-                <svg className="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12,4V2A10,10 0 0,0 2,12H4A8,8 0 0,1 12,4Z" />
-                </svg>
-                Menghapus...
-              </span>
-            ) : (
-              'Ya, Hapus'
-            )}
-          </button>
-        </div>
-      </div>
-    </BaseModal>
-  );
+    );
 };
 
 export default DeleteConfirmationModal;
