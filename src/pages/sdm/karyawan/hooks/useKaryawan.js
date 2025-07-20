@@ -7,7 +7,6 @@ const useKaryawan = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
-    const [filterStatus, setFilterStatus] = useState('all');
 
     // API Base URL sesuai routing backend
     const API_BASE = 'https://puput-api.ternasys.com/api/system/pegawai';
@@ -117,7 +116,6 @@ const useKaryawan = () => {
                     address: item.alamat || 'Alamat tidak tersedia',
                     hire_date: item.created_at ? new Date(item.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
                     salary: 0, // Tidak ada field salary di backend
-                    status: item.status !== undefined ? item.status : 1, // 1 = aktif, 2 = tidak aktif
                     group_id: item.group_id || null,
                     pict: item.pict || null,
                     email_verified_at: item.email_verified_at || null,
@@ -127,11 +125,6 @@ const useKaryawan = () => {
                 }));
                 
                 console.log('Karyawan data received:', validatedData);
-                console.log('Karyawan status breakdown:', {
-                    active: validatedData.filter(item => item.status === 1).length,
-                    inactive: validatedData.filter(item => item.status === 2).length,
-                    total: validatedData.length
-                });
                 
                 setKaryawan(validatedData);
                 setError(null);
@@ -153,7 +146,6 @@ const useKaryawan = () => {
                     phone: "081234567890",
                     email: "ahmad@example.com",
                     address: "Jl. Raya Jakarta No. 100",
-                    status: 1,
                     group_id: 1,
                     pict: null,
                     email_verified_at: "2020-01-15T00:00:00.000Z",
@@ -170,7 +162,6 @@ const useKaryawan = () => {
                     phone: "081234567891",
                     email: "siti@example.com",
                     address: "Jl. Kemerdekaan No. 75",
-                    status: 1,
                     group_id: 2,
                     pict: null,
                     email_verified_at: "2021-03-20T00:00:00.000Z",
@@ -187,7 +178,6 @@ const useKaryawan = () => {
                     phone: "081234567892",
                     email: "joko@example.com",
                     address: "Jl. Pasar Baru No. 45",
-                    status: 2, // Tidak aktif
                     group_id: 3,
                     pict: null,
                     email_verified_at: null,
@@ -224,9 +214,7 @@ const useKaryawan = () => {
                     alamat: karyawanData.address,
                     kontak: karyawanData.phone,
                     pict: karyawanData.pict || null,
-                    group_id: karyawanData.group_id || 1,
-                    status: karyawanData.status,
-                    password: karyawanData.password || 'default123'
+                    group_id: karyawanData.group_id || 1
                 })
             });
             
@@ -281,9 +269,7 @@ const useKaryawan = () => {
                     alamat: karyawanData.address,
                     kontak: karyawanData.phone,
                     pict: karyawanData.pict || null,
-                    group_id: karyawanData.group_id || 1,
-                    status: karyawanData.status,
-                    password: karyawanData.password || null // Optional untuk update
+                    group_id: karyawanData.group_id || 1
                 })
             });
             
@@ -506,22 +492,16 @@ const useKaryawan = () => {
                 item.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 item.phone.toLowerCase().includes(searchTerm.toLowerCase());
             
-            const matchesStatus = filterStatus === 'all' ||
-                (filterStatus === 'active' && item.status === 1) ||
-                (filterStatus === 'inactive' && item.status === 2);
-            
-            return matchesSearch && matchesStatus;
+            return matchesSearch;
         });
-    }, [karyawan, searchTerm, filterStatus]);
+    }, [karyawan, searchTerm]);
 
     // Statistics
     const stats = useMemo(() => {
         const total = karyawan.length;
-        const active = karyawan.filter(item => item.status === 1).length;
         
         return {
-            total,
-            active
+            total
         };
     }, [karyawan]);
 
@@ -531,8 +511,6 @@ const useKaryawan = () => {
         error,
         searchTerm,
         setSearchTerm,
-        filterStatus,
-        setFilterStatus,
         stats,
         fetchKaryawan,
         createKaryawan,

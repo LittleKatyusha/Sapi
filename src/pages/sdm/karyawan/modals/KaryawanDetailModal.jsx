@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { X, Users, Mail, Phone, MapPin, Calendar, Building2, DollarSign, Hash, CheckCircle, XCircle } from 'lucide-react';
+import { X, Users, Mail, Phone, MapPin, Calendar, Building2, Hash } from 'lucide-react';
 
 const KaryawanDetailModal = ({ isOpen, onClose, data }) => {
     useEffect(() => {
@@ -15,14 +15,6 @@ const KaryawanDetailModal = ({ isOpen, onClose, data }) => {
 
     if (!isOpen || !data) return null;
 
-    const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('id-ID', {
-            style: 'currency',
-            currency: 'IDR',
-            minimumFractionDigits: 0
-        }).format(amount);
-    };
-
     const formatDate = (dateString) => {
         if (!dateString) return '-';
         try {
@@ -37,23 +29,6 @@ const KaryawanDetailModal = ({ isOpen, onClose, data }) => {
         }
     };
 
-    const StatusBadge = ({ status }) => {
-        const isActive = status === 1;
-        return (
-            <div className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium ${
-                isActive 
-                    ? 'bg-green-100 text-green-800 border border-green-200' 
-                    : 'bg-red-100 text-red-800 border border-red-200'
-            }`}>
-                {isActive ? (
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                ) : (
-                    <XCircle className="w-4 h-4 mr-2" />
-                )}
-                {isActive ? 'Aktif' : 'Tidak Aktif'}
-            </div>
-        );
-    };
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
@@ -80,12 +55,9 @@ const KaryawanDetailModal = ({ isOpen, onClose, data }) => {
                 <div className="p-6 space-y-6">
                     {/* Header Info */}
                     <div className="bg-gradient-to-r from-red-50 to-rose-50 rounded-2xl p-4 border border-red-100">
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center">
-                                <Users className="w-5 h-5 text-red-600 mr-2" />
-                                <span className="font-semibold text-gray-800">User</span>
-                            </div>
-                            <StatusBadge status={data.status} />
+                        <div className="flex items-center mb-3">
+                            <Users className="w-5 h-5 text-red-600 mr-2" />
+                            <span className="font-semibold text-gray-800">User</span>
                         </div>
                         <h4 className="text-xl font-bold text-gray-800 mb-2">{data.name}</h4>
                         <div className="flex items-center text-gray-600">
@@ -144,13 +116,6 @@ const KaryawanDetailModal = ({ isOpen, onClose, data }) => {
                                 <div>
                                     <p className="text-sm font-medium text-gray-700">Group ID</p>
                                     <p className="text-sm text-gray-600">{data.group_id || '-'}</p>
-                                </div>
-                            </div>
-                            <div className="flex items-start">
-                                <Calendar className="w-4 h-4 text-gray-500 mr-3 mt-0.5 flex-shrink-0" />
-                                <div>
-                                    <p className="text-sm font-medium text-gray-700">Email Verified</p>
-                                    <p className="text-sm text-gray-600">{data.email_verified_at ? 'Terverifikasi' : 'Belum Terverifikasi'}</p>
                                 </div>
                             </div>
                             <div className="flex items-start">

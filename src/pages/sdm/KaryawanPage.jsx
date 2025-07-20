@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import DataTable from 'react-data-table-component';
-import { Search, Filter, PlusCircle, AlertCircle, CheckCircle, XCircle, Users, Hash, Activity, LayoutGrid, List, Phone, Mail, MapPin } from 'lucide-react';
+import { Search, PlusCircle, CheckCircle, XCircle, Users, Activity, LayoutGrid, List, Phone, Mail } from 'lucide-react';
 
 // Import modal yang akan dipisahkan
 import AddEditKaryawanModal from './karyawan/modals/AddEditKaryawanModal';
@@ -13,7 +13,6 @@ import useKaryawan from './karyawan/hooks/useKaryawan';
 
 // Import komponen yang akan dipisahkan
 import ActionButton from './karyawan/components/ActionButton';
-import StatusBadge from './karyawan/components/StatusBadge';
 import CardView from './karyawan/components/CardView';
 
 // Import constants yang akan dipisahkan
@@ -45,15 +44,10 @@ const KaryawanPage = () => {
         error,
         searchTerm,
         setSearchTerm,
-        filterStatus,
-        setFilterStatus,
-        stats,
         fetchKaryawan,
         createKaryawan,
         updateKaryawan,
         deleteKaryawan,
-        getKaryawanDetail,
-        getRoles,
         resetPassword
     } = useKaryawan();
 
@@ -218,17 +212,6 @@ const KaryawanPage = () => {
             )
         },
         {
-            name: 'Status',
-            selector: row => row.status,
-            sortable: true,
-            grow: 1,
-            cell: row => (
-                <div className="flex items-center text-sm text-gray-600">
-                    <StatusBadge status={row.status} />
-                </div>
-            )
-        },
-        {
             name: 'Aksi',
             width: '120px',
             cell: row => (
@@ -305,20 +288,6 @@ const KaryawanPage = () => {
 
                         {/* Filters */}
                         <div className="flex flex-wrap gap-2 sm:gap-3">
-                            {/* Status Filter */}
-                            <div className="flex items-center gap-2">
-                                <Filter className="w-4 h-4 text-gray-500" />
-                                <select
-                                    value={filterStatus}
-                                    onChange={(e) => setFilterStatus(e.target.value)}
-                                    className="px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 text-xs sm:text-sm"
-                                >
-                                    <option value="all">Semua Status</option>
-                                    <option value="active">Karyawan Aktif</option>
-                                    <option value="inactive">Karyawan Tidak Aktif</option>
-                                </select>
-                            </div>
-
                             {/* View Mode Toggle */}
                             <div className="flex bg-gray-100 rounded-xl p-1">
                                 <button

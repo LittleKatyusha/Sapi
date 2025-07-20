@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, User, Mail, Phone, MapPin, Building2, Calendar, DollarSign, Hash } from 'lucide-react';
+import { X, Save, User, Mail, Phone, MapPin, Building2, Hash } from 'lucide-react';
 import useKaryawan from '../hooks/useKaryawan';
 
 const AddEditKaryawanModal = ({ isOpen, onClose, onSave, editData, loading }) => {
@@ -12,9 +12,7 @@ const AddEditKaryawanModal = ({ isOpen, onClose, onSave, editData, loading }) =>
         phone: '',
         email: '',
         address: '',
-        group_id: 1,
-        status: 1,
-        password: ''
+        group_id: 1
     });
 
     const [errors, setErrors] = useState({});
@@ -33,9 +31,7 @@ const AddEditKaryawanModal = ({ isOpen, onClose, onSave, editData, loading }) =>
                     phone: editData.phone || '',
                     email: editData.email || '',
                     address: editData.address || '',
-                    group_id: editData.group_id || 1,
-                    status: editData.status !== undefined ? editData.status : 1,
-                    password: '' // Password kosong untuk edit
+                    group_id: editData.group_id || 1
                 });
             } else {
                 setFormData({
@@ -46,9 +42,7 @@ const AddEditKaryawanModal = ({ isOpen, onClose, onSave, editData, loading }) =>
                     phone: '',
                     email: '',
                     address: '',
-                    group_id: 1,
-                    status: 1,
-                    password: ''
+                    group_id: 1
                 });
             }
             setErrors({});
@@ -76,8 +70,6 @@ const AddEditKaryawanModal = ({ isOpen, onClose, onSave, editData, loading }) =>
 
         if (type === 'number') {
             finalValue = value === '' ? '' : Number(value);
-        } else if (name === 'status') {
-            finalValue = Number(value);
         }
 
         setFormData(prev => ({
@@ -121,12 +113,6 @@ const AddEditKaryawanModal = ({ isOpen, onClose, onSave, editData, loading }) =>
             newErrors.address = 'Alamat wajib diisi';
         }
 
-        // Password validation - wajib untuk create, optional untuk edit
-        if (!editData && !formData.password.trim()) {
-            newErrors.password = 'Password wajib diisi untuk user baru';
-        } else if (formData.password && formData.password.length < 6) {
-            newErrors.password = 'Password minimal 6 karakter';
-        }
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -289,25 +275,6 @@ const AddEditKaryawanModal = ({ isOpen, onClose, onSave, editData, loading }) =>
                             {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
                         </div>
 
-                        {/* Password */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                <DollarSign className="w-4 h-4 inline mr-2" />
-                                Password {!editData ? '*' : ''}
-                            </label>
-                            <input
-                                type="password"
-                                name="password"
-                                value={formData.password}
-                                onChange={handleInputChange}
-                                className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors ${
-                                    errors.password ? 'border-red-500' : 'border-gray-300'
-                                }`}
-                                placeholder={editData ? "Kosongkan jika tidak ingin mengubah password" : "Masukkan password"}
-                                disabled={isSubmitting}
-                            />
-                            {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
-                        </div>
 
                         {/* Alamat */}
                         <div className="md:col-span-2">
@@ -329,22 +296,6 @@ const AddEditKaryawanModal = ({ isOpen, onClose, onSave, editData, loading }) =>
                             {errors.address && <p className="mt-1 text-sm text-red-600">{errors.address}</p>}
                         </div>
 
-                        {/* Status */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Status User
-                            </label>
-                            <select
-                                name="status"
-                                value={formData.status}
-                                onChange={handleInputChange}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
-                                disabled={isSubmitting}
-                            >
-                                <option value={1}>Aktif</option>
-                                <option value={2}>Tidak Aktif</option>
-                            </select>
-                        </div>
                     </div>
 
                     {/* Action Buttons */}
