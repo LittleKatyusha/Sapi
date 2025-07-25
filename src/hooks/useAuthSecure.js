@@ -328,13 +328,15 @@ export const useAuthSecure = () => {
 
   // Get authorization header dengan security headers
   const getAuthHeader = useCallback(() => {
-    if (!token) return {};
+    // Ambil token langsung dari secureStorage agar selalu up-to-date
+    const currentToken = secureStorage.getItem('token');
+    if (!currentToken) return {};
     
     return { 
-      'Authorization': `Bearer ${token}`,
+      'Authorization': `Bearer ${currentToken}`,
       ...getSecurityHeaders()
     };
-  }, [token]);
+  }, []);
 
   // Enhanced update profile dengan validation
   const updateProfile = useCallback(async (profileData) => {

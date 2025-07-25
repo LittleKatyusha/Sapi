@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Home, Users, Package, FileText, Settings, Menu, LogOut,
-  ChevronDown, ChevronRight, Shield
+  ChevronDown, ChevronRight, Shield, Beef, DollarSign, 
+  ShoppingCart, TrendingUp, RotateCcw, Truck, UserCheck, Key
 } from 'lucide-react';
 import { useAuthSecure } from '../hooks/useAuthSecure';
 import SecurityNotification from './security/SecurityNotification';
@@ -85,9 +86,31 @@ const LayoutSecure = ({ children, title }) => {
       name: 'SDM',
       icon: Users,
       children: [
-        { name: 'Data Karyawan', path: '/hr/karyawan' },
         { name: 'Absensi', path: '/hr/attendance' },
         { name: 'Pengajuan Cuti', path: '/hr/leave-requests' }
+      ]
+    },
+    {
+      name: 'Boning',
+      icon: Beef,
+      badge: '6',
+      children: [
+        { name: 'Keuangan', path: '/boning/keuangan', icon: DollarSign },
+        { name: 'Pembelian', path: '/boning/pembelian', icon: ShoppingCart },
+        { name: 'Penjualan', path: '/boning/penjualan', icon: TrendingUp },
+        { name: 'Stok Daging', path: '/boning/stok-daging', icon: Package },
+        { name: 'Return', path: '/boning/return', icon: RotateCcw },
+        { name: 'Surat Jalan', path: '/boning/surat-jalan', icon: Truck }
+      ]
+    },
+    {
+      name: 'System',
+      icon: Shield,
+      children: [
+        { name: 'Role', path: '/system/role', icon: UserCheck },
+        { name: 'Permission', path: '/system/permission', icon: Key },
+        { name: 'Users', path: '/system/users', icon: Users },
+        { name: 'Parameters', path: '/system/parameters', icon: Settings }
       ]
     },
     {
@@ -198,9 +221,16 @@ const LayoutSecure = ({ children, title }) => {
                         <div className="flex items-center">
                           <item.icon className="w-5 h-5" />
                           {shouldShowExpanded && (
-                            <span className="ml-3 text-sm font-medium sidebar-content-fade sidebar-text-slide">
-                              {item.name}
-                            </span>
+                            <div className="flex items-center ml-3">
+                              <span className="text-sm font-medium sidebar-content-fade sidebar-text-slide">
+                                {item.name}
+                              </span>
+                              {item.badge && (
+                                <span className="ml-2 bg-red-100 text-red-600 text-xs px-2 py-1 rounded-full font-medium">
+                                  {item.badge}
+                                </span>
+                              )}
+                            </div>
                           )}
                         </div>
                         {shouldShowExpanded && (
@@ -217,7 +247,7 @@ const LayoutSecure = ({ children, title }) => {
                             <li key={childIndex}>
                               <Link
                                 to={child.path}
-                                className={`block px-3 py-2 rounded-lg text-sm transition-colors ${
+                                className={`flex items-center px-3 py-2 rounded-lg text-sm transition-colors ${
                                   location.pathname === child.path
                                     ? 'bg-red-900 text-white font-medium'
                                     : 'text-red-300 hover:bg-red-700/30'
@@ -230,6 +260,7 @@ const LayoutSecure = ({ children, title }) => {
                                   });
                                 }}
                               >
+                                {child.icon && <child.icon className="w-4 h-4 mr-2" />}
                                 {child.name}
                               </Link>
                             </li>
@@ -387,7 +418,7 @@ const LayoutSecure = ({ children, title }) => {
       )}
 
       {/* Enhanced Sidebar Styles */}
-      <style jsx>{`
+      <style jsx="true">{`
         /* Ensure sidebar always stays full viewport height and fixed */
         .sidebar-container {
           position: fixed !important;

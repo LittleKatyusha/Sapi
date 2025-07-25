@@ -14,7 +14,6 @@ import PurchasePage from './pages/operations/PurchasePage';
 import LivestockStockPage from './pages/inventory/LivestockStockPage';
 import MeatStockPage from './pages/inventory/MeatStockPage';
 import EmployeePage from './pages/humanResources/EmployeePage';
-import KaryawanPage from './pages/sdm/KaryawanPage';
 import ReportPage from './pages/reporting/ReportPage';
 import SettingsPageSecure from './pages/SettingsPageSecure'; // Enhanced settings
 import AttendancePage from './pages/humanResources/AttendancePage';
@@ -30,6 +29,21 @@ import PelangganPage from './pages/dataMaster/PelangganPage';
 import OutletPage from './pages/dataMaster/OutletPage';
 import ProdukGDSPage from './pages/dataMaster/ProdukGDSPage';
 import EartagPage from './pages/dataMaster/EartagPage';
+
+// Boning Pages
+import BoningLayout from './pages/boning/BoningLayout';
+import KeuanganPage from './pages/boning/KeuanganPage';
+import PembelianPage from './pages/boning/PembelianPage';
+import PenjualanPage from './pages/boning/PenjualanPage';
+import StokDagingPage from './pages/boning/StokDagingPage';
+import ReturnPage from './pages/boning/ReturnPage';
+import SuratJalanPage from './pages/boning/SuratJalanPage';
+
+// System Pages
+import RolePage from './pages/system/RolePage';
+import PermissionPage from './pages/system/PermissionPageNew';
+import UsersPage from './pages/system/UsersPage';
+import ParametersPage from './pages/system/ParametersPage';
 
 const AppWrapperSecure = () => (
   <Router>
@@ -54,9 +68,18 @@ const pageTitleMap = {
   '/master-data/outlet': 'Data Master: Outlet',
   '/master-data/produk-gds': 'Data Master: Produk Gudang',
   '/master-data/eartag': 'Data Master: Eartag',
+  '/boning/keuangan': 'Boning: Keuangan',
+  '/boning/pembelian': 'Boning: Pembelian',
+  '/boning/penjualan': 'Boning: Penjualan',
+  '/boning/stok-daging': 'Boning: Stok Daging',
+  '/boning/return': 'Boning: Return',
+  '/boning/surat-jalan': 'Boning: Surat Jalan',
+  '/system/role': 'System: Role Management',
+  '/system/permission': 'System: Permission Management',
+  '/system/users': 'System: User Management',
+  '/system/parameters': 'System: Parameter Management',
   '/reports': 'Laporan',
   '/hr/employees': 'Data Karyawan',
-  '/hr/karyawan': 'Data Karyawan SDM',
   '/hr/attendance': 'Absensi',
   '/hr/leave-requests': 'Pengajuan Cuti',
   '/settings': 'Pengaturan Keamanan',
@@ -363,7 +386,6 @@ function AppSecure() {
 
             {/* Rute SDM */}
             <Route path="/hr/employees" element={<EmployeePage />} />
-            <Route path="/hr/karyawan" element={<KaryawanPage />} />
             <Route path="/hr/attendance" element={<AttendancePage />} />
             <Route path="/hr/leave-requests" element={<LeaveRequestPage />} />
 
@@ -379,6 +401,22 @@ function AppSecure() {
             <Route path="/master-data/outlet" element={<OutletPage />} />
             <Route path="/master-data/produk-gds" element={<ProdukGDSPage />} />
             <Route path="/master-data/eartag" element={<EartagPage />} />
+
+            {/* Rute Boning */}
+            <Route path="/boning/*" element={<BoningLayout />}>
+              <Route path="keuangan" element={<KeuanganPage />} />
+              <Route path="pembelian" element={<PembelianPage />} />
+              <Route path="penjualan" element={<PenjualanPage />} />
+              <Route path="stok-daging" element={<StokDagingPage />} />
+              <Route path="return" element={<ReturnPage />} />
+              <Route path="surat-jalan" element={<SuratJalanPage />} />
+            </Route>
+
+            {/* Rute System */}
+            <Route path="/system/role" element={<RolePage />} />
+            <Route path="/system/permission" element={<PermissionPage />} />
+            <Route path="/system/users" element={<UsersPage />} />
+            <Route path="/system/parameters" element={<ParametersPage />} />
 
             {/* Rute Fallback */}
             <Route path="*" element={<DashboardPage />} />
