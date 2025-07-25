@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Home, Users, Package, FileText, Settings, Menu, LogOut,
-  ChevronDown, ChevronRight, Shield, Beef, DollarSign, 
-  ShoppingCart, TrendingUp, RotateCcw, Truck, UserCheck, Key
+  ChevronDown, ChevronRight, Shield, Beef, DollarSign,
+  ShoppingCart, TrendingUp, RotateCcw, Truck, UserCheck, Key,
+  Building2
 } from 'lucide-react';
 import { useAuthSecure } from '../hooks/useAuthSecure';
 import SecurityNotification from './security/SecurityNotification';
@@ -50,6 +51,13 @@ const LayoutSecure = ({ children, title }) => {
       icon: Home,
       path: '/dashboard',
       active: location.pathname === '/dashboard'
+    },
+    {
+      name: 'Head Office',
+      icon: Building2,
+      children: [
+        { name: 'Pembelian', path: '/ho/pembelian', icon: ShoppingCart }
+      ]
     },
     {
       name: 'Operasional',
