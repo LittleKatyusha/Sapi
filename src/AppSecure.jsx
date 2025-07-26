@@ -48,6 +48,7 @@ import ParametersPage from './pages/system/ParametersPage';
 // HO Pages
 import PembelianHOPage from './pages/ho/pembelian/PembelianHOPage';
 import PembelianDetailPage from './pages/ho/pembelian/PembelianDetailPage';
+import AddEditPembelianPage from './pages/ho/pembelian/AddEditPembelianPage';
 
 const AppWrapperSecure = () => (
   <Router>
@@ -73,6 +74,8 @@ const pageTitleMap = {
   '/master-data/produk-gds': 'Data Master: Produk Gudang',
   '/master-data/eartag': 'Data Master: Eartag',
   '/ho/pembelian': 'Head Office: Pembelian',
+  '/ho/pembelian/add': 'Head Office: Tambah Pembelian',
+  '/ho/pembelian/edit/:id': 'Head Office: Edit Pembelian',
   '/ho/pembelian/detail/:id': 'Head Office: Detail Pembelian',
   '/boning/keuangan': 'Boning: Keuangan',
   '/boning/pembelian': 'Boning: Pembelian',
@@ -420,6 +423,8 @@ function AppSecure() {
 
             {/* Rute HO (Head Office) */}
             <Route path="/ho/pembelian" element={<PembelianHOPage />} />
+            <Route path="/ho/pembelian/add" element={<AddEditPembelianPage />} />
+            <Route path="/ho/pembelian/edit/:id" element={<AddEditPembelianPage />} />
             <Route path="/ho/pembelian/detail/:id" element={<PembelianDetailPage />} />
 
             {/* Rute System */}

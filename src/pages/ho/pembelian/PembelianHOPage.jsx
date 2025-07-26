@@ -8,16 +8,13 @@ import ActionButton from './components/ActionButton';
 import customTableStyles from './constants/tableStyles';
 
 // Import modals
-import AddEditPembelianModal from './modals/AddEditPembelianModal';
 import DeleteConfirmationModal from './modals/DeleteConfirmationModal';
 
 const PembelianHOPage = () => {
     const navigate = useNavigate();
     const [openMenuId, setOpenMenuId] = useState(null);
-    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [selectedPembelian, setSelectedPembelian] = useState(null);
-    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [notification, setNotification] = useState(null);
     
     const {
@@ -37,31 +34,17 @@ const PembelianHOPage = () => {
 
     useEffect(() => {
         fetchPembelian();
-    }, [fetchPembelian]);
+    }, []);
+
 
     const handleEdit = (pembelian) => {
         console.log('Edit pembelian:', pembelian);
-        setSelectedPembelian(pembelian);
-        setIsEditModalOpen(true);
+        const id = pembelian.encryptedPid || pembelian.pubid || pembelian.id;
+        navigate(`/ho/pembelian/edit/${encodeURIComponent(id)}`);
         setOpenMenuId(null);
     };
 
-    const handleClone = (pembelian) => {
-        console.log('Clone pembelian:', pembelian);
-        // Create cloned data with modified fields
-        const clonedData = {
-            ...pembelian,
-            nota: `${pembelian.nota} (Copy)`,
-            tgl_masuk: new Date().toISOString().split('T')[0],
-            // Remove ID fields so it will be treated as new record
-            pubid: undefined,
-            id: undefined,
-            encryptedPid: undefined
-        };
-        setSelectedPembelian(clonedData);
-        setIsAddModalOpen(true);
-        setOpenMenuId(null);
-    };
+    // Clone functionality removed from main pembelian page per user request
 
     const handleDelete = (pembelian) => {
         console.log('Delete pembelian:', pembelian);
@@ -72,59 +55,17 @@ const PembelianHOPage = () => {
 
     const handleDetail = (pembelian) => {
         console.log('View pembelian detail:', pembelian);
-        const id = pembelian.pubid || pembelian.id;
-        navigate(`/ho/pembelian/detail/${id}`);
+        // Use encryptedPid for API calls, but pubid for URL routing
+        const id = pembelian.encryptedPid || pembelian.pubid || pembelian.id;
+        navigate(`/ho/pembelian/detail/${encodeURIComponent(id)}`);
         setOpenMenuId(null);
     };
 
     // Modal handlers
-    const handleCloseEditModal = () => {
-        setIsEditModalOpen(false);
-        setSelectedPembelian(null);
-    };
-
     const handleCloseDeleteModal = () => {
         setIsDeleteModalOpen(false);
         setSelectedPembelian(null);
     };
-
-
-    const handleCloseAddModal = () => {
-        setIsAddModalOpen(false);
-        setSelectedPembelian(null); // Clear selected data when closing
-    };
-
-    // Save handlers for modals
-    const handleSavePembelian = useCallback(async (pembelianData, isEdit) => {
-        try {
-            let result;
-            if (isEdit && selectedPembelian) {
-                result = await updatePembelian(selectedPembelian.pubid || selectedPembelian.id, pembelianData);
-            } else {
-                result = await createPembelian(pembelianData);
-            }
-
-            if (result.success) {
-                setNotification({
-                    type: 'success',
-                    message: result.message
-                });
-                setIsEditModalOpen(false);
-                setIsAddModalOpen(false);
-                setSelectedPembelian(null);
-            } else {
-                setNotification({
-                    type: 'error',
-                    message: result.message
-                });
-            }
-        } catch (error) {
-            setNotification({
-                type: 'error',
-                message: 'Terjadi kesalahan saat menyimpan data'
-            });
-        }
-    }, [selectedPembelian, updatePembelian, createPembelian]);
 
     const handleDeletePembelian = useCallback(async (pembelian) => {
         try {
@@ -161,40 +102,13 @@ const PembelianHOPage = () => {
     const columns = useMemo(() => [
         {
             name: 'No',
-            cell: (row, index) => (
-                <div className="font-semibold text-gray-700">
-                    {index + 1}
-                </div>
-            ),
+            selector: (row, index) => index + 1,
+            sortable: false,
             width: '60px',
             ignoreRowClick: true,
-        },
-        {
-            name: 'Nama Supplier',
-            selector: row => row.nama_supplier,
-            sortable: true,
-            width: '200px',
-            cell: row => (
-                <div className="flex items-center">
-                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-3 flex-shrink-0">
-                        <Building2 className="w-4 h-4 text-blue-600" />
-                    </div>
-                    <div className="min-w-0">
-                        <div className="font-medium text-gray-900 truncate" title={row.nama_supplier}>
-                            {row.nama_supplier || '-'}
-                        </div>
-                    </div>
-                </div>
-            )
-        },
-        {
-            name: 'Nama Office',
-            selector: row => row.nama_office,
-            sortable: true,
-            width: '180px',
-            cell: row => (
-                <div className="text-gray-900 truncate" title={row.nama_office}>
-                    {row.nama_office || '-'}
+            cell: (row, index) => (
+                <div className="font-semibold text-gray-700 text-center">
+                    {index + 1}
                 </div>
             )
         },
@@ -202,36 +116,43 @@ const PembelianHOPage = () => {
             name: 'Nota',
             selector: row => row.nota,
             sortable: true,
-            width: '150px',
+            width: '12%',
+            wrap: true,
             cell: row => (
-                <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded" title={row.nota}>
-                    {row.nota || '-'}
-                </span>
+                <div className="text-center">
+                    <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded break-words" title={row.nota}>
+                        {row.nota || '-'}
+                    </span>
+                </div>
             )
         },
         {
             name: 'Tanggal Masuk',
             selector: row => row.tgl_masuk,
             sortable: true,
-            width: '140px',
+            width: '12%',
+            wrap: true,
             cell: row => (
-                <span className="text-gray-900">
-                    {row.tgl_masuk ? new Date(row.tgl_masuk).toLocaleDateString('id-ID') : '-'}
-                </span>
+                <div className="text-center">
+                    <span className="text-gray-900 break-words">
+                        {row.tgl_masuk ? new Date(row.tgl_masuk).toLocaleDateString('id-ID') : '-'}
+                    </span>
+                </div>
             )
         },
         {
             name: 'Nama Supir',
             selector: row => row.nama_supir,
             sortable: true,
-            width: '160px',
+            width: '15%',
+            wrap: true,
             cell: row => (
                 <div className="flex items-center">
-                    <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center mr-3 flex-shrink-0">
+                    <div className="w-7 h-7 rounded-full bg-green-100 flex items-center justify-center mr-3 flex-shrink-0">
                         <User className="w-4 h-4 text-green-600" />
                     </div>
-                    <div className="min-w-0">
-                        <div className="font-medium text-gray-900 truncate" title={row.nama_supir}>
+                    <div className="min-w-0 flex-1">
+                        <div className="font-medium text-gray-900 text-sm break-words" title={row.nama_supir}>
                             {row.nama_supir || '-'}
                         </div>
                     </div>
@@ -242,11 +163,12 @@ const PembelianHOPage = () => {
             name: 'Plat Nomor',
             selector: row => row.plat_nomor,
             sortable: true,
-            width: '120px',
+            width: '10%',
+            wrap: true,
             cell: row => (
                 <div className="flex items-center">
                     <Truck className="w-4 h-4 text-gray-500 mr-2 flex-shrink-0" />
-                    <span className="font-mono text-sm truncate" title={row.plat_nomor}>
+                    <span className="font-mono text-sm break-words" title={row.plat_nomor}>
                         {row.plat_nomor || '-'}
                     </span>
                 </div>
@@ -256,15 +178,69 @@ const PembelianHOPage = () => {
             name: 'Jumlah',
             selector: row => row.jumlah,
             sortable: true,
-            width: '100px',
+            width: '8%',
+            wrap: true,
             cell: row => (
-                <span className="inline-flex px-2 py-1 text-sm font-semibold rounded-full bg-indigo-100 text-indigo-800">
-                    {row.jumlah || 0} ekor
-                </span>
+                <div className="text-center">
+                    <span className="inline-flex px-2 py-1 text-sm font-semibold rounded-full bg-indigo-100 text-indigo-800 break-words">
+                        {row.jumlah || 0} ekor
+                    </span>
+                </div>
+            )
+        },
+        {
+            name: 'Nama Supplier',
+            selector: row => row.nama_supplier,
+            sortable: true,
+            width: '18%',
+            wrap: true,
+            cell: row => (
+                <div className="flex items-center">
+                    <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center mr-3 flex-shrink-0">
+                        <Building2 className="w-4 h-4 text-blue-600" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                        <div className="font-medium text-gray-900 text-sm break-words" title={row.nama_supplier}>
+                            {row.nama_supplier || '-'}
+                        </div>
+                    </div>
+                </div>
+            )
+        },
+        {
+            name: 'Nama Office',
+            selector: row => row.nama_office,
+            sortable: true,
+            width: '12%',
+            wrap: true,
+            cell: row => (
+                <div className="text-center text-gray-900 text-sm break-words" title={row.nama_office}>
+                    {row.nama_office || '-'}
+                </div>
+            )
+        },
+        {
+            name: 'Total Belanja',
+            selector: row => row.total_belanja,
+            sortable: true,
+            width: '15%',
+            wrap: true,
+            cell: row => (
+                <div className="text-center">
+                    <span className="inline-flex px-3 py-1.5 text-sm font-semibold rounded-full bg-green-100 text-green-800 break-words">
+                        {row.total_belanja ? new Intl.NumberFormat('id-ID', {
+                            style: 'currency',
+                            currency: 'IDR',
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 0
+                        }).format(row.total_belanja) : 'Rp 0'}
+                    </span>
+                </div>
             )
         },
         {
             name: 'Aksi',
+            width: '8%',
             cell: row => (
                 <ActionButton
                     row={row}
@@ -273,8 +249,8 @@ const PembelianHOPage = () => {
                     onEdit={handleEdit}
                     onDelete={handleDelete}
                     onDetail={handleDetail}
-                    onClone={handleClone}
                     isActive={openMenuId === (row.id || row.pubid)}
+                    showClone={false}
                 />
             ),
             ignoreRowClick: true,
@@ -282,70 +258,71 @@ const PembelianHOPage = () => {
     ], [openMenuId]);
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-2 sm:p-4 md:p-6">
-            <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
-                <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-xl border border-gray-100">
+        <>
+            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4 md:p-6">
+            <div className="max-w-7xl mx-auto space-y-6 md:space-y-8">
+                <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-xl border border-gray-100">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div>
-                            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-1 sm:mb-2 flex items-center gap-2">
-                                <ShoppingCart size={28} />
+                            <h1 className="text-2xl sm:text-4xl font-bold text-gray-800 mb-1 sm:mb-2 flex items-center gap-3">
+                                <ShoppingCart size={32} className="text-red-500" />
                                 Pembelian Head Office
                             </h1>
                             <p className="text-gray-600 text-sm sm:text-base">
                                 Kelola data pembelian ternak untuk Head Office
                             </p>
                         </div>
-                        <div className="flex flex-col gap-2 sm:flex-row sm:gap-4">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 md:gap-6">
                             <button
-                                onClick={() => setIsAddModalOpen(true)}
-                                className="bg-gradient-to-r from-red-500 to-rose-600 text-white px-4 py-2 sm:px-6 sm:py-3 rounded-xl sm:rounded-2xl hover:from-red-600 hover:to-rose-700 transition-all duration-300 flex items-center gap-2 font-medium shadow-lg hover:shadow-xl text-sm sm:text-base"
+                                onClick={() => navigate('/ho/pembelian/add')}
+                                className="bg-gradient-to-r from-red-500 to-rose-600 text-white px-4 py-2 sm:px-6 sm:py-3 md:px-7 md:py-4 lg:px-8 lg:py-4 rounded-xl sm:rounded-2xl hover:from-red-600 hover:to-rose-700 transition-all duration-300 flex items-center gap-3 font-medium shadow-lg hover:shadow-xl text-sm sm:text-base"
                             >
-                                <PlusCircle className="w-5 h-5" />
+                                <PlusCircle className="w-5 h-5 sm:w-6 sm:h-6" />
                                 Tambah Pembelian
                             </button>
                         </div>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4 md:gap-6">
-                    <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg">
-                        <h3 className="text-xs sm:text-sm font-medium opacity-90">Total Pembelian</h3>
-                        <p className="text-xl sm:text-3xl font-bold">{stats.total}</p>
+                <div className="grid grid-cols-1 gap-3 sm:gap-4 md:gap-6 sm:grid-cols-2 md:grid-cols-4">
+                    <div className="bg-gradient-to-br from-blue-400 to-blue-500 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
+                        <h3 className="text-sm sm:text-base font-medium opacity-90 mb-2">Total Pembelian</h3>
+                        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold">{stats.total}</p>
                     </div>
-                    <div className="bg-gradient-to-br from-green-500 to-emerald-600 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg">
-                        <h3 className="text-xs sm:text-sm font-medium opacity-90">Total Ternak</h3>
-                        <p className="text-xl sm:text-3xl font-bold">{stats.totalTernak}</p>
+                    <div className="bg-gradient-to-br from-emerald-400 to-emerald-500 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
+                        <h3 className="text-sm sm:text-base font-medium opacity-90 mb-2">Total Ternak</h3>
+                        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold">{stats.totalTernak}</p>
                     </div>
-                    <div className="bg-gradient-to-br from-orange-500 to-amber-600 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg">
-                        <h3 className="text-xs sm:text-sm font-medium opacity-90">Hari Ini</h3>
-                        <p className="text-xl sm:text-3xl font-bold">{stats.today}</p>
+                    <div className="bg-gradient-to-br from-amber-400 to-orange-500 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
+                        <h3 className="text-sm sm:text-base font-medium opacity-90 mb-2">Hari Ini</h3>
+                        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold">{stats.today}</p>
                     </div>
-                    <div className="bg-gradient-to-br from-purple-500 to-violet-600 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg">
-                        <h3 className="text-xs sm:text-sm font-medium opacity-90">Bulan Ini</h3>
-                        <p className="text-xl sm:text-3xl font-bold">{stats.thisMonth}</p>
+                    <div className="bg-gradient-to-br from-purple-400 to-purple-500 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
+                        <h3 className="text-sm sm:text-base font-medium opacity-90 mb-2">Bulan Ini</h3>
+                        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold">{stats.thisMonth}</p>
                     </div>
                 </div>
 
-                <div className="bg-white rounded-2xl p-3 sm:p-6 shadow-lg border border-gray-100">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 sm:items-center sm:justify-between">
-                        <div className="relative flex-1 max-w-full sm:max-w-md">
+                <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-100">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 md:gap-6 sm:items-center sm:justify-between">
+                        <div className="relative flex-1 max-w-full sm:max-w-md lg:max-w-lg">
                             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                             <input
                                 type="text"
                                 placeholder="Cari pembelian..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-12 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors duration-200 text-sm sm:text-base"
+                                className="w-full pl-12 pr-4 py-2.5 sm:py-3 md:py-4 border border-gray-300 rounded-full focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all duration-200 text-sm sm:text-base shadow-sm hover:shadow-md"
                             />
                         </div>
 
-                        <div className="flex flex-wrap gap-2 sm:gap-3">
-                            <div className="flex items-center gap-2">
-                                <Filter className="w-4 h-4 text-gray-500" />
+                        <div className="flex flex-wrap gap-2 sm:gap-3 md:gap-4">
+                            <div className="flex items-center gap-2 md:gap-3">
+                                <Filter className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
                                 <select
                                     value={filterStatus}
                                     onChange={(e) => setFilterStatus(e.target.value)}
-                                    className="px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 text-xs sm:text-sm"
+                                    className="px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 text-sm sm:text-base shadow-sm hover:shadow-md transition-all duration-200"
                                 >
                                     <option value="all">Semua</option>
                                     <option value="today">Hari Ini</option>
@@ -358,34 +335,110 @@ const PembelianHOPage = () => {
                 </div>
 
                 <div className="bg-white rounded-2xl shadow-lg border border-gray-100 relative">
-                    <DataTable
-                        columns={columns}
-                        data={filteredData}
-                        pagination
-                        customStyles={customTableStyles}
-                        progressPending={loading}
-                        progressComponent={
-                            <div className="text-center py-12">
-                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto"></div>
-                                <p className="text-gray-500 text-sm mt-2">Memuat data...</p>
-                            </div>
-                        }
-                        noDataComponent={
-                            <div className="text-center py-12">
-                                {error ? (
-                                    <div className="text-red-600">
-                                        <p className="text-lg font-semibold">Error</p>
-                                        <p className="text-sm">{error}</p>
-                                    </div>
-                                ) : (
-                                    <p className="text-gray-500 text-lg">Tidak ada data pembelian ditemukan</p>
-                                )}
-                            </div>
-                        }
-                        responsive
-                        highlightOnHover
-                        pointerOnHover
-                    />
+                    <div className="w-full">
+                        <DataTable
+                            columns={columns}
+                            data={filteredData}
+                            pagination
+                            paginationPerPage={10}
+                            paginationRowsPerPageOptions={[5, 10, 15, 20]}
+                            customStyles={{
+                                ...customTableStyles,
+                                table: {
+                                    ...customTableStyles.table,
+                                    style: {
+                                        ...customTableStyles.table.style,
+                                        minWidth: '800px',
+                                        width: '100%',
+                                        tableLayout: 'fixed',
+                                        wordWrap: 'break-word',
+                                        overflowWrap: 'break-word',
+                                    }
+                                },
+                                tableWrapper: {
+                                    style: {
+                                        overflowX: 'auto',
+                                        overflowY: 'auto',
+                                        maxHeight: '600px',
+                                        maxWidth: '100%',
+                                        width: '100%',
+                                        border: '1px solid #e2e8f0',
+                                        borderRadius: '12px',
+                                        WebkitOverflowScrolling: 'touch',
+                                        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+                                    }
+                                },
+                                headRow: {
+                                    style: {
+                                        position: 'sticky',
+                                        top: 0,
+                                        zIndex: 1000,
+                                        backgroundColor: '#ffffff',
+                                        fontWeight: 'bold',
+                                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                                    }
+                                },
+                                headCells: {
+                                    style: {
+                                        fontSize: '13px',
+                                        fontWeight: 'bold',
+                                        color: 'inherit',
+                                        padding: '12px 16px',
+                                        '&:first-child': {
+                                            position: 'sticky',
+                                            left: 0,
+                                            zIndex: 1002,
+                                            backgroundColor: '#ffffff',
+                                            borderRight: '3px solid #e2e8f0',
+                                            boxShadow: 'inset -3px 0 4px -1px rgba(0, 0, 0, 0.1)',
+                                        },
+                                    },
+                                },
+                                cells: {
+                                    style: {
+                                        wordWrap: 'break-word',
+                                        wordBreak: 'break-word',
+                                        whiteSpace: 'normal',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        padding: '12px 16px',
+                                        fontSize: '13px',
+                                        lineHeight: '1.5',
+                                        '&:first-child': {
+                                            position: 'sticky',
+                                            left: 0,
+                                            zIndex: 999,
+                                            backgroundColor: '#fff',
+                                            borderRight: '3px solid #e2e8f0',
+                                            boxShadow: 'inset -3px 0 4px -1px rgba(0, 0, 0, 0.1)',
+                                        },
+                                    }
+                                }
+                            }}
+                            progressPending={loading}
+                            progressComponent={
+                                <div className="text-center py-12">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto"></div>
+                                    <p className="text-gray-500 text-sm mt-2">Memuat data...</p>
+                                </div>
+                            }
+                            noDataComponent={
+                                <div className="text-center py-12">
+                                    {error ? (
+                                        <div className="text-red-600">
+                                            <p className="text-lg font-semibold">Error</p>
+                                            <p className="text-sm">{error}</p>
+                                        </div>
+                                    ) : (
+                                        <p className="text-gray-500 text-lg">Tidak ada data pembelian ditemukan</p>
+                                    )}
+                                </div>
+                            }
+                            responsive={false}
+                            highlightOnHover
+                            pointerOnHover
+                        />
+                    </div>
                 </div>
             </div>
 
@@ -436,14 +489,6 @@ const PembelianHOPage = () => {
             )}
 
             {/* Modals */}
-            <AddEditPembelianModal
-                isOpen={isAddModalOpen || isEditModalOpen}
-                onClose={isAddModalOpen ? handleCloseAddModal : handleCloseEditModal}
-                onSave={handleSavePembelian}
-                editData={isEditModalOpen ? selectedPembelian : (isAddModalOpen ? selectedPembelian : null)}
-                loading={loading}
-            />
-
             <DeleteConfirmationModal
                 isOpen={isDeleteModalOpen}
                 onClose={handleCloseDeleteModal}
@@ -453,6 +498,7 @@ const PembelianHOPage = () => {
                 type="pembelian"
             />
         </div>
+        </>
     );
 };
 

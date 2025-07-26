@@ -1,6 +1,34 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useAuthSecure } from '../../../../hooks/useAuthSecure';
 
+// Helper function to safely parse JSON response
+const safeJsonParse = async (response) => {
+    const contentType = response.headers.get('content-type');
+    
+    // Enhanced logging for debugging
+    console.log('🔍 DEBUG: Response details:', {
+        status: response.status,
+        statusText: response.statusText,
+        contentType: contentType,
+        url: response.url,
+        headers: Object.fromEntries(response.headers.entries())
+    });
+    
+    if (!contentType || !contentType.includes('application/json')) {
+        const responseText = await response.text();
+        console.error('❌ Expected JSON but received:', {
+            contentType,
+            responseText: responseText.substring(0, 500),
+            fullResponseLength: responseText.length
+        });
+        throw new Error(`Server returned ${contentType || 'unknown content type'} instead of JSON. This usually means the API endpoint is not properly configured or the server returned an error page. Response: ${responseText.substring(0, 200)}...`);
+    }
+    
+    const jsonData = await response.json();
+    console.log('✅ Successfully parsed JSON:', jsonData);
+    return jsonData;
+};
+
 const usePembelianHO = () => {
     const { getAuthHeader } = useAuthSecure();
     const [pembelian, setPembelian] = useState([]);
@@ -9,8 +37,8 @@ const usePembelianHO = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
 
-    // API Base URL - using the HO pembelian endpoint from backend
-    const API_BASE = 'https://puput-api.ternasys.com/api/ho/pembelian';
+    // API Base URL - hardcoded for proxy to work with CORS
+    const API_BASE = `https://puput-api.ternasys.com/api/ho/pembelian`;
 
     // Server-side pagination state
     const [serverPagination, setServerPagination] = useState({
@@ -35,18 +63,20 @@ const usePembelianHO = () => {
             
             // DataTables pagination parameters for server-side processing
             const start = (page - 1) * perPage;
-            const url = new URL(`${API_BASE}/data`);
-            url.searchParams.append('start', start.toString());
-            url.searchParams.append('length', perPage.toString());
-            url.searchParams.append('draw', Date.now().toString()); // Use timestamp for draw
-            url.searchParams.append('search[value]', searchTerm || '');
-            url.searchParams.append('order[0][column]', '0');
-            url.searchParams.append('order[0][dir]', 'asc');
+            const params = new URLSearchParams({
+                'start': start.toString(),
+                'length': perPage.toString(),
+                'draw': Date.now().toString(),
+                'search[value]': searchTerm || '',
+                'order[0][column]': '0',
+                'order[0][dir]': 'asc'
+            });
             
-            const response = await fetch(url.toString(), {
+            const response = await fetch(`${API_BASE}/data?${params.toString()}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Accept': 'application/json',
                     ...authHeader
                 }
             });
@@ -67,7 +97,7 @@ const usePembelianHO = () => {
                 }
             }
 
-            const result = await response.json();
+            const result = await safeJsonParse(response);
             
             let dataArray = [];
             let totalRecords = 0;
@@ -100,23 +130,61 @@ const usePembelianHO = () => {
             });
             
             if (dataArray.length >= 0) {
-                const validatedData = dataArray.map((item, index) => ({
-                    pubid: item.pubid || `TEMP-${index + 1}`,
-                    encryptedPid: item.encrypted_pid || item.pid || item.pubid,
-                    nota: item.nota || '',
-                    nama_supplier: item.nama_supplier || 'Supplier tidak tersedia',
-                    nama_office: item.nama_office || '',
-                    tgl_masuk: item.tgl_masuk || new Date().toISOString().split('T')[0],
-                    nama_supir: item.nama_supir || '',
-                    plat_nomor: item.plat_nomor || '',
-                    jumlah: parseInt(item.jumlah) || 0,
-                    status: item.status !== undefined ? item.status : 1,
-                    createdAt: item.created_at || new Date().toISOString(),
-                    updatedAt: item.updated_at || new Date().toISOString(),
-                    id: item.pubid || `TEMP-${index + 1}`
+                const validatedData = await Promise.all(dataArray.map(async (item, index) => {
+                    // Base data without total_belanja
+                    const baseData = {
+                        pubid: item.pubid || `TEMP-${index + 1}`,
+                        encryptedPid: item.encrypted_pid || item.pid || item.pubid,
+                        nota: item.nota || '',
+                        nama_supplier: item.nama_supplier || 'Supplier tidak tersedia',
+                        nama_office: item.nama_office || '',
+                        tgl_masuk: item.tgl_masuk || new Date().toISOString().split('T')[0],
+                        nama_supir: item.nama_supir || '',
+                        plat_nomor: item.plat_nomor || '',
+                        jumlah: parseInt(item.jumlah) || 0,
+                        status: item.status !== undefined ? item.status : 1,
+                        createdAt: item.created_at || new Date().toISOString(),
+                        updatedAt: item.updated_at || new Date().toISOString(),
+                        id: item.pubid || `TEMP-${index + 1}`
+                    };
+
+                    // Calculate total_belanja from detail data
+                    let total_belanja = 0;
+                    try {
+                        if (item.pid || item.pubid) {
+                            const detailResponse = await fetch(`${API_BASE}/show`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Accept': 'application/json',
+                                    ...authHeader
+                                },
+                                body: JSON.stringify({
+                                    pid: item.pid || item.pubid
+                                })
+                            });
+                            
+                            if (detailResponse.ok) {
+                                const detailResult = await safeJsonParse(detailResponse);
+                                if (detailResult.data && Array.isArray(detailResult.data)) {
+                                    total_belanja = detailResult.data.reduce((sum, detail) => {
+                                        return sum + (parseFloat(detail.total_harga) || 0);
+                                    }, 0);
+                                }
+                            }
+                        }
+                    } catch (error) {
+                        console.warn(`Failed to fetch details for ${item.nota}:`, error.message);
+                        total_belanja = 0;
+                    }
+
+                    return {
+                        ...baseData,
+                        total_belanja
+                    };
                 }));
                 
-                console.log('Validated pembelian data:', validatedData.slice(0, 2));
+                console.log('Validated pembelian data with calculated total_belanja:', validatedData.slice(0, 2));
                 setPembelian(validatedData);
             } else {
                 console.warn('No pembelian data received from API');
@@ -134,7 +202,7 @@ const usePembelianHO = () => {
         }
     }, [getAuthHeader, searchTerm]);
 
-    // Create pembelian - special handling for empty database bootstrap
+    // Create pembelian - handle header + details array format
     const createPembelian = useCallback(async (pembelianData) => {
         setLoading(true);
         setError(null);
@@ -145,50 +213,41 @@ const usePembelianHO = () => {
                 throw new Error('Token authentication tidak ditemukan. Silakan login ulang.');
             }
             
-            // Convert string ID to integer for backend validation
+            // Backend tetap mengharapkan id_supplier, jadi kirim PID sebagai id_supplier
+            const officeIdParsed = parseInt(pembelianData.idOffice);
+            
             const headerData = {
-                id_office: parseInt(pembelianData.idOffice),
+                id_office: !isNaN(officeIdParsed) ? officeIdParsed : 1,
                 nota: pembelianData.nota,
-                id_supplier: parseInt(pembelianData.idSupplier),
+                id_supplier: pembelianData.idSupplier, // Kirim PID sebagai id_supplier
                 tgl_masuk: pembelianData.tglMasuk,
                 nama_supir: pembelianData.namaSupir,
                 plat_nomor: pembelianData.platNomor,
-                jumlah: parseInt(pembelianData.jumlah)
+                jumlah: parseInt(pembelianData.jumlah) || 0
             };
 
-            // For empty database, we need to create a complete record with valid detail
-            // Since we can't create header-only due to backend validation, we'll create
-            // a record with a self-referencing approach by creating both simultaneously
-            
-            // Strategy: Create with placeholder id_pembelian that backend will replace
-            // The backend should handle this by:
-            // 1. Creating header first and getting its ID
-            // 2. Using that ID for the detail record
-            
-            const detailData = {
-                // Use a placeholder - backend should replace this with actual header ID
-                id_pembelian: 0, // Placeholder that backend will replace
-                id_office: parseInt(pembelianData.idOffice),
-                eartag: `START-${Date.now()}`, // First eartag for bootstrap
-                code_eartag: `BOOTSTRAP-${Date.now()}`, // Bootstrap identifier
-                id_klasifikasi_hewan: 1, // Default classification (should exist in sys_ms_klasifikasi_hewan)
-                harga: 1000, // Sample price
-                biaya_truck: 100, // Sample truck cost
-                berat: 100, // Sample weight (100kg)
-                hpp: 1100, // harga + biaya_truck
-                total_harga: 1100 // Same as hpp
+            // Validate required fields before sending
+            if (!headerData.id_supplier) {
+                throw new Error('Supplier harus dipilih sebelum menyimpan data');
+            }
+
+            console.log('🔧 DEBUG: Create header data:', headerData);
+            console.log('🔧 DEBUG: Supplier PID sebagai id_supplier:', pembelianData.idSupplier);
+
+            // Backend expects header + details array format
+            const requestData = {
+                ...headerData,
+                details: pembelianData.details || [] // Details array from form
             };
             
             const response = await fetch(`${API_BASE}/store`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Accept': 'application/json',
                     ...authHeader
                 },
-                body: JSON.stringify({
-                    ...headerData,
-                    ...detailData
-                })
+                body: JSON.stringify(requestData)
             });
             
             if (!response.ok) {
@@ -209,7 +268,7 @@ const usePembelianHO = () => {
                 throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
             }
             
-            const result = await response.json();
+            const result = await safeJsonParse(response);
             await fetchPembelian(1, 1000); // Refresh data
             
             return {
@@ -238,22 +297,45 @@ const usePembelianHO = () => {
                 throw new Error('Token authentication tidak ditemukan. Silakan login ulang.');
             }
             
-            // Prepare header update data
+            // Backend tetap mengharapkan id_supplier, jadi kirim PID sebagai id_supplier
+            const officeIdParsed = parseInt(pembelianData.idOffice);
+            
             const updateData = {
                 pid: pubid,
-                id_office: parseInt(pembelianData.idOffice),
+                id_office: !isNaN(officeIdParsed) ? officeIdParsed : 1,
                 nota: pembelianData.nota,
-                id_supplier: parseInt(pembelianData.idSupplier),
+                id_supplier: pembelianData.idSupplier, // Kirim PID sebagai id_supplier
                 tgl_masuk: pembelianData.tglMasuk,
                 nama_supir: pembelianData.namaSupir,
                 plat_nomor: pembelianData.platNomor,
-                jumlah: parseInt(pembelianData.jumlah)
+                jumlah: parseInt(pembelianData.jumlah) || 0
             };
+
+            // Validate required fields before sending
+            if (!updateData.id_supplier) {
+                throw new Error('Supplier harus dipilih sebelum menyimpan data');
+            }
+
+            // Log the data being sent for debugging
+            console.log('🔧 DEBUG: Update data being sent:', updateData);
+            console.log('🔧 DEBUG: Supplier PID sebagai id_supplier:', pembelianData.idSupplier);
             
+            console.log('🚀 DEBUG: Making UPDATE request:', {
+                url: `${API_BASE}/update`,
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    ...authHeader
+                },
+                bodyData: updateData
+            });
+
             const response = await fetch(`${API_BASE}/update`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Accept': 'application/json',
                     ...authHeader
                 },
                 body: JSON.stringify(updateData)
@@ -262,10 +344,24 @@ const usePembelianHO = () => {
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error('Backend error response:', errorText);
-                throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+                
+                // Try to parse the error response as JSON for better error messages
+                try {
+                    const errorJson = JSON.parse(errorText);
+                    if (errorJson.data && typeof errorJson.data === 'object') {
+                        // Format validation errors
+                        const validationErrors = Object.entries(errorJson.data)
+                            .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
+                            .join('; ');
+                        throw new Error(`Validation Error: ${validationErrors}`);
+                    }
+                    throw new Error(errorJson.message || `HTTP error! status: ${response.status}`);
+                } catch (parseError) {
+                    throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+                }
             }
             
-            const result = await response.json();
+            const result = await safeJsonParse(response);
             await fetchPembelian(1, 1000); // Refresh data
             
             return {
@@ -298,6 +394,7 @@ const usePembelianHO = () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Accept': 'application/json',
                     ...authHeader
                 },
                 body: JSON.stringify({
@@ -309,7 +406,15 @@ const usePembelianHO = () => {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             
-            const result = await response.json();
+            // Check if response is actually JSON before parsing
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                const responseText = await response.text();
+                console.error('Expected JSON but received:', contentType, responseText.substring(0, 200));
+                throw new Error(`Server returned ${contentType || 'unknown content type'} instead of JSON. Response: ${responseText.substring(0, 200)}...`);
+            }
+            
+            const result = await safeJsonParse(response);
             await fetchPembelian(1, 1000); // Refresh data
             
             return {
@@ -341,10 +446,11 @@ const usePembelianHO = () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Accept': 'application/json',
                     ...authHeader
                 },
                 body: JSON.stringify({
-                    pid: pubid
+                    pid: pubid // This should be the encrypted PID from backend
                 })
             });
             
@@ -354,7 +460,7 @@ const usePembelianHO = () => {
                 throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
             }
             
-            const result = await response.json();
+            const result = await safeJsonParse(response);
             console.log('Detail response:', result);
             
             return {
@@ -388,6 +494,7 @@ const usePembelianHO = () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Accept': 'application/json',
                     ...authHeader
                 },
                 body: JSON.stringify({
@@ -411,7 +518,7 @@ const usePembelianHO = () => {
                 throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
             }
             
-            const result = await response.json();
+            const result = await safeJsonParse(response);
             
             return {
                 success: result.status === 'ok' || result.success === true,
@@ -443,6 +550,7 @@ const usePembelianHO = () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Accept': 'application/json',
                     ...authHeader
                 },
                 body: JSON.stringify({
@@ -467,7 +575,7 @@ const usePembelianHO = () => {
                 throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
             }
             
-            const result = await response.json();
+            const result = await safeJsonParse(response);
             
             return {
                 success: result.status === 'ok' || result.success === true,
@@ -499,6 +607,7 @@ const usePembelianHO = () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Accept': 'application/json',
                     ...authHeader
                 },
                 body: JSON.stringify({
@@ -512,7 +621,7 @@ const usePembelianHO = () => {
                 throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
             }
             
-            const result = await response.json();
+            const result = await safeJsonParse(response);
             
             return {
                 success: result.status === 'ok' || result.success === true,

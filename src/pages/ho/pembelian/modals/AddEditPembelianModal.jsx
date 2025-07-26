@@ -1,7 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Building2, User, Calendar, Truck, Hash, Users } from 'lucide-react';
+import { X, Save, Building2, User, Calendar, Truck, Hash, Users, AlertCircle } from 'lucide-react';
+import useParameterSelect from '../hooks/useParameterSelect';
 
 const AddEditPembelianModal = ({ isOpen, onClose, onSave, editData = null, loading = false }) => {
+    // Use centralized parameter hook
+    const {
+        supplierOptions,
+        officeOptions,
+        loading: parameterLoading,
+        error: parameterError
+    } = useParameterSelect();
     const [formData, setFormData] = useState({
         idOffice: '',
         nota: '',
@@ -125,6 +133,21 @@ const AddEditPembelianModal = ({ isOpen, onClose, onSave, editData = null, loadi
 
                 {/* Form */}
                 <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                    {/* Parameter Loading/Error State */}
+                    {parameterLoading && (
+                        <div className="bg-blue-50 p-4 rounded-lg flex items-center gap-2">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                            <span className="text-blue-700 text-sm">Memuat data parameter...</span>
+                        </div>
+                    )}
+                    
+                    {parameterError && (
+                        <div className="bg-red-50 p-4 rounded-lg flex items-center gap-2">
+                            <AlertCircle className="w-4 h-4 text-red-600" />
+                            <span className="text-red-700 text-sm">Error: {parameterError}</span>
+                        </div>
+                    )}
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Office */}
                         <div>
@@ -139,13 +162,14 @@ const AddEditPembelianModal = ({ isOpen, onClose, onSave, editData = null, loadi
                                 className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 ${
                                     errors.idOffice ? 'border-red-500' : 'border-gray-300'
                                 }`}
-                                disabled={loading}
+                                disabled={loading || parameterLoading}
                             >
                                 <option value="">Pilih Office</option>
-                                {/* TODO: Integrate with master office data */}
-                                <option value="1">Head Office</option>
-                                <option value="2">Cabang Jakarta</option>
-                                <option value="3">Cabang Surabaya</option>
+                                {officeOptions.map(option => (
+                                    <option key={option.value} value={option.value}>
+                                        {option.label}
+                                    </option>
+                                ))}
                             </select>
                             {errors.idOffice && (
                                 <p className="text-red-500 text-sm mt-1">{errors.idOffice}</p>
@@ -165,13 +189,14 @@ const AddEditPembelianModal = ({ isOpen, onClose, onSave, editData = null, loadi
                                 className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 ${
                                     errors.idSupplier ? 'border-red-500' : 'border-gray-300'
                                 }`}
-                                disabled={loading}
+                                disabled={loading || parameterLoading}
                             >
                                 <option value="">Pilih Supplier</option>
-                                {/* TODO: Integrate with master supplier data */}
-                                <option value="1">PT. Sumber Ternak</option>
-                                <option value="2">CV. Maju Jaya</option>
-                                <option value="3">UD. Berkah</option>
+                                {supplierOptions.map(option => (
+                                    <option key={option.value} value={option.value}>
+                                        {option.label}
+                                    </option>
+                                ))}
                             </select>
                             {errors.idSupplier && (
                                 <p className="text-red-500 text-sm mt-1">{errors.idSupplier}</p>
@@ -289,9 +314,9 @@ const AddEditPembelianModal = ({ isOpen, onClose, onSave, editData = null, loadi
                     </div>
 
                     {/* Note */}
-                    <div className="bg-blue-50 p-4 rounded-lg">
-                        <p className="text-sm text-blue-700">
-                            <strong>Catatan:</strong> Form ini menyimpan data header pembelian. Data office dan supplier saat ini menggunakan dropdown sementara. Integrasi dengan master data akan dilakukan dalam fase selanjutnya.
+                    <div className="bg-green-50 p-4 rounded-lg">
+                        <p className="text-sm text-green-700">
+                            <strong>Info:</strong> Form ini menggunakan endpoint parameter terpusat untuk memuat data office dan supplier dari master data. Data dimuat secara otomatis dari backend.
                         </p>
                     </div>
 

@@ -40,9 +40,15 @@ const JenisHewanPage = () => {
     stats,
   } = useJenisHewan();
 
-  // Load data on component mount
+  // Load data on component mount only if authenticated
   useEffect(() => {
-    fetchJenisHewan();
+    const token = localStorage.getItem('token');
+    const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
+    const isTokenValid = token && token.trim() !== '' && token !== 'null' && token !== 'undefined';
+    
+    if (isAuthenticated && isTokenValid) {
+      fetchJenisHewan();
+    }
   }, [fetchJenisHewan]);
 
   // Event handlers

@@ -1,15 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Package, Hash, Weight, DollarSign, Truck } from 'lucide-react';
+import { X, Save, Package, Hash, Weight, DollarSign, Truck, AlertCircle } from 'lucide-react';
+import useParameterSelect from '../hooks/useParameterSelect';
 
-const AddEditDetailModal = ({ 
-    isOpen, 
-    onClose, 
-    onSave, 
-    editData = null, 
+const AddEditDetailModal = ({
+    isOpen,
+    onClose,
+    onSave,
+    editData = null,
     loading = false,
     pembelianHeaderId,
-    officeId 
+    officeId
 }) => {
+    // Use centralized parameter hook
+    const {
+        eartagOptions,
+        klasifikasiHewanOptions,
+        loading: parameterLoading,
+        error: parameterError
+    } = useParameterSelect();
     const [formData, setFormData] = useState({
         eartag: '',
         codeEartag: '',
@@ -152,6 +160,21 @@ const AddEditDetailModal = ({
 
                 {/* Form */}
                 <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                    {/* Parameter Loading/Error State */}
+                    {parameterLoading && (
+                        <div className="bg-blue-50 p-4 rounded-lg flex items-center gap-2">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                            <span className="text-blue-700 text-sm">Memuat data parameter...</span>
+                        </div>
+                    )}
+                    
+                    {parameterError && (
+                        <div className="bg-red-50 p-4 rounded-lg flex items-center gap-2">
+                            <AlertCircle className="w-4 h-4 text-red-600" />
+                            <span className="text-red-700 text-sm">Error: {parameterError}</span>
+                        </div>
+                    )}
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Eartag */}
                         <div>
@@ -159,17 +182,22 @@ const AddEditDetailModal = ({
                                 <Hash className="w-4 h-4 inline mr-1" />
                                 Eartag *
                             </label>
-                            <input
-                                type="text"
+                            <select
                                 name="eartag"
                                 value={formData.eartag}
                                 onChange={handleInputChange}
                                 className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
                                     errors.eartag ? 'border-red-500' : 'border-gray-300'
                                 }`}
-                                placeholder="Masukkan eartag"
-                                disabled={loading}
-                            />
+                                disabled={loading || parameterLoading}
+                            >
+                                <option value="">Pilih Eartag</option>
+                                {eartagOptions.map(option => (
+                                    <option key={option.value} value={option.value}>
+                                        {option.label}
+                                    </option>
+                                ))}
+                            </select>
                             {errors.eartag && (
                                 <p className="text-red-500 text-sm mt-1">{errors.eartag}</p>
                             )}
@@ -210,14 +238,14 @@ const AddEditDetailModal = ({
                                 className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
                                     errors.idKlasifikasiHewan ? 'border-red-500' : 'border-gray-300'
                                 }`}
-                                disabled={loading}
+                                disabled={loading || parameterLoading}
                             >
                                 <option value="">Pilih Klasifikasi</option>
-                                {/* TODO: Integrate with master klasifikasi data */}
-                                <option value="1">Sapi Jantan</option>
-                                <option value="2">Sapi Betina</option>
-                                <option value="3">Kerbau Jantan</option>
-                                <option value="4">Kerbau Betina</option>
+                                {klasifikasiHewanOptions.map(option => (
+                                    <option key={option.value} value={option.value}>
+                                        {option.label}
+                                    </option>
+                                ))}
                             </select>
                             {errors.idKlasifikasiHewan && (
                                 <p className="text-red-500 text-sm mt-1">{errors.idKlasifikasiHewan}</p>
@@ -324,10 +352,10 @@ const AddEditDetailModal = ({
                     </div>
 
                     {/* Note */}
-                    <div className="bg-blue-50 p-4 rounded-lg">
-                        <p className="text-sm text-blue-700">
-                            <strong>Catatan:</strong> HPP dan Total Harga akan dihitung otomatis berdasarkan harga dan biaya truck. 
-                            Pastikan data yang diinput sudah benar sebelum menyimpan.
+                    <div className="bg-green-50 p-4 rounded-lg">
+                        <p className="text-sm text-green-700">
+                            <strong>Info:</strong> Data Eartag dan Klasifikasi Hewan dimuat dari master data melalui endpoint parameter terpusat.
+                            HPP dan Total Harga akan dihitung otomatis berdasarkan harga dan biaya truck.
                         </p>
                     </div>
 

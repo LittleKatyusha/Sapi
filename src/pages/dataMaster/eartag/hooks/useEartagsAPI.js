@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback } from 'react';
 import { useAuthSecure } from '../../../../hooks/useAuthSecure';
 
 const useEartagsAPI = () => {
-    const { getAuthHeader } = useAuthSecure();
+    const { getAuthHeader, loading: authLoading } = useAuthSecure();
     const [eartags, setEartags] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -59,14 +59,25 @@ const useEartagsAPI = () => {
 
     // Fetch data dari API dengan DataTables server-side pagination format
     const fetchEartags = useCallback(async (page = 1, perPage = 100) => {
+        console.log('useEartagsAPI: Loading data from backend (no auth check)...');
+        
+        // Wait for auth to finish loading
+        if (authLoading) {
+            console.log('useEartagsAPI: Waiting for authentication to load...');
+            return;
+        }
+        
         setLoading(true);
         setError(null);
         
         try {
             const authHeader = getAuthHeader();
             if (!authHeader.Authorization) {
+                console.log('Skipping API call - user not authenticated');
                 throw new Error('Token authentication tidak ditemukan. Silakan login ulang.');
             }
+            
+            console.log('useEartagsAPI: Making API call to backend with authentication...');
             
             // DataTables pagination parameters
             const start = (page - 1) * perPage; // Calculate offset
@@ -227,7 +238,7 @@ const useEartagsAPI = () => {
         } finally {
             setLoading(false);
         }
-    }, [getAuthHeader, mapStatusToText, mapUsedStatusToText]);
+    }, [getAuthHeader, mapStatusToText, mapUsedStatusToText, authLoading]);
 
     // Create eartag
     const createEartag = useCallback(async (eartagData) => {

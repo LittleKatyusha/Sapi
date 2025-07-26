@@ -9,6 +9,7 @@ import {
   generateDeviceFingerprint,
   SECURITY_CONFIG
 } from '../utils/security';
+import { debugAuth, validateToken, checkCurrentAuthState, clearAuthData } from '../utils/tokenValidator';
 
 export const useAuthSecure = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -142,7 +143,7 @@ export const useAuthSecure = () => {
     });
   }, [navigate, clearAuthData]);
 
-  // Enhanced login function dengan security features
+  // Enhanced login function - with required API-KEY
   const login = useCallback(async (credentials) => {
     const userIdentifier = credentials.email;
     
@@ -173,10 +174,12 @@ export const useAuthSecure = () => {
         deviceFingerprint: deviceFingerprint.current.substring(0, 20) + '...'
       });
 
+      // Login request with required API-KEY (use lowercase since browser converts it)
       const response = await fetch('https://puput-api.ternasys.com/api/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'api-key': '92b1d1ee96659e5b9630a51808b9372c', // Use lowercase to match what browser sends
           ...getSecurityHeaders()
         },
         body: JSON.stringify({
@@ -258,6 +261,7 @@ export const useAuthSecure = () => {
         const headers = {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
+          'api-key': '92b1d1ee96659e5b9630a51808b9372c', // Use lowercase
           ...getSecurityHeaders()
         };
 
@@ -296,6 +300,7 @@ export const useAuthSecure = () => {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
+          'api-key': '92b1d1ee96659e5b9630a51808b9372c', // Use lowercase
           ...getSecurityHeaders()
         },
         body: JSON.stringify({
@@ -326,7 +331,7 @@ export const useAuthSecure = () => {
     }
   }, [token, isAuthenticated, handleAutoLogout]);
 
-  // Get authorization header dengan security headers
+  // Get authorization header with API key
   const getAuthHeader = useCallback(() => {
     // Ambil token langsung dari secureStorage agar selalu up-to-date
     const currentToken = secureStorage.getItem('token');
@@ -334,6 +339,7 @@ export const useAuthSecure = () => {
     
     return { 
       'Authorization': `Bearer ${currentToken}`,
+      'api-key': '92b1d1ee96659e5b9630a51808b9372c', // Use lowercase
       ...getSecurityHeaders()
     };
   }, []);

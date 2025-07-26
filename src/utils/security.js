@@ -1,4 +1,3 @@
-
 // Security constants
 export const SECURITY_CONFIG = {
   
@@ -332,9 +331,25 @@ export const generateDeviceFingerprint = () => {
 // === SECURITY HEADERS ===
 
 /**
- * Generate security headers untuk API requests
+ * Generate security headers untuk API requests - CORS-friendly version
  */
 export const getSecurityHeaders = () => {
+  // TEMPORARY: Remove custom headers that cause CORS preflight issues
+  // Keep only standard headers that don't trigger preflight
+  return {
+    'X-Requested-With': 'XMLHttpRequest'
+    // Commented out headers that cause CORS issues:
+    // 'X-Device-Fingerprint': deviceFingerprint,
+    // 'X-Timestamp': timestamp.toString(),
+    // 'X-Nonce': nonce,
+    // 'X-Frame-Options': 'DENY',              // These need to be set by server
+    // 'X-Content-Type-Options': 'nosniff',    // These need to be set by server
+    // 'X-XSS-Protection': '1; mode=block'     // These need to be set by server
+  };
+};
+
+// Keep the original function available for when CORS is fixed
+export const getFullSecurityHeaders = () => {
   const deviceFingerprint = generateDeviceFingerprint();
   const timestamp = Date.now();
   const nonce = Math.random().toString(36).substring(2, 15);
@@ -396,33 +411,108 @@ export const securityAudit = {
 
 /**
  * Set Content Security Policy and other security headers
- * Updated untuk mendukung Google Fonts dan Cloudflare Turnstile
+ * Updated untuk mendukung localhost development
  */
 export const setSecurityHeaders = () => {
-  // Hapus CSP meta tag yang lama jika ada
-  const existingCSP = document.querySelector('meta[http-equiv="Content-Security-Policy"]');
-  if (existingCSP) {
-    existingCSP.remove();
-  }
-
-  // CSP Meta tag dengan dukungan Google Fonts
-  const cspMeta = document.createElement('meta');
-  cspMeta.httpEquiv = 'Content-Security-Policy';
-  cspMeta.content = [
-    "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com",
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-    "img-src 'self' data: https: blob:",
-    "font-src 'self' data: https://fonts.gstatic.com",
-    "connect-src 'self' https://puput-api.ternasys.com https://challenges.cloudflare.com",
-    "frame-src https://challenges.cloudflare.com",
-    "worker-src 'self' blob:",
-    "object-src 'none'",
-    "base-uri 'self'",
-    "form-action 'self'"
-  ].join('; ');
-  
-  document.head.appendChild(cspMeta);
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    const disableCSP = process.env.REACT_APP_DISABLE_CSP === 'true';
+    const isLocalhost = process.env.REACT_APP_LOCALHOST_DEVELOPMENT === 'true';
+    
+    if (isDevelopment || disableCSP || isLocalhost) {
+        // COMPLETELY DISABLE CSP FOR DEVELOPMENT
+        console.log('🔓 Development mode detected - completely disabling CSP...');
+        
+        // Remove all existing CSP meta tags more aggressively
+        const removeAllCSP = () => {
+            // Remove by exact http-equiv matches
+            document.querySelectorAll('meta[http-equiv="Content-Security-Policy"]').forEach(tag => {
+                console.log('Removing CSP tag (exact):', tag);
+                tag.remove();
+            });
+            
+            // Remove by case-insensitive matches
+            document.querySelectorAll('meta[http-equiv*="content-security-policy" i]').forEach(tag => {
+                console.log('Removing CSP tag (case-insensitive):', tag);
+                tag.remove();
+            });
+            
+            // Remove by attribute check
+            document.querySelectorAll('meta').forEach(tag => {
+                const httpEquiv = tag.getAttribute('http-equiv');
+                if (httpEquiv && httpEquiv.toLowerCase().includes('content-security-policy')) {
+                    console.log('Removing CSP meta tag (attribute check):', tag);
+                    tag.remove();
+                }
+            });
+        };
+        
+        // Remove CSP immediately and repeatedly
+        removeAllCSP();
+        setTimeout(removeAllCSP, 100);
+        setTimeout(removeAllCSP, 500);
+        setTimeout(removeAllCSP, 1000);
+        
+        // Override any CSP via DOM mutation observer
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                mutation.addedNodes.forEach((node) => {
+                    if (node.nodeType === 1 && node.tagName === 'META') {
+                        const httpEquiv = node.getAttribute('http-equiv');
+                        if (httpEquiv && httpEquiv.toLowerCase().includes('content-security-policy')) {
+                            console.log('🚫 Blocking new CSP tag in development:', node);
+                            node.remove();
+                        }
+                    }
+                });
+            });
+        });
+        
+        observer.observe(document.head, { childList: true, subtree: true });
+        
+        // Don't create any CSP in development
+        console.log('🔓 ALL CSP completely disabled for development - localhost:8000 connections allowed');
+        
+        // Set minimal security headers for development
+        const devHeaders = [
+            { name: 'X-Content-Type-Options', content: 'nosniff' }  // Keep this for basic security
+        ];
+        
+        devHeaders.forEach(header => {
+            const existing = document.querySelector(`meta[http-equiv="${header.name}"]`);
+            if (!existing) {
+                const meta = document.createElement('meta');
+                meta.httpEquiv = header.name;
+                meta.content = header.content;
+                document.head.appendChild(meta);
+            }
+        });
+        
+        return; // Exit early for development
+    }
+    
+    // Production CSP setup (only if not in development)
+    console.log('🔒 Production mode - setting up CSP...');
+    
+    // Remove any existing CSP first
+    document.querySelectorAll('meta[http-equiv*="Content-Security-Policy" i]').forEach(tag => {
+        tag.remove();
+    });
+    
+    // Set production CSP
+    const cspMeta = document.createElement('meta');
+    cspMeta.httpEquiv = 'Content-Security-Policy';
+    cspMeta.content = [
+        "default-src 'self'",
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com",
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+        "img-src 'self' data: https: blob:",
+        "font-src 'self' data: https://fonts.gstatic.com",
+        "connect-src 'self' https://puput-api.ternasys.com https://challenges.cloudflare.com",
+        "frame-src https://challenges.cloudflare.com",
+        "worker-src 'self' blob:"
+    ].join('; ');
+    
+    document.head.appendChild(cspMeta);
   
   // Set security headers yang bisa diset via meta tags
   // Note: X-Frame-Options CANNOT be set via meta tag and must be set as HTTP header
@@ -463,13 +553,25 @@ export const setSecurityHeaders = () => {
     document.head.appendChild(permissionsPolicyMeta);
   }
 
-  // Disable right-click untuk development (opsional)
-  if (process.env.REACT_APP_DISABLE_RIGHT_CLICK === 'true') {
+  // Right-click is now enabled by default for both development and production
+  // This allows users to access browser context menu for copy, paste, inspect, etc.
+  // Security Note: If you need to disable right-click for specific sensitive areas,
+  // apply the event listener directly to those specific elements instead of globally
+  
+  // Keep right-click enabled unless explicitly disabled via environment variable
+  // This provides better user experience and developer tools access
+  if (process.env.REACT_APP_FORCE_DISABLE_RIGHT_CLICK === 'true') {
     document.addEventListener('contextmenu', (e) => e.preventDefault());
   }
 
-  // Disable text selection untuk production (opsional)
-  if (process.env.REACT_APP_ENABLE_TEXT_SELECTION === 'false') {
+  // Text selection is now enabled by default for both development and production
+  // This allows users to select and copy text from tables and other content
+  // Security Note: If you need to disable text selection for specific sensitive areas,
+  // apply the CSS directly to those specific elements instead of globally
+  
+  // Keep text selection enabled unless explicitly disabled via environment variable
+  // This provides better user experience for data tables and content interaction
+  if (process.env.REACT_APP_FORCE_DISABLE_TEXT_SELECTION === 'true') {
     document.body.style.userSelect = 'none';
     document.body.style.webkitUserSelect = 'none';
     document.body.style.mozUserSelect = 'none';
@@ -563,6 +665,7 @@ const securityUtils = {
   tokenSecurity,
   generateDeviceFingerprint,
   getSecurityHeaders,
+  getFullSecurityHeaders,
   securityAudit,
   setSecurityHeaders
 };

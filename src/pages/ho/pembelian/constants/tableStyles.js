@@ -7,9 +7,7 @@ const customTableStyles = {
             width: '100%',
             maxWidth: '100%',
             overflowX: 'auto',
-            height: '100%',
-            display: 'flex',
-            flexDirection: 'column',
+            tableLayout: 'auto',
         }
     },
     headRow: {
@@ -17,8 +15,7 @@ const customTableStyles = {
             background: 'linear-gradient(90deg, #f8fafc 0%, #e0e7ff 100%)',
             borderRadius: '18px 18px 0 0',
             borderBottom: '2px solid #e2e8f0',
-            minHeight: '62px',
-            flex: '0 0 auto',
+            minHeight: '56px',
         }
     },
     headCells: {
@@ -26,52 +23,64 @@ const customTableStyles = {
             fontSize: '14px',
             fontWeight: '700',
             color: '#334155',
-            paddingLeft: '12px',
+            paddingLeft: '16px',
+            paddingRight: '16px',
             letterSpacing: '0.03em',
             background: 'transparent',
             borderRight: '1px solid #e2e8f0',
+            whiteSpace: 'nowrap',
             overflow: 'visible',
-            whiteSpace: 'normal',
-            wordBreak: 'break-word',
+            textOverflow: 'unset',
             '&:first-of-type': {
                 position: 'sticky',
                 left: 0,
-                backgroundColor: '#f8fafc',
+                backgroundColor: 'linear-gradient(90deg, #f8fafc 0%, #e0e7ff 100%)',
                 zIndex: 10,
-                borderRight: '2px solid #e2e8f0',
+                textAlign: 'center',
                 minWidth: '60px',
                 maxWidth: '60px',
-                textAlign: 'center'
+                borderRight: '2px solid #e2e8f0',
             }
         }
     },
     rows: {
         style: {
-            minHeight: '68px',
+            minHeight: '64px',
             borderBottom: '1px solid #f1f5f9',
-            transition: 'all 0.18s cubic-bezier(.4,2,.3,1)',
-            overflow: 'visible',
-            background: 'linear-gradient(90deg, #fff 0%, #f8fafc 100%)',
-            flex: '1 0 auto',
-            '&.active-row, &.active-row:hover': {
-                backgroundColor: '#e0e7ff',
-            },
+            transition: 'all 0.2s ease',
             '&:hover': {
-                backgroundColor: 'inherit',
-                transform: 'none',
-                boxShadow: 'none',
+                backgroundColor: '#f8fafc',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
             }
         }
     },
     cells: {
         style: {
-            paddingLeft: '12px',
+            paddingLeft: '16px',
+            paddingRight: '16px',
             fontSize: '14px',
             color: '#475569',
-            overflow: 'visible',
             borderRight: '1px solid #f1f5f9',
-            whiteSpace: 'normal',
-            wordBreak: 'break-word',
+            whiteSpace: 'nowrap',
+            overflow: 'visible',
+            textOverflow: 'unset',
+            '&:first-of-type': {
+                position: 'sticky',
+                left: 0,
+                backgroundColor: '#fff',
+                zIndex: 5,
+                textAlign: 'center',
+                fontWeight: '600',
+                borderRight: '2px solid #f1f5f9',
+            }
+        }
+    },
+    pagination: {
+        style: {
+            borderTop: '1px solid #e2e8f0',
+            borderRadius: '0 0 18px 18px',
+            padding: '12px 16px',
+            backgroundColor: '#f8fafc',
         }
     }
 };

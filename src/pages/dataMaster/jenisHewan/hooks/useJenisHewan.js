@@ -47,6 +47,44 @@ const useJenisHewan = () => {
     setError(null);
     
     try {
+      // Check authentication status first
+      const token = localStorage.getItem('token');
+      const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
+      const isTokenValid = token && token.trim() !== '' && token !== 'null' && token !== 'undefined';
+      
+      if (!isAuthenticated || !isTokenValid) {
+        console.log('Skipping API call - user not authenticated');
+        // Use fallback data directly
+        setJenisHewan([
+          {
+            pubid: "jh-001-uuid",
+            encryptedPid: "jh-001-uuid",
+            name: "Sapi",
+            description: "Jenis hewan ternak sapi untuk produksi daging dan susu",
+            order_no: 1,
+            status: 1
+          },
+          {
+            pubid: "jh-002-uuid",
+            encryptedPid: "jh-002-uuid",
+            name: "Domba",
+            description: "Jenis hewan ternak domba untuk produksi wol dan daging",
+            order_no: 2,
+            status: 1
+          },
+          {
+            pubid: "jh-003-uuid",
+            encryptedPid: "jh-003-uuid",
+            name: "Kambing",
+            description: "Jenis hewan ternak kambing untuk produksi susu dan daging",
+            order_no: 3,
+            status: 1
+          }
+        ]);
+        setLoading(false);
+        return;
+      }
+
       const authHeader = getAuthHeader();
       if (!authHeader.Authorization) {
         throw new Error('Token authentication tidak ditemukan. Silakan login ulang.');
