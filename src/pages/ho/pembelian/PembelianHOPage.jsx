@@ -5,6 +5,8 @@ import { PlusCircle, Search, Filter, ShoppingCart, Building2, Truck, User } from
 
 import usePembelianHO from './hooks/usePembelianHO';
 import ActionButton from './components/ActionButton';
+import PembelianCard from './components/PembelianCard';
+import CustomPagination from './components/CustomPagination';
 import customTableStyles from './constants/tableStyles';
 
 // Import modals
@@ -26,6 +28,7 @@ const PembelianHOPage = () => {
         filterStatus,
         setFilterStatus,
         stats,
+        serverPagination,
         fetchPembelian,
         createPembelian,
         updatePembelian,
@@ -88,6 +91,15 @@ const PembelianHOPage = () => {
             });
         }
     }, [deletePembelian]);
+
+    // Pagination handlers for mobile cards - using server-side pagination
+    const handlePageChange = (page) => {
+        fetchPembelian(page, serverPagination.perPage);
+    };
+
+    const handleItemsPerPageChange = (newItemsPerPage) => {
+        fetchPembelian(1, newItemsPerPage);
+    };
 
     // Auto-hide notification
     useEffect(() => {
@@ -334,7 +346,8 @@ const PembelianHOPage = () => {
                     </div>
                 </div>
 
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 relative">
+                {/* Desktop Table View - Hidden on mobile */}
+                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 relative hidden md:block">
                     <div className="w-full">
                         <DataTable
                             columns={columns}
@@ -348,7 +361,7 @@ const PembelianHOPage = () => {
                                     ...customTableStyles.table,
                                     style: {
                                         ...customTableStyles.table.style,
-                                        minWidth: '800px',
+                                        minWidth: '500px',
                                         width: '100%',
                                         tableLayout: 'fixed',
                                         wordWrap: 'break-word',
@@ -439,6 +452,61 @@ const PembelianHOPage = () => {
                             pointerOnHover
                         />
                     </div>
+                </div>
+
+                {/* Mobile Card View - Visible on mobile only */}
+                <div className="md:hidden">
+                    {loading ? (
+                        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+                            <div className="text-center">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto"></div>
+                                <p className="text-gray-500 text-sm mt-2">Memuat data...</p>
+                            </div>
+                        </div>
+                    ) : error ? (
+                        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+                            <div className="text-center text-red-600">
+                                <p className="text-lg font-semibold">Error</p>
+                                <p className="text-sm">{error}</p>
+                            </div>
+                        </div>
+                    ) : filteredData.length === 0 ? (
+                        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+                            <div className="text-center">
+                                <p className="text-gray-500 text-lg">Tidak ada data pembelian ditemukan</p>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            {/* Cards Container */}
+                            <div className="space-y-3">
+                                {filteredData.map((item, index) => (
+                                    <PembelianCard
+                                        key={item.pubid || item.id}
+                                        data={item}
+                                        index={(serverPagination.currentPage - 1) * serverPagination.perPage + index}
+                                        onEdit={handleEdit}
+                                        onDelete={handleDelete}
+                                        onDetail={handleDetail}
+                                    />
+                                ))}
+                            </div>
+
+                            {/* Custom Pagination for Mobile - Server-side */}
+                            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+                                <CustomPagination
+                                    currentPage={serverPagination.currentPage}
+                                    totalPages={serverPagination.totalPages}
+                                    totalItems={serverPagination.totalItems}
+                                    itemsPerPage={serverPagination.perPage}
+                                    onPageChange={handlePageChange}
+                                    onItemsPerPageChange={handleItemsPerPageChange}
+                                    itemsPerPageOptions={[5, 10, 15, 20, 50, 100]}
+                                    loading={loading}
+                                />
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 
