@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, Package, Hash, Weight, DollarSign, Truck, AlertCircle } from 'lucide-react';
 import useParameterSelect from '../hooks/useParameterSelect';
+import SearchableSelect from '../../../../components/shared/SearchableSelect';
 
 const AddEditDetailModal = ({
     isOpen,
@@ -65,10 +66,11 @@ const AddEditDetailModal = ({
     useEffect(() => {
         const harga = parseFloat(formData.harga) || 0;
         const biayaTruck = parseFloat(formData.biayaTruck) || 0;
+        const berat = parseFloat(formData.berat) || 0;
         
         if (harga > 0) {
             const calculatedHpp = harga + biayaTruck;
-            const calculatedTotal = calculatedHpp;
+            const calculatedTotal = calculatedHpp * berat;
             
             setFormData(prev => ({
                 ...prev,
@@ -76,7 +78,7 @@ const AddEditDetailModal = ({
                 totalHarga: calculatedTotal.toString()
             }));
         }
-    }, [formData.harga, formData.biayaTruck]);
+    }, [formData.harga, formData.biayaTruck, formData.berat]);
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -141,7 +143,7 @@ const AddEditDetailModal = ({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[9999]">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-gray-200">
@@ -182,22 +184,16 @@ const AddEditDetailModal = ({
                                 <Hash className="w-4 h-4 inline mr-1" />
                                 Eartag *
                             </label>
-                            <select
-                                name="eartag"
+                            <SearchableSelect
+                                options={eartagOptions}
                                 value={formData.eartag}
-                                onChange={handleInputChange}
-                                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
-                                    errors.eartag ? 'border-red-500' : 'border-gray-300'
-                                }`}
-                                disabled={loading || parameterLoading}
-                            >
-                                <option value="">Pilih Eartag</option>
-                                {eartagOptions.map(option => (
-                                    <option key={option.value} value={option.value}>
-                                        {option.label}
-                                    </option>
-                                ))}
-                            </select>
+                                onChange={(value) => setFormData(prev => ({ ...prev, eartag: value }))}
+                                placeholder="Pilih Eartag"
+                                isLoading={parameterLoading}
+                                isDisabled={loading || parameterLoading}
+                                isClearable={true}
+                                className={errors.eartag ? 'border-red-500' : ''}
+                            />
                             {errors.eartag && (
                                 <p className="text-red-500 text-sm mt-1">{errors.eartag}</p>
                             )}
@@ -231,22 +227,16 @@ const AddEditDetailModal = ({
                                 <Package className="w-4 h-4 inline mr-1" />
                                 Klasifikasi Hewan *
                             </label>
-                            <select
-                                name="idKlasifikasiHewan"
+                            <SearchableSelect
+                                options={klasifikasiHewanOptions}
                                 value={formData.idKlasifikasiHewan}
-                                onChange={handleInputChange}
-                                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
-                                    errors.idKlasifikasiHewan ? 'border-red-500' : 'border-gray-300'
-                                }`}
-                                disabled={loading || parameterLoading}
-                            >
-                                <option value="">Pilih Klasifikasi</option>
-                                {klasifikasiHewanOptions.map(option => (
-                                    <option key={option.value} value={option.value}>
-                                        {option.label}
-                                    </option>
-                                ))}
-                            </select>
+                                onChange={(value) => setFormData(prev => ({ ...prev, idKlasifikasiHewan: value }))}
+                                placeholder="Pilih Klasifikasi"
+                                isLoading={parameterLoading}
+                                isDisabled={loading || parameterLoading}
+                                isClearable={true}
+                                className={errors.idKlasifikasiHewan ? 'border-red-500' : ''}
+                            />
                             {errors.idKlasifikasiHewan && (
                                 <p className="text-red-500 text-sm mt-1">{errors.idKlasifikasiHewan}</p>
                             )}
@@ -347,7 +337,7 @@ const AddEditDetailModal = ({
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 font-bold"
                                 placeholder="Otomatis dihitung"
                             />
-                            <p className="text-xs text-gray-500 mt-1">Otomatis: sama dengan HPP</p>
+                            <p className="text-xs text-gray-500 mt-1">Otomatis: HPP × Berat</p>
                         </div>
                     </div>
 

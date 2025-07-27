@@ -1,8 +1,8 @@
-import React, { useRef, useLayoutEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Edit, Copy, Trash2 } from 'lucide-react';
+import { Eye, Edit, Copy, Trash2 } from 'lucide-react';
 
-const DetailActionMenu = ({ row, onEdit, onDelete, onClone, onClose, buttonRef }) => {
+const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef, showDistribusi = false }) => {
     const menuRef = useRef(null);
     const [menuStyle, setMenuStyle] = useState(null);
 
@@ -14,7 +14,7 @@ const DetailActionMenu = ({ row, onEdit, onDelete, onClone, onClose, buttonRef }
                     position: 'absolute',
                     left: btnRect.left + window.scrollX,
                     top: btnRect.bottom + window.scrollY + 8,
-                    zIndex: 1500
+                    zIndex: 9999
                 });
             }
         }
@@ -22,12 +22,8 @@ const DetailActionMenu = ({ row, onEdit, onDelete, onClone, onClose, buttonRef }
         window.addEventListener('scroll', updatePosition, true);
         window.addEventListener('resize', updatePosition);
         const handleClickOutside = (event) => {
-            if (
-                menuRef.current &&
-                !menuRef.current.contains(event.target) &&
-                buttonRef.current &&
-                !buttonRef.current.contains(event.target)
-            ) {
+            if (menuRef.current && !menuRef.current.contains(event.target) &&
+                buttonRef.current && !buttonRef.current.contains(event.target)) {
                 onClose();
             }
         };
@@ -40,42 +36,42 @@ const DetailActionMenu = ({ row, onEdit, onDelete, onClone, onClose, buttonRef }
     }, [onClose, buttonRef]);
 
     const actions = [
-        onEdit && {
-            label: 'Edit Detail',
+        {
+            label: 'Lihat Detail',
+            icon: Eye,
+            onClick: () => onDetail(row),
+            className: 'text-gray-700',
+            description: 'Informasi lengkap',
+            bg: 'bg-blue-100',
+            hoverBg: 'group-hover:bg-blue-200',
+            text: 'text-blue-600',
+        },
+        {
+            label: 'Edit Penjualan',
             icon: Edit,
             onClick: () => onEdit(row),
             className: 'text-gray-700',
-            description: 'Ubah data ternak',
+            description: 'Ubah informasi',
             bg: 'bg-amber-100',
             hoverBg: 'group-hover:bg-amber-200',
             text: 'text-amber-600',
         },
-        onClone && {
-            label: 'Clone Detail',
-            icon: Copy,
-            onClick: () => onClone(row),
-            className: 'text-gray-700',
-            description: 'Duplikasi ternak',
-            bg: 'bg-emerald-100',
-            hoverBg: 'group-hover:bg-emerald-200',
-            text: 'text-emerald-600',
-        },
-        (onEdit || onClone) && onDelete && {
+        {
             divider: true
         },
-        onDelete && {
-            label: 'Hapus Detail',
+        {
+            label: 'Hapus Penjualan',
             icon: Trash2,
             onClick: () => onDelete(row),
             className: 'text-red-600',
-            description: 'Hapus data ternak',
+            description: 'Hapus permanen',
             bg: 'bg-red-100',
             hoverBg: 'group-hover:bg-red-200',
             text: 'text-red-600',
         }
-    ].filter(Boolean);
+    ];
 
-    // Only render if position is available
+    // Render menu hanya jika posisi sudah didapat
     if (!menuStyle) return null;
 
     const menuElement = (
@@ -85,13 +81,13 @@ const DetailActionMenu = ({ row, onEdit, onDelete, onClone, onClose, buttonRef }
                 ...menuStyle,
                 visibility: 'visible',
                 pointerEvents: 'auto',
-                zIndex: 1500
+                zIndex: 99999
             }}
             className={`w-48 bg-white/95 backdrop-blur-lg rounded-xl shadow-xl border border-gray-200/50 overflow-hidden transition-all duration-150 animate-in slide-in-from-top-2 fade-in-0`}
             role="menu"
-            aria-label="Menu Aksi Detail"
+            aria-label="Menu Aksi"
         >
-            <div className="px-3 py-2 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200/50">
+            <div className="px-3 py-2 bg-gradient-to-r from-gray-50 to-emerald-100 border-b border-gray-200/50">
                 <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Menu Aksi</p>
             </div>
             <div className="p-1">
@@ -123,4 +119,4 @@ const DetailActionMenu = ({ row, onEdit, onDelete, onClone, onClose, buttonRef }
     return createPortal(menuElement, document.body);
 };
 
-export default DetailActionMenu;
+export default ActionMenu;

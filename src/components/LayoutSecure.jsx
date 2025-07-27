@@ -56,7 +56,8 @@ const LayoutSecure = ({ children, title }) => {
       name: 'Head Office',
       icon: Building2,
       children: [
-        { name: 'Pembelian', path: '/ho/pembelian', icon: ShoppingCart }
+        { name: 'Pembelian', path: '/ho/pembelian', icon: ShoppingCart },
+        { name: 'Penjualan', path: '/ho/penjualan', icon: TrendingUp }
       ]
     },
     {

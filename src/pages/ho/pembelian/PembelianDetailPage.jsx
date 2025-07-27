@@ -5,6 +5,7 @@ import usePembelianHO from './hooks/usePembelianHO';
 import customTableStyles from './constants/tableStyles';
 import DataTable from 'react-data-table-component';
 import DetailActionButton from './components/DetailActionButton';
+import DetailActionMenu from './components/DetailActionMenu';
 import AddEditDetailModal from './modals/AddEditDetailModal';
 import DeleteDetailModal from './modals/DeleteDetailModal';
 
@@ -24,7 +25,9 @@ const PembelianDetailPage = () => {
     const [detailData, setDetailData] = useState([]);
     
     // Detail CRUD states
-    const [openDetailMenuId, setOpenDetailMenuId] = useState(null);
+    const [openDetailMenuIndex, setOpenDetailMenuIndex] = useState(null);
+    const [activeButtonRef, setActiveButtonRef] = useState(null);
+    const [activeRowData, setActiveRowData] = useState(null);
     const [isAddDetailModalOpen, setIsAddDetailModalOpen] = useState(false);
     const [isEditDetailModalOpen, setIsEditDetailModalOpen] = useState(false);
     const [isDeleteDetailModalOpen, setIsDeleteDetailModalOpen] = useState(false);
@@ -68,21 +71,33 @@ const PembelianDetailPage = () => {
     };
 
     // Detail CRUD handlers
+    const handleOpenMenu = (rowIndex, buttonRef, rowData) => {
+        setOpenDetailMenuIndex(rowIndex);
+        setActiveButtonRef(buttonRef);
+        setActiveRowData(rowData);
+    };
+
+    const handleCloseMenu = () => {
+        setOpenDetailMenuIndex(null);
+        setActiveButtonRef(null);
+        setActiveRowData(null);
+    };
+
     const handleAddDetail = () => {
         setIsAddDetailModalOpen(true);
-        setOpenDetailMenuId(null);
+        handleCloseMenu();
     };
 
     const handleEditDetail = (detail) => {
         setSelectedDetail(detail);
         setIsEditDetailModalOpen(true);
-        setOpenDetailMenuId(null);
+        handleCloseMenu();
     };
 
     const handleDeleteDetail = (detail) => {
         setSelectedDetail(detail);
         setIsDeleteDetailModalOpen(true);
-        setOpenDetailMenuId(null);
+        handleCloseMenu();
     };
 
     const handleCloneDetail = (detail) => {
@@ -98,7 +113,7 @@ const PembelianDetailPage = () => {
         };
         setSelectedDetail(clonedData);
         setIsAddDetailModalOpen(true);
-        setOpenDetailMenuId(null);
+        handleCloseMenu();
     };
 
     const handleSaveDetail = async (detailFormData, isEdit) => {
@@ -301,15 +316,15 @@ const PembelianDetailPage = () => {
         {
             name: 'Aksi',
             width: '80px',
-            cell: row => (
+            cell: (row, index) => (
                 <DetailActionButton
                     row={row}
-                    openMenuId={openDetailMenuId}
-                    setOpenMenuId={setOpenDetailMenuId}
+                    rowIndex={index}
+                    openMenuIndex={openDetailMenuIndex}
+                    onOpenMenu={handleOpenMenu}
                     onEdit={handleEditDetail}
                     onDelete={handleDeleteDetail}
                     onClone={handleCloneDetail}
-                    isActive={openDetailMenuId === row.pubid}
                 />
             ),
             ignoreRowClick: true,
@@ -500,21 +515,138 @@ const PembelianDetailPage = () => {
                         </div>
                     </div>
                     
-                    <DataTable
-                        columns={detailColumns}
-                        data={detailData}
-                        pagination
-                        customStyles={customTableStyles}
-                        noDataComponent={
-                            <div className="text-center py-12">
-                                <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                                <p className="text-gray-500 text-lg">Tidak ada detail ternak ditemukan</p>
-                            </div>
-                        }
-                        responsive
-                        highlightOnHover
-                        pointerOnHover
-                    />
+                    {/* Tabel Detail Ternak - Diperbarui untuk Estetika dan Konsistensi */}
+                    <div className="w-full"> {/* Tambahkan wrapper untuk konsistensi */}
+                        <DataTable
+                            title="Daftar Detail Ternak" // Opsional: Tambahkan judul
+                            columns={detailColumns}
+                            data={detailData}
+                            pagination
+                            // --- PERUBAHAN/KONSISTENSI DIMULAI DI SINI ---
+                            // 1. Gunakan customStyles yang lengkap dan disesuaikan
+                            customStyles={{
+                                // Mulai dengan gaya dasar yang ada
+                                ...customTableStyles,
+                                // Timpa atau tambahkan gaya spesifik untuk tabel ini
+                                table: {
+                                    ...customTableStyles.table,
+                                    style: {
+                                        ...customTableStyles.table.style,
+                                        // Sesuaikan minWidth dengan jumlah dan lebar kolom
+                                        // Gunakan nilai yang konsisten dengan halaman lain, misalnya 800px
+                                        // atau sesuaikan dengan breakpoint jika perlu (lihat Pasted_Text_1753621272467.txt)
+                                        minWidth: '800px', // Misalnya, sesuaikan jika diperlukan
+                                        width: '100%',
+                                        tableLayout: 'fixed', // Kritis untuk kontrol lebar kolom
+                                        wordWrap: 'break-word',
+                                        overflowWrap: 'break-word',
+                                    }
+                                },
+                                tableWrapper: {
+                                    style: {
+                                        overflowX: 'auto', // Aktifkan scroll horizontal
+                                        overflowY: 'auto', // Aktifkan scroll vertikal jika perlu
+                                        maxHeight: '500px', // Sesuaikan tinggi maksimal
+                                        maxWidth: '100%',
+                                        width: '100%',
+                                        border: '1px solid #e2e8f0',
+                                        borderRadius: '8px', // Sesuaikan border radius
+                                        WebkitOverflowScrolling: 'touch',
+                                        // Tambahkan boxShadow ringan jika diinginkan (opsional)
+                                        // boxShadow: 'inset 0 0 4px rgba(0, 0, 0, 0.05)',
+                                    }
+                                },
+                                headRow: {
+                                    style: {
+                                        position: 'sticky',
+                                        top: 0,
+                                        // --- PERBAIKAN Z-INDEX ---
+                                        // Pastikan z-index headRow lebih tinggi dari sel data sticky
+                                        zIndex: 1000,
+                                        // --------------------------
+                                        backgroundColor: '#ffffff',
+                                        fontWeight: 'bold',
+                                        // Sesuaikan boxShadow untuk konsistensi
+                                        boxShadow: '0 2px 4px rgba(0,0,0,0.08)', // Bayangan lebih halus
+                                    }
+                                },
+                                // --- TAMBAHKAN headCells untuk styling header sticky ---
+                                headCells: {
+                                    style: {
+                                        fontSize: '12px',
+                                        fontWeight: 'bold',
+                                        color: 'inherit',
+                                        padding: '8px 12px', // Sesuaikan padding
+                                        // --- PERBAIKAN/PASTIKAN STYLING KOLOM "NO" DI HEADER ---
+                                        '&:first-child': { // Target header kolom pertama ("No")
+                                            position: 'sticky',
+                                            left: 0,
+                                            // --- PERBAIKAN Z-INDEX ---
+                                            // z-index header kolom "No" harus > headRow dan > sel data sticky
+                                            zIndex: 1002,
+                                            // --------------------------
+                                            backgroundColor: '#ffffff', // Latar belakang header
+                                            borderRight: '2px solid #e2e8f0', // Border kanan
+                                            // Tambahkan bayangan vertikal untuk efek pemisahan
+                                            boxShadow: 'inset -3px 0 4px -1px rgba(0, 0, 0, 0.1)',
+                                        },
+                                        // ------------------------------
+                                    },
+                                },
+                                // --- AKHIR TAMBAHAN headCells ---
+                                cells: {
+                                    style: {
+                                        wordWrap: 'break-word',
+                                        wordBreak: 'break-word',
+                                        whiteSpace: 'normal',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        // Sesuaikan padding untuk konsistensi
+                                        padding: '8px 12px',
+                                        fontSize: '12px',
+                                        lineHeight: '1.4',
+                                        // --- PERBAIKAN/PASTIKAN STYLING KOLOM "NO" DI DATA ---
+                                        '&:first-child': { // Target sel data kolom pertama ("No")
+                                            position: 'sticky',
+                                            left: 0,
+                                            // --- PERBAIKAN Z-INDEX ---
+                                            // z-index sel data kolom "No" harus < headRow
+                                            zIndex: 999,
+                                            // --------------------------
+                                            backgroundColor: '#fff', // Latar belakang sel
+                                            borderRight: '2px solid #e2e8f0', // Border kanan
+                                            // Tambahkan bayangan vertikal untuk efek pemisahan
+                                            boxShadow: 'inset -3px 0 4px -1px rgba(0, 0, 0, 0.1)',
+                                        },
+                                        // ------------------------------
+                                    }
+                                }
+                                // --- PERBAIKAN HOVER UNTUK BARIS ---
+                                // Jika ingin hover menyeluruh termasuk kolom sticky (kecuali "No")
+                                // rows: {
+                                //     style: {
+                                //         '&:hover': {
+                                //             backgroundColor: 'rgba(243, 244, 246, 0.7)', // Contoh warna hover
+                                //         },
+                                //     },
+                                // },
+                                // -----------------------------------
+                            }}
+                            // --- AKHIR PERUBAHAN/KONSISTENSI customStyles ---
+                            noDataComponent={
+                                <div className="text-center py-12">
+                                    <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                                    <p className="text-gray-500 text-lg">Tidak ada detail ternak ditemukan</p>
+                                    {/* Tambahkan tombol jika perlu */}
+                                    {/* <button ...>Tambah Detail Ternak</button> */}
+                                </div>
+                            }
+                            responsive={false} // Konsisten dengan halaman utama untuk kontrol penuh scrolling
+                            highlightOnHover
+                            pointerOnHover
+                        />
+                    </div>
+                    {/* Akhir Tabel Detail Ternak - Diperbarui */}
                 </div>
 
                 {/* Notification */}
@@ -546,6 +678,19 @@ const PembelianDetailPage = () => {
                     data={selectedDetail}
                     loading={loading}
                 />
+
+                {/* Single Action Menu */}
+                {openDetailMenuIndex !== null && activeButtonRef && activeRowData && (
+                    <DetailActionMenu
+                        row={activeRowData}
+                        onEdit={handleEditDetail}
+                        onDelete={handleDeleteDetail}
+                        onClone={handleCloneDetail}
+                        onClose={handleCloseMenu}
+                        buttonRef={activeButtonRef}
+                        openMenuIndex={openDetailMenuIndex}
+                    />
+                )}
             </div>
         </div>
     );

@@ -120,10 +120,9 @@ const AddEditPembelianPage = () => {
             });
             // Add initial detail item for clone
             addDetailItem();
-        } else {
-            // Add mode - add initial detail item
-            addDetailItem();
         }
+        // Remove automatic detail item creation for new records
+        // Users will add details manually using the "Tambah Detail" button
     }, [isEdit, id, cloneData, getPembelianDetail]);
 
     // Handle header form changes
@@ -168,10 +167,15 @@ const AddEditPembelianPage = () => {
         const biayaTruck = parseFloat(defaultData.biayaTruck) || 0;
         const hpp = harga + biayaTruck;
         
+        // Find T/N option from eartagOptions
+        const tnEartagOption = eartagOptions.find(option =>
+            option.label === 'T/N' || option.label === 'T/N' || option.value === 'T/N'
+        );
+        
         const newItem = {
             id: Date.now(),
-            eartag: '',
-            codeEartag: '',
+            eartag: tnEartagOption ? tnEartagOption.value : '',
+            codeEartag: 'T/N',
             idKlasifikasiHewan: defaultData.idKlasifikasiHewan || '',
             harga: harga,
             biayaTruck: biayaTruck,
@@ -196,12 +200,17 @@ const AddEditPembelianPage = () => {
         const biayaTruck = parseFloat(defaultData.biayaTruck) || 0;
         const hpp = harga + biayaTruck;
         
+        // Find T/N option from eartagOptions
+        const tnEartagOption = eartagOptions.find(option =>
+            option.label === 'T/N' || option.label === 'T/N' || option.value === 'T/N'
+        );
+        
         const newItems = [];
         for (let i = 0; i < batchCount; i++) {
             const newItem = {
                 id: Date.now() + i,
-                eartag: '',
-                codeEartag: '',
+                eartag: tnEartagOption ? tnEartagOption.value : '',
+                codeEartag: 'T/N',
                 idKlasifikasiHewan: defaultData.idKlasifikasiHewan || '',
                 harga: harga,
                 biayaTruck: biayaTruck,
