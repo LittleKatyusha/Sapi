@@ -231,7 +231,7 @@ const PembelianHOPage = () => {
             width: '12%',
             wrap: true,
             cell: row => (
-                <div className="text-center text-gray-900 text-sm break-words" title={row.nama_office}>
+                <div className="text-gray-900 text-sm break-words" title={row.nama_office}>
                     {row.nama_office || '-'}
                 </div>
             )
