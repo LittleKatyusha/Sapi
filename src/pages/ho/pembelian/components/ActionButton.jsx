@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { MoreVertical } from 'lucide-react';
 import ActionMenu from './ActionMenu';
 
-const ActionButton = ({ row, openMenuId, setOpenMenuId, onEdit, onDelete, onDetail, onClone, isActive, showClone = true }) => {
+const ActionButton = ({ row, openMenuId, setOpenMenuId, onEdit, onDelete, onDetail, onDistribusi, isActive, showDistribusi = true }) => {
     const buttonRef = useRef(null);
     const [isAnimating, setIsAnimating] = useState(false);
 
@@ -49,10 +49,10 @@ const ActionButton = ({ row, openMenuId, setOpenMenuId, onEdit, onDelete, onDeta
                     onEdit={onEdit}
                     onDelete={onDelete}
                     onDetail={onDetail}
-                    onClone={onClone}
+                    onDistribusi={onDistribusi}
                     onClose={() => setOpenMenuId(null)}
                     buttonRef={buttonRef}
-                    showClone={showClone}
+                    showDistribusi={showDistribusi}
                 />
             )}
         </div>

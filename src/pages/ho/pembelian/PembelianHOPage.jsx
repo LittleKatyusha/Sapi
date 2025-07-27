@@ -47,7 +47,12 @@ const PembelianHOPage = () => {
         setOpenMenuId(null);
     };
 
-    // Clone functionality removed from main pembelian page per user request
+    const handleDistribusi = (pembelian) => {
+        console.log('Distribusi pembelian:', pembelian);
+        const id = pembelian.encryptedPid || pembelian.pubid || pembelian.id;
+        navigate(`/ho/distribusi/${encodeURIComponent(id)}`);
+        setOpenMenuId(null);
+    };
 
     const handleDelete = (pembelian) => {
         console.log('Delete pembelian:', pembelian);
@@ -261,8 +266,9 @@ const PembelianHOPage = () => {
                     onEdit={handleEdit}
                     onDelete={handleDelete}
                     onDetail={handleDetail}
+                    onDistribusi={handleDistribusi}
                     isActive={openMenuId === (row.id || row.pubid)}
-                    showClone={false}
+                    showDistribusi={true}
                 />
             ),
             ignoreRowClick: true,
@@ -407,6 +413,18 @@ const PembelianHOPage = () => {
                                         },
                                     },
                                 },
+                                rows: {
+                                    style: {
+                                        // ... Gaya baris lainnya
+                                        // --- PASTIKAN INI ---
+                                        '&:hover': {
+                                            backgroundColor: 'rgba(243, 244, 246, 0.7)', // Tailwind's gray-100 dengan opacity
+                                            // Atau gunakan warna solid jika diinginkan: backgroundColor: '#f9fafb',
+                                            transform: 'scale(1)',
+                                        },
+                                        // --- AKHIR PASTIKAN ---
+                                    },
+                                },
                                 cells: {
                                     style: {
                                         wordWrap: 'break-word',
@@ -414,17 +432,24 @@ const PembelianHOPage = () => {
                                         whiteSpace: 'normal',
                                         overflow: 'hidden',
                                         textOverflow: 'ellipsis',
-                                        padding: '12px 16px',
-                                        fontSize: '13px',
-                                        lineHeight: '1.5',
-                                        '&:first-child': {
+                                        padding: '8px 12px', // Pastikan padding konsisten
+                                        fontSize: '12px',
+                                        lineHeight: '1.4',
+                                        // --- PERUBAHAN/PASTIKAN INI ---
+                                        '&:first-child': { // Kolom "No"
                                             position: 'sticky',
                                             left: 0,
                                             zIndex: 999,
-                                            backgroundColor: '#fff',
-                                            borderRight: '3px solid #e2e8f0',
+                                            // --- PERUBAHAN PENTING ---
+                                            // Pastikan latar belakang tetap putih saat hover baris
+                                            backgroundColor: '#fff !important', // Gunakan !important untuk override
+                                            // -------------------------
+                                            borderRight: '2px solid #e2e8f0',
                                             boxShadow: 'inset -3px 0 4px -1px rgba(0, 0, 0, 0.1)',
+                                            // padding: '8px 12px', // Pastikan padding konsisten
                                         },
+                                        // ------------------------------
+                                        // Tidak ada &:last-child untuk "Aksi", jadi itu akan ikut hover baris
                                     }
                                 }
                             }}
@@ -488,6 +513,7 @@ const PembelianHOPage = () => {
                                         onEdit={handleEdit}
                                         onDelete={handleDelete}
                                         onDetail={handleDetail}
+                                        onDistribusi={handleDistribusi}
                                     />
                                 ))}
                             </div>

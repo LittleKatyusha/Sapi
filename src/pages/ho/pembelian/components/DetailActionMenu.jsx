@@ -36,7 +36,7 @@ const DetailActionMenu = ({ row, onEdit, onDelete, onClone, onClose, buttonRef }
     }, [onClose, buttonRef]);
 
     const actions = [
-        {
+        onEdit && {
             label: 'Edit Detail',
             icon: Edit,
             onClick: () => onEdit(row),
@@ -46,7 +46,7 @@ const DetailActionMenu = ({ row, onEdit, onDelete, onClone, onClose, buttonRef }
             hoverBg: 'group-hover:bg-amber-200',
             text: 'text-amber-600',
         },
-        {
+        onClone && {
             label: 'Clone Detail',
             icon: Copy,
             onClick: () => onClone(row),
@@ -56,10 +56,10 @@ const DetailActionMenu = ({ row, onEdit, onDelete, onClone, onClose, buttonRef }
             hoverBg: 'group-hover:bg-emerald-200',
             text: 'text-emerald-600',
         },
-        {
+        (onEdit || onClone) && onDelete && {
             divider: true
         },
-        {
+        onDelete && {
             label: 'Hapus Detail',
             icon: Trash2,
             onClick: () => onDelete(row),
@@ -69,7 +69,7 @@ const DetailActionMenu = ({ row, onEdit, onDelete, onClone, onClose, buttonRef }
             hoverBg: 'group-hover:bg-red-200',
             text: 'text-red-600',
         }
-    ];
+    ].filter(Boolean);
 
     // Render menu hanya jika posisi sudah didapat
     if (!menuStyle) return null;

@@ -1,8 +1,8 @@
 import React, { useRef, useEffect, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Eye, Edit, Copy, Trash2 } from 'lucide-react';
+import { Eye, Edit, Copy, Trash2, Truck } from 'lucide-react';
 
-const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClone, onClose, buttonRef, showClone = true }) => {
+const ActionMenu = ({ row, onEdit, onDelete, onDetail, onDistribusi, onClose, buttonRef, showDistribusi = true }) => {
     const menuRef = useRef(null);
     const [menuStyle, setMenuStyle] = useState(null);
 
@@ -56,13 +56,13 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClone, onClose, buttonR
             hoverBg: 'group-hover:bg-amber-200',
             text: 'text-amber-600',
         },
-        // Conditionally include Clone option
-        ...(showClone ? [{
-            label: 'Clone Pembelian',
-            icon: Copy,
-            onClick: () => onClone(row),
+        // Conditionally include Distribusi option
+        ...(showDistribusi ? [{
+            label: 'Distribusi',
+            icon: Truck,
+            onClick: () => onDistribusi(row),
             className: 'text-gray-700',
-            description: 'Duplikasi data',
+            description: 'Distribusi ke outlet',
             bg: 'bg-emerald-100',
             hoverBg: 'group-hover:bg-emerald-200',
             text: 'text-emerald-600',

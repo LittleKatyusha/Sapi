@@ -49,6 +49,7 @@ import ParametersPage from './pages/system/ParametersPage';
 import PembelianHOPage from './pages/ho/pembelian/PembelianHOPage';
 import PembelianDetailPage from './pages/ho/pembelian/PembelianDetailPage';
 import AddEditPembelianPage from './pages/ho/pembelian/AddEditPembelianPage';
+import DistribusiPage from './pages/ho/pembelian/DistribusiPage';
 
 const AppWrapperSecure = () => (
   <Router>
@@ -77,6 +78,7 @@ const pageTitleMap = {
   '/ho/pembelian/add': 'Head Office: Tambah Pembelian',
   '/ho/pembelian/edit/:id': 'Head Office: Edit Pembelian',
   '/ho/pembelian/detail/:id': 'Head Office: Detail Pembelian',
+  '/ho/distribusi/:id': 'Head Office: Distribusi Ternak',
   '/boning/keuangan': 'Boning: Keuangan',
   '/boning/pembelian': 'Boning: Pembelian',
   '/boning/penjualan': 'Boning: Penjualan',
@@ -426,6 +428,7 @@ function AppSecure() {
             <Route path="/ho/pembelian/add" element={<AddEditPembelianPage />} />
             <Route path="/ho/pembelian/edit/:id" element={<AddEditPembelianPage />} />
             <Route path="/ho/pembelian/detail/:id" element={<PembelianDetailPage />} />
+            <Route path="/ho/distribusi/:id" element={<DistribusiPage />} />
 
             {/* Rute System */}
             <Route path="/system/role" element={<RolePage />} />
