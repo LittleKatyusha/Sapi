@@ -172,7 +172,42 @@ const usePenjualanHO = () => {
         }
     }, [getAuthHeader, searchTerm]);
 
-    // Create penjualan - handle header + details array format
+    // Get nota by supplier
+    const getNotaBySupplier = useCallback(async (supplierId) => {
+        try {
+            const authHeader = getAuthHeader();
+            if (!authHeader.Authorization) {
+                throw new Error('Token authentication tidak ditemukan. Silakan login ulang.');
+            }
+
+            const response = await fetch(`${API_BASE}/nota-by-supplier`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    ...authHeader
+                },
+                body: JSON.stringify({
+                    id_supplier: supplierId
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await safeJsonParse(response);
+            return {
+                success: true,
+                data: result.data || []
+            };
+        } catch (err) {
+            console.error('Get nota by supplier error:', err);
+            return { success: false, data: [], message: err.message };
+        }
+    }, [getAuthHeader]);
+
+    // Create penjualan - simplified based on backend API structure
     const createPenjualan = useCallback(async (penjualanData) => {
         setLoading(true);
         setError(null);
@@ -183,22 +218,25 @@ const usePenjualanHO = () => {
                 throw new Error('Token authentication tidak ditemukan. Silakan login ulang.');
             }
             
-            // For sales, the structure might be different from purchase
+            // Backend expects these specific fields for sales creation
             const officeIdParsed = parseInt(penjualanData.idOffice);
             
-            const headerData = {
+            const requestData = {
                 id_office: !isNaN(officeIdParsed) ? officeIdParsed : 1,
                 nota: penjualanData.nota,
-                id_supplier: penjualanData.idSupplier,
-                tgl_masuk_rph: penjualanData.tglMasukRph || penjualanData.tglMasuk,
+                id_supplier: parseInt(penjualanData.idSupplier),
+                tgl_masuk_rph: penjualanData.tglMasukRph
             };
 
             // Validate required fields before sending
-            if (!headerData.id_supplier) {
+            if (!requestData.id_supplier) {
                 throw new Error('Supplier harus dipilih sebelum menyimpan data');
             }
+            if (!requestData.nota) {
+                throw new Error('Nota harus dipilih sebelum menyimpan data');
+            }
 
-            console.log('🔧 DEBUG: Create sales header data:', headerData);
+            console.log('🔧 DEBUG: Create sales data:', requestData);
 
             const response = await fetch(`${API_BASE}/store`, {
                 method: 'POST',
@@ -207,7 +245,7 @@ const usePenjualanHO = () => {
                     'Accept': 'application/json',
                     ...authHeader
                 },
-                body: JSON.stringify(headerData)
+                body: JSON.stringify(requestData)
             });
             
             if (!response.ok) {
@@ -503,6 +541,7 @@ const usePenjualanHO = () => {
         updatePenjualan,
         deletePenjualan,
         getPenjualanDetail,
+        getNotaBySupplier,
     };
 };
 

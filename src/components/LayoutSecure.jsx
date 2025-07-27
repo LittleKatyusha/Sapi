@@ -60,23 +60,23 @@ const LayoutSecure = ({ children, title }) => {
         { name: 'Penjualan', path: '/ho/penjualan', icon: TrendingUp }
       ]
     },
-    {
-      name: 'Operasional',
-      icon: Package,
-      children: [
-        { name: 'Penjualan', path: '/sales' },
-        { name: 'Pembelian', path: '/purchases' },
-        { name: 'Surat Jalan', path: '/delivery-orders' }
-      ]
-    },
-    {
-      name: 'Inventaris',
-      icon: Package,
-      children: [
-        { name: 'Stok Ternak', path: '/inventory/livestock' },
-        { name: 'Stok Daging', path: '/inventory/meat' }
-      ]
-    },
+    // {
+    //   name: 'Operasional',
+    //   icon: Package,
+    //   children: [
+    //     { name: 'Penjualan', path: '/sales' },
+    //     { name: 'Pembelian', path: '/purchases' },
+    //     { name: 'Surat Jalan', path: '/delivery-orders' }
+    //   ]
+    // },
+    // {
+    //   name: 'Inventaris',
+    //   icon: Package,
+    //   children: [
+    //     { name: 'Stok Ternak', path: '/inventory/livestock' },
+    //     { name: 'Stok Daging', path: '/inventory/meat' }
+    //   ]
+    // },
     {
       name: 'Data Master',
       icon: FileText,
@@ -91,27 +91,27 @@ const LayoutSecure = ({ children, title }) => {
         { name: 'Eartag', path: '/master-data/eartag' }
       ]
     },
-    {
-      name: 'SDM',
-      icon: Users,
-      children: [
-        { name: 'Absensi', path: '/hr/attendance' },
-        { name: 'Pengajuan Cuti', path: '/hr/leave-requests' }
-      ]
-    },
-    {
-      name: 'Boning',
-      icon: Beef,
-      badge: '6',
-      children: [
-        { name: 'Keuangan', path: '/boning/keuangan', icon: DollarSign },
-        { name: 'Pembelian', path: '/boning/pembelian', icon: ShoppingCart },
-        { name: 'Penjualan', path: '/boning/penjualan', icon: TrendingUp },
-        { name: 'Stok Daging', path: '/boning/stok-daging', icon: Package },
-        { name: 'Return', path: '/boning/return', icon: RotateCcw },
-        { name: 'Surat Jalan', path: '/boning/surat-jalan', icon: Truck }
-      ]
-    },
+    // {
+    //   name: 'SDM',
+    //   icon: Users,
+    //   children: [
+    //     { name: 'Absensi', path: '/hr/attendance' },
+    //     { name: 'Pengajuan Cuti', path: '/hr/leave-requests' }
+    //   ]
+    // },
+    // {
+    //   name: 'Boning',
+    //   icon: Beef,
+    //   badge: '6',
+    //   children: [
+    //     { name: 'Keuangan', path: '/boning/keuangan', icon: DollarSign },
+    //     { name: 'Pembelian', path: '/boning/pembelian', icon: ShoppingCart },
+    //     { name: 'Penjualan', path: '/boning/penjualan', icon: TrendingUp },
+    //     { name: 'Stok Daging', path: '/boning/stok-daging', icon: Package },
+    //     { name: 'Return', path: '/boning/return', icon: RotateCcw },
+    //     { name: 'Surat Jalan', path: '/boning/surat-jalan', icon: Truck }
+    //   ]
+    // },
     {
       name: 'System',
       icon: Shield,
@@ -122,12 +122,12 @@ const LayoutSecure = ({ children, title }) => {
         { name: 'Parameters', path: '/system/parameters', icon: Settings }
       ]
     },
-    {
-      name: 'Laporan',
-      icon: FileText,
-      path: '/reports',
-      active: location.pathname === '/reports'
-    },
+    // {
+    //   name: 'Laporan',
+    //   icon: FileText,
+    //   path: '/reports',
+    //   active: location.pathname === '/reports'
+    // },
     {
       name: 'Pengaturan',
       icon: Settings,
