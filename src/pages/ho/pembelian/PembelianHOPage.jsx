@@ -41,28 +41,28 @@ const PembelianHOPage = () => {
 
 
     const handleEdit = (pembelian) => {
-        console.log('Edit pembelian:', pembelian);
+        // console.log('Edit pembelian:', pembelian);
         const id = pembelian.encryptedPid || pembelian.pubid || pembelian.id;
         navigate(`/ho/pembelian/edit/${encodeURIComponent(id)}`);
         setOpenMenuId(null);
     };
 
     const handleDistribusi = (pembelian) => {
-        console.log('Distribusi pembelian:', pembelian);
+        // console.log('Distribusi pembelian:', pembelian);
         const id = pembelian.encryptedPid || pembelian.pubid || pembelian.id;
         navigate(`/ho/distribusi/${encodeURIComponent(id)}`);
         setOpenMenuId(null);
     };
 
     const handleDelete = (pembelian) => {
-        console.log('Delete pembelian:', pembelian);
+        // console.log('Delete pembelian:', pembelian);
         setSelectedPembelian(pembelian);
         setIsDeleteModalOpen(true);
         setOpenMenuId(null);
     };
 
     const handleDetail = (pembelian) => {
-        console.log('View pembelian detail:', pembelian);
+        // console.log('View pembelian detail:', pembelian);
         // Use encryptedPid for API calls, but pubid for URL routing
         const id = pembelian.encryptedPid || pembelian.pubid || pembelian.id;
         navigate(`/ho/pembelian/detail/${encodeURIComponent(id)}`);
@@ -251,6 +251,25 @@ const PembelianHOPage = () => {
                             minimumFractionDigits: 0,
                             maximumFractionDigits: 0
                         }).format(row.total_belanja) : 'Rp 0'}
+                    </span>
+                </div>
+            )
+        },
+        {
+            name: 'Biaya Lain',
+            selector: row => row.biaya_lain,
+            sortable: true,
+            width: '12%',
+            wrap: true,
+            cell: row => (
+                <div className="text-center">
+                    <span className="inline-flex px-3 py-1.5 text-sm font-semibold rounded-full bg-orange-100 text-orange-800 break-words">
+                        {row.biaya_lain ? new Intl.NumberFormat('id-ID', {
+                            style: 'currency',
+                            currency: 'IDR',
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 0
+                        }).format(row.biaya_lain) : 'Rp 0'}
                     </span>
                 </div>
             )

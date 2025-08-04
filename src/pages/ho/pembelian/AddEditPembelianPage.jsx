@@ -44,7 +44,10 @@ const AddEditPembelianPage = () => {
         tglMasuk: new Date().toISOString().split('T')[0],
         namaSupir: '',
         platNomor: '',
+        biayaTruck: 0, // Added truck cost field
+        biayaLain: 0, // Added other costs field
         jumlah: 0
+        // markup removed - no longer needed in header
     });
 
     // Detail items state
@@ -56,14 +59,17 @@ const AddEditPembelianPage = () => {
     const [defaultData, setDefaultData] = useState({
         idKlasifikasiHewan: '',
         berat: '',
-        harga: '',
-        biayaTruck: ''
+        harga: ''
+        // markup removed - no longer used
     });
     const [batchCount, setBatchCount] = useState(1);
 
-    // Load data for edit mode
+    // Markup percentage state - user can change this manually
+    const [markupPercentage, setMarkupPercentage] = useState(12); // Default 12%
+
+    // Load data for edit mode - wait for parameter data to be loaded first
     useEffect(() => {
-        if (isEdit && id) {
+        if (isEdit && id && !parameterLoading && parameterData.supplier && parameterData.eartag && parameterData.klasifikasihewan) {
             const loadEditData = async () => {
                 try {
                     const decodedId = decodeURIComponent(id);
@@ -72,33 +78,147 @@ const AddEditPembelianPage = () => {
                     if (result.success && result.data.length > 0) {
                         const firstDetail = result.data[0];
                         
-                        // Load header data
+                        // Find supplier ID by name since backend doesn't return supplier ID
+                        let supplierIdFromName = '';
+                        if (firstDetail.nama_supplier && supplierOptions.length > 0) {
+                            const matchedSupplier = supplierOptions.find(supplier =>
+                                supplier.label === firstDetail.nama_supplier
+                            );
+                            if (matchedSupplier) {
+                                supplierIdFromName = matchedSupplier.value;
+                            }
+                        }
+                        
+                        // Load header data - map from actual backend response fields
                         setHeaderData({
-                            idOffice: firstDetail.id_office || '',
+                            idOffice: 1, // Always Head Office
                             nota: firstDetail.nota || '',
-                            idSupplier: firstDetail.id_supplier || '',
+                            idSupplier: firstDetail.id_supplier || firstDetail.supplier_id || supplierIdFromName || '', // Try multiple sources
                             tglMasuk: firstDetail.tgl_masuk || '',
                             namaSupir: firstDetail.nama_supir || '',
                             platNomor: firstDetail.plat_nomor || '',
+                            biayaTruck: firstDetail.biaya_truk || firstDetail.biaya_truck || 0, // Try both field names
+                            biayaLain: firstDetail.biaya_lain || 0, // Load other costs from backend
                             jumlah: result.data.length
+                            // markup removed - no longer needed
                         });
+                        
+                        // Load header data - map from actual backend response fields
 
-                        // Load detail data
-                        setDetailItems(result.data.map((item, index) => ({
-                            id: index + 1,
-                            pubid: item.pubid,
-                            eartag: item.eartag || '',
-                            codeEartag: item.code_eartag || '',
-                            idKlasifikasiHewan: item.id_klasifikasi_hewan || '',
-                            harga: item.harga || 0,
-                            biayaTruck: item.biaya_truck || 0,
-                            berat: item.berat || 0,
-                            hpp: item.hpp || 0,
-                            totalHarga: item.total_harga || 0
-                        })));
+                        // Load markup percentage if available, otherwise use default 12%
+                        if (firstDetail.markup_percentage !== undefined) {
+                            setMarkupPercentage(parseFloat(firstDetail.markup_percentage) || 12);
+                        }
+
+                        // Load detail data - calculate persentase from harga and hpp if not available
+                        setDetailItems(result.data.map((item, index) => {
+                            // Calculate markup percentage if not provided by backend
+                            let calculatedPersentase = markupPercentage; // default
+                            const harga = parseFloat(item.harga) || 0;
+                            const hpp = parseFloat(item.hpp) || 0;
+                            
+                            if (harga > 0 && hpp > harga) {
+                                calculatedPersentase = ((hpp - harga) / harga * 100);
+                            }
+                            
+                            // Find eartag value by matching eartag number from availableEartags
+                            let eartagValue = '';
+                            if (item.eartag && eartagOptions.length > 0) {
+                                // Try multiple matching strategies
+                                const matchedEartag = eartagOptions.find(eartag =>
+                                    eartag.label === item.eartag ||
+                                    eartag.value === item.eartag ||
+                                    eartag.label === String(item.eartag) ||
+                                    eartag.value === String(item.eartag) ||
+                                    String(eartag.label) === String(item.eartag) ||
+                                    String(eartag.value) === String(item.eartag)
+                                );
+                                if (matchedEartag) {
+                                    eartagValue = matchedEartag.value;
+                                } else {
+                                    // If no exact match found, try to find by partial match
+                                    const partialMatch = eartagOptions.find(eartag =>
+                                        String(eartag.label).includes(String(item.eartag)) ||
+                                        String(item.eartag).includes(String(eartag.label))
+                                    );
+                                    if (partialMatch) {
+                                        eartagValue = partialMatch.value;
+                                    }
+                                }
+                            }
+                            
+                            // Find klasifikasi ID by name if available
+                            let klasifikasiIdFromName = '';
+                            if (item.nama_klasifikasi && klasifikasiHewanOptions.length > 0) {
+                                // Try multiple matching strategies
+                                const matchedKlasifikasi = klasifikasiHewanOptions.find(klasifikasi =>
+                                    klasifikasi.label === item.nama_klasifikasi ||
+                                    String(klasifikasi.label) === String(item.nama_klasifikasi) ||
+                                    klasifikasi.label.toLowerCase() === String(item.nama_klasifikasi).toLowerCase()
+                                );
+                                if (matchedKlasifikasi) {
+                                    klasifikasiIdFromName = matchedKlasifikasi.value;
+                                } else {
+                                    // If no exact match found, try partial match
+                                    const partialMatch = klasifikasiHewanOptions.find(klasifikasi =>
+                                        String(klasifikasi.label).toLowerCase().includes(String(item.nama_klasifikasi).toLowerCase()) ||
+                                        String(item.nama_klasifikasi).toLowerCase().includes(String(klasifikasi.label).toLowerCase())
+                                    );
+                                    if (partialMatch) {
+                                        klasifikasiIdFromName = partialMatch.value;
+                                    }
+                                }
+                            }
+                            
+                            // Also try to find klasifikasi by id if available in backend response
+                            let klasifikasiIdFromId = '';
+                            if ((item.id_klasifikasi_hewan || item.klasifikasi_id) && klasifikasiHewanOptions.length > 0) {
+                                const idToFind = item.id_klasifikasi_hewan || item.klasifikasi_id;
+                                const matchedById = klasifikasiHewanOptions.find(klasifikasi =>
+                                    klasifikasi.value === idToFind ||
+                                    String(klasifikasi.value) === String(idToFind)
+                                );
+                                if (matchedById) {
+                                    klasifikasiIdFromId = matchedById.value;
+                                }
+                            }
+                            
+                            // Debug log for detail fields
+                            // console.log(`🔍 DEBUG: Detail ${index + 1} fields:`, Object.keys(item));
+                            // console.log(`🔍 DEBUG: Detail ${index + 1} eartag:`, item.eartag, '-> mapped to:', eartagValue);
+                            // console.log(`🔍 DEBUG: Detail ${index + 1} eartag options:`, eartagOptions.length, eartagOptions.slice(0, 5));
+                            // console.log(`🔍 DEBUG: Detail ${index + 1} eartag options format:`, eartagOptions.slice(0, 2).map(opt => ({value: opt.value, label: opt.label})));
+                            
+                            // Check if current eartag value exists in options
+                            const currentEartagExists = eartagOptions.find(opt => opt.value === (eartagValue || item.eartag));
+                            // console.log(`🔍 DEBUG: Detail ${index + 1} current eartag exists in options:`, !!currentEartagExists, currentEartagExists);
+                            
+                            // Check if T/N exists in options
+                            const tnOption = eartagOptions.find(opt => opt.label === 'T/N' || opt.value === 'T/N');
+                            // console.log(`🔍 DEBUG: Detail ${index + 1} T/N option exists:`, !!tnOption, tnOption);
+                            // console.log(`🔍 DEBUG: Detail ${index + 1} klasifikasi ID:`, item.id_klasifikasi_hewan, 'klasifikasi_id:', item.klasifikasi_id);
+                            // console.log(`🔍 DEBUG: Detail ${index + 1} nama_klasifikasi:`, item.nama_klasifikasi);
+                            // console.log(`🔍 DEBUG: Detail ${index + 1} klasifikasiIdFromId:`, klasifikasiIdFromId, 'klasifikasiIdFromName:', klasifikasiIdFromName);
+                            // console.log(`🔍 DEBUG: Detail ${index + 1} klasifikasi options:`, klasifikasiHewanOptions.length, klasifikasiHewanOptions.slice(0, 3));
+                            // console.log(`🔍 DEBUG: Detail ${index + 1} final eartag value:`, eartagValue || item.eartag || '');
+                            // console.log(`🔍 DEBUG: Detail ${index + 1} final klasifikasi value:`, klasifikasiIdFromId || item.id_klasifikasi_hewan || item.klasifikasi_id || klasifikasiIdFromName || '');
+                            
+                            return {
+                                id: index + 1,
+                                pubid: item.pubid,
+                                eartag: eartagValue || item.eartag || '', // Use matched value or original
+                                codeEartag: item.code_eartag || '',
+                                idKlasifikasiHewan: klasifikasiIdFromId || item.id_klasifikasi_hewan || item.klasifikasi_id || klasifikasiIdFromName || '', // Try multiple sources, prioritize ID match
+                                harga: harga,
+                                berat: parseInt(item.berat) || 0,
+                                persentase: item.persentase || calculatedPersentase, // Use backend persentase or calculate from harga/hpp
+                                hpp: hpp,
+                                totalHarga: parseFloat(item.total_harga) || 0
+                            };
+                        }));
                     }
                 } catch (err) {
-                    console.error('Error loading edit data:', err);
+                    // console.error('Error loading edit data:', err);
                     setNotification({
                         type: 'error',
                         message: 'Gagal memuat data untuk edit'
@@ -116,14 +236,22 @@ const AddEditPembelianPage = () => {
                 tglMasuk: cloneData.tgl_masuk || new Date().toISOString().split('T')[0],
                 namaSupir: cloneData.nama_supir || '',
                 platNomor: cloneData.plat_nomor || '',
+                biayaTruck: cloneData.biaya_truk || 0, // Load truck cost from clone data
+                biayaLain: cloneData.biaya_lain || 0, // Load other costs from clone data
                 jumlah: cloneData.jumlah || 0
+                // markup removed - no longer needed
             });
+            
+            // Load markup percentage from clone data if available
+            if (cloneData.markup_percentage !== undefined) {
+                setMarkupPercentage(parseFloat(cloneData.markup_percentage) || 12);
+            }
             // Add initial detail item for clone
             addDetailItem();
         }
         // Remove automatic detail item creation for new records
         // Users will add details manually using the "Tambah Detail" button
-    }, [isEdit, id, cloneData, getPembelianDetail]);
+    }, [isEdit, id, cloneData, getPembelianDetail, parameterLoading, parameterData, supplierOptions, eartagOptions, klasifikasiHewanOptions]);
 
     // Handle header form changes
     const handleHeaderChange = (field, value) => {
@@ -135,26 +263,41 @@ const AddEditPembelianPage = () => {
 
     // Handle detail item changes
     const handleDetailChange = (itemId, field, value) => {
+        // console.log(`🔧 DEBUG: handleDetailChange called - itemId: ${itemId}, field: ${field}, value: ${value}`);
+        
         setDetailItems(prev => prev.map(item => {
             if (item.id === itemId) {
                 const updatedItem = { ...item, [field]: value };
                 
+                // console.log(`🔧 DEBUG: Updating item ${itemId} - ${field}: ${item[field]} -> ${value}`);
+                
                 // Auto-populate code_eartag when eartag is selected
                 if (field === 'eartag' && value) {
-                    const selectedEartag = availableEartags.find(eartag => eartag.id === value);
+                    const selectedEartag = availableEartags.find(eartag => eartag.id === value || eartag.pubid === value);
                     if (selectedEartag) {
                         updatedItem.codeEartag = `${selectedEartag.name || selectedEartag.id}`;
+                        // console.log(`🔧 DEBUG: Auto-populated codeEartag: ${updatedItem.codeEartag}`);
+                    } else {
+                        // Try finding from eartagOptions
+                        const selectedFromOptions = eartagOptions.find(eartag => eartag.value === value);
+                        if (selectedFromOptions) {
+                            updatedItem.codeEartag = selectedFromOptions.label;
+                            // console.log(`🔧 DEBUG: Auto-populated codeEartag from options: ${updatedItem.codeEartag}`);
+                        }
                     }
                 }
                 
-                // Auto calculate HPP and Total Harga
-                if (field === 'harga' || field === 'biayaTruck') {
+                // HPP calculation: harga + individual markup% per ternak
+                if (field === 'harga' || field === 'persentase') {
                     const harga = parseFloat(field === 'harga' ? value : updatedItem.harga) || 0;
-                    const biayaTruck = parseFloat(field === 'biayaTruck' ? value : updatedItem.biayaTruck) || 0;
-                    updatedItem.hpp = harga + biayaTruck;
+                    const markup = parseFloat(field === 'persentase' ? value : updatedItem.persentase) || 0;
+                    const markupAmount = harga * (markup / 100);
+                    updatedItem.hpp = harga + markupAmount;
                     updatedItem.totalHarga = updatedItem.hpp;
+                    // console.log(`🔧 DEBUG: HPP recalculated: ${updatedItem.hpp}`);
                 }
                 
+                // console.log(`🔧 DEBUG: Final updated item:`, updatedItem);
                 return updatedItem;
             }
             return item;
@@ -164,22 +307,27 @@ const AddEditPembelianPage = () => {
     // Add new detail item with default data
     const addDetailItem = () => {
         const harga = parseFloat(defaultData.harga) || 0;
-        const biayaTruck = parseFloat(defaultData.biayaTruck) || 0;
-        const hpp = harga + biayaTruck;
+        const markup = markupPercentage; // Use default markup percentage
+        const markupAmount = harga * (markup / 100);
+        const hpp = harga + markupAmount;
         
         // Find T/N option from eartagOptions
         const tnEartagOption = eartagOptions.find(option =>
             option.label === 'T/N' || option.label === 'T/N' || option.value === 'T/N'
         );
         
+        // Generate unique code_eartag to avoid database constraint violation
+        const timestamp = Date.now();
+        const uniqueCode = `T/N-${timestamp}`;
+        
         const newItem = {
-            id: Date.now(),
+            id: timestamp,
             eartag: tnEartagOption ? tnEartagOption.value : '',
-            codeEartag: 'T/N',
+            codeEartag: uniqueCode, // Use unique code instead of just 'T/N'
             idKlasifikasiHewan: defaultData.idKlasifikasiHewan || '',
             harga: harga,
-            biayaTruck: biayaTruck,
             berat: parseFloat(defaultData.berat) || 0,
+            persentase: markup, // Individual markup per ternak
             hpp: hpp,
             totalHarga: hpp
         };
@@ -197,24 +345,30 @@ const AddEditPembelianPage = () => {
         }
 
         const harga = parseFloat(defaultData.harga) || 0;
-        const biayaTruck = parseFloat(defaultData.biayaTruck) || 0;
-        const hpp = harga + biayaTruck;
+        const markup = markupPercentage; // Use default markup percentage
+        const markupAmount = harga * (markup / 100);
+        const hpp = harga + markupAmount;
         
         // Find T/N option from eartagOptions
         const tnEartagOption = eartagOptions.find(option =>
             option.label === 'T/N' || option.label === 'T/N' || option.value === 'T/N'
         );
         
+        const baseTimestamp = Date.now();
         const newItems = [];
         for (let i = 0; i < batchCount; i++) {
+            // Generate unique code_eartag for each item to avoid database constraint violation
+            const uniqueTimestamp = baseTimestamp + i;
+            const uniqueCode = `T/N-${uniqueTimestamp}`;
+            
             const newItem = {
-                id: Date.now() + i,
+                id: uniqueTimestamp,
                 eartag: tnEartagOption ? tnEartagOption.value : '',
-                codeEartag: 'T/N',
+                codeEartag: uniqueCode, // Use unique code for each item
                 idKlasifikasiHewan: defaultData.idKlasifikasiHewan || '',
                 harga: harga,
-                biayaTruck: biayaTruck,
                 berat: parseFloat(defaultData.berat) || 0,
+                persentase: markup, // Individual markup per ternak
                 hpp: hpp,
                 totalHarga: hpp
             };
@@ -238,6 +392,13 @@ const AddEditPembelianPage = () => {
         }));
     };
 
+    // Handle markup percentage change for default value only
+    const handleMarkupPercentageChange = (newPercentage) => {
+        const percentage = parseFloat(newPercentage) || 0;
+        setMarkupPercentage(percentage);
+        // No longer recalculates existing items - each ternak has individual markup
+    };
+
     // Remove detail item
     const removeDetailItem = (itemId) => {
         setDetailItems(prev => prev.filter(item => item.id !== itemId));
@@ -253,6 +414,8 @@ const AddEditPembelianPage = () => {
         if (!headerData.tglMasuk) errors.push('Tanggal masuk harus diisi');
         if (!headerData.namaSupir) errors.push('Nama supir harus diisi');
         if (!headerData.platNomor) errors.push('Plat nomor harus diisi');
+        if (!headerData.biayaTruck || headerData.biayaTruck <= 0) errors.push('Biaya truck harus diisi dan > 0');
+        // biayaLain is optional, no validation needed
 
         // Detail validation
         if (detailItems.length === 0) {
@@ -307,7 +470,21 @@ const AddEditPembelianPage = () => {
                 // For now, we'll create a new complete record
                 const completeData = {
                     ...updatedHeaderData,
-                    details: detailItems
+                    biayaTruck: parseFloat(updatedHeaderData.biayaTruck),
+                    biayaLain: parseFloat(updatedHeaderData.biayaLain) || 0,
+                    // markup removed - no longer needed
+                    markup_percentage: markupPercentage,
+                    details: detailItems.map(item => ({
+                        id_office: 1,
+                        eartag: String(item.eartag), // Convert to string
+                        code_eartag: item.codeEartag,
+                        id_klasifikasi_hewan: parseInt(item.idKlasifikasiHewan),
+                        harga: parseFloat(item.harga),
+                        berat: parseInt(item.berat),
+                        persentase: parseInt(item.persentase) || 0, // Individual markup per ternak as integer
+                        hpp: parseFloat(item.hpp),
+                        total_harga: parseFloat(item.totalHarga),
+                    }))
                 };
                 result = await updatePembelian(id, completeData);
             } else {
@@ -315,16 +492,21 @@ const AddEditPembelianPage = () => {
                 const completeData = {
                     ...updatedHeaderData,
                     idOffice: 1, // Always ensure Head Office ID as integer
+                    biayaTruck: parseFloat(updatedHeaderData.biayaTruck), // Truck cost at header level
+                    biayaLain: parseFloat(updatedHeaderData.biayaLain) || 0, // Other costs at header level
+                    // markup removed - no longer needed at header level
+                    markup_percentage: markupPercentage, // Send markup percentage to backend
                     details: detailItems.map(item => ({
                         id_office: 1, // Always Head Office for all details as integer
-                        eartag: item.eartag,
+                        eartag: String(item.eartag), // Convert to string as backend expects
                         code_eartag: item.codeEartag,
                         id_klasifikasi_hewan: parseInt(item.idKlasifikasiHewan),
                         harga: parseFloat(item.harga),
-                        biaya_truck: parseFloat(item.biayaTruck),
                         berat: parseInt(item.berat),
-                        hpp: parseFloat(item.hpp),
+                        persentase: parseInt(item.persentase) || 0, // Individual markup per ternak as integer
+                        hpp: parseFloat(item.hpp), // HPP now calculated with individual markup percentage
                         total_harga: parseFloat(item.totalHarga)
+                        // markup field removed - no longer needed
                     }))
                 };
                 
@@ -502,6 +684,46 @@ const AddEditPembelianPage = () => {
                                 required
                             />
                         </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <Truck className="w-4 h-4 inline mr-1" />
+                                Biaya Truck (Rp) *
+                            </label>
+                            <input
+                                type="number"
+                                value={headerData.biayaTruck}
+                                onChange={(e) => handleHeaderChange('biayaTruck', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                placeholder="1000000"
+                                min="0"
+                                step="1000"
+                                required
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                                💡 Biaya transportasi truck untuk pengiriman
+                            </p>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <Truck className="w-4 h-4 inline mr-1" />
+                                Biaya Lain (Rp)
+                            </label>
+                            <input
+                                type="number"
+                                value={headerData.biayaLain}
+                                onChange={(e) => handleHeaderChange('biayaLain', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                placeholder="0"
+                                min="0"
+                                step="1000"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                                💡 Biaya tambahan lainnya (opsional)
+                            </p>
+                        </div>
+
                     </div>
                 </div>
 
@@ -561,20 +783,24 @@ const AddEditPembelianPage = () => {
                             />
                         </div>
 
-                        {/* Biaya Truck Default */}
-                        <div>
+                        {/* Markup Percentage Input */}
+                        <div className="col-span-1">
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Biaya Truck Default (Rp)
+                                Markup Percentage (%)
                             </label>
                             <input
                                 type="number"
-                                value={defaultData.biayaTruck}
-                                onChange={(e) => handleDefaultDataChange('biayaTruck', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                                placeholder="100000"
+                                value={markupPercentage}
+                                onChange={(e) => handleMarkupPercentageChange(e.target.value)}
+                                className="w-full px-3 py-2 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                                placeholder="12"
                                 min="0"
-                                step="1000"
+                                max="100"
+                                step="0.1"
                             />
+                            <p className="text-xs text-green-600 mt-1">
+                                HPP = Harga + {markupPercentage}% markup
+                            </p>
                         </div>
                     </div>
 
@@ -610,10 +836,10 @@ const AddEditPembelianPage = () => {
                     </div>
 
                     {/* Preview Default Data */}
-                    {(defaultData.idKlasifikasiHewan || defaultData.berat || defaultData.harga || defaultData.biayaTruck) && (
+                    {(defaultData.idKlasifikasiHewan || defaultData.berat || defaultData.harga) && (
                         <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
                             <p className="text-sm font-medium text-blue-800 mb-2">Preview Data Default:</p>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-blue-700">
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs text-blue-700">
                                 {defaultData.idKlasifikasiHewan && (
                                     <div>
                                         <span className="font-medium">Klasifikasi:</span> {
@@ -627,15 +853,12 @@ const AddEditPembelianPage = () => {
                                 {defaultData.harga && (
                                     <div><span className="font-medium">Harga:</span> Rp {parseInt(defaultData.harga).toLocaleString('id-ID')}</div>
                                 )}
-                                {defaultData.biayaTruck && (
-                                    <div><span className="font-medium">Biaya Truck:</span> Rp {parseInt(defaultData.biayaTruck).toLocaleString('id-ID')}</div>
-                                )}
                             </div>
-                            {(defaultData.harga || defaultData.biayaTruck) && (
+                            {defaultData.harga && (
                                 <div className="mt-2 text-xs text-blue-700">
                                     <span className="font-medium">HPP Preview:</span> Rp {(
-                                        (parseFloat(defaultData.harga) || 0) + (parseFloat(defaultData.biayaTruck) || 0)
-                                    ).toLocaleString('id-ID')}
+                                        (parseFloat(defaultData.harga) || 0) * (1 + markupPercentage / 100)
+                                    ).toLocaleString('id-ID')} <span className="text-green-600">(+{markupPercentage}%)</span>
                                 </div>
                             )}
                         </div>
@@ -688,14 +911,19 @@ const AddEditPembelianPage = () => {
                                     )}
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                {/* Row 1: Basic Information */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
                                             Eartag *
                                         </label>
                                         <SearchableSelect
+                                            key={`eartag-${item.id}-${item.eartag}`}
                                             value={item.eartag}
-                                            onChange={(value) => handleDetailChange(item.id, 'eartag', value)}
+                                            onChange={(value) => {
+                                                // console.log(`🔧 DEBUG: SearchableSelect onChange - eartag changing from ${item.eartag} to ${value}`);
+                                                handleDetailChange(item.id, 'eartag', value);
+                                            }}
                                             options={eartagOptions.filter(option =>
                                                 // Show if not used by other detail items OR if it's the current item's selection
                                                 !detailItems.some(detail => detail.eartag === option.value && detail.id !== item.id)
@@ -727,8 +955,12 @@ const AddEditPembelianPage = () => {
                                             Klasifikasi *
                                         </label>
                                         <SearchableSelect
+                                            key={`klasifikasi-${item.id}-${item.idKlasifikasiHewan}`}
                                             value={item.idKlasifikasiHewan}
-                                            onChange={(value) => handleDetailChange(item.id, 'idKlasifikasiHewan', value)}
+                                            onChange={(value) => {
+                                                // console.log(`🔧 DEBUG: SearchableSelect onChange - klasifikasi changing from ${item.idKlasifikasiHewan} to ${value}`);
+                                                handleDetailChange(item.id, 'idKlasifikasiHewan', value);
+                                            }}
                                             options={klasifikasiHewanOptions}
                                             placeholder={parameterLoading ? 'Loading klasifikasi...' : 'Pilih Klasifikasi'}
                                             isLoading={parameterLoading}
@@ -752,7 +984,10 @@ const AddEditPembelianPage = () => {
                                             required
                                         />
                                     </div>
+                                </div>
 
+                                {/* Row 2: Pricing Information */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
                                             Harga (Rp) *
@@ -770,28 +1005,38 @@ const AddEditPembelianPage = () => {
 
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Biaya Truck (Rp)
+                                            Markup (%) *
                                         </label>
                                         <input
                                             type="number"
-                                            value={item.biayaTruck}
-                                            onChange={(e) => handleDetailChange(item.id, 'biayaTruck', e.target.value)}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                                            placeholder="100000"
+                                            value={item.persentase}
+                                            onChange={(e) => handleDetailChange(item.id, 'persentase', e.target.value)}
+                                            className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            placeholder="12"
                                             min="0"
+                                            max="100"
+                                            step="0.1"
+                                            required
                                         />
+                                        <p className="text-xs text-blue-600 mt-1">
+                                            Individual markup untuk ternak ini
+                                        </p>
                                     </div>
 
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            HPP (Rp)
+                                            HPP (Harga + {item.persentase || 0}%)
                                         </label>
                                         <input
                                             type="number"
                                             value={item.hpp}
                                             readOnly
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 font-medium"
+                                            title={`HPP dihitung otomatis: Harga + ${item.persentase || 0}% markup`}
                                         />
+                                        <p className="text-xs text-green-600 mt-1">
+                                            Auto calculated: +{item.persentase || 0}% markup
+                                        </p>
                                     </div>
 
                                     <div>

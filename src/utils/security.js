@@ -547,6 +547,7 @@ export const setSecurityHeaders = () => {
     'speaker=()',
     'vibrate=()',
     'fullscreen=(self)'
+    // Removed 'browsing-topics' and 'interest-cohort' as they are not recognized by current browsers
   ].join(', ');
   
   if (!document.querySelector('meta[http-equiv="Permissions-Policy"]')) {

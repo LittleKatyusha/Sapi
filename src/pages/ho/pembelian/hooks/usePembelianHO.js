@@ -6,26 +6,26 @@ const safeJsonParse = async (response) => {
     const contentType = response.headers.get('content-type');
     
     // Enhanced logging for debugging
-    console.log('🔍 DEBUG: Response details:', {
-        status: response.status,
-        statusText: response.statusText,
-        contentType: contentType,
-        url: response.url,
-        headers: Object.fromEntries(response.headers.entries())
-    });
+    // console.log('🔍 DEBUG: Response details:', {
+    //     status: response.status,
+    //     statusText: response.statusText,
+    //     contentType: contentType,
+    //     url: response.url,
+    //     headers: Object.fromEntries(response.headers.entries())
+    // });
     
     if (!contentType || !contentType.includes('application/json')) {
         const responseText = await response.text();
-        console.error('❌ Expected JSON but received:', {
-            contentType,
-            responseText: responseText.substring(0, 500),
-            fullResponseLength: responseText.length
-        });
+        // console.error('❌ Expected JSON but received:', {
+        //     contentType,
+        //     responseText: responseText.substring(0, 500),
+        //     fullResponseLength: responseText.length
+        // });
         throw new Error(`Server returned ${contentType || 'unknown content type'} instead of JSON. This usually means the API endpoint is not properly configured or the server returned an error page. Response: ${responseText.substring(0, 200)}...`);
     }
     
     const jsonData = await response.json();
-    console.log('✅ Successfully parsed JSON:', jsonData);
+    // console.log('✅ Successfully parsed JSON:', jsonData);
     return jsonData;
 };
 
@@ -59,7 +59,7 @@ const usePembelianHO = () => {
                 throw new Error('Token authentication tidak ditemukan. Silakan login ulang.');
             }
             
-            console.log('Fetching pembelian HO from backend...');
+            // console.log('Fetching pembelian HO from backend...');
             
             // DataTables pagination parameters for server-side processing
             const start = (page - 1) * perPage;
@@ -81,9 +81,17 @@ const usePembelianHO = () => {
                 }
             });
             
-            console.log('Response received:', response.status);
+            // console.log('Response received:', response.status);
 
             if (!response.ok) {
+                const errorText = await response.text();
+                // console.error('🚨 API Error Details:', {
+                //     status: response.status,
+                //     statusText: response.statusText,
+                //     url: response.url,
+                //     errorBody: errorText
+                // });
+                
                 if (response.status === 401) {
                     throw new Error('Unauthorized - Token tidak valid atau sudah expired');
                 } else if (response.status === 403) {
@@ -91,9 +99,9 @@ const usePembelianHO = () => {
                 } else if (response.status === 404) {
                     throw new Error('Endpoint tidak ditemukan');
                 } else if (response.status === 500) {
-                    throw new Error('Server error - Silakan coba lagi nanti');
+                    throw new Error(`Server error (500) - Ada masalah di backend API. Detail: ${errorText.substring(0, 200)}`);
                 } else {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    throw new Error(`HTTP error! status: ${response.status} - ${errorText.substring(0, 200)}`);
                 }
             }
 
@@ -108,15 +116,15 @@ const usePembelianHO = () => {
                 dataArray = result.data;
                 totalRecords = result.recordsTotal || result.data.length;
                 filteredRecords = result.recordsFiltered || result.data.length;
-                console.log('DataTables response received:', dataArray.length, 'items');
+                // console.log('DataTables response received:', dataArray.length, 'items');
             } else if (result.status === 'ok' && result.data && Array.isArray(result.data)) {
                 // Fallback for simple response format
                 dataArray = result.data;
                 totalRecords = result.data.length;
                 filteredRecords = result.data.length;
-                console.log('API response received:', dataArray.length, 'items');
+                // console.log('API response received:', dataArray.length, 'items');
             } else {
-                console.error('Unexpected API response format:', result);
+                // console.error('Unexpected API response format:', result);
                 throw new Error(`Format response API tidak sesuai. Response: ${JSON.stringify(result).substring(0, 200)}...`);
             }
             
@@ -174,7 +182,7 @@ const usePembelianHO = () => {
                             }
                         }
                     } catch (error) {
-                        console.warn(`Failed to fetch details for ${item.nota}:`, error.message);
+                        // console.warn(`Failed to fetch details for ${item.nota}:`, error.message);
                         total_belanja = 0;
                     }
 
@@ -184,15 +192,15 @@ const usePembelianHO = () => {
                     };
                 }));
                 
-                console.log('Validated pembelian data with calculated total_belanja:', validatedData.slice(0, 2));
+                // console.log('Validated pembelian data with calculated total_belanja:', validatedData.slice(0, 2));
                 setPembelian(validatedData);
             } else {
-                console.warn('No pembelian data received from API');
+                // console.warn('No pembelian data received from API');
                 setPembelian([]);
             }
             
         } catch (err) {
-            console.error('Error in fetchPembelian:', err);
+            // console.error('Error in fetchPembelian:', err);
             setError(err.message || 'Terjadi kesalahan saat mengambil data pembelian');
             
             // Fallback to empty data
@@ -223,22 +231,40 @@ const usePembelianHO = () => {
                 tgl_masuk: pembelianData.tglMasuk,
                 nama_supir: pembelianData.namaSupir,
                 plat_nomor: pembelianData.platNomor,
-                jumlah: parseInt(pembelianData.jumlah) || 0
+                jumlah: parseInt(pembelianData.jumlah) || 0,
+                biaya_truk: parseFloat(pembelianData.biayaTruck) || 0 // Truck cost at header level
             };
 
             // Validate required fields before sending
             if (!headerData.id_supplier) {
                 throw new Error('Supplier harus dipilih sebelum menyimpan data');
             }
+            
+            // Debug and validate biaya_truk
+            // console.log('🔍 VALIDATION: biaya_truk value:', headerData.biaya_truk);
+            // console.log('🔍 VALIDATION: biaya_truk type:', typeof headerData.biaya_truk);
+            // console.log('🔍 VALIDATION: is biaya_truk truthy?', !!headerData.biaya_truk);
+            // console.log('🔍 VALIDATION: biaya_truk > 0?', headerData.biaya_truk > 0);
+            
+            if (!headerData.biaya_truk || headerData.biaya_truk <= 0 || isNaN(headerData.biaya_truk)) {
+                throw new Error(`Biaya truck harus diisi dengan nilai numerik > 0. Nilai saat ini: ${headerData.biaya_truk} (type: ${typeof headerData.biaya_truk})`);
+            }
 
-            console.log('🔧 DEBUG: Create header data:', headerData);
-            console.log('🔧 DEBUG: Supplier PID sebagai id_supplier:', pembelianData.idSupplier);
+            // console.log('🔧 DEBUG: Create header data:', headerData);
+            // console.log('🔧 DEBUG: Supplier PID sebagai id_supplier:', pembelianData.idSupplier);
+            // console.log('🔧 DEBUG: Raw biayaTruck from form:', pembelianData.biayaTruck);
+            // console.log('🔧 DEBUG: Parsed biaya_truk value:', parseFloat(pembelianData.biayaTruck) || 0);
+            // console.log('🔧 DEBUG: Type of biaya_truk:', typeof headerData.biaya_truk);
 
             // Backend expects header + details array format
             const requestData = {
                 ...headerData,
                 details: pembelianData.details || [] // Details array from form
             };
+            
+            // console.log('🚀 DEBUG: Complete request data:', JSON.stringify(requestData, null, 2));
+            // console.log('🚀 DEBUG: Header fields being sent:', Object.keys(headerData));
+            // console.log('🚀 DEBUG: biaya_truk in request:', requestData.biaya_truk);
             
             const response = await fetch(`${API_BASE}/store`, {
                 method: 'POST',
@@ -252,7 +278,7 @@ const usePembelianHO = () => {
             
             if (!response.ok) {
                 const errorText = await response.text();
-                console.error('Backend error response:', errorText);
+                // // console.error('Backend error response:', errorText);
                 
                 // Specific error messages for common bootstrap issues
                 if (errorText.includes('id_pembelian')) {
@@ -277,7 +303,7 @@ const usePembelianHO = () => {
             };
             
         } catch (err) {
-            console.error('Create pembelian error:', err);
+            // console.error('Create pembelian error:', err);
             const errorMsg = err.message || 'Terjadi kesalahan saat menyimpan data';
             setError(errorMsg);
             return { success: false, message: errorMsg };
@@ -308,7 +334,8 @@ const usePembelianHO = () => {
                 tgl_masuk: pembelianData.tglMasuk,
                 nama_supir: pembelianData.namaSupir,
                 plat_nomor: pembelianData.platNomor,
-                jumlah: parseInt(pembelianData.jumlah) || 0
+                jumlah: parseInt(pembelianData.jumlah) || 0,
+                biaya_truk: parseFloat(pembelianData.biayaTruck) || 0 // Truck cost at header level
             };
 
             // Validate required fields before sending
@@ -317,19 +344,19 @@ const usePembelianHO = () => {
             }
 
             // Log the data being sent for debugging
-            console.log('🔧 DEBUG: Update data being sent:', updateData);
-            console.log('🔧 DEBUG: Supplier PID sebagai id_supplier:', pembelianData.idSupplier);
+            // console.log('🔧 DEBUG: Update data being sent:', updateData);
+            // console.log('🔧 DEBUG: Supplier PID sebagai id_supplier:', pembelianData.idSupplier);
             
-            console.log('🚀 DEBUG: Making UPDATE request:', {
-                url: `${API_BASE}/update`,
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    ...authHeader
-                },
-                bodyData: updateData
-            });
+            // console.log('🚀 DEBUG: Making UPDATE request:', {
+            //     url: `${API_BASE}/update`,
+            //     method: 'POST',
+            //     headers: {
+            //         'Content-Type': 'application/json',
+            //         'Accept': 'application/json',
+            //         ...authHeader
+            //     },
+            //     bodyData: updateData
+            // });
 
             const response = await fetch(`${API_BASE}/update`, {
                 method: 'POST',
@@ -343,7 +370,7 @@ const usePembelianHO = () => {
             
             if (!response.ok) {
                 const errorText = await response.text();
-                console.error('Backend error response:', errorText);
+                // console.error('Backend error response:', errorText);
                 
                 // Try to parse the error response as JSON for better error messages
                 try {
@@ -370,7 +397,7 @@ const usePembelianHO = () => {
             };
             
         } catch (err) {
-            console.error('Update pembelian error:', err);
+            // console.error('Update pembelian error:', err);
             const errorMsg = err.message || 'Terjadi kesalahan saat memperbarui data';
             setError(errorMsg);
             return { success: false, message: errorMsg };
@@ -390,11 +417,14 @@ const usePembelianHO = () => {
                 throw new Error('Token authentication tidak ditemukan. Silakan login ulang.');
             }
             
+            // CORS Issue Note: Backend needs CORS configuration for DELETE operations
+            // Temporary workaround: Add additional headers for CORS preflight
             const response = await fetch(`${API_BASE}/delete`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest', // Help with CORS preflight
                     ...authHeader
                 },
                 body: JSON.stringify({
@@ -410,7 +440,7 @@ const usePembelianHO = () => {
             const contentType = response.headers.get('content-type');
             if (!contentType || !contentType.includes('application/json')) {
                 const responseText = await response.text();
-                console.error('Expected JSON but received:', contentType, responseText.substring(0, 200));
+                // console.error('Expected JSON but received:', contentType, responseText.substring(0, 200));
                 throw new Error(`Server returned ${contentType || 'unknown content type'} instead of JSON. Response: ${responseText.substring(0, 200)}...`);
             }
             
@@ -456,12 +486,26 @@ const usePembelianHO = () => {
             
             if (!response.ok) {
                 const errorText = await response.text();
-                console.error('Backend error response:', errorText);
+                // console.error('Backend error response:', errorText);
                 throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
             }
             
             const result = await safeJsonParse(response);
-            console.log('Detail response:', result);
+            // console.log('Detail response:', result);
+            
+            // Debug: Log the structure of first detail item to identify classification field name
+            // if (result.data && Array.isArray(result.data) && result.data.length > 0) {
+            //     console.log('🔍 DEBUG: First detail item structure:', result.data[0]);
+            //     console.log('🔍 DEBUG: Available fields:', Object.keys(result.data[0]));
+            //     console.log('🔍 DEBUG: Classification field value:', {
+            //         nama_klasifikasi_hewan: result.data[0].nama_klasifikasi_hewan,
+            //         klasifikasi_hewan: result.data[0].klasifikasi_hewan,
+            //         name_klasifikasi: result.data[0].name_klasifikasi,
+            //         klasifikasi: result.data[0].klasifikasi,
+            //         id_klasifikasi_hewan: result.data[0].id_klasifikasi_hewan
+            //     });
+            //     console.log('⚠️ ISSUE: id_klasifikasi_hewan is missing from API response. Backend needs to include this field in the view query.');
+            // }
             
             return {
                 success: result.status === 'ok' || result.success === true,
@@ -470,7 +514,7 @@ const usePembelianHO = () => {
             };
             
         } catch (err) {
-            console.error('Get detail error:', err);
+            // console.error('Get detail error:', err);
             const errorMsg = err.message || 'Terjadi kesalahan saat mengambil detail pembelian';
             setError(errorMsg);
             return { success: false, data: [], message: errorMsg };
@@ -501,12 +545,12 @@ const usePembelianHO = () => {
                     // Detail fields only (no header fields to trigger detail creation)
                     id_pembelian: parseInt(detailData.idPembelian),
                     id_office: parseInt(detailData.idOffice),
-                    eartag: detailData.eartag,
+                    eartag: String(detailData.eartag), // Convert to string
                     code_eartag: detailData.codeEartag,
                     id_klasifikasi_hewan: parseInt(detailData.idKlasifikasiHewan),
                     harga: parseFloat(detailData.harga),
-                    biaya_truck: parseFloat(detailData.biayaTruck),
                     berat: parseInt(detailData.berat),
+                    // biaya_truk removed from detail since it's now in header only
                     hpp: parseFloat(detailData.hpp),
                     total_harga: parseFloat(detailData.totalHarga)
                 })
@@ -514,7 +558,7 @@ const usePembelianHO = () => {
             
             if (!response.ok) {
                 const errorText = await response.text();
-                console.error('Backend error response:', errorText);
+                // console.error('Backend error response:', errorText);
                 throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
             }
             
@@ -526,7 +570,7 @@ const usePembelianHO = () => {
             };
             
         } catch (err) {
-            console.error('Create detail error:', err);
+            // console.error('Create detail error:', err);
             const errorMsg = err.message || 'Terjadi kesalahan saat menambah detail ternak';
             setError(errorMsg);
             return { success: false, message: errorMsg };
@@ -558,12 +602,12 @@ const usePembelianHO = () => {
                     // Detail fields only (no header fields)
                     id_pembelian: parseInt(detailData.idPembelian),
                     id_office: parseInt(detailData.idOffice),
-                    eartag: detailData.eartag,
+                    eartag: String(detailData.eartag), // Convert to string
                     code_eartag: detailData.codeEartag,
                     id_klasifikasi_hewan: parseInt(detailData.idKlasifikasiHewan),
                     harga: parseFloat(detailData.harga),
-                    biaya_truck: parseFloat(detailData.biayaTruck),
                     berat: parseInt(detailData.berat),
+                    // biaya_truk removed from detail since it's now in header only
                     hpp: parseFloat(detailData.hpp),
                     total_harga: parseFloat(detailData.totalHarga)
                 })
@@ -571,7 +615,7 @@ const usePembelianHO = () => {
             
             if (!response.ok) {
                 const errorText = await response.text();
-                console.error('Backend error response:', errorText);
+                // console.error('Backend error response:', errorText);
                 throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
             }
             
@@ -583,7 +627,7 @@ const usePembelianHO = () => {
             };
             
         } catch (err) {
-            console.error('Update detail error:', err);
+            // console.error('Update detail error:', err);
             const errorMsg = err.message || 'Terjadi kesalahan saat memperbarui detail ternak';
             setError(errorMsg);
             return { success: false, message: errorMsg };
@@ -608,6 +652,7 @@ const usePembelianHO = () => {
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest', // Help with CORS preflight
                     ...authHeader
                 },
                 body: JSON.stringify({
@@ -617,7 +662,7 @@ const usePembelianHO = () => {
             
             if (!response.ok) {
                 const errorText = await response.text();
-                console.error('Backend error response:', errorText);
+                // console.error('Backend error response:', errorText);
                 throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
             }
             
@@ -629,7 +674,7 @@ const usePembelianHO = () => {
             };
             
         } catch (err) {
-            console.error('Delete detail error:', err);
+            // console.error('Delete detail error:', err);
             const errorMsg = err.message || 'Terjadi kesalahan saat menghapus detail ternak';
             setError(errorMsg);
             return { success: false, message: errorMsg };

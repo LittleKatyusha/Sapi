@@ -52,6 +52,7 @@ import AddEditPembelianPage from './pages/ho/pembelian/AddEditPembelianPage';
 import DistribusiPage from './pages/ho/pembelian/DistribusiPage';
 import PenjualanHOPage from './pages/ho/penjualan/PenjualanHOPage';
 import AddEditPenjualanPage from './pages/ho/penjualan/AddEditPenjualanPage';
+import PenjualanDetailPage from './pages/ho/penjualan/PenjualanDetailPage';
 
 const AppWrapperSecure = () => (
   <Router>
@@ -84,6 +85,7 @@ const pageTitleMap = {
   '/ho/penjualan': 'Head Office: Penjualan',
   '/ho/penjualan/add': 'Head Office: Tambah Penjualan',
   '/ho/penjualan/edit/:id': 'Head Office: Edit Penjualan',
+  '/ho/penjualan/detail/:id': 'Head Office: Detail Penjualan',
   '/boning/keuangan': 'Boning: Keuangan',
   '/boning/pembelian': 'Boning: Pembelian',
   '/boning/penjualan': 'Boning: Penjualan',
@@ -437,6 +439,7 @@ function AppSecure() {
             <Route path="/ho/penjualan" element={<PenjualanHOPage />} />
             <Route path="/ho/penjualan/add" element={<AddEditPenjualanPage />} />
             <Route path="/ho/penjualan/edit/:id" element={<AddEditPenjualanPage />} />
+            <Route path="/ho/penjualan/detail/:id" element={<PenjualanDetailPage />} />
 
             {/* Rute System */}
             <Route path="/system/role" element={<RolePage />} />

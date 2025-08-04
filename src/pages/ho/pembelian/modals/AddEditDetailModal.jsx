@@ -41,7 +41,7 @@ const AddEditDetailModal = ({
                     codeEartag: editData.code_eartag || '',
                     idKlasifikasiHewan: editData.id_klasifikasi_hewan || '',
                     harga: editData.harga || '',
-                    biayaTruck: editData.biaya_truck || '',
+                    biayaTruck: editData.biaya_truk || '',
                     berat: editData.berat || '',
                     hpp: editData.hpp || '',
                     totalHarga: editData.total_harga || ''
@@ -289,11 +289,11 @@ const AddEditDetailModal = ({
                             )}
                         </div>
 
-                        {/* Biaya Truck */}
+                        {/* Markup */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 <Truck className="w-4 h-4 inline mr-1" />
-                                Biaya Truck
+                                Markup
                             </label>
                             <input
                                 type="number"
@@ -303,7 +303,7 @@ const AddEditDetailModal = ({
                                 min="0"
                                 step="0.01"
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                                placeholder="Masukkan biaya truck"
+                                placeholder="Masukkan markup"
                                 disabled={loading}
                             />
                         </div>
@@ -321,7 +321,7 @@ const AddEditDetailModal = ({
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50"
                                 placeholder="Otomatis dihitung"
                             />
-                            <p className="text-xs text-gray-500 mt-1">Otomatis: Harga + Biaya Truck</p>
+                            <p className="text-xs text-gray-500 mt-1">Otomatis: Harga + Markup</p>
                         </div>
 
                         {/* Total Harga (Read-only, calculated) */}
@@ -345,7 +345,7 @@ const AddEditDetailModal = ({
                     <div className="bg-green-50 p-4 rounded-lg">
                         <p className="text-sm text-green-700">
                             <strong>Info:</strong> Data Eartag dan Klasifikasi Hewan dimuat dari master data melalui endpoint parameter terpusat.
-                            HPP dan Total Harga akan dihitung otomatis berdasarkan harga dan biaya truck.
+                            HPP dan Total Harga akan dihitung otomatis berdasarkan harga dan markup.
                         </p>
                     </div>
 

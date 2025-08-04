@@ -63,7 +63,7 @@ const DistribusiPage = () => {
                         }
                     }
                 } catch (err) {
-                    console.error('Error fetching detail:', err);
+                    // console.error('Error fetching detail:', err);
                 }
             }
         };
@@ -212,12 +212,12 @@ const DistribusiPage = () => {
         },
         {
             name: 'Klasifikasi',
-            selector: row => row.nama_klasifikasi,
+            selector: row => row.nama_klasifikasi_hewan,
             sortable: true,
             width: '120px',
             cell: row => (
                 <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                    {row.nama_klasifikasi || 'N/A'}
+                    {row.nama_klasifikasi_hewan || 'N/A'}
                 </span>
             )
         },
@@ -244,13 +244,13 @@ const DistribusiPage = () => {
             )
         },
         {
-            name: 'Biaya Truck',
-            selector: row => row.biaya_truck,
+            name: 'Markup',
+            selector: row => row.markup_percentage,
             sortable: true,
             width: '120px',
             cell: row => (
-                <span className="text-gray-900">
-                    {row.biaya_truck ? `Rp ${Number(row.biaya_truck).toLocaleString('id-ID')}` : '-'}
+                <span className="text-green-600 font-medium">
+                    {row.markup_percentage ? `${row.markup_percentage}%` : '-'}
                 </span>
             )
         },

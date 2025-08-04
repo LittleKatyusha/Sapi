@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Building2, User, Calendar, Truck, Hash, Package, Eye, Plus } from 'lucide-react';
 import usePembelianHO from './hooks/usePembelianHO';
+import useParameterSelect from './hooks/useParameterSelect';
 import customTableStyles from './constants/tableStyles';
 import DataTable from 'react-data-table-component';
 import DetailActionButton from './components/DetailActionButton';
@@ -20,6 +21,9 @@ const PembelianDetailPage = () => {
         loading,
         error
     } = usePembelianHO();
+    
+    // Get classification data for fallback lookup
+    const { klasifikasiHewanOptions } = useParameterSelect();
     
     const [pembelianData, setPembelianData] = useState(null);
     const [detailData, setDetailData] = useState([]);
@@ -52,13 +56,14 @@ const PembelianDetailPage = () => {
                                 tgl_masuk: firstDetail.tgl_masuk || '',
                                 nama_supir: firstDetail.nama_supir || '',
                                 plat_nomor: firstDetail.plat_nomor || '',
+                                biaya_lain: firstDetail.biaya_lain || 0,
                                 jumlah: firstDetail.jumlah_total || result.data.length
                             });
                             setDetailData(result.data);
                         }
                     }
                 } catch (err) {
-                    console.error('Error fetching detail:', err);
+                    // console.error('Error fetching detail:', err);
                 }
             }
         };
@@ -101,7 +106,7 @@ const PembelianDetailPage = () => {
     };
 
     const handleCloneDetail = (detail) => {
-        console.log('Clone detail:', detail);
+        // console.log('Clone detail:', detail);
         // Create cloned data with modified fields
         const clonedData = {
             ...detail,
@@ -249,12 +254,12 @@ const PembelianDetailPage = () => {
         },
         {
             name: 'Klasifikasi',
-            selector: row => row.nama_klasifikasi,
+            selector: row => 'N/A',
             sortable: true,
             width: '120px',
             cell: row => (
-                <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                    {row.nama_klasifikasi || 'N/A'}
+                <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">
+                    N/A
                 </span>
             )
         },
@@ -281,15 +286,34 @@ const PembelianDetailPage = () => {
             )
         },
         {
-            name: 'Biaya Truck',
-            selector: row => row.biaya_truck,
+            name: 'Markup',
+            selector: row => {
+                // Calculate markup percentage from harga and hpp
+                const harga = parseFloat(row.harga) || 0;
+                const hpp = parseFloat(row.hpp) || 0;
+                if (harga > 0 && hpp > harga) {
+                    return ((hpp - harga) / harga * 100).toFixed(1);
+                }
+                return 0;
+            },
             sortable: true,
             width: '120px',
-            cell: row => (
-                <span className="text-gray-900">
-                    {row.biaya_truck ? `Rp ${Number(row.biaya_truck).toLocaleString('id-ID')}` : '-'}
-                </span>
-            )
+            cell: row => {
+                // Calculate markup percentage from harga and hpp
+                const harga = parseFloat(row.harga) || 0;
+                const hpp = parseFloat(row.hpp) || 0;
+                let markupPercentage = 0;
+                
+                if (harga > 0 && hpp > harga) {
+                    markupPercentage = ((hpp - harga) / harga * 100).toFixed(1);
+                }
+                
+                return (
+                    <span className="text-green-600 font-medium">
+                        {markupPercentage > 0 ? `${markupPercentage}%` : '-'}
+                    </span>
+                );
+            }
         },
         {
             name: 'HPP',
@@ -322,7 +346,7 @@ const PembelianDetailPage = () => {
                     rowIndex={index}
                     openMenuIndex={openDetailMenuIndex}
                     onOpenMenu={handleOpenMenu}
-                    onEdit={handleEditDetail}
+                    onEdit={null} // Disabled edit functionality
                     onDelete={handleDeleteDetail}
                     onClone={handleCloneDetail}
                 />
@@ -460,6 +484,21 @@ const PembelianDetailPage = () => {
                                 {pembelianData.plat_nomor || '-'}
                             </p>
                         </div>
+
+                        <div className="bg-gradient-to-r from-yellow-50 to-orange-50 p-4 rounded-lg">
+                            <label className="block text-sm font-medium text-gray-600 mb-2">
+                                <Package className="w-4 h-4 inline mr-1" />
+                                Biaya Lain
+                            </label>
+                            <p className="text-lg font-bold text-gray-900">
+                                {pembelianData.biaya_lain ? new Intl.NumberFormat('id-ID', {
+                                    style: 'currency',
+                                    currency: 'IDR',
+                                    minimumFractionDigits: 0,
+                                    maximumFractionDigits: 0
+                                }).format(pembelianData.biaya_lain) : 'Rp 0'}
+                            </p>
+                        </div>
                     </div>
 
                     {/* Summary */}
@@ -504,14 +543,7 @@ const PembelianDetailPage = () => {
                                     Rincian setiap ternak dalam pembelian ini
                                 </p>
                             </div>
-                            <button
-                                onClick={handleAddDetail}
-                                className="bg-gradient-to-r from-purple-500 to-purple-600 text-white px-4 py-2 rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all duration-300 flex items-center gap-2 text-sm font-medium"
-                                disabled={loading}
-                            >
-                                <Plus className="w-4 h-4" />
-                                Tambah Detail
-                            </button>
+                            {/* Button Tambah Detail dihilangkan sesuai permintaan */}
                         </div>
                     </div>
                     
@@ -683,7 +715,7 @@ const PembelianDetailPage = () => {
                 {openDetailMenuIndex !== null && activeButtonRef && activeRowData && (
                     <DetailActionMenu
                         row={activeRowData}
-                        onEdit={handleEditDetail}
+                        onEdit={null} // Edit disabled - detail page is read-only for editing
                         onDelete={handleDeleteDetail}
                         onClone={handleCloneDetail}
                         onClose={handleCloseMenu}

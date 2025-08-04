@@ -249,6 +249,24 @@ const PembelianCard = ({
                         }).format(data.total_belanja) : 'Rp 0'}
                     </span>
                 </div>
+
+                {/* Biaya Lain */}
+                <div>
+                    <div className="flex items-center gap-2 mb-1.5">
+                        <div className="p-1.5 rounded-lg bg-orange-100">
+                            <Package className="w-4 h-4 text-orange-600" />
+                        </div>
+                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Biaya Lain</span>
+                    </div>
+                    <span className="inline-flex px-4 py-2 text-base font-bold rounded-xl bg-gradient-to-r from-orange-100 to-amber-100 text-orange-800 shadow-inner">
+                        {data.biaya_lain ? new Intl.NumberFormat('id-ID', {
+                            style: 'currency',
+                            currency: 'IDR',
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 0
+                        }).format(data.biaya_lain) : 'Rp 0'}
+                    </span>
+                </div>
             </div>
         </div>
     );
