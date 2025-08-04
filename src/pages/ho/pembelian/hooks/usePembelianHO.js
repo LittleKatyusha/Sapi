@@ -546,7 +546,6 @@ const usePembelianHO = () => {
                     id_pembelian: parseInt(detailData.idPembelian),
                     id_office: parseInt(detailData.idOffice),
                     eartag: String(detailData.eartag), // Convert to string
-                    code_eartag: detailData.codeEartag,
                     id_klasifikasi_hewan: parseInt(detailData.idKlasifikasiHewan),
                     harga: parseFloat(detailData.harga),
                     berat: parseInt(detailData.berat),
@@ -603,7 +602,6 @@ const usePembelianHO = () => {
                     id_pembelian: parseInt(detailData.idPembelian),
                     id_office: parseInt(detailData.idOffice),
                     eartag: String(detailData.eartag), // Convert to string
-                    code_eartag: detailData.codeEartag,
                     id_klasifikasi_hewan: parseInt(detailData.idKlasifikasiHewan),
                     harga: parseFloat(detailData.harga),
                     berat: parseInt(detailData.berat),

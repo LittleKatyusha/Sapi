@@ -21,7 +21,6 @@ const AddEditDetailModal = ({
     } = useParameterSelect();
     const [formData, setFormData] = useState({
         eartag: '',
-        codeEartag: '',
         idKlasifikasiHewan: '',
         harga: '',
         biayaTruck: '',
@@ -38,7 +37,6 @@ const AddEditDetailModal = ({
             if (editData) {
                 setFormData({
                     eartag: editData.eartag || '',
-                    codeEartag: editData.code_eartag || '',
                     idKlasifikasiHewan: editData.id_klasifikasi_hewan || '',
                     harga: editData.harga || '',
                     biayaTruck: editData.biaya_truk || '',
@@ -49,7 +47,6 @@ const AddEditDetailModal = ({
             } else {
                 setFormData({
                     eartag: '',
-                    codeEartag: '',
                     idKlasifikasiHewan: '',
                     harga: '',
                     biayaTruck: '',
@@ -101,10 +98,6 @@ const AddEditDetailModal = ({
 
         if (!formData.eartag.trim()) {
             newErrors.eartag = 'Eartag harus diisi';
-        }
-
-        if (!formData.codeEartag.trim()) {
-            newErrors.codeEartag = 'Code eartag harus diisi';
         }
 
         if (!formData.idKlasifikasiHewan) {
@@ -199,26 +192,22 @@ const AddEditDetailModal = ({
                             )}
                         </div>
 
-                        {/* Code Eartag */}
+                        {/* Info about auto-generated code eartag */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 <Hash className="w-4 h-4 inline mr-1" />
-                                Code Eartag *
+                                Code Eartag
                             </label>
-                            <input
-                                type="text"
-                                name="codeEartag"
-                                value={formData.codeEartag}
-                                onChange={handleInputChange}
-                                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
-                                    errors.codeEartag ? 'border-red-500' : 'border-gray-300'
-                                }`}
-                                placeholder="Masukkan code eartag"
-                                disabled={loading}
-                            />
-                            {errors.codeEartag && (
-                                <p className="text-red-500 text-sm mt-1">{errors.codeEartag}</p>
-                            )}
+                            <div className="w-full px-4 py-2 border border-blue-300 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 text-gray-700 flex items-center gap-2">
+                                <Hash className="w-4 h-4 text-blue-600" />
+                                <span>Auto-generated oleh backend</span>
+                                <span className="ml-auto text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
+                                    Otomatis
+                                </span>
+                            </div>
+                            <p className="text-xs text-blue-600 mt-1">
+                                💡 Code eartag akan di-generate otomatis saat data disimpan
+                            </p>
                         </div>
 
                         {/* Klasifikasi Hewan */}
