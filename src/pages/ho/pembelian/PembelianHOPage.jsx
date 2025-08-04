@@ -54,12 +54,6 @@ const PembelianHOPage = () => {
         setOpenMenuId(null);
     };
 
-    const handleDistribusi = (pembelian) => {
-        // console.log('Distribusi pembelian:', pembelian);
-        const id = pembelian.encryptedPid || pembelian.pubid || pembelian.id;
-        navigate(`/ho/distribusi/${encodeURIComponent(id)}`);
-        setOpenMenuId(null);
-    };
 
     const handleDelete = (pembelian) => {
         // console.log('Delete pembelian:', pembelian);
@@ -292,9 +286,7 @@ const PembelianHOPage = () => {
                     onEdit={handleEdit}
                     onDelete={handleDelete}
                     onDetail={handleDetail}
-                    onDistribusi={handleDistribusi}
                     isActive={openMenuId === (row.id || row.pubid)}
-                    showDistribusi={true}
                 />
             ),
             ignoreRowClick: true,
@@ -592,7 +584,6 @@ const PembelianHOPage = () => {
                                         onEdit={handleEdit}
                                         onDelete={handleDelete}
                                         onDetail={handleDetail}
-                                        onDistribusi={handleDistribusi}
                                     />
                                 ))}
                             </div>

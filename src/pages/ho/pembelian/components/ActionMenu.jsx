@@ -1,8 +1,8 @@
 import React, { useRef, useEffect, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Eye, Edit, Copy, Trash2, Truck } from 'lucide-react';
+import { Eye, Edit, Copy, Trash2 } from 'lucide-react';
 
-const ActionMenu = ({ row, onEdit, onDelete, onDetail, onDistribusi, onClose, buttonRef, showDistribusi = true }) => {
+const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef }) => {
     const menuRef = useRef(null);
     const [menuStyle, setMenuStyle] = useState(null);
 
@@ -56,17 +56,6 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onDistribusi, onClose, bu
             hoverBg: 'group-hover:bg-amber-200',
             text: 'text-amber-600',
         },
-        // Conditionally include Distribusi option
-        ...(showDistribusi ? [{
-            label: 'Distribusi',
-            icon: Truck,
-            onClick: () => onDistribusi(row),
-            className: 'text-gray-700',
-            description: 'Distribusi ke outlet',
-            bg: 'bg-emerald-100',
-            hoverBg: 'group-hover:bg-emerald-200',
-            text: 'text-emerald-600',
-        }] : []),
         {
             divider: true
         },

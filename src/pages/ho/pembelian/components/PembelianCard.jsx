@@ -19,7 +19,6 @@ const PembelianCard = ({
     onEdit,
     onDelete,
     onDetail,
-    onDistribusi,
     index
 }) => {
     const [showMenu, setShowMenu] = useState(false);
@@ -63,12 +62,6 @@ const PembelianCard = ({
         setShowMenu(false);
     };
 
-    const handleDistribusi = () => {
-        if (onDistribusi) {
-            onDistribusi(data);
-        }
-        setShowMenu(false);
-    };
 
     return (
         <div className="bg-white rounded-2xl p-5 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 relative overflow-hidden">
@@ -108,15 +101,6 @@ const PembelianCard = ({
                                 <Edit className="w-4 h-4 text-amber-500" />
                                 Edit
                             </button>
-                            {onDistribusi && (
-                                <button
-                                    onClick={handleDistribusi}
-                                    className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150"
-                                >
-                                    <Truck className="w-4 h-4 text-emerald-500" />
-                                    Distribusi
-                                </button>
-                            )}
                             <button
                                 onClick={handleDelete}
                                 className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors duration-150"
