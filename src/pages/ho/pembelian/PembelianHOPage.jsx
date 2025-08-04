@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DataTable from 'react-data-table-component';
-import { PlusCircle, Search, Filter, ShoppingCart, Building2, Truck, User } from 'lucide-react';
+import { PlusCircle, Search, Filter, ShoppingCart, Building2, Truck, User, X, Loader2 } from 'lucide-react';
 
 import usePembelianHO from './hooks/usePembelianHO';
 import ActionButton from './components/ActionButton';
@@ -27,9 +27,16 @@ const PembelianHOPage = () => {
         setSearchTerm,
         filterStatus,
         setFilterStatus,
+        isSearching,
+        searchError,
         stats,
         serverPagination,
         fetchPembelian,
+        handleSearch,
+        clearSearch,
+        handleFilter,
+        handlePageChange: handleServerPageChange,
+        handlePerPageChange: handleServerPerPageChange,
         createPembelian,
         updatePembelian,
         deletePembelian,
@@ -99,11 +106,11 @@ const PembelianHOPage = () => {
 
     // Pagination handlers for mobile cards - using server-side pagination
     const handlePageChange = (page) => {
-        fetchPembelian(page, serverPagination.perPage);
+        handleServerPageChange(page);
     };
 
     const handleItemsPerPageChange = (newItemsPerPage) => {
-        fetchPembelian(1, newItemsPerPage);
+        handleServerPerPageChange(newItemsPerPage);
     };
 
     // Auto-hide notification
@@ -344,13 +351,37 @@ const PembelianHOPage = () => {
                     <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 md:gap-6 sm:items-center sm:justify-between">
                         <div className="relative flex-1 max-w-full sm:max-w-md lg:max-w-lg">
                             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                            
+                            {/* Loading spinner for search */}
+                            {isSearching && (
+                                <Loader2 className="absolute right-12 top-1/2 transform -translate-y-1/2 w-4 h-4 text-red-500 animate-spin" />
+                            )}
+                            
+                            {/* Clear search button */}
+                            {searchTerm && !isSearching && (
+                                <button
+                                    onClick={clearSearch}
+                                    className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                                    title="Clear search"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            )}
+                            
                             <input
                                 type="text"
-                                placeholder="Cari pembelian..."
+                                placeholder="Cari berdasarkan nota, supplier, office, supir, atau plat nomor..."
                                 value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-12 pr-4 py-2.5 sm:py-3 md:py-4 border border-gray-300 rounded-full focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all duration-200 text-sm sm:text-base shadow-sm hover:shadow-md"
+                                onChange={(e) => handleSearch(e.target.value)}
+                                className={`w-full pl-12 ${searchTerm || isSearching ? 'pr-12' : 'pr-4'} py-2.5 sm:py-3 md:py-4 border ${searchError ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-red-500'} rounded-full transition-all duration-200 text-sm sm:text-base shadow-sm hover:shadow-md`}
                             />
+                            
+                            {/* Search error message */}
+                            {searchError && (
+                                <div className="absolute top-full left-0 right-0 mt-1 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                                    {searchError}
+                                </div>
+                            )}
                         </div>
 
                         <div className="flex flex-wrap gap-2 sm:gap-3 md:gap-4">
@@ -358,7 +389,7 @@ const PembelianHOPage = () => {
                                 <Filter className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
                                 <select
                                     value={filterStatus}
-                                    onChange={(e) => setFilterStatus(e.target.value)}
+                                    onChange={(e) => handleFilter(e.target.value)}
                                     className="px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 text-sm sm:text-base shadow-sm hover:shadow-md transition-all duration-200"
                                 >
                                     <option value="all">Semua</option>
@@ -378,8 +409,13 @@ const PembelianHOPage = () => {
                             columns={columns}
                             data={filteredData}
                             pagination
-                            paginationPerPage={10}
-                            paginationRowsPerPageOptions={[5, 10, 15, 20]}
+                            paginationServer
+                            paginationTotalRows={serverPagination.totalItems}
+                            paginationDefaultPage={serverPagination.currentPage}
+                            paginationPerPage={serverPagination.perPage}
+                            paginationRowsPerPageOptions={[10, 25, 50, 100]}
+                            onChangeRowsPerPage={handleServerPerPageChange}
+                            onChangePage={handleServerPageChange}
                             customStyles={{
                                 ...customTableStyles,
                                 table: {
@@ -486,6 +522,17 @@ const PembelianHOPage = () => {
                                             <p className="text-lg font-semibold">Error</p>
                                             <p className="text-sm">{error}</p>
                                         </div>
+                                    ) : searchTerm ? (
+                                        <div className="text-gray-500">
+                                            <p className="text-lg font-semibold">Tidak ada hasil untuk "{searchTerm}"</p>
+                                            <p className="text-sm mt-2">Coba gunakan kata kunci yang berbeda</p>
+                                            <button
+                                                onClick={clearSearch}
+                                                className="mt-3 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors duration-200 text-sm"
+                                            >
+                                                Clear Search
+                                            </button>
+                                        </div>
                                     ) : (
                                         <p className="text-gray-500 text-lg">Tidak ada data pembelian ditemukan</p>
                                     )}
@@ -517,7 +564,20 @@ const PembelianHOPage = () => {
                     ) : filteredData.length === 0 ? (
                         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
                             <div className="text-center">
-                                <p className="text-gray-500 text-lg">Tidak ada data pembelian ditemukan</p>
+                                {searchTerm ? (
+                                    <div className="text-gray-500">
+                                        <p className="text-lg font-semibold">Tidak ada hasil untuk "{searchTerm}"</p>
+                                        <p className="text-sm mt-2">Coba gunakan kata kunci yang berbeda</p>
+                                        <button
+                                            onClick={clearSearch}
+                                            className="mt-3 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors duration-200 text-sm"
+                                        >
+                                            Clear Search
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <p className="text-gray-500 text-lg">Tidak ada data pembelian ditemukan</p>
+                                )}
                             </div>
                         </div>
                     ) : (
@@ -546,7 +606,7 @@ const PembelianHOPage = () => {
                                     itemsPerPage={serverPagination.perPage}
                                     onPageChange={handlePageChange}
                                     onItemsPerPageChange={handleItemsPerPageChange}
-                                    itemsPerPageOptions={[5, 10, 15, 20, 50, 100]}
+                                    itemsPerPageOptions={[10, 25, 50, 100]}
                                     loading={loading}
                                 />
                             </div>

@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useAuthSecure } from '../../../../hooks/useAuthSecure';
 
 // Helper function to safely parse JSON response
@@ -36,6 +36,8 @@ const usePembelianHO = () => {
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
+    const [isSearching, setIsSearching] = useState(false);
+    const [searchError, setSearchError] = useState(null);
 
     // API Base URL - hardcoded for proxy to work with CORS
     const API_BASE = `https://puput-api.ternasys.com/api/ho/pembelian`;
@@ -45,13 +47,18 @@ const usePembelianHO = () => {
         currentPage: 1,
         totalPages: 1,
         totalItems: 0,
-        perPage: 1000
+        perPage: 10
     });
 
     // Fetch pembelian data from API with DataTables server-side pagination format
-    const fetchPembelian = useCallback(async (page = 1, perPage = 1000) => {
+    const fetchPembelian = useCallback(async (page = 1, perPage = null, search = null, filter = null, isSearchRequest = false) => {
         setLoading(true);
         setError(null);
+        setSearchError(null);
+        
+        if (isSearchRequest) {
+            setIsSearching(true);
+        }
         
         try {
             const authHeader = getAuthHeader();
@@ -59,18 +66,29 @@ const usePembelianHO = () => {
                 throw new Error('Token authentication tidak ditemukan. Silakan login ulang.');
             }
             
+            // Use current state if parameters not provided
+            const currentPage = page || serverPagination.currentPage;
+            const currentPerPage = perPage || serverPagination.perPage;
+            const currentSearch = search !== null ? search : searchTerm;
+            const currentFilter = filter !== null ? filter : filterStatus;
+            
             // console.log('Fetching pembelian HO from backend...');
             
             // DataTables pagination parameters for server-side processing
-            const start = (page - 1) * perPage;
+            const start = (currentPage - 1) * currentPerPage;
             const params = new URLSearchParams({
                 'start': start.toString(),
-                'length': perPage.toString(),
+                'length': currentPerPage.toString(),
                 'draw': Date.now().toString(),
-                'search[value]': searchTerm || '',
+                'search[value]': currentSearch || '',
                 'order[0][column]': '0',
                 'order[0][dir]': 'asc'
             });
+            
+            // Add filter parameter if needed (can be extended for date filters)
+            if (currentFilter && currentFilter !== 'all') {
+                params.append('filter', currentFilter);
+            }
             
             const response = await fetch(`${API_BASE}/data?${params.toString()}`, {
                 method: 'GET',
@@ -130,69 +148,36 @@ const usePembelianHO = () => {
             
             // Update server pagination state with backend data
             setServerPagination({
-                currentPage: page,
-                totalPages: Math.ceil(totalRecords / perPage),
+                currentPage: currentPage,
+                totalPages: Math.ceil(filteredRecords / currentPerPage),
                 totalItems: totalRecords,
                 filteredItems: filteredRecords,
-                perPage: perPage
+                perPage: currentPerPage
             });
             
             if (dataArray.length >= 0) {
-                const validatedData = await Promise.all(dataArray.map(async (item, index) => {
-                    // Base data without total_belanja
-                    const baseData = {
-                        pubid: item.pubid || `TEMP-${index + 1}`,
-                        encryptedPid: item.encrypted_pid || item.pid || item.pubid,
-                        nota: item.nota || '',
-                        nama_supplier: item.nama_supplier || 'Supplier tidak tersedia',
-                        nama_office: item.nama_office || '',
-                        tgl_masuk: item.tgl_masuk || new Date().toISOString().split('T')[0],
-                        nama_supir: item.nama_supir || '',
-                        plat_nomor: item.plat_nomor || '',
-                        jumlah: parseInt(item.jumlah) || 0,
-                        status: item.status !== undefined ? item.status : 1,
-                        createdAt: item.created_at || new Date().toISOString(),
-                        updatedAt: item.updated_at || new Date().toISOString(),
-                        id: item.pubid || `TEMP-${index + 1}`
-                    };
-
-                    // Calculate total_belanja from detail data
-                    let total_belanja = 0;
-                    try {
-                        if (item.pid || item.pubid) {
-                            const detailResponse = await fetch(`${API_BASE}/show`, {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'Accept': 'application/json',
-                                    ...authHeader
-                                },
-                                body: JSON.stringify({
-                                    pid: item.pid || item.pubid
-                                })
-                            });
-                            
-                            if (detailResponse.ok) {
-                                const detailResult = await safeJsonParse(detailResponse);
-                                if (detailResult.data && Array.isArray(detailResult.data)) {
-                                    total_belanja = detailResult.data.reduce((sum, detail) => {
-                                        return sum + (parseFloat(detail.total_harga) || 0);
-                                    }, 0);
-                                }
-                            }
-                        }
-                    } catch (error) {
-                        // console.warn(`Failed to fetch details for ${item.nota}:`, error.message);
-                        total_belanja = 0;
-                    }
-
-                    return {
-                        ...baseData,
-                        total_belanja
-                    };
+                // For server-side pagination, we should use the data as-is from backend
+                // without fetching additional detail data to avoid performance issues
+                const validatedData = dataArray.map((item, index) => ({
+                    pubid: item.pubid || `TEMP-${index + 1}`,
+                    encryptedPid: item.encrypted_pid || item.pid || item.pubid,
+                    nota: item.nota || '',
+                    nama_supplier: item.nama_supplier || 'Supplier tidak tersedia',
+                    nama_office: item.nama_office || '',
+                    tgl_masuk: item.tgl_masuk || new Date().toISOString().split('T')[0],
+                    nama_supir: item.nama_supir || '',
+                    plat_nomor: item.plat_nomor || '',
+                    jumlah: parseInt(item.jumlah) || 0,
+                    status: item.status !== undefined ? item.status : 1,
+                    total_belanja: parseFloat(item.total_belanja) || 0,
+                    biaya_lain: parseFloat(item.biaya_lain) || 0,
+                    biaya_truk: parseFloat(item.biaya_truk) || 0,
+                    createdAt: item.created_at || new Date().toISOString(),
+                    updatedAt: item.updated_at || new Date().toISOString(),
+                    id: item.pubid || `TEMP-${index + 1}`
                 }));
                 
-                // console.log('Validated pembelian data with calculated total_belanja:', validatedData.slice(0, 2));
+                // console.log('Validated pembelian data:', validatedData.slice(0, 2));
                 setPembelian(validatedData);
             } else {
                 // console.warn('No pembelian data received from API');
@@ -201,14 +186,21 @@ const usePembelianHO = () => {
             
         } catch (err) {
             // console.error('Error in fetchPembelian:', err);
-            setError(err.message || 'Terjadi kesalahan saat mengambil data pembelian');
+            const errorMessage = err.message || 'Terjadi kesalahan saat mengambil data pembelian';
+            
+            if (isSearchRequest) {
+                setSearchError(errorMessage);
+            } else {
+                setError(errorMessage);
+            }
             
             // Fallback to empty data
             setPembelian([]);
         } finally {
             setLoading(false);
+            setIsSearching(false);
         }
-    }, [getAuthHeader, searchTerm]);
+    }, [getAuthHeader, searchTerm, filterStatus, serverPagination.currentPage, serverPagination.perPage]);
 
     // Create pembelian - handle header + details array format
     const createPembelian = useCallback(async (pembelianData) => {
@@ -295,7 +287,7 @@ const usePembelianHO = () => {
             }
             
             const result = await safeJsonParse(response);
-            await fetchPembelian(1, 1000); // Refresh data
+            await fetchPembelian(1, serverPagination.perPage); // Refresh data
             
             return {
                 success: result.status === 'ok' || result.success === true,
@@ -389,7 +381,7 @@ const usePembelianHO = () => {
             }
             
             const result = await safeJsonParse(response);
-            await fetchPembelian(1, 1000); // Refresh data
+            await fetchPembelian(serverPagination.currentPage, serverPagination.perPage); // Refresh data
             
             return {
                 success: result.status === 'ok' || result.success === true,
@@ -445,7 +437,7 @@ const usePembelianHO = () => {
             }
             
             const result = await safeJsonParse(response);
-            await fetchPembelian(1, 1000); // Refresh data
+            await fetchPembelian(serverPagination.currentPage, serverPagination.perPage); // Refresh data
             
             return {
                 success: result.status === 'ok' || result.success === true,
@@ -709,47 +701,72 @@ const usePembelianHO = () => {
         };
     }, [pembelian]);
 
-    // Filtered data based on search and filter
-    const filteredPembelian = useMemo(() => {
-        let filtered = pembelian;
+    // Enhanced debounced search handler with loading states
+    const searchTimeoutRef = useRef(null);
+    
+    const handleSearch = useCallback((newSearchTerm) => {
+        setSearchTerm(newSearchTerm);
+        setSearchError(null);
         
-        // Filter based on search term
-        if (searchTerm) {
-            filtered = filtered.filter(item =>
-                item.nama_supplier.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                item.nama_office.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                item.nota.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                item.nama_supir.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                item.plat_nomor.toLowerCase().includes(searchTerm.toLowerCase())
-            );
+        // Clear previous timeout
+        if (searchTimeoutRef.current) {
+            clearTimeout(searchTimeoutRef.current);
         }
         
-        // Filter based on date range
-        if (filterStatus !== 'all') {
-            const now = new Date();
-            if (filterStatus === 'today') {
-                const today = now.toDateString();
-                filtered = filtered.filter(item => {
-                    const itemDate = new Date(item.tgl_masuk).toDateString();
-                    return itemDate === today;
-                });
-            } else if (filterStatus === 'week') {
-                const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-                filtered = filtered.filter(item => {
-                    const itemDate = new Date(item.tgl_masuk);
-                    return itemDate >= weekAgo && itemDate <= now;
-                });
-            } else if (filterStatus === 'month') {
-                const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-                filtered = filtered.filter(item => {
-                    const itemDate = new Date(item.tgl_masuk);
-                    return itemDate >= monthAgo && itemDate <= now;
-                });
+        // If search term is empty, fetch immediately without debouncing
+        if (!newSearchTerm.trim()) {
+            fetchPembelian(1, serverPagination.perPage, '', filterStatus, false);
+            return;
+        }
+        
+        // Set new timeout for debounced search with shorter delay (300ms)
+        searchTimeoutRef.current = setTimeout(() => {
+            fetchPembelian(1, serverPagination.perPage, newSearchTerm, filterStatus, true);
+        }, 300); // 300ms delay for better UX
+    }, [fetchPembelian, serverPagination.perPage, filterStatus]);
+    
+    // Clear search function
+    const clearSearch = useCallback(() => {
+        setSearchTerm('');
+        setSearchError(null);
+        
+        // Clear any pending search timeout
+        if (searchTimeoutRef.current) {
+            clearTimeout(searchTimeoutRef.current);
+        }
+        
+        // Fetch data without search filter
+        fetchPembelian(1, serverPagination.perPage, '', filterStatus, false);
+    }, [fetchPembelian, serverPagination.perPage, filterStatus]);
+    
+    // Cleanup timeout on unmount
+    useEffect(() => {
+        return () => {
+            if (searchTimeoutRef.current) {
+                clearTimeout(searchTimeoutRef.current);
             }
-        }
-        
-        return filtered;
-    }, [pembelian, searchTerm, filterStatus]);
+        };
+    }, []);
+
+    // Filter handler - triggers new API request and resets to page 1
+    const handleFilter = useCallback((newFilter) => {
+        setFilterStatus(newFilter);
+        setSearchError(null);
+        fetchPembelian(1, serverPagination.perPage, searchTerm, newFilter, false);
+    }, [fetchPembelian, serverPagination.perPage, searchTerm]);
+
+    // Pagination handlers - maintain search term and filter
+    const handlePageChange = useCallback((newPage) => {
+        fetchPembelian(newPage, serverPagination.perPage, searchTerm, filterStatus, false);
+    }, [fetchPembelian, serverPagination.perPage, searchTerm, filterStatus]);
+
+    const handlePerPageChange = useCallback((newPerPage) => {
+        fetchPembelian(1, newPerPage, searchTerm, filterStatus, false);
+    }, [fetchPembelian, searchTerm, filterStatus]);
+
+    // For server-side pagination, we don't need client-side filtering
+    // The data returned is already filtered by the server
+    const filteredPembelian = pembelian;
 
     return {
         pembelian: filteredPembelian,
@@ -760,9 +777,16 @@ const usePembelianHO = () => {
         setSearchTerm,
         filterStatus,
         setFilterStatus,
+        isSearching,
+        searchError,
         stats,
         serverPagination,
         fetchPembelian,
+        handleSearch,
+        clearSearch,
+        handleFilter,
+        handlePageChange,
+        handlePerPageChange,
         createPembelian,
         updatePembelian,
         deletePembelian,
