@@ -156,10 +156,7 @@ export const useAuthSecure = () => {
       });
 
       // Login request with required API-KEY (use lowercase since browser converts it)
-      const result = await HttpClient.post(API_ENDPOINTS.AUTH.LOGIN, {
-        ...credentials,
-        deviceFingerprint: deviceFingerprint.current
-      }, {
+      const result = await HttpClient.post(API_ENDPOINTS.AUTH.LOGIN, credentials, {
         headers: getSecurityHeaders()
       });
 
@@ -219,7 +216,7 @@ export const useAuthSecure = () => {
         const headers = {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
-          'api-key': '92b1d1ee96659e5b9630a51808b9372c', // Use lowercase
+          // 'api-key': '92b1d1ee96659e5b9630a51808b9372c', // Temporarily removed
           ...getSecurityHeaders()
         };
 
