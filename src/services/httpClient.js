@@ -30,6 +30,38 @@ const getSecureAuthToken = () => {
 };
 
 /**
+ * Get CSRF token from cookies
+ */
+const getCsrfToken = () => {
+  const cookies = document.cookie.split(';');
+  for (let cookie of cookies) {
+    const [name, value] = cookie.trim().split('=');
+    if (name === 'XSRF-TOKEN') {
+      return decodeURIComponent(value);
+    }
+  }
+  return null;
+};
+
+/**
+ * Initialize CSRF protection by getting CSRF cookie
+ */
+const initializeCsrfProtection = async () => {
+  try {
+    await fetch(`${API_BASE_URL}/sanctum/csrf-cookie`, {
+      method: 'GET',
+      credentials: 'include',
+      headers: {
+        'Accept': 'application/json',
+        'API-KEY': 'putih2024'
+      }
+    });
+  } catch (error) {
+    console.warn('Failed to get CSRF cookie:', error);
+  }
+};
+
+/**
  * Build headers for request
  */
 const buildHeaders = (customHeaders = {}) => {
@@ -39,6 +71,12 @@ const buildHeaders = (customHeaders = {}) => {
   const token = getAuthToken() || getSecureAuthToken();
   if (token) {
     headers.Authorization = `Bearer ${token}`;
+  }
+  
+  // Add CSRF token for stateful requests
+  const csrfToken = getCsrfToken();
+  if (csrfToken) {
+    headers['X-XSRF-TOKEN'] = csrfToken;
   }
   
   return headers;
@@ -84,6 +122,7 @@ class HttpClient {
     const response = await fetch(url, {
       method: 'GET',
       headers: buildHeaders(options.headers),
+      credentials: 'include', // Include cookies for CSRF
       ...options
     });
     
@@ -96,6 +135,11 @@ class HttpClient {
    */
   static async post(endpoint, data = null, options = {}) {
     const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
+    
+    // Initialize CSRF protection for authentication endpoints
+    if (endpoint.includes('/api/login') || endpoint.includes('/sanctum/')) {
+      await initializeCsrfProtection();
+    }
     
     let body = null;
     let headers = buildHeaders(options.headers);
@@ -113,6 +157,7 @@ class HttpClient {
       method: 'POST',
       headers,
       body,
+      credentials: 'include', // Include cookies for CSRF
       ...options
     });
     
@@ -140,6 +185,7 @@ class HttpClient {
       method: 'PUT',
       headers,
       body,
+      credentials: 'include', // Include cookies for CSRF
       ...options
     });
     
@@ -156,6 +202,7 @@ class HttpClient {
     const response = await fetch(url, {
       method: 'DELETE',
       headers: buildHeaders(options.headers),
+      credentials: 'include', // Include cookies for CSRF
       ...options
     });
     
@@ -172,6 +219,7 @@ class HttpClient {
     const response = await fetch(url, {
       method: 'HEAD',
       headers: buildHeaders(options.headers),
+      credentials: 'include', // Include cookies for CSRF
       ...options
     });
     
@@ -199,6 +247,7 @@ class HttpClient {
       method: method.toUpperCase(),
       headers,
       body,
+      credentials: 'include', // Include cookies for CSRF
       ...options
     });
     
@@ -213,4 +262,6 @@ class HttpClient {
   }
 }
 
+// Export the initialize function for use in app initialization
+export const initializeHttpClient = initializeCsrfProtection;
 export default HttpClient;
