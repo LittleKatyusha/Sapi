@@ -1,5 +1,8 @@
 // Token validation utility to help debug authentication issues
 
+import HttpClient from '../services/httpClient';
+import { API_ENDPOINTS } from '../config/api';
+
 export const validateToken = async (token, apiKey = '92b1d1ee96659e5b9630a51808b9372c') => {
     console.group('🔍 Token Validation Debug');
     
@@ -56,48 +59,43 @@ export const validateToken = async (token, apiKey = '92b1d1ee96659e5b9630a51808b
     try {
         console.log('🌐 Testing token with API...');
         
-        const response = await fetch('https://puput-api.ternasys.com/api/user', {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'api-key': apiKey // Use lowercase to match what browser sends
-            }
-        });
+        // Temporarily store current token to test specific token
+        const originalToken = localStorage.getItem('authToken') || localStorage.getItem('secureAuthToken');
+        localStorage.setItem('authToken', token);
         
-        const responseInfo = {
-            status: response.status,
-            statusText: response.statusText,
-            headers: Object.fromEntries(response.headers.entries())
-        };
+        const userData = await HttpClient.get(API_ENDPOINTS.AUTH.USER);
         
-        console.log('📡 API Response Info:', responseInfo);
+        console.log('✅ Token is valid - User data received:', userData);
         
-        if (response.ok) {
-            const userData = await response.json();
-            console.log('✅ Token is valid - User data received:', userData);
-            console.groupEnd();
-            return {
-                valid: true,
-                user: userData,
-                details: { ...basicChecks, api: responseInfo }
-            };
+        // Restore original token
+        if (originalToken) {
+            localStorage.setItem('authToken', originalToken);
         } else {
-            const errorData = await response.text();
-            console.log('❌ API rejected token:', errorData);
-            console.groupEnd();
-            return {
-                valid: false,
-                error: `API error: ${response.status} - ${errorData}`,
-                details: { ...basicChecks, api: responseInfo }
-            };
+            localStorage.removeItem('authToken');
         }
+        
+        console.groupEnd();
+        return {
+            valid: true,
+            user: userData,
+            details: { ...basicChecks, api: { status: 200, statusText: 'OK' } }
+        };
     } catch (error) {
-        console.log('🚫 Network error testing token:', error.message);
+        console.log('❌ API rejected token:', error.message);
+        
+        // Restore original token
+        const originalToken = localStorage.getItem('authToken') || localStorage.getItem('secureAuthToken');
+        if (originalToken) {
+            localStorage.setItem('authToken', originalToken);
+        } else {
+            localStorage.removeItem('authToken');
+        }
+        
         console.groupEnd();
         return {
             valid: false,
-            error: `Network error: ${error.message}`,
-            details: basicChecks
+            error: `API error: ${error.message}`,
+            details: { ...basicChecks, api: { error: error.message } }
         };
     }
 };

@@ -1,34 +1,20 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useAuthSecure } from '../../../../hooks/useAuthSecure';
+import { HttpClient } from '../../../../services/httpClient';
+import { API_ENDPOINTS } from '../../../../config/api';
 
 const useOfficesAPI = () => {
     const [offices, setOffices] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-    
-    const { getAuthHeader } = useAuthSecure();
 
     const fetchOffices = async () => {
         setLoading(true);
         setError(null);
         
         try {
-            const authHeaders = getAuthHeader();
             // Correct endpoint from backend routes: /api/master/office/data
-            const response = await fetch('https://puput-api.ternasys.com/api/master/office/data', {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'api-key': '92b1d1ee96659e5b9630a51808b9372c',
-                    ...authHeaders
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const result = await response.json();
+            const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.OFFICE}/data`);
+            
             console.log('Office API Response:', result);
             
             if (result.status === 'ok' && result.data) {

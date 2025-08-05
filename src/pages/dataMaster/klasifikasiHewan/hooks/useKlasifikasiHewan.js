@@ -1,19 +1,15 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { useAuthSecure } from "../../../../hooks/useAuthSecure";
+import { HttpClient } from "../../../../services/httpClient";
+import { API_ENDPOINTS } from "../../../../config/api";
 
 // Custom hook untuk manajemen data, filter, dan statistik Klasifikasi Hewan
 const useKlasifikasiHewan = () => {
-  const { getAuthHeader } = useAuthSecure();
   const [klasifikasiHewan, setKlasifikasiHewan] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterJenis, setFilterJenis] = useState("all");
   const [jenisHewanOptions, setJenisHewanOptions] = useState([]);
-
-  // API Base URL - sesuai dengan routing Laravel untuk klasifikasi hewan
-  const API_BASE = 'https://puput-api.ternasys.com/api/master/klasifikasihewan';
-  const JENIS_HEWAN_API_BASE = 'https://puput-api.ternasys.com/api/master/jenishewan';
 
   // Helper function untuk mengkonversi ID jenis hewan ke nama menggunakan data dinamis
   const getJenisHewanName = useCallback((id) => {

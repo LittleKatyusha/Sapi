@@ -1,34 +1,20 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useAuthSecure } from '../../../../hooks/useAuthSecure';
+import { HttpClient } from '../../../../services/httpClient';
+import { API_ENDPOINTS } from '../../../../config/api';
 
 const useKlasifikasiHewanAPI = () => {
     const [klasifikasiHewan, setKlasifikasiHewan] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-    
-    const { getAuthHeader } = useAuthSecure();
 
     const fetchKlasifikasiHewan = async () => {
         setLoading(true);
         setError(null);
         
         try {
-            const authHeaders = getAuthHeader();
             // Correct endpoint from backend routes: /api/master/klasifikasihewan/data
-            const response = await fetch('https://puput-api.ternasys.com/api/master/klasifikasihewan/data', {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'api-key': '92b1d1ee96659e5b9630a51808b9372c',
-                    ...authHeaders
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const result = await response.json();
+            const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.KLASIFIKASI_HEWAN}/data`);
+            
             console.log('Klasifikasi Hewan API Response:', result);
             
             if (result.status === 'ok' && result.data) {

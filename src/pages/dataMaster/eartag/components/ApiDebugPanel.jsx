@@ -117,7 +117,7 @@ const ApiDebugPanel = ({ testApiConnection, fetchEartags, loading, error, server
                 <div className="bg-gray-50 p-3 rounded-lg">
                     <h4 className="font-medium text-sm mb-2">API Endpoint</h4>
                     <p className="text-xs text-gray-600 break-all">
-                        https://puput-api.ternasys.com/api/master/eartag/data
+                        {process.env.REACT_APP_API_BASE_URL || 'https://puput-api.ternasys.com'}/api/master/eartag/data
                     </p>
                 </div>
 

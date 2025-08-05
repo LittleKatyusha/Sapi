@@ -1,5 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useAuthSecure } from '../../../../hooks/useAuthSecure';
+import HttpClient from '../../../../services/httpClient';
+import { API_ENDPOINTS } from '../../../../config/api';
 
 const useKategoriOffice = () => {
     const { getAuthHeader } = useAuthSecure();
@@ -8,7 +10,7 @@ const useKategoriOffice = () => {
     const [error, setError] = useState(null);
 
     // API Base URL untuk system parameter
-    const API_BASE = 'https://puput-api.ternasys.com/api/system/parameter';
+    const API_BASE = API_ENDPOINTS.SYSTEM.PARAMETERS;
 
     // Fetch kategori office dari sys_ms_parameter
     const fetchKategoriOffice = useCallback(async () => {
@@ -21,25 +23,7 @@ const useKategoriOffice = () => {
                 throw new Error('Token authentication tidak ditemukan');
             }
             
-            const response = await fetch(`${API_BASE}/data?group=kategori_office`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...authHeader
-                }
-            });
-
-            if (!response.ok) {
-                if (response.status === 401) {
-                    throw new Error('Unauthorized - Token tidak valid');
-                } else if (response.status === 404) {
-                    throw new Error('Endpoint tidak ditemukan');
-                } else {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-            }
-
-            const result = await response.json();
+            const result = await HttpClient.get(`${API_BASE}/data?group=kategori_office`);
             
             if (result.status === 'ok' && result.data && Array.isArray(result.data)) {
                 // Filter hanya row dengan group 'kategori_office'

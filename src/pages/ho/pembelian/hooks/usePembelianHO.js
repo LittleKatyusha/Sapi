@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { useAuthSecure } from '../../../../hooks/useAuthSecure';
+import { HttpClient } from '../../../../services/httpClient';
+import { API_ENDPOINTS } from '../../../../config/api';
 
 // Helper function to safely parse JSON response
 const safeJsonParse = async (response) => {
@@ -30,7 +31,6 @@ const safeJsonParse = async (response) => {
 };
 
 const usePembelianHO = () => {
-    const { getAuthHeader } = useAuthSecure();
     const [pembelian, setPembelian] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -38,9 +38,6 @@ const usePembelianHO = () => {
     const [filterStatus, setFilterStatus] = useState('all');
     const [isSearching, setIsSearching] = useState(false);
     const [searchError, setSearchError] = useState(null);
-
-    // API Base URL - hardcoded for proxy to work with CORS
-    const API_BASE = `https://puput-api.ternasys.com/api/ho/pembelian`;
 
     // Server-side pagination state
     const [serverPagination, setServerPagination] = useState({
@@ -61,11 +58,6 @@ const usePembelianHO = () => {
         }
         
         try {
-            const authHeader = getAuthHeader();
-            if (!authHeader.Authorization) {
-                throw new Error('Token authentication tidak ditemukan. Silakan login ulang.');
-            }
-            
             // Use current state if parameters not provided
             const currentPage = page || serverPagination.currentPage;
             const currentPerPage = perPage || serverPagination.perPage;
@@ -76,54 +68,25 @@ const usePembelianHO = () => {
             
             // DataTables pagination parameters for server-side processing
             const start = (currentPage - 1) * currentPerPage;
-            const params = new URLSearchParams({
+            const params = {
                 'start': start.toString(),
                 'length': currentPerPage.toString(),
                 'draw': Date.now().toString(),
                 'search[value]': currentSearch || '',
                 'order[0][column]': '0',
                 'order[0][dir]': 'asc'
-            });
+            };
             
             // Add filter parameter if needed (can be extended for date filters)
             if (currentFilter && currentFilter !== 'all') {
-                params.append('filter', currentFilter);
+                params.filter = currentFilter;
             }
             
-            const response = await fetch(`${API_BASE}/data?${params.toString()}`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    ...authHeader
-                }
+            const result = await HttpClient.get(`${API_ENDPOINTS.HO.PEMBELIAN}/data`, {
+                params: params
             });
             
             // console.log('Response received:', response.status);
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                // console.error('🚨 API Error Details:', {
-                //     status: response.status,
-                //     statusText: response.statusText,
-                //     url: response.url,
-                //     errorBody: errorText
-                // });
-                
-                if (response.status === 401) {
-                    throw new Error('Unauthorized - Token tidak valid atau sudah expired');
-                } else if (response.status === 403) {
-                    throw new Error('Forbidden - Tidak memiliki akses ke endpoint ini');
-                } else if (response.status === 404) {
-                    throw new Error('Endpoint tidak ditemukan');
-                } else if (response.status === 500) {
-                    throw new Error(`Server error (500) - Ada masalah di backend API. Detail: ${errorText.substring(0, 200)}`);
-                } else {
-                    throw new Error(`HTTP error! status: ${response.status} - ${errorText.substring(0, 200)}`);
-                }
-            }
-
-            const result = await safeJsonParse(response);
             
             let dataArray = [];
             let totalRecords = 0;
@@ -200,7 +163,7 @@ const usePembelianHO = () => {
             setLoading(false);
             setIsSearching(false);
         }
-    }, [getAuthHeader, searchTerm, filterStatus, serverPagination.currentPage, serverPagination.perPage]);
+    }, [searchTerm, filterStatus, serverPagination.currentPage, serverPagination.perPage]);
 
     // Create pembelian - handle header + details array format
     const createPembelian = useCallback(async (pembelianData) => {
@@ -208,10 +171,6 @@ const usePembelianHO = () => {
         setError(null);
         
         try {
-            const authHeader = getAuthHeader();
-            if (!authHeader.Authorization) {
-                throw new Error('Token authentication tidak ditemukan. Silakan login ulang.');
-            }
             
             // Backend tetap mengharapkan id_supplier, jadi kirim PID sebagai id_supplier
             const officeIdParsed = parseInt(pembelianData.idOffice);
@@ -258,35 +217,7 @@ const usePembelianHO = () => {
             // console.log('🚀 DEBUG: Header fields being sent:', Object.keys(headerData));
             // console.log('🚀 DEBUG: biaya_truk in request:', requestData.biaya_truk);
             
-            const response = await fetch(`${API_BASE}/store`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    ...authHeader
-                },
-                body: JSON.stringify(requestData)
-            });
-            
-            if (!response.ok) {
-                const errorText = await response.text();
-                // // console.error('Backend error response:', errorText);
-                
-                // Specific error messages for common bootstrap issues
-                if (errorText.includes('id_pembelian')) {
-                    throw new Error('Error: Backend tidak dapat membuat record pertama. Backend perlu dimodifikasi untuk handle database kosong.');
-                } else if (errorText.includes('id_klasifikasi_hewan')) {
-                    throw new Error('Error: Tabel klasifikasi hewan masih kosong. Silakan isi master data klasifikasi hewan terlebih dahulu.');
-                } else if (errorText.includes('id_office')) {
-                    throw new Error('Error: Office tidak ditemukan. Silakan isi master data office terlebih dahulu.');
-                } else if (errorText.includes('id_supplier')) {
-                    throw new Error('Error: Supplier tidak ditemukan. Silakan isi master data supplier terlebih dahulu.');
-                }
-                
-                throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
-            }
-            
-            const result = await safeJsonParse(response);
+            const result = await HttpClient.post(`${API_ENDPOINTS.HO.PEMBELIAN}/store`, requestData);
             await fetchPembelian(1, serverPagination.perPage); // Refresh data
             
             return {
@@ -302,7 +233,7 @@ const usePembelianHO = () => {
         } finally {
             setLoading(false);
         }
-    }, [getAuthHeader, fetchPembelian]);
+    }, [fetchPembelian]);
 
     // Update pembelian
     const updatePembelian = useCallback(async (pubid, pembelianData) => {
@@ -310,10 +241,6 @@ const usePembelianHO = () => {
         setError(null);
         
         try {
-            const authHeader = getAuthHeader();
-            if (!authHeader.Authorization) {
-                throw new Error('Token authentication tidak ditemukan. Silakan login ulang.');
-            }
             
             // Backend tetap mengharapkan id_supplier, jadi kirim PID sebagai id_supplier
             const officeIdParsed = parseInt(pembelianData.idOffice);
@@ -350,37 +277,7 @@ const usePembelianHO = () => {
             //     bodyData: updateData
             // });
 
-            const response = await fetch(`${API_BASE}/update`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    ...authHeader
-                },
-                body: JSON.stringify(updateData)
-            });
-            
-            if (!response.ok) {
-                const errorText = await response.text();
-                // console.error('Backend error response:', errorText);
-                
-                // Try to parse the error response as JSON for better error messages
-                try {
-                    const errorJson = JSON.parse(errorText);
-                    if (errorJson.data && typeof errorJson.data === 'object') {
-                        // Format validation errors
-                        const validationErrors = Object.entries(errorJson.data)
-                            .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
-                            .join('; ');
-                        throw new Error(`Validation Error: ${validationErrors}`);
-                    }
-                    throw new Error(errorJson.message || `HTTP error! status: ${response.status}`);
-                } catch (parseError) {
-                    throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
-                }
-            }
-            
-            const result = await safeJsonParse(response);
+            const result = await HttpClient.post(`${API_ENDPOINTS.HO.PEMBELIAN}/update`, updateData);
             await fetchPembelian(serverPagination.currentPage, serverPagination.perPage); // Refresh data
             
             return {
@@ -396,7 +293,7 @@ const usePembelianHO = () => {
         } finally {
             setLoading(false);
         }
-    }, [getAuthHeader, fetchPembelian]);
+    }, [fetchPembelian]);
 
     // Delete pembelian
     const deletePembelian = useCallback(async (pubid) => {

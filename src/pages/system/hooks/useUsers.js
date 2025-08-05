@@ -1,5 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useAuthSecure } from '../../../hooks/useAuthSecure';
+import HttpClient from '../../../services/httpClient';
+import { API_ENDPOINTS } from '../../../config/api';
 
 const useUsers = () => {
     const { getAuthHeader } = useAuthSecure();
@@ -11,7 +13,7 @@ const useUsers = () => {
     const [roles, setRoles] = useState([]);
 
     // API Base URL
-    const API_BASE = 'https://puput-api.ternasys.com/api/system/pegawai';
+    const API_BASE = API_ENDPOINTS.SYSTEM.USERS;
 
     // Server-side pagination state
     const [serverPagination, setServerPagination] = useState({
@@ -44,31 +46,9 @@ const useUsers = () => {
             url.searchParams.append('order[0][column]', '0');
             url.searchParams.append('order[0][dir]', 'asc');
             
-            const response = await fetch(url.toString(), {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...authHeader
-                }
-            });
+            const result = await HttpClient.get(`${API_BASE}/data?${url.searchParams.toString()}`);
             
-            console.log('Response received:', response.status);
-
-            if (!response.ok) {
-                if (response.status === 401) {
-                    throw new Error('Unauthorized - Token tidak valid atau sudah expired');
-                } else if (response.status === 403) {
-                    throw new Error('Forbidden - Tidak memiliki akses ke endpoint ini');
-                } else if (response.status === 404) {
-                    throw new Error('Endpoint tidak ditemukan');
-                } else if (response.status === 500) {
-                    throw new Error('Server error - Silakan coba lagi nanti');
-                } else {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-            }
-
-            const result = await response.json();
+            console.log('Response received');
             
             let dataArray = [];
             let totalRecords = 0;
@@ -149,19 +129,7 @@ const useUsers = () => {
                 throw new Error('Token authentication tidak ditemukan. Silakan login ulang.');
             }
             
-            const response = await fetch(`${API_BASE}/jabatan`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...authHeader
-                }
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const result = await response.json();
+            const result = await HttpClient.get(`${API_BASE}/jabatan`);
             
             // Handle response format: {"status":"ok","data":[...]} atau {"success":true,"data":[...]}
             if ((result.status === 'ok' || result.success) && Array.isArray(result.data)) {
@@ -188,30 +156,17 @@ const useUsers = () => {
                 throw new Error('Token authentication tidak ditemukan. Silakan login ulang.');
             }
             
-            const response = await fetch(`${API_BASE}/store`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...authHeader
-                },
-                body: JSON.stringify({
-                    nik: userData.nik,
-                    name: userData.name,
-                    username: userData.username,
-                    email: userData.email,
-                    alamat: userData.address || userData.alamat || '',
-                    kontak: userData.phone || userData.kontak || '',
-                    position: userData.position || '',
-                    group_id: userData.groupId || 2, // Default to a valid group_id
-                    password: userData.password || 'default123'
-                })
+            const result = await HttpClient.post(`${API_BASE}/store`, {
+                nik: userData.nik,
+                name: userData.name,
+                username: userData.username,
+                email: userData.email,
+                alamat: userData.address || userData.alamat || '',
+                kontak: userData.phone || userData.kontak || '',
+                position: userData.position || '',
+                group_id: userData.groupId || 2, // Default to a valid group_id
+                password: userData.password || 'default123'
             });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const result = await response.json();
             await fetchUsers(1, 1000); // Refresh data
             
             return {
@@ -239,31 +194,18 @@ const useUsers = () => {
                 throw new Error('Token authentication tidak ditemukan. Silakan login ulang.');
             }
             
-            const response = await fetch(`${API_BASE}/update`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...authHeader
-                },
-                body: JSON.stringify({
-                    pid: pubid,
-                    nik: userData.nik,
-                    name: userData.name,
-                    username: userData.username,
-                    email: userData.email,
-                    alamat: userData.address || userData.alamat || '',
-                    kontak: userData.phone || userData.kontak || '',
-                    position: userData.position || '',
-                    group_id: userData.groupId || 2,
-                    ...(userData.password && { password: userData.password }) // Only include password if provided
-                })
+            const result = await HttpClient.post(`${API_BASE}/update`, {
+                pid: pubid,
+                nik: userData.nik,
+                name: userData.name,
+                username: userData.username,
+                email: userData.email,
+                alamat: userData.address || userData.alamat || '',
+                kontak: userData.phone || userData.kontak || '',
+                position: userData.position || '',
+                group_id: userData.groupId || 2,
+                ...(userData.password && { password: userData.password }) // Only include password if provided
             });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const result = await response.json();
             await fetchUsers(1, 1000); // Refresh data
             
             return {
@@ -291,22 +233,9 @@ const useUsers = () => {
                 throw new Error('Token authentication tidak ditemukan. Silakan login ulang.');
             }
             
-            const response = await fetch(`${API_BASE}/delete`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...authHeader
-                },
-                body: JSON.stringify({
-                    pid: pubid
-                })
+            const result = await HttpClient.post(`${API_BASE}/delete`, {
+                pid: pubid
             });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const result = await response.json();
             await fetchUsers(1, 1000); // Refresh data
             
             return {
@@ -334,23 +263,10 @@ const useUsers = () => {
                 throw new Error('Token authentication tidak ditemukan. Silakan login ulang.');
             }
             
-            const response = await fetch(`${API_BASE}/reset-password`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...authHeader
-                },
-                body: JSON.stringify({
-                    pid: user.pubid || user.id,
-                    password: newPassword
-                })
+            const result = await HttpClient.post(`${API_BASE}/reset-password`, {
+                pid: user.pubid || user.id,
+                password: newPassword
             });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const result = await response.json();
             
             return {
                 success: result.status === 'ok' || result.success === true,
@@ -374,22 +290,9 @@ const useUsers = () => {
                 throw new Error('Token authentication tidak ditemukan. Silakan login ulang.');
             }
             
-            const response = await fetch(`${API_BASE}/foto-profil`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...authHeader
-                },
-                body: JSON.stringify({
-                    pid: pubid
-                })
+            const result = await HttpClient.post(`${API_BASE}/foto-profil`, {
+                pid: pubid
             });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const result = await response.json();
             
             return {
                 success: result.status === 'ok' || result.success === true,
@@ -419,20 +322,7 @@ const useUsers = () => {
             formData.append('pid', pubid);
             formData.append('photo', photoFile);
             
-            const response = await fetch(`${API_BASE}/upload-foto`, {
-                method: 'POST',
-                headers: {
-                    ...authHeader
-                    // Don't set Content-Type, let browser set it with boundary for FormData
-                },
-                body: formData
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const result = await response.json();
+            const result = await HttpClient.post(`${API_BASE}/upload-foto`, formData);
             await fetchUsers(1, 1000); // Refresh data
             
             return {

@@ -1,34 +1,25 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useAuthSecure } from '../../../../hooks/useAuthSecure';
+import { HttpClient } from '../../../../services/httpClient';
+import { API_ENDPOINTS } from '../../../../config/api';
 
 const useEartagsAPI = () => {
     const [eartags, setEartags] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-    
-    const { getAuthHeader } = useAuthSecure();
 
     const fetchEartags = async () => {
         setLoading(true);
         setError(null);
         
         try {
-            const authHeaders = getAuthHeader();
             // Use same URL pattern as other working APIs with pagination to get all records
-            const response = await fetch('https://puput-api.ternasys.com/api/master/eartag/data?length=1000&start=0', {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'api-key': '92b1d1ee96659e5b9630a51808b9372c',
-                    ...authHeaders
+            const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.EARTAG}/data`, {
+                params: {
+                    length: 1000,
+                    start: 0
                 }
             });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const result = await response.json();
+            
             console.log('Eartag API Response:', result);
             
             // Handle DataTables format response or standard format

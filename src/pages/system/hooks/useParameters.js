@@ -1,5 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useAuthSecure } from '../../../hooks/useAuthSecure';
+import HttpClient from '../../../services/httpClient';
+import { API_ENDPOINTS } from '../../../config/api';
 
 const useParameters = () => {
     const { getAuthHeader } = useAuthSecure();
@@ -12,8 +14,8 @@ const useParameters = () => {
     const [roles, setRoles] = useState([]);
 
     // API Base URL
-    const API_BASE = 'https://puput-api.ternasys.com/api/system/parameter';
-    const ROLES_API = 'https://puput-api.ternasys.com/api/system/roles/data';
+    const API_BASE = API_ENDPOINTS.SYSTEM.PARAMETERS;
+    const ROLES_API = `${API_ENDPOINTS.SYSTEM.ROLES}/data`;
 
     // Server-side pagination state
     const [serverPagination, setServerPagination] = useState({
@@ -44,29 +46,7 @@ const useParameters = () => {
             url.searchParams.append('order[0][column]', '0');
             url.searchParams.append('order[0][dir]', 'asc');
             
-            const response = await fetch(url.toString(), {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...authHeader
-                }
-            });
-            
-            if (!response.ok) {
-                if (response.status === 401) {
-                    throw new Error('Unauthorized - Token tidak valid atau sudah expired');
-                } else if (response.status === 403) {
-                    throw new Error('Forbidden - Tidak memiliki akses ke endpoint ini');
-                } else if (response.status === 404) {
-                    throw new Error('Endpoint tidak ditemukan');
-                } else if (response.status === 500) {
-                    throw new Error('Server error - Silakan coba lagi nanti');
-                } else {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-            }
-
-            const result = await response.json();
+            const result = await HttpClient.get(`${API_BASE}/data?${url.searchParams.toString()}`);
             
             let dataArray = [];
             
@@ -124,12 +104,7 @@ const useParameters = () => {
             if (!authHeader.Authorization) {
                 throw new Error('Token tidak ditemukan.');
             }
-            const response = await fetch(ROLES_API, {
-                method: 'GET',
-                headers: { 'Content-Type': 'application/json', ...authHeader }
-            });
-            if (!response.ok) throw new Error('Gagal fetch roles');
-            const result = await response.json();
+            const result = await HttpClient.get(ROLES_API);
             if (result.data && Array.isArray(result.data)) {
                 setRoles(result.data);
             } else {
@@ -170,20 +145,7 @@ const useParameters = () => {
                 throw new Error('Token authentication tidak ditemukan. Silakan login ulang.');
             }
             
-            const response = await fetch(`${API_BASE}/dataByGroup`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...authHeader
-                },
-                body: JSON.stringify({ group })
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const result = await response.json();
+            const result = await HttpClient.post(`${API_BASE}/dataByGroup`, { group });
             
             if (result.success && Array.isArray(result.data)) {
                 return result.data;
@@ -207,26 +169,13 @@ const useParameters = () => {
                 throw new Error('Token authentication tidak ditemukan. Silakan login ulang.');
             }
             
-            const response = await fetch(`${API_BASE}/store`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...authHeader
-                },
-                body: JSON.stringify({
-                    name: parameterData.name,
-                    value: parameterData.value,
-                    group: parameterData.group,
-                    description: parameterData.description,
-                    order_no: parameterData.order_no || parameterData.orderNo || 0
-                })
+            const result = await HttpClient.post(`${API_BASE}/store`, {
+                name: parameterData.name,
+                value: parameterData.value,
+                group: parameterData.group,
+                description: parameterData.description,
+                order_no: parameterData.order_no || parameterData.orderNo || 0
             });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const result = await response.json();
             await fetchParameters(1, 1000); // Refresh data
             
             return {
@@ -254,27 +203,14 @@ const useParameters = () => {
                 throw new Error('Token authentication tidak ditemukan. Silakan login ulang.');
             }
             
-            const response = await fetch(`${API_BASE}/update`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...authHeader
-                },
-                body: JSON.stringify({
-                    pid: pubid,
-                    name: parameterData.name,
-                    value: parameterData.value,
-                    group: parameterData.group,
-                    description: parameterData.description,
-                    order_no: parameterData.order_no || parameterData.orderNo || 0
-                })
+            const result = await HttpClient.post(`${API_BASE}/update`, {
+                pid: pubid,
+                name: parameterData.name,
+                value: parameterData.value,
+                group: parameterData.group,
+                description: parameterData.description,
+                order_no: parameterData.order_no || parameterData.orderNo || 0
             });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const result = await response.json();
             await fetchParameters(1, 1000); // Refresh data
             
             return {
@@ -302,22 +238,9 @@ const useParameters = () => {
                 throw new Error('Token authentication tidak ditemukan. Silakan login ulang.');
             }
             
-            const response = await fetch(`${API_BASE}/delete`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...authHeader
-                },
-                body: JSON.stringify({
-                    pid: pubid
-                })
+            const result = await HttpClient.post(`${API_BASE}/delete`, {
+                pid: pubid
             });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const result = await response.json();
             await fetchParameters(1, 1000); // Refresh data
             
             return {

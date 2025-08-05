@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
-import { useAuthSecure } from '../../../../hooks/useAuthSecure';
+import { HttpClient } from '../../../../services/httpClient';
+import { API_ENDPOINTS } from '../../../../config/api';
 
 // Helper function to safely parse JSON response
 const safeJsonParse = async (response) => {
@@ -30,15 +31,11 @@ const safeJsonParse = async (response) => {
 };
 
 const usePenjualanHO = () => {
-    const { getAuthHeader } = useAuthSecure();
     const [penjualan, setPenjualan] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
-
-    // API Base URL - updated for sales endpoint
-    const API_BASE = `https://puput-api.ternasys.com/api/ho/penjualan`;
 
     // Server-side pagination state
     const [serverPagination, setServerPagination] = useState({
@@ -54,50 +51,24 @@ const usePenjualanHO = () => {
         setError(null);
         
         try {
-            const authHeader = getAuthHeader();
-            if (!authHeader.Authorization) {
-                throw new Error('Token authentication tidak ditemukan. Silakan login ulang.');
-            }
-            
             console.log('Fetching penjualan HO from backend...');
             
             // DataTables pagination parameters for server-side processing
             const start = (page - 1) * perPage;
-            const params = new URLSearchParams({
+            const params = {
                 'start': start.toString(),
                 'length': perPage.toString(),
                 'draw': Date.now().toString(),
                 'search[value]': searchTerm || '',
                 'order[0][column]': '0',
                 'order[0][dir]': 'asc'
+            };
+            
+            const result = await HttpClient.get(`${API_ENDPOINTS.HO.PENJUALAN}/data`, {
+                params: params
             });
             
-            const response = await fetch(`${API_BASE}/data?${params.toString()}`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    ...authHeader
-                }
-            });
-            
-            console.log('Response received:', response.status);
-
-            if (!response.ok) {
-                if (response.status === 401) {
-                    throw new Error('Unauthorized - Token tidak valid atau sudah expired');
-                } else if (response.status === 403) {
-                    throw new Error('Forbidden - Tidak memiliki akses ke endpoint ini');
-                } else if (response.status === 404) {
-                    throw new Error('Endpoint tidak ditemukan');
-                } else if (response.status === 500) {
-                    throw new Error('Server error - Silakan coba lagi nanti');
-                } else {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-            }
-
-            const result = await safeJsonParse(response);
+            console.log('Response received');
             
             let dataArray = [];
             let totalRecords = 0;

@@ -1,3 +1,5 @@
+import { API_BASE_URL } from '../config/api';
+
 // Security constants
 export const SECURITY_CONFIG = {
   
@@ -507,7 +509,7 @@ export const setSecurityHeaders = () => {
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "img-src 'self' data: https: blob:",
         "font-src 'self' data: https://fonts.gstatic.com",
-        "connect-src 'self' https://puput-api.ternasys.com https://challenges.cloudflare.com",
+        `connect-src 'self' ${API_BASE_URL} https://challenges.cloudflare.com`,
         "frame-src https://challenges.cloudflare.com",
         "worker-src 'self' blob:"
     ].join('; ');

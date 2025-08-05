@@ -1,6 +1,8 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useAuthSecure } from '../../../../hooks/useAuthSecure';
 import useKategoriOffice from './useKategoriOffice';
+import HttpClient from '../../../../services/httpClient';
+import { API_ENDPOINTS } from '../../../../config/api';
 
 const useOffices = () => {
     const { getAuthHeader } = useAuthSecure();
@@ -21,7 +23,7 @@ const useOffices = () => {
     } = useKategoriOffice();
 
     // API Base URL
-    const API_BASE = 'https://puput-api.ternasys.com/api/master/office';
+    const API_BASE = API_ENDPOINTS.MASTER.OFFICE;
 
     // Function untuk test koneksi API
     const testApiConnection = useCallback(async () => {
@@ -32,19 +34,8 @@ const useOffices = () => {
                 return { success: false, message: 'Token authorization tidak ditemukan' };
             }
             
-            const response = await fetch(`${API_BASE}/data`, {
-                method: 'HEAD',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...authHeader
-                }
-            });
-            
-            if (response.ok) {
-                return { success: true, message: 'Koneksi API berhasil' };
-            } else {
-                return { success: false, message: `API connection failed: ${response.status}` };
-            }
+            const response = await HttpClient.head(`${API_BASE}/data`);
+            return { success: true, message: 'Koneksi API berhasil' };
         } catch (error) {
             return { success: false, message: `Network error: ${error.message}` };
         }
@@ -61,29 +52,7 @@ const useOffices = () => {
                 throw new Error('Token authentication tidak ditemukan. Silakan login ulang.');
             }
             
-            const response = await fetch(`${API_BASE}/data`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...authHeader
-                }
-            });
-
-            if (!response.ok) {
-                if (response.status === 401) {
-                    throw new Error('Unauthorized - Token tidak valid atau sudah expired');
-                } else if (response.status === 403) {
-                    throw new Error('Forbidden - Tidak memiliki akses ke endpoint ini');
-                } else if (response.status === 404) {
-                    throw new Error('Endpoint tidak ditemukan');
-                } else if (response.status === 500) {
-                    throw new Error('Server error - Silakan coba lagi nanti');
-                } else {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-            }
-
-            const result = await response.json();
+            const result = await HttpClient.get(`${API_BASE}/data`);
             
             if (result.status === 'ok' && result.data && Array.isArray(result.data)) {
                 const validatedData = result.data.map((item, index) => ({
@@ -203,30 +172,7 @@ const useOffices = () => {
                 location: String(officeData.location || '').trim()
             };
             
-            const response = await fetch(`${API_BASE}/store`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...getAuthHeader()
-                },
-                body: JSON.stringify(cleanOfficeData)
-            });
-            
-            if (!response.ok) {
-                const errorText = await response.text();
-                try {
-                    const errorData = JSON.parse(errorText);
-                    if (errorData.data && typeof errorData.data === 'object') {
-                        const validationErrors = Object.values(errorData.data).flat().join(', ');
-                        throw new Error(`Validation error: ${validationErrors}`);
-                    }
-                    throw new Error(errorData.message || 'Gagal menambahkan data');
-                } catch (e) {
-                    throw new Error('Gagal menambahkan data');
-                }
-            }
-
-            const result = await response.json();
+            const result = await HttpClient.post(`${API_BASE}/store`, cleanOfficeData);
             await fetchOffices();
             
             return { 
@@ -297,36 +243,13 @@ const useOffices = () => {
                 ...cleanData
             };
             
-            const response = await fetch(`${API_BASE}/update`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...getAuthHeader()
-                },
-                body: JSON.stringify(payload)
-            });
+            const result = await HttpClient.post(`${API_BASE}/update`, payload);
+            await fetchOffices();
             
-            if (response.ok) {
-                const result = await response.json();
-                await fetchOffices();
-                
-                return {
-                    success: true,
-                    message: result.message || 'Data berhasil diperbarui'
-                };
-            } else {
-                const errorText = await response.text();
-                try {
-                    const errorData = JSON.parse(errorText);
-                    if (errorData.data && typeof errorData.data === 'object') {
-                        const validationErrors = Object.values(errorData.data).flat().join(', ');
-                        throw new Error(`Validation error: ${validationErrors}`);
-                    }
-                    throw new Error(errorData.message || errorData.data || 'Gagal memperbarui data');
-                } catch (e) {
-                    throw new Error(errorText || 'Gagal memperbarui data');
-                }
-            }
+            return {
+                success: true,
+                message: result.message || 'Data berhasil diperbarui'
+            };
             
         } catch (err) {
             const errorMsg = err.message || 'Terjadi kesalahan saat memperbarui data';
@@ -356,39 +279,13 @@ const useOffices = () => {
                 pid: office.encryptedPid
             };
             
-            const response = await fetch(`${API_BASE}/delete`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...getAuthHeader()
-                },
-                body: JSON.stringify(payload)
-            });
+            const result = await HttpClient.post(`${API_BASE}/delete`, payload);
+            await fetchOffices();
             
-            if (response.ok) {
-                const result = await response.json();
-                await fetchOffices();
-                
-                return {
-                    success: true,
-                    message: result.message || 'Data berhasil dihapus'
-                };
-            } else {
-                const errorText = await response.text();
-                let errorMessage = 'Gagal menghapus data';
-                try {
-                    const errorData = JSON.parse(errorText);
-                    if (errorData.message) {
-                        errorMessage = errorData.message;
-                    } else if (errorData.data) {
-                        errorMessage = errorData.data;
-                    }
-                } catch (e) {
-                    errorMessage = errorText || 'Gagal menghapus data';
-                }
-                
-                throw new Error(errorMessage);
-            }
+            return {
+                success: true,
+                message: result.message || 'Data berhasil dihapus'
+            };
             
         } catch (err) {
             const errorMsg = err.message || 'Terjadi kesalahan saat menghapus data';

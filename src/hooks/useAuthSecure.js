@@ -10,6 +10,8 @@ import {
   SECURITY_CONFIG
 } from '../utils/security';
 import { debugAuth, validateToken, checkCurrentAuthState, clearAuthData } from '../utils/tokenValidator';
+import HttpClient from '../services/httpClient';
+import { API_ENDPOINTS } from '../config/api';
 
 export const useAuthSecure = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -175,22 +177,14 @@ export const useAuthSecure = () => {
       });
 
       // Login request with required API-KEY (use lowercase since browser converts it)
-      const response = await fetch('https://puput-api.ternasys.com/api/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'api-key': '92b1d1ee96659e5b9630a51808b9372c', // Use lowercase to match what browser sends
-          ...getSecurityHeaders()
-        },
-        body: JSON.stringify({
-          ...credentials,
-          deviceFingerprint: deviceFingerprint.current
-        })
+      const result = await HttpClient.post(API_ENDPOINTS.AUTH.LOGIN, {
+        ...credentials,
+        deviceFingerprint: deviceFingerprint.current
+      }, {
+        headers: getSecurityHeaders()
       });
 
-      const result = await response.json();
-
-      if (response.ok && result.data && result.data.token) {
+      if (result.data && result.data.token) {
         const { token, user } = result.data;
         
         // Reset login attempts on success
@@ -266,13 +260,12 @@ export const useAuthSecure = () => {
         };
 
         // Logout dari semua device jika diminta
-        const endpoint = everywhere 
-          ? 'https://puput-api.ternasys.com/api/logout-everywhere'
-          : 'https://puput-api.ternasys.com/api/logout';
+        const endpoint = everywhere
+          ? '/api/logout-everywhere'
+          : API_ENDPOINTS.AUTH.LOGOUT;
 
-        await fetch(endpoint, {
-          method: 'POST',
-          headers
+        await HttpClient.post(endpoint, null, {
+          headers: getSecurityHeaders()
         });
 
         securityAudit.log('LOGOUT_SUCCESS', { 
@@ -295,22 +288,13 @@ export const useAuthSecure = () => {
     try {
       securityAudit.log('TOKEN_REFRESH_ATTEMPT');
 
-      const response = await fetch('https://puput-api.ternasys.com/api/refresh-token', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'api-key': '92b1d1ee96659e5b9630a51808b9372c', // Use lowercase
-          ...getSecurityHeaders()
-        },
-        body: JSON.stringify({
-          deviceFingerprint: deviceFingerprint.current
-        })
+      const result = await HttpClient.post(API_ENDPOINTS.AUTH.REFRESH_TOKEN, {
+        deviceFingerprint: deviceFingerprint.current
+      }, {
+        headers: getSecurityHeaders()
       });
 
-      const result = await response.json();
-
-      if (response.ok && result.data && result.data.token) {
+      if (result.data && result.data.token) {
         const newToken = result.data.token;
         
         // Update stored token
@@ -337,9 +321,8 @@ export const useAuthSecure = () => {
     const currentToken = secureStorage.getItem('token');
     if (!currentToken) return {};
     
-    return { 
+    return {
       'Authorization': `Bearer ${currentToken}`,
-      'api-key': '92b1d1ee96659e5b9630a51808b9372c', // Use lowercase
       ...getSecurityHeaders()
     };
   }, []);
@@ -349,18 +332,9 @@ export const useAuthSecure = () => {
     try {
       securityAudit.log('PROFILE_UPDATE_ATTEMPT', { userId: user?.id });
 
-      const response = await fetch('https://puput-api.ternasys.com/api/profile', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeader()
-        },
-        body: JSON.stringify(profileData)
-      });
+      const result = await HttpClient.put(API_ENDPOINTS.AUTH.PROFILE, profileData);
 
-      const result = await response.json();
-
-      if (response.ok && result.data) {
+      if (result.data) {
         const updatedUser = { ...user, ...result.data };
         
         // Update secure storage
@@ -390,23 +364,14 @@ export const useAuthSecure = () => {
     try {
       securityAudit.log('PASSWORD_CHANGE_ATTEMPT', { userId: user?.id });
 
-      const response = await fetch('https://puput-api.ternasys.com/api/change-password', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeader()
-        },
-        body: JSON.stringify({
-          current_password: passwordData.currentPassword,
-          new_password: passwordData.newPassword,
-          new_password_confirmation: passwordData.confirmPassword,
-          deviceFingerprint: deviceFingerprint.current
-        })
+      const result = await HttpClient.post(API_ENDPOINTS.AUTH.CHANGE_PASSWORD, {
+        current_password: passwordData.currentPassword,
+        new_password: passwordData.newPassword,
+        new_password_confirmation: passwordData.confirmPassword,
+        deviceFingerprint: deviceFingerprint.current
       });
 
-      const result = await response.json();
-
-      if (response.ok) {
+      if (result.success !== false) {
         // Update password history
         const history = secureStorage.getItem('passwordHistory') || [];
         history.unshift({

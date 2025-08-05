@@ -1,5 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useAuthSecure } from '../../../hooks/useAuthSecure';
+import HttpClient from '../../../services/httpClient';
+import { API_ENDPOINTS } from '../../../config/api';
 
 const useRoles = () => {
     const { getAuthHeader } = useAuthSecure();
@@ -8,7 +10,7 @@ const useRoles = () => {
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
 
-    const API_BASE = 'https://puput-api.ternasys.com/api/system/roles';
+    const API_BASE = API_ENDPOINTS.SYSTEM.ROLES;
 
     const [serverPagination, setServerPagination] = useState({
         currentPage: 1,
@@ -40,20 +42,7 @@ const useRoles = () => {
                 url.searchParams.append('force', 'true');
             }
             
-            const response = await fetch(url.toString(), {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...authHeader
-                }
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({ message: 'An error occurred' }));
-                throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.message}`);
-            }
-
-            const result = await response.json();
+            const result = await HttpClient.get(`${API_BASE}/data?${url.searchParams.toString()}`);
             
             let dataArray = [];
             let totalRecords = 0;
@@ -149,21 +138,7 @@ const useRoles = () => {
                 description: roleData.description
             };
             
-            const response = await fetch(`${API_BASE}/store`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...authHeader
-                },
-                body: JSON.stringify(formattedData)
-            });
-            
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({ message: 'An error occurred' }));
-                throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.message}`);
-            }
-            
-            const result = await response.json();
+            const result = await HttpClient.post(`${API_BASE}/store`, formattedData);
             await fetchRoles(serverPagination.currentPage, serverPagination.perPage);
             
             return {
@@ -198,21 +173,7 @@ const useRoles = () => {
                 description: roleData.description
             };
             
-            const response = await fetch(`${API_BASE}/update`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...authHeader
-                },
-                body: JSON.stringify(payload)
-            });
-            
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({ message: 'An error occurred' }));
-                throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.message}`);
-            }
-            
-            const result = await response.json();
+            const result = await HttpClient.post(`${API_BASE}/update`, payload);
             
             console.log('[DEBUG] Update API result:', result);
             
@@ -244,21 +205,7 @@ const useRoles = () => {
                 throw new Error('Token authentication tidak ditemukan.');
             }
             
-            const response = await fetch(`${API_BASE}/delete`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...authHeader
-                },
-                body: JSON.stringify({ pid: pubid })
-            });
-            
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({ message: 'An error occurred' }));
-                throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.message}`);
-            }
-            
-            const result = await response.json();
+            const result = await HttpClient.post(`${API_BASE}/delete`, { pid: pubid });
             await fetchRoles(1, 10);
             
             return {

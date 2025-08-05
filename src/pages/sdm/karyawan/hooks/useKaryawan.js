@@ -1,15 +1,12 @@
 import { useState, useMemo, useCallback } from 'react';
-import { useAuthSecure } from '../../../../hooks/useAuthSecure';
+import { HttpClient } from '../../../../services/httpClient';
+import { API_ENDPOINTS } from '../../../../config/api';
 
 const useKaryawan = () => {
-    const { getAuthHeader } = useAuthSecure();
     const [karyawan, setKaryawan] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
-
-    // API Base URL sesuai routing backend
-    const API_BASE = 'https://puput-api.ternasys.com/api/system/pegawai';
 
     // Server-side pagination state
     const [serverPagination, setServerPagination] = useState({
@@ -25,48 +22,24 @@ const useKaryawan = () => {
         setError(null);
         
         try {
-            const authHeader = getAuthHeader();
-            if (!authHeader.Authorization) {
-                throw new Error('Token authentication tidak ditemukan. Silakan login ulang.');
-            }
-            
             console.log('Fetching karyawan from backend...');
             
             // DataTables pagination parameters sesuai controller
             const start = (page - 1) * perPage;
-            const url = new URL(`${API_BASE}/data`);
-            url.searchParams.append('start', start.toString());
-            url.searchParams.append('length', perPage.toString());
-            url.searchParams.append('draw', '1');
-            url.searchParams.append('search[value]', '');
-            url.searchParams.append('order[0][column]', '0');
-            url.searchParams.append('order[0][dir]', 'asc');
+            const params = {
+                'start': start.toString(),
+                'length': perPage.toString(),
+                'draw': '1',
+                'search[value]': '',
+                'order[0][column]': '0',
+                'order[0][dir]': 'asc'
+            };
             
-            const response = await fetch(url.toString(), {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...authHeader
-                }
+            const result = await HttpClient.get(`${API_ENDPOINTS.SDM.KARYAWAN}/data`, {
+                params: params
             });
             
-            console.log('Response received:', response.status);
-
-            if (!response.ok) {
-                if (response.status === 401) {
-                    throw new Error('Unauthorized - Token tidak valid atau sudah expired');
-                } else if (response.status === 403) {
-                    throw new Error('Forbidden - Tidak memiliki akses ke endpoint ini');
-                } else if (response.status === 404) {
-                    throw new Error('Endpoint tidak ditemukan');
-                } else if (response.status === 500) {
-                    throw new Error('Server error - Silakan coba lagi nanti');
-                } else {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-            }
-
-            const result = await response.json();
+            console.log('Response received');
             
             let dataArray = [];
             let paginationMeta = {};
