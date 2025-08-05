@@ -48,7 +48,7 @@ const getCsrfToken = () => {
  */
 const initializeCsrfProtection = async () => {
   try {
-    await fetch(`${API_BASE_URL}/sanctum/csrf-cookie`, {
+    const response = await fetch(`${API_BASE_URL}/sanctum/csrf-cookie`, {
       method: 'GET',
       credentials: 'include',
       headers: {
@@ -56,8 +56,13 @@ const initializeCsrfProtection = async () => {
         'API-KEY': 'putih2024'
       }
     });
+    
+    if (!response.ok) {
+      console.warn('CSRF cookie request failed:', response.status, response.statusText);
+    }
   } catch (error) {
-    console.warn('Failed to get CSRF cookie:', error);
+    console.warn('Failed to get CSRF cookie:', error.message);
+    // CSRF is optional for development - continue without it
   }
 };
 
@@ -136,9 +141,14 @@ class HttpClient {
   static async post(endpoint, data = null, options = {}) {
     const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
     
-    // Initialize CSRF protection for authentication endpoints
+    // Initialize CSRF protection for authentication endpoints (optional for development)
     if (endpoint.includes('/api/login') || endpoint.includes('/sanctum/')) {
-      await initializeCsrfProtection();
+      try {
+        await initializeCsrfProtection();
+      } catch (error) {
+        // Continue without CSRF for development
+        console.warn('Continuing without CSRF token');
+      }
     }
     
     let body = null;

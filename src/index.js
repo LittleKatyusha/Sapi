@@ -5,8 +5,10 @@ import App from './AppSecure.jsx';
 import reportWebVitals from './reportWebVitals';
 import { initializeHttpClient } from './services/httpClient';
 
-// Initialize CSRF protection on app start
-initializeHttpClient().catch(console.warn);
+// Initialize CSRF protection on app start (optional for development)
+initializeHttpClient().catch(error => {
+  console.warn('CSRF initialization failed - continuing without CSRF:', error.message);
+});
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 // Temporary fix: Remove StrictMode to prevent double rendering of Cloudflare Turnstile
