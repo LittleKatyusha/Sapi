@@ -155,10 +155,13 @@ export const useAuthSecure = () => {
         deviceFingerprint: deviceFingerprint.current.substring(0, 20) + '...'
       });
 
-      // Login request with required API-KEY (use lowercase since browser converts it)
-      const result = await HttpClient.post(API_ENDPOINTS.AUTH.LOGIN, credentials, {
-        headers: getSecurityHeaders()
-      });
+      // Login request - only send email and password (filter out captcha, rememberMe, etc.)
+      const loginData = {
+        email: credentials.email,
+        password: credentials.password
+      };
+      
+      const result = await HttpClient.post(API_ENDPOINTS.AUTH.LOGIN, loginData);
 
       if (result.data && result.data.token) {
         const { token, user } = result.data;

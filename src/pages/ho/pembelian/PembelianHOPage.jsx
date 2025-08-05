@@ -49,7 +49,14 @@ const PembelianHOPage = () => {
 
     const handleEdit = (pembelian) => {
         // console.log('Edit pembelian:', pembelian);
-        const id = pembelian.encryptedPid || pembelian.pubid || pembelian.id;
+        const id = pembelian.encryptedPid; // Always use encrypted PID for API operations
+        if (!id || id.startsWith('TEMP-')) {
+            setNotification({
+                type: 'error',
+                message: 'Data ini tidak dapat diedit karena belum tersimpan dengan benar'
+            });
+            return;
+        }
         navigate(`/ho/pembelian/edit/${encodeURIComponent(id)}`);
         setOpenMenuId(null);
     };
@@ -64,8 +71,15 @@ const PembelianHOPage = () => {
 
     const handleDetail = (pembelian) => {
         // console.log('View pembelian detail:', pembelian);
-        // Use encryptedPid for API calls, but pubid for URL routing
-        const id = pembelian.encryptedPid || pembelian.pubid || pembelian.id;
+        // Always use encrypted PID for API operations
+        const id = pembelian.encryptedPid;
+        if (!id || id.startsWith('TEMP-')) {
+            setNotification({
+                type: 'error',
+                message: 'Detail tidak dapat ditampilkan karena data belum tersimpan dengan benar'
+            });
+            return;
+        }
         navigate(`/ho/pembelian/detail/${encodeURIComponent(id)}`);
         setOpenMenuId(null);
     };
@@ -78,22 +92,61 @@ const PembelianHOPage = () => {
 
     const handleDeletePembelian = useCallback(async (pembelian) => {
         try {
-            const result = await deletePembelian(pembelian.pubid || pembelian.id);
+            // Debug: Log seluruh object pembelian
+            console.log('🗑️ DEBUG: Full pembelian object:', pembelian);
+            console.log('🗑️ DEBUG: pembelian.encryptedPid:', pembelian.encryptedPid);
+            console.log('🗑️ DEBUG: pembelian.id:', pembelian.id);
+            console.log('🗑️ DEBUG: pembelian.pubid:', pembelian.pubid);
+            
+            // Backend expects encrypted PID yang dikirim sebagai 'pid' dalam response getData
+            // Backend: 'pid' => encrypt($dt->pubid)
+            // Backend delete: decrypt($pid) untuk mencari record
+            const encryptedPid = pembelian.encryptedPid;
+            
+            console.log('🗑️ DEBUG: Selected encrypted PID:', encryptedPid);
+            console.log('🗑️ DEBUG: Type of encrypted PID:', typeof encryptedPid);
+            
+            // Validate encrypted PID tersedia
+            if (!encryptedPid) {
+                console.error('🗑️ ERROR: No encrypted PID available');
+                throw new Error('ID pembelian tidak tersedia untuk penghapusan');
+            }
+            
+            // Check jika temporary item
+            if (encryptedPid.startsWith('TEMP-')) {
+                console.error('🗑️ ERROR: Attempting to delete temporary item');
+                throw new Error('Item ini adalah data sementara dan tidak dapat dihapus');
+            }
+            
+            console.log('🗑️ DEBUG: Calling deletePembelian with:', encryptedPid);
+            const result = await deletePembelian(encryptedPid, pembelian);
+            
             if (result.success) {
                 setNotification({
                     type: 'success',
-                    message: result.message
+                    message: result.message || 'Data pembelian berhasil dihapus'
                 });
             } else {
+                // Log error details for debugging
+                console.error('🗑️ ERROR: Delete failed with result:', result);
+                
+                let errorMessage = result.message || 'Gagal menghapus data pembelian';
+                
+                // Add helpful context for common issues
+                if (errorMessage.includes('tidak ditemukan') || errorMessage.includes('not found')) {
+                    errorMessage += '\n\nKemungkinan data ini adalah data view/laporan yang tidak dapat dihapus langsung. Silakan hubungi administrator.';
+                }
+                
                 setNotification({
                     type: 'error',
-                    message: result.message
+                    message: errorMessage
                 });
             }
         } catch (error) {
+            console.error('🗑️ ERROR: Delete operation failed in component:', error);
             setNotification({
                 type: 'error',
-                message: 'Terjadi kesalahan saat menghapus data pembelian'
+                message: error.message || 'Terjadi kesalahan saat menghapus data pembelian'
             });
         }
     }, [deletePembelian]);
@@ -610,7 +663,9 @@ const PembelianHOPage = () => {
             {notification && (
                 <div className="fixed top-4 right-4 z-50">
                     <div className={`max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden ${
-                        notification.type === 'success' ? 'border-l-4 border-green-400' : 'border-l-4 border-red-400'
+                        notification.type === 'success' ? 'border-l-4 border-green-400' :
+                        notification.type === 'info' ? 'border-l-4 border-blue-400' :
+                        'border-l-4 border-red-400'
                     }`}>
                         <div className="p-4">
                             <div className="flex items-start">
@@ -620,6 +675,10 @@ const PembelianHOPage = () => {
                                             <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
                                                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                             </svg>
+                                        </div>
+                                    ) : notification.type === 'info' ? (
+                                        <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
+                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
                                         </div>
                                     ) : (
                                         <div className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center">
@@ -631,7 +690,8 @@ const PembelianHOPage = () => {
                                 </div>
                                 <div className="ml-3 w-0 flex-1 pt-0.5">
                                     <p className="text-sm font-medium text-gray-900">
-                                        {notification.type === 'success' ? 'Berhasil!' : 'Error!'}
+                                        {notification.type === 'success' ? 'Berhasil!' :
+                                         notification.type === 'info' ? 'Memproses...' : 'Error!'}
                                     </p>
                                     <p className="mt-1 text-sm text-gray-500">{notification.message}</p>
                                 </div>

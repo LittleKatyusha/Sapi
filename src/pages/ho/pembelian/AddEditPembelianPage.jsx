@@ -32,7 +32,6 @@ const AddEditPembelianPage = () => {
     } = useParameterSelect();
 
     // Extract raw data for compatibility with existing logic
-    const availableEartags = parameterData.eartag || [];
     const availableKlasifikasi = parameterData.klasifikasihewan || [];
     const availableSuppliers = parameterData.supplier || [];
 
@@ -55,6 +54,8 @@ const AddEditPembelianPage = () => {
     const [notification, setNotification] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+
+
     // Default data state for batch operations
     const [defaultData, setDefaultData] = useState({
         idKlasifikasiHewan: '',
@@ -66,6 +67,17 @@ const AddEditPembelianPage = () => {
 
     // Markup percentage state - user can change this manually
     const [markupPercentage, setMarkupPercentage] = useState(12); // Default 12%
+
+    // Helper functions for number formatting
+    const formatNumber = (value) => {
+        if (!value) return '';
+        return parseInt(value).toLocaleString('id-ID');
+    };
+
+    const parseNumber = (value) => {
+        if (!value) return 0;
+        return parseInt(value.toString().replace(/\./g, '')) || 0;
+    };
 
     // Load data for edit mode - wait for parameter data to be loaded first
     useEffect(() => {
@@ -102,7 +114,8 @@ const AddEditPembelianPage = () => {
                             jumlah: result.data.length
                             // markup removed - no longer needed
                         });
-                        
+
+
                         // Load header data - map from actual backend response fields
 
                         // Load markup percentage if available, otherwise use default 12%
@@ -121,56 +134,7 @@ const AddEditPembelianPage = () => {
                                 calculatedPersentase = ((hpp - harga) / harga * 100);
                             }
                             
-                            // Find eartag value by matching eartag number from availableEartags
-                            let eartagValue = '';
-                            if (item.eartag && eartagOptions.length > 0) {
-                                // Try multiple matching strategies
-                                const matchedEartag = eartagOptions.find(eartag =>
-                                    eartag.label === item.eartag ||
-                                    eartag.value === item.eartag ||
-                                    eartag.label === String(item.eartag) ||
-                                    eartag.value === String(item.eartag) ||
-                                    String(eartag.label) === String(item.eartag) ||
-                                    String(eartag.value) === String(item.eartag)
-                                );
-                                if (matchedEartag) {
-                                    eartagValue = matchedEartag.value;
-                                } else {
-                                    // If no exact match found, try to find by partial match
-                                    const partialMatch = eartagOptions.find(eartag =>
-                                        String(eartag.label).includes(String(item.eartag)) ||
-                                        String(item.eartag).includes(String(eartag.label))
-                                    );
-                                    if (partialMatch) {
-                                        eartagValue = partialMatch.value;
-                                    }
-                                }
-                            }
-                            
-                            // Find klasifikasi ID by name if available
-                            let klasifikasiIdFromName = '';
-                            if (item.nama_klasifikasi && klasifikasiHewanOptions.length > 0) {
-                                // Try multiple matching strategies
-                                const matchedKlasifikasi = klasifikasiHewanOptions.find(klasifikasi =>
-                                    klasifikasi.label === item.nama_klasifikasi ||
-                                    String(klasifikasi.label) === String(item.nama_klasifikasi) ||
-                                    klasifikasi.label.toLowerCase() === String(item.nama_klasifikasi).toLowerCase()
-                                );
-                                if (matchedKlasifikasi) {
-                                    klasifikasiIdFromName = matchedKlasifikasi.value;
-                                } else {
-                                    // If no exact match found, try partial match
-                                    const partialMatch = klasifikasiHewanOptions.find(klasifikasi =>
-                                        String(klasifikasi.label).toLowerCase().includes(String(item.nama_klasifikasi).toLowerCase()) ||
-                                        String(item.nama_klasifikasi).toLowerCase().includes(String(klasifikasi.label).toLowerCase())
-                                    );
-                                    if (partialMatch) {
-                                        klasifikasiIdFromName = partialMatch.value;
-                                    }
-                                }
-                            }
-                            
-                            // Also try to find klasifikasi by id if available in backend response
+                            // Find klasifikasi ID by id if available in backend response
                             let klasifikasiIdFromId = '';
                             if ((item.id_klasifikasi_hewan || item.klasifikasi_id) && klasifikasiHewanOptions.length > 0) {
                                 const idToFind = item.id_klasifikasi_hewan || item.klasifikasi_id;
@@ -183,36 +147,16 @@ const AddEditPembelianPage = () => {
                                 }
                             }
                             
-                            // Debug log for detail fields
-                            // console.log(`🔍 DEBUG: Detail ${index + 1} fields:`, Object.keys(item));
-                            // console.log(`🔍 DEBUG: Detail ${index + 1} eartag:`, item.eartag, '-> mapped to:', eartagValue);
-                            // console.log(`🔍 DEBUG: Detail ${index + 1} eartag options:`, eartagOptions.length, eartagOptions.slice(0, 5));
-                            // console.log(`🔍 DEBUG: Detail ${index + 1} eartag options format:`, eartagOptions.slice(0, 2).map(opt => ({value: opt.value, label: opt.label})));
-                            
-                            // Check if current eartag value exists in options
-                            const currentEartagExists = eartagOptions.find(opt => opt.value === (eartagValue || item.eartag));
-                            // console.log(`🔍 DEBUG: Detail ${index + 1} current eartag exists in options:`, !!currentEartagExists, currentEartagExists);
-                            
-                            // Check if T/N exists in options
-                            const tnOption = eartagOptions.find(opt => opt.label === 'T/N' || opt.value === 'T/N');
-                            // console.log(`🔍 DEBUG: Detail ${index + 1} T/N option exists:`, !!tnOption, tnOption);
-                            // console.log(`🔍 DEBUG: Detail ${index + 1} klasifikasi ID:`, item.id_klasifikasi_hewan, 'klasifikasi_id:', item.klasifikasi_id);
-                            // console.log(`🔍 DEBUG: Detail ${index + 1} nama_klasifikasi:`, item.nama_klasifikasi);
-                            // console.log(`🔍 DEBUG: Detail ${index + 1} klasifikasiIdFromId:`, klasifikasiIdFromId, 'klasifikasiIdFromName:', klasifikasiIdFromName);
-                            // console.log(`🔍 DEBUG: Detail ${index + 1} klasifikasi options:`, klasifikasiHewanOptions.length, klasifikasiHewanOptions.slice(0, 3));
-                            // console.log(`🔍 DEBUG: Detail ${index + 1} final eartag value:`, eartagValue || item.eartag || '');
-                            // console.log(`🔍 DEBUG: Detail ${index + 1} final klasifikasi value:`, klasifikasiIdFromId || item.id_klasifikasi_hewan || item.klasifikasi_id || klasifikasiIdFromName || '');
-                            
                             return {
                                 id: index + 1,
                                 pubid: item.pubid,
-                                eartag: eartagValue || item.eartag || '', // Use matched value or original
-                                idKlasifikasiHewan: klasifikasiIdFromId || item.id_klasifikasi_hewan || item.klasifikasi_id || klasifikasiIdFromName || '', // Try multiple sources, prioritize ID match
+                                eartag: item.eartag || 'AUTO', // Use existing eartag or default
+                                eartagSupplier: item.eartag_supplier || '', // Add eartag supplier field
+                                idKlasifikasiHewan: klasifikasiIdFromId || item.id_klasifikasi_hewan || item.klasifikasi_id || '', // Try multiple sources, prioritize ID match
                                 harga: harga,
                                 berat: parseInt(item.berat) || 0,
                                 persentase: item.persentase || calculatedPersentase, // Use backend persentase or calculate from harga/hpp
                                 hpp: hpp,
-                                totalHarga: parseFloat(item.total_harga) || 0
                             };
                         }));
                     }
@@ -245,6 +189,8 @@ const AddEditPembelianPage = () => {
             if (cloneData.markup_percentage !== undefined) {
                 setMarkupPercentage(parseFloat(cloneData.markup_percentage) || 12);
             }
+            
+
             // Add initial detail item for clone
             addDetailItem();
         }
@@ -281,7 +227,6 @@ const AddEditPembelianPage = () => {
                     const markup = parseFloat(field === 'persentase' ? value : updatedItem.persentase) || 0;
                     const markupAmount = harga * (markup / 100);
                     updatedItem.hpp = harga + markupAmount;
-                    updatedItem.totalHarga = updatedItem.hpp;
                     // console.log(`🔧 DEBUG: HPP recalculated: ${updatedItem.hpp}`);
                 }
                 
@@ -308,13 +253,13 @@ const AddEditPembelianPage = () => {
         
         const newItem = {
             id: timestamp,
-            eartag: tnEartagOption ? tnEartagOption.value : '',
+            eartag: tnEartagOption ? tnEartagOption.value : (eartagOptions.length > 0 ? eartagOptions[0].value : 'AUTO'), // Default to T/N or first option
+            eartagSupplier: '', // Manual input by user
             idKlasifikasiHewan: defaultData.idKlasifikasiHewan || '',
             harga: harga,
             berat: parseFloat(defaultData.berat) || 0,
             persentase: markup, // Individual markup per ternak
             hpp: hpp,
-            totalHarga: hpp
         };
         setDetailItems(prev => [...prev, newItem]);
     };
@@ -346,13 +291,13 @@ const AddEditPembelianPage = () => {
             
             const newItem = {
                 id: uniqueTimestamp,
-                eartag: tnEartagOption ? tnEartagOption.value : '',
+                eartag: tnEartagOption ? tnEartagOption.value : (eartagOptions.length > 0 ? eartagOptions[0].value : 'AUTO'), // Default to T/N or first option
+                eartagSupplier: '', // Manual input by user
                 idKlasifikasiHewan: defaultData.idKlasifikasiHewan || '',
                 harga: harga,
                 berat: parseFloat(defaultData.berat) || 0,
                 persentase: markup, // Individual markup per ternak
                 hpp: hpp,
-                totalHarga: hpp
             };
             newItems.push(newItem);
         }
@@ -396,7 +341,7 @@ const AddEditPembelianPage = () => {
         if (!headerData.tglMasuk) errors.push('Tanggal masuk harus diisi');
         if (!headerData.namaSupir) errors.push('Nama supir harus diisi');
         if (!headerData.platNomor) errors.push('Plat nomor harus diisi');
-        if (!headerData.biayaTruck || headerData.biayaTruck <= 0) errors.push('Biaya truck harus diisi dan > 0');
+        if (!headerData.biayaTruck || parseInt(headerData.biayaTruck) <= 0) errors.push('Biaya truck harus diisi dan > 0');
         // biayaLain is optional, no validation needed
 
         // Detail validation
@@ -404,21 +349,9 @@ const AddEditPembelianPage = () => {
             errors.push('Minimal harus ada 1 detail ternak');
         } else {
             detailItems.forEach((item, index) => {
-                if (!item.eartag) errors.push(`Detail ${index + 1}: Eartag harus diisi`);
                 if (!item.idKlasifikasiHewan) errors.push(`Detail ${index + 1}: Klasifikasi hewan harus dipilih`);
                 if (!item.harga || item.harga <= 0) errors.push(`Detail ${index + 1}: Harga harus diisi dan > 0`);
                 if (!item.berat || item.berat <= 0) errors.push(`Detail ${index + 1}: Berat harus diisi dan > 0`);
-            });
-
-            // Check for duplicate eartags within the form
-            const eartagCounts = {};
-            detailItems.forEach((item, index) => {
-                if (item.eartag) {
-                    eartagCounts[item.eartag] = (eartagCounts[item.eartag] || 0) + 1;
-                    if (eartagCounts[item.eartag] > 1) {
-                        errors.push(`Eartag ${item.eartag} digunakan lebih dari sekali. Setiap eartag harus unik.`);
-                    }
-                }
             });
         }
 
@@ -452,18 +385,18 @@ const AddEditPembelianPage = () => {
                 const completeData = {
                     ...updatedHeaderData,
                     biayaTruck: parseFloat(updatedHeaderData.biayaTruck),
-                    biayaLain: parseFloat(updatedHeaderData.biayaLain) || 0,
+                    biayaLain: parseFloat(updatedHeaderData.biayaLain) || 0, // Backend validation requires this field
                     // markup removed - no longer needed
                     markup_percentage: markupPercentage,
                     details: detailItems.map(item => ({
-                        id_office: 1,
-                        eartag: String(item.eartag), // Convert to string
-                        id_klasifikasi_hewan: parseInt(item.idKlasifikasiHewan),
-                        harga: parseFloat(item.harga),
-                        berat: parseInt(item.berat),
-                        persentase: parseInt(item.persentase) || 0, // Individual markup per ternak as integer
-                        hpp: parseFloat(item.hpp),
-                        total_harga: parseFloat(item.totalHarga),
+                        id_office: 1, // Always Head Office as integer
+                        eartag: String(item.eartag), // Backend expects string
+                        eartag_supplier: String(item.eartagSupplier || ''), // Manual input eartag supplier
+                        id_klasifikasi_hewan: parseInt(item.idKlasifikasiHewan), // Backend expects integer
+                        harga: parseFloat(item.harga), // Backend expects numeric
+                        berat: parseInt(item.berat), // Backend expects integer
+                        persentase: parseInt(item.persentase) || 0, // Backend expects integer
+                        hpp: parseFloat(item.hpp), // Backend expects numeric
                     }))
                 };
                 result = await updatePembelian(id, completeData);
@@ -472,19 +405,19 @@ const AddEditPembelianPage = () => {
                 const completeData = {
                     ...updatedHeaderData,
                     idOffice: 1, // Always ensure Head Office ID as integer
-                    biayaTruck: parseFloat(updatedHeaderData.biayaTruck), // Truck cost at header level
-                    biayaLain: parseFloat(updatedHeaderData.biayaLain) || 0, // Other costs at header level
+                    biayaTruck: parseFloat(updatedHeaderData.biayaTruck), // Backend validation requires numeric
+                    biayaLain: parseFloat(updatedHeaderData.biayaLain) || 0, // Backend validation requires this field as numeric
                     // markup removed - no longer needed at header level
                     markup_percentage: markupPercentage, // Send markup percentage to backend
                     details: detailItems.map(item => ({
                         id_office: 1, // Always Head Office for all details as integer
-                        eartag: String(item.eartag), // Convert to string as backend expects
-                        id_klasifikasi_hewan: parseInt(item.idKlasifikasiHewan),
-                        harga: parseFloat(item.harga),
-                        berat: parseInt(item.berat),
-                        persentase: parseInt(item.persentase) || 0, // Individual markup per ternak as integer
-                        hpp: parseFloat(item.hpp), // HPP now calculated with individual markup percentage
-                        total_harga: parseFloat(item.totalHarga)
+                        eartag: String(item.eartag), // Backend expects string
+                        eartag_supplier: String(item.eartagSupplier || ''), // Manual input eartag supplier
+                        id_klasifikasi_hewan: parseInt(item.idKlasifikasiHewan), // Backend expects integer
+                        harga: parseFloat(item.harga), // Backend expects numeric
+                        berat: parseInt(item.berat), // Backend expects integer
+                        persentase: parseInt(item.persentase) || 0, // Backend expects integer
+                        hpp: parseFloat(item.hpp), // Backend expects numeric
                     }))
                 };
                 
@@ -669,13 +602,14 @@ const AddEditPembelianPage = () => {
                                 Biaya Truck (Rp) *
                             </label>
                             <input
-                                type="number"
-                                value={headerData.biayaTruck}
-                                onChange={(e) => handleHeaderChange('biayaTruck', e.target.value)}
+                                type="text"
+                                value={formatNumber(headerData.biayaTruck)}
+                                onChange={(e) => {
+                                    const rawValue = parseNumber(e.target.value);
+                                    handleHeaderChange('biayaTruck', rawValue);
+                                }}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                                placeholder="1000000"
-                                min="0"
-                                step="1000"
+                                placeholder="1.000.000"
                                 required
                             />
                             <p className="text-xs text-gray-500 mt-1">
@@ -689,13 +623,14 @@ const AddEditPembelianPage = () => {
                                 Biaya Lain (Rp)
                             </label>
                             <input
-                                type="number"
-                                value={headerData.biayaLain}
-                                onChange={(e) => handleHeaderChange('biayaLain', e.target.value)}
+                                type="text"
+                                value={formatNumber(headerData.biayaLain)}
+                                onChange={(e) => {
+                                    const rawValue = parseNumber(e.target.value);
+                                    handleHeaderChange('biayaLain', rawValue);
+                                }}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
                                 placeholder="0"
-                                min="0"
-                                step="1000"
                             />
                             <p className="text-xs text-gray-500 mt-1">
                                 💡 Biaya tambahan lainnya (opsional)
@@ -704,6 +639,8 @@ const AddEditPembelianPage = () => {
 
                     </div>
                 </div>
+
+
 
                 {/* Default Data & Batch Add Container */}
                 <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-xl border border-gray-100">
@@ -751,13 +688,14 @@ const AddEditPembelianPage = () => {
                                 Harga Default (Rp)
                             </label>
                             <input
-                                type="number"
-                                value={defaultData.harga}
-                                onChange={(e) => handleDefaultDataChange('harga', e.target.value)}
+                                type="text"
+                                value={formatNumber(defaultData.harga)}
+                                onChange={(e) => {
+                                    const rawValue = parseNumber(e.target.value);
+                                    handleDefaultDataChange('harga', rawValue);
+                                }}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                                placeholder="5000000"
-                                min="0"
-                                step="1000"
+                                placeholder="5.000.000"
                             />
                         </div>
 
@@ -889,18 +827,7 @@ const AddEditPembelianPage = () => {
                                     )}
                                 </div>
 
-                                {/* Auto-generated code eartag info */}
-                                <div className="mb-4">
-                                    <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
-                                        <div className="flex items-center gap-2">
-                                            <Hash className="w-4 h-4 text-blue-600" />
-                                            <span className="text-sm font-medium text-blue-800">Code Eartag</span>
-                                        </div>
-                                        <p className="text-xs text-blue-700 mt-1">
-                                            Code eartag akan di-generate otomatis oleh backend saat data disimpan
-                                        </p>
-                                    </div>
-                                </div>
+
 
                                 {/* Row 1: Basic Information */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
@@ -911,19 +838,27 @@ const AddEditPembelianPage = () => {
                                         <SearchableSelect
                                             key={`eartag-${item.id}-${item.eartag}`}
                                             value={item.eartag}
-                                            onChange={(value) => {
-                                                // console.log(`🔧 DEBUG: SearchableSelect onChange - eartag changing from ${item.eartag} to ${value}`);
-                                                handleDetailChange(item.id, 'eartag', value);
-                                            }}
-                                            options={eartagOptions.filter(option =>
-                                                // Show if not used by other detail items OR if it's the current item's selection
-                                                !detailItems.some(detail => detail.eartag === option.value && detail.id !== item.id)
-                                            )}
-                                            placeholder={parameterLoading ? 'Loading eartags...' : 'Pilih Eartag'}
+                                            onChange={(value) => handleDetailChange(item.id, 'eartag', value)}
+                                            options={eartagOptions}
+                                            placeholder={parameterLoading ? 'Loading eartag...' : 'Pilih Eartag'}
                                             isLoading={parameterLoading}
                                             isDisabled={parameterLoading}
                                             required
                                             className="w-full"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Eartag Supplier *
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={item.eartagSupplier}
+                                            onChange={(e) => handleDetailChange(item.id, 'eartagSupplier', e.target.value)}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                            placeholder="Input manual supplier"
+                                            required
                                         />
                                     </div>
 
@@ -961,25 +896,28 @@ const AddEditPembelianPage = () => {
                                             required
                                         />
                                     </div>
+                                </div>
+
+                                {/* Row 2: Pricing Information */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 mb-4">
 
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
                                             Harga (Rp) *
                                         </label>
                                         <input
-                                            type="number"
-                                            value={item.harga}
-                                            onChange={(e) => handleDetailChange(item.id, 'harga', e.target.value)}
+                                            type="text"
+                                            value={formatNumber(item.harga)}
+                                            onChange={(e) => {
+                                                const rawValue = parseNumber(e.target.value);
+                                                handleDetailChange(item.id, 'harga', rawValue);
+                                            }}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                                            placeholder="5000000"
-                                            min="1"
+                                            placeholder="5.000.000"
                                             required
                                         />
                                     </div>
-                                </div>
 
-                                {/* Row 2: Pricing Information */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
                                             Markup (%) *
@@ -999,14 +937,17 @@ const AddEditPembelianPage = () => {
                                             Individual markup untuk ternak ini
                                         </p>
                                     </div>
+                                </div>
 
+                                {/* Row 3: Calculated Information */}
+                                <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
                                             HPP (Harga + {item.persentase || 0}%)
                                         </label>
                                         <input
-                                            type="number"
-                                            value={item.hpp}
+                                            type="text"
+                                            value={formatNumber(item.hpp)}
                                             readOnly
                                             className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 font-medium"
                                             title={`HPP dihitung otomatis: Harga + ${item.persentase || 0}% markup`}
@@ -1015,18 +956,6 @@ const AddEditPembelianPage = () => {
                                             Auto calculated: +{item.persentase || 0}% markup
                                         </p>
                                     </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Total Harga (Rp)
-                                        </label>
-                                        <input
-                                            type="number"
-                                            value={item.totalHarga}
-                                            readOnly
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 font-medium"
-                                        />
-                                    </div>
                                 </div>
                             </div>
                         ))}
@@ -1034,7 +963,7 @@ const AddEditPembelianPage = () => {
 
                     {/* Summary */}
                     <div className="mt-6 bg-gradient-to-r from-gray-50 to-slate-100 p-4 rounded-lg">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-center">
                             <div>
                                 <p className="text-2xl font-bold text-indigo-600">
                                     {detailItems.length}
@@ -1046,12 +975,6 @@ const AddEditPembelianPage = () => {
                                     {detailItems.reduce((sum, item) => sum + (parseFloat(item.berat) || 0), 0).toFixed(1)} kg
                                 </p>
                                 <p className="text-sm text-gray-600">Total Berat</p>
-                            </div>
-                            <div>
-                                <p className="text-2xl font-bold text-red-600">
-                                    Rp {detailItems.reduce((sum, item) => sum + (parseFloat(item.totalHarga) || 0), 0).toLocaleString('id-ID')}
-                                </p>
-                                <p className="text-sm text-gray-600">Total Harga</p>
                             </div>
                         </div>
                     </div>
