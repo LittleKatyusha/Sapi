@@ -6,27 +6,12 @@ import { API_ENDPOINTS } from '../../../../config/api';
 const safeJsonParse = async (response) => {
     const contentType = response.headers.get('content-type');
     
-    // Enhanced logging for debugging
-    // console.log('🔍 DEBUG: Response details:', {
-    //     status: response.status,
-    //     statusText: response.statusText,
-    //     contentType: contentType,
-    //     url: response.url,
-    //     headers: Object.fromEntries(response.headers.entries())
-    // });
-    
     if (!contentType || !contentType.includes('application/json')) {
         const responseText = await response.text();
-        // console.error('❌ Expected JSON but received:', {
-        //     contentType,
-        //     responseText: responseText.substring(0, 500),
-        //     fullResponseLength: responseText.length
-        // });
         throw new Error(`Server returned ${contentType || 'unknown content type'} instead of JSON. This usually means the API endpoint is not properly configured or the server returned an error page. Response: ${responseText.substring(0, 200)}...`);
     }
     
     const jsonData = await response.json();
-    // console.log('✅ Successfully parsed JSON:', jsonData);
     return jsonData;
 };
 
@@ -38,6 +23,7 @@ const usePembelianHO = () => {
     const [filterStatus, setFilterStatus] = useState('all');
     const [isSearching, setIsSearching] = useState(false);
     const [searchError, setSearchError] = useState(null);
+    const [deleteLoading, setDeleteLoading] = useState(null); // Track which item is being deleted
 
     // Server-side pagination state
     const [serverPagination, setServerPagination] = useState({
@@ -64,8 +50,6 @@ const usePembelianHO = () => {
             const currentSearch = search !== null ? search : searchTerm;
             const currentFilter = filter !== null ? filter : filterStatus;
             
-            // console.log('Fetching pembelian HO from backend...');
-            
             // DataTables pagination parameters for server-side processing
             const start = (currentPage - 1) * currentPerPage;
             const params = {
@@ -86,8 +70,6 @@ const usePembelianHO = () => {
                 params: params
             });
             
-            // console.log('Response received:', response.status);
-            
             let dataArray = [];
             let totalRecords = 0;
             let filteredRecords = 0;
@@ -97,15 +79,12 @@ const usePembelianHO = () => {
                 dataArray = result.data;
                 totalRecords = result.recordsTotal || result.data.length;
                 filteredRecords = result.recordsFiltered || result.data.length;
-                // console.log('DataTables response received:', dataArray.length, 'items');
             } else if (result.status === 'ok' && result.data && Array.isArray(result.data)) {
                 // Fallback for simple response format
                 dataArray = result.data;
                 totalRecords = result.data.length;
                 filteredRecords = result.data.length;
-                // console.log('API response received:', dataArray.length, 'items');
             } else {
-                // console.error('Unexpected API response format:', result);
                 throw new Error(`Format response API tidak sesuai. Response: ${JSON.stringify(result).substring(0, 200)}...`);
             }
             
@@ -119,19 +98,6 @@ const usePembelianHO = () => {
             });
             
             if (dataArray.length >= 0) {
-                // Backend mengirim data dengan format:
-                // 'pid' => encrypt($dt->pubid) - ini adalah encrypted PID yang perlu kita gunakan untuk API calls
-                // Backend tidak mengirim raw pubid, hanya encrypted pid
-                
-                // Debug: Log first item from backend to understand the structure
-                if (dataArray.length > 0) {
-                    console.log('🔍 DEBUG: First item from backend:', dataArray[0]);
-                    console.log('🔍 DEBUG: Available keys:', Object.keys(dataArray[0]));
-                    console.log('🔍 DEBUG: PID value:', dataArray[0].pid);
-                    console.log('🔍 DEBUG: PID type:', typeof dataArray[0].pid);
-                    console.log('🔍 DEBUG: PID length:', dataArray[0].pid?.length);
-                }
-                
                 const validatedData = dataArray.map((item, index) => {
                     const mappedItem = {
                         pubid: item.pubid || `TEMP-${index + 1}`, // Raw pubid (biasanya tidak ada dari backend)
@@ -152,22 +118,14 @@ const usePembelianHO = () => {
                         id: item.pid || `TEMP-${index + 1}` // Gunakan encrypted PID sebagai primary ID
                     };
                     
-                    // Debug first mapped item
-                    if (index === 0) {
-                        console.log('🔍 DEBUG: First mapped item:', mappedItem);
-                        console.log('🔍 DEBUG: Mapped encryptedPid:', mappedItem.encryptedPid);
-                    }
-                    
                     return mappedItem;
-                });                // console.log('Validated pembelian data:', validatedData.slice(0, 2));
+                });
                 setPembelian(validatedData);
             } else {
-                // console.warn('No pembelian data received from API');
                 setPembelian([]);
             }
             
         } catch (err) {
-            // console.error('Error in fetchPembelian:', err);
             const errorMessage = err.message || 'Terjadi kesalahan saat mengambil data pembelian';
             
             if (isSearchRequest) {
@@ -217,31 +175,15 @@ const usePembelianHO = () => {
                 throw new Error('Biaya truck harus diisi dan lebih dari 0');
             }
             
-            // Debug and validate biaya_truk
-            // console.log('🔍 VALIDATION: biaya_truk value:', headerData.biaya_truk);
-            // console.log('🔍 VALIDATION: biaya_truk type:', typeof headerData.biaya_truk);
-            // console.log('🔍 VALIDATION: is biaya_truk truthy?', !!headerData.biaya_truk);
-            // console.log('🔍 VALIDATION: biaya_truk > 0?', headerData.biaya_truk > 0);
-            
             if (!headerData.biaya_truk || headerData.biaya_truk <= 0 || isNaN(headerData.biaya_truk)) {
                 throw new Error(`Biaya truck harus diisi dengan nilai numerik > 0. Nilai saat ini: ${headerData.biaya_truk} (type: ${typeof headerData.biaya_truk})`);
             }
-
-            // console.log('🔧 DEBUG: Create header data:', headerData);
-            // console.log('🔧 DEBUG: Supplier PID sebagai id_supplier:', pembelianData.idSupplier);
-            // console.log('🔧 DEBUG: Raw biayaTruck from form:', pembelianData.biayaTruck);
-            // console.log('🔧 DEBUG: Parsed biaya_truk value:', parseFloat(pembelianData.biayaTruck) || 0);
-            // console.log('🔧 DEBUG: Type of biaya_truk:', typeof headerData.biaya_truk);
 
             // Backend expects header + details array format
             const requestData = {
                 ...headerData,
                 details: pembelianData.details || [] // Details array from form
             };
-            
-            // console.log('🚀 DEBUG: Complete request data:', JSON.stringify(requestData, null, 2));
-            // console.log('🚀 DEBUG: Header fields being sent:', Object.keys(headerData));
-            // console.log('🚀 DEBUG: biaya_truk in request:', requestData.biaya_truk);
             
             const result = await HttpClient.post(`${API_ENDPOINTS.HO.PEMBELIAN}/store`, requestData);
             await fetchPembelian(1, serverPagination.perPage); // Refresh data
@@ -252,7 +194,6 @@ const usePembelianHO = () => {
             };
             
         } catch (err) {
-            // console.error('Create pembelian error:', err);
             const errorMsg = err.message || 'Terjadi kesalahan saat menyimpan data';
             setError(errorMsg);
             return { success: false, message: errorMsg };
@@ -303,7 +244,6 @@ const usePembelianHO = () => {
             };
             
         } catch (err) {
-            console.error('Update pembelian error:', err);
             const errorMsg = err.message || 'Terjadi kesalahan saat memperbarui data';
             setError(errorMsg);
             return { success: false, message: errorMsg };
@@ -318,12 +258,7 @@ const usePembelianHO = () => {
         setError(null);
         
         try {
-            // Debug: Log encrypted PID yang akan dikirim
-            console.log('🗑️ DEBUG: Full encrypted PID:', encryptedPid);
-            console.log('🗑️ DEBUG: Pembelian data for fallback:', pembelianData);
-            console.log('🗑️ DEBUG: Encrypted PID type:', typeof encryptedPid);
-            console.log('🗑️ DEBUG: Encrypted PID length:', encryptedPid?.length);
-            console.log('🗑️ DEBUG: Is it a valid string?', typeof encryptedPid === 'string' && encryptedPid.length > 0);
+            setDeleteLoading(encryptedPid); // Set loading untuk item ini
             
             // Validate that we have the encrypted PID
             if (!encryptedPid) {
@@ -337,30 +272,48 @@ const usePembelianHO = () => {
             
             // First, try the standard delete method with encrypted PID
             const requestPayload = { pid: encryptedPid };
-            console.log('🗑️ DEBUG: Request payload:', requestPayload);
-            console.log('🗑️ DEBUG: JSON stringified payload:', JSON.stringify(requestPayload));
             
             const result = await HttpClient.post(`${API_ENDPOINTS.HO.PEMBELIAN}/delete`, requestPayload);
             
-            console.log('🗑️ DEBUG: Delete response received:', result);
-            await fetchPembelian(serverPagination.currentPage, serverPagination.perPage); // Refresh data
-            
-            return {
-                success: result.status === 'ok' || result.success === true,
-                message: result.message || 'Data deleted successfully'
-            };
-            
-        } catch (err) {
-            console.error('🗑️ ERROR: Delete failed with error:', err);
-            console.error('🗑️ ERROR: Error message:', err.message);
-            console.error('🗑️ ERROR: Error stack:', err.stack);
-            
-            // If error contains detailed response, log it
-            if (err.response) {
-                console.error('🗑️ ERROR: Response status:', err.response.status);
-                console.error('🗑️ ERROR: Response data:', err.response.data);
+            if (result.status === 'ok' || result.success === true) {
+                // Track deleted PID for debugging
+                window.lastDeletedPid = encryptedPid;
+                
+                // Optimistic UI update: Remove item dari state sebelum refresh
+                // Gunakan multiple fallback untuk memastikan item terhapus
+                setPembelian(prevData => 
+                    prevData.filter(item => 
+                        item.encryptedPid !== encryptedPid && 
+                        item.id !== encryptedPid && 
+                        item.pid !== encryptedPid
+                    )
+                );
+                
+                // Update pagination jika diperlukan
+                setServerPagination(prev => ({
+                    ...prev,
+                    totalItems: Math.max(0, prev.totalItems - 1),
+                    filteredItems: Math.max(0, prev.filteredItems - 1)
+                }));
+                
+                // Delay sebelum refresh untuk memastikan backend selesai processing
+                setTimeout(async () => {
+                    try {
+                        await fetchPembelian(serverPagination.currentPage, serverPagination.perPage);
+                    } catch (refreshError) {
+                        // Jika refresh gagal, tetap return success karena delete berhasil
+                    }
+                }, 1000); // Increase delay to 1000ms
+                
+                return {
+                    success: true,
+                    message: result.message || 'Data deleted successfully'
+                };
+            } else {
+                throw new Error(result.message || 'Delete failed');
             }
             
+        } catch (err) {
             let errorMsg = 'Terjadi kesalahan saat menghapus data';
             
             // Handle specific backend error responses
@@ -387,15 +340,10 @@ const usePembelianHO = () => {
                 }
             }
             
-            // Special handling untuk encrypted PID yang Anda berikan
-            console.log('🔍 DEBUG: Encrypted PID yang gagal:', encryptedPid);
-            console.log('🔍 DEBUG: Length:', encryptedPid?.length);
-            console.log('🔍 DEBUG: First 50 chars:', encryptedPid?.substring(0, 50));
-            
             setError(errorMsg);
             return { success: false, message: errorMsg };
         } finally {
-            setLoading(false);
+            setDeleteLoading(null); // Clear loading state
         }
     }, [fetchPembelian, serverPagination.currentPage, serverPagination.perPage]);
 
@@ -418,7 +366,6 @@ const usePembelianHO = () => {
             };
             
         } catch (err) {
-            console.error('Get detail error:', err);
             const errorMsg = err.message || 'Terjadi kesalahan saat mengambil detail pembelian';
             setError(errorMsg);
             return { success: false, data: [], message: errorMsg };
@@ -452,7 +399,6 @@ const usePembelianHO = () => {
             };
             
         } catch (err) {
-            // console.error('Create detail error:', err);
             const errorMsg = err.message || 'Terjadi kesalahan saat menambah detail ternak';
             setError(errorMsg);
             return { success: false, message: errorMsg };
@@ -486,7 +432,6 @@ const usePembelianHO = () => {
             };
             
         } catch (err) {
-            console.error('Update detail error:', err);
             const errorMsg = err.message || 'Terjadi kesalahan saat memperbarui detail ternak';
             setError(errorMsg);
             return { success: false, message: errorMsg };
@@ -513,7 +458,6 @@ const usePembelianHO = () => {
             };
             
         } catch (err) {
-            console.error('Delete detail error:', err);
             const errorMsg = err.message || 'Terjadi kesalahan saat menghapus detail ternak';
             setError(errorMsg);
             return { success: false, message: errorMsg };
@@ -639,6 +583,7 @@ const usePembelianHO = () => {
         createPembelian,
         updatePembelian,
         deletePembelian,
+        deleteLoading, // Export delete loading state
         getPembelianDetail,
         createDetail,
         updateDetail,
