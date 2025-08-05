@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { HttpClient } from '../../../../services/httpClient';
+import HttpClient from '../../../../services/httpClient';
 import { API_ENDPOINTS } from '../../../../config/api';
 
 // Helper function to safely parse JSON response
@@ -301,39 +301,9 @@ const usePembelianHO = () => {
         setError(null);
         
         try {
-            const authHeader = getAuthHeader();
-            if (!authHeader.Authorization) {
-                throw new Error('Token authentication tidak ditemukan. Silakan login ulang.');
-            }
-            
-            // CORS Issue Note: Backend needs CORS configuration for DELETE operations
-            // Temporary workaround: Add additional headers for CORS preflight
-            const response = await fetch(`${API_BASE}/delete`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest', // Help with CORS preflight
-                    ...authHeader
-                },
-                body: JSON.stringify({
-                    pid: pubid
-                })
+            const result = await HttpClient.post(`${API_ENDPOINTS.HO.PEMBELIAN}/delete`, {
+                pid: pubid
             });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            // Check if response is actually JSON before parsing
-            const contentType = response.headers.get('content-type');
-            if (!contentType || !contentType.includes('application/json')) {
-                const responseText = await response.text();
-                // console.error('Expected JSON but received:', contentType, responseText.substring(0, 200));
-                throw new Error(`Server returned ${contentType || 'unknown content type'} instead of JSON. Response: ${responseText.substring(0, 200)}...`);
-            }
-            
-            const result = await safeJsonParse(response);
             await fetchPembelian(serverPagination.currentPage, serverPagination.perPage); // Refresh data
             
             return {
@@ -348,7 +318,7 @@ const usePembelianHO = () => {
         } finally {
             setLoading(false);
         }
-    }, [getAuthHeader, fetchPembelian]);
+    }, [fetchPembelian]);
 
     // Get pembelian details
     const getPembelianDetail = useCallback(async (pubid) => {
@@ -356,30 +326,9 @@ const usePembelianHO = () => {
         setError(null);
         
         try {
-            const authHeader = getAuthHeader();
-            if (!authHeader.Authorization) {
-                throw new Error('Token authentication tidak ditemukan. Silakan login ulang.');
-            }
-            
-            const response = await fetch(`${API_BASE}/show`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    ...authHeader
-                },
-                body: JSON.stringify({
-                    pid: pubid // This should be the encrypted PID from backend
-                })
+            const result = await HttpClient.post(`${API_ENDPOINTS.HO.PEMBELIAN}/show`, {
+                pid: pubid // This should be the encrypted PID from backend
             });
-            
-            if (!response.ok) {
-                const errorText = await response.text();
-                // console.error('Backend error response:', errorText);
-                throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
-            }
-            
-            const result = await safeJsonParse(response);
             // console.log('Detail response:', result);
             
             // Debug: Log the structure of first detail item to identify classification field name
@@ -410,7 +359,7 @@ const usePembelianHO = () => {
         } finally {
             setLoading(false);
         }
-    }, [getAuthHeader]);
+    }, []);
 
     // Create detail ternak
     const createDetail = useCallback(async (detailData) => {
@@ -418,39 +367,18 @@ const usePembelianHO = () => {
         setError(null);
         
         try {
-            const authHeader = getAuthHeader();
-            if (!authHeader.Authorization) {
-                throw new Error('Token authentication tidak ditemukan. Silakan login ulang.');
-            }
-            
-            const response = await fetch(`${API_BASE}/store`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    ...authHeader
-                },
-                body: JSON.stringify({
-                    // Detail fields only (no header fields to trigger detail creation)
-                    id_pembelian: parseInt(detailData.idPembelian),
-                    id_office: parseInt(detailData.idOffice),
-                    eartag: String(detailData.eartag), // Convert to string
-                    id_klasifikasi_hewan: parseInt(detailData.idKlasifikasiHewan),
-                    harga: parseFloat(detailData.harga),
-                    berat: parseInt(detailData.berat),
-                    // biaya_truk removed from detail since it's now in header only
-                    hpp: parseFloat(detailData.hpp),
-                    total_harga: parseFloat(detailData.totalHarga)
-                })
+            const result = await HttpClient.post(`${API_ENDPOINTS.HO.PEMBELIAN}/store`, {
+                // Detail fields only (no header fields to trigger detail creation)
+                id_pembelian: parseInt(detailData.idPembelian),
+                id_office: parseInt(detailData.idOffice),
+                eartag: String(detailData.eartag), // Convert to string
+                id_klasifikasi_hewan: parseInt(detailData.idKlasifikasiHewan),
+                harga: parseFloat(detailData.harga),
+                berat: parseInt(detailData.berat),
+                // biaya_truk removed from detail since it's now in header only
+                hpp: parseFloat(detailData.hpp),
+                total_harga: parseFloat(detailData.totalHarga)
             });
-            
-            if (!response.ok) {
-                const errorText = await response.text();
-                // console.error('Backend error response:', errorText);
-                throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
-            }
-            
-            const result = await safeJsonParse(response);
             
             return {
                 success: result.status === 'ok' || result.success === true,
@@ -465,7 +393,7 @@ const usePembelianHO = () => {
         } finally {
             setLoading(false);
         }
-    }, [getAuthHeader]);
+    }, []);
 
     // Update detail ternak
     const updateDetail = useCallback(async (pubid, detailData) => {
@@ -473,40 +401,19 @@ const usePembelianHO = () => {
         setError(null);
         
         try {
-            const authHeader = getAuthHeader();
-            if (!authHeader.Authorization) {
-                throw new Error('Token authentication tidak ditemukan. Silakan login ulang.');
-            }
-            
-            const response = await fetch(`${API_BASE}/update`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    ...authHeader
-                },
-                body: JSON.stringify({
-                    pid: pubid,
-                    // Detail fields only (no header fields)
-                    id_pembelian: parseInt(detailData.idPembelian),
-                    id_office: parseInt(detailData.idOffice),
-                    eartag: String(detailData.eartag), // Convert to string
-                    id_klasifikasi_hewan: parseInt(detailData.idKlasifikasiHewan),
-                    harga: parseFloat(detailData.harga),
-                    berat: parseInt(detailData.berat),
-                    // biaya_truk removed from detail since it's now in header only
-                    hpp: parseFloat(detailData.hpp),
-                    total_harga: parseFloat(detailData.totalHarga)
-                })
+            const result = await HttpClient.post(`${API_ENDPOINTS.HO.PEMBELIAN}/update`, {
+                pid: pubid,
+                // Detail fields only (no header fields)
+                id_pembelian: parseInt(detailData.idPembelian),
+                id_office: parseInt(detailData.idOffice),
+                eartag: String(detailData.eartag), // Convert to string
+                id_klasifikasi_hewan: parseInt(detailData.idKlasifikasiHewan),
+                harga: parseFloat(detailData.harga),
+                berat: parseInt(detailData.berat),
+                // biaya_truk removed from detail since it's now in header only
+                hpp: parseFloat(detailData.hpp),
+                total_harga: parseFloat(detailData.totalHarga)
             });
-            
-            if (!response.ok) {
-                const errorText = await response.text();
-                // console.error('Backend error response:', errorText);
-                throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
-            }
-            
-            const result = await safeJsonParse(response);
             
             return {
                 success: result.status === 'ok' || result.success === true,
@@ -521,7 +428,7 @@ const usePembelianHO = () => {
         } finally {
             setLoading(false);
         }
-    }, [getAuthHeader]);
+    }, []);
 
     // Delete detail ternak
     const deleteDetail = useCallback(async (pubid) => {
@@ -529,31 +436,9 @@ const usePembelianHO = () => {
         setError(null);
         
         try {
-            const authHeader = getAuthHeader();
-            if (!authHeader.Authorization) {
-                throw new Error('Token authentication tidak ditemukan. Silakan login ulang.');
-            }
-            
-            const response = await fetch(`${API_BASE}/delete`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest', // Help with CORS preflight
-                    ...authHeader
-                },
-                body: JSON.stringify({
-                    pid: pubid
-                })
+            const result = await HttpClient.post(`${API_ENDPOINTS.HO.PEMBELIAN}/delete`, {
+                pid: pubid
             });
-            
-            if (!response.ok) {
-                const errorText = await response.text();
-                // console.error('Backend error response:', errorText);
-                throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
-            }
-            
-            const result = await safeJsonParse(response);
             
             return {
                 success: result.status === 'ok' || result.success === true,
@@ -568,7 +453,7 @@ const usePembelianHO = () => {
         } finally {
             setLoading(false);
         }
-    }, [getAuthHeader]);
+    }, []);
 
     // Computed stats
     const stats = useMemo(() => {

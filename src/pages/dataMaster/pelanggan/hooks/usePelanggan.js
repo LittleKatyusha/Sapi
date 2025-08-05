@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
-import { HttpClient } from '../../../../services/httpClient';
+import HttpClient from '../../../../services/httpClient';
 import { API_ENDPOINTS } from '../../../../config/api';
 
 const usePelanggan = () => {
@@ -163,7 +163,7 @@ const usePelanggan = () => {
         } finally {
             setLoading(false);
         }
-    }, [getAuthHeader]);
+    }, []);
 
     // Create pelanggan
     const createPelanggan = useCallback(async (pelangganData) => {
@@ -171,31 +171,14 @@ const usePelanggan = () => {
         setError(null);
         
         try {
-            const authHeader = getAuthHeader();
-            if (!authHeader.Authorization) {
-                throw new Error('Token authentication tidak ditemukan. Silakan login ulang.');
-            }
-            
-            const response = await fetch(`${API_BASE}/store`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...authHeader
-                },
-                body: JSON.stringify({
-                    nama: pelangganData.name,
-                    alamat: pelangganData.address,
-                    kontak: pelangganData.phone,
-                    status: pelangganData.status,
-                    kategori: 2 // Set kategori = 2 untuk pelanggan
-                })
+            const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.OUTLET}/store`, {
+                nama: pelangganData.name,
+                alamat: pelangganData.address,
+                kontak: pelangganData.phone,
+                status: pelangganData.status,
+                kategori: 2 // Set kategori = 2 untuk pelanggan
             });
             
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const result = await response.json();
             await fetchPelanggan(1, 1000); // Refresh data
             
             return {
@@ -210,7 +193,7 @@ const usePelanggan = () => {
         } finally {
             setLoading(false);
         }
-    }, [getAuthHeader, fetchPelanggan]);
+    }, [fetchPelanggan]);
 
     // Update pelanggan
     const updatePelanggan = useCallback(async (pubid, pelangganData) => {
@@ -218,37 +201,20 @@ const usePelanggan = () => {
         setError(null);
         
         try {
-            const authHeader = getAuthHeader();
-            if (!authHeader.Authorization) {
-                throw new Error('Token authentication tidak ditemukan. Silakan login ulang.');
-            }
-            
             const pelangganItem = pelanggan.find(p => p.pubid === pubid);
             if (!pelangganItem) {
                 throw new Error('Pelanggan tidak ditemukan');
             }
             
-            const response = await fetch(`${API_BASE}/update`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...authHeader
-                },
-                body: JSON.stringify({
-                    pid: pelangganItem.encryptedPid || pelangganItem.pubid,
-                    nama: pelangganData.name,
-                    alamat: pelangganData.address,
-                    kontak: pelangganData.phone,
-                    status: pelangganData.status,
-                    kategori: 2 // Set kategori = 2 untuk pelanggan
-                })
+            const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.OUTLET}/update`, {
+                pid: pelangganItem.encryptedPid || pelangganItem.pubid,
+                nama: pelangganData.name,
+                alamat: pelangganData.address,
+                kontak: pelangganData.phone,
+                status: pelangganData.status,
+                kategori: 2 // Set kategori = 2 untuk pelanggan
             });
             
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const result = await response.json();
             await fetchPelanggan(1, 1000); // Refresh data
             
             return {
@@ -263,7 +229,7 @@ const usePelanggan = () => {
         } finally {
             setLoading(false);
         }
-    }, [getAuthHeader, fetchPelanggan, pelanggan]);
+    }, [fetchPelanggan, pelanggan]);
 
     // Delete pelanggan
     const deletePelanggan = useCallback(async (pubid) => {
@@ -271,32 +237,15 @@ const usePelanggan = () => {
         setError(null);
         
         try {
-            const authHeader = getAuthHeader();
-            if (!authHeader.Authorization) {
-                throw new Error('Token authentication tidak ditemukan. Silakan login ulang.');
-            }
-            
             const pelangganItem = pelanggan.find(p => p.pubid === pubid);
             if (!pelangganItem) {
                 throw new Error('Pelanggan tidak ditemukan');
             }
             
-            const response = await fetch(`${API_BASE}/delete`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...authHeader
-                },
-                body: JSON.stringify({
-                    pid: pelangganItem.encryptedPid || pelangganItem.pubid
-                })
+            const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.OUTLET}/delete`, {
+                pid: pelangganItem.encryptedPid || pelangganItem.pubid
             });
             
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const result = await response.json();
             await fetchPelanggan(1, 1000); // Refresh data
             
             return {
@@ -320,7 +269,7 @@ const usePelanggan = () => {
         } finally {
             setLoading(false);
         }
-    }, [getAuthHeader, fetchPelanggan, pelanggan]);
+    }, [fetchPelanggan, pelanggan]);
 
     // Filter dan search data
     const filteredData = useMemo(() => {

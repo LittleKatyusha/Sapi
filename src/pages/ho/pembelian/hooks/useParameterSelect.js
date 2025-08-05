@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { HttpClient } from '../../../../services/httpClient';
+import HttpClient from '../../../../services/httpClient';
 import { API_ENDPOINTS } from '../../../../config/api';
 
 const useParameterSelect = () => {

@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { HttpClient } from "../../../../services/httpClient";
+import HttpClient from "../../../../services/httpClient";
 import { API_ENDPOINTS } from "../../../../config/api";
 
 // Custom hook untuk manajemen data, filter, dan statistik Klasifikasi Hewan
@@ -36,29 +36,15 @@ const useKlasifikasiHewan = () => {
   // Fetch jenis hewan options dari API
   const fetchJenisHewanOptions = useCallback(async () => {
     try {
-      const authHeader = getAuthHeader();
-      if (!authHeader.Authorization) {
-        return;
-      }
+      const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.JENIS_HEWAN}/data`);
       
-      const response = await fetch(`${JENIS_HEWAN_API_BASE}/data`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          ...authHeader
-        }
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        if (result.status === 'ok' && result.data && Array.isArray(result.data)) {
-          const validatedOptions = result.data.map((item, index) => ({
-            id: item.order_no || index + 1, // Menggunakan order_no sebagai ID
-            pubid: item.pubid,
-            name: item.name || 'Nama tidak tersedia'
-          }));
-          setJenisHewanOptions(validatedOptions);
-        }
+      if (result.status === 'ok' && result.data && Array.isArray(result.data)) {
+        const validatedOptions = result.data.map((item, index) => ({
+          id: item.order_no || index + 1, // Menggunakan order_no sebagai ID
+          pubid: item.pubid,
+          name: item.name || 'Nama tidak tersedia'
+        }));
+        setJenisHewanOptions(validatedOptions);
       }
     } catch (err) {
       console.warn('Failed to fetch jenis hewan options:', err.message);
@@ -69,34 +55,17 @@ const useKlasifikasiHewan = () => {
         { id: 3, pubid: 'default-3', name: 'Kambing' }
       ]);
     }
-  }, [getAuthHeader]);
+  }, []);
 
   // Function untuk test koneksi API
   const testApiConnection = useCallback(async () => {
     try {
-      const authHeader = getAuthHeader();
-      
-      if (!authHeader.Authorization) {
-        return { success: false, message: 'Token authorization tidak ditemukan' };
-      }
-      
-      const response = await fetch(`${API_BASE}/data`, {
-        method: 'HEAD',
-        headers: {
-          'Content-Type': 'application/json',
-          ...authHeader
-        }
-      });
-      
-      if (response.ok) {
-        return { success: true, message: 'Koneksi API berhasil' };
-      } else {
-        return { success: false, message: `API connection failed: ${response.status}` };
-      }
+      await HttpClient.head(`${API_ENDPOINTS.MASTER.KLASIFIKASI_HEWAN}/data`);
+      return { success: true, message: 'Koneksi API berhasil' };
     } catch (error) {
       return { success: false, message: `Network error: ${error.message}` };
     }
-  }, [getAuthHeader]);
+  }, []);
 
   // Fetch data dari API dengan encrypted PID dari backend
   const fetchKlasifikasiHewan = useCallback(async () => {
@@ -104,25 +73,7 @@ const useKlasifikasiHewan = () => {
     setError(null);
     
     try {
-      const authHeader = getAuthHeader();
-      
-      if (!authHeader.Authorization) {
-        throw new Error('Token authentication tidak ditemukan. Silakan login ulang.');
-      }
-      
-      const response = await fetch(`${API_BASE}/data`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          ...authHeader
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const result = await response.json();
+      const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.KLASIFIKASI_HEWAN}/data`);
       
       if (result.status === 'ok' && result.data && Array.isArray(result.data)) {
         const validatedData = result.data.map((item, index) => {
@@ -147,35 +98,33 @@ const useKlasifikasiHewan = () => {
     } catch (err) {
       setError(`API Error: ${err.message}`);
       
-      // Jika token issue, tetap tampilkan data fallback agar user bisa bekerja
-      if (err.message.includes('Token authentication tidak ditemukan')) {
-        setKlasifikasiHewan([
-          {
-            pubid: "kh-001-fallback",
-            encryptedPid: "kh-001-fallback",
-            name: "Sapi Brahman",
-            id_jenis_hewan: 1,
-            jenis: getJenisHewanName(1),
-            description: "Jenis sapi potong hasil persilangan",
-            order_no: 1,
-            status: 1
-          },
-          {
-            pubid: "kh-002-fallback",
-            encryptedPid: "kh-002-fallback",
-            name: "Domba Garut",
-            id_jenis_hewan: 2,
-            jenis: getJenisHewanName(2),
-            description: "Domba aduan dan pedaging asli Garut",
-            order_no: 2,
-            status: 1
-          }
-        ]);
-      }
+      // Fallback data
+      setKlasifikasiHewan([
+        {
+          pubid: "kh-001-fallback",
+          encryptedPid: "kh-001-fallback",
+          name: "Sapi Brahman",
+          id_jenis_hewan: 1,
+          jenis: getJenisHewanName(1),
+          description: "Jenis sapi potong hasil persilangan",
+          order_no: 1,
+          status: 1
+        },
+        {
+          pubid: "kh-002-fallback",
+          encryptedPid: "kh-002-fallback",
+          name: "Domba Garut",
+          id_jenis_hewan: 2,
+          jenis: getJenisHewanName(2),
+          description: "Domba aduan dan pedaging asli Garut",
+          order_no: 2,
+          status: 1
+        }
+      ]);
     } finally {
       setLoading(false);
     }
-  }, [getAuthHeader, getJenisHewanName]);
+  }, [getJenisHewanName]);
 
   // Create klasifikasi hewan
   const createKlasifikasiHewan = useCallback(async (klasifikasiData) => {
@@ -202,30 +151,7 @@ const useKlasifikasiHewan = () => {
         status: parseInt(klasifikasiData.status, 10)
       };
       
-      const response = await fetch(`${API_BASE}/store`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeader()
-        },
-        body: JSON.stringify(cleanKlasifikasiData)
-      });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        try {
-          const errorData = JSON.parse(errorText);
-          if (errorData.data && typeof errorData.data === 'object') {
-            const validationErrors = Object.values(errorData.data).flat().join(', ');
-            throw new Error(`Validation error: ${validationErrors}`);
-          }
-          throw new Error(errorData.message || 'Gagal menambahkan data');
-        } catch (e) {
-          throw new Error('Gagal menambahkan data');
-        }
-      }
-
-      const result = await response.json();
+      const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.KLASIFIKASI_HEWAN}/store`, cleanKlasifikasiData);
       await fetchKlasifikasiHewan();
       
       return { 
@@ -240,7 +166,7 @@ const useKlasifikasiHewan = () => {
     } finally {
       setLoading(false);
     }
-  }, [getAuthHeader, fetchKlasifikasiHewan]);
+  }, [fetchKlasifikasiHewan]);
 
   // Update klasifikasi hewan - menggunakan encrypted PID dari backend
   const updateKlasifikasiHewan = useCallback(async (pubid, klasifikasiData) => {
@@ -281,36 +207,13 @@ const useKlasifikasiHewan = () => {
         ...cleanData
       };
       
-      const response = await fetch(`${API_BASE}/update`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeader()
-        },
-        body: JSON.stringify(payload)
-      });
+      const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.KLASIFIKASI_HEWAN}/update`, payload);
+      await fetchKlasifikasiHewan();
       
-      if (response.ok) {
-        const result = await response.json();
-        await fetchKlasifikasiHewan();
-        
-        return {
-          success: true,
-          message: result.message || 'Data berhasil diperbarui'
-        };
-      } else {
-        const errorText = await response.text();
-        try {
-          const errorData = JSON.parse(errorText);
-          if (errorData.data && typeof errorData.data === 'object') {
-            const validationErrors = Object.values(errorData.data).flat().join(', ');
-            throw new Error(`Validation error: ${validationErrors}`);
-          }
-          throw new Error(errorData.message || errorData.data || 'Gagal memperbarui data');
-        } catch (e) {
-          throw new Error(errorText || 'Gagal memperbarui data');
-        }
-      }
+      return {
+        success: true,
+        message: result.message || 'Data berhasil diperbarui'
+      };
       
     } catch (err) {
       const errorMsg = err.message || 'Terjadi kesalahan saat memperbarui data';
@@ -319,7 +222,7 @@ const useKlasifikasiHewan = () => {
     } finally {
       setLoading(false);
     }
-  }, [fetchKlasifikasiHewan, getAuthHeader, klasifikasiHewan]);
+  }, [fetchKlasifikasiHewan, klasifikasiHewan]);
 
   // Delete klasifikasi hewan - menggunakan encrypted PID dari backend
   const deleteKlasifikasiHewan = useCallback(async (pubid) => {
@@ -340,39 +243,13 @@ const useKlasifikasiHewan = () => {
         pid: klasifikasiItem.encryptedPid
       };
       
-      const response = await fetch(`${API_BASE}/delete`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeader()
-        },
-        body: JSON.stringify(payload)
-      });
+      const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.KLASIFIKASI_HEWAN}/delete`, payload);
+      await fetchKlasifikasiHewan();
       
-      if (response.ok) {
-        const result = await response.json();
-        await fetchKlasifikasiHewan();
-        
-        return {
-          success: true,
-          message: result.message || 'Data berhasil dihapus'
-        };
-      } else {
-        const errorText = await response.text();
-        let errorMessage = 'Gagal menghapus data';
-        try {
-          const errorData = JSON.parse(errorText);
-          if (errorData.message) {
-            errorMessage = errorData.message;
-          } else if (errorData.data) {
-            errorMessage = errorData.data;
-          }
-        } catch (e) {
-          errorMessage = errorText || 'Gagal menghapus data';
-        }
-        
-        throw new Error(errorMessage);
-      }
+      return {
+        success: true,
+        message: result.message || 'Data berhasil dihapus'
+      };
       
     } catch (err) {
       const errorMsg = err.message || 'Terjadi kesalahan saat menghapus data';
@@ -381,7 +258,7 @@ const useKlasifikasiHewan = () => {
     } finally {
       setLoading(false);
     }
-  }, [fetchKlasifikasiHewan, getAuthHeader, klasifikasiHewan]);
+  }, [fetchKlasifikasiHewan, klasifikasiHewan]);
 
   // Filter dan search data
   const filteredData = useMemo(() => {

@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
-import { HttpClient } from '../../../../services/httpClient';
+import HttpClient from '../../../../services/httpClient';
 import { API_ENDPOINTS } from '../../../../config/api';
 
 // Helper function to safely parse JSON response
@@ -141,33 +141,15 @@ const usePenjualanHO = () => {
         } finally {
             setLoading(false);
         }
-    }, [getAuthHeader, searchTerm]);
+    }, [searchTerm]);
 
     // Get nota by supplier
     const getNotaBySupplier = useCallback(async (supplierId) => {
         try {
-            const authHeader = getAuthHeader();
-            if (!authHeader.Authorization) {
-                throw new Error('Token authentication tidak ditemukan. Silakan login ulang.');
-            }
-
-            const response = await fetch(`${API_BASE}/nota-by-supplier`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    ...authHeader
-                },
-                body: JSON.stringify({
-                    id_supplier: supplierId
-                })
+            const result = await HttpClient.post(`${API_ENDPOINTS.HO.PENJUALAN}/nota-by-supplier`, {
+                id_supplier: supplierId
             });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const result = await safeJsonParse(response);
+            
             return {
                 success: true,
                 data: result.data || []
@@ -176,7 +158,7 @@ const usePenjualanHO = () => {
             console.error('Get nota by supplier error:', err);
             return { success: false, data: [], message: err.message };
         }
-    }, [getAuthHeader]);
+    }, []);
 
     // Create penjualan - simplified based on backend API structure
     const createPenjualan = useCallback(async (penjualanData) => {
@@ -184,11 +166,6 @@ const usePenjualanHO = () => {
         setError(null);
         
         try {
-            const authHeader = getAuthHeader();
-            if (!authHeader.Authorization) {
-                throw new Error('Token authentication tidak ditemukan. Silakan login ulang.');
-            }
-            
             // Backend expects these specific fields for sales creation
             const officeIdParsed = parseInt(penjualanData.idOffice);
             
@@ -209,30 +186,7 @@ const usePenjualanHO = () => {
 
             console.log('🔧 DEBUG: Create sales data:', requestData);
 
-            const response = await fetch(`${API_BASE}/store`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    ...authHeader
-                },
-                body: JSON.stringify(requestData)
-            });
-            
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('Backend error response:', errorText);
-                
-                if (errorText.includes('Data pembelian not found')) {
-                    throw new Error('Error: Data pembelian tidak ditemukan untuk dijual.');
-                } else if (errorText.includes('Data is not already to sell')) {
-                    throw new Error('Error: Data belum siap untuk dijual.');
-                }
-                
-                throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
-            }
-            
-            const result = await safeJsonParse(response);
+            const result = await HttpClient.post(`${API_ENDPOINTS.HO.PENJUALAN}/store`, requestData);
             await fetchPenjualan(1, 1000); // Refresh data
             
             return {
@@ -242,13 +196,20 @@ const usePenjualanHO = () => {
             
         } catch (err) {
             console.error('Create penjualan error:', err);
-            const errorMsg = err.message || 'Terjadi kesalahan saat menyimpan data';
+            
+            let errorMsg = err.message || 'Terjadi kesalahan saat menyimpan data';
+            if (errorMsg.includes('Data pembelian not found')) {
+                errorMsg = 'Error: Data pembelian tidak ditemukan untuk dijual.';
+            } else if (errorMsg.includes('Data is not already to sell')) {
+                errorMsg = 'Error: Data belum siap untuk dijual.';
+            }
+            
             setError(errorMsg);
             return { success: false, message: errorMsg };
         } finally {
             setLoading(false);
         }
-    }, [getAuthHeader, fetchPenjualan]);
+    }, [fetchPenjualan]);
 
     // Update penjualan
     const updatePenjualan = useCallback(async (pubid, penjualanData) => {
@@ -256,11 +217,6 @@ const usePenjualanHO = () => {
         setError(null);
         
         try {
-            const authHeader = getAuthHeader();
-            if (!authHeader.Authorization) {
-                throw new Error('Token authentication tidak ditemukan. Silakan login ulang.');
-            }
-            
             const officeIdParsed = parseInt(penjualanData.idOffice);
             
             const updateData = {
@@ -281,35 +237,7 @@ const usePenjualanHO = () => {
 
             console.log('🔧 DEBUG: Update data being sent:', updateData);
 
-            const response = await fetch(`${API_BASE}/update`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    ...authHeader
-                },
-                body: JSON.stringify(updateData)
-            });
-            
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('Backend error response:', errorText);
-                
-                try {
-                    const errorJson = JSON.parse(errorText);
-                    if (errorJson.data && typeof errorJson.data === 'object') {
-                        const validationErrors = Object.entries(errorJson.data)
-                            .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
-                            .join('; ');
-                        throw new Error(`Validation Error: ${validationErrors}`);
-                    }
-                    throw new Error(errorJson.message || `HTTP error! status: ${response.status}`);
-                } catch (parseError) {
-                    throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
-                }
-            }
-            
-            const result = await safeJsonParse(response);
+            const result = await HttpClient.post(`${API_ENDPOINTS.HO.PENJUALAN}/update`, updateData);
             await fetchPenjualan(1, 1000); // Refresh data
             
             return {
@@ -325,7 +253,7 @@ const usePenjualanHO = () => {
         } finally {
             setLoading(false);
         }
-    }, [getAuthHeader, fetchPenjualan]);
+    }, [fetchPenjualan]);
 
     // Delete penjualan
     const deletePenjualan = useCallback(async (pubid) => {
@@ -333,35 +261,10 @@ const usePenjualanHO = () => {
         setError(null);
         
         try {
-            const authHeader = getAuthHeader();
-            if (!authHeader.Authorization) {
-                throw new Error('Token authentication tidak ditemukan. Silakan login ulang.');
-            }
-            
-            const response = await fetch(`${API_BASE}/delete`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    ...authHeader
-                },
-                body: JSON.stringify({
-                    pid: pubid
-                })
+            const result = await HttpClient.post(`${API_ENDPOINTS.HO.PENJUALAN}/delete`, {
+                pid: pubid
             });
             
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const contentType = response.headers.get('content-type');
-            if (!contentType || !contentType.includes('application/json')) {
-                const responseText = await response.text();
-                console.error('Expected JSON but received:', contentType, responseText.substring(0, 200));
-                throw new Error(`Server returned ${contentType || 'unknown content type'} instead of JSON. Response: ${responseText.substring(0, 200)}...`);
-            }
-            
-            const result = await safeJsonParse(response);
             await fetchPenjualan(1, 1000); // Refresh data
             
             return {
@@ -376,7 +279,7 @@ const usePenjualanHO = () => {
         } finally {
             setLoading(false);
         }
-    }, [getAuthHeader, fetchPenjualan]);
+    }, [fetchPenjualan]);
 
     // Get penjualan details
     const getPenjualanDetail = useCallback(async (pubid) => {
@@ -384,30 +287,10 @@ const usePenjualanHO = () => {
         setError(null);
         
         try {
-            const authHeader = getAuthHeader();
-            if (!authHeader.Authorization) {
-                throw new Error('Token authentication tidak ditemukan. Silakan login ulang.');
-            }
-            
-            const response = await fetch(`${API_BASE}/show`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    ...authHeader
-                },
-                body: JSON.stringify({
-                    pid: pubid
-                })
+            const result = await HttpClient.post(`${API_ENDPOINTS.HO.PENJUALAN}/show`, {
+                pid: pubid
             });
             
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('Backend error response:', errorText);
-                throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
-            }
-            
-            const result = await safeJsonParse(response);
             console.log('Detail response:', result);
             
             return {
@@ -424,7 +307,7 @@ const usePenjualanHO = () => {
         } finally {
             setLoading(false);
         }
-    }, [getAuthHeader]);
+    }, []);
 
     // Computed stats
     const stats = useMemo(() => {

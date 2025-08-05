@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { HttpClient } from "../../../../services/httpClient";
+import HttpClient from "../../../../services/httpClient";
 import { API_ENDPOINTS } from "../../../../config/api";
 import jenisHewanData from "../constants/jenisHewanData";
 

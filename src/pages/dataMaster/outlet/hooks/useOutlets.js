@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
-import { HttpClient } from '../../../../services/httpClient';
+import HttpClient from '../../../../services/httpClient';
 import { API_ENDPOINTS } from '../../../../config/api';
 
 const useOutlets = () => {
@@ -187,7 +187,7 @@ const useOutlets = () => {
         } finally {
             setLoading(false);
         }
-    }, [getAuthHeader]);
+    }, []);
 
     // Create outlet
     const createOutlet = useCallback(async (outletData) => {
@@ -195,31 +195,14 @@ const useOutlets = () => {
         setError(null);
         
         try {
-            const authHeader = getAuthHeader();
-            if (!authHeader.Authorization) {
-                throw new Error('Token authentication tidak ditemukan. Silakan login ulang.');
-            }
-            
-            const response = await fetch(`${API_BASE}/store`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...authHeader
-                },
-                body: JSON.stringify({
-                    nama: outletData.name,
-                    alamat: outletData.location,
-                    kontak: outletData.phone,
-                    status: outletData.status,
-                    kategori: 1 // Set kategori = 1 untuk outlet
-                })
+            const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.OUTLET}/store`, {
+                nama: outletData.name,
+                alamat: outletData.location,
+                kontak: outletData.phone,
+                status: outletData.status,
+                kategori: 1 // Set kategori = 1 untuk outlet
             });
             
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const result = await response.json();
             await fetchOutlets(1, 1000); // Refresh data
             
             return {
@@ -234,7 +217,7 @@ const useOutlets = () => {
         } finally {
             setLoading(false);
         }
-    }, [getAuthHeader, fetchOutlets]);
+    }, [fetchOutlets]);
 
     // Update outlet
     const updateOutlet = useCallback(async (pubid, outletData) => {
@@ -242,37 +225,20 @@ const useOutlets = () => {
         setError(null);
         
         try {
-            const authHeader = getAuthHeader();
-            if (!authHeader.Authorization) {
-                throw new Error('Token authentication tidak ditemukan. Silakan login ulang.');
-            }
-            
             const outlet = outlets.find(o => o.pubid === pubid);
             if (!outlet) {
                 throw new Error('Outlet tidak ditemukan');
             }
             
-            const response = await fetch(`${API_BASE}/update`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...authHeader
-                },
-                body: JSON.stringify({
-                    pid: outlet.encryptedPid || outlet.pubid,
-                    nama: outletData.name,
-                    alamat: outletData.location,
-                    kontak: outletData.phone,
-                    status: outletData.status,
-                    kategori: 1 // Set kategori = 1 untuk outlet
-                })
+            const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.OUTLET}/update`, {
+                pid: outlet.encryptedPid || outlet.pubid,
+                nama: outletData.name,
+                alamat: outletData.location,
+                kontak: outletData.phone,
+                status: outletData.status,
+                kategori: 1 // Set kategori = 1 untuk outlet
             });
             
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const result = await response.json();
             await fetchOutlets(1, 1000); // Refresh data
             
             return {
@@ -287,7 +253,7 @@ const useOutlets = () => {
         } finally {
             setLoading(false);
         }
-    }, [getAuthHeader, fetchOutlets, outlets]);
+    }, [fetchOutlets, outlets]);
 
     // Delete outlet
     const deleteOutlet = useCallback(async (pubid) => {
@@ -295,32 +261,15 @@ const useOutlets = () => {
         setError(null);
         
         try {
-            const authHeader = getAuthHeader();
-            if (!authHeader.Authorization) {
-                throw new Error('Token authentication tidak ditemukan. Silakan login ulang.');
-            }
-            
             const outlet = outlets.find(o => o.pubid === pubid);
             if (!outlet) {
                 throw new Error('Outlet tidak ditemukan');
             }
             
-            const response = await fetch(`${API_BASE}/delete`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...authHeader
-                },
-                body: JSON.stringify({
-                    pid: outlet.encryptedPid || outlet.pubid
-                })
+            const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.OUTLET}/delete`, {
+                pid: outlet.encryptedPid || outlet.pubid
             });
             
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const result = await response.json();
             await fetchOutlets(1, 1000); // Refresh data
             
             return {
@@ -344,7 +293,7 @@ const useOutlets = () => {
         } finally {
             setLoading(false);
         }
-    }, [getAuthHeader, fetchOutlets, outlets]);
+    }, [fetchOutlets, outlets]);
 
     // Filter dan search data
     const filteredData = useMemo(() => {
