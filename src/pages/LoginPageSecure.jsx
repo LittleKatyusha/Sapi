@@ -245,37 +245,12 @@ const LoginPageSecure = () => {
     };
   }, [captchaRetryCount]);
 
-  // Check rate limiting status
+  // Rate limiting disabled for development
   useEffect(() => {
-    const checkRateLimit = () => {
-      if (formData.email) {
-        const blocked = loginRateLimit.isBlocked(formData.email);
-        const attempts = loginRateLimit.getAttempts(formData.email);
-        
-        setIsBlocked(blocked);
-        setLoginAttempts(attempts.count);
-        
-        if (blocked) {
-          const remaining = loginRateLimit.getRemainingTime(formData.email);
-          setBlockTimeRemaining(remaining);
-          
-          // Update remaining time every second
-          const interval = setInterval(() => {
-            const newRemaining = loginRateLimit.getRemainingTime(formData.email);
-            setBlockTimeRemaining(newRemaining);
-            
-            if (newRemaining <= 0) {
-              setIsBlocked(false);
-              clearInterval(interval);
-            }
-          }, 1000);
-          
-          return () => clearInterval(interval);
-        }
-      }
-    };
-
-    checkRateLimit();
+    // Always ensure rate limiting is disabled
+    setIsBlocked(false);
+    setLoginAttempts(0);
+    setBlockTimeRemaining(0);
   }, [formData.email]);
 
   const validateInput = (name, value) => {
@@ -353,12 +328,7 @@ const LoginPageSecure = () => {
       return;
     }
 
-    // Check rate limiting
-    if (isBlocked) {
-      const minutes = Math.ceil(blockTimeRemaining / (1000 * 60));
-      setError(`Tunggu ${minutes} menit untuk coba lagi`);
-      return;
-    }
+    // Rate limiting disabled - allow login attempts
 
     setIsLoading(true);
     setError('');
@@ -484,36 +454,7 @@ const LoginPageSecure = () => {
               <div className="w-24 h-1 bg-gradient-to-r from-red-400 to-rose-400 mx-auto mt-4 rounded-full"></div>
             </div>
 
-            {/* Security Status */}
-            {(loginAttempts > 0 || isBlocked) && (
-              <div className={`mb-6 p-4 rounded-xl border backdrop-blur-sm ${
-                isBlocked 
-                  ? 'bg-red-500/20 border-red-400/30 text-red-100' 
-                  : 'bg-yellow-500/20 border-yellow-400/30 text-yellow-100'
-              }`}>
-                <div className="flex items-center">
-                  {isBlocked ? (
-                    <>
-                      <Clock className="w-5 h-5 mr-2" />
-                      <div>
-                        <p className="font-medium">Tunggu Sebentar</p>
-                        <p className="text-sm">Coba lagi dalam {formatBlockTime(blockTimeRemaining)}</p>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <AlertTriangle className="w-5 h-5 mr-2" />
-                      <div>
-                        <p className="font-medium">Perhatian</p>
-                        <p className="text-sm">
-                          Pastikan data login Anda benar
-                        </p>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
+            {/* Security Status - Rate limiting disabled */}
 
             {error && (
               <div className="mb-6 p-4 bg-red-500/20 border border-red-400/30 text-red-100 rounded-xl text-sm backdrop-blur-sm">
@@ -580,13 +521,13 @@ const LoginPageSecure = () => {
                       inputErrors.password ? 'border-red-400' : 'border-white/20'
                     }`}
                     placeholder="••••••••"
-                    disabled={isBlocked}
+                    disabled={false}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute inset-y-0 right-0 pr-4 flex items-center text-red-300 hover:text-white transition-colors"
-                    disabled={isBlocked}
+                    disabled={false}
                   >
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
@@ -608,7 +549,7 @@ const LoginPageSecure = () => {
                     checked={formData.rememberMe}
                     onChange={handleInputChange}
                     className="h-5 w-5 text-red-500 bg-white/10 border-white/30 rounded focus:ring-white/40 focus:ring-2"
-                    disabled={isBlocked}
+                    disabled={false}
                   />
                   <span className="ml-3 text-sm text-red-100 group-hover:text-white transition-colors">
                     Ingat saya
@@ -637,7 +578,7 @@ const LoginPageSecure = () => {
               {/* Submit Button */}
               <button
                 type="submit"
-                disabled={isLoading || isBlocked || !captchaToken}
+                disabled={isLoading || !captchaToken}
                 className="w-full flex justify-center py-4 px-6 border border-transparent rounded-xl shadow-lg text-lg font-semibold text-red-700 bg-gradient-to-r from-white to-red-50 hover:from-red-50 hover:to-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105 hover:shadow-xl"
               >
                 {isLoading ? (
@@ -647,11 +588,6 @@ const LoginPageSecure = () => {
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
                     Memverifikasi...
-                  </>
-                ) : isBlocked ? (
-                  <>
-                    <Clock className="w-5 h-5 mr-2" />
-                    Tunggu - {formatBlockTime(blockTimeRemaining)}
                   </>
                 ) : (
                   <>
