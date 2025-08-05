@@ -145,33 +145,12 @@ export const useAuthSecure = () => {
     });
   }, [navigate, clearAuthData]);
 
-  // Enhanced login function - with required API-KEY
+  // Enhanced login function - with required API-KEY (Rate limiting disabled)
   const login = useCallback(async (credentials) => {
     const userIdentifier = credentials.email;
     
     try {
-      // Check rate limiting
-      if (loginRateLimit.isBlocked(userIdentifier)) {
-        const remainingTime = loginRateLimit.getRemainingTime(userIdentifier);
-        const minutes = Math.ceil(remainingTime / (1000 * 60));
-        
-        setIsBlocked(true);
-        setBlockTimeRemaining(remainingTime);
-        
-        securityAudit.log('LOGIN_BLOCKED', { 
-          email: userIdentifier,
-          remainingTime: minutes 
-        });
-        
-        return {
-          success: false,
-          message: `Tunggu ${minutes} menit untuk coba lagi`,
-          blocked: true,
-          remainingTime
-        };
-      }
-
-      securityAudit.log('LOGIN_ATTEMPT', { 
+      securityAudit.log('LOGIN_ATTEMPT', {
         email: userIdentifier,
         deviceFingerprint: deviceFingerprint.current.substring(0, 20) + '...'
       });
@@ -187,8 +166,7 @@ export const useAuthSecure = () => {
       if (result.data && result.data.token) {
         const { token, user } = result.data;
         
-        // Reset login attempts on success
-        loginRateLimit.reset(userIdentifier);
+        // Reset state on success
         setLoginAttempts(0);
         setIsBlocked(false);
         
@@ -203,8 +181,7 @@ export const useAuthSecure = () => {
         setUser(user);
         setIsAuthenticated(true);
         
-        
-        securityAudit.log('LOGIN_SUCCESS', { 
+        securityAudit.log('LOGIN_SUCCESS', {
           userId: user.id,
           email: userIdentifier,
           deviceFingerprint: deviceFingerprint.current.substring(0, 20) + '...'
@@ -212,38 +189,25 @@ export const useAuthSecure = () => {
         
         return { success: true, token, user };
       } else {
-        // Record failed attempt
-        const attempts = loginRateLimit.recordAttempt(userIdentifier);
-        setLoginAttempts(attempts.count);
-        
-        securityAudit.log('LOGIN_FAILED', { 
+        securityAudit.log('LOGIN_FAILED', {
           email: userIdentifier,
-          reason: result.message,
-          attempts: attempts.count
+          reason: result.message
         });
         
         return {
           success: false,
-          message: 'Email atau password salah',
-          attempts: attempts.count,
-          maxAttempts: SECURITY_CONFIG.LOGIN_RATE_LIMIT.MAX_ATTEMPTS
+          message: 'Email atau password salah'
         };
       }
     } catch (error) {
-      // Record failed attempt for network errors too
-      const attempts = loginRateLimit.recordAttempt(userIdentifier);
-      setLoginAttempts(attempts.count);
-      
-      securityAudit.log('LOGIN_ERROR', { 
+      securityAudit.log('LOGIN_ERROR', {
         email: userIdentifier,
-        error: error.message,
-        attempts: attempts.count
+        error: error.message
       });
       
       return {
         success: false,
-        message: 'Koneksi bermasalah, coba lagi',
-        attempts: attempts.count
+        message: 'Koneksi bermasalah, coba lagi'
       };
     }
   }, []);
