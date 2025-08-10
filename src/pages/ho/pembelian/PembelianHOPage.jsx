@@ -348,9 +348,9 @@ const PembelianHOPage = () => {
 
     return (
         <>
-            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4 md:p-6">
-            <div className="max-w-7xl mx-auto space-y-6 md:space-y-8">
-                <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-xl border border-gray-100">
+            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-2 sm:p-4 md:p-6">
+            <div className="w-full max-w-none mx-0 space-y-6 md:space-y-8">
+                <div className="bg-white rounded-none sm:rounded-none p-4 sm:p-6 shadow-xl border border-gray-100">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div>
                             <h1 className="text-2xl sm:text-4xl font-bold text-gray-800 mb-1 sm:mb-2 flex items-center gap-3">
@@ -392,7 +392,7 @@ const PembelianHOPage = () => {
                     </div>
                 </div>
 
-                <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-100">
+                <div className="bg-white rounded-none sm:rounded-none p-4 sm:p-6 shadow-lg border border-gray-100">
                     <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 md:gap-6 sm:items-center sm:justify-between">
                         <div className="relative flex-1 max-w-full sm:max-w-md lg:max-w-lg">
                             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -448,7 +448,7 @@ const PembelianHOPage = () => {
                 </div>
 
                 {/* Desktop Table View - Hidden on mobile */}
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 relative hidden md:block">
+                <div className="bg-white rounded-none sm:rounded-none shadow-lg border border-gray-100 relative hidden md:block">
                     <div className="w-full">
                         <DataTable
                             columns={columns}

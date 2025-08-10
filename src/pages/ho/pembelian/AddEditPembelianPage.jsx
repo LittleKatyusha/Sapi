@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import EditableDetailDataTable from './components/EditableDetailDataTable';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Save, Plus, Trash2, Building2, User, Calendar, Truck, Hash, Package, X, Settings, AlertCircle } from 'lucide-react';
 import usePembelianHO from './hooks/usePembelianHO';
@@ -266,10 +267,10 @@ const AddEditPembelianPage = () => {
 
     // Handle batch add with default data
     const handleBatchAdd = () => {
-        if (batchCount < 1 || batchCount > 50) {
+        if (batchCount < 1) {
             setNotification({
                 type: 'error',
-                message: 'Jumlah batch harus antara 1-50 item'
+                message: 'Jumlah batch minimal 1 item'
             });
             return;
         }
@@ -321,9 +322,7 @@ const AddEditPembelianPage = () => {
 
     // Handle markup percentage change for default value only
     const handleMarkupPercentageChange = (newPercentage) => {
-        const percentage = parseFloat(newPercentage) || 0;
-        setMarkupPercentage(percentage);
-        // No longer recalculates existing items - each ternak has individual markup
+        setMarkupPercentage(newPercentage); // Biarkan nilai kosong tetap kosong
     };
 
     // Remove detail item
@@ -467,11 +466,17 @@ const AddEditPembelianPage = () => {
         }
     }, [notification]);
 
+    // Pagination state for detail items
+    const [detailPage, setDetailPage] = useState(1);
+    const detailPerPage = 50;
+    const totalDetailPages = Math.ceil(detailItems.length / detailPerPage);
+    const paginatedDetailItems = detailItems.slice((detailPage - 1) * detailPerPage, detailPage * detailPerPage);
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-2 sm:p-4 md:p-6">
-            <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
+            <div className="w-full max-w-none mx-0 space-y-6 sm:space-y-8">
                 {/* Header */}
-                <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-xl border border-gray-100">
+                <div className="bg-white rounded-none sm:rounded-none p-4 sm:p-8 shadow-xl border border-gray-100">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex items-center gap-4">
                             <button
@@ -495,13 +500,13 @@ const AddEditPembelianPage = () => {
                 </div>
 
                 {/* Header Form */}
-                <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-xl border border-gray-100">
+                <div className="bg-white rounded-none sm:rounded-none p-4 sm:p-8 shadow-xl border border-gray-100">
                     <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
                         <Building2 className="w-6 h-6 text-blue-600" />
                         Informasi Pembelian
                     </h2>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-4 gap-6">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 <Hash className="w-4 h-4 inline mr-1" />
@@ -643,7 +648,7 @@ const AddEditPembelianPage = () => {
 
 
                 {/* Default Data & Batch Add Container */}
-                <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-xl border border-gray-100">
+                <div className="bg-white rounded-none sm:rounded-none p-4 sm:p-8 shadow-xl border border-gray-100">
                     <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
                         <Settings className="w-6 h-6 text-orange-600" />
                         Data Default & Batch Add
@@ -689,7 +694,7 @@ const AddEditPembelianPage = () => {
                             </label>
                             <input
                                 type="text"
-                                value={formatNumber(defaultData.harga)}
+                                value={defaultData.harga === 0 ? '0' : formatNumber(defaultData.harga)}
                                 onChange={(e) => {
                                     const rawValue = parseNumber(e.target.value);
                                     handleDefaultDataChange('harga', rawValue);
@@ -729,7 +734,6 @@ const AddEditPembelianPage = () => {
                             <input
                                 type="number"
                                 min="1"
-                                max="50"
                                 value={batchCount}
                                 onChange={(e) => setBatchCount(parseInt(e.target.value) || 1)}
                                 className="w-20 px-2 py-1 border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
@@ -750,35 +754,6 @@ const AddEditPembelianPage = () => {
                             <p>📝 Item baru akan menggunakan data default ini</p>
                         </div>
                     </div>
-
-                    {/* Preview Default Data */}
-                    {(defaultData.idKlasifikasiHewan || defaultData.berat || defaultData.harga) && (
-                        <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                            <p className="text-sm font-medium text-blue-800 mb-2">Preview Data Default:</p>
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs text-blue-700">
-                                {defaultData.idKlasifikasiHewan && (
-                                    <div>
-                                        <span className="font-medium">Klasifikasi:</span> {
-                                            availableKlasifikasi.find(k => k.pubid === defaultData.idKlasifikasiHewan)?.name || 'Unknown'
-                                        }
-                                    </div>
-                                )}
-                                {defaultData.berat && (
-                                    <div><span className="font-medium">Berat:</span> {defaultData.berat} kg</div>
-                                )}
-                                {defaultData.harga && (
-                                    <div><span className="font-medium">Harga:</span> Rp {parseInt(defaultData.harga).toLocaleString('id-ID')}</div>
-                                )}
-                            </div>
-                            {defaultData.harga && (
-                                <div className="mt-2 text-xs text-blue-700">
-                                    <span className="font-medium">HPP Preview:</span> Rp {(
-                                        (parseFloat(defaultData.harga) || 0) * (1 + markupPercentage / 100)
-                                    ).toLocaleString('id-ID')} <span className="text-green-600">(+{markupPercentage}%)</span>
-                                </div>
-                            )}
-                        </div>
-                    )}
                 </div>
 
                 {/* Parameter Loading/Error State */}
@@ -797,7 +772,7 @@ const AddEditPembelianPage = () => {
                 )}
 
                 {/* Detail Items */}
-                <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-xl border border-gray-100">
+                <div className="bg-white rounded-none sm:rounded-none p-4 sm:p-8 shadow-xl border border-gray-100">
                     <div className="flex items-center justify-between mb-6">
                         <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                             <Package className="w-6 h-6 text-purple-600" />
@@ -812,154 +787,45 @@ const AddEditPembelianPage = () => {
                         </button>
                     </div>
 
-                    <div className="space-y-4">
-                        {detailItems.map((item, index) => (
-                            <div key={item.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                                <div className="flex items-center justify-between mb-4">
-                                    <h3 className="font-semibold text-gray-900">Detail Ternak #{index + 1}</h3>
-                                    {detailItems.length > 1 && (
-                                        <button
-                                            onClick={() => removeDetailItem(item.id)}
-                                            className="text-red-600 hover:text-red-700 hover:bg-red-50 p-1 rounded"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
-                                    )}
-                                </div>
-
-
-
-                                {/* Row 1: Basic Information */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Eartag *
-                                        </label>
-                                        <SearchableSelect
-                                            key={`eartag-${item.id}-${item.eartag}`}
-                                            value={item.eartag}
-                                            onChange={(value) => handleDetailChange(item.id, 'eartag', value)}
-                                            options={eartagOptions}
-                                            placeholder={parameterLoading ? 'Loading eartag...' : 'Pilih Eartag'}
-                                            isLoading={parameterLoading}
-                                            isDisabled={parameterLoading}
-                                            required
-                                            className="w-full"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Eartag Supplier *
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={item.eartagSupplier}
-                                            onChange={(e) => handleDetailChange(item.id, 'eartagSupplier', e.target.value)}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                                            placeholder="Input manual supplier"
-                                            required
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Klasifikasi *
-                                        </label>
-                                        <SearchableSelect
-                                            key={`klasifikasi-${item.id}-${item.idKlasifikasiHewan}`}
-                                            value={item.idKlasifikasiHewan}
-                                            onChange={(value) => {
-                                                // console.log(`🔧 DEBUG: SearchableSelect onChange - klasifikasi changing from ${item.idKlasifikasiHewan} to ${value}`);
-                                                handleDetailChange(item.id, 'idKlasifikasiHewan', value);
-                                            }}
-                                            options={klasifikasiHewanOptions}
-                                            placeholder={parameterLoading ? 'Loading klasifikasi...' : 'Pilih Klasifikasi'}
-                                            isLoading={parameterLoading}
-                                            isDisabled={parameterLoading}
-                                            required
-                                            className="w-full"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Berat (kg) *
-                                        </label>
-                                        <input
-                                            type="number"
-                                            value={item.berat}
-                                            onChange={(e) => handleDetailChange(item.id, 'berat', e.target.value)}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                                            placeholder="100"
-                                            min="1"
-                                            required
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Row 2: Pricing Information */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 mb-4">
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Harga (Rp) *
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={formatNumber(item.harga)}
-                                            onChange={(e) => {
-                                                const rawValue = parseNumber(e.target.value);
-                                                handleDetailChange(item.id, 'harga', rawValue);
-                                            }}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                                            placeholder="5.000.000"
-                                            required
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Markup (%) *
-                                        </label>
-                                        <input
-                                            type="number"
-                                            value={item.persentase}
-                                            onChange={(e) => handleDetailChange(item.id, 'persentase', e.target.value)}
-                                            className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                            placeholder="12"
-                                            min="0"
-                                            max="100"
-                                            step="0.1"
-                                            required
-                                        />
-                                        <p className="text-xs text-blue-600 mt-1">
-                                            Individual markup untuk ternak ini
-                                        </p>
-                                    </div>
-                                </div>
-
-                                {/* Row 3: Calculated Information */}
-                                <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            HPP (Harga + {item.persentase || 0}%)
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={formatNumber(item.hpp)}
-                                            readOnly
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 font-medium"
-                                            title={`HPP dihitung otomatis: Harga + ${item.persentase || 0}% markup`}
-                                        />
-                                        <p className="text-xs text-green-600 mt-1">
-                                            Auto calculated: +{item.persentase || 0}% markup
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+                    {/* DataTable for Better Data Management */}
+                    <EditableDetailDataTable
+                        data={paginatedDetailItems}
+                        eartagOptions={eartagOptions}
+                        klasifikasiHewanOptions={klasifikasiHewanOptions}
+                        parameterLoading={parameterLoading}
+                        onDetailChange={handleDetailChange}
+                        onRemoveDetail={removeDetailItem}
+                        formatNumber={formatNumber}
+                        parseNumber={parseNumber}
+                    />
+                    {/* Pagination Controls */}
+                    {totalDetailPages > 1 && (
+                        <div className="flex justify-center items-center gap-2 mt-4">
+                            <button
+                                onClick={() => setDetailPage((p) => Math.max(1, p - 1))}
+                                disabled={detailPage === 1}
+                                className="px-3 py-1 rounded border text-sm font-medium bg-white hover:bg-gray-100 disabled:opacity-50"
+                            >
+                                Previous
+                            </button>
+                            {Array.from({ length: totalDetailPages }, (_, i) => (
+                                <button
+                                    key={i + 1}
+                                    onClick={() => setDetailPage(i + 1)}
+                                    className={`px-3 py-1 rounded border text-sm font-medium ${detailPage === i + 1 ? 'bg-purple-500 text-white' : 'bg-white hover:bg-gray-100'}`}
+                                >
+                                    {i + 1}
+                                </button>
+                            ))}
+                            <button
+                                onClick={() => setDetailPage((p) => Math.min(totalDetailPages, p + 1))}
+                                disabled={detailPage === totalDetailPages}
+                                className="px-3 py-1 rounded border text-sm font-medium bg-white hover:bg-gray-100 disabled:opacity-50"
+                            >
+                                Next
+                            </button>
+                        </div>
+                    )}
 
                     {/* Summary */}
                     <div className="mt-6 bg-gradient-to-r from-gray-50 to-slate-100 p-4 rounded-lg">
@@ -1001,47 +867,48 @@ const AddEditPembelianPage = () => {
 
                 {/* Notification */}
                 {notification && (
-                    <div className="fixed top-4 right-4 z-50">
-                        <div className={`max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden ${
-                            notification.type === 'success' ? 'border-l-4 border-green-400' : 'border-l-4 border-red-400'
-                        }`}>
-                            <div className="p-4">
-                                <div className="flex items-start">
-                                    <div className="flex-shrink-0">
-                                        {notification.type === 'success' ? (
-                                            <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
-                                                <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                                </svg>
-                                            </div>
-                                        ) : (
-                                            <div className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center">
-                                                <svg className="w-4 h-4 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                                                </svg>
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="ml-3 w-0 flex-1 pt-0.5">
-                                        <p className="text-sm font-medium text-gray-900">
-                                            {notification.type === 'success' ? 'Berhasil!' : 'Error!'}
-                                        </p>
-                                        <p className="mt-1 text-sm text-gray-500">{notification.message}</p>
-                                    </div>
-                                    <div className="ml-4 flex-shrink-0 flex">
-                                        <button
-                                            onClick={() => setNotification(null)}
-                                            className="bg-white rounded-md inline-flex text-gray-400 hover:text-gray-500"
-                                        >
-                                            <span className="sr-only">Close</span>
-                                            <X className="h-5 w-5" />
-                                        </button>
-                                    </div>
-                                </div>
+    <div className="fixed top-4 right-4 z-50">
+        <div className={`max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden ${
+            notification.type === 'success' ? 'border-l-4 border-green-400' : 'border-l-4 border-red-400'
+        }`}>
+            <div className="p-4">
+                <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0">
+                        {notification.type === 'success' ? (
+                            <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
+                                <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
                             </div>
-                        </div>
+                        ) : (
+                            <div className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center">
+                                <svg className="w-4 h-4 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                </svg>
+                            </div>
+                        )}
                     </div>
-                )}
+                    <div className="flex-1">
+                        <p className={`text-sm font-semibold ${notification.type === 'success' ? 'text-green-700' : 'text-red-700'}`}>
+                            {notification.type === 'success' ? 'Berhasil!' : 'Error!'}
+                        </p>
+                        <p className="mt-1 text-sm text-gray-700 whitespace-pre-line">{notification.message}</p>
+                    </div>
+                    <button
+                        onClick={() => setNotification(null)}
+                        className="ml-2 bg-white rounded-md inline-flex text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                        title="Tutup"
+                    >
+                        <span className="sr-only">Close</span>
+                        <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+)}
             </div>
         </div>
     );
