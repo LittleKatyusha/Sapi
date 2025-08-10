@@ -57,7 +57,7 @@ const LayoutSecure = ({ children, title }) => {
       icon: Building2,
       children: [
         { name: 'Pembelian', path: '/ho/pembelian', icon: ShoppingCart },
-        // { name: 'Penjualan', path: '/ho/penjualan', icon: TrendingUp } // Temporarily hidden
+        { name: 'Penjualan', path: '/ho/penjualan', icon: TrendingUp }
       ]
     },
     // {
