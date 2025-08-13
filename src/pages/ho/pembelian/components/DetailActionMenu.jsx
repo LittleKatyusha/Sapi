@@ -10,11 +10,22 @@ const DetailActionMenu = ({ row, onEdit, onDelete, onClone, onClose, buttonRef }
         function updatePosition() {
             if (buttonRef?.current) {
                 const btnRect = buttonRef.current.getBoundingClientRect();
+                const menuWidth = 220; // px, lebar menu
+                const padding = 8; // px, jarak dari tepi layar
+                let left = btnRect.left + window.scrollX;
+                // Jika menu akan keluar layar kanan, geser ke kiri
+                if (left + menuWidth + padding > window.innerWidth) {
+                    left = window.innerWidth - menuWidth - padding;
+                }
+                // Jika terlalu kiri, tetap padding
+                if (left < padding) left = padding;
                 setMenuStyle({
                     position: 'absolute',
-                    left: btnRect.left + window.scrollX,
+                    left,
                     top: btnRect.bottom + window.scrollY + 8,
-                    zIndex: 1500
+                    zIndex: 1500,
+                    minWidth: menuWidth,
+                    maxWidth: '90vw',
                 });
             }
         }
@@ -85,9 +96,15 @@ const DetailActionMenu = ({ row, onEdit, onDelete, onClone, onClose, buttonRef }
                 ...menuStyle,
                 visibility: 'visible',
                 pointerEvents: 'auto',
-                zIndex: 1500
+                zIndex: 1500,
+                boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.18)',
+                borderRadius: 14,
+                padding: 0,
+                background: 'rgba(255,255,255,0.98)',
+                border: '1px solid #e5e7eb',
+                animation: 'fadeInMenu 0.18s cubic-bezier(.4,0,.2,1)',
             }}
-            className={`w-48 bg-white/95 backdrop-blur-lg rounded-xl shadow-xl border border-gray-200/50 overflow-hidden transition-all duration-150 animate-in slide-in-from-top-2 fade-in-0`}
+            className={`bg-white/95 backdrop-blur-lg overflow-hidden animate-in slide-in-from-top-2 fade-in-0`}
             role="menu"
             aria-label="Menu Aksi Detail"
         >
@@ -117,6 +134,12 @@ const DetailActionMenu = ({ row, onEdit, onDelete, onClone, onClose, buttonRef }
                     )
                 )}
             </div>
+            <style>{`
+                @keyframes fadeInMenu {
+                    from { opacity: 0; transform: translateY(-8px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+            `}</style>
         </div>
     );
 

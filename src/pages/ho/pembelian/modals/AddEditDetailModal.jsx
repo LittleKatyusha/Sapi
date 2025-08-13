@@ -25,8 +25,12 @@ const AddEditDetailModal = ({
         harga: '',
         biayaTruck: '',
         berat: '',
+        persentase: '',
         hpp: '',
-        totalHarga: ''
+        totalHarga: '',
+        status: '1',
+        tglMasukRph: '',
+        tglPemotongan: ''
     });
 
     const [errors, setErrors] = useState({});
@@ -41,8 +45,12 @@ const AddEditDetailModal = ({
                     harga: editData.harga || '',
                     biayaTruck: editData.biaya_truk || '',
                     berat: editData.berat || '',
+                    persentase: editData.persentase || '',
                     hpp: editData.hpp || '',
-                    totalHarga: editData.total_harga || ''
+                    totalHarga: editData.total_harga || '',
+                    status: editData.status || '1',
+                    tglMasukRph: editData.tgl_masuk_rph || '',
+                    tglPemotongan: editData.tgl_pemotongan || ''
                 });
             } else {
                 setFormData({
@@ -51,8 +59,12 @@ const AddEditDetailModal = ({
                     harga: '',
                     biayaTruck: '',
                     berat: '',
+                    persentase: '',
                     hpp: '',
-                    totalHarga: ''
+                    totalHarga: '',
+                    status: '1',
+                    tglMasukRph: '',
+                    tglPemotongan: ''
                 });
             }
             setErrors({});
@@ -64,9 +76,12 @@ const AddEditDetailModal = ({
         const harga = parseFloat(formData.harga) || 0;
         const biayaTruck = parseFloat(formData.biayaTruck) || 0;
         const berat = parseFloat(formData.berat) || 0;
+        const persentase = parseFloat(formData.persentase) || 0;
         
         if (harga > 0) {
-            const calculatedHpp = harga + biayaTruck;
+            // Calculate HPP with persentase
+            const markupAmount = harga * (persentase / 100);
+            const calculatedHpp = harga + markupAmount;
             const calculatedTotal = calculatedHpp * berat;
             
             setFormData(prev => ({
@@ -75,7 +90,7 @@ const AddEditDetailModal = ({
                 totalHarga: calculatedTotal.toString()
             }));
         }
-    }, [formData.harga, formData.biayaTruck, formData.berat]);
+    }, [formData.harga, formData.biayaTruck, formData.berat, formData.persentase]);
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -278,21 +293,21 @@ const AddEditDetailModal = ({
                             )}
                         </div>
 
-                        {/* Markup */}
+                        {/* Persentase */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 <Truck className="w-4 h-4 inline mr-1" />
-                                Markup
+                                Persentase (%)
                             </label>
                             <input
                                 type="number"
-                                name="biayaTruck"
-                                value={formData.biayaTruck}
+                                name="persentase"
+                                value={formData.persentase}
                                 onChange={handleInputChange}
                                 min="0"
-                                step="0.01"
+                                step="0.1"
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                                placeholder="Masukkan markup"
+                                placeholder="Masukkan persentase"
                                 disabled={loading}
                             />
                         </div>
@@ -310,7 +325,7 @@ const AddEditDetailModal = ({
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50"
                                 placeholder="Otomatis dihitung"
                             />
-                            <p className="text-xs text-gray-500 mt-1">Otomatis: Harga + Markup</p>
+                            <p className="text-xs text-gray-500 mt-1">Otomatis: Harga + (Harga × Persentase/100)</p>
                         </div>
 
                         {/* Total Harga (Read-only, calculated) */}
@@ -328,13 +343,60 @@ const AddEditDetailModal = ({
                             />
                             <p className="text-xs text-gray-500 mt-1">Otomatis: HPP × Berat</p>
                         </div>
+
+                        {/* Status */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Status
+                            </label>
+                            <select
+                                name="status"
+                                value={formData.status}
+                                onChange={handleInputChange}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                disabled={loading}
+                            >
+                                <option value="1">Belum Dipotong</option>
+                                <option value="0">Sudah Dipotong</option>
+                            </select>
+                        </div>
+
+                        {/* Tanggal Masuk RPH */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Tanggal Masuk RPH
+                            </label>
+                            <input
+                                type="date"
+                                name="tglMasukRph"
+                                value={formData.tglMasukRph}
+                                onChange={handleInputChange}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                disabled={loading}
+                            />
+                        </div>
+
+                        {/* Tanggal Pemotongan */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Tanggal Pemotongan
+                            </label>
+                            <input
+                                type="date"
+                                name="tglPemotongan"
+                                value={formData.tglPemotongan}
+                                onChange={handleInputChange}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                disabled={loading}
+                            />
+                        </div>
                     </div>
 
                     {/* Note */}
                     <div className="bg-green-50 p-4 rounded-lg">
                         <p className="text-sm text-green-700">
                             <strong>Info:</strong> Data Eartag dan Klasifikasi Hewan dimuat dari master data melalui endpoint parameter terpusat.
-                            HPP dan Total Harga akan dihitung otomatis berdasarkan harga dan markup.
+                            HPP dan Total Harga akan dihitung otomatis berdasarkan harga dan persentase.
                         </p>
                     </div>
 

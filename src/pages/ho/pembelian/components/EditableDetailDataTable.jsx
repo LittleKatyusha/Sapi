@@ -1,7 +1,7 @@
-
 import React from 'react';
 import DataTable from 'react-data-table-component';
 import { Trash2 } from 'lucide-react';
+import Select from 'react-select';
 
 const customStyles = {
   rows: {
@@ -30,22 +30,21 @@ const customStyles = {
       position: 'sticky',
       top: 0,
       zIndex: 2,
+      textAlign: 'center', // Header rata tengah
     },
   },
   cells: {
     style: {
       paddingTop: '8px',
       paddingBottom: '8px',
-      paddingLeft: '8px',
-      paddingRight: '8px',
+      paddingLeft: '16px',
+      paddingRight: '16px',
     },
   },
 };
 
 const inputClass =
-  'w-full text-xs border border-gray-300 rounded-lg px-2 py-1 focus:ring-2 focus:ring-purple-400 focus:border-purple-400 transition-all duration-150 bg-white';
-const selectClass =
-  'w-full text-xs border border-gray-300 rounded-lg px-2 py-1 focus:ring-2 focus:ring-purple-400 focus:border-purple-400 transition-all duration-150 bg-white';
+  'w-full text-[13px] border border-gray-300 rounded-[8px] px-2 py-[6px] focus:ring-2 focus:ring-purple-400 focus:border-purple-400 transition-all duration-150 bg-white min-h-[32px] h-[32px]';
 
 const EditableDetailDataTable = ({
   data,
@@ -62,24 +61,43 @@ const EditableDetailDataTable = ({
       name: 'No',
       selector: (row, i) => i + 1,
       width: '60px',
-      center: true,
+      center: true, // Kolom rata tengah
     },
     {
       name: 'Eartag *',
       cell: (row) => (
-        <select
-          value={row.eartag}
-          onChange={e => onDetailChange(row.id, 'eartag', e.target.value)}
-          disabled={parameterLoading}
-          className={selectClass}
-        >
-          <option value="">Pilih Eartag</option>
-          {eartagOptions.map(opt => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
-          ))}
-        </select>
+        <Select
+          value={eartagOptions.find((opt) => opt.value === row.eartag) || null}
+          onChange={(opt) =>
+            onDetailChange(row.id, 'eartag', opt ? opt.value : '')
+          }
+          options={eartagOptions}
+          isDisabled={parameterLoading}
+          isClearable
+          placeholder="Pilih Eartag"
+          classNamePrefix="react-select"
+          menuPortalTarget={
+            typeof window !== 'undefined' ? document.body : null
+          }
+          menuPosition="fixed"
+          maxMenuHeight={180}
+          styles={{
+            container: (base) => ({ ...base, width: '100%' }),
+            control: (base) => ({
+              ...base,
+              minHeight: 32,
+              fontSize: 13,
+              borderRadius: 8,
+              width: '100%',
+              padding: '4px',
+            }),
+            menu: (base) => ({ ...base, zIndex: 9999, width: '100%' }),
+            option: (base) => ({ ...base, fontSize: 13 }),
+          }}
+        />
       ),
-      grow: 1.2,
+      width: '200px',
+      center: true, // Kolom rata tengah
     },
     {
       name: 'Eartag Supplier *',
@@ -87,30 +105,62 @@ const EditableDetailDataTable = ({
         <input
           type="text"
           value={row.eartagSupplier}
-          onChange={e => onDetailChange(row.id, 'eartagSupplier', e.target.value)}
+          onChange={(e) =>
+            onDetailChange(row.id, 'eartagSupplier', e.target.value)
+          }
           className={inputClass}
           placeholder="Input supplier"
           required
+          style={{
+            minHeight: 32,
+            height: 32,
+            fontSize: 13,
+            borderRadius: 8,
+          }}
         />
       ),
-      grow: 1.2,
+      width: '200px',
+      center: true, // Kolom rata tengah
     },
     {
       name: 'Klasifikasi *',
       cell: (row) => (
-        <select
-          value={row.idKlasifikasiHewan}
-          onChange={e => onDetailChange(row.id, 'idKlasifikasiHewan', e.target.value)}
-          disabled={parameterLoading}
-          className={selectClass}
-        >
-          <option value="">Pilih Klasifikasi</option>
-          {klasifikasiHewanOptions.map(opt => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
-          ))}
-        </select>
+        <Select
+          value={
+            klasifikasiHewanOptions.find(
+              (opt) => opt.value === row.idKlasifikasiHewan
+            ) || null
+          }
+          onChange={(opt) =>
+            onDetailChange(row.id, 'idKlasifikasiHewan', opt ? opt.value : '')
+          }
+          options={klasifikasiHewanOptions}
+          isDisabled={parameterLoading}
+          isClearable
+          placeholder="Pilih Klasifikasi"
+          classNamePrefix="react-select"
+          menuPortalTarget={
+            typeof window !== 'undefined' ? document.body : null
+          }
+          menuPosition="fixed"
+          maxMenuHeight={180}
+          styles={{
+            container: (base) => ({ ...base, width: '100%' }),
+            control: (base) => ({
+              ...base,
+              minHeight: 32,
+              fontSize: 13,
+              borderRadius: 8,
+              width: '100%',
+              padding: '4px',
+            }),
+            menu: (base) => ({ ...base, zIndex: 9999, width: '100%' }),
+            option: (base) => ({ ...base, fontSize: 13 }),
+          }}
+        />
       ),
-      grow: 1.2,
+      width: '200px',
+      center: true, // Kolom rata tengah
     },
     {
       name: 'Berat (kg) *',
@@ -118,13 +168,24 @@ const EditableDetailDataTable = ({
         <input
           type="number"
           value={row.berat}
-          onChange={e => onDetailChange(row.id, 'berat', e.target.value)}
-          className={inputClass}
+          onChange={(e) =>
+            onDetailChange(row.id, 'berat', e.target.value)
+          }
+          className={`${inputClass} ${
+            row.errors?.berat ? 'border-red-500' : ''
+          }`}
           min="1"
           required
+          style={{
+            minHeight: 32,
+            height: 32,
+            fontSize: 13,
+            borderRadius: 8,
+          }}
         />
       ),
       width: '120px',
+      center: true, // Kolom rata tengah
     },
     {
       name: 'Harga (Rp) *',
@@ -132,13 +193,25 @@ const EditableDetailDataTable = ({
         <input
           type="text"
           value={formatNumber(row.harga)}
-          onChange={e => onDetailChange(row.id, 'harga', parseNumber(e.target.value))}
-          className={inputClass}
+          onChange={(e) => {
+            const rawValue = parseNumber(e.target.value);
+            onDetailChange(row.id, 'harga', rawValue);
+          }}
+          className={`${inputClass} ${
+            row.errors?.harga ? 'border-red-500' : ''
+          }`}
           placeholder="5.000.000"
           required
+          style={{
+            minHeight: 32,
+            height: 32,
+            fontSize: 13,
+            borderRadius: 8,
+          }}
         />
       ),
       width: '140px',
+      center: true, // Kolom rata tengah
     },
     {
       name: 'Markup (%) *',
@@ -146,28 +219,114 @@ const EditableDetailDataTable = ({
         <input
           type="number"
           value={row.persentase}
-          onChange={e => onDetailChange(row.id, 'persentase', e.target.value)}
+          onChange={(e) =>
+            onDetailChange(row.id, 'persentase', e.target.value)
+          }
           className={inputClass}
           min="0"
           max="100"
           step="0.1"
           required
+          style={{
+            minHeight: 32,
+            height: 32,
+            fontSize: 13,
+            borderRadius: 8,
+          }}
         />
       ),
       width: '120px',
+      center: true, // Kolom rata tengah
     },
     {
       name: 'HPP (Rp)',
       cell: (row) => (
+        <div
+          className={`${inputClass} bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 font-medium flex items-center`}
+          style={{
+            minHeight: 32,
+            height: 32,
+            borderRadius: 8,
+            paddingRight: 8,
+            paddingLeft: 8,
+            fontSize: 'clamp(11px, 1.2vw, 13px)',
+            overflow: 'hidden',
+            whiteSpace: 'nowrap',
+            textOverflow: 'ellipsis',
+          }}
+          title={formatNumber(row.hpp)}
+        >
+          {formatNumber(row.hpp)}
+        </div>
+      ),
+      width: '140px',
+      center: true, // Kolom rata tengah
+    },
+    {
+      name: 'Total Harga',
+      cell: (row) => (
+        <div
+          className={`${inputClass} bg-gradient-to-r from-blue-50 to-cyan-50 text-blue-700 font-medium flex items-center`}
+          style={{
+            minHeight: 32,
+            height: 32,
+            borderRadius: 8,
+            paddingRight: 8,
+            paddingLeft: 8,
+            fontSize: 'clamp(11px, 1.2vw, 13px)',
+            overflow: 'hidden',
+            whiteSpace: 'nowrap',
+            textOverflow: 'ellipsis',
+          }}
+          title={formatNumber(row.totalHarga)}
+        >
+          {formatNumber(row.totalHarga)}
+        </div>
+      ),
+      width: '140px',
+      center: true, // Kolom rata tengah
+    },
+    {
+      name: 'Tgl Masuk RPH',
+      cell: (row) => (
         <input
-          type="text"
-          value={formatNumber(row.hpp)}
-          readOnly
-          className={inputClass + ' bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 font-medium'}
-          title={`HPP dihitung otomatis: Harga + ${row.persentase || 0}% markup`}
+          type="date"
+          value={row.tglMasukRph || ''}
+          onChange={(e) =>
+            onDetailChange(row.id, 'tglMasukRph', e.target.value)
+          }
+          className={inputClass}
+          style={{
+            minHeight: 32,
+            height: 32,
+            fontSize: 13,
+            borderRadius: 8,
+          }}
         />
       ),
       width: '140px',
+      center: true, // Kolom rata tengah
+    },
+    {
+      name: 'Tgl Pemotongan',
+      cell: (row) => (
+        <input
+          type="date"
+          value={row.tglPemotongan || ''}
+          onChange={(e) =>
+            onDetailChange(row.id, 'tglPemotongan', e.target.value)
+          }
+          className={inputClass}
+          style={{
+            minHeight: 32,
+            height: 32,
+            fontSize: 13,
+            borderRadius: 8,
+          }}
+        />
+      ),
+      width: '140px',
+      center: true, // Kolom rata tengah
     },
     {
       name: 'Aksi',
@@ -178,6 +337,7 @@ const EditableDetailDataTable = ({
             className="opacity-60 group-hover:opacity-100 text-red-500 hover:text-white hover:bg-red-500 p-1 rounded transition-all duration-150"
             title="Hapus item"
             style={{ transition: 'all 0.2s' }}
+            aria-label={`Hapus item ${row.eartag || row.id}`}
           >
             <Trash2 className="w-4 h-4" />
           </button>
@@ -192,26 +352,29 @@ const EditableDetailDataTable = ({
   ];
 
   return (
-    <div className="rounded-xl overflow-hidden border border-gray-200 shadow-sm">
-      <DataTable
-        columns={columns}
-        data={data}
-        dense
-        highlightOnHover
-        striped
-        noHeader
-        pagination={false}
-        fixedHeader
-        fixedHeaderScrollHeight="400px"
-        className="w-full"
-        customStyles={customStyles}
-        noDataComponent={
-          <div className="p-8 text-center text-gray-400 text-base">
-            <span className="block mb-2">📦</span>
-            Belum ada detail ternak. Klik <b>Tambah Detail</b> atau gunakan <b>Batch Add</b> untuk menambah data.
-          </div>
-        }
-      />
+    <div className="overflow-x-auto"> {/* Menambahkan scroll horizontal */}
+      <div className="rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+        <DataTable
+          columns={columns}
+          data={data}
+          dense
+          highlightOnHover
+          striped
+          noHeader
+          pagination={false}
+          fixedHeader
+          fixedHeaderScrollHeight="400px"
+          className="w-full"
+          customStyles={customStyles}
+          noDataComponent={
+            <div className="p-8 text-center text-gray-400 text-base">
+              <span className="block mb-2">📦</span>
+              Belum ada detail ternak. Klik <b>Tambah Detail</b> atau gunakan{' '}
+              <b>Batch Add</b> untuk menambah data.
+            </div>
+          }
+        />
+      </div>
     </div>
   );
 };

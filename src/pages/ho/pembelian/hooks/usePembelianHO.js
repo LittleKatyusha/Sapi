@@ -113,6 +113,8 @@ const usePembelianHO = () => {
                         total_belanja: parseFloat(item.total_belanja) || 0,
                         biaya_lain: parseFloat(item.biaya_lain) || 0,
                         biaya_truk: parseFloat(item.biaya_truk) || 0,
+                        berat_total: parseFloat(item.berat_total) || 0, // Field baru dari backend
+                        jenis_pembelian: item.jenis_pembelian || '', // Field baru dari backend
                         createdAt: item.created_at || new Date().toISOString(),
                         updatedAt: item.updated_at || new Date().toISOString(),
                         id: item.pid || `TEMP-${index + 1}` // Gunakan encrypted PID sebagai primary ID
@@ -162,7 +164,10 @@ const usePembelianHO = () => {
                 plat_nomor: pembelianData.platNomor,
                 jumlah: parseInt(pembelianData.jumlah) || 0,
                 biaya_truk: parseFloat(pembelianData.biayaTruck) || 0, // Backend requires numeric
-                biaya_lain: parseFloat(pembelianData.biayaLain) || 0 // Backend validation requires this field as numeric
+                biaya_lain: parseFloat(pembelianData.biayaLain) || 0, // Backend validation requires this field as numeric
+                berat_total: parseFloat(pembelianData.beratTotal) || 0, // Field baru dari backend
+                tipe_pembelian: parseInt(pembelianData.tipePembelian) || 1, // Field baru dari backend
+                file: pembelianData.file || '' // Field baru dari backend
             };
 
             // Validate required fields before sending - backend expects integer ID
@@ -222,7 +227,10 @@ const usePembelianHO = () => {
                 plat_nomor: pembelianData.platNomor,
                 jumlah: parseInt(pembelianData.jumlah) || 0,
                 biaya_truk: parseFloat(pembelianData.biayaTruck) || 0, // Backend requires numeric
-                biaya_lain: parseFloat(pembelianData.biayaLain) || 0 // Backend validation requires this field as numeric
+                biaya_lain: parseFloat(pembelianData.biayaLain) || 0, // Backend validation requires this field as numeric
+                berat_total: parseFloat(pembelianData.beratTotal) || 0, // Field baru dari backend
+                tipe_pembelian: parseInt(pembelianData.tipePembelian) || 1, // Field baru dari backend
+                file: pembelianData.file || '' // Field baru dari backend
             };
 
             // Validate required fields before sending - backend expects integer ID
@@ -387,10 +395,14 @@ const usePembelianHO = () => {
                 eartag: String(detailData.eartag), // Convert to string
                 id_klasifikasi_hewan: parseInt(detailData.idKlasifikasiHewan),
                 harga: parseFloat(detailData.harga),
+                persentase: parseFloat(detailData.persentase) || 0, // Field baru dari backend
                 berat: parseInt(detailData.berat),
                 // biaya_truk removed from detail since it's now in header only
                 hpp: parseFloat(detailData.hpp),
-                total_harga: parseFloat(detailData.totalHarga)
+                total_harga: parseFloat(detailData.totalHarga),
+                status: parseInt(detailData.status) || 1, // Field baru dari backend
+                tgl_masuk_rph: detailData.tglMasukRph || null, // Field baru dari backend
+                tgl_pemotongan: detailData.tglPemotongan || null // Field baru dari backend
             });
             
             return {
@@ -421,9 +433,13 @@ const usePembelianHO = () => {
                 eartag: String(detailData.eartag), // Convert to string
                 id_klasifikasi_hewan: parseInt(detailData.idKlasifikasiHewan),
                 harga: parseFloat(detailData.harga),
+                persentase: parseFloat(detailData.persentase) || 0, // Field baru dari backend
                 berat: parseInt(detailData.berat),
                 hpp: parseFloat(detailData.hpp),
-                total_harga: parseFloat(detailData.totalHarga)
+                total_harga: parseFloat(detailData.totalHarga),
+                status: parseInt(detailData.status) || 1, // Field baru dari backend
+                tgl_masuk_rph: detailData.tglMasukRph || null, // Field baru dari backend
+                tgl_pemotongan: detailData.tglPemotongan || null // Field baru dari backend
             });
             
             return {

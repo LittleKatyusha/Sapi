@@ -38,15 +38,17 @@ const useParameters = () => {
             
             // DataTables pagination parameters
             const start = (page - 1) * perPage;
-            const url = new URL(`${API_BASE}/data`);
-            url.searchParams.append('start', start.toString());
-            url.searchParams.append('length', perPage.toString());
-            url.searchParams.append('draw', '1');
-            url.searchParams.append('search[value]', '');
-            url.searchParams.append('order[0][column]', '0');
-            url.searchParams.append('order[0][dir]', 'asc');
+            // Build query parameters manually instead of using URL constructor
+            const queryParams = new URLSearchParams({
+                'start': start.toString(),
+                'length': perPage.toString(),
+                'draw': '1',
+                'search[value]': '',
+                'order[0][column]': '0',
+                'order[0][dir]': 'asc'
+            });
             
-            const result = await HttpClient.get(`${API_BASE}/data?${url.searchParams.toString()}`);
+            const result = await HttpClient.get(`${API_BASE}/data?${queryParams.toString()}`);
             
             let dataArray = [];
             
@@ -147,9 +149,11 @@ const useParameters = () => {
             
             const result = await HttpClient.post(`${API_BASE}/dataByGroup`, { group });
             
-            if (result.success && Array.isArray(result.data)) {
+            // Handle both "status: ok" and "success: true" formats
+            if ((result.status === 'ok' || result.success) && Array.isArray(result.data)) {
                 return result.data;
             } else {
+                console.error('Invalid format from dataByGroup:', result);
                 return [];
             }
             

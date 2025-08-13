@@ -2,68 +2,68 @@ const customTableStyles = {
     table: {
         style: {
             backgroundColor: '#fff',
-            borderRadius: '18px',
-            boxShadow: '0 6px 24px rgba(0,0,0,0.07)',
+            borderRadius: '12px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
             width: '100%',
             maxWidth: '100%',
             overflowX: 'auto',
             tableLayout: 'auto',
+            minWidth: 0,
         }
     },
     headRow: {
         style: {
             background: 'linear-gradient(90deg, #f8fafc 0%, #e0e7ff 100%)',
-            borderRadius: '18px 18px 0 0',
-            borderBottom: '2px solid #e2e8f0',
-            minHeight: '56px',
+            borderRadius: '12px 12px 0 0',
+            borderBottom: '1px solid #e2e8f0',
+            minHeight: '36px',
         }
     },
     headCells: {
         style: {
-            fontSize: '14px',
-            fontWeight: '700',
+            fontSize: '12px',
+            fontWeight: '600',
             color: '#334155',
-            paddingLeft: '16px',
-            paddingRight: '16px',
-            letterSpacing: '0.03em',
+            paddingLeft: '8px',
+            paddingRight: '8px',
+            letterSpacing: '0.01em',
             background: 'transparent',
             borderRight: '1px solid #e2e8f0',
             whiteSpace: 'nowrap',
-            overflow: 'visible',
-            textOverflow: 'unset',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
             '&:first-of-type': {
                 position: 'sticky',
                 left: 0,
                 backgroundColor: 'linear-gradient(90deg, #f8fafc 0%, #e0e7ff 100%)',
                 zIndex: 10,
                 textAlign: 'center',
-                minWidth: '60px',
-                maxWidth: '60px',
+                minWidth: '48px',
+                maxWidth: '48px',
                 borderRight: '2px solid #e2e8f0',
             }
         }
     },
     rows: {
         style: {
-            minHeight: '64px',
+            minHeight: '32px',
             borderBottom: '1px solid #f1f5f9',
             transition: 'all 0.2s ease',
             '&:hover': {
                 backgroundColor: '#f8fafc',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
             }
         }
     },
     cells: {
         style: {
-            paddingLeft: '16px',
-            paddingRight: '16px',
-            fontSize: '14px',
+            paddingLeft: '8px',
+            paddingRight: '8px',
+            fontSize: '12px',
             color: '#475569',
             borderRight: '1px solid #f1f5f9',
             whiteSpace: 'nowrap',
-            overflow: 'visible',
-            textOverflow: 'unset',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
             '&:first-of-type': {
                 position: 'sticky',
                 left: 0,
@@ -128,10 +128,6 @@ const updatedCustomStyles = {
             '&:hover': {
                 backgroundColor: 'rgba(243, 244, 246, 0.7)', // Tailwind's gray-100 with opacity
                 transform: 'scale(1)',
-                // Ensure sticky columns maintain background on hover
-                '& > div:first-child, & > div:last-child': {
-                    backgroundColor: 'rgba(243, 244, 246, 0.7)',
-                }
             },
         }
     },
@@ -193,7 +189,7 @@ const updatedCustomStyles = {
                 position: 'sticky',
                 right: 0, // Sticky on the right
                 zIndex: 998, // Higher than background row hover
-                backgroundColor: '#fff',
+                backgroundColor: 'rgba(243, 244, 246, 0.7)', // Ikuti warna hover baris
                 borderLeft: '2px solid #e2e8f0', // Border on left of action column
                 boxShadow: 'inset 3px 0 4px -1px rgba(0, 0, 0, 0.1)', // Shadow on left
                 padding: '8px 12px', // Explicit consistent padding
@@ -201,6 +197,7 @@ const updatedCustomStyles = {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center', // Center button horizontally too
+                transition: 'background 0.2s',
             },
         }
     }

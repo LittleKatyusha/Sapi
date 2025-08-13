@@ -329,6 +329,36 @@ const PembelianHOPage = () => {
             )
         },
         {
+            name: 'Berat Total',
+            selector: row => row.berat_total,
+            sortable: true,
+            width: '12%',
+            wrap: true,
+            cell: row => (
+                <div className="text-center">
+                    <span className="text-gray-900 break-words">
+                        {row.berat_total ? `${parseFloat(row.berat_total).toFixed(1)} kg` : '-'}
+                    </span>
+                </div>
+            )
+        },
+        {
+            name: 'Jenis Pembelian',
+            selector: row => row.jenis_pembelian,
+            sortable: true,
+            width: '12%',
+            wrap: true,
+            cell: row => (
+                <div className="text-center">
+                    <span className="text-gray-900 break-words">
+                        {row.jenis_pembelian === '1' ? 'Reguler' : 
+                         row.jenis_pembelian === '2' ? 'Khusus' : 
+                         row.jenis_pembelian === '3' ? 'Darurat' : '-'}
+                    </span>
+                </div>
+            )
+        },
+        {
             name: 'Aksi',
             width: '8%',
             cell: row => (

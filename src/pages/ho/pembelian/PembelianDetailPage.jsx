@@ -227,16 +227,14 @@ const PembelianDetailPage = () => {
                     {index + 1}
                 </div>
             ),
-            width: '60px',
             ignoreRowClick: true,
         },
         {
             name: 'Eartag',
             selector: row => row.eartag,
             sortable: true,
-            width: '120px',
             cell: row => (
-                <span className="font-mono text-sm bg-blue-100 px-2 py-1 rounded text-blue-800">
+                <span className="font-mono text-xs bg-blue-100 px-2 py-1 rounded text-blue-800">
                     {row.eartag || '-'}
                 </span>
             )
@@ -245,9 +243,8 @@ const PembelianDetailPage = () => {
             name: 'Code Eartag',
             selector: row => row.code_eartag,
             sortable: true,
-            width: '150px',
             cell: row => (
-                <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">
+                <span className="font-mono text-[11px] bg-gray-100 px-2 py-1 rounded">
                     {row.code_eartag || '-'}
                 </span>
             )
@@ -256,9 +253,8 @@ const PembelianDetailPage = () => {
             name: 'Klasifikasi',
             selector: row => 'N/A',
             sortable: true,
-            width: '120px',
             cell: row => (
-                <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">
+                <span className="inline-flex px-2 py-1 text-[11px] font-medium rounded-full bg-gray-100 text-gray-600">
                     N/A
                 </span>
             )
@@ -267,9 +263,8 @@ const PembelianDetailPage = () => {
             name: 'Berat (kg)',
             selector: row => row.berat,
             sortable: true,
-            width: '100px',
             cell: row => (
-                <span className="text-gray-900 font-medium">
+                <span className="text-gray-900 font-medium text-xs">
                     {row.berat ? `${row.berat} kg` : '-'}
                 </span>
             )
@@ -278,9 +273,8 @@ const PembelianDetailPage = () => {
             name: 'Harga',
             selector: row => row.harga,
             sortable: true,
-            width: '120px',
             cell: row => (
-                <span className="text-gray-900 font-medium">
+                <span className="text-gray-900 font-medium text-xs">
                     {row.harga ? `Rp ${Number(row.harga).toLocaleString('id-ID')}` : '-'}
                 </span>
             )
@@ -297,7 +291,6 @@ const PembelianDetailPage = () => {
                 return 0;
             },
             sortable: true,
-            width: '120px',
             cell: row => {
                 // Calculate markup percentage from harga and hpp
                 const harga = parseFloat(row.harga) || 0;
@@ -309,7 +302,7 @@ const PembelianDetailPage = () => {
                 }
                 
                 return (
-                    <span className="text-green-600 font-medium">
+                    <span className="text-green-600 font-medium text-xs">
                         {markupPercentage > 0 ? `${markupPercentage}%` : '-'}
                     </span>
                 );
@@ -319,9 +312,8 @@ const PembelianDetailPage = () => {
             name: 'HPP',
             selector: row => row.hpp,
             sortable: true,
-            width: '120px',
             cell: row => (
-                <span className="text-purple-600 font-medium">
+                <span className="text-purple-600 font-medium text-xs">
                     {row.hpp ? `Rp ${Number(row.hpp).toLocaleString('id-ID')}` : '-'}
                 </span>
             )
@@ -330,16 +322,15 @@ const PembelianDetailPage = () => {
             name: 'Total Harga',
             selector: row => row.total_harga,
             sortable: true,
-            width: '140px',
             cell: row => (
-                <span className="text-red-600 font-bold">
+                <span className="text-red-600 font-bold text-xs">
                     {row.total_harga ? `Rp ${Number(row.total_harga).toLocaleString('id-ID')}` : '-'}
                 </span>
             )
         },
         {
             name: 'Aksi',
-            width: '80px',
+            width: 'fit-content',
             cell: (row, index) => (
                 <DetailActionButton
                     row={row}
@@ -387,10 +378,10 @@ const PembelianDetailPage = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-2 sm:p-4 md:p-6">
-            <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-0">
+            <div className="w-full space-y-6 sm:space-y-8">
                 {/* Header */}
-                <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-xl border border-gray-100">
+                <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-xl border border-gray-100 w-full">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex items-center gap-4">
                             <button
@@ -413,7 +404,7 @@ const PembelianDetailPage = () => {
                 </div>
 
                 {/* Header Information */}
-                <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-xl border border-gray-100">
+                <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-xl border border-gray-100 w-full">
                     <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
                         <Building2 className="w-6 h-6 text-blue-600" />
                         Informasi Pembelian
@@ -531,7 +522,7 @@ const PembelianDetailPage = () => {
                 </div>
 
                 {/* Detail Table */}
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 relative">
+                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 relative w-full">
                     <div className="p-6 border-b border-gray-200">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                             <div>

@@ -30,19 +30,22 @@ const useRoles = () => {
             }
             
             const start = (page - 1) * perPage;
-            const url = new URL(`${API_BASE}/data`);
-            url.searchParams.append('start', start.toString());
-            url.searchParams.append('length', perPage.toString());
-            url.searchParams.append('draw', Date.now().toString()); // Cache busting
-            url.searchParams.append('search[value]', searchTerm || '');
-            url.searchParams.append('order[0][column]', '0');
-            url.searchParams.append('order[0][dir]', 'asc');
-            url.searchParams.append('_t', Date.now().toString()); // Additional cache busting
+            // Build query parameters manually instead of using URL constructor
+            const queryParams = new URLSearchParams({
+                'start': start.toString(),
+                'length': perPage.toString(),
+                'draw': Date.now().toString(), // Cache busting
+                'search[value]': searchTerm || '',
+                'order[0][column]': '0',
+                'order[0][dir]': 'asc',
+                '_t': Date.now().toString() // Additional cache busting
+            });
+            
             if (forceRefresh) {
-                url.searchParams.append('force', 'true');
+                queryParams.append('force', 'true');
             }
             
-            const result = await HttpClient.get(`${API_BASE}/data?${url.searchParams.toString()}`);
+            const result = await HttpClient.get(`${API_BASE}/data?${queryParams.toString()}`);
             
             let dataArray = [];
             let totalRecords = 0;
