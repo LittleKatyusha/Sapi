@@ -62,6 +62,8 @@ const EditableDetailDataTable = ({
       selector: (row, i) => i + 1,
       width: '60px',
       center: true, // Kolom rata tengah
+      grow: 0,
+      shrink: 0,
     },
     {
       name: 'Eartag *',
@@ -96,8 +98,10 @@ const EditableDetailDataTable = ({
           }}
         />
       ),
-      width: '200px',
       center: true, // Kolom rata tengah
+      grow: 1,
+      shrink: 0,
+      minWidth: '180px',
     },
     {
       name: 'Eartag Supplier *',
@@ -119,8 +123,10 @@ const EditableDetailDataTable = ({
           }}
         />
       ),
-      width: '200px',
       center: true, // Kolom rata tengah
+      grow: 1,
+      shrink: 0,
+      minWidth: '180px',
     },
     {
       name: 'Klasifikasi *',
@@ -159,8 +165,10 @@ const EditableDetailDataTable = ({
           }}
         />
       ),
-      width: '200px',
       center: true, // Kolom rata tengah
+      grow: 1,
+      shrink: 0,
+      minWidth: '180px',
     },
     {
       name: 'Berat (kg) *',
@@ -184,8 +192,10 @@ const EditableDetailDataTable = ({
           }}
         />
       ),
-      width: '120px',
       center: true, // Kolom rata tengah
+      grow: 0,
+      shrink: 0,
+      minWidth: '120px',
     },
     {
       name: 'Harga (Rp) *',
@@ -210,8 +220,10 @@ const EditableDetailDataTable = ({
           }}
         />
       ),
-      width: '140px',
       center: true, // Kolom rata tengah
+      grow: 0,
+      shrink: 0,
+      minWidth: '140px',
     },
     {
       name: 'Markup (%) *',
@@ -235,8 +247,10 @@ const EditableDetailDataTable = ({
           }}
         />
       ),
-      width: '120px',
       center: true, // Kolom rata tengah
+      grow: 0,
+      shrink: 0,
+      minWidth: '120px',
     },
     {
       name: 'HPP (Rp)',
@@ -259,74 +273,10 @@ const EditableDetailDataTable = ({
           {formatNumber(row.hpp)}
         </div>
       ),
-      width: '140px',
       center: true, // Kolom rata tengah
-    },
-    {
-      name: 'Total Harga',
-      cell: (row) => (
-        <div
-          className={`${inputClass} bg-gradient-to-r from-blue-50 to-cyan-50 text-blue-700 font-medium flex items-center`}
-          style={{
-            minHeight: 32,
-            height: 32,
-            borderRadius: 8,
-            paddingRight: 8,
-            paddingLeft: 8,
-            fontSize: 'clamp(11px, 1.2vw, 13px)',
-            overflow: 'hidden',
-            whiteSpace: 'nowrap',
-            textOverflow: 'ellipsis',
-          }}
-          title={formatNumber(row.totalHarga)}
-        >
-          {formatNumber(row.totalHarga)}
-        </div>
-      ),
-      width: '140px',
-      center: true, // Kolom rata tengah
-    },
-    {
-      name: 'Tgl Masuk RPH',
-      cell: (row) => (
-        <input
-          type="date"
-          value={row.tglMasukRph || ''}
-          onChange={(e) =>
-            onDetailChange(row.id, 'tglMasukRph', e.target.value)
-          }
-          className={inputClass}
-          style={{
-            minHeight: 32,
-            height: 32,
-            fontSize: 13,
-            borderRadius: 8,
-          }}
-        />
-      ),
-      width: '140px',
-      center: true, // Kolom rata tengah
-    },
-    {
-      name: 'Tgl Pemotongan',
-      cell: (row) => (
-        <input
-          type="date"
-          value={row.tglPemotongan || ''}
-          onChange={(e) =>
-            onDetailChange(row.id, 'tglPemotongan', e.target.value)
-          }
-          className={inputClass}
-          style={{
-            minHeight: 32,
-            height: 32,
-            fontSize: 13,
-            borderRadius: 8,
-          }}
-        />
-      ),
-      width: '140px',
-      center: true, // Kolom rata tengah
+      grow: 0,
+      shrink: 0,
+      minWidth: '140px',
     },
     {
       name: 'Aksi',
@@ -343,17 +293,19 @@ const EditableDetailDataTable = ({
           </button>
         </div>
       ),
-      width: '70px',
       center: true,
       ignoreRowClick: true,
       allowOverflow: true,
       button: true,
+      grow: 0,
+      shrink: 0,
+      minWidth: '70px',
     },
   ];
 
   return (
-    <div className="overflow-x-auto"> {/* Menambahkan scroll horizontal */}
-      <div className="rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+    <div className="w-full">
+      <div className="rounded-xl overflow-hidden border border-gray-200 shadow-sm w-full">
         <DataTable
           columns={columns}
           data={data}

@@ -537,10 +537,7 @@ const AddEditPembelianPage = () => {
                         berat: parseInt(item.berat), // Backend expects integer
                         persentase: parseFloat(item.persentase) || 0, // Backend expects numeric
                         hpp: parseFloat(item.hpp), // Backend expects numeric
-                        total_harga: parseFloat(item.totalHarga) || 0, // Field baru dari backend
                         status: parseInt(item.status) || 1, // Field baru dari backend
-                        tgl_masuk_rph: item.tglMasukRph || null, // Field baru dari backend
-                        tgl_pemotongan: item.tglPemotongan || null // Field baru dari backend
                     }))
                 };
                 result = await updatePembelian(id, completeData);
@@ -566,10 +563,7 @@ const AddEditPembelianPage = () => {
                         berat: parseInt(item.berat), // Backend expects integer
                         persentase: parseFloat(item.persentase) || 0, // Backend expects numeric
                         hpp: parseFloat(item.hpp), // Backend expects numeric
-                        total_harga: parseFloat(item.totalHarga) || 0, // Field baru dari backend
                         status: parseInt(item.status) || 1, // Field baru dari backend
-                        tgl_masuk_rph: item.tglMasukRph || null, // Field baru dari backend
-                        tgl_pemotongan: item.tglPemotongan || null // Field baru dari backend
                     }))
                 };
                 
