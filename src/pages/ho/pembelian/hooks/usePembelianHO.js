@@ -55,7 +55,7 @@ const usePembelianHO = () => {
             const params = {
                 'start': start.toString(),
                 'length': currentPerPage.toString(),
-                'draw': Date.now().toString(),
+                'draw': currentPage.toString(), // Use page number for consistent tracking
                 'search[value]': currentSearch || '',
                 'order[0][column]': '0',
                 'order[0][dir]': 'asc'
@@ -66,8 +66,17 @@ const usePembelianHO = () => {
                 params.filter = currentFilter;
             }
             
+
+            
+            // Force clear any potential caching
+            const timestamp = Date.now();
+            const paramsWithCache = {
+                ...params,
+                '_': timestamp // Cache buster
+            };
+            
             const result = await HttpClient.get(`${API_ENDPOINTS.HO.PEMBELIAN}/data`, {
-                params: params
+                params: paramsWithCache
             });
             
             let dataArray = [];
@@ -89,13 +98,17 @@ const usePembelianHO = () => {
             }
             
             // Update server pagination state with backend data
-            setServerPagination({
+            const newPaginationState = {
                 currentPage: currentPage,
                 totalPages: Math.ceil(filteredRecords / currentPerPage),
                 totalItems: totalRecords,
                 filteredItems: filteredRecords,
                 perPage: currentPerPage
-            });
+            };
+            
+
+            
+            setServerPagination(newPaginationState);
             
             if (dataArray.length >= 0) {
                 const validatedData = dataArray.map((item, index) => {
@@ -122,6 +135,8 @@ const usePembelianHO = () => {
                     
                     return mappedItem;
                 });
+                
+
                 setPembelian(validatedData);
             } else {
                 setPembelian([]);
@@ -150,7 +165,6 @@ const usePembelianHO = () => {
         setError(null);
         
         try {
-            
             // Backend expects integer IDs for supplier and office
             const officeIdParsed = parseInt(pembelianData.idOffice);
             const supplierIdParsed = parseInt(pembelianData.idSupplier);
@@ -158,36 +172,36 @@ const usePembelianHO = () => {
             const headerData = {
                 id_office: !isNaN(officeIdParsed) ? officeIdParsed : 1,
                 nota: pembelianData.nota,
-                id_supplier: !isNaN(supplierIdParsed) ? supplierIdParsed : null, // Backend expects integer ID from supplier table
+                id_supplier: !isNaN(supplierIdParsed) ? supplierIdParsed : null,
                 tgl_masuk: pembelianData.tglMasuk,
                 nama_supir: pembelianData.namaSupir,
                 plat_nomor: pembelianData.platNomor,
                 jumlah: parseInt(pembelianData.jumlah) || 0,
-                biaya_truk: parseFloat(pembelianData.biayaTruck) || 0, // Backend requires numeric
-                biaya_lain: parseFloat(pembelianData.biayaLain) || 0, // Backend validation requires this field as numeric
-                berat_total: parseFloat(pembelianData.beratTotal) || 0, // Field baru dari backend
-                tipe_pembelian: parseInt(pembelianData.tipePembelian) || 1, // Field baru dari backend
-                file: pembelianData.file || '' // Field baru dari backend
+                biaya_truk: parseFloat(pembelianData.biayaTruck) || 0,
+                biaya_lain: parseFloat(pembelianData.biayaLain) || 0,
+                biaya_total: parseFloat(pembelianData.biayaTotal) || 0,
+                tipe_pembelian: parseInt(pembelianData.tipePembelian) || 1,
+                file: pembelianData.file || null
             };
 
-            // Validate required fields before sending - backend expects integer ID
+            // Validate required fields before sending
             if (!headerData.id_supplier || isNaN(headerData.id_supplier) || headerData.id_supplier <= 0) {
                 throw new Error('Supplier harus dipilih sebelum menyimpan data');
             }
             
-            // Validate biaya_truk is provided as backend requires it
-            if (!headerData.biaya_truk || headerData.biaya_truk <= 0) {
-                throw new Error('Biaya truck harus diisi dan lebih dari 0');
-            }
-            
             if (!headerData.biaya_truk || headerData.biaya_truk <= 0 || isNaN(headerData.biaya_truk)) {
-                throw new Error(`Biaya truck harus diisi dengan nilai numerik > 0. Nilai saat ini: ${headerData.biaya_truk} (type: ${typeof headerData.biaya_truk})`);
+                throw new Error(`Biaya truck harus diisi dengan nilai numerik > 0. Nilai saat ini: ${headerData.biaya_truk}`);
+            }
+
+            // Validate file is provided as backend requires it
+            if (!headerData.file) {
+                throw new Error('File dokumen pembelian harus diupload');
             }
 
             // Backend expects header + details array format
             const requestData = {
                 ...headerData,
-                details: pembelianData.details || [] // Details array from form
+                details: pembelianData.details || []
             };
             
             const result = await HttpClient.post(`${API_ENDPOINTS.HO.PEMBELIAN}/store`, requestData);
@@ -195,7 +209,8 @@ const usePembelianHO = () => {
             
             return {
                 success: result.status === 'ok' || result.success === true,
-                message: result.message || 'Pembelian pertama berhasil dibuat!'
+                message: result.message || 'Pembelian berhasil dibuat!',
+                data: result.data
             };
             
         } catch (err) {
@@ -205,56 +220,83 @@ const usePembelianHO = () => {
         } finally {
             setLoading(false);
         }
-    }, [fetchPembelian]);
+    }, [fetchPembelian, serverPagination.perPage]);
 
-    // Update pembelian - backend expects encrypted PID dan fields sesuai validation rules
-    const updatePembelian = useCallback(async (encryptedPid, pembelianData) => {
+    // Update pembelian (header or detail based on data type)
+    const updatePembelian = useCallback(async (data, isHeaderUpdate = true) => {
         setLoading(true);
         setError(null);
         
         try {
-            // Backend expects integer IDs for supplier and office
-            const officeIdParsed = parseInt(pembelianData.idOffice);
-            const supplierIdParsed = parseInt(pembelianData.idSupplier);
+            // Determine if this is a header or detail update based on the data structure
+            const hasHeaderFields = data.id_office || data.nota || data.id_supplier;
+            const isHeader = isHeaderUpdate || hasHeaderFields;
             
-            const updateData = {
-                pid: encryptedPid, // Backend expects encrypted PID untuk update
-                id_office: !isNaN(officeIdParsed) ? officeIdParsed : 1,
-                nota: pembelianData.nota,
-                id_supplier: !isNaN(supplierIdParsed) ? supplierIdParsed : null, // Backend expects integer ID from supplier table
-                tgl_masuk: pembelianData.tglMasuk,
-                nama_supir: pembelianData.namaSupir,
-                plat_nomor: pembelianData.platNomor,
-                jumlah: parseInt(pembelianData.jumlah) || 0,
-                biaya_truk: parseFloat(pembelianData.biayaTruck) || 0, // Backend requires numeric
-                biaya_lain: parseFloat(pembelianData.biayaLain) || 0, // Backend validation requires this field as numeric
-                berat_total: parseFloat(pembelianData.beratTotal) || 0, // Field baru dari backend
-                tipe_pembelian: parseInt(pembelianData.tipePembelian) || 1, // Field baru dari backend
-                file: pembelianData.file || '' // Field baru dari backend
-            };
-
-            // Validate required fields before sending - backend expects integer ID
-            if (!updateData.id_supplier || isNaN(updateData.id_supplier) || updateData.id_supplier <= 0) {
-                throw new Error('Supplier harus dipilih sebelum menyimpan data');
-            }
-            
-            // Validate biaya_truk is provided as backend requires it
-            if (!updateData.biaya_truk || updateData.biaya_truk <= 0) {
-                throw new Error('Biaya truck harus diisi dan lebih dari 0');
-            }
-
-            const result = await HttpClient.post(`${API_ENDPOINTS.HO.PEMBELIAN}/update`, updateData);
-            await fetchPembelian(serverPagination.currentPage, serverPagination.perPage); // Refresh data
-            
-            return {
-                success: result.status === 'ok' || result.success === true,
-                message: result.message || 'Pembelian berhasil diperbarui'
+            // Prepare the request data
+            const requestData = {
+                pid: data.pid || data.encryptedPid, // Use encrypted PID
+                ...data
             };
             
-        } catch (err) {
-            const errorMsg = err.message || 'Terjadi kesalahan saat memperbarui data';
-            setError(errorMsg);
-            return { success: false, message: errorMsg };
+            // Remove encryptedPid if it exists to avoid duplication
+            if (requestData.encryptedPid) {
+                delete requestData.encryptedPid;
+            }
+            
+            // If it's a header update, ensure all required fields are present
+            if (isHeader) {
+                // Map frontend field names to backend field names
+                const mappedData = {
+                    id_office: data.idOffice || data.id_office,
+                    nota: data.nota,
+                    id_supplier: data.idSupplier || data.id_supplier,
+                    tgl_masuk: data.tglMasuk || data.tgl_masuk,
+                    nama_supir: data.namaSupir || data.nama_supir,
+                    plat_nomor: data.platNomor || data.plat_nomor,
+                    jumlah: data.jumlah,
+                    biaya_truk: data.biayaTruck || data.biaya_truk,
+                    biaya_lain: data.biayaLain || data.biaya_lain,
+                    biaya_total: data.biayaTotal || data.biaya_total,
+                    tipe_pembelian: data.tipePembelian || data.tipe_pembelian
+                };
+                
+                // Add file if it exists
+                if (data.file) {
+                    mappedData.file = data.file;
+                }
+                
+                Object.assign(requestData, mappedData);
+            } else {
+                // Detail update - map detail fields
+                const mappedData = {
+                    id_pembelian: data.idPembelian || data.id_pembelian,
+                    id_office: data.idOffice || data.id_office,
+                    eartag: data.eartag,
+                    id_klasifikasi_hewan: data.idKlasifikasiHewan || data.id_klasifikasi_hewan,
+                    harga: data.harga,
+                    persentase: data.persentase,
+                    berat: data.berat,
+                    hpp: data.hpp,
+                    total_harga: data.totalHarga || data.total_harga
+                };
+                
+                Object.assign(requestData, mappedData);
+            }
+            
+            const result = await HttpClient.put(`${API_ENDPOINTS.HO.PEMBELIAN}/update`, requestData);
+            
+            if (result.status === 'ok' || result.success) {
+                // Refresh data after successful update
+                await fetchPembelian();
+                return result;
+            } else {
+                throw new Error(result.message || 'Update failed');
+            }
+            
+        } catch (error) {
+            console.error('Error updating pembelian:', error);
+            setError(error.message || 'Failed to update pembelian');
+            throw error;
         } finally {
             setLoading(false);
         }
@@ -278,7 +320,7 @@ const usePembelianHO = () => {
                 throw new Error('Data pembelian ini belum tersimpan di server dan tidak dapat dihapus');
             }
             
-            // First, try the standard delete method with encrypted PID
+            // Backend expects POST method with pid parameter
             const requestPayload = { pid: encryptedPid };
             
             const result = await HttpClient.post(`${API_ENDPOINTS.HO.PEMBELIAN}/delete`, requestPayload);
@@ -288,7 +330,6 @@ const usePembelianHO = () => {
                 window.lastDeletedPid = encryptedPid;
                 
                 // Optimistic UI update: Remove item dari state sebelum refresh
-                // Gunakan multiple fallback untuk memastikan item terhapus
                 setPembelian(prevData => 
                     prevData.filter(item => 
                         item.encryptedPid !== encryptedPid && 
@@ -310,15 +351,16 @@ const usePembelianHO = () => {
                         await fetchPembelian(serverPagination.currentPage, serverPagination.perPage);
                     } catch (refreshError) {
                         // Jika refresh gagal, tetap return success karena delete berhasil
+                        console.warn('Refresh after delete failed:', refreshError);
                     }
-                }, 1000); // Increase delay to 1000ms
+                }, 1000);
                 
                 return {
                     success: true,
-                    message: result.message || 'Data deleted successfully'
+                    message: result.message || 'Data berhasil dihapus'
                 };
             } else {
-                throw new Error(result.message || 'Delete failed');
+                throw new Error(result.message || 'Gagal menghapus data');
             }
             
         } catch (err) {
@@ -388,21 +430,17 @@ const usePembelianHO = () => {
         setError(null);
         
         try {
+            // Backend expects specific detail fields for creation
             const result = await HttpClient.post(`${API_ENDPOINTS.HO.PEMBELIAN}/store`, {
-                // Detail fields only (no header fields to trigger detail creation)
                 id_pembelian: parseInt(detailData.idPembelian),
                 id_office: parseInt(detailData.idOffice),
-                eartag: String(detailData.eartag), // Convert to string
+                eartag: String(detailData.eartag),
                 id_klasifikasi_hewan: parseInt(detailData.idKlasifikasiHewan),
                 harga: parseFloat(detailData.harga),
-                persentase: parseFloat(detailData.persentase) || 0, // Field baru dari backend
+                persentase: parseInt(detailData.persentase) || 0,
                 berat: parseInt(detailData.berat),
-                // biaya_truk removed from detail since it's now in header only
                 hpp: parseFloat(detailData.hpp),
-                total_harga: parseFloat(detailData.totalHarga),
-                status: parseInt(detailData.status) || 1, // Field baru dari backend
-                tgl_masuk_rph: detailData.tglMasukRph || null, // Field baru dari backend
-                tgl_pemotongan: detailData.tglPemotongan || null // Field baru dari backend
+                total_harga: parseFloat(detailData.totalHarga)
             });
             
             return {
@@ -425,21 +463,18 @@ const usePembelianHO = () => {
         setError(null);
         
         try {
-            const result = await HttpClient.post(`${API_ENDPOINTS.HO.PEMBELIAN}/update`, {
+            // Backend now uses PUT method and expects specific detail fields
+            const result = await HttpClient.put(`${API_ENDPOINTS.HO.PEMBELIAN}/update`, {
                 pid: encryptedPid, // Backend expects encrypted PID
-                // Detail fields only (no header fields)
                 id_pembelian: parseInt(detailData.idPembelian),
                 id_office: parseInt(detailData.idOffice),
-                eartag: String(detailData.eartag), // Convert to string
+                eartag: String(detailData.eartag),
                 id_klasifikasi_hewan: parseInt(detailData.idKlasifikasiHewan),
                 harga: parseFloat(detailData.harga),
-                persentase: parseFloat(detailData.persentase) || 0, // Field baru dari backend
+                persentase: parseInt(detailData.persentase) || 0,
                 berat: parseInt(detailData.berat),
                 hpp: parseFloat(detailData.hpp),
-                total_harga: parseFloat(detailData.totalHarga),
-                status: parseInt(detailData.status) || 1, // Field baru dari backend
-                tgl_masuk_rph: detailData.tglMasukRph || null, // Field baru dari backend
-                tgl_pemotongan: detailData.tglPemotongan || null // Field baru dari backend
+                total_harga: parseFloat(detailData.totalHarga)
             });
             
             return {
@@ -462,8 +497,7 @@ const usePembelianHO = () => {
         setError(null);
         
         try {
-            // Backend delete method menggunakan POST, bukan DELETE
-            // Backend expects: { pid: encryptedPid }
+            // Backend delete method menggunakan POST method
             const result = await HttpClient.post(`${API_ENDPOINTS.HO.PEMBELIAN}/delete`, {
                 pid: encryptedPid
             });
@@ -566,8 +600,9 @@ const usePembelianHO = () => {
 
     // Pagination handlers - maintain search term and filter
     const handlePageChange = useCallback((newPage) => {
+
         fetchPembelian(newPage, serverPagination.perPage, searchTerm, filterStatus, false);
-    }, [fetchPembelian, serverPagination.perPage, searchTerm, filterStatus]);
+    }, [fetchPembelian, serverPagination.currentPage, serverPagination.perPage, serverPagination.totalPages, searchTerm, filterStatus]);
 
     const handlePerPageChange = useCallback((newPerPage) => {
         fetchPembelian(1, newPerPage, searchTerm, filterStatus, false);

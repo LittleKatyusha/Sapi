@@ -12,6 +12,7 @@ import {
 import { debugAuth, validateToken, checkCurrentAuthState, clearAuthData } from '../utils/tokenValidator';
 import HttpClient from '../services/httpClient';
 import { API_ENDPOINTS } from '../config/api';
+import { getEnhancedSecurityHeaders } from '../config/security';
 
 export const useAuthSecure = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -37,7 +38,6 @@ export const useAuthSecure = () => {
       if (isAuthenticated && token) {
         // Check token expiry
         if (tokenSecurity.isExpired(token)) {
-          securityAudit.log('TOKEN_EXPIRED', { token: token.substring(0, 20) + '...' });
           handleAutoLogout('token_expired');
           return;
         }
@@ -72,11 +72,6 @@ export const useAuthSecure = () => {
         // Sementara disable device fingerprint check yang terlalu ketat
         // untuk troubleshooting masalah login
         if (storedFingerprint && storedFingerprint !== deviceFingerprint.current) {
-          securityAudit.log('DEVICE_FINGERPRINT_MISMATCH_DEBUG', {
-            stored: storedFingerprint.substring(0, 20) + '...',
-            current: deviceFingerprint.current.substring(0, 20) + '...',
-            action: 'allowing_temporarily'
-          });
           // TEMPORARY: Don't clear auth data, just update fingerprint
           secureStorage.setItem('deviceFingerprint', deviceFingerprint.current);
         }
@@ -84,7 +79,6 @@ export const useAuthSecure = () => {
         if (storedToken && authStatus === true) {
           // Validate token
           if (tokenSecurity.isExpired(storedToken)) {
-            securityAudit.log('STORED_TOKEN_EXPIRED');
             await clearAuthData();
             setLoading(false);
             return;
@@ -218,9 +212,7 @@ export const useAuthSecure = () => {
       if (token) {
         const headers = {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          // 'api-key': '92b1d1ee96659e5b9630a51808b9372c', // Temporarily removed
-          ...getSecurityHeaders()
+          ...getEnhancedSecurityHeaders()
         };
 
         // Logout dari semua device jika diminta
@@ -229,7 +221,7 @@ export const useAuthSecure = () => {
           : API_ENDPOINTS.AUTH.LOGOUT;
 
         await HttpClient.post(endpoint, null, {
-          headers: getSecurityHeaders()
+          headers: getEnhancedSecurityHeaders()
         });
 
         securityAudit.log('LOGOUT_SUCCESS', { 

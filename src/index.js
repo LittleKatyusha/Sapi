@@ -4,6 +4,19 @@ import './index.css';
 import App from './AppSecure.jsx';
 import reportWebVitals from './reportWebVitals';
 
+// Suppress React DevTools console message in development
+if (process.env.NODE_ENV === 'development') {
+  const originalLog = console.log;
+  console.log = (...args) => {
+    const message = args.join(' ');
+    if (message.includes('Download the React DevTools') || 
+        message.includes('reactjs.org/link/react-devtools')) {
+      return; // Suppress React DevTools message
+    }
+    originalLog.apply(console, args);
+  };
+}
+
 const root = ReactDOM.createRoot(document.getElementById('root'));
 // Temporary fix: Remove StrictMode to prevent double rendering of Cloudflare Turnstile
 root.render(<App />);

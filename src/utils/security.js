@@ -367,227 +367,67 @@ export const getFullSecurityHeaders = () => {
   };
 };
 
-// === AUDIT LOGGING ===
+
+
+// === SECURITY HEADERS ===
 
 /**
- * Security audit logging
- */
-export const securityAudit = {
-  log: (event, details = {}) => {
-    const logEntry = {
-      timestamp: new Date().toISOString(),
-      event,
-      details: {
-        ...details,
-        userAgent: navigator.userAgent.slice(0, 100),
-        url: window.location.href,
-        deviceFingerprint: generateDeviceFingerprint()
-      }
-    };
-    
-    // Store in local array (in production, send to server)
-    const logs = JSON.parse(localStorage.getItem('securityLogs') || '[]');
-    logs.push(logEntry);
-    
-    // Keep only last 100 entries
-    if (logs.length > 100) {
-      logs.splice(0, logs.length - 100);
-    }
-    
-    localStorage.setItem('securityLogs', JSON.stringify(logs));
-    
-    // Security events are logged silently for production
-    // Console logging disabled to reduce noise
-  },
-  
-  getLogs: () => {
-    return JSON.parse(localStorage.getItem('securityLogs') || '[]');
-  },
-  
-  clearLogs: () => {
-    localStorage.removeItem('securityLogs');
-  }
-};
-
-// === CONTENT SECURITY POLICY ===
-
-/**
- * Set Content Security Policy and other security headers
- * Updated untuk mendukung localhost development
+ * Set basic security headers (CSP removed - now handled by backend)
  */
 export const setSecurityHeaders = () => {
-    const isDevelopment = process.env.NODE_ENV === 'development';
-    const disableCSP = process.env.REACT_APP_DISABLE_CSP === 'true';
-    const isLocalhost = process.env.REACT_APP_LOCALHOST_DEVELOPMENT === 'true';
+    // CSP completely removed - now handled by backend
     
-    if (isDevelopment || disableCSP || isLocalhost) {
-        // COMPLETELY DISABLE CSP FOR DEVELOPMENT
-        console.log('🔓 Development mode detected - completely disabling CSP...');
-        
-        // Remove all existing CSP meta tags more aggressively
-        const removeAllCSP = () => {
-            // Remove by exact http-equiv matches
-            document.querySelectorAll('meta[http-equiv="Content-Security-Policy"]').forEach(tag => {
-                console.log('Removing CSP tag (exact):', tag);
-                tag.remove();
-            });
-            
-            // Remove by case-insensitive matches
-            document.querySelectorAll('meta[http-equiv*="content-security-policy" i]').forEach(tag => {
-                console.log('Removing CSP tag (case-insensitive):', tag);
-                tag.remove();
-            });
-            
-            // Remove by attribute check
-            document.querySelectorAll('meta').forEach(tag => {
-                const httpEquiv = tag.getAttribute('http-equiv');
-                if (httpEquiv && httpEquiv.toLowerCase().includes('content-security-policy')) {
-                    console.log('Removing CSP meta tag (attribute check):', tag);
-                    tag.remove();
-                }
-            });
-        };
-        
-        // Remove CSP immediately and repeatedly
-        removeAllCSP();
-        setTimeout(removeAllCSP, 100);
-        setTimeout(removeAllCSP, 500);
-        setTimeout(removeAllCSP, 1000);
-        
-        // Override any CSP via DOM mutation observer
-        const observer = new MutationObserver((mutations) => {
-            mutations.forEach((mutation) => {
-                mutation.addedNodes.forEach((node) => {
-                    if (node.nodeType === 1 && node.tagName === 'META') {
-                        const httpEquiv = node.getAttribute('http-equiv');
-                        if (httpEquiv && httpEquiv.toLowerCase().includes('content-security-policy')) {
-                            console.log('🚫 Blocking new CSP tag in development:', node);
-                            node.remove();
-                        }
-                    }
-                });
-            });
-        });
-        
-        observer.observe(document.head, { childList: true, subtree: true });
-        
-        // Don't create any CSP in development
-        console.log('🔓 ALL CSP completely disabled for development - localhost:8000 connections allowed');
-        
-        // Set minimal security headers for development
-        const devHeaders = [
-            { name: 'X-Content-Type-Options', content: 'nosniff' }  // Keep this for basic security
-        ];
-        
-        devHeaders.forEach(header => {
-            const existing = document.querySelector(`meta[http-equiv="${header.name}"]`);
-            if (!existing) {
-                const meta = document.createElement('meta');
-                meta.httpEquiv = header.name;
-                meta.content = header.content;
-                document.head.appendChild(meta);
-            }
-        });
-        
-        return; // Exit early for development
-    }
+    // Set basic security headers yang bisa diset via meta tags
+    const securityHeaders = [
+        { name: 'X-Content-Type-Options', content: 'nosniff' },
+        { name: 'X-XSS-Protection', content: '1; mode=block' },
+        { name: 'Referrer-Policy', content: 'strict-origin-when-cross-origin' }
+    ];
     
-    // Production CSP setup (only if not in development)
-    console.log('🔒 Production mode - setting up CSP...');
-    
-    // Remove any existing CSP first
-    document.querySelectorAll('meta[http-equiv*="Content-Security-Policy" i]').forEach(tag => {
-        tag.remove();
+    securityHeaders.forEach(header => {
+        const existing = document.querySelector(`meta[http-equiv="${header.name}"]`);
+        if (!existing) {
+            const meta = document.createElement('meta');
+            meta.httpEquiv = header.name;
+            meta.content = header.content;
+            document.head.appendChild(meta);
+        }
     });
+
+    // Set Permissions Policy untuk security tambahan
+    const permissionsPolicyMeta = document.createElement('meta');
+    permissionsPolicyMeta.httpEquiv = 'Permissions-Policy';
+    permissionsPolicyMeta.content = [
+        'geolocation=()',
+        'microphone=()',
+        'camera=()',
+        'payment=()',
+        'usb=()',
+        'magnetometer=()',
+        'gyroscope=()',
+        'speaker=()',
+        'vibrate=()',
+        'fullscreen=(self)'
+    ].join(', ');
     
-    // Set production CSP
-    const cspMeta = document.createElement('meta');
-    cspMeta.httpEquiv = 'Content-Security-Policy';
-    cspMeta.content = [
-        "default-src 'self'",
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com",
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-        "img-src 'self' data: https: blob:",
-        "font-src 'self' data: https://fonts.gstatic.com",
-        `connect-src 'self' ${API_BASE_URL} https://challenges.cloudflare.com`,
-        "frame-src https://challenges.cloudflare.com",
-        "worker-src 'self' blob:"
-    ].join('; ');
-    
-    document.head.appendChild(cspMeta);
-  
-  // Set security headers yang bisa diset via meta tags
-  // Note: X-Frame-Options CANNOT be set via meta tag and must be set as HTTP header
-  const securityHeaders = [
-    { name: 'X-Content-Type-Options', content: 'nosniff' },
-    { name: 'X-XSS-Protection', content: '1; mode=block' },
-    { name: 'Referrer-Policy', content: 'strict-origin-when-cross-origin' }
-  ];
-  
-  securityHeaders.forEach(header => {
-    // Check if meta tag already exists
-    const existing = document.querySelector(`meta[http-equiv="${header.name}"]`);
-    if (!existing) {
-      const meta = document.createElement('meta');
-      meta.httpEquiv = header.name;
-      meta.content = header.content;
-      document.head.appendChild(meta);
+    if (!document.querySelector('meta[http-equiv="Permissions-Policy"]')) {
+        document.head.appendChild(permissionsPolicyMeta);
     }
-  });
 
-  // Set Permissions Policy untuk security tambahan
-  const permissionsPolicyMeta = document.createElement('meta');
-  permissionsPolicyMeta.httpEquiv = 'Permissions-Policy';
-  permissionsPolicyMeta.content = [
-    'geolocation=()',
-    'microphone=()',
-    'camera=()',
-    'payment=()',
-    'usb=()',
-    'magnetometer=()',
-    'gyroscope=()',
-    'speaker=()',
-    'vibrate=()',
-    'fullscreen=(self)'
-    // Removed 'browsing-topics' and 'interest-cohort' as they are not recognized by current browsers
-  ].join(', ');
-  
-  if (!document.querySelector('meta[http-equiv="Permissions-Policy"]')) {
-    document.head.appendChild(permissionsPolicyMeta);
-  }
+    // Right-click enabled by default
+    if (process.env.REACT_APP_FORCE_DISABLE_RIGHT_CLICK === 'true') {
+        document.addEventListener('contextmenu', (e) => e.preventDefault());
+    }
 
-  // Right-click is now enabled by default for both development and production
-  // This allows users to access browser context menu for copy, paste, inspect, etc.
-  // Security Note: If you need to disable right-click for specific sensitive areas,
-  // apply the event listener directly to those specific elements instead of globally
-  
-  // Keep right-click enabled unless explicitly disabled via environment variable
-  // This provides better user experience and developer tools access
-  if (process.env.REACT_APP_FORCE_DISABLE_RIGHT_CLICK === 'true') {
-    document.addEventListener('contextmenu', (e) => e.preventDefault());
-  }
+    // Text selection enabled by default
+    if (process.env.REACT_APP_FORCE_DISABLE_TEXT_SELECTION === 'true') {
+        document.body.style.userSelect = 'none';
+        document.body.style.webkitUserSelect = 'none';
+        document.body.style.mozUserSelect = 'none';
+        document.body.style.msUserSelect = 'none';
+    }
 
-  // Text selection is now enabled by default for both development and production
-  // This allows users to select and copy text from tables and other content
-  // Security Note: If you need to disable text selection for specific sensitive areas,
-  // apply the CSS directly to those specific elements instead of globally
-  
-  // Keep text selection enabled unless explicitly disabled via environment variable
-  // This provides better user experience for data tables and content interaction
-  if (process.env.REACT_APP_FORCE_DISABLE_TEXT_SELECTION === 'true') {
-    document.body.style.userSelect = 'none';
-    document.body.style.webkitUserSelect = 'none';
-    document.body.style.mozUserSelect = 'none';
-    document.body.style.msUserSelect = 'none';
-  }
 
-  // Log security status
-  securityAudit.log('SECURITY_HEADERS_SET', {
-    cspEnabled: true,
-    fontsAllowed: true,
-    turnstileEnabled: true,
-    timestamp: new Date().toISOString()
-  });
 };
 
 /**
@@ -599,13 +439,8 @@ export const verifyFontsLoading = () => {
     const testFont = new FontFace('Roboto-Test', 'url(https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2)');
     
     testFont.load().then(() => {
-      securityAudit.log('GOOGLE_FONTS_LOADED', { success: true });
       resolve(true);
     }).catch((error) => {
-      securityAudit.log('GOOGLE_FONTS_BLOCKED', {
-        error: error.message,
-        fallbackUsed: true
-      });
       // Fallback ke font lokal
       document.documentElement.style.setProperty('--font-roboto-stack', 'var(--font-system-stack)');
       resolve(false);
@@ -613,7 +448,6 @@ export const verifyFontsLoading = () => {
     
     // Timeout setelah 5 detik
     setTimeout(() => {
-      securityAudit.log('GOOGLE_FONTS_TIMEOUT', { fallbackUsed: true });
       resolve(false);
     }, 5000);
   });
@@ -626,7 +460,6 @@ export const verifyTurnstileLoading = () => {
   return new Promise((resolve) => {
     // Check jika Turnstile sudah dimuat
     if (window.turnstile) {
-      securityAudit.log('TURNSTILE_ALREADY_LOADED');
       resolve(true);
       return;
     }
@@ -637,24 +470,124 @@ export const verifyTurnstileLoading = () => {
     script.async = true;
 
     const timeout = setTimeout(() => {
-      securityAudit.log('TURNSTILE_LOAD_TIMEOUT');
       resolve(false);
     }, 10000);
 
     script.onload = () => {
       clearTimeout(timeout);
-      securityAudit.log('TURNSTILE_LOAD_SUCCESS');
       resolve(true);
     };
 
     script.onerror = () => {
       clearTimeout(timeout);
-      securityAudit.log('TURNSTILE_LOAD_ERROR');
       resolve(false);
     };
 
     document.head.appendChild(script);
   });
+};
+
+// === SECURITY AUDIT ===
+
+/**
+ * Security audit logging system
+ */
+export const securityAudit = {
+  log: (event, data = {}) => {
+    try {
+      const timestamp = new Date().toISOString();
+      const logEntry = {
+        timestamp,
+        event,
+        data: {
+          ...data,
+          url: window.location.href,
+          userAgent: navigator.userAgent.slice(0, 100),
+          sessionId: sessionStorage.getItem('sessionId') || 'unknown'
+        }
+      };
+
+      // Console logging disabled to reduce noise
+      // if (process.env.NODE_ENV === 'development') {
+      //   console.log(`🔒 Security Audit [${event}]:`, logEntry);
+      // }
+
+      // Store in localStorage for client-side audit trail (limited to last 100 entries)
+      const auditKey = 'security_audit_log';
+      const existingLogs = JSON.parse(localStorage.getItem(auditKey) || '[]');
+      existingLogs.push(logEntry);
+      
+      // Keep only the last 100 entries to prevent storage overflow
+      if (existingLogs.length > 100) {
+        existingLogs.splice(0, existingLogs.length - 100);
+      }
+      
+      localStorage.setItem(auditKey, JSON.stringify(existingLogs));
+
+      // In production, you might want to send this to your backend audit endpoint
+      if (process.env.NODE_ENV === 'production' && process.env.REACT_APP_AUDIT_ENDPOINT) {
+        fetch(process.env.REACT_APP_AUDIT_ENDPOINT, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...getSecurityHeaders()
+          },
+          body: JSON.stringify(logEntry)
+        }).catch(error => {
+          console.warn('Failed to send audit log to server:', error);
+        });
+      }
+
+    } catch (error) {
+      console.error('Security audit logging failed:', error);
+    }
+  },
+
+  // Get recent audit logs for debugging
+  getLogs: (limit = 50) => {
+    try {
+      const auditKey = 'security_audit_log';
+      const logs = JSON.parse(localStorage.getItem(auditKey) || '[]');
+      return logs.slice(-limit);
+    } catch (error) {
+      console.error('Failed to retrieve audit logs:', error);
+      return [];
+    }
+  },
+
+  // Clear audit logs
+  clearLogs: () => {
+    try {
+      localStorage.removeItem('security_audit_log');
+      console.log('🔒 Security audit logs cleared');
+    } catch (error) {
+      console.error('Failed to clear audit logs:', error);
+    }
+  },
+
+  // Get audit statistics
+  getStats: () => {
+    try {
+      const logs = securityAudit.getLogs(100);
+      const stats = {
+        totalLogs: logs.length,
+        eventTypes: {},
+        recentActivity: logs.slice(-10).map(log => ({
+          timestamp: log.timestamp,
+          event: log.event
+        }))
+      };
+
+      logs.forEach(log => {
+        stats.eventTypes[log.event] = (stats.eventTypes[log.event] || 0) + 1;
+      });
+
+      return stats;
+    } catch (error) {
+      console.error('Failed to generate audit stats:', error);
+      return { totalLogs: 0, eventTypes: {}, recentActivity: [] };
+    }
+  }
 };
 
 const securityUtils = {
@@ -669,8 +602,8 @@ const securityUtils = {
   generateDeviceFingerprint,
   getSecurityHeaders,
   getFullSecurityHeaders,
-  securityAudit,
-  setSecurityHeaders
+  setSecurityHeaders,
+  securityAudit
 };
 
 export default securityUtils;

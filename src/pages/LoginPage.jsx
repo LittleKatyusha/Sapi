@@ -5,8 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 const LoginPage = () => {
   const [formData, setFormData] = useState({
     email: '',
-    password: '',
-    rememberMe: false
+    password: ''
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -177,20 +176,6 @@ const LoginPage = () => {
                     placeholder="••••••••"
                   />
                 </div>
-              </div>
-
-              {/* Remember Me & Forgot Password */}
-              <div className="flex items-center justify-between">
-                <label className="flex items-center group cursor-pointer">
-                  <input
-                    name="rememberMe"
-                    type="checkbox"
-                    checked={formData.rememberMe}
-                    onChange={handleInputChange}
-                    className="h-5 w-5 text-red-500 bg-white/10 border-white/30 rounded focus:ring-white/40 focus:ring-2"
-                  />
-                  <span className="ml-3 text-sm text-red-100 group-hover:text-white transition-colors">Ingat saya</span>
-                </label>
               </div>
 
               {/* Cloudflare Turnstile Captcha */}

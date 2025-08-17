@@ -3,7 +3,7 @@
 import HttpClient from '../services/httpClient';
 import { API_ENDPOINTS } from '../config/api';
 
-export const validateToken = async (token, apiKey = '92b1d1ee96659e5b9630a51808b9372c') => {
+export const validateToken = async (token, apiKey = process.env.REACT_APP_API_KEY) => {
     console.group('🔍 Token Validation Debug');
     
     // Basic token checks
@@ -173,9 +173,10 @@ if (process.env.NODE_ENV === 'development') {
     window.checkCurrentAuthState = checkCurrentAuthState;
     window.clearAuthData = clearAuthData;
     
-    console.log('🔧 Auth debugging tools available in window object:');
-    console.log('  - window.debugAuth()');
-    console.log('  - window.validateToken(token)');
-    console.log('  - window.checkCurrentAuthState()');
-    console.log('  - window.clearAuthData()');
+    // Console logging disabled to reduce noise
+    // console.log('🔧 Auth debugging tools available in window object:');
+    // console.log('  - window.debugAuth()');
+    // console.log('  - window.validateToken(token)');
+    // console.log('  - window.checkCurrentAuthState()');
+    // console.log('  - window.clearAuthData()');
 }

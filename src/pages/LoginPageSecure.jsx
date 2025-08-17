@@ -14,8 +14,7 @@ import SecurityNotification from '../components/security/SecurityNotification';
 const LoginPageSecure = () => {
   const [formData, setFormData] = useState({
     email: '',
-    password: '',
-    rememberMe: false
+    password: ''
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -337,8 +336,7 @@ const LoginPageSecure = () => {
       const result = await login({
         email: formData.email.trim(),
         password: formData.password,
-        captcha: captchaToken,
-        rememberMe: formData.rememberMe
+        captcha: captchaToken
       });
 
       if (result.success) {
@@ -538,23 +536,6 @@ const LoginPageSecure = () => {
                     {inputErrors.password}
                   </p>
                 )}
-              </div>
-
-              {/* Remember Me */}
-              <div className="flex items-center justify-between">
-                <label className="flex items-center group cursor-pointer">
-                  <input
-                    name="rememberMe"
-                    type="checkbox"
-                    checked={formData.rememberMe}
-                    onChange={handleInputChange}
-                    className="h-5 w-5 text-red-500 bg-white/10 border-white/30 rounded focus:ring-white/40 focus:ring-2"
-                    disabled={false}
-                  />
-                  <span className="ml-3 text-sm text-red-100 group-hover:text-white transition-colors">
-                    Ingat saya
-                  </span>
-                </label>
               </div>
 
               {/* Cloudflare Turnstile Captcha with Loading State */}

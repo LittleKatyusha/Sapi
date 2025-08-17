@@ -5,14 +5,13 @@
  */
 
 import { API_BASE_URL } from '../config/api.js';
+import { getApiAuthHeaders, getEnhancedSecurityHeaders } from '../config/security.js';
 
 /**
  * Default headers for all requests
  */
 const DEFAULT_HEADERS = {
-  'Content-Type': 'application/json',
-  'Accept': 'application/json'
-  // 'API-KEY': '92b1d1ee96659e5b9630a51808b9372c' // Temporarily removed
+  ...getApiAuthHeaders()
 };
 
 /**
@@ -53,7 +52,7 @@ const getCsrfToken = async () => {
     
     if (csrfCookie) {
       const token = decodeURIComponent(csrfCookie.split('=')[1]);
-      console.log('CSRF Token retrieved:', token.substring(0, 20) + '...');
+      // CSRF Token retrieved silently
       return token;
     } else {
       console.warn('CSRF token cookie not found in:', document.cookie);
@@ -185,13 +184,31 @@ class HttpClient {
    * GET request
    */
   static async get(endpoint, options = {}) {
-    const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
+    let url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
+    
+    // Handle query parameters
+    if (options.params) {
+      const urlParams = new URLSearchParams();
+      Object.entries(options.params).forEach(([key, value]) => {
+        if (value !== null && value !== undefined) {
+          urlParams.append(key, value);
+        }
+      });
+      
+      const queryString = urlParams.toString();
+      if (queryString) {
+        url += (url.includes('?') ? '&' : '?') + queryString;
+      }
+    }
+    
+    // Remove params from options before passing to fetch
+    const { params, ...fetchOptions } = options;
     
     const response = await fetch(url, {
       method: 'GET',
       headers: await buildHeaders(options.headers),
       credentials: 'include',
-      ...options
+      ...fetchOptions
     });
     
     await handleResponseError(response);

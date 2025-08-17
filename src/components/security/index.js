@@ -18,7 +18,7 @@ export {
   tokenSecurity,
   generateDeviceFingerprint,
   getSecurityHeaders,
-  securityAudit,
+
   setSecurityHeaders
 } from '../../utils/security';
 

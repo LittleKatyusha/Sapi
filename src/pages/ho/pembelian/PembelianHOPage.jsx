@@ -99,8 +99,6 @@ const PembelianHOPage = () => {
             console.log('🗑️ DEBUG: pembelian.pubid:', pembelian.pubid);
             
             // Backend expects encrypted PID yang dikirim sebagai 'pid' dalam response getData
-            // Backend: 'pid' => encrypt($dt->pubid)
-            // Backend delete: decrypt($pid) untuk mencari record
             const encryptedPid = pembelian.encryptedPid;
             
             console.log('🗑️ DEBUG: Selected encrypted PID:', encryptedPid);
@@ -126,6 +124,9 @@ const PembelianHOPage = () => {
                     type: 'success',
                     message: result.message || 'Data pembelian berhasil dihapus'
                 });
+                
+                // Close delete modal after successful deletion
+                handleCloseDeleteModal();
             } else {
                 // Log error details for debugging
                 console.error('🗑️ ERROR: Delete failed with result:', result);
@@ -153,6 +154,7 @@ const PembelianHOPage = () => {
 
     // Pagination handlers for mobile cards - using server-side pagination
     const handlePageChange = (page) => {
+
         handleServerPageChange(page);
     };
 
@@ -346,14 +348,12 @@ const PembelianHOPage = () => {
             name: 'Jenis Pembelian',
             selector: row => row.jenis_pembelian,
             sortable: true,
-            width: '12%',
+            width: '15%',
             wrap: true,
             cell: row => (
                 <div className="text-center">
-                    <span className="text-gray-900 break-words">
-                        {row.jenis_pembelian === '1' ? 'Reguler' : 
-                         row.jenis_pembelian === '2' ? 'Khusus' : 
-                         row.jenis_pembelian === '3' ? 'Darurat' : '-'}
+                    <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800 break-words" title={row.jenis_pembelian}>
+                        {row.jenis_pembelian || '-'}
                     </span>
                 </div>
             )
@@ -374,7 +374,7 @@ const PembelianHOPage = () => {
             ),
             ignoreRowClick: true,
         },
-    ], [openMenuId]);
+    ], [openMenuId, filteredData]);
 
     return (
         <>
@@ -481,6 +481,7 @@ const PembelianHOPage = () => {
                 <div className="bg-white rounded-none sm:rounded-none shadow-lg border border-gray-100 relative hidden md:block">
                     <div className="w-full">
                         <DataTable
+                            key={`datatable-${serverPagination.currentPage}-${filteredData.length}`}
                             columns={columns}
                             data={filteredData}
                             pagination

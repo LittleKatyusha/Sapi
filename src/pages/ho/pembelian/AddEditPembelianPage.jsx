@@ -517,53 +517,51 @@ const AddEditPembelianPage = () => {
             let result;
             if (isEdit) {
                 // For edit mode, we need to handle both header and details separately
-                // For now, we'll create a new complete record
                 const completeData = {
                     ...updatedHeaderData,
                     biayaTruck: parseFloat(updatedHeaderData.biayaTruck),
-                    biayaLain: parseFloat(updatedHeaderData.biayaLain) || 0, // Backend validation requires this field
-                    beratTotal: parseFloat(updatedHeaderData.beratTotal) || 0, // Field baru dari backend
-                    tipePembelian: parseInt(updatedHeaderData.tipePembelian) || 1, // Field baru dari backend
-                    file: selectedFile ? selectedFile.name : (updatedHeaderData.file || ''), // Use selected file name or existing file
-                    fileName: selectedFile ? selectedFile.name : (updatedHeaderData.fileName || ''), // Include file name
-                    // markup removed - no longer needed
-                    markup_percentage: markupPercentage,
+                    biayaLain: parseFloat(updatedHeaderData.biayaLain) || 0,
+                    biayaTotal: parseFloat(updatedHeaderData.biayaTotal) || 0,
+                    tipePembelian: parseInt(updatedHeaderData.tipePembelian) || 1,
+                    file: selectedFile || updatedHeaderData.file, // Send actual file object
                     details: detailItems.map(item => ({
                         id_office: 1, // Always Head Office as integer
-                        eartag: String(item.eartag), // Backend expects string
-                        eartag_supplier: String(item.eartagSupplier || ''), // Manual input eartag supplier
-                        id_klasifikasi_hewan: parseInt(item.idKlasifikasiHewan), // Backend expects integer
-                        harga: parseFloat(item.harga), // Backend expects numeric
-                        berat: parseInt(item.berat), // Backend expects integer
-                        persentase: parseFloat(item.persentase) || 0, // Backend expects numeric
-                        hpp: parseFloat(item.hpp), // Backend expects numeric
-                        status: parseInt(item.status) || 1, // Field baru dari backend
+                        eartag: String(item.eartag),
+                        id_klasifikasi_hewan: parseInt(item.idKlasifikasiHewan),
+                        harga: parseFloat(item.harga),
+                        berat: parseInt(item.berat),
+                        persentase: parseInt(item.persentase) || 0,
+                        hpp: parseFloat(item.hpp),
+                        total_harga: parseFloat(item.totalHarga || item.hpp)
                     }))
                 };
-                result = await updatePembelian(id, completeData);
+                
+                // For edit mode, we need to pass the encrypted PID
+                const editData = {
+                    pid: id, // This should be the encrypted PID
+                    ...completeData
+                };
+                
+                result = await updatePembelian(editData, true); // true for header update
             } else {
                 // For add mode, create with header and details array
                 const completeData = {
                     ...updatedHeaderData,
                     idOffice: 1, // Always ensure Head Office ID as integer
-                    biayaTruck: parseFloat(updatedHeaderData.biayaTruck), // Backend validation requires numeric
-                    biayaLain: parseFloat(updatedHeaderData.biayaLain) || 0, // Backend validation requires this field as numeric
-                    beratTotal: parseFloat(updatedHeaderData.beratTotal) || 0, // Field baru dari backend
-                    tipePembelian: parseInt(updatedHeaderData.tipePembelian) || 1, // Field baru dari backend
-                    file: selectedFile ? selectedFile.name : (updatedHeaderData.file || ''), // Use selected file name or existing file
-                    fileName: selectedFile ? selectedFile.name : (updatedHeaderData.fileName || ''), // Include file name
-                    // markup removed - no longer needed at header level
-                    markup_percentage: markupPercentage, // Send markup percentage to backend
+                    biayaTruck: parseFloat(updatedHeaderData.biayaTruck),
+                    biayaLain: parseFloat(updatedHeaderData.biayaLain) || 0,
+                    biayaTotal: parseFloat(updatedHeaderData.biayaTotal) || 0,
+                    tipePembelian: parseInt(updatedHeaderData.tipePembelian) || 1,
+                    file: selectedFile, // Send actual file object
                     details: detailItems.map(item => ({
                         id_office: 1, // Always Head Office for all details as integer
-                        eartag: String(item.eartag), // Backend expects string
-                        eartag_supplier: String(item.eartagSupplier || ''), // Manual input eartag supplier
-                        id_klasifikasi_hewan: parseInt(item.idKlasifikasiHewan), // Backend expects integer
-                        harga: parseFloat(item.harga), // Backend expects numeric
-                        berat: parseInt(item.berat), // Backend expects integer
-                        persentase: parseFloat(item.persentase) || 0, // Backend expects numeric
-                        hpp: parseFloat(item.hpp), // Backend expects numeric
-                        status: parseInt(item.status) || 1, // Field baru dari backend
+                        eartag: String(item.eartag),
+                        id_klasifikasi_hewan: parseInt(item.idKlasifikasiHewan),
+                        harga: parseFloat(item.harga),
+                        berat: parseInt(item.berat),
+                        persentase: parseInt(item.persentase) || 0,
+                        hpp: parseFloat(item.hpp),
+                        total_harga: parseFloat(item.totalHarga || item.hpp)
                     }))
                 };
                 
@@ -587,9 +585,10 @@ const AddEditPembelianPage = () => {
                 });
             }
         } catch (err) {
+            console.error('Submit error:', err);
             setNotification({
                 type: 'error',
-                message: 'Terjadi kesalahan saat menyimpan data'
+                message: err.message || 'Terjadi kesalahan saat menyimpan data'
             });
         } finally {
             setIsSubmitting(false);

@@ -126,9 +126,19 @@ const PembelianDetailPage = () => {
             let result;
             
             if (isEdit) {
+                // For edit mode, we need to pass the encrypted PID and detail data
+                const editData = {
+                    pid: selectedDetail.pubid, // This should be the encrypted PID
+                    ...detailFormData
+                };
                 result = await updateDetail(selectedDetail.pubid, detailFormData);
             } else {
-                result = await createDetail(detailFormData);
+                // For add mode, we need to include the pembelian ID
+                const addData = {
+                    ...detailFormData,
+                    id_pembelian: pembelianData?.pubid || id // Use the pembelian ID
+                };
+                result = await createDetail(addData);
             }
 
             if (result.success) {
@@ -154,9 +164,10 @@ const PembelianDetailPage = () => {
                 });
             }
         } catch (err) {
+            console.error('Save detail error:', err);
             setNotification({
                 type: 'error',
-                message: 'Terjadi kesalahan saat menyimpan data'
+                message: err.message || 'Terjadi kesalahan saat menyimpan data'
             });
         }
     };
@@ -186,9 +197,10 @@ const PembelianDetailPage = () => {
                 });
             }
         } catch (err) {
+            console.error('Delete detail error:', err);
             setNotification({
                 type: 'error',
-                message: 'Terjadi kesalahan saat menghapus data'
+                message: err.message || 'Terjadi kesalahan saat menghapus data'
             });
         }
     };

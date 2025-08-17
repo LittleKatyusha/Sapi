@@ -251,6 +251,19 @@ const PembelianCard = ({
                         }).format(data.biaya_lain) : 'Rp 0'}
                     </span>
                 </div>
+
+                {/* Jenis Pembelian */}
+                <div>
+                    <div className="flex items-center gap-2 mb-1.5">
+                        <div className="p-1.5 rounded-lg bg-purple-100">
+                            <Hash className="w-4 h-4 text-purple-600" />
+                        </div>
+                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Jenis Pembelian</span>
+                    </div>
+                    <span className="inline-flex px-3 py-1.5 text-sm font-semibold rounded-full bg-purple-100 text-purple-800">
+                        {data.jenis_pembelian || '-'}
+                    </span>
+                </div>
             </div>
         </div>
     );

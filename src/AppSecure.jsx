@@ -168,33 +168,16 @@ function AppSecure() {
       // Set security headers
       setSecurityHeaders();
       
-      // Log application start
-      securityAudit.log('APPLICATION_START', {
-        url: window.location.href,
-        userAgent: navigator.userAgent.slice(0, 100),
-        timestamp: new Date().toISOString(),
-        screenResolution: `${window.screen.width}x${window.screen.height}`,
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        language: navigator.language
-      });
+
 
       // Set up global error handling
       window.addEventListener('error', (event) => {
-        securityAudit.log('GLOBAL_ERROR', {
-          message: event.message,
-          filename: event.filename,
-          lineno: event.lineno,
-          colno: event.colno,
-          stack: event.error?.stack
-        });
+        // Error handling without logging
       });
 
       // Set up unhandled promise rejection handling
       window.addEventListener('unhandledrejection', (event) => {
-        securityAudit.log('UNHANDLED_PROMISE_REJECTION', {
-          reason: event.reason?.toString(),
-          stack: event.reason?.stack
-        });
+        // Promise rejection handling without logging
       });
 
       // Monitor for suspicious activities
@@ -206,11 +189,7 @@ function AppSecure() {
         if (now - lastClickTime < 100) {
           clickCount++;
           if (clickCount > 10) {
-            securityAudit.log('SUSPICIOUS_ACTIVITY', {
-              type: 'rapid_clicking',
-              count: clickCount,
-              timeWindow: now - lastClickTime
-            });
+            // Suspicious activity detected without logging
           }
         } else {
           clickCount = 0;
@@ -224,10 +203,7 @@ function AppSecure() {
         if (window.outerHeight - window.innerHeight > 200 || window.outerWidth - window.innerWidth > 200) {
           if (!devtools) {
             devtools = true;
-            securityAudit.log('DEVTOOLS_DETECTED', {
-              outerDimensions: `${window.outerWidth}x${window.outerHeight}`,
-              innerDimensions: `${window.innerWidth}x${window.innerHeight}`
-            });
+            // DevTools detected without logging
           }
         } else {
           devtools = false;
@@ -238,7 +214,7 @@ function AppSecure() {
       if (process.env.NODE_ENV === 'production') {
         document.addEventListener('contextmenu', (e) => {
           e.preventDefault();
-          securityAudit.log('CONTEXT_MENU_BLOCKED');
+          // Context menu blocked without logging
         });
 
         // Disable common developer shortcuts
@@ -248,7 +224,7 @@ function AppSecure() {
               (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J')) ||
               (e.ctrlKey && e.key === 'U')) {
             e.preventDefault();
-            securityAudit.log('DEVELOPER_SHORTCUT_BLOCKED', { key: e.key, ctrlKey: e.ctrlKey, shiftKey: e.shiftKey });
+            // Developer shortcut blocked without logging
           }
         });
       }
@@ -263,28 +239,21 @@ function AppSecure() {
         userMedia: typeof navigator.mediaDevices?.getUserMedia !== 'undefined'
       };
 
-      securityAudit.log('BROWSER_SECURITY_FEATURES', securityFeatures);
+      // Browser security features checked without logging
 
     } catch (error) {
-      securityAudit.log('SECURITY_INIT_ERROR', {
-        error: error.message,
-        stack: error.stack
-      });
+      // Security init error without logging
     }
 
     // Cleanup function
     return () => {
-      securityAudit.log('APPLICATION_CLEANUP');
+      // Application cleanup without logging
     };
   }, []);
 
   // Monitor route changes untuk security
   useEffect(() => {
-    securityAudit.log('ROUTE_CHANGE', {
-      from: document.referrer,
-      to: location.pathname,
-      timestamp: new Date().toISOString()
-    });
+    // Route change monitoring without logging
   }, [location.pathname]);
 
   // Jika halaman login, tampilkan tanpa layout
