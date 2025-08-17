@@ -19,12 +19,12 @@ const useParameterSelect = () => {
         setError(null);
         
         try {
-            console.log('Fetching centralized parameter data...');
+            console.log('📊 Fetching centralized parameter data...');
             
             // Use the new centralized parameter endpoint
             const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.PARAMETER}/data`);
             
-            console.log('✅ Parameter data response:', result);
+            console.log('✅ Parameter data response received');
             
             // Handle the response format from ParameterSelectController
             if (result.data && Array.isArray(result.data) && result.data.length > 0) {
@@ -37,7 +37,7 @@ const useParameterSelect = () => {
                     outlet: data.outlet || [],
                     jenishewan: data.jenishewan || []
                 });
-                console.log('✅ Parameter data loaded successfully:', data);
+                console.log('✅ Parameter data loaded:', Object.keys(data).map(key => `${key}: ${data[key]?.length || 0} items`).join(', '));
             } else {
                 throw new Error('Invalid response format from parameter endpoint');
             }
@@ -65,7 +65,7 @@ const useParameterSelect = () => {
     // Create select options for each parameter type
     const eartagOptions = useMemo(() => {
         return parameterData.eartag.map(item => ({
-            value: item.id,
+            value: item.pubid || item.id, // Use pubid first, fallback to id
             label: item.name || item.kode || item.id
         }));
     }, [parameterData.eartag]);
@@ -87,7 +87,7 @@ const useParameterSelect = () => {
 
     const klasifikasiHewanOptions = useMemo(() => {
         return parameterData.klasifikasihewan.map(item => ({
-            value: item.id,
+            value: item.pubid || item.id, // Use pubid first, fallback to id
             label: item.name
         }));
     }, [parameterData.klasifikasihewan]);

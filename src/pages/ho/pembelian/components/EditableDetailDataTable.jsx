@@ -4,6 +4,18 @@ import { Trash2 } from 'lucide-react';
 import Select from 'react-select';
 
 const customStyles = {
+  table: {
+    style: {
+      width: '100%',
+      tableLayout: 'auto',
+    },
+  },
+  tableWrapper: {
+    style: {
+      width: '100%',
+      display: 'table',
+    },
+  },
   rows: {
     style: {
       minHeight: '48px',
@@ -11,6 +23,7 @@ const customStyles = {
       backgroundColor: 'white',
       borderBottom: '1px solid #f3f4f6',
       transition: 'background 0.2s',
+      width: '100%',
     },
     stripedStyle: {
       backgroundColor: '#f9fafb',
@@ -31,14 +44,15 @@ const customStyles = {
       top: 0,
       zIndex: 2,
       textAlign: 'center', // Header rata tengah
+      padding: '8px 12px',
     },
   },
   cells: {
     style: {
       paddingTop: '8px',
       paddingBottom: '8px',
-      paddingLeft: '16px',
-      paddingRight: '16px',
+      paddingLeft: '12px',
+      paddingRight: '12px',
     },
   },
 };
@@ -61,9 +75,9 @@ const EditableDetailDataTable = ({
       name: 'No',
       selector: (row, i) => i + 1,
       width: '60px',
-      center: true, // Kolom rata tengah
-      grow: 0,
-      shrink: 0,
+      center: true,
+      grow: false,
+      sortable: false,
     },
     {
       name: 'Eartag *',
@@ -98,10 +112,11 @@ const EditableDetailDataTable = ({
           }}
         />
       ),
-      center: true, // Kolom rata tengah
+      center: true,
       grow: 1,
-      shrink: 0,
-      minWidth: '180px',
+      minWidth: '160px',
+      wrap: true,
+      sortable: false,
     },
     {
       name: 'Eartag Supplier *',
@@ -123,10 +138,11 @@ const EditableDetailDataTable = ({
           }}
         />
       ),
-      center: true, // Kolom rata tengah
+      center: true,
       grow: 1,
-      shrink: 0,
-      minWidth: '180px',
+      minWidth: '160px',
+      wrap: true,
+      sortable: false,
     },
     {
       name: 'Klasifikasi *',
@@ -165,10 +181,11 @@ const EditableDetailDataTable = ({
           }}
         />
       ),
-      center: true, // Kolom rata tengah
+      center: true,
       grow: 1,
-      shrink: 0,
-      minWidth: '180px',
+      minWidth: '160px',
+      wrap: true,
+      sortable: false,
     },
     {
       name: 'Berat (kg) *',
@@ -192,10 +209,10 @@ const EditableDetailDataTable = ({
           }}
         />
       ),
-      center: true, // Kolom rata tengah
-      grow: 0,
-      shrink: 0,
-      minWidth: '120px',
+      center: true,
+      width: '120px',
+      grow: false,
+      sortable: false,
     },
     {
       name: 'Harga (Rp) *',
@@ -220,10 +237,10 @@ const EditableDetailDataTable = ({
           }}
         />
       ),
-      center: true, // Kolom rata tengah
-      grow: 0,
-      shrink: 0,
+      center: true,
+      grow: 1,
       minWidth: '140px',
+      sortable: false,
     },
     {
       name: 'Markup (%) *',
@@ -247,10 +264,10 @@ const EditableDetailDataTable = ({
           }}
         />
       ),
-      center: true, // Kolom rata tengah
-      grow: 0,
-      shrink: 0,
-      minWidth: '120px',
+      center: true,
+      width: '120px',
+      grow: false,
+      sortable: false,
     },
     {
       name: 'HPP (Rp)',
@@ -273,10 +290,10 @@ const EditableDetailDataTable = ({
           {formatNumber(row.hpp)}
         </div>
       ),
-      center: true, // Kolom rata tengah
-      grow: 0,
-      shrink: 0,
+      center: true,
+      grow: 1,
       minWidth: '140px',
+      sortable: false,
     },
     {
       name: 'Aksi',
@@ -295,17 +312,15 @@ const EditableDetailDataTable = ({
       ),
       center: true,
       ignoreRowClick: true,
-      allowOverflow: true,
-      button: true,
-      grow: 0,
-      shrink: 0,
-      minWidth: '70px',
+      width: '70px',
+      grow: false,
+      sortable: false,
     },
   ];
 
   return (
-    <div className="w-full">
-      <div className="rounded-xl overflow-hidden border border-gray-200 shadow-sm w-full">
+    <div className="w-full min-w-0">
+      <div className="rounded-none overflow-hidden border-0 border-t border-gray-200 shadow-none w-full">
         <DataTable
           columns={columns}
           data={data}
@@ -318,6 +333,7 @@ const EditableDetailDataTable = ({
           fixedHeaderScrollHeight="400px"
           className="w-full"
           customStyles={customStyles}
+          responsive={true}
           noDataComponent={
             <div className="p-8 text-center text-gray-400 text-base">
               <span className="block mb-2">📦</span>

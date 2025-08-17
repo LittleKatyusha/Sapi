@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import EditableDetailDataTable from './components/EditableDetailDataTable';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Save, Plus, Trash2, Building2, User, Calendar, Truck, Hash, Package, X, Settings, AlertCircle } from 'lucide-react';
@@ -58,6 +58,8 @@ const AddEditPembelianPage = () => {
         tipePembelian: '', // Default to empty string to match "Pilih Tipe"
         file: '', // Field baru dari backend
         fileName: '', // New field for file name display
+        hargaTotal: 0, // New field for total price
+        totalSapi: 0, // New field for total cattle count
         // markup removed - no longer needed in header
     });
 
@@ -120,7 +122,11 @@ const AddEditPembelianPage = () => {
 
     // Load data for edit mode - wait for parameter data to be loaded first
     useEffect(() => {
-        if (isEdit && id && !parameterLoading && parameterData.supplier && parameterData.eartag && parameterData.klasifikasihewan) {
+        const hasRequiredData = parameterData.supplier?.length > 0 && 
+                               parameterData.eartag?.length > 0 && 
+                               parameterData.klasifikasihewan?.length > 0;
+        
+        if (isEdit && id && !parameterLoading && hasRequiredData) {
             const loadEditData = async () => {
                 try {
                     const decodedId = decodeURIComponent(id);
@@ -140,26 +146,111 @@ const AddEditPembelianPage = () => {
                             }
                         }
                         
-                        // Load header data - map from actual backend response fields
+                        // Backend now returns both ID and label for jenis_pembelian
+                        let tipePembelianIdFromBackend = '';
+                        if (firstDetail.jenis_pembelian_id !== null && firstDetail.jenis_pembelian_id !== undefined) {
+                            // Use the ID for form values, not the label
+                            tipePembelianIdFromBackend = String(firstDetail.jenis_pembelian_id);
+                            
+                            console.log('🔍 DEBUG: tipePembelian from backend:', {
+                                labelValue: firstDetail.jenis_pembelian,
+                                idValue: firstDetail.jenis_pembelian_id,
+                                convertedValue: tipePembelianIdFromBackend,
+                                availableOptions: tipePembelianOptions
+                            });
+                        }
+
+                        // Debug supplier matching
+                        console.log('🔍 DEBUG: Supplier matching:', {
+                            nama_supplier: firstDetail.nama_supplier,
+                            supplierOptions: supplierOptions.map(s => ({ label: s.label, value: s.value })),
+                            matchedSupplier: supplierIdFromName,
+                            id_supplier: firstDetail.id_supplier,
+                            supplier_id: firstDetail.supplier_id
+                        });
+                        
+                        // Debug purchase type matching
+                        console.log('🔍 DEBUG: Purchase type matching:', {
+                            jenis_pembelian_label: firstDetail.jenis_pembelian,
+                            jenis_pembelian_id: firstDetail.jenis_pembelian_id,
+                            tipePembelianOptions: tipePembelianOptions.map(t => ({ label: t.label, value: t.value })),
+                            matchedTipePembelianId: tipePembelianIdFromBackend
+                        });
+                        
+                        // Calculate totals from detail items if not available in header
+                        const calculatedBeratTotal = result.data.reduce((sum, item) => sum + (parseInt(item.berat) || 0), 0);
+                        const calculatedHargaTotal = result.data.reduce((sum, item) => sum + (parseFloat(item.harga) || 0), 0);
+                        const totalSapiCount = result.data.length;
+                        
+                        // Load header data - map from actual backend response fields (match with PembelianDetailPage)
                         setHeaderData({
                             idOffice: 1, // Always Head Office
                             nota: firstDetail.nota || '',
-                            idSupplier: firstDetail.id_supplier || firstDetail.supplier_id || supplierIdFromName || '', // Try multiple sources
+                            idSupplier: supplierIdFromName || '', // Use matched supplier ID from name
                             tglMasuk: firstDetail.tgl_masuk || '',
                             namaSupir: firstDetail.nama_supir || '',
                             platNomor: firstDetail.plat_nomor || '',
-                            biayaTruck: firstDetail.biaya_truk || firstDetail.biaya_truck || 0, // Try both field names
+                            biayaTruck: firstDetail.biaya_truck || firstDetail.biaya_truk || 0, // Try common field names
                             biayaLain: firstDetail.biaya_lain || 0, // Load other costs from backend
-                            jumlah: result.data.length,
-                            beratTotal: firstDetail.berat_total || 0, // Field baru dari backend
-                            tipePembelian: firstDetail.jenis_pembelian || '', // Load from backend, default to empty
+                            jumlah: firstDetail.jumlah_total || result.data.length,
+                            beratTotal: calculatedBeratTotal || 0, // Always calculate from items
+                            tipePembelian: tipePembelianIdFromBackend || '', // Use ID from backend
                             file: firstDetail.file || '', // Field baru dari backend
-                            fileName: firstDetail.file_name || '', // Load file name from backend
+                            fileName: firstDetail.file_name || firstDetail.filename || '', // Load file name from backend
+                            hargaTotal: calculatedHargaTotal || 0, // Always calculate from items
+                            totalSapi: totalSapiCount, // Always use calculated count
                             // markup removed - no longer needed
                         });
 
-
-                        // Load header data - map from actual backend response fields
+                        // Debug logging to see what data we're getting
+                        console.log('🔍 DEBUG: Final header data being set:', {
+                            tipePembelian: tipePembelianIdFromBackend,
+                            originalJenisPembelian: firstDetail.jenis_pembelian,
+                            idSupplier: supplierIdFromName,
+                            originalNamaSupplier: firstDetail.nama_supplier,
+                            availableTipePembelian: tipePembelianOptions,
+                            availableSuppliers: supplierOptions.slice(0, 3) // Only show first 3 for brevity
+                        });
+                        console.log('🔍 DEBUG: Backend response data:', firstDetail);
+                        console.log('🔍 DEBUG: Does backend send jenis_pembelian?', {
+                            hasJenisPembelian: 'jenis_pembelian' in firstDetail,
+                            jenisPembelianValue: firstDetail.jenis_pembelian,
+                            jenisPembelianType: typeof firstDetail.jenis_pembelian
+                        });
+                        console.log('🔍 DEBUG: All detail items:', result.data);
+                        console.log('🔍 DEBUG: Purchase type fields check:', {
+                            id_jenis_pembelian: firstDetail.id_jenis_pembelian,
+                            jenis_pembelian_id: firstDetail.jenis_pembelian_id,
+                            jenis_pembelian: firstDetail.jenis_pembelian,
+                            tipe_pembelian: firstDetail.tipe_pembelian,
+                            tipePembelian: firstDetail.tipePembelian,
+                            purchase_type_id: firstDetail.purchase_type_id,
+                            purchase_type: firstDetail.purchase_type,
+                            type_id: firstDetail.type_id,
+                            type: firstDetail.type,
+                            id_tipe_pembelian: firstDetail.id_tipe_pembelian,
+                            allKeys: Object.keys(firstDetail).sort()
+                        });
+                        console.log('🔍 DEBUG: Calculated totals:', {
+                            calculatedBeratTotal,
+                            calculatedHargaTotal,
+                            totalSapiCount,
+                            originalBeratTotal: firstDetail.berat_total,
+                            originalHargaTotal: firstDetail.harga_total
+                        });
+                        console.log('🔍 DEBUG: Mapped header data:', {
+                            nota: firstDetail.nota,
+                            idSupplier: supplierIdFromName,
+                            tglMasuk: firstDetail.tgl_masuk,
+                            namaSupir: firstDetail.nama_supir,
+                            platNomor: firstDetail.plat_nomor,
+                            biayaTruck: firstDetail.biaya_truck || firstDetail.biaya_truk,
+                            biayaLain: firstDetail.biaya_lain,
+                            beratTotal: calculatedBeratTotal,
+                            tipePembelian: tipePembelianIdFromBackend,
+                            hargaTotal: calculatedHargaTotal,
+                            totalSapi: totalSapiCount
+                        });
 
                         // Load markup percentage if available, otherwise use default 12%
                         if (firstDetail.markup_percentage !== undefined) {
@@ -167,6 +258,16 @@ const AddEditPembelianPage = () => {
                         }
 
                         // Load detail data - calculate persentase from harga and hpp if not available
+                        console.log('🔍 DEBUG: Backend response for edit:', {
+                            itemCount: result.data.length,
+                            firstItem: result.data[0],
+                            allFieldsFirstItem: result.data[0] ? Object.keys(result.data[0]) : [],
+                            eartagOptionsCount: eartagOptions.length,
+                            firstEartagOption: eartagOptions[0],
+                            klasifikasiOptionsCount: klasifikasiHewanOptions.length,
+                            firstKlasifikasiOption: klasifikasiHewanOptions[0]
+                        });
+                        
                         setDetailItems(result.data.map((item, index) => {
                             // Calculate markup percentage if not provided by backend
                             let calculatedPersentase = markupPercentage; // default
@@ -177,25 +278,85 @@ const AddEditPembelianPage = () => {
                                 calculatedPersentase = ((hpp - harga) / harga * 100);
                             }
                             
-                            // Find klasifikasi ID by id if available in backend response
+                            // Find klasifikasi ID - try multiple matching strategies
                             let klasifikasiIdFromId = '';
-                            if ((item.id_klasifikasi_hewan || item.klasifikasi_id) && klasifikasiHewanOptions.length > 0) {
-                                const idToFind = item.id_klasifikasi_hewan || item.klasifikasi_id;
+                            if ((item.id_klasifikasi_hewan || item.klasifikasi_id || item.klasifikasi_hewan_pubid || item.klasifikasihewan_id || item.pubid_klasifikasi || item.klasifikasi_name || item.klasifikasi || item.nama_klasifikasi) && klasifikasiHewanOptions.length > 0) {
+                                const idToFind = item.id_klasifikasi_hewan || item.klasifikasi_id || item.klasifikasi_hewan_pubid || item.klasifikasihewan_id || item.pubid_klasifikasi;
                                 const matchedById = klasifikasiHewanOptions.find(klasifikasi =>
                                     klasifikasi.value === idToFind ||
-                                    String(klasifikasi.value) === String(idToFind)
+                                    String(klasifikasi.value) === String(idToFind) ||
+                                    klasifikasi.id === idToFind ||
+                                    String(klasifikasi.id) === String(idToFind)
                                 );
-                                if (matchedById) {
-                                    klasifikasiIdFromId = matchedById.value;
+                                
+                                // If no match found by ID, try matching by name/label
+                                let matchedByName = null;
+                                if (!matchedById && (item.klasifikasi_name || item.klasifikasi || item.nama_klasifikasi)) {
+                                    const nameToFind = item.klasifikasi_name || item.klasifikasi || item.nama_klasifikasi;
+                                    matchedByName = klasifikasiHewanOptions.find(klasifikasi =>
+                                        klasifikasi.label === nameToFind ||
+                                        String(klasifikasi.label).toLowerCase() === String(nameToFind).toLowerCase()
+                                    );
+                                }
+                                const finalMatch = matchedById || matchedByName;
+                                console.log('🔍 DEBUG: Klasifikasi matching for item', index, {
+                                    backendKlasifikasi: {
+                                        id_klasifikasi_hewan: item.id_klasifikasi_hewan,
+                                        klasifikasi_id: item.klasifikasi_id,
+                                        klasifikasi_hewan_pubid: item.klasifikasi_hewan_pubid,
+                                        klasifikasihewan_id: item.klasifikasihewan_id,
+                                        pubid_klasifikasi: item.pubid_klasifikasi,
+                                        klasifikasi_name: item.klasifikasi_name,
+                                        klasifikasi: item.klasifikasi,
+                                        nama_klasifikasi: item.nama_klasifikasi
+                                    },
+                                    idToFind: idToFind,
+                                    nameToFind: item.klasifikasi_name || item.klasifikasi || item.nama_klasifikasi,
+                                    availableOptions: klasifikasiHewanOptions.slice(0, 3), // Show first 3 options for debugging
+                                    matchedById: matchedById,
+                                    matchedByName: matchedByName,
+                                    finalMatch: finalMatch,
+                                    finalValue: finalMatch ? finalMatch.value : ''
+                                });
+                                if (finalMatch) {
+                                    klasifikasiIdFromId = finalMatch.value;
                                 }
                             }
                             
+                            // Find eartag value - try to match with available options or use the raw value
+                            let eartagValue = item.eartag || 'AUTO';
+                            if (item.eartag && eartagOptions.length > 0) {
+                                const matchedEartag = eartagOptions.find(eartag =>
+                                    eartag.value === item.eartag ||
+                                    String(eartag.value) === String(item.eartag) ||
+                                    eartag.label === item.eartag ||
+                                    eartag.id === item.eartag
+                                );
+                                console.log('🔍 DEBUG: Eartag matching for item', index, {
+                                    backendEartag: item.eartag,
+                                    matchedEartag: matchedEartag,
+                                    finalValue: matchedEartag ? matchedEartag.value : eartagValue
+                                });
+                                if (matchedEartag) {
+                                    eartagValue = matchedEartag.value;
+                                }
+                            }
+
+                            // Debug eartag supplier
+                            const eartagSupplierValue = item.eartag_supplier || item.eartagSupplier || item.supplier_eartag || '';
+                            console.log('🔍 DEBUG: Eartag Supplier for item', index, {
+                                eartag_supplier: item.eartag_supplier,
+                                eartagSupplier: item.eartagSupplier,
+                                supplier_eartag: item.supplier_eartag,
+                                finalValue: eartagSupplierValue
+                            });
+
                             return {
                                 id: index + 1,
                                 pubid: item.pubid,
-                                eartag: item.eartag || 'AUTO', // Use existing eartag or default
-                                eartagSupplier: item.eartag_supplier || '', // Add eartag supplier field
-                                idKlasifikasiHewan: klasifikasiIdFromId || item.id_klasifikasi_hewan || item.klasifikasi_id || '', // Try multiple sources, prioritize ID match
+                                eartag: eartagValue,
+                                eartagSupplier: eartagSupplierValue, // Use the debugged value
+                                idKlasifikasiHewan: klasifikasiIdFromId || item.id_klasifikasi_hewan || item.klasifikasi_id || item.klasifikasi_hewan_pubid || item.klasifikasihewan_id || item.pubid_klasifikasi || '', // Try multiple sources, prioritize ID match
                                 harga: harga,
                                 berat: parseInt(item.berat) || 0,
                                 persentase: item.persentase || calculatedPersentase, // Use backend persentase or calculate from harga/hpp
@@ -229,6 +390,8 @@ const AddEditPembelianPage = () => {
                 tipePembelian: cloneData.jenis_pembelian || 1, // Field baru dari backend
                 file: cloneData.file || '', // Field baru dari backend
                 fileName: cloneData.file_name || '', // Load file name from clone data
+                hargaTotal: cloneData.harga_total || 0, // Load total price from clone data
+                totalSapi: cloneData.total_sapi || 0, // Load total cattle from clone data
                 // markup removed - no longer needed
             });
             
@@ -243,7 +406,125 @@ const AddEditPembelianPage = () => {
         }
         // Remove automatic detail item creation for new records
         // Users will add details manually using the "Tambah Detail" button
-    }, [isEdit, id, cloneData, getPembelianDetail, parameterLoading, parameterData, supplierOptions, eartagOptions, klasifikasiHewanOptions]);
+    }, [isEdit, id, cloneData, parameterLoading]);
+
+    // Check if current purchase type is SUPPLIER (PERORANGAN)
+    const isSupplierPerorangan = useMemo(() => {
+        if (!headerData.tipePembelian || !tipePembelianOptions.length) return false;
+        
+        // Find the selected option
+        const selectedOption = tipePembelianOptions.find(option => 
+            option.value === headerData.tipePembelian
+        );
+        
+        // Check if the label contains "SUPPLIER" and "PERORANGAN" (case insensitive)
+        return selectedOption?.label?.toUpperCase().includes('SUPPLIER') && 
+               selectedOption?.label?.toUpperCase().includes('PERORANGAN');
+    }, [headerData.tipePembelian, tipePembelianOptions]);
+
+    // Check if current purchase type is specifically SUPPLIER (PERORANGAN) 2
+    const isSupplierPerorangan2 = useMemo(() => {
+        if (!headerData.tipePembelian || !tipePembelianOptions.length) return false;
+        
+        // Find the selected option
+        const selectedOption = tipePembelianOptions.find(option => 
+            option.value === headerData.tipePembelian
+        );
+        
+        // Check if the label contains "SUPPLIER", "PERORANGAN" and "2" (case insensitive)
+        const label = selectedOption?.label?.toUpperCase() || '';
+        return label.includes('SUPPLIER') && 
+               label.includes('PERORANGAN') && 
+               label.includes('2');
+    }, [headerData.tipePembelian, tipePembelianOptions]);
+
+    // Calculate total weight for SUPPLIER (PERORANGAN): Total Berat = Jumlah Ekor × Berat per Sapi
+    const calculatedBeratTotal = useMemo(() => {
+        if (!isSupplierPerorangan) return 0;
+        
+        const totalSapi = parseInt(headerData.totalSapi) || 0;
+        const beratPerSapi = parseFloat(defaultData.berat) || 0;
+        
+        return totalSapi * beratPerSapi;
+    }, [isSupplierPerorangan, headerData.totalSapi, defaultData.berat]);
+
+    // Calculate price per kilo for SUPPLIER (PERORANGAN)
+    const hargaPerKilo = useMemo(() => {
+        if (!isSupplierPerorangan) return 0;
+        
+        const hargaTotal = parseFloat(headerData.hargaTotal) || 0;
+        const totalSapi = parseInt(headerData.totalSapi) || 0;
+        const beratPerSapi = parseFloat(defaultData.berat) || 0;
+        
+        if (hargaTotal === 0 || totalSapi === 0 || beratPerSapi === 0) return 0;
+        
+        return hargaTotal / (totalSapi * beratPerSapi);
+    }, [isSupplierPerorangan, headerData.hargaTotal, headerData.totalSapi, defaultData.berat]);
+
+    // SUPPLIER (PERORANGAN) 2 specific calculations
+    // berat per sarpi = total berat / jumlah ekor
+    const beratPerSarpi = useMemo(() => {
+        if (!isSupplierPerorangan2) return 0;
+        
+        const totalBerat = parseFloat(headerData.beratTotal) || 0;
+        const jumlahEkor = parseInt(headerData.totalSapi) || 0;
+        
+        if (totalBerat === 0 || jumlahEkor === 0) return 0;
+        
+        return totalBerat / jumlahEkor;
+    }, [isSupplierPerorangan2, headerData.beratTotal, headerData.totalSapi]);
+
+    // harga per kilo = jumlah harga / total berat
+    const hargaPerKiloType2 = useMemo(() => {
+        if (!isSupplierPerorangan2) return 0;
+        
+        const jumlahHarga = parseFloat(headerData.hargaTotal) || 0;
+        const totalBerat = parseFloat(headerData.beratTotal) || 0;
+        
+        if (jumlahHarga === 0 || totalBerat === 0) return 0;
+        
+        return jumlahHarga / totalBerat;
+    }, [isSupplierPerorangan2, headerData.hargaTotal, headerData.beratTotal]);
+
+    // Auto-update berat total when in SUPPLIER (PERORANGAN) mode (excluding Type 2)
+    useEffect(() => {
+        if (isSupplierPerorangan && !isSupplierPerorangan2 && calculatedBeratTotal > 0) {
+            setHeaderData(prev => ({
+                ...prev,
+                beratTotal: calculatedBeratTotal
+            }));
+        }
+    }, [isSupplierPerorangan, isSupplierPerorangan2, calculatedBeratTotal]);
+
+    // Auto-update default price when in SUPPLIER (PERORANGAN) mode (excluding Type 2)
+    useEffect(() => {
+        if (isSupplierPerorangan && !isSupplierPerorangan2 && hargaPerKilo > 0) {
+            setDefaultData(prev => ({
+                ...prev,
+                harga: Math.round(hargaPerKilo) // Round to nearest integer for cleaner price
+            }));
+        }
+    }, [isSupplierPerorangan, isSupplierPerorangan2, hargaPerKilo]);
+
+    // Auto-populate berat per ekor di data default dari hasil perhitungan berat per sarpi (SUPPLIER PERORANGAN 2)
+    useEffect(() => {
+        if (isSupplierPerorangan2 && beratPerSarpi > 0) {
+            setDefaultData(prev => ({
+                ...prev,
+                berat: parseFloat(beratPerSarpi.toFixed(2)) // Use calculated berat per sarpi with 2 decimal precision
+            }));
+        }
+    }, [isSupplierPerorangan2, beratPerSarpi]);
+
+    // Auto-populate harga default di data default dari hasil perhitungan harga per kilo (SUPPLIER PERORANGAN 2)
+    useEffect(() => {
+        if (isSupplierPerorangan2 && hargaPerKiloType2 > 0) {
+            setDefaultData(prev => ({
+                ...prev,
+                harga: Math.round(hargaPerKiloType2) // Use calculated harga per kilo rounded to nearest integer
+            }));
+        }
+    }, [isSupplierPerorangan2, hargaPerKiloType2]);
 
     // Handle header form changes
     const handleHeaderChange = (field, value) => {
@@ -369,7 +650,7 @@ const AddEditPembelianPage = () => {
         const newItem = {
             id: timestamp,
             eartag: tnEartagOption ? tnEartagOption.value : (eartagOptions.length > 0 ? eartagOptions[0].value : 'AUTO'), // Default to T/N or first option
-            eartagSupplier: '', // Manual input by user
+            eartagSupplier: 'T/N', // Auto-generate T/N for new data
             idKlasifikasiHewan: defaultData.idKlasifikasiHewan || '',
             harga: harga,
             berat: parseFloat(defaultData.berat) || 0,
@@ -407,7 +688,7 @@ const AddEditPembelianPage = () => {
             const newItem = {
                 id: uniqueTimestamp,
                 eartag: tnEartagOption ? tnEartagOption.value : (eartagOptions.length > 0 ? eartagOptions[0].value : 'AUTO'), // Default to T/N or first option
-                eartagSupplier: '', // Manual input by user
+                eartagSupplier: 'T/N', // Auto-generate T/N for new data
                 idKlasifikasiHewan: defaultData.idKlasifikasiHewan || '',
                 harga: harga,
                 berat: parseFloat(defaultData.berat) || 0,
@@ -457,7 +738,7 @@ const AddEditPembelianPage = () => {
         if (!headerData.biayaTruck || parseInt(headerData.biayaTruck) <= 0) errors.push('Biaya truck harus diisi dan > 0');
         // biayaLain is optional, no validation needed
 
-        // File validation
+        // File validation (optional)
         if (selectedFile) {
             const maxSize = 5 * 1024 * 1024; // 5MB
             if (selectedFile.size > maxSize) {
@@ -479,11 +760,15 @@ const AddEditPembelianPage = () => {
                 errors.push('Tipe file tidak didukung. Gunakan PDF, DOC, XLS, atau gambar.');
             }
         }
+        // Note: File upload is optional, no error if no file selected
 
-        // Detail validation
-        if (detailItems.length === 0) {
+        // Detail validation - Now applies to all types but not mandatory for SUPPLIER (PERORANGAN)
+        if (!isSupplierPerorangan && detailItems.length === 0) {
             errors.push('Minimal harus ada 1 detail ternak');
-        } else {
+        }
+        
+        // Validate detail items if present (applies to all types)
+        if (detailItems.length > 0) {
             detailItems.forEach((item, index) => {
                 if (!item.idKlasifikasiHewan) errors.push(`Detail ${index + 1}: Klasifikasi hewan harus dipilih`);
                 if (!item.harga || item.harga <= 0) errors.push(`Detail ${index + 1}: Harga harus diisi dan > 0`);
@@ -508,10 +793,10 @@ const AddEditPembelianPage = () => {
         setIsSubmitting(true);
         
         try {
-            // Update jumlah based on detail items
+            // Update jumlah based on detail items or totalSapi for SUPPLIER (PERORANGAN)
             const updatedHeaderData = {
                 ...headerData,
-                jumlah: detailItems.length
+                jumlah: isSupplierPerorangan ? (parseInt(headerData.totalSapi) || 0) : detailItems.length
             };
 
             let result;
@@ -522,11 +807,14 @@ const AddEditPembelianPage = () => {
                     biayaTruck: parseFloat(updatedHeaderData.biayaTruck),
                     biayaLain: parseFloat(updatedHeaderData.biayaLain) || 0,
                     biayaTotal: parseFloat(updatedHeaderData.biayaTotal) || 0,
+                    hargaTotal: parseFloat(updatedHeaderData.hargaTotal) || 0,
+                    totalSapi: parseInt(updatedHeaderData.totalSapi) || 0,
                     tipePembelian: parseInt(updatedHeaderData.tipePembelian) || 1,
                     file: selectedFile || updatedHeaderData.file, // Send actual file object
-                    details: detailItems.map(item => ({
+                    details: detailItems.map(item => ({ // Empty array for SUPPLIER (PERORANGAN) if no details
                         id_office: 1, // Always Head Office as integer
                         eartag: String(item.eartag),
+                        // eartagSupplier is frontend-only field, not sent to backend
                         id_klasifikasi_hewan: parseInt(item.idKlasifikasiHewan),
                         harga: parseFloat(item.harga),
                         berat: parseInt(item.berat),
@@ -551,11 +839,14 @@ const AddEditPembelianPage = () => {
                     biayaTruck: parseFloat(updatedHeaderData.biayaTruck),
                     biayaLain: parseFloat(updatedHeaderData.biayaLain) || 0,
                     biayaTotal: parseFloat(updatedHeaderData.biayaTotal) || 0,
+                    hargaTotal: parseFloat(updatedHeaderData.hargaTotal) || 0,
+                    totalSapi: parseInt(updatedHeaderData.totalSapi) || 0,
                     tipePembelian: parseInt(updatedHeaderData.tipePembelian) || 1,
                     file: selectedFile, // Send actual file object
-                    details: detailItems.map(item => ({
+                    details: detailItems.map(item => ({ // Empty array for SUPPLIER (PERORANGAN) if no details
                         id_office: 1, // Always Head Office for all details as integer
                         eartag: String(item.eartag),
+                        // eartagSupplier is frontend-only field, not sent to backend
                         id_klasifikasi_hewan: parseInt(item.idKlasifikasiHewan),
                         harga: parseFloat(item.harga),
                         berat: parseInt(item.berat),
@@ -791,54 +1082,108 @@ const AddEditPembelianPage = () => {
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
                                         Berat Total (kg)
+                                        {isSupplierPerorangan && !isSupplierPerorangan2 && (
+                                            <span className="ml-2 text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full">
+                                                Read Only - SUPPLIER (PERORANGAN)
+                                            </span>
+                                        )}
                                     </label>
                                     <input
                                         type="number"
                                         value={headerData.beratTotal}
                                         onChange={(e) => handleHeaderChange('beratTotal', e.target.value)}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                        className={`w-full px-3 py-2 border rounded-lg ${
+                                            isSupplierPerorangan && !isSupplierPerorangan2
+                                                ? 'border-orange-300 bg-orange-50 text-gray-600 cursor-not-allowed' 
+                                                : isSupplierPerorangan2
+                                                    ? 'border-blue-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                                                : 'border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-red-500'
+                                        }`}
                                         placeholder="0"
                                         min="0"
                                         step="0.1"
+                                        readOnly={isSupplierPerorangan && !isSupplierPerorangan2}
+                                        disabled={isSupplierPerorangan && !isSupplierPerorangan2}
                                     />
                                     <p className="text-xs text-gray-500 mt-1">
-                                        💡 Total berat semua hewan dalam pembelian ini
+                                        💡 {isSupplierPerorangan2
+                                            ? 'Input manual total berat untuk perhitungan berat per sarpi dan harga per kilo'
+                                            : isSupplierPerorangan 
+                                            ? 'Berat total otomatis dihitung: Total Sapi × Berat per Sapi' 
+                                            : 'Total berat semua hewan dalam pembelian ini'
+                                        }
+                                    </p>
+
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Harga Total (Rp)
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={formatNumber(headerData.hargaTotal)}
+                                        onChange={(e) => {
+                                            const rawValue = parseNumber(e.target.value);
+                                            handleHeaderChange('hargaTotal', rawValue);
+                                        }}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                        placeholder="0"
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        💡 Total harga keseluruhan pembelian
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Total Sapi (ekor)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        value={headerData.totalSapi}
+                                        onChange={(e) => handleHeaderChange('totalSapi', e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                        placeholder="0"
+                                        min="0"
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        💡 Total jumlah sapi dalam pembelian ini
                                     </p>
                                 </div>
         
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
                                         Tipe Pembelian
-                                    </label>
-                                    <select
-                                        value={headerData.tipePembelian}
-                                        onChange={(e) => handleHeaderChange('tipePembelian', e.target.value)}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                                        disabled={tipePembelianLoading}
-                                    >
-                                        {tipePembelianLoading ? (
-                                            <option>Loading...</option>
-                                        ) : tipePembelianError ? (
-                                            <option>Error memuat data</option>
-                                        ) : (
-                                            <>
-                                                <option value="">Pilih Tipe Pembelian</option>
-                                                {tipePembelianOptions.map(option => (
-                                                    <option key={option.value} value={option.value}>
-                                                        {option.label}
-                                                    </option>
-                                                ))}
-                                            </>
+                                        {isSupplierPerorangan && (
+                                            <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                                                {isSupplierPerorangan2 ? 'SUPPLIER (PERORANGAN) 2 Mode' : 'SUPPLIER (PERORANGAN) Mode'}
+                                            </span>
                                         )}
-                                    </select>
+                                    </label>
+                                    <SearchableSelect
+                                        value={headerData.tipePembelian}
+                                        onChange={(value) => handleHeaderChange('tipePembelian', value)}
+                                        options={tipePembelianOptions}
+                                        placeholder={tipePembelianLoading ? 'Loading...' : tipePembelianError ? 'Error memuat data' : 'Pilih Tipe Pembelian'}
+                                        isLoading={tipePembelianLoading}
+                                        isDisabled={tipePembelianLoading || tipePembelianError}
+                                        className="w-full"
+                                    />
                                     <p className="text-xs text-gray-500 mt-1">
-                                        💡 Jenis pembelian untuk klasifikasi
+                                        💡 {isSupplierPerorangan2
+                                            ? 'Mode SUPPLIER (PERORANGAN) 2 aktif - Perhitungan berat per sarpi dan harga per kilo otomatis'
+                                            : isSupplierPerorangan 
+                                            ? 'Mode SUPPLIER (PERORANGAN) aktif - Berat Total otomatis read-only. Detail ternak dapat ditambahkan.' 
+                                            : 'Jenis pembelian untuk klasifikasi'
+                                        }
                                     </p>
+
                                 </div>
         
                                 <div className="md:col-span-2">
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        File Dokumen
+                                        File Dokumen (Opsional)
                                     </label>
                                     
                                     <div className="space-y-3">
@@ -943,34 +1288,84 @@ const AddEditPembelianPage = () => {
                         {/* Berat Default */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Berat Default (kg)
+                                Berat per ekor Default (kg)
+                                {isSupplierPerorangan2 && (
+                                    <span className="ml-2 text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full">
+                                        Auto dari Berat per Sarpi
+                                    </span>
+                                )}
                             </label>
                             <input
                                 type="number"
                                 value={defaultData.berat}
-                                onChange={(e) => handleDefaultDataChange('berat', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                onChange={(e) => {
+                                    if (!isSupplierPerorangan2) {
+                                        handleDefaultDataChange('berat', e.target.value);
+                                    }
+                                }}
+                                className={`w-full px-3 py-2 border rounded-lg ${
+                                    isSupplierPerorangan2
+                                        ? 'border-purple-300 bg-purple-50 text-gray-700 cursor-not-allowed'
+                                        : 'border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500'
+                                }`}
                                 placeholder="100"
                                 min="0"
                                 step="0.1"
+                                readOnly={isSupplierPerorangan2}
+                                disabled={isSupplierPerorangan2}
                             />
+                            {isSupplierPerorangan2 && (
+                                <p className="text-xs text-purple-600 mt-1">
+                                    💡 Otomatis diisi dari perhitungan: Total Berat ÷ Jumlah Ekor = {beratPerSarpi > 0 ? beratPerSarpi.toFixed(2) : '0.00'} kg
+                                </p>
+                            )}
                         </div>
 
                         {/* Harga Default */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Harga Default (Rp)
+                                {isSupplierPerorangan && !isSupplierPerorangan2 && (
+                                    <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                                        Auto-Updated
+                                    </span>
+                                )}
+                                {isSupplierPerorangan2 && (
+                                    <span className="ml-2 text-xs bg-teal-100 text-teal-800 px-2 py-1 rounded-full">
+                                        Auto dari Harga per Kilo
+                                    </span>
+                                )}
                             </label>
                             <input
                                 type="text"
                                 value={defaultData.harga === 0 ? '0' : formatNumber(defaultData.harga)}
                                 onChange={(e) => {
-                                    const rawValue = parseNumber(e.target.value);
-                                    handleDefaultDataChange('harga', rawValue);
+                                    if (!isSupplierPerorangan) {
+                                        const rawValue = parseNumber(e.target.value);
+                                        handleDefaultDataChange('harga', rawValue);
+                                    }
                                 }}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                className={`w-full px-3 py-2 border rounded-lg ${
+                                    isSupplierPerorangan && !isSupplierPerorangan2
+                                        ? 'border-blue-300 bg-blue-50 text-gray-700 cursor-not-allowed' 
+                                        : isSupplierPerorangan2
+                                            ? 'border-teal-300 bg-teal-50 text-gray-700 cursor-not-allowed'
+                                        : 'border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500'
+                                }`}
                                 placeholder="5.000.000"
+                                readOnly={isSupplierPerorangan}
+                                disabled={isSupplierPerorangan}
                             />
+                            {isSupplierPerorangan && !isSupplierPerorangan2 && (
+                                <p className="text-xs text-blue-600 mt-1">
+                                    💡 Harga otomatis diperbarui dari perhitungan harga per kilo
+                                </p>
+                            )}
+                            {isSupplierPerorangan2 && (
+                                <p className="text-xs text-teal-600 mt-1">
+                                    💡 Otomatis diisi dari perhitungan: Jumlah Harga ÷ Total Berat = Rp {hargaPerKiloType2 > 0 ? formatNumber(Math.round(hargaPerKiloType2)) : '0'}
+                                </p>
+                            )}
                         </div>
 
                         {/* Markup Percentage Input */}
@@ -1019,8 +1414,26 @@ const AddEditPembelianPage = () => {
 
                         {/* Info Text */}
                         <div className="text-xs text-gray-600 ml-auto">
-                            <p>💡 Isi data default untuk mempercepat input batch</p>
-                            <p>📝 Item baru akan menggunakan data default ini</p>
+                            {isSupplierPerorangan2 ? (
+                                <div className="bg-green-50 border border-green-200 rounded-lg p-2">
+                                    <p className="text-green-800 font-medium">🧮 SUPPLIER (PERORANGAN) 2 Mode</p>
+                                    <p className="text-green-700">🔄 Semua data default otomatis dari perhitungan</p>
+                                    <p className="text-teal-700">💰 Harga per ekor otomatis: <span className="font-semibold">Rp {formatNumber(defaultData.harga)}</span> (dari Harga per Kilo)</p>
+                                    <p className="text-purple-700">⚖️ Berat per ekor otomatis: <span className="font-semibold">{beratPerSarpi > 0 ? beratPerSarpi.toFixed(2) : '0.00'} kg</span> (dari Berat per Sarpi)</p>
+                                    <p className="text-green-700">🧮 Perhitungan otomatis: Berat per Sarpi & Harga per Kilo</p>
+                                </div>
+                            ) : isSupplierPerorangan ? (
+                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-2">
+                                    <p className="text-blue-800 font-medium">🔄 SUPPLIER (PERORANGAN) Mode</p>
+                                    <p className="text-blue-700">💡 Harga default otomatis diperbarui</p>
+                                    <p className="text-blue-700">📝 Batch menggunakan harga per kilo: <span className="font-semibold">Rp {formatNumber(defaultData.harga)}</span></p>
+                                </div>
+                            ) : (
+                                <>
+                                    <p>💡 Isi data default untuk mempercepat input batch</p>
+                                    <p>📝 Item baru akan menggunakan data default ini</p>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -1040,99 +1453,130 @@ const AddEditPembelianPage = () => {
                     </div>
                 )}
 
-                {/* Detail Items */}
-                <div className="bg-white rounded-none sm:rounded-none p-4 sm:p-8 shadow-xl border border-gray-100">
-                    <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                            <Package className="w-6 h-6 text-purple-600" />
-                            Detail Ternak ({detailItems.length} item)
-                        </h2>
-                        <button
-                            onClick={addDetailItem}
-                            className="bg-gradient-to-r from-purple-500 to-purple-600 text-white px-4 py-2 rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all duration-300 flex items-center gap-2 text-sm font-medium"
-                        >
-                            <Plus className="w-4 h-4" />
-                            Tambah Detail
-                        </button>
-                    </div>
-
-                    {/* DataTable for Better Data Management */}
-                    <EditableDetailDataTable
-                        data={paginatedDetailItems}
-                        eartagOptions={eartagOptions}
-                        klasifikasiHewanOptions={klasifikasiHewanOptions}
-                        parameterLoading={parameterLoading}
-                        onDetailChange={handleDetailChange}
-                        onRemoveDetail={removeDetailItem}
-                        formatNumber={formatNumber}
-                        parseNumber={parseNumber}
-                    />
-                    {/* Pagination Controls */}
-                    {totalDetailPages > 1 && (
-                        <div className="flex justify-center items-center gap-2 mt-4">
-                            <button
-                                onClick={() => setDetailPage((p) => Math.max(1, p - 1))}
-                                disabled={detailPage === 1}
-                                className="px-3 py-1 rounded border text-sm font-medium bg-white hover:bg-gray-100 disabled:opacity-50"
-                            >
-                                Previous
-                            </button>
-                            {Array.from({ length: totalDetailPages }, (_, i) => (
+                {/* Detail Items - Now always shown */}
+                {true && (
+                    <div className="bg-white rounded-none sm:rounded-none shadow-xl border border-gray-100 overflow-hidden">
+                        <div className="p-4 sm:p-8">
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                                    <Package className="w-6 h-6 text-purple-600" />
+                                    Detail Ternak ({detailItems.length} item)
+                                </h2>
                                 <button
-                                    key={i + 1}
-                                    onClick={() => setDetailPage(i + 1)}
-                                    className={`px-3 py-1 rounded border text-sm font-medium ${detailPage === i + 1 ? 'bg-purple-500 text-white' : 'bg-white hover:bg-gray-100'}`}
+                                    onClick={addDetailItem}
+                                    className="bg-gradient-to-r from-purple-500 to-purple-600 text-white px-4 py-2 rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all duration-300 flex items-center gap-2 text-sm font-medium"
                                 >
-                                    {i + 1}
+                                    <Plus className="w-4 h-4" />
+                                    Tambah Detail
                                 </button>
-                            ))}
+                            </div>
+
+                            {/* Info banner for SUPPLIER (PERORANGAN) */}
+                            {isSupplierPerorangan && (
+                                <div className="bg-blue-50 p-4 rounded-lg mb-6">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                            <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <h3 className="text-sm font-medium text-blue-800">Mode SUPPLIER (PERORANGAN)</h3>
+                                            <p className="text-sm text-blue-700 mt-1">
+                                                Detail ternak bersifat opsional untuk tipe pembelian SUPPLIER (PERORANGAN). 
+                                                Anda dapat menambahkan detail ternak jika diperlukan untuk pencatatan yang lebih detail.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* DataTable for Better Data Management - Full Width */}
+                        <div className="w-full overflow-x-auto">
+                            <EditableDetailDataTable
+                                data={paginatedDetailItems}
+                                eartagOptions={eartagOptions}
+                                klasifikasiHewanOptions={klasifikasiHewanOptions}
+                                parameterLoading={parameterLoading}
+                                onDetailChange={handleDetailChange}
+                                onRemoveDetail={removeDetailItem}
+                                formatNumber={formatNumber}
+                                parseNumber={parseNumber}
+                            />
+                        </div>
+                        
+                        <div className="p-4 sm:p-8 pt-0">
+                            {/* Pagination Controls */}
+                            {totalDetailPages > 1 && (
+                                <div className="flex justify-center items-center gap-2 mt-4">
+                                    <button
+                                        onClick={() => setDetailPage((p) => Math.max(1, p - 1))}
+                                        disabled={detailPage === 1}
+                                        className="px-3 py-1 rounded border text-sm font-medium bg-white hover:bg-gray-100 disabled:opacity-50"
+                                    >
+                                        Previous
+                                    </button>
+                                    {Array.from({ length: totalDetailPages }, (_, i) => (
+                                        <button
+                                            key={i + 1}
+                                            onClick={() => setDetailPage(i + 1)}
+                                            className={`px-3 py-1 rounded border text-sm font-medium ${detailPage === i + 1 ? 'bg-purple-500 text-white' : 'bg-white hover:bg-gray-100'}`}
+                                        >
+                                            {i + 1}
+                                        </button>
+                                    ))}
+                                    <button
+                                        onClick={() => setDetailPage((p) => Math.min(totalDetailPages, p + 1))}
+                                        disabled={detailPage === totalDetailPages}
+                                        className="px-3 py-1 rounded border text-sm font-medium bg-white hover:bg-gray-100 disabled:opacity-50"
+                                    >
+                                        Next
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Summary */}
+                            <div className="mt-6 bg-gradient-to-r from-gray-50 to-slate-100 p-4 rounded-lg">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-center">
+                                    <div>
+                                        <p className="text-2xl font-bold text-indigo-600">
+                                            {detailItems.length}
+                                        </p>
+                                        <p className="text-sm text-gray-600">Total Ternak</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-2xl font-bold text-green-600">
+                                            {detailItems.reduce((sum, item) => sum + (parseFloat(item.berat) || 0), 0).toFixed(1)} kg
+                                        </p>
+                                        <p className="text-sm text-gray-600">Total Berat</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Action Buttons at Bottom */}
+                        <div className="mt-8 flex justify-end gap-4 pt-6 border-t border-gray-200">
                             <button
-                                onClick={() => setDetailPage((p) => Math.min(totalDetailPages, p + 1))}
-                                disabled={detailPage === totalDetailPages}
-                                className="px-3 py-1 rounded border text-sm font-medium bg-white hover:bg-gray-100 disabled:opacity-50"
+                                onClick={handleBack}
+                                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                                disabled={isSubmitting}
                             >
-                                Next
+                                Batal
+                            </button>
+                            <button
+                                onClick={handleSubmit}
+                                disabled={isSubmitting}
+                                className="bg-gradient-to-r from-red-500 to-rose-600 text-white px-8 py-3 rounded-lg hover:from-red-600 hover:to-rose-700 transition-all duration-300 flex items-center gap-2 font-medium disabled:opacity-50 shadow-lg"
+                            >
+                                <Save className="w-5 h-5" />
+                                {isSubmitting ? 'Menyimpan...' : 'Simpan'}
                             </button>
                         </div>
-                    )}
-
-                    {/* Summary */}
-                    <div className="mt-6 bg-gradient-to-r from-gray-50 to-slate-100 p-4 rounded-lg">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-center">
-                            <div>
-                                <p className="text-2xl font-bold text-indigo-600">
-                                    {detailItems.length}
-                                </p>
-                                <p className="text-sm text-gray-600">Total Ternak</p>
-                            </div>
-                            <div>
-                                <p className="text-2xl font-bold text-green-600">
-                                    {detailItems.reduce((sum, item) => sum + (parseFloat(item.berat) || 0), 0).toFixed(1)} kg
-                                </p>
-                                <p className="text-sm text-gray-600">Total Berat</p>
-                            </div>
-                        </div>
                     </div>
+                )}
 
-                    {/* Action Buttons at Bottom */}
-                    <div className="mt-8 flex justify-end gap-4 pt-6 border-t border-gray-200">
-                        <button
-                            onClick={handleBack}
-                            className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-                            disabled={isSubmitting}
-                        >
-                            Batal
-                        </button>
-                        <button
-                            onClick={handleSubmit}
-                            disabled={isSubmitting}
-                            className="bg-gradient-to-r from-red-500 to-rose-600 text-white px-8 py-3 rounded-lg hover:from-red-600 hover:to-rose-700 transition-all duration-300 flex items-center gap-2 font-medium disabled:opacity-50 shadow-lg"
-                        >
-                            <Save className="w-5 h-5" />
-                            {isSubmitting ? 'Menyimpan...' : 'Simpan'}
-                        </button>
-                    </div>
-                </div>
+
 
                 {/* Notification */}
                 {notification && (
@@ -1200,10 +1644,10 @@ const AddEditPembelianPage = () => {
                                             </div>
                                             <div>
                                                 <h3 className="text-lg font-bold text-white">
-                                                    Upload File Dokumen
+                                                    Upload File Dokumen (Opsional)
                                                 </h3>
                                                 <p className="text-blue-100 text-sm">
-                                                    Pilih file dokumen terkait pembelian
+                                                    Pilih file dokumen terkait pembelian (tidak wajib)
                                                 </p>
                                             </div>
                                         </div>
@@ -1402,7 +1846,7 @@ const AddEditPembelianPage = () => {
                                                     💡 Tips Upload File
                                                 </h5>
                                                 <p className="text-sm text-blue-700 leading-relaxed">
-                                                    Upload file dokumen terkait pembelian seperti invoice, kontrak, atau foto barang. 
+                                                    Upload file dokumen terkait pembelian seperti invoice, kontrak, atau foto barang (opsional). 
                                                     Format yang didukung: <span className="font-semibold">PDF, DOC, XLS, atau gambar</span>. 
                                                     Maksimal ukuran file: <span className="font-semibold text-blue-800">5MB</span>.
                                                 </p>

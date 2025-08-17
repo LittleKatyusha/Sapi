@@ -127,7 +127,8 @@ const usePembelianHO = () => {
                         biaya_lain: parseFloat(item.biaya_lain) || 0,
                         biaya_truk: parseFloat(item.biaya_truk) || 0,
                         berat_total: parseFloat(item.berat_total) || 0, // Field baru dari backend
-                        jenis_pembelian: item.jenis_pembelian || '', // Field baru dari backend
+                        jenis_pembelian: item.jenis_pembelian || '', // Field baru dari backend (now label)
+                        jenis_pembelian_id: item.jenis_pembelian_id || null, // ID untuk forms
                         createdAt: item.created_at || new Date().toISOString(),
                         updatedAt: item.updated_at || new Date().toISOString(),
                         id: item.pid || `TEMP-${index + 1}` // Gunakan encrypted PID sebagai primary ID
@@ -173,7 +174,7 @@ const usePembelianHO = () => {
                 id_office: !isNaN(officeIdParsed) ? officeIdParsed : 1,
                 nota: pembelianData.nota,
                 id_supplier: !isNaN(supplierIdParsed) ? supplierIdParsed : null,
-                tgl_masuk: pembelianData.tglMasuk,
+                tgl_masuk: pembelianData.tglMasuk, // Use original date format
                 nama_supir: pembelianData.namaSupir,
                 plat_nomor: pembelianData.platNomor,
                 jumlah: parseInt(pembelianData.jumlah) || 0,
@@ -193,16 +194,48 @@ const usePembelianHO = () => {
                 throw new Error(`Biaya truck harus diisi dengan nilai numerik > 0. Nilai saat ini: ${headerData.biaya_truk}`);
             }
 
-            // Validate file is provided as backend requires it
-            if (!headerData.file) {
-                throw new Error('File dokumen pembelian harus diupload');
-            }
+            // File upload is now optional - no validation needed
 
             // Backend expects header + details array format
-            const requestData = {
-                ...headerData,
-                details: pembelianData.details || []
-            };
+            let requestData;
+            
+            // If there's a file, use FormData for proper file upload
+            if (headerData.file && headerData.file instanceof File) {
+                requestData = new FormData();
+                
+                // Add all header fields to FormData
+                Object.keys(headerData).forEach(key => {
+                    if (key === 'file') {
+                        requestData.append('file', headerData.file);
+                    } else {
+                        requestData.append(key, headerData[key]);
+                    }
+                });
+                
+                // Add details as JSON string
+                requestData.append('details', JSON.stringify(pembelianData.details || []));
+            } else {
+                // No file upload, use regular JSON format
+                requestData = {
+                    ...headerData,
+                    details: pembelianData.details || []
+                };
+                
+                // Remove file field if null to avoid validation issues
+                if (!requestData.file) {
+                    delete requestData.file;
+                }
+            }
+            
+            // Debug logging for troubleshooting
+            console.log('🔍 Debug pembelian request:', {
+                hasFile: !!(headerData.file && headerData.file instanceof File),
+                requestType: requestData instanceof FormData ? 'FormData' : 'JSON',
+                detailsCount: pembelianData.details?.length || 0,
+                headerKeys: requestData instanceof FormData ? 
+                    Array.from(requestData.keys()) : 
+                    Object.keys(requestData)
+            });
             
             const result = await HttpClient.post(`${API_ENDPOINTS.HO.PEMBELIAN}/store`, requestData);
             await fetchPembelian(1, serverPagination.perPage); // Refresh data
