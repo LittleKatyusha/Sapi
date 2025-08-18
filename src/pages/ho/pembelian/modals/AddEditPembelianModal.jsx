@@ -8,7 +8,10 @@ const AddEditPembelianModal = ({ isOpen, onClose, onSave, editData = null, loadi
         supplierOptions,
         officeOptions,
         loading: parameterLoading,
-        error: parameterError
+        error: parameterError,
+        supplierLoading,
+        isSupplierDataFetched,
+        fetchSupplierData
     } = useParameterSelect();
     const [formData, setFormData] = useState({
         idOffice: '',
@@ -186,12 +189,18 @@ const AddEditPembelianModal = ({ isOpen, onClose, onSave, editData = null, loadi
                                 name="idSupplier"
                                 value={formData.idSupplier}
                                 onChange={handleInputChange}
+
                                 className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 ${
                                     errors.idSupplier ? 'border-red-500' : 'border-gray-300'
                                 }`}
-                                disabled={loading || parameterLoading}
+                                disabled={loading || supplierLoading}
                             >
-                                <option value="">Pilih Supplier</option>
+                                <option value="">
+                                    {supplierLoading 
+                                        ? 'Loading suppliers...' 
+                                        : 'Pilih Supplier'
+                                    }
+                                </option>
                                 {supplierOptions.map(option => (
                                     <option key={option.value} value={option.value}>
                                         {option.label}

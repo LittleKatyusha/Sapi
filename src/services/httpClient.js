@@ -75,6 +75,9 @@ const buildHeaders = async (customHeaders = {}, skipCsrf = false) => {
   const token = getAuthToken();
   if (token) {
     headers.Authorization = `Bearer ${token}`;
+    console.log('🔑 Auth token added to headers:', token ? 'Present' : 'Missing');
+  } else {
+    console.warn('⚠️ No authentication token found in localStorage');
   }
   
   // Add CSRF token for non-GET requests (skip for JWT-based login)
@@ -219,7 +222,17 @@ class HttpClient {
    * POST request
    */
   static async post(endpoint, data = null, options = {}) {
+    console.log('🚀 POST METHOD CALLED - Entry point');
     const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
+    
+    // Debug logging
+    console.log('📡 POST Request Debug:', {
+      endpoint,
+      fullUrl: url,
+      dataType: data instanceof FormData ? 'FormData' : typeof data,
+      apiBaseUrl: API_BASE_URL,
+      API_BASE_URL_Value: API_BASE_URL
+    });
     
     // Skip CSRF tokens for JWT-based authentication endpoints
     const isAuthEndpoint = endpoint.includes('/login') || endpoint.includes('/register');

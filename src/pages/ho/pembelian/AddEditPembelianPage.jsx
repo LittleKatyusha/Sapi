@@ -30,7 +30,10 @@ const AddEditPembelianPage = () => {
         officeOptions,
         klasifikasiHewanOptions,
         loading: parameterLoading,
-        error: parameterError
+        error: parameterError,
+        supplierLoading,
+        isSupplierDataFetched,
+        fetchSupplierData
     } = useParameterSelect();
 
     const {
@@ -109,6 +112,9 @@ const AddEditPembelianPage = () => {
     // Markup percentage state - user can change this manually
     const [markupPercentage, setMarkupPercentage] = useState(12); // Default 12%
 
+    // Supplier options are now filtered server-side, no need for client-side filtering
+    const filteredSupplierOptions = supplierOptions;
+
     // Helper functions for number formatting
     const formatNumber = (value) => {
         if (!value) return '';
@@ -119,6 +125,54 @@ const AddEditPembelianPage = () => {
         if (!value) return 0;
         return parseInt(value.toString().replace(/\./g, '')) || 0;
     };
+
+    // Auto-fetch supplier data when tipe pembelian is selected (with optimization)
+    useEffect(() => {
+        if (headerData.tipePembelian && tipePembelianOptions.length > 0) {
+            // Find selected tipe pembelian to determine jenis_supplier filter
+            const selectedTipe = tipePembelianOptions.find(tipe => tipe.value === headerData.tipePembelian);
+            if (selectedTipe) {
+                const tipeLabel = selectedTipe.label.toUpperCase();
+                let jenisSupplierFilter = null;
+                
+                if (tipeLabel.includes('PERUSAHAAN')) {
+                    jenisSupplierFilter = 1; // PERUSAHAAN
+                } else if (tipeLabel.includes('PERORANGAN')) {
+                    jenisSupplierFilter = 2; // PERORANGAN
+                }
+                
+                console.log('🔄 Fetching suppliers with filter:', {
+                    tipePembelian: selectedTipe.label,
+                    jenisSupplierFilter
+                });
+                
+                // Use a timeout to debounce rapid changes
+                const timeoutId = setTimeout(() => {
+                    fetchSupplierData(jenisSupplierFilter);
+                }, 300);
+                
+                return () => clearTimeout(timeoutId);
+            }
+        }
+    }, [headerData.tipePembelian, tipePembelianOptions]);
+
+    // Reset supplier selection when tipe pembelian changes
+    useEffect(() => {
+        if (headerData.tipePembelian && headerData.idSupplier) {
+            // Check if current supplier is still in filtered list
+            const currentSupplierExists = filteredSupplierOptions.find(
+                supplier => supplier.value === headerData.idSupplier
+            );
+            
+            if (!currentSupplierExists) {
+                // Reset supplier if it's not in the filtered list
+                setHeaderData(prev => ({
+                    ...prev,
+                    idSupplier: ''
+                }));
+            }
+        }
+    }, [headerData.tipePembelian, filteredSupplierOptions, headerData.idSupplier]);
 
     // Load data for edit mode - wait for parameter data to be loaded first
     useEffect(() => {
@@ -762,8 +816,8 @@ const AddEditPembelianPage = () => {
         }
         // Note: File upload is optional, no error if no file selected
 
-        // Detail validation - Now applies to all types but not mandatory for SUPPLIER (PERORANGAN)
-        if (!isSupplierPerorangan && detailItems.length === 0) {
+        // Detail validation - Now mandatory for all supplier types including SUPPLIER (PERORANGAN)
+        if (detailItems.length === 0) {
             errors.push('Minimal harus ada 1 detail ternak');
         }
         
@@ -811,17 +865,19 @@ const AddEditPembelianPage = () => {
                     totalSapi: parseInt(updatedHeaderData.totalSapi) || 0,
                     tipePembelian: parseInt(updatedHeaderData.tipePembelian) || 1,
                     file: selectedFile || updatedHeaderData.file, // Send actual file object
-                    details: detailItems.map(item => ({ // Empty array for SUPPLIER (PERORANGAN) if no details
-                        id_office: 1, // Always Head Office as integer
-                        eartag: String(item.eartag),
-                        // eartagSupplier is frontend-only field, not sent to backend
-                        id_klasifikasi_hewan: parseInt(item.idKlasifikasiHewan),
-                        harga: parseFloat(item.harga),
-                        berat: parseInt(item.berat),
-                        persentase: parseInt(item.persentase) || 0,
-                        hpp: parseFloat(item.hpp),
-                        total_harga: parseFloat(item.totalHarga || item.hpp)
-                    }))
+                    details: Array.isArray(detailItems) && detailItems.length > 0 
+                        ? detailItems.map(item => ({ // Details are now required for all supplier types
+                            id_office: 1, // Always Head Office as integer
+                            eartag: String(item.eartag),
+                            // eartagSupplier is frontend-only field, not sent to backend
+                            id_klasifikasi_hewan: parseInt(item.idKlasifikasiHewan),
+                            harga: parseFloat(item.harga),
+                            berat: parseInt(item.berat),
+                            persentase: parseInt(item.persentase) || 0,
+                            hpp: parseFloat(item.hpp),
+                            total_harga: parseFloat(item.totalHarga || item.hpp)
+                        }))
+                        : [] // Ensure it's always an array, even if empty
                 };
                 
                 // For edit mode, we need to pass the encrypted PID
@@ -843,17 +899,19 @@ const AddEditPembelianPage = () => {
                     totalSapi: parseInt(updatedHeaderData.totalSapi) || 0,
                     tipePembelian: parseInt(updatedHeaderData.tipePembelian) || 1,
                     file: selectedFile, // Send actual file object
-                    details: detailItems.map(item => ({ // Empty array for SUPPLIER (PERORANGAN) if no details
-                        id_office: 1, // Always Head Office for all details as integer
-                        eartag: String(item.eartag),
-                        // eartagSupplier is frontend-only field, not sent to backend
-                        id_klasifikasi_hewan: parseInt(item.idKlasifikasiHewan),
-                        harga: parseFloat(item.harga),
-                        berat: parseInt(item.berat),
-                        persentase: parseInt(item.persentase) || 0,
-                        hpp: parseFloat(item.hpp),
-                        total_harga: parseFloat(item.totalHarga || item.hpp)
-                    }))
+                    details: Array.isArray(detailItems) && detailItems.length > 0 
+                        ? detailItems.map(item => ({ // Details are now required for all supplier types
+                            id_office: 1, // Always Head Office for all details as integer
+                            eartag: String(item.eartag),
+                            // eartagSupplier is frontend-only field, not sent to backend
+                            id_klasifikasi_hewan: parseInt(item.idKlasifikasiHewan),
+                            harga: parseFloat(item.harga),
+                            berat: parseInt(item.berat),
+                            persentase: parseInt(item.persentase) || 0,
+                            hpp: parseFloat(item.hpp),
+                            total_harga: parseFloat(item.totalHarga || item.hpp)
+                        }))
+                        : [] // Ensure it's always an array, even if empty
                 };
                 
                 result = await createPembelian(completeData);
@@ -979,19 +1037,68 @@ const AddEditPembelianPage = () => {
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Tipe Pembelian *
+                                {isSupplierPerorangan && (
+                                    <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                                        {isSupplierPerorangan2 ? 'SUPPLIER (PERORANGAN) 2 Mode' : 'SUPPLIER (PERORANGAN) Mode'}
+                                    </span>
+                                )}
+                            </label>
+                            <SearchableSelect
+                                value={headerData.tipePembelian}
+                                onChange={(value) => handleHeaderChange('tipePembelian', value)}
+                                options={tipePembelianOptions}
+                                placeholder={tipePembelianLoading ? 'Loading...' : tipePembelianError ? 'Error memuat data' : 'Pilih Tipe Pembelian'}
+                                isLoading={tipePembelianLoading}
+                                isDisabled={tipePembelianLoading || tipePembelianError}
+                                required
+                                className="w-full"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                                💡 {isSupplierPerorangan2
+                                    ? 'Mode SUPPLIER (PERORANGAN) 2 aktif - Perhitungan berat per sarpi dan harga per kilo otomatis'
+                                    : isSupplierPerorangan 
+                                    ? 'Mode SUPPLIER (PERORANGAN) aktif - Berat Total otomatis read-only. Detail ternak wajib diisi.' 
+                                    : 'Jenis pembelian untuk klasifikasi'
+                                }
+                            </p>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
                                 <Building2 className="w-4 h-4 inline mr-1" />
                                 Supplier *
+                                {headerData.tipePembelian && isSupplierDataFetched && (
+                                    <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                                        Filtered ({filteredSupplierOptions.length} dari {supplierOptions.length})
+                                    </span>
+                                )}
                             </label>
                             <SearchableSelect
                                 value={headerData.idSupplier}
                                 onChange={(value) => handleHeaderChange('idSupplier', value)}
-                                options={supplierOptions}
-                                placeholder={parameterLoading ? 'Loading suppliers...' : 'Pilih Supplier'}
-                                isLoading={parameterLoading}
-                                isDisabled={parameterLoading}
+                                options={filteredSupplierOptions}
+                                placeholder={
+                                    supplierLoading 
+                                        ? 'Loading suppliers...' 
+                                        : !headerData.tipePembelian 
+                                            ? 'Pilih Tipe Pembelian terlebih dahulu'
+                                            : filteredSupplierOptions.length === 0 && isSupplierDataFetched
+                                                ? 'Tidak ada supplier untuk tipe ini'
+                                                : 'Pilih Supplier'
+                                }
+                                isLoading={supplierLoading}
+                                isDisabled={supplierLoading || !headerData.tipePembelian}
                                 required
                                 className="w-full"
                             />
+                            <p className="text-xs text-gray-500 mt-1">
+                                {!headerData.tipePembelian ? (
+                                    <span>💡 Supplier akan difilter berdasarkan jenis_supplier sesuai tipe pembelian</span>
+                                ) : (
+                                    <span>💡 Menampilkan {filteredSupplierOptions.length} supplier dengan jenis_supplier yang sesuai ({isSupplierDataFetched ? 'data loaded' : 'loading...'})</span>
+                                )}
+                            </p>
                         </div>
 
                         <div>
@@ -1152,34 +1259,7 @@ const AddEditPembelianPage = () => {
                                     </p>
                                 </div>
         
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Tipe Pembelian
-                                        {isSupplierPerorangan && (
-                                            <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
-                                                {isSupplierPerorangan2 ? 'SUPPLIER (PERORANGAN) 2 Mode' : 'SUPPLIER (PERORANGAN) Mode'}
-                                            </span>
-                                        )}
-                                    </label>
-                                    <SearchableSelect
-                                        value={headerData.tipePembelian}
-                                        onChange={(value) => handleHeaderChange('tipePembelian', value)}
-                                        options={tipePembelianOptions}
-                                        placeholder={tipePembelianLoading ? 'Loading...' : tipePembelianError ? 'Error memuat data' : 'Pilih Tipe Pembelian'}
-                                        isLoading={tipePembelianLoading}
-                                        isDisabled={tipePembelianLoading || tipePembelianError}
-                                        className="w-full"
-                                    />
-                                    <p className="text-xs text-gray-500 mt-1">
-                                        💡 {isSupplierPerorangan2
-                                            ? 'Mode SUPPLIER (PERORANGAN) 2 aktif - Perhitungan berat per sarpi dan harga per kilo otomatis'
-                                            : isSupplierPerorangan 
-                                            ? 'Mode SUPPLIER (PERORANGAN) aktif - Berat Total otomatis read-only. Detail ternak dapat ditambahkan.' 
-                                            : 'Jenis pembelian untuk klasifikasi'
-                                        }
-                                    </p>
 
-                                </div>
         
                                 <div className="md:col-span-2">
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1471,25 +1551,7 @@ const AddEditPembelianPage = () => {
                                 </button>
                             </div>
 
-                            {/* Info banner for SUPPLIER (PERORANGAN) */}
-                            {isSupplierPerorangan && (
-                                <div className="bg-blue-50 p-4 rounded-lg mb-6">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                                            <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                                            </svg>
-                                        </div>
-                                        <div>
-                                            <h3 className="text-sm font-medium text-blue-800">Mode SUPPLIER (PERORANGAN)</h3>
-                                            <p className="text-sm text-blue-700 mt-1">
-                                                Detail ternak bersifat opsional untuk tipe pembelian SUPPLIER (PERORANGAN). 
-                                                Anda dapat menambahkan detail ternak jika diperlukan untuk pencatatan yang lebih detail.
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
+
                         </div>
 
                         {/* DataTable for Better Data Management - Full Width */}

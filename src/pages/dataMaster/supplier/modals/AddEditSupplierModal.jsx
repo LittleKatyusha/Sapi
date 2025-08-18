@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, AlertCircle } from 'lucide-react';
+import SearchableSelect from '../../../../components/shared/SearchableSelect';
+import useParameters from '../../../system/hooks/useParameters';
 
 const AddEditSupplierModal = ({
     isOpen,
@@ -12,9 +14,36 @@ const AddEditSupplierModal = ({
         name: '',
         description: '',
         order_no: '',
+        jenis_supplier: '',
         status: 1
     });
     const [errors, setErrors] = useState({});
+    const { fetchParametersByGroup } = useParameters();
+    const [jenisSupplierOptions, setJenisSupplierOptions] = useState([]);
+    const [loadingParameters, setLoadingParameters] = useState(false);
+
+    // Fetch jenis supplier parameters on component mount
+    useEffect(() => {
+        const loadJenisSupplierData = async () => {
+            setLoadingParameters(true);
+            try {
+                const data = await fetchParametersByGroup('jenis_supplier');
+                const options = data.map(item => ({
+                    value: item.value,
+                    label: item.name
+                }));
+                setJenisSupplierOptions(options);
+            } catch (error) {
+                console.error('Error loading jenis supplier data:', error);
+            } finally {
+                setLoadingParameters(false);
+            }
+        };
+
+        if (isOpen) {
+            loadJenisSupplierData();
+        }
+    }, [isOpen, fetchParametersByGroup]);
 
     useEffect(() => {
         if (editData) {
@@ -22,6 +51,7 @@ const AddEditSupplierModal = ({
                 name: editData.name || '',
                 description: editData.description || '',
                 order_no: editData.order_no || '',
+                jenis_supplier: editData.jenis_supplier || '',
                 status: editData.status !== undefined ? editData.status : 1
             });
         } else {
@@ -29,6 +59,7 @@ const AddEditSupplierModal = ({
                 name: '',
                 description: '',
                 order_no: '',
+                jenis_supplier: '',
                 status: 1
             });
         }
@@ -50,6 +81,10 @@ const AddEditSupplierModal = ({
             newErrors.order_no = 'Nomor urut harus lebih dari 0';
         }
 
+        if (!formData.jenis_supplier) {
+            newErrors.jenis_supplier = 'Jenis supplier wajib dipilih';
+        }
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -69,6 +104,21 @@ const AddEditSupplierModal = ({
         }));
         
         // Clear error when user starts typing
+        if (errors[name]) {
+            setErrors(prev => ({
+                ...prev,
+                [name]: ''
+            }));
+        }
+    };
+
+    const handleSelectChange = (name, value) => {
+        setFormData(prev => ({
+            ...prev,
+            [name]: value
+        }));
+        
+        // Clear error when user selects
         if (errors[name]) {
             setErrors(prev => ({
                 ...prev,
@@ -172,6 +222,28 @@ const AddEditSupplierModal = ({
                             <div className="flex items-center mt-2 text-red-600">
                                 <AlertCircle className="w-4 h-4 mr-1" />
                                 <span className="text-sm">{errors.order_no}</span>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Jenis Supplier */}
+                    <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            Jenis Supplier *
+                        </label>
+                        <SearchableSelect
+                            options={jenisSupplierOptions}
+                            value={formData.jenis_supplier}
+                            onChange={(value) => handleSelectChange('jenis_supplier', value)}
+                            placeholder="Pilih jenis supplier"
+                            isLoading={loadingParameters}
+                            isDisabled={loading || loadingParameters}
+                            className={errors.jenis_supplier ? 'border-red-500' : ''}
+                        />
+                        {errors.jenis_supplier && (
+                            <div className="flex items-center mt-2 text-red-600">
+                                <AlertCircle className="w-4 h-4 mr-1" />
+                                <span className="text-sm">{errors.jenis_supplier}</span>
                             </div>
                         )}
                     </div>

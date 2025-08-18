@@ -1,23 +1,44 @@
 import { useState, useEffect, useMemo } from 'react';
-import { HttpClient } from '../../../../services/httpClient';
+import HttpClient from '../../../../services/httpClient';
 import { API_ENDPOINTS } from '../../../../config/api';
 
-const useSuppliersAPI = () => {
+const useSuppliersAPI = (jenisSupplier = null) => {
     const [suppliers, setSuppliers] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [lastFilter, setLastFilter] = useState(null); // Track last filter to avoid duplicate calls
 
-    const fetchSuppliers = async () => {
+    const fetchSuppliers = async (filterJenisSupplier = jenisSupplier) => {
+        // Avoid duplicate calls with same filter
+        if (loading || (lastFilter === filterJenisSupplier && suppliers.length > 0)) {
+            console.log('🚫 Skipping duplicate supplier fetch:', { 
+                loading, 
+                lastFilter, 
+                currentFilter: filterJenisSupplier,
+                hasData: suppliers.length > 0 
+            });
+            return;
+        }
         setLoading(true);
         setError(null);
         
         try {
+            // Build params object with optional jenis_supplier filter
+            const params = {
+                length: 1000,
+                start: 0
+            };
+            
+            // Add jenis_supplier filter if provided
+            if (filterJenisSupplier) {
+                params.jenis_supplier = filterJenisSupplier;
+            }
+            
+            console.log('🔍 DEBUG: Fetching suppliers with params:', params);
+            
             // Use same URL pattern as other working APIs with pagination to get all records
             const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.SUPPLIER}/data`, {
-                params: {
-                    length: 1000,
-                    start: 0
-                }
+                params
             });
             
             console.log('🔍 DEBUG: Supplier API Response:', result);
@@ -29,7 +50,8 @@ const useSuppliersAPI = () => {
                     console.log('🔍 DEBUG: First supplier structure:', result.data[0]);
                 }
                 setSuppliers(result.data);
-                console.log(`✅ Suppliers loaded: ${result.data.length} items`);
+                setLastFilter(filterJenisSupplier); // Track the filter used
+                console.log(`✅ Suppliers loaded: ${result.data.length} items with filter:`, filterJenisSupplier);
             } else {
                 throw new Error(result.message || 'Failed to fetch suppliers');
             }
@@ -42,9 +64,11 @@ const useSuppliersAPI = () => {
         }
     };
 
-    useEffect(() => {
-        fetchSuppliers();
-    }, []);
+    // Remove auto-fetch on mount to avoid duplicate calls
+    // Let the parent component control when to fetch
+    // useEffect(() => {
+    //     fetchSuppliers();
+    // }, []);
 
     const supplierOptions = useMemo(() => {
         return suppliers.map(supplier => {
@@ -53,7 +77,8 @@ const useSuppliersAPI = () => {
                 name: supplier.name,
                 pubid: supplier.pubid,
                 pid: supplier.pid,
-                order_no: supplier.order_no
+                order_no: supplier.order_no,
+                jenis_supplier: supplier.jenis_supplier
             });
             
             return {
@@ -61,7 +86,8 @@ const useSuppliersAPI = () => {
                 label: supplier.name,
                 pubid: supplier.pubid,
                 pid: supplier.pid,
-                order_no: supplier.order_no
+                order_no: supplier.order_no,
+                jenis_supplier: supplier.jenis_supplier // Include jenis_supplier for filtering
             };
         }).filter(option => option.value); // Filter suppliers with valid PID
     }, [suppliers]);
@@ -71,7 +97,8 @@ const useSuppliersAPI = () => {
         supplierOptions,
         loading,
         error,
-        refetch: fetchSuppliers
+        refetch: fetchSuppliers,
+        fetchSuppliersWithFilter: fetchSuppliers // Expose method to fetch with filter
     };
 };
 

@@ -120,7 +120,8 @@ const useSuppliers = () => {
                     name: item.name || 'Nama tidak tersedia',
                     description: item.description || '',
                     status: item.status !== undefined ? item.status : 1,
-                    order_no: item.order_no || index + 1
+                    order_no: item.order_no || index + 1,
+                    jenis_supplier: item.jenis_supplier ? String(item.jenis_supplier) : ''
                 }));
                 
                 setSuppliers(validatedData);
@@ -139,6 +140,7 @@ const useSuppliers = () => {
                     name: "PT. Sumber Berkah",
                     description: "Supplier pakan ternak berkualitas tinggi",
                     order_no: 1,
+                    jenis_supplier: "1",
                     status: 1
                 },
                 {
@@ -147,6 +149,7 @@ const useSuppliers = () => {
                     name: "CV. Mitra Tani",
                     description: "Supplier obat-obatan hewan dan vitamin",
                     order_no: 2,
+                    jenis_supplier: "1",
                     status: 1
                 },
                 {
@@ -155,6 +158,7 @@ const useSuppliers = () => {
                     name: "UD. Cahaya Mandiri",
                     description: "Supplier peralatan peternakan",
                     order_no: 3,
+                    jenis_supplier: "2",
                     status: 0
                 },
                 {
@@ -163,6 +167,7 @@ const useSuppliers = () => {
                     name: "PT. Agro Nusantara",
                     description: "Supplier bibit dan pakan organik",
                     order_no: 4,
+                    jenis_supplier: "1",
                     status: 1
                 },
                 {
@@ -171,6 +176,7 @@ const useSuppliers = () => {
                     name: "CV. Jaya Abadi",
                     description: "Supplier alat kesehatan hewan",
                     order_no: 5,
+                    jenis_supplier: "1",
                     status: 1
                 }
             ]);
@@ -184,7 +190,7 @@ const useSuppliers = () => {
         setLoading(true);
         setError(null);
         
-        const requiredParams = ['name', 'description', 'order_no', 'status'];
+        const requiredParams = ['name', 'description', 'order_no', 'jenis_supplier', 'status'];
         const missingParams = requiredParams.filter(param =>
             supplierData[param] === undefined || supplierData[param] === null || supplierData[param] === ''
         );
@@ -200,6 +206,7 @@ const useSuppliers = () => {
                 name: String(supplierData.name).trim(),
                 description: String(supplierData.description).trim(),
                 order_no: parseInt(supplierData.order_no, 10),
+                jenis_supplier: supplierData.jenis_supplier,
                 status: parseInt(supplierData.status, 10)
             };
             
@@ -235,7 +242,7 @@ const useSuppliers = () => {
                 supplier.encryptedPid = pubid;
             }
             
-            const requiredParams = ['name', 'description', 'order_no', 'status'];
+            const requiredParams = ['name', 'description', 'order_no', 'jenis_supplier', 'status'];
             const missingParams = requiredParams.filter(param =>
                 supplierData[param] === undefined || supplierData[param] === null || supplierData[param] === ''
             );
@@ -250,6 +257,7 @@ const useSuppliers = () => {
                 name: String(supplierData.name).trim(),
                 description: String(supplierData.description).trim(),
                 order_no: parseInt(supplierData.order_no, 10),
+                jenis_supplier: supplierData.jenis_supplier,
                 status: parseInt(supplierData.status, 10)
             };
             
