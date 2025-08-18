@@ -4,7 +4,6 @@ import {
   secureStorage,
   tokenSecurity,
   loginRateLimit,
-  getSecurityHeaders,
   securityAudit,
   generateDeviceFingerprint,
   SECURITY_CONFIG
@@ -246,8 +245,6 @@ export const useAuthSecure = () => {
 
       const result = await HttpClient.post(API_ENDPOINTS.AUTH.REFRESH_TOKEN, {
         deviceFingerprint: deviceFingerprint.current
-      }, {
-        headers: getSecurityHeaders()
       });
 
       if (result.data && result.data.token) {
@@ -278,8 +275,7 @@ export const useAuthSecure = () => {
     if (!currentToken) return {};
     
     return {
-      'Authorization': `Bearer ${currentToken}`,
-      ...getSecurityHeaders()
+      'Authorization': `Bearer ${currentToken}`
     };
   }, []);
 
