@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import LayoutSecure from './components/LayoutSecure';
 import ProtectedRouteSecure from './components/ProtectedRouteSecure';
-import { setSecurityHeaders, securityAudit } from './utils/security';
+import { securityAudit } from './utils/security';
 
 // Import halaman authentication yang sudah enhanced
 import LoginPageSecure from './pages/LoginPageSecure';
@@ -165,11 +165,6 @@ function AppSecure() {
   // Initialize security pada app startup
   useEffect(() => {
     try {
-      // Set security headers
-      setSecurityHeaders();
-      
-
-
       // Set up global error handling
       window.addEventListener('error', (event) => {
         // Error handling without logging
