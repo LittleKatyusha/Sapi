@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import EditableDetailDataTable from './components/EditableDetailDataTable';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Save, Plus, Trash2, Building2, User, Calendar, Truck, Hash, Package, X, Settings, AlertCircle } from 'lucide-react';
@@ -34,7 +34,7 @@ const AddEditPembelianPage = () => {
         supplierLoading,
         isSupplierDataFetched,
         fetchSupplierData
-    } = useParameterSelect();
+    } = useParameterSelect(isEdit); // Pass edit mode flag untuk preload supplier data
 
     const {
         tipePembelianOptions,
@@ -128,6 +128,11 @@ const AddEditPembelianPage = () => {
 
     // Auto-fetch supplier data when tipe pembelian is selected (with optimization)
     useEffect(() => {
+        // Skip if we're in edit mode and initial data is loading
+        if (isEdit && id && (!supplierOptions.length || !tipePembelianOptions.length)) {
+            return; // Let edit mode useEffect handle the initial data loading
+        }
+
         if (headerData.tipePembelian && tipePembelianOptions.length > 0) {
             // Find selected tipe pembelian to determine jenis_supplier filter
             const selectedTipe = tipePembelianOptions.find(tipe => tipe.value === headerData.tipePembelian);
@@ -143,7 +148,9 @@ const AddEditPembelianPage = () => {
                 
                 console.log('🔄 Fetching suppliers with filter:', {
                     tipePembelian: selectedTipe.label,
-                    jenisSupplierFilter
+                    jenisSupplierFilter,
+                    isEditMode: isEdit,
+                    skipReason: isEdit && id ? 'Edit mode - letting edit useEffect handle' : 'Normal mode'
                 });
                 
                 // Use a timeout to debounce rapid changes
@@ -154,39 +161,109 @@ const AddEditPembelianPage = () => {
                 return () => clearTimeout(timeoutId);
             }
         }
-    }, [headerData.tipePembelian, tipePembelianOptions]);
+    }, [headerData.tipePembelian, tipePembelianOptions, isEdit, id, supplierOptions.length]);
 
-    // Reset supplier selection when tipe pembelian changes
+    // Reset supplier selection when tipe pembelian changes (with stability check)
     useEffect(() => {
-        if (headerData.tipePembelian && headerData.idSupplier) {
+        // Skip if we're in edit mode and initial data is still loading
+        if (isEdit && id && (!supplierOptions.length || !tipePembelianOptions.length)) {
+            return;
+        }
+
+        if (headerData.tipePembelian && headerData.idSupplier && filteredSupplierOptions.length > 0) {
             // Check if current supplier is still in filtered list
             const currentSupplierExists = filteredSupplierOptions.find(
                 supplier => supplier.value === headerData.idSupplier
             );
             
             if (!currentSupplierExists) {
-                // Reset supplier if it's not in the filtered list
-                setHeaderData(prev => ({
-                    ...prev,
-                    idSupplier: ''
-                }));
+                console.log('🔄 Resetting supplier because it\'s not in filtered list:', {
+                    currentSupplier: headerData.idSupplier,
+                    filteredOptions: filteredSupplierOptions.map(s => s.value),
+                    isEditMode: isEdit
+                });
+                
+                // Only reset supplier if we're not in edit mode or if we've finished loading edit data
+                if (!isEdit) {
+                    setHeaderData(prev => ({
+                        ...prev,
+                        idSupplier: ''
+                    }));
+                }
             }
         }
-    }, [headerData.tipePembelian, filteredSupplierOptions, headerData.idSupplier]);
+    }, [headerData.tipePembelian, filteredSupplierOptions, headerData.idSupplier, isEdit, id, supplierOptions.length, tipePembelianOptions.length]);
+
+    // Preload data for edit mode - trigger early data loading
+    useEffect(() => {
+        if (isEdit && id) {
+            console.log('🔄 DEBUG: Preloading data for edit mode...');
+            // Force fetch supplier data if not already fetched
+            if (!isSupplierDataFetched && fetchSupplierData) {
+                fetchSupplierData(null, true); // Force load
+            }
+        }
+    }, [isEdit, id, isSupplierDataFetched, fetchSupplierData]);
 
     // Load data for edit mode - wait for parameter data to be loaded first
+    // Add ref to track if edit data has been loaded to prevent re-loading
+    const editDataLoadedRef = useRef(false);
+    
     useEffect(() => {
-        const hasRequiredData = parameterData.supplier?.length > 0 && 
-                               parameterData.eartag?.length > 0 && 
-                               parameterData.klasifikasihewan?.length > 0;
+        // Enhanced debugging untuk diagnosa masalah
+        console.log('🔍 DEBUG: Edit useEffect triggered:', {
+            isEdit,
+            id,
+            parameterLoading,
+            tipePembelianLoading,
+            supplierLoading,
+            supplierOptionsLength: supplierOptions?.length,
+            parameterDataSupplierLength: parameterData.supplier?.length,
+            eartagLength: parameterData.eartag?.length,
+            klasifikasiLength: parameterData.klasifikasihewan?.length,
+            tipePembelianLength: tipePembelianOptions?.length,
+            editDataLoaded: editDataLoadedRef.current
+        });
+
+        // Skip if edit data has already been loaded
+        if (editDataLoadedRef.current) {
+            console.log('⏸️ DEBUG: Skipping edit data load - already loaded');
+            return;
+        }
+
+        // Revisi kondisi - gunakan supplierOptions langsung dan tambahkan tipePembelianOptions
+        const hasRequiredData = (supplierOptions?.length > 0 || parameterData.supplier?.length > 0) &&
+                               parameterData.eartag?.length > 0 &&
+                               parameterData.klasifikasihewan?.length > 0 &&
+                               tipePembelianOptions?.length > 0;
         
-        if (isEdit && id && !parameterLoading && hasRequiredData) {
+        // Tambahkan kondisi untuk memastikan data tidak sedang loading
+        const isDataReady = !parameterLoading && !tipePembelianLoading && !supplierLoading;
+        
+        console.log('🔍 DEBUG: Conditions check:', {
+            hasRequiredData,
+            isDataReady,
+            willLoadData: isEdit && id && isDataReady && hasRequiredData
+        });
+        
+        if (isEdit && id && isDataReady && hasRequiredData) {
             const loadEditData = async () => {
+                console.log('🚀 DEBUG: Starting loadEditData for ID:', id);
                 try {
                     const decodedId = decodeURIComponent(id);
+                    console.log('📡 DEBUG: Calling getPembelianDetail with decoded ID:', decodedId);
                     const result = await getPembelianDetail(decodedId);
                     
+                    console.log('📥 DEBUG: API Response:', {
+                        success: result.success,
+                        dataLength: result.data?.length,
+                        hasData: result.data && result.data.length > 0,
+                        firstItem: result.data?.[0],
+                        message: result.message
+                    });
+                    
                     if (result.success && result.data.length > 0) {
+                        console.log('✅ DEBUG: Data validation passed, processing...');
                         const firstDetail = result.data[0];
                         
                         // Find supplier ID by name since backend doesn't return supplier ID
@@ -306,6 +383,9 @@ const AddEditPembelianPage = () => {
                             totalSapi: totalSapiCount
                         });
 
+                        // Mark edit data as loaded to prevent re-loading
+                        editDataLoadedRef.current = true;
+
                         // Load markup percentage if available, otherwise use default 12%
                         if (firstDetail.markup_percentage !== undefined) {
                             setMarkupPercentage(parseFloat(firstDetail.markup_percentage) || 12);
@@ -416,13 +496,26 @@ const AddEditPembelianPage = () => {
                                 persentase: item.persentase || calculatedPersentase, // Use backend persentase or calculate from harga/hpp
                                 hpp: hpp,
                             };
-                        }));
+                                                 }));
+                    } else {
+                        console.log('❌ DEBUG: API validation failed:', {
+                            success: result.success,
+                            dataLength: result.data?.length,
+                            data: result.data,
+                            message: result.message
+                        });
+                        throw new Error(result.message || 'Data tidak ditemukan atau kosong');
                     }
                 } catch (err) {
-                    // console.error('Error loading edit data:', err);
+                    console.error('❌ DEBUG: Error in loadEditData:', {
+                        error: err.message,
+                        stack: err.stack,
+                        id: id,
+                        decodedId: decodeURIComponent(id)
+                    });
                     setNotification({
                         type: 'error',
-                        message: 'Gagal memuat data untuk edit'
+                        message: `Gagal memuat data untuk edit: ${err.message}`
                     });
                 }
             };
@@ -457,10 +550,31 @@ const AddEditPembelianPage = () => {
 
             // Add initial detail item for clone
             addDetailItem();
+        } else {
+            // Log mengapa data tidak dimuat
+            console.log('⏸️ DEBUG: Data NOT loading because:', {
+                isEdit: !isEdit ? 'Not in edit mode' : '✓',
+                hasId: !id ? 'No ID provided' : '✓',
+                isDataReady: !isDataReady ? 'Data still loading' : '✓',
+                hasRequiredData: !hasRequiredData ? 'Required data missing' : '✓',
+                loadingStates: {
+                    parameterLoading,
+                    tipePembelianLoading,
+                    supplierLoading
+                },
+                dataLengths: {
+                    supplierOptions: supplierOptions?.length || 0,
+                    parameterSupplier: parameterData.supplier?.length || 0,
+                    eartag: parameterData.eartag?.length || 0,
+                    klasifikasi: parameterData.klasifikasihewan?.length || 0,
+                    tipePembelian: tipePembelianOptions?.length || 0
+                }
+            });
         }
         // Remove automatic detail item creation for new records
         // Users will add details manually using the "Tambah Detail" button
-    }, [isEdit, id, cloneData, parameterLoading]);
+    }, [isEdit, id, cloneData, parameterLoading, tipePembelianLoading, supplierLoading, tipePembelianOptions, parameterData.eartag, parameterData.klasifikasihewan]);
+    // Removed supplierOptions from dependency to prevent unnecessary re-renders
 
     // Check if current purchase type is SUPPLIER (PERORANGAN)
     const isSupplierPerorangan = useMemo(() => {
