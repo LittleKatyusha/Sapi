@@ -15,16 +15,16 @@ const useKlasifikasiHewanAPI = () => {
             // Correct endpoint from backend routes: /api/master/klasifikasihewan/data
             const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.KLASIFIKASI_HEWAN}/data`);
             
-            console.log('Klasifikasi Hewan API Response:', result);
+            
             
             if (result.status === 'ok' && result.data) {
                 setKlasifikasiHewan(result.data);
-                console.log(`✅ Klasifikasi hewan loaded: ${result.data.length} items`);
+                
             } else {
                 throw new Error(result.message || 'Failed to fetch klasifikasi hewan');
             }
         } catch (err) {
-            console.error('Error fetching klasifikasi hewan:', err);
+            
             setError(err.message);
             setKlasifikasiHewan([]);
         } finally {

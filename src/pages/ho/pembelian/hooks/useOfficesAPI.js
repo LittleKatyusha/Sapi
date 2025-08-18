@@ -15,16 +15,16 @@ const useOfficesAPI = () => {
             // Correct endpoint from backend routes: /api/master/office/data
             const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.OFFICE}/data`);
             
-            console.log('Office API Response:', result);
+            
             
             if (result.status === 'ok' && result.data) {
                 setOffices(result.data);
-                console.log(`✅ Offices loaded: ${result.data.length} items`);
+                
             } else {
                 throw new Error(result.message || 'Failed to fetch offices');
             }
         } catch (err) {
-            console.error('Error fetching offices:', err);
+            
             setError(err.message);
             setOffices([]);
         } finally {

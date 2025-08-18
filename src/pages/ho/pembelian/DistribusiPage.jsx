@@ -63,7 +63,7 @@ const DistribusiPage = () => {
                         }
                     }
                 } catch (err) {
-                    // console.error('Error fetching detail:', err);
+                    
                 }
             }
         };

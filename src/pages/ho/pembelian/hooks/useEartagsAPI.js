@@ -20,18 +20,18 @@ const useEartagsAPI = () => {
                 }
             });
             
-            console.log('Eartag API Response:', result);
+            
             
             // Handle DataTables format response or standard format
             if ((result.data && Array.isArray(result.data)) || (result.status === 'ok' && result.data)) {
                 const dataArray = result.data || [];
                 setEartags(dataArray);
-                console.log(`✅ Eartags loaded: ${dataArray.length} items`);
+                
             } else {
                 throw new Error(result.message || 'Failed to fetch eartags');
             }
         } catch (err) {
-            console.error('Error fetching eartags:', err);
+            
             setError(err.message);
             setEartags([]);
         } finally {

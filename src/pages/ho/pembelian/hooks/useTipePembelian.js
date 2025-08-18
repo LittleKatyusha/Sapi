@@ -24,7 +24,7 @@ const useTipePembelian = () => {
             }
         } catch (err) {
             setError('Gagal mengambil data tipe pembelian.');
-            console.error(err);
+            
         } finally {
             setLoading(false);
         }

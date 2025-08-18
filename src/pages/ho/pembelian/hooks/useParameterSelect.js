@@ -44,9 +44,9 @@ const useParameterSelect = (isEditMode = false) => {
                 setIsSupplierDataFetched(true);
             }
             
-            console.log('✅ Supplier data loaded via direct API');
+            
         } catch (err) {
-            console.error('Error fetching supplier data:', err);
+            
             setError(err.message);
         }
     };
@@ -56,12 +56,12 @@ const useParameterSelect = (isEditMode = false) => {
         setError(null);
         
         try {
-            console.log('📊 Fetching centralized parameter data...');
+            
             
             // Use the new centralized parameter endpoint
             const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.PARAMETER}/data`);
             
-            console.log('✅ Parameter data response received');
+            
             
             // Handle the response format from ParameterSelectController
             if (result.data && Array.isArray(result.data) && result.data.length > 0) {
@@ -80,7 +80,7 @@ const useParameterSelect = (isEditMode = false) => {
                 throw new Error('Invalid response format from parameter endpoint');
             }
         } catch (err) {
-            console.error('Error fetching parameter data:', err);
+            
             setError(err.message);
             // Set empty data on error
             setParameterData({
@@ -102,12 +102,12 @@ const useParameterSelect = (isEditMode = false) => {
         setError(null);
         
         try {
-            console.log('📊 Fetching non-supplier parameter data...');
+            
             
             // Use the new centralized parameter endpoint
             const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.PARAMETER}/data`);
             
-            console.log('✅ Parameter data response received');
+            
             
             // Handle the response format from ParameterSelectController
             if (result.data && Array.isArray(result.data) && result.data.length > 0) {
@@ -128,7 +128,7 @@ const useParameterSelect = (isEditMode = false) => {
                 throw new Error('Invalid response format from parameter endpoint');
             }
         } catch (err) {
-            console.error('Error fetching non-supplier parameter data:', err);
+            
             setError(err.message);
             // Set empty data on error
             setParameterData(prev => ({
@@ -146,7 +146,7 @@ const useParameterSelect = (isEditMode = false) => {
 
     // Function to preload supplier data for edit mode
     const preloadSupplierForEdit = async () => {
-        console.log('📊 Preloading supplier data for edit mode...');
+        
         await fetchSupplierData(null, true); // Force load all suppliers
     };
 

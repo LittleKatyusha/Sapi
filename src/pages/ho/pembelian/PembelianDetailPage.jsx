@@ -63,7 +63,7 @@ const PembelianDetailPage = () => {
                         }
                     }
                 } catch (err) {
-                    // console.error('Error fetching detail:', err);
+                    // Handle error silently
                 }
             }
         };
@@ -106,7 +106,6 @@ const PembelianDetailPage = () => {
     };
 
     const handleCloneDetail = (detail) => {
-        // console.log('Clone detail:', detail);
         // Create cloned data with modified fields
         const clonedData = {
             ...detail,
@@ -164,7 +163,6 @@ const PembelianDetailPage = () => {
                 });
             }
         } catch (err) {
-            console.error('Save detail error:', err);
             setNotification({
                 type: 'error',
                 message: err.message || 'Terjadi kesalahan saat menyimpan data'
@@ -197,7 +195,6 @@ const PembelianDetailPage = () => {
                 });
             }
         } catch (err) {
-            console.error('Delete detail error:', err);
             setNotification({
                 type: 'error',
                 message: err.message || 'Terjadi kesalahan saat menghapus data'

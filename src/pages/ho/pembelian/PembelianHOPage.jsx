@@ -48,7 +48,6 @@ const PembelianHOPage = () => {
 
 
     const handleEdit = (pembelian) => {
-        // console.log('Edit pembelian:', pembelian);
         const id = pembelian.encryptedPid; // Always use encrypted PID for API operations
         if (!id || id.startsWith('TEMP-')) {
             setNotification({
@@ -63,14 +62,12 @@ const PembelianHOPage = () => {
 
 
     const handleDelete = (pembelian) => {
-        // console.log('Delete pembelian:', pembelian);
         setSelectedPembelian(pembelian);
         setIsDeleteModalOpen(true);
         setOpenMenuId(null);
     };
 
     const handleDetail = (pembelian) => {
-        // console.log('View pembelian detail:', pembelian);
         // Always use encrypted PID for API operations
         const id = pembelian.encryptedPid;
         if (!id || id.startsWith('TEMP-')) {
@@ -92,31 +89,18 @@ const PembelianHOPage = () => {
 
     const handleDeletePembelian = useCallback(async (pembelian) => {
         try {
-            // Debug: Log seluruh object pembelian
-            console.log('🗑️ DEBUG: Full pembelian object:', pembelian);
-            console.log('🗑️ DEBUG: pembelian.encryptedPid:', pembelian.encryptedPid);
-            console.log('🗑️ DEBUG: pembelian.id:', pembelian.id);
-            console.log('🗑️ DEBUG: pembelian.pubid:', pembelian.pubid);
-            
             // Backend expects encrypted PID yang dikirim sebagai 'pid' dalam response getData
             const encryptedPid = pembelian.encryptedPid;
             
-            console.log('🗑️ DEBUG: Selected encrypted PID:', encryptedPid);
-            console.log('🗑️ DEBUG: Type of encrypted PID:', typeof encryptedPid);
-            
             // Validate encrypted PID tersedia
             if (!encryptedPid) {
-                console.error('🗑️ ERROR: No encrypted PID available');
                 throw new Error('ID pembelian tidak tersedia untuk penghapusan');
             }
             
             // Check jika temporary item
             if (encryptedPid.startsWith('TEMP-')) {
-                console.error('🗑️ ERROR: Attempting to delete temporary item');
                 throw new Error('Item ini adalah data sementara dan tidak dapat dihapus');
             }
-            
-            console.log('🗑️ DEBUG: Calling deletePembelian with:', encryptedPid);
             const result = await deletePembelian(encryptedPid, pembelian);
             
             if (result.success) {
@@ -128,9 +112,6 @@ const PembelianHOPage = () => {
                 // Close delete modal after successful deletion
                 handleCloseDeleteModal();
             } else {
-                // Log error details for debugging
-                console.error('🗑️ ERROR: Delete failed with result:', result);
-                
                 let errorMessage = result.message || 'Gagal menghapus data pembelian';
                 
                 // Add helpful context for common issues
@@ -144,7 +125,6 @@ const PembelianHOPage = () => {
                 });
             }
         } catch (error) {
-            console.error('🗑️ ERROR: Delete operation failed in component:', error);
             setNotification({
                 type: 'error',
                 message: error.message || 'Terjadi kesalahan saat menghapus data pembelian'

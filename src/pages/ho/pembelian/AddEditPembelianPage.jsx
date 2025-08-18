@@ -146,12 +146,7 @@ const AddEditPembelianPage = () => {
                     jenisSupplierFilter = 2; // PERORANGAN
                 }
                 
-                console.log('🔄 Fetching suppliers with filter:', {
-                    tipePembelian: selectedTipe.label,
-                    jenisSupplierFilter,
-                    isEditMode: isEdit,
-                    skipReason: isEdit && id ? 'Edit mode - letting edit useEffect handle' : 'Normal mode'
-                });
+                
                 
                 // Use a timeout to debounce rapid changes
                 const timeoutId = setTimeout(() => {
@@ -176,8 +171,10 @@ const AddEditPembelianPage = () => {
                 supplier => supplier.value === headerData.idSupplier
             );
             
+            
+            
             if (!currentSupplierExists) {
-                console.log('🔄 Resetting supplier because it\'s not in filtered list:', {
+                console.log('⚠️ Resetting supplier because it\'s not in filtered list:', {
                     currentSupplier: headerData.idSupplier,
                     filteredOptions: filteredSupplierOptions.map(s => s.value),
                     isEditMode: isEdit
@@ -189,7 +186,11 @@ const AddEditPembelianPage = () => {
                         ...prev,
                         idSupplier: ''
                     }));
+                } else {
+                    
                 }
+            } else {
+                
             }
         }
     }, [headerData.tipePembelian, filteredSupplierOptions, headerData.idSupplier, isEdit, id, supplierOptions.length, tipePembelianOptions.length]);
@@ -197,7 +198,7 @@ const AddEditPembelianPage = () => {
     // Preload data for edit mode - trigger early data loading
     useEffect(() => {
         if (isEdit && id) {
-            console.log('🔄 DEBUG: Preloading data for edit mode...');
+            
             // Force fetch supplier data if not already fetched
             if (!isSupplierDataFetched && fetchSupplierData) {
                 fetchSupplierData(null, true); // Force load
@@ -211,23 +212,11 @@ const AddEditPembelianPage = () => {
     
     useEffect(() => {
         // Enhanced debugging untuk diagnosa masalah
-        console.log('🔍 DEBUG: Edit useEffect triggered:', {
-            isEdit,
-            id,
-            parameterLoading,
-            tipePembelianLoading,
-            supplierLoading,
-            supplierOptionsLength: supplierOptions?.length,
-            parameterDataSupplierLength: parameterData.supplier?.length,
-            eartagLength: parameterData.eartag?.length,
-            klasifikasiLength: parameterData.klasifikasihewan?.length,
-            tipePembelianLength: tipePembelianOptions?.length,
-            editDataLoaded: editDataLoadedRef.current
-        });
+        
 
         // Skip if edit data has already been loaded
         if (editDataLoadedRef.current) {
-            console.log('⏸️ DEBUG: Skipping edit data load - already loaded');
+            
             return;
         }
 
@@ -240,30 +229,20 @@ const AddEditPembelianPage = () => {
         // Tambahkan kondisi untuk memastikan data tidak sedang loading
         const isDataReady = !parameterLoading && !tipePembelianLoading && !supplierLoading;
         
-        console.log('🔍 DEBUG: Conditions check:', {
-            hasRequiredData,
-            isDataReady,
-            willLoadData: isEdit && id && isDataReady && hasRequiredData
-        });
+        
         
         if (isEdit && id && isDataReady && hasRequiredData) {
             const loadEditData = async () => {
-                console.log('🚀 DEBUG: Starting loadEditData for ID:', id);
+                
                 try {
                     const decodedId = decodeURIComponent(id);
-                    console.log('📡 DEBUG: Calling getPembelianDetail with decoded ID:', decodedId);
+                    
                     const result = await getPembelianDetail(decodedId);
                     
-                    console.log('📥 DEBUG: API Response:', {
-                        success: result.success,
-                        dataLength: result.data?.length,
-                        hasData: result.data && result.data.length > 0,
-                        firstItem: result.data?.[0],
-                        message: result.message
-                    });
+                    
                     
                     if (result.success && result.data.length > 0) {
-                        console.log('✅ DEBUG: Data validation passed, processing...');
+                        
                         const firstDetail = result.data[0];
                         
                         // Find supplier ID by name since backend doesn't return supplier ID
@@ -283,12 +262,7 @@ const AddEditPembelianPage = () => {
                             // Use the ID for form values, not the label
                             tipePembelianIdFromBackend = String(firstDetail.jenis_pembelian_id);
                             
-                            console.log('🔍 DEBUG: tipePembelian from backend:', {
-                                labelValue: firstDetail.jenis_pembelian,
-                                idValue: firstDetail.jenis_pembelian_id,
-                                convertedValue: tipePembelianIdFromBackend,
-                                availableOptions: tipePembelianOptions
-                            });
+                            
                         }
 
                         // Debug supplier matching
@@ -342,13 +316,9 @@ const AddEditPembelianPage = () => {
                             availableTipePembelian: tipePembelianOptions,
                             availableSuppliers: supplierOptions.slice(0, 3) // Only show first 3 for brevity
                         });
-                        console.log('🔍 DEBUG: Backend response data:', firstDetail);
-                        console.log('🔍 DEBUG: Does backend send jenis_pembelian?', {
-                            hasJenisPembelian: 'jenis_pembelian' in firstDetail,
-                            jenisPembelianValue: firstDetail.jenis_pembelian,
-                            jenisPembelianType: typeof firstDetail.jenis_pembelian
-                        });
-                        console.log('🔍 DEBUG: All detail items:', result.data);
+                        
+                        
+                        
                         console.log('🔍 DEBUG: Purchase type fields check:', {
                             id_jenis_pembelian: firstDetail.id_jenis_pembelian,
                             jenis_pembelian_id: firstDetail.jenis_pembelian_id,
@@ -362,26 +332,8 @@ const AddEditPembelianPage = () => {
                             id_tipe_pembelian: firstDetail.id_tipe_pembelian,
                             allKeys: Object.keys(firstDetail).sort()
                         });
-                        console.log('🔍 DEBUG: Calculated totals:', {
-                            calculatedBeratTotal,
-                            calculatedHargaTotal,
-                            totalSapiCount,
-                            originalBeratTotal: firstDetail.berat_total,
-                            originalHargaTotal: firstDetail.harga_total
-                        });
-                        console.log('🔍 DEBUG: Mapped header data:', {
-                            nota: firstDetail.nota,
-                            idSupplier: supplierIdFromName,
-                            tglMasuk: firstDetail.tgl_masuk,
-                            namaSupir: firstDetail.nama_supir,
-                            platNomor: firstDetail.plat_nomor,
-                            biayaTruck: firstDetail.biaya_truck || firstDetail.biaya_truk,
-                            biayaLain: firstDetail.biaya_lain,
-                            beratTotal: calculatedBeratTotal,
-                            tipePembelian: tipePembelianIdFromBackend,
-                            hargaTotal: calculatedHargaTotal,
-                            totalSapi: totalSapiCount
-                        });
+                        
+                        
 
                         // Mark edit data as loaded to prevent re-loading
                         editDataLoadedRef.current = true;
@@ -466,11 +418,7 @@ const AddEditPembelianPage = () => {
                                     eartag.label === item.eartag ||
                                     eartag.id === item.eartag
                                 );
-                                console.log('🔍 DEBUG: Eartag matching for item', index, {
-                                    backendEartag: item.eartag,
-                                    matchedEartag: matchedEartag,
-                                    finalValue: matchedEartag ? matchedEartag.value : eartagValue
-                                });
+                                
                                 if (matchedEartag) {
                                     eartagValue = matchedEartag.value;
                                 }
@@ -478,12 +426,7 @@ const AddEditPembelianPage = () => {
 
                             // Debug eartag supplier
                             const eartagSupplierValue = item.eartag_supplier || item.eartagSupplier || item.supplier_eartag || '';
-                            console.log('🔍 DEBUG: Eartag Supplier for item', index, {
-                                eartag_supplier: item.eartag_supplier,
-                                eartagSupplier: item.eartagSupplier,
-                                supplier_eartag: item.supplier_eartag,
-                                finalValue: eartagSupplierValue
-                            });
+                            
 
                             return {
                                 id: index + 1,
@@ -498,12 +441,7 @@ const AddEditPembelianPage = () => {
                             };
                                                  }));
                     } else {
-                        console.log('❌ DEBUG: API validation failed:', {
-                            success: result.success,
-                            dataLength: result.data?.length,
-                            data: result.data,
-                            message: result.message
-                        });
+                        
                         throw new Error(result.message || 'Data tidak ditemukan atau kosong');
                     }
                 } catch (err) {
@@ -552,24 +490,7 @@ const AddEditPembelianPage = () => {
             addDetailItem();
         } else {
             // Log mengapa data tidak dimuat
-            console.log('⏸️ DEBUG: Data NOT loading because:', {
-                isEdit: !isEdit ? 'Not in edit mode' : '✓',
-                hasId: !id ? 'No ID provided' : '✓',
-                isDataReady: !isDataReady ? 'Data still loading' : '✓',
-                hasRequiredData: !hasRequiredData ? 'Required data missing' : '✓',
-                loadingStates: {
-                    parameterLoading,
-                    tipePembelianLoading,
-                    supplierLoading
-                },
-                dataLengths: {
-                    supplierOptions: supplierOptions?.length || 0,
-                    parameterSupplier: parameterData.supplier?.length || 0,
-                    eartag: parameterData.eartag?.length || 0,
-                    klasifikasi: parameterData.klasifikasihewan?.length || 0,
-                    tipePembelian: tipePembelianOptions?.length || 0
-                }
-            });
+            
         }
         // Remove automatic detail item creation for new records
         // Users will add details manually using the "Tambah Detail" button
@@ -696,6 +617,7 @@ const AddEditPembelianPage = () => {
 
     // Handle header form changes
     const handleHeaderChange = (field, value) => {
+        
         setHeaderData(prev => ({
             ...prev,
             [field]: value
@@ -772,13 +694,13 @@ const AddEditPembelianPage = () => {
 
     // Handle detail item changes
     const handleDetailChange = (itemId, field, value) => {
-        // console.log(`🔧 DEBUG: handleDetailChange called - itemId: ${itemId}, field: ${field}, value: ${value}`);
+        // 
         
         setDetailItems(prev => prev.map(item => {
             if (item.id === itemId) {
                 const updatedItem = { ...item, [field]: value };
                 
-                // console.log(`🔧 DEBUG: Updating item ${itemId} - ${field}: ${item[field]} -> ${value}`);
+                // 
                 
                 // Auto-populate code_eartag when eartag is selected (but code_eartag is now auto-generated by backend)
                 if (field === 'eartag' && value) {
@@ -791,10 +713,10 @@ const AddEditPembelianPage = () => {
                     const markup = parseFloat(field === 'persentase' ? value : updatedItem.persentase) || 0;
                     const markupAmount = harga * (markup / 100);
                     updatedItem.hpp = harga + markupAmount;
-                    // console.log(`🔧 DEBUG: HPP recalculated: ${updatedItem.hpp}`);
+                    // 
                 }
                 
-                // console.log(`🔧 DEBUG: Final updated item:`, updatedItem);
+                // 
                 return updatedItem;
             }
             return item;
@@ -897,9 +819,20 @@ const AddEditPembelianPage = () => {
     const validateForm = () => {
         const errors = [];
 
+        
+
         // Header validation (Office removed since it's now fixed)
         if (!headerData.nota) errors.push('Nota harus diisi');
-        if (!headerData.idSupplier) errors.push('Supplier harus dipilih');
+        if (!headerData.idSupplier) {
+            console.log('❌ DEBUG: Supplier validation failed:', {
+                idSupplier: headerData.idSupplier,
+                supplierType: typeof headerData.idSupplier,
+                supplierOptions: filteredSupplierOptions.map(s => ({ label: s.label, value: s.value }))
+            });
+            errors.push('Supplier harus dipilih');
+        } else {
+            
+        }
         if (!headerData.tglMasuk) errors.push('Tanggal masuk harus diisi');
         if (!headerData.namaSupir) errors.push('Nama supir harus diisi');
         if (!headerData.platNomor) errors.push('Plat nomor harus diisi');
@@ -944,13 +877,30 @@ const AddEditPembelianPage = () => {
             });
         }
 
+        
+
         return errors;
     };
 
     // Handle submit
     const handleSubmit = async () => {
+        
+        console.log('🔍 DEBUG: Pre-validation state:', {
+            idSupplier: headerData.idSupplier,
+            supplierType: typeof headerData.idSupplier,
+            supplierValue: headerData.idSupplier,
+            isEmpty: !headerData.idSupplier,
+            isFalsy: !headerData.idSupplier,
+            filteredSupplierOptions: filteredSupplierOptions.length,
+            currentSupplierInOptions: filteredSupplierOptions.find(s => s.value === headerData.idSupplier)
+        });
+        
+        // Add a small delay to ensure state updates are complete
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
         const validationErrors = validateForm();
         if (validationErrors.length > 0) {
+            
             setNotification({
                 type: 'error',
                 message: validationErrors.join(', ')
@@ -958,6 +908,7 @@ const AddEditPembelianPage = () => {
             return;
         }
 
+        
         setIsSubmitting(true);
         
         try {
@@ -966,6 +917,8 @@ const AddEditPembelianPage = () => {
                 ...headerData,
                 jumlah: isSupplierPerorangan ? (parseInt(headerData.totalSapi) || 0) : detailItems.length
             };
+
+            
 
             let result;
             if (isEdit) {
@@ -1000,7 +953,9 @@ const AddEditPembelianPage = () => {
                     ...completeData
                 };
                 
-                result = await updatePembelian(editData, true); // true for header update
+                
+                
+                result = await updatePembelian(editData, true, filteredSupplierOptions); // Pass supplier options
             } else {
                 // For add mode, create with header and details array
                 const completeData = {
@@ -1028,10 +983,21 @@ const AddEditPembelianPage = () => {
                         : [] // Ensure it's always an array, even if empty
                 };
                 
-                result = await createPembelian(completeData);
+                console.log('📡 DEBUG: Calling createPembelian with data:', {
+                    idSupplier: completeData.idSupplier,
+                    tipePembelian: completeData.tipePembelian,
+                    detailsCount: completeData.details.length,
+                    completeDataKeys: Object.keys(completeData),
+                    supplierOptionsCount: filteredSupplierOptions.length
+                });
+                
+                result = await createPembelian(completeData, filteredSupplierOptions);
             }
 
+            
+
             if (result.success) {
+                
                 setNotification({
                     type: 'success',
                     message: result.message
@@ -1042,13 +1008,14 @@ const AddEditPembelianPage = () => {
                     navigate('/ho/pembelian');
                 }, 1500);
             } else {
+                
                 setNotification({
                     type: 'error',
                     message: result.message
                 });
             }
         } catch (err) {
-            console.error('Submit error:', err);
+            
             setNotification({
                 type: 'error',
                 message: err.message || 'Terjadi kesalahan saat menyimpan data'
@@ -1190,7 +1157,10 @@ const AddEditPembelianPage = () => {
                             </label>
                             <SearchableSelect
                                 value={headerData.idSupplier}
-                                onChange={(value) => handleHeaderChange('idSupplier', value)}
+                                onChange={(value) => {
+                                    
+                                    handleHeaderChange('idSupplier', value);
+                                }}
                                 options={filteredSupplierOptions}
                                 placeholder={
                                     supplierLoading 

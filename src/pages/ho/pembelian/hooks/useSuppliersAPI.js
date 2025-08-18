@@ -11,12 +11,6 @@ const useSuppliersAPI = (jenisSupplier = null) => {
     const fetchSuppliers = async (filterJenisSupplier = jenisSupplier) => {
         // Avoid duplicate calls with same filter
         if (loading || (lastFilter === filterJenisSupplier && suppliers.length > 0)) {
-            console.log('🚫 Skipping duplicate supplier fetch:', { 
-                loading, 
-                lastFilter, 
-                currentFilter: filterJenisSupplier,
-                hasData: suppliers.length > 0 
-            });
             return;
         }
         setLoading(true);
@@ -34,29 +28,25 @@ const useSuppliersAPI = (jenisSupplier = null) => {
                 params.jenis_supplier = filterJenisSupplier;
             }
             
-            console.log('🔍 DEBUG: Fetching suppliers with params:', params);
-            
             // Use same URL pattern as other working APIs with pagination to get all records
             const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.SUPPLIER}/data`, {
                 params
             });
             
-            console.log('🔍 DEBUG: Supplier API Response:', result);
-            
             // Handle DataTables format response
             if (result.data && Array.isArray(result.data)) {
                 // Log first supplier to see the data structure
                 if (result.data.length > 0) {
-                    console.log('🔍 DEBUG: First supplier structure:', result.data[0]);
+                    
                 }
                 setSuppliers(result.data);
                 setLastFilter(filterJenisSupplier); // Track the filter used
-                console.log(`✅ Suppliers loaded: ${result.data.length} items with filter:`, filterJenisSupplier);
+                
             } else {
                 throw new Error(result.message || 'Failed to fetch suppliers');
             }
         } catch (err) {
-            console.error('Error fetching suppliers:', err);
+            
             setError(err.message);
             setSuppliers([]);
         } finally {
@@ -71,18 +61,25 @@ const useSuppliersAPI = (jenisSupplier = null) => {
     // }, []);
 
     const supplierOptions = useMemo(() => {
+        if (suppliers.length > 0) {
+            
+        }
+        
         return suppliers.map(supplier => {
-            // Use PID as encrypted ID for better security
+            // Now we have the actual database ID from the backend
+            const rawId = supplier.id; // This is the actual database primary key
             
             return {
-                value: supplier.pid, // Gunakan PID sebagai encrypted ID
+                value: supplier.id, // Use raw database ID for backend compatibility
                 label: supplier.name,
+                rawId: supplier.id ? parseInt(supplier.id) : null,
+                id: supplier.id ? parseInt(supplier.id) : null,
                 pubid: supplier.pubid,
-                pid: supplier.pid,
+                pid: supplier.pid, // Keep PID for reference if needed
                 order_no: supplier.order_no,
                 jenis_supplier: supplier.jenis_supplier // Include jenis_supplier for filtering
             };
-        }).filter(option => option.value); // Filter suppliers with valid PID
+        }).filter(option => option.value && option.id); // Filter suppliers with valid database ID
     }, [suppliers]);
 
     return {

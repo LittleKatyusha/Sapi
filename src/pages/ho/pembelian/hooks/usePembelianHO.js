@@ -161,19 +161,25 @@ const usePembelianHO = () => {
     }, [searchTerm, filterStatus, serverPagination.currentPage, serverPagination.perPage]);
 
     // Create pembelian - handle header + details array format
-    const createPembelian = useCallback(async (pembelianData) => {
+    const createPembelian = useCallback(async (pembelianData, supplierOptions = []) => {
         setLoading(true);
         setError(null);
         
         try {
-            // Backend expects integer IDs for supplier and office
+            // Backend expects integer IDs for office and supplier
             const officeIdParsed = parseInt(pembelianData.idOffice);
-            const supplierIdParsed = parseInt(pembelianData.idSupplier);
+            
+            // Since frontend now uses raw database ID as value, we can use it directly
+            const supplierIdValue = parseInt(pembelianData.idSupplier);
+            
+            if (!Number.isInteger(supplierIdValue) || supplierIdValue <= 0) {
+                throw new Error('Supplier ID tidak valid. Pastikan supplier sudah dipilih dengan benar.');
+            }
             
             const headerData = {
                 id_office: !isNaN(officeIdParsed) ? officeIdParsed : 1,
                 nota: pembelianData.nota,
-                id_supplier: !isNaN(supplierIdParsed) ? supplierIdParsed : null,
+                id_supplier: supplierIdValue, // Use the resolved numeric ID
                 tgl_masuk: pembelianData.tglMasuk, // Use original date format
                 nama_supir: pembelianData.namaSupir,
                 plat_nomor: pembelianData.platNomor,
@@ -185,8 +191,10 @@ const usePembelianHO = () => {
                 file: pembelianData.file || null
             };
 
-            // Validate required fields before sending
-            if (!headerData.id_supplier || isNaN(headerData.id_supplier) || headerData.id_supplier <= 0) {
+            // Validate required fields before sending - handle both numeric and encrypted supplier IDs
+            if (!headerData.id_supplier || 
+                (typeof headerData.id_supplier === 'string' && headerData.id_supplier.trim() === '') ||
+                (typeof headerData.id_supplier === 'number' && (isNaN(headerData.id_supplier) || headerData.id_supplier <= 0))) {
                 throw new Error('Supplier harus dipilih sebelum menyimpan data');
             }
             
@@ -214,6 +222,7 @@ const usePembelianHO = () => {
                 
                 // Add details as JSON string
                 requestData.append('details', JSON.stringify(pembelianData.details || []));
+                
             } else {
                 // No file upload, use regular JSON format
                 requestData = {
@@ -225,17 +234,7 @@ const usePembelianHO = () => {
                 if (!requestData.file) {
                     delete requestData.file;
                 }
-            }
-            
-            // Debug logging for troubleshooting
-            console.log('🔍 Debug pembelian request:', {
-                hasFile: !!(headerData.file && headerData.file instanceof File),
-                requestType: requestData instanceof FormData ? 'FormData' : 'JSON',
-                detailsCount: pembelianData.details?.length || 0,
-                headerKeys: requestData instanceof FormData ? 
-                    Array.from(requestData.keys()) : 
-                    Object.keys(requestData)
-            });
+            };
             
             const result = await HttpClient.post(`${API_ENDPOINTS.HO.PEMBELIAN}/store`, requestData);
             await fetchPembelian(1, serverPagination.perPage); // Refresh data
@@ -256,7 +255,7 @@ const usePembelianHO = () => {
     }, [fetchPembelian, serverPagination.perPage]);
 
     // Update pembelian (header or detail based on data type)
-    const updatePembelian = useCallback(async (data, isHeaderUpdate = true) => {
+    const updatePembelian = useCallback(async (data, isHeaderUpdate = true, supplierOptions = []) => {
         setLoading(true);
         setError(null);
         
@@ -278,11 +277,20 @@ const usePembelianHO = () => {
             
             // If it's a header update, ensure all required fields are present
             if (isHeader) {
+                // Handle supplier ID conversion for header updates
+                let supplierIdValue = data.idSupplier || data.id_supplier;
+                if (supplierIdValue && supplierOptions.length > 0) {
+                    const selectedSupplier = supplierOptions.find(supplier => supplier.value === supplierIdValue);
+                    if (selectedSupplier && selectedSupplier.rawId) {
+                        supplierIdValue = parseInt(selectedSupplier.rawId);
+                    }
+                }
+                
                 // Map frontend field names to backend field names
                 const mappedData = {
                     id_office: data.idOffice || data.id_office,
                     nota: data.nota,
-                    id_supplier: data.idSupplier || data.id_supplier,
+                    id_supplier: supplierIdValue, // Use the resolved supplier ID
                     tgl_masuk: data.tglMasuk || data.tgl_masuk,
                     nama_supir: data.namaSupir || data.nama_supir,
                     plat_nomor: data.platNomor || data.plat_nomor,
