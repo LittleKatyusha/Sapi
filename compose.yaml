@@ -1,0 +1,22 @@
+services:
+  terna_fe:
+    build: .
+    # container_name: react-app
+    networks:
+      - ternasys
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+#    ports:
+#      - "80:80"
+
+networks:
+  ternasys:
+      name: nginx-proxy_network
+      external: true
+
+# compose docker with scale option
+# To scale the react-app service, you can use the following command:
+# docker compose up -d --build --scale terna_fe=2
