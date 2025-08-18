@@ -72,14 +72,7 @@ const useSuppliersAPI = (jenisSupplier = null) => {
 
     const supplierOptions = useMemo(() => {
         return suppliers.map(supplier => {
-            // Coba gunakan PID - encrypted string yang mungkin berisi ID sebenarnya
-            console.log('🔍 DEBUG: Supplier mapping:', {
-                name: supplier.name,
-                pubid: supplier.pubid,
-                pid: supplier.pid,
-                order_no: supplier.order_no,
-                jenis_supplier: supplier.jenis_supplier
-            });
+            // Use PID as encrypted ID for better security
             
             return {
                 value: supplier.pid, // Gunakan PID sebagai encrypted ID

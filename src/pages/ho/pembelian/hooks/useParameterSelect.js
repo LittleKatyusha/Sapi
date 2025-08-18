@@ -3,7 +3,7 @@ import HttpClient from '../../../../services/httpClient';
 import { API_ENDPOINTS } from '../../../../config/api';
 import useSuppliersAPI from './useSuppliersAPI';
 
-const useParameterSelect = () => {
+const useParameterSelect = (isEditMode = false) => {
     const [parameterData, setParameterData] = useState({
         eartag: [],
         supplier: [],
@@ -25,15 +25,15 @@ const useParameterSelect = () => {
     
     const [isSupplierDataFetched, setIsSupplierDataFetched] = useState(false);
 
-    // Lazy loading function specifically for supplier data - now uses direct supplier API
-    const fetchSupplierData = async (jenisSupplier = null) => {
-        // More specific caching logic
-        if (isSupplierDataFetched && jenisSupplier === null) {
+    // Supplier data loading function - can be immediate or lazy based on context
+    const fetchSupplierData = async (jenisSupplier = null, forceLoad = false) => {
+        // Skip caching check if forceLoad is true (for edit mode)
+        if (!forceLoad && isSupplierDataFetched && jenisSupplier === null) {
             console.log('📊 Supplier data already fetched (no filter), skipping...');
             return;
         }
 
-        console.log('📊 Fetching supplier data (lazy loading) with filter:', jenisSupplier);
+        console.log('📊 Fetching supplier data with filter:', jenisSupplier, forceLoad ? '(forced load)' : '(lazy loading)');
         
         try {
             // Use the direct supplier API with filter support
@@ -144,9 +144,25 @@ const useParameterSelect = () => {
         }
     };
 
+    // Function to preload supplier data for edit mode
+    const preloadSupplierForEdit = async () => {
+        console.log('📊 Preloading supplier data for edit mode...');
+        await fetchSupplierData(null, true); // Force load all suppliers
+    };
+
     useEffect(() => {
         fetchNonSupplierData();
-    }, []);
+        
+        // For edit mode, load supplier data immediately (no lazy loading)
+        // For add mode, still use lazy loading
+        if (isEditMode) {
+            console.log('📊 Edit mode detected: Loading supplier data immediately (no lazy loading)');
+            fetchSupplierData(null, true); // Force load
+        } else {
+            // Load supplier data immediately for better UX in all cases
+            fetchSupplierData();
+        }
+    }, [isEditMode]);
 
     // Create select options for each parameter type
     const eartagOptions = useMemo(() => {
@@ -220,7 +236,8 @@ const useParameterSelect = () => {
         
         // Actions
         refetch: fetchParameterData,
-        fetchSupplierData
+        fetchSupplierData,
+        preloadSupplierForEdit
     };
 };
 

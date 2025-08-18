@@ -33,8 +33,9 @@ const AddEditPembelianPage = () => {
         error: parameterError,
         supplierLoading,
         isSupplierDataFetched,
-        fetchSupplierData
-    } = useParameterSelect();
+        fetchSupplierData,
+        preloadSupplierForEdit
+    } = useParameterSelect(isEdit); // Pass edit mode flag
 
     const {
         tipePembelianOptions,
@@ -174,15 +175,41 @@ const AddEditPembelianPage = () => {
         }
     }, [headerData.tipePembelian, filteredSupplierOptions, headerData.idSupplier]);
 
+    // Preload supplier data immediately for edit mode (no lazy loading)
+    useEffect(() => {
+        if (isEdit) {
+            console.log('🔄 Edit mode detected: Preloading all supplier data immediately...');
+            preloadSupplierForEdit();
+        }
+    }, [isEdit, preloadSupplierForEdit]);
+
     // Load data for edit mode - wait for parameter data to be loaded first
     useEffect(() => {
-        const hasRequiredData = parameterData.supplier?.length > 0 && 
-                               parameterData.eartag?.length > 0 && 
+        const hasRequiredData = parameterData.eartag?.length > 0 && 
                                parameterData.klasifikasihewan?.length > 0;
         
-        if (isEdit && id && !parameterLoading && hasRequiredData) {
+        // For edit mode, we need supplier options to be loaded for supplier matching
+        // Since we preload supplier data for edit mode, this should be faster
+        const hasSupplierData = supplierOptions?.length > 0;
+        const hasTipePembelianData = tipePembelianOptions?.length > 0;
+        
+        if (isEdit && id && !parameterLoading && !tipePembelianLoading && hasRequiredData && hasSupplierData && hasTipePembelianData) {
             const loadEditData = async () => {
                 try {
+                    console.log('🔄 Loading edit data with conditions:', {
+                        isEdit,
+                        id,
+                        parameterLoading,
+                        tipePembelianLoading,
+                        hasRequiredData,
+                        hasSupplierData,
+                        hasTipePembelianData,
+                        supplierOptionsCount: supplierOptions?.length || 0,
+                        eartagOptionsCount: eartagOptions?.length || 0,
+                        klasifikasiOptionsCount: klasifikasiHewanOptions?.length || 0,
+                        tipePembelianOptionsCount: tipePembelianOptions?.length || 0
+                    });
+                    
                     const decodedId = decodeURIComponent(id);
                     const result = await getPembelianDetail(decodedId);
                     
@@ -428,6 +455,22 @@ const AddEditPembelianPage = () => {
             };
 
             loadEditData();
+        } else if (isEdit && id) {
+            console.log('⏳ Edit mode conditions not met yet (supplier preloaded):', {
+                isEdit,
+                id,
+                parameterLoading,
+                tipePembelianLoading,
+                hasRequiredData,
+                hasSupplierData,
+                hasTipePembelianData,
+                supplierOptionsCount: supplierOptions?.length || 0,
+                eartagOptionsCount: eartagOptions?.length || 0,
+                klasifikasiOptionsCount: klasifikasiHewanOptions?.length || 0,
+                tipePembelianOptionsCount: tipePembelianOptions?.length || 0,
+                supplierLoading,
+                isSupplierDataFetched
+            });
         } else if (cloneData) {
             // Clone mode - populate with clone data
             setHeaderData({
@@ -460,7 +503,7 @@ const AddEditPembelianPage = () => {
         }
         // Remove automatic detail item creation for new records
         // Users will add details manually using the "Tambah Detail" button
-    }, [isEdit, id, cloneData, parameterLoading]);
+    }, [isEdit, id, cloneData, parameterLoading, tipePembelianLoading, supplierOptions, eartagOptions, klasifikasiHewanOptions, tipePembelianOptions]);
 
     // Check if current purchase type is SUPPLIER (PERORANGAN)
     const isSupplierPerorangan = useMemo(() => {
