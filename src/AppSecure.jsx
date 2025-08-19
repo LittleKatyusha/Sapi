@@ -1,9 +1,8 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import LayoutSecure from './components/LayoutSecure';
 import ProtectedRouteSecure from './components/ProtectedRouteSecure';
 import { setSecurityHeaders, securityAudit } from './utils/security';
-import { useAuthSecure } from './hooks/useAuthSecure';
 
 // Import halaman authentication yang sudah enhanced
 import LoginPageSecure from './pages/LoginPageSecure';
@@ -19,7 +18,7 @@ import ReportPage from './pages/reporting/ReportPage';
 import SettingsPageSecure from './pages/SettingsPageSecure'; // Enhanced settings
 import AttendancePage from './pages/humanResources/AttendancePage';
 import LeaveRequestPage from './pages/humanResources/LeaveRequestPage';
-import DeliveryOrderPage from './pages/DeliveryOrderPage'; // Fixed import path
+import DeliveryOrderPage from './pages/operations/DeliveryOrderPage.jsx'; // Fixed import path
 
 // Data Master
 import KandangOfficePage from './pages/dataMaster/KandangOfficePage';
@@ -57,14 +56,9 @@ import PenjualanDetailPage from './pages/ho/penjualan/PenjualanDetailPage';
 
 const AppWrapperSecure = () => (
   <Router>
-    <AppSecureWithAuth />
+    <AppSecure />
   </Router>
 );
-
-// Wrapper component untuk menggunakan useAuthSecure hook
-const AppSecureWithAuth = () => {
-  return <AppSecure />;
-};
 
 // Peta Judul Halaman dengan struktur baru
 const pageTitleMap = {
@@ -167,7 +161,6 @@ function AppSecure() {
   const location = useLocation();
   const title = pageTitleMap[location.pathname] || 'Dashboard Aman';
   const isLoginPage = location.pathname === '/login';
-  const { isAuthenticated, loading } = useAuthSecure();
 
   // Initialize security pada app startup
   useEffect(() => {
@@ -263,33 +256,6 @@ function AppSecure() {
     // Route change monitoring without logging
   }, [location.pathname]);
 
-  // Show loading screen during initial auth check
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="max-w-md w-full mx-4 p-8 bg-blue-50 rounded-2xl shadow-lg text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">
-            Memuat Aplikasi
-          </h2>
-          <p className="text-gray-700">
-            Silakan tunggu...
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // Redirect to login if not authenticated and not on login page
-  if (!isAuthenticated && !isLoginPage) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
-  }
-
-  // Redirect to dashboard if authenticated and on login page
-  if (isAuthenticated && isLoginPage) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
   // Jika halaman login, tampilkan tanpa layout
   if (isLoginPage) {
     return (
@@ -333,6 +299,7 @@ function AppSecure() {
           ` : ''}
         `}</style>
         <Routes>
+          <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<LoginPageSecure />} />
         </Routes>
       </SecurityErrorBoundary>
@@ -341,118 +308,119 @@ function AppSecure() {
 
   return (
     <SecurityErrorBoundary>
-      <LayoutSecure title={title}>
-        <style>{`
-          .input-field {
-            background-color: #F9FAFB; border: 1px solid #D1D5DB;
-            padding: 0.5rem 0.75rem; border-radius: 0.5rem;
-            transition: all 0.2s ease-in-out;
-          }
-          .input-field:focus {
-            outline: none; --tw-ring-color: #F87171;
-            box-shadow: 0 0 0 2px var(--tw-ring-color);
-            border-color: #EF4444;
-          }
-          @keyframes fade-in-up {
-            0% { opacity: 0; transform: translateY(20px); }
-            100% { opacity: 1; transform: translateY(0); }
-          }
-          .animate-fade-in-up { animation: fade-in-up 0.3s ease-out; }
-          @keyframes fade-out {
-            0% { opacity: 1; transform: translateY(0); }
-            100% { opacity: 0; transform: translateY(-20px); }
-          }
-          .animate-fade-out { animation: fade-out 0.3s ease-in; }
-          
-          /* Security-enhanced styling */
-          .security-border {
-            border: 2px solid #10B981;
-            box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
-          }
-          
-          /* Disable text selection pada production untuk keamanan */
-          ${process.env.NODE_ENV === 'production' ? `
-            * {
-              -webkit-user-select: none;
-              -moz-user-select: none;
-              -ms-user-select: none;
-              user-select: none;
+      <ProtectedRouteSecure>
+        <LayoutSecure title={title}>
+          <style>{`
+            .input-field {
+              background-color: #F9FAFB; border: 1px solid #D1D5DB;
+              padding: 0.5rem 0.75rem; border-radius: 0.5rem;
+              transition: all 0.2s ease-in-out;
             }
-            input, textarea, [contenteditable] {
-              -webkit-user-select: text;
-              -moz-user-select: text;
-              -ms-user-select: text;
-              user-select: text;
+            .input-field:focus {
+              outline: none; --tw-ring-color: #F87171;
+              box-shadow: 0 0 0 2px var(--tw-ring-color);
+              border-color: #EF4444;
             }
-          ` : ''}
-        `}</style>
+            @keyframes fade-in-up {
+              0% { opacity: 0; transform: translateY(20px); }
+              100% { opacity: 1; transform: translateY(0); }
+            }
+            .animate-fade-in-up { animation: fade-in-up 0.3s ease-out; }
+            @keyframes fade-out {
+              0% { opacity: 1; transform: translateY(0); }
+              100% { opacity: 0; transform: translateY(-20px); }
+            }
+            .animate-fade-out { animation: fade-out 0.3s ease-in; }
+            
+            /* Security-enhanced styling */
+            .security-border {
+              border: 2px solid #10B981;
+              box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+            }
+            
+            /* Disable text selection pada production untuk keamanan */
+            ${process.env.NODE_ENV === 'production' ? `
+              * {
+                -webkit-user-select: none;
+                -moz-user-select: none;
+                -ms-user-select: none;
+                user-select: none;
+              }
+              input, textarea, [contenteditable] {
+                -webkit-user-select: text;
+                -moz-user-select: text;
+                -ms-user-select: text;
+                user-select: text;
+              }
+            ` : ''}
+          `}</style>
 
-        <Routes>
-          {/* Rute Utama */}
-          <Route path="/" element={<DashboardPage />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
-          
-          {/* Rute Operasional */}
-          <Route path="/sales" element={<SalesPage />} />
-          <Route path="/purchases" element={<PurchasePage />} />
-          <Route path="/delivery-orders" element={<DeliveryOrderPage />} />
-          
-          {/* Rute Inventaris */}
-          <Route path="/inventory/livestock" element={<LivestockStockPage />} />
-          <Route path="/inventory/meat" element={<MeatStockPage />} />
-          
-          {/* Rute Laporan */}
-          <Route path="/reports" element={<ReportPage />} />
+          <Routes>
+            {/* Rute Dashboard (setelah login) */}
+            <Route path="/dashboard" element={<DashboardPage />} />
+            
+            {/* Rute Operasional */}
+            <Route path="/sales" element={<SalesPage />} />
+            <Route path="/purchases" element={<PurchasePage />} />
+            <Route path="/delivery-orders" element={<DeliveryOrderPage />} />
+            
+            {/* Rute Inventaris */}
+            <Route path="/inventory/livestock" element={<LivestockStockPage />} />
+            <Route path="/inventory/meat" element={<MeatStockPage />} />
+            
+            {/* Rute Laporan */}
+            <Route path="/reports" element={<ReportPage />} />
 
-          {/* Rute SDM */}
-          <Route path="/hr/employees" element={<EmployeePage />} />
-          <Route path="/hr/attendance" element={<AttendancePage />} />
-          <Route path="/hr/leave-requests" element={<LeaveRequestPage />} />
+            {/* Rute SDM */}
+            <Route path="/hr/employees" element={<EmployeePage />} />
+            <Route path="/hr/attendance" element={<AttendancePage />} />
+            <Route path="/hr/leave-requests" element={<LeaveRequestPage />} />
 
-          {/* Rute Pengaturan - Enhanced Security */}
-          <Route path="/settings" element={<SettingsPageSecure />} />
+            {/* Rute Pengaturan - Enhanced Security */}
+            <Route path="/settings" element={<SettingsPageSecure />} />
 
-          {/* Rute Data Master */}
-          <Route path="/master-data/kandang-office" element={<KandangOfficePage />} />
-          <Route path="/master-data/jenis-hewan" element={<JenisHewanPage />} />
-          <Route path="/master-data/klasifikasi-hewan" element={<KlasifikasiHewanPage />} />
-          <Route path="/master-data/supplier" element={<SupplierPage />} />
-          <Route path="/master-data/pelanggan" element={<PelangganPage />} />
-          <Route path="/master-data/outlet" element={<OutletPage />} />
-          <Route path="/master-data/produk-gds" element={<ProdukGDSPage />} />
-          <Route path="/master-data/eartag" element={<EartagPage />} />
+            {/* Rute Data Master */}
+            <Route path="/master-data/kandang-office" element={<KandangOfficePage />} />
+            <Route path="/master-data/jenis-hewan" element={<JenisHewanPage />} />
+            <Route path="/master-data/klasifikasi-hewan" element={<KlasifikasiHewanPage />} />
+            <Route path="/master-data/supplier" element={<SupplierPage />} />
+            <Route path="/master-data/pelanggan" element={<PelangganPage />} />
+            <Route path="/master-data/outlet" element={<OutletPage />} />
+            <Route path="/master-data/produk-gds" element={<ProdukGDSPage />} />
+            <Route path="/master-data/eartag" element={<EartagPage />} />
 
-          {/* Rute Boning */}
-          <Route path="/boning/*" element={<BoningLayout />}>
-            <Route path="keuangan" element={<KeuanganPage />} />
-            <Route path="pembelian" element={<PembelianPage />} />
-            <Route path="penjualan" element={<PenjualanPage />} />
-            <Route path="stok-daging" element={<StokDagingPage />} />
-            <Route path="return" element={<ReturnPage />} />
-            <Route path="surat-jalan" element={<SuratJalanPage />} />
-          </Route>
+            {/* Rute Boning */}
+            <Route path="/boning/*" element={<BoningLayout />}>
+              <Route path="keuangan" element={<KeuanganPage />} />
+              <Route path="pembelian" element={<PembelianPage />} />
+              <Route path="penjualan" element={<PenjualanPage />} />
+              <Route path="stok-daging" element={<StokDagingPage />} />
+              <Route path="return" element={<ReturnPage />} />
+              <Route path="surat-jalan" element={<SuratJalanPage />} />
+            </Route>
 
-          {/* Rute HO (Head Office) */}
-          <Route path="/ho/pembelian" element={<PembelianHOPage />} />
-          <Route path="/ho/pembelian/add" element={<AddEditPembelianPage />} />
-          <Route path="/ho/pembelian/edit/:id" element={<AddEditPembelianPage />} />
-          <Route path="/ho/pembelian/detail/:id" element={<PembelianDetailPage />} />
-          <Route path="/ho/distribusi/:id" element={<DistribusiPage />} />
-          <Route path="/ho/penjualan" element={<PenjualanHOPage />} />
-          <Route path="/ho/penjualan/add" element={<AddEditPenjualanPage />} />
-          <Route path="/ho/penjualan/edit/:id" element={<AddEditPenjualanPage />} />
-          <Route path="/ho/penjualan/detail/:id" element={<PenjualanDetailPage />} />
+            {/* Rute HO (Head Office) */}
+            <Route path="/ho/pembelian" element={<PembelianHOPage />} />
+            <Route path="/ho/pembelian/add" element={<AddEditPembelianPage />} />
+            <Route path="/ho/pembelian/edit/:id" element={<AddEditPembelianPage />} />
+            <Route path="/ho/pembelian/detail/:id" element={<PembelianDetailPage />} />
+            <Route path="/ho/distribusi/:id" element={<DistribusiPage />} />
+            <Route path="/ho/penjualan" element={<PenjualanHOPage />} />
+            <Route path="/ho/penjualan/add" element={<AddEditPenjualanPage />} />
+            <Route path="/ho/penjualan/edit/:id" element={<AddEditPenjualanPage />} />
+            <Route path="/ho/penjualan/detail/:id" element={<PenjualanDetailPage />} />
 
-          {/* Rute System */}
-          <Route path="/system/role" element={<RolePage />} />
-          <Route path="/system/permission" element={<PermissionPage />} />
-          <Route path="/system/users" element={<UsersPage />} />
-          <Route path="/system/parameters" element={<ParametersPage />} />
+            {/* Rute System */}
+            <Route path="/system/role" element={<RolePage />} />
+            <Route path="/system/permission" element={<PermissionPage />} />
+            <Route path="/system/users" element={<UsersPage />} />
+            <Route path="/system/parameters" element={<ParametersPage />} />
 
-          {/* Rute Fallback */}
-          <Route path="*" element={<DashboardPage />} />
-        </Routes>
-      </LayoutSecure>
+            {/* Rute Fallback */}
+            <Route path="*" element={<DashboardPage />} />
+          </Routes>
+        </LayoutSecure>
+      </ProtectedRouteSecure>
     </SecurityErrorBoundary>
   );
 }
