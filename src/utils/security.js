@@ -415,7 +415,7 @@ export const setSecurityHeaders = () => {
     }
 
     // Right-click enabled by default
-    if (process.env.REACT_APP_FORCE_DISABLE_RIGHT_CLICK === 'true') {
+    if (process.env.REACT_APP_FORCE_DISABLE_RIGHT_CLICK === 'false') {
         document.addEventListener('contextmenu', (e) => e.preventDefault());
     }
 
@@ -425,6 +425,12 @@ export const setSecurityHeaders = () => {
         document.body.style.webkitUserSelect = 'none';
         document.body.style.mozUserSelect = 'none';
         document.body.style.msUserSelect = 'none';
+    } else {
+        // Enable text selection for all elements
+        document.body.style.userSelect = 'auto';
+        document.body.style.webkitUserSelect = 'auto';
+        document.body.style.mozUserSelect = 'auto';
+        document.body.style.msUserSelect = 'auto';
     }
 
 

@@ -211,10 +211,9 @@ function AppSecure() {
       }, 1000);
 
       // Disable right-click context menu pada production
-      if (process.env.NODE_ENV === 'production') {
+      if (process.env.NODE_ENV === 'production' && process.env.REACT_APP_ENABLE_RIGHT_CLICK !== 'true') {
         document.addEventListener('contextmenu', (e) => {
           e.preventDefault();
-          // Context menu blocked without logging
         });
 
         // Disable common developer shortcuts
@@ -338,21 +337,21 @@ function AppSecure() {
               box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
             }
             
-            /* Disable text selection pada production untuk keamanan */
-            ${process.env.NODE_ENV === 'production' ? `
-              * {
-                -webkit-user-select: none;
-                -moz-user-select: none;
-                -ms-user-select: none;
-                user-select: none;
-              }
-              input, textarea, [contenteditable] {
-                -webkit-user-select: text;
-                -moz-user-select: text;
-                -ms-user-select: text;
-                user-select: text;
-              }
-            ` : ''}
+            /* Text selection enabled untuk semua elemen */
+            * {
+              -webkit-user-select: auto;
+              -moz-user-select: auto;
+              -ms-user-select: auto;
+              user-select: auto;
+            }
+            
+            /* Pastikan input dan textarea tetap bisa di-select */
+            input, textarea, [contenteditable] {
+              -webkit-user-select: text;
+              -moz-user-select: text;
+              -ms-user-select: text;
+              user-select: text;
+            }
           `}</style>
 
           <Routes>

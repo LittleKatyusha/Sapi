@@ -478,7 +478,7 @@ const PembelianHOPage = () => {
                                     ...customTableStyles.table,
                                     style: {
                                         ...customTableStyles.table.style,
-                                        minWidth: '500px',
+                                        minWidth: '1200px', // Increased to accommodate all columns properly
                                         width: '100%',
                                         tableLayout: 'fixed',
                                         wordWrap: 'break-word',
@@ -496,6 +496,9 @@ const PembelianHOPage = () => {
                                         borderRadius: '12px',
                                         WebkitOverflowScrolling: 'touch',
                                         boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+                                        position: 'relative', // Ensure proper positioning context for sticky elements
+                                        // Additional properties for better sticky positioning
+                                        isolation: 'isolate', // Create stacking context
                                     }
                                 },
                                 headRow: {
@@ -521,6 +524,23 @@ const PembelianHOPage = () => {
                                             backgroundColor: '#ffffff',
                                             borderRight: '3px solid #e2e8f0',
                                             boxShadow: 'inset -3px 0 4px -1px rgba(0, 0, 0, 0.1)',
+                                            // Additional properties for better sticky positioning
+                                            willChange: 'transform', // Optimize for animations
+                                        },
+                                        // Sticky "Aksi" header column on the right
+                                        '&:last-child': {
+                                            position: 'sticky',
+                                            right: 0,
+                                            zIndex: 1001,
+                                            backgroundColor: '#ffffff',
+                                            borderLeft: '3px solid #e2e8f0',
+                                            boxShadow: 'inset 3px 0 4px -1px rgba(0, 0, 0, 0.1)',
+                                            // Ensure proper alignment and prevent text wrapping
+                                            whiteSpace: 'nowrap',
+                                            textAlign: 'center',
+                                            verticalAlign: 'middle',
+                                            // Additional properties for better sticky positioning
+                                            willChange: 'transform', // Optimize for animations
                                         },
                                     },
                                 },
@@ -558,9 +578,25 @@ const PembelianHOPage = () => {
                                             borderRight: '2px solid #e2e8f0',
                                             boxShadow: 'inset -3px 0 4px -1px rgba(0, 0, 0, 0.1)',
                                             // padding: '8px 12px', // Pastikan padding konsisten
+                                            // Additional properties for better sticky positioning
+                                            willChange: 'transform', // Optimize for animations
                                         },
-                                        // ------------------------------
-                                        // Tidak ada &:last-child untuk "Aksi", jadi itu akan ikut hover baris
+                                        // Sticky "Aksi" column on the right
+                                        '&:last-child': {
+                                            position: 'sticky',
+                                            right: 0,
+                                            zIndex: 998,
+                                            backgroundColor: '#fff !important', // Tetap putih saat hover
+                                            borderLeft: '2px solid #e2e8f0',
+                                            boxShadow: 'inset 3px 0 4px -1px rgba(0, 0, 0, 0.1)',
+                                            padding: '8px 12px',
+                                            // Ensure proper alignment and prevent text wrapping
+                                            whiteSpace: 'nowrap',
+                                            textAlign: 'center',
+                                            verticalAlign: 'middle',
+                                            // Additional properties for better sticky positioning
+                                            willChange: 'transform', // Optimize for animations
+                                        },
                                     }
                                 }
                             }}
