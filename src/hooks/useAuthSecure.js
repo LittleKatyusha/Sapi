@@ -4,7 +4,6 @@ import {
   secureStorage,
   tokenSecurity,
   loginRateLimit,
-  getSecurityHeaders,
   securityAudit,
   generateDeviceFingerprint,
   SECURITY_CONFIG
@@ -63,22 +62,22 @@ export const useAuthSecure = () => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
+        // Gunakan key yang konsisten
         const storedToken = secureStorage.getItem('token');
         const storedUser = secureStorage.getItem('user');
         const authStatus = secureStorage.getItem('isAuthenticated');
-        const storedFingerprint = secureStorage.getItem('deviceFingerprint');
         
+        console.log('🔍 Auth Check:', {
+          hasToken: !!storedToken,
+          hasUser: !!storedUser,
+          authStatus,
+          pathname: window.location.pathname
+        });
         
-        // Sementara disable device fingerprint check yang terlalu ketat
-        // untuk troubleshooting masalah login
-        if (storedFingerprint && storedFingerprint !== deviceFingerprint.current) {
-          // TEMPORARY: Don't clear auth data, just update fingerprint
-          secureStorage.setItem('deviceFingerprint', deviceFingerprint.current);
-        }
-        
-        if (storedToken && authStatus === true) {
+        if (storedToken && storedUser && authStatus === true) {
           // Validate token
           if (tokenSecurity.isExpired(storedToken)) {
+            console.log('❌ Token expired, clearing auth data');
             await clearAuthData();
             setLoading(false);
             return;
@@ -86,19 +85,18 @@ export const useAuthSecure = () => {
 
           setToken(storedToken);
           setIsAuthenticated(true);
-          
-          if (storedUser) {
-            setUser(storedUser);
-          }
+          setUser(storedUser);
 
           securityAudit.log('AUTH_RESTORED', {
             userId: storedUser?.id,
-            deviceFingerprint: deviceFingerprint.current.substring(0, 20) + '...'
+            deviceFingerprint: deviceFingerprint.current?.substring(0, 20) + '...'
           });
         } else {
+          console.log('❌ No valid auth data found, clearing');
           await clearAuthData();
         }
       } catch (error) {
+        console.error('❌ Auth check error:', error);
         securityAudit.log('AUTH_CHECK_ERROR', { error: error.message });
         await clearAuthData();
       }
@@ -246,8 +244,6 @@ export const useAuthSecure = () => {
 
       const result = await HttpClient.post(API_ENDPOINTS.AUTH.REFRESH_TOKEN, {
         deviceFingerprint: deviceFingerprint.current
-      }, {
-        headers: getSecurityHeaders()
       });
 
       if (result.data && result.data.token) {
@@ -278,8 +274,7 @@ export const useAuthSecure = () => {
     if (!currentToken) return {};
     
     return {
-      'Authorization': `Bearer ${currentToken}`,
-      ...getSecurityHeaders()
+      'Authorization': `Bearer ${currentToken}`
     };
   }, []);
 

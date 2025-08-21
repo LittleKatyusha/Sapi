@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import LayoutSecure from './components/LayoutSecure';
 import ProtectedRouteSecure from './components/ProtectedRouteSecure';
-import { setSecurityHeaders, securityAudit } from './utils/security';
+import { securityAudit } from './utils/security';
 
 // Import halaman authentication yang sudah enhanced
 import LoginPageSecure from './pages/LoginPageSecure';
@@ -162,14 +162,18 @@ function AppSecure() {
   const title = pageTitleMap[location.pathname] || 'Dashboard Aman';
   const isLoginPage = location.pathname === '/login';
 
+  // Debug logging
+  useEffect(() => {
+    console.log('📍 AppSecure Route Change:', {
+      pathname: location.pathname,
+      isLoginPage,
+      timestamp: new Date().toISOString()
+    });
+  }, [location.pathname, isLoginPage]);
+
   // Initialize security pada app startup
   useEffect(() => {
     try {
-      // Set security headers
-      setSecurityHeaders();
-      
-
-
       // Set up global error handling
       window.addEventListener('error', (event) => {
         // Error handling without logging
@@ -257,6 +261,7 @@ function AppSecure() {
 
   // Jika halaman login, tampilkan tanpa layout
   if (isLoginPage) {
+    console.log('🔐 Rendering login page');
     return (
       <SecurityErrorBoundary>
         <style>{`
@@ -305,6 +310,7 @@ function AppSecure() {
     );
   }
 
+  console.log('🛡️ Rendering protected routes');
   return (
     <SecurityErrorBoundary>
       <ProtectedRouteSecure>

@@ -343,6 +343,133 @@ const usePembelianHO = () => {
         }
     }, [fetchPembelian]);
 
+    // New function: Save header only (without details)
+    const saveHeaderOnly = useCallback(async (headerData, supplierOptions = []) => {
+        setLoading(true);
+        setError(null);
+        
+        try {
+            // Validate header data
+            if (!headerData.nota || !headerData.id_supplier || !headerData.tgl_masuk) {
+                throw new Error('Data header tidak lengkap');
+            }
+
+            // Prepare header data without details
+            const requestData = {
+                id_office: parseInt(headerData.id_office) || 1,
+                nota: headerData.nota,
+                id_supplier: parseInt(headerData.id_supplier),
+                tgl_masuk: headerData.tgl_masuk,
+                nama_supir: headerData.nama_supir,
+                plat_nomor: headerData.plat_nomor,
+                jumlah: parseInt(headerData.jumlah) || 0,
+                biaya_truk: parseFloat(headerData.biaya_truk) || 0,
+                biaya_lain: parseFloat(headerData.biaya_lain) || 0,
+                biaya_total: parseFloat(headerData.biaya_total) || 0,
+                tipe_pembelian: parseInt(headerData.tipe_pembelian) || 1,
+                file: headerData.file || null,
+            };
+
+            // Handle file upload if present
+            let result;
+            if (requestData.file && requestData.file instanceof File) {
+                const formData = new FormData();
+                Object.keys(requestData).forEach(key => {
+                    if (key === 'file') {
+                        formData.append('file', requestData.file);
+                    } else if (key === 'details') {
+                        formData.append('details', JSON.stringify(requestData[key]));
+                    } else {
+                        formData.append(key, requestData[key]);
+                    }
+                });
+                result = await HttpClient.post(`${API_ENDPOINTS.HO.PEMBELIAN}/store`, formData);
+            } else {
+                // Remove file field if null
+                if (!requestData.file) {
+                    delete requestData.file;
+                }
+                result = await HttpClient.post(`${API_ENDPOINTS.HO.PEMBELIAN}/store`, requestData);
+            }
+
+            if (result.status === 'ok' || result.success === true) {
+                await fetchPembelian(1, serverPagination.perPage);
+                return {
+                    success: true,
+                    message: 'Header pembelian berhasil disimpan!',
+                    data: result.data
+                };
+            } else {
+                throw new Error(result.message || 'Gagal menyimpan header pembelian');
+            }
+
+        } catch (err) {
+            const errorMsg = err.message || 'Terjadi kesalahan saat menyimpan header';
+            setError(errorMsg);
+            return { success: false, message: errorMsg };
+        } finally {
+            setLoading(false);
+        }
+    }, [fetchPembelian, serverPagination.perPage]);
+
+    // New function: Save details only (requires existing header)
+    const saveDetailsOnly = useCallback(async (pid, detailsData) => {
+        setLoading(true);
+        setError(null);
+        
+        try {
+            if (!pid) {
+                throw new Error('ID pembelian tidak valid');
+            }
+
+            if (!Array.isArray(detailsData) || detailsData.length === 0) {
+                throw new Error('Data detail tidak valid atau kosong');
+            }
+
+            // Validate each detail item
+            detailsData.forEach((item, index) => {
+                if (!item.eartag || !item.id_klasifikasi_hewan || !item.harga || !item.berat) {
+                    throw new Error(`Detail ${index + 1}: Data tidak lengkap`);
+                }
+            });
+
+            // Prepare request data for details update
+            const requestData = {
+                pid: pid,
+                details: detailsData.map(item => ({
+                    id_office: parseInt(item.id_office) || 1,
+                    eartag: String(item.eartag),
+                    id_klasifikasi_hewan: parseInt(item.id_klasifikasi_hewan),
+                    harga: parseFloat(item.harga),
+                    berat: parseInt(item.berat),
+                    persentase: parseInt(item.persentase) || 0,
+                    hpp: parseFloat(item.hpp) || 0,
+                    total_harga: parseFloat(item.total_harga) || parseFloat(item.hpp) || 0
+                }))
+            };
+
+            const result = await HttpClient.put(`${API_ENDPOINTS.HO.PEMBELIAN}/update`, requestData);
+            
+            if (result.status === 'ok' || result.success) {
+                await fetchPembelian();
+                return {
+                    success: true,
+                    message: 'Detail pembelian berhasil disimpan!',
+                    data: result.data
+                };
+            } else {
+                throw new Error(result.message || 'Gagal menyimpan detail pembelian');
+            }
+
+        } catch (err) {
+            const errorMsg = err.message || 'Terjadi kesalahan saat menyimpan detail';
+            setError(errorMsg);
+            return { success: false, message: errorMsg };
+        } finally {
+            setLoading(false);
+        }
+    }, [fetchPembelian]);
+
     // Delete pembelian - dengan fallback method jika pubid tidak cocok
     const deletePembelian = useCallback(async (encryptedPid, pembelianData = null) => {
         setLoading(true);
@@ -679,7 +806,9 @@ const usePembelianHO = () => {
         getPembelianDetail,
         createDetail,
         updateDetail,
-        deleteDetail
+        deleteDetail,
+        saveHeaderOnly, // New function for saving header only
+        saveDetailsOnly // New function for saving details only
     };
 };
 

@@ -6,8 +6,7 @@ import {
   sanitizeHtml, 
   validateEmail, 
   loginRateLimit,
-  securityAudit,
-  setSecurityHeaders
+  securityAudit
 } from '../utils/security';
 import SecurityNotification from '../components/security/SecurityNotification';
 
@@ -34,7 +33,6 @@ const LoginPageSecure = () => {
 
   // Set security headers saat komponen mount
   useEffect(() => {
-    setSecurityHeaders();
     securityAudit.log('LOGIN_PAGE_ACCESSED', {
       referrer: document.referrer,
       userAgent: navigator.userAgent.slice(0, 100)

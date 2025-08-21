@@ -68,6 +68,13 @@ const ProtectedRouteSecure = ({ children }) => {
   useEffect(() => {
     const performSecurityCheck = async () => {
       try {
+        console.log('🔒 Security Check:', {
+          path: location.pathname,
+          isAuthenticated,
+          hasToken: !!token,
+          hasUser: !!user,
+          loading
+        });
 
         // Log access attempt
         securityAudit.log('ROUTE_ACCESS_ATTEMPT', {
@@ -79,6 +86,7 @@ const ProtectedRouteSecure = ({ children }) => {
 
         // Basic authentication check
         if (!isAuthenticated || !token || !user) {
+          console.log('❌ Access denied: not authenticated');
           securityAudit.log('ROUTE_ACCESS_DENIED', {
             reason: 'not_authenticated',
             path: location.pathname
@@ -216,6 +224,7 @@ const ProtectedRouteSecure = ({ children }) => {
 
 
         // All checks passed
+        console.log('✅ Access granted');
         securityAudit.log('ROUTE_ACCESS_GRANTED', {
           path: location.pathname,
           userId: user.id,
@@ -225,6 +234,7 @@ const ProtectedRouteSecure = ({ children }) => {
         setSecurityCheck({ status: 'granted' });
 
       } catch (error) {
+        console.error('❌ Security check error:', error);
         securityAudit.log('ROUTE_SECURITY_CHECK_ERROR', {
           error: error.message,
           path: location.pathname,
@@ -247,6 +257,7 @@ const ProtectedRouteSecure = ({ children }) => {
 
   // Show loading screen during initial auth check
   if (loading) {
+    console.log('⏳ Still loading auth state...');
     return (
       <SecurityCheckScreen 
         message="Memuat data keamanan..."
@@ -273,25 +284,9 @@ const ProtectedRouteSecure = ({ children }) => {
         />
       );
       
-    case 'warning':
-      return (
-        <SecurityCheckScreen 
-          message={securityCheck.message}
-          type="warning"
-        />
-      );
-      
     case 'redirect':
-      const redirectTo = securityCheck.redirectTo || '/login';
-      const state = redirectTo === '/login' 
-        ? { 
-            from: location,
-            message: 'Sesi keamanan berakhir. Silakan login kembali.',
-            type: 'warning'
-          }
-        : undefined;
-      
-      return <Navigate to={redirectTo} state={state} replace />;
+      console.log('🔄 Redirecting to login');
+      return <Navigate to="/login" replace />;
       
     case 'granted':
       return children;

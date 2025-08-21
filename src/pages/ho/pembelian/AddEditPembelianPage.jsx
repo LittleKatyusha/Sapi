@@ -18,6 +18,8 @@ const AddEditPembelianPage = () => {
         getPembelianDetail,
         createPembelian,
         updatePembelian,
+        saveHeaderOnly,
+        saveDetailsOnly,
         loading,
         error
     } = usePembelianHO();
@@ -97,6 +99,8 @@ const AddEditPembelianPage = () => {
     const [detailItems, setDetailItems] = useState([]);
     const [notification, setNotification] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    
+
 
 
 
@@ -440,6 +444,8 @@ const AddEditPembelianPage = () => {
                                 hpp: hpp,
                             };
                                                  }));
+                        
+
                     } else {
                         
                         throw new Error(result.message || 'Data tidak ditemukan atau kosong');
@@ -863,12 +869,8 @@ const AddEditPembelianPage = () => {
         }
         // Note: File upload is optional, no error if no file selected
 
-        // Detail validation - Now mandatory for all supplier types including SUPPLIER (PERORANGAN)
-        if (detailItems.length === 0) {
-            errors.push('Minimal harus ada 1 detail ternak');
-        }
-        
-        // Validate detail items if present (applies to all types)
+        // Detail validation - Now optional, can save header without details
+        // Only validate details if they exist
         if (detailItems.length > 0) {
             detailItems.forEach((item, index) => {
                 if (!item.idKlasifikasiHewan) errors.push(`Detail ${index + 1}: Klasifikasi hewan harus dipilih`);
@@ -882,7 +884,7 @@ const AddEditPembelianPage = () => {
         return errors;
     };
 
-    // Handle submit
+    // Handle submit - Save header and details together (legacy function)
     const handleSubmit = async () => {
         
         console.log('🔍 DEBUG: Pre-validation state:', {
@@ -1025,6 +1027,177 @@ const AddEditPembelianPage = () => {
         }
     };
 
+    // New function: Save header only (without details)
+    const handleSaveHeader = async () => {
+        console.log('🔍 DEBUG: Saving header only...');
+        
+        // Validate header fields only
+        const headerValidationErrors = [];
+        
+        if (!headerData.nota) headerValidationErrors.push('Nota harus diisi');
+        if (!headerData.idSupplier) headerValidationErrors.push('Supplier harus dipilih');
+        if (!headerData.tglMasuk) headerValidationErrors.push('Tanggal masuk harus diisi');
+        if (!headerData.namaSupir) headerValidationErrors.push('Nama supir harus diisi');
+        if (!headerData.platNomor) headerValidationErrors.push('Plat nomor harus diisi');
+        if (!headerData.biayaTruck || parseInt(headerData.biayaTruck) <= 0) headerValidationErrors.push('Biaya truck harus diisi dan > 0');
+        
+        if (headerValidationErrors.length > 0) {
+            setNotification({
+                type: 'error',
+                message: headerValidationErrors.join(', ')
+            });
+            return;
+        }
+
+        setIsSubmitting(true);
+        
+        try {
+            // Prepare header data without details
+            const headerOnlyData = {
+                ...headerData,
+                jumlah: isSupplierPerorangan ? (parseInt(headerData.totalSapi) || 0) : 0, // Set to 0 if no details
+                biayaTruck: parseFloat(headerData.biayaTruck),
+                biayaLain: parseFloat(headerData.biayaLain) || 0,
+                biayaTotal: parseFloat(headerData.biayaTotal) || 0,
+                hargaTotal: parseFloat(headerData.hargaTotal) || 0,
+                totalSapi: parseInt(headerData.totalSapi) || 0,
+                tipePembelian: parseInt(headerData.tipePembelian) || 1,
+                file: selectedFile,
+                details: [] // Empty array for header-only save
+            };
+
+            let result;
+            if (isEdit) {
+                // For edit mode, update header only
+                const editData = {
+                    pid: id,
+                    ...headerOnlyData
+                };
+                result = await updatePembelian(editData, true, filteredSupplierOptions);
+            } else {
+                // For add mode, create header only using new function
+                const headerDataForAPI = {
+                    id_office: headerOnlyData.idOffice,
+                    nota: headerOnlyData.nota,
+                    id_supplier: headerOnlyData.idSupplier,
+                    tgl_masuk: headerOnlyData.tglMasuk,
+                    nama_supir: headerOnlyData.namaSupir,
+                    plat_nomor: headerOnlyData.platNomor,
+                    jumlah: headerOnlyData.jumlah,
+                    biaya_truk: headerOnlyData.biayaTruck,
+                    biaya_lain: headerOnlyData.biayaLain,
+                    biaya_total: headerOnlyData.biayaTotal,
+                    tipe_pembelian: headerOnlyData.tipePembelian,
+                    file: headerOnlyData.file
+                };
+                result = await saveHeaderOnly(headerDataForAPI, filteredSupplierOptions);
+            }
+
+            if (result.success) {
+
+                
+                setNotification({
+                    type: 'success',
+                    message: 'Header pembelian berhasil disimpan! Detail dapat ditambahkan nanti.'
+                });
+                
+                // If this was a new record, navigate to edit mode
+                if (!isEdit && result.data?.id) {
+                    setTimeout(() => {
+                        navigate(`/ho/pembelian/edit/${result.data.id}`);
+                    }, 1500);
+                }
+            } else {
+                setNotification({
+                    type: 'error',
+                    message: result.message
+                });
+            }
+        } catch (err) {
+            setNotification({
+                type: 'error',
+                message: err.message || 'Terjadi kesalahan saat menyimpan header'
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    // New function: Save details only (requires existing header)
+    const handleSaveDetails = async () => {
+        if (!isEdit) {
+            setNotification({
+                type: 'error',
+                message: 'Header pembelian harus disimpan terlebih dahulu sebelum menyimpan detail'
+            });
+            return;
+        }
+
+        if (detailItems.length === 0) {
+            setNotification({
+                type: 'error',
+                message: 'Tidak ada detail untuk disimpan'
+            });
+            return;
+        }
+
+        // Validate detail items
+        const detailValidationErrors = [];
+        detailItems.forEach((item, index) => {
+            if (!item.idKlasifikasiHewan) detailValidationErrors.push(`Detail ${index + 1}: Klasifikasi hewan harus dipilih`);
+            if (!item.harga || item.harga <= 0) detailValidationErrors.push(`Detail ${index + 1}: Harga harus diisi dan > 0`);
+            if (!item.berat || item.berat <= 0) detailValidationErrors.push(`Detail ${index + 1}: Berat harus diisi dan > 0`);
+        });
+
+        if (detailValidationErrors.length > 0) {
+            setNotification({
+                type: 'error',
+                message: detailValidationErrors.join(', ')
+            });
+            return;
+        }
+
+        setIsSubmitting(true);
+        
+        try {
+            // Prepare details data
+            const detailsData = detailItems.map(item => ({
+                id_office: 1,
+                eartag: String(item.eartag),
+                id_klasifikasi_hewan: parseInt(item.idKlasifikasiHewan),
+                harga: parseFloat(item.harga),
+                berat: parseInt(item.berat),
+                persentase: parseInt(item.persentase) || 0,
+                hpp: parseFloat(item.hpp),
+                total_harga: parseFloat(item.totalHarga || item.hpp)
+            }));
+
+            // Update pembelian with details only using new function
+            const result = await saveDetailsOnly(id, detailsData);
+
+            if (result.success) {
+
+                
+                setNotification({
+                    type: 'success',
+                    message: 'Detail pembelian berhasil disimpan!'
+                });
+            } else {
+                setNotification({
+                    type: 'error',
+                    message: result.message
+                });
+            }
+        } catch (err) {
+            setNotification({
+                type: 'error',
+                message: err.message || 'Terjadi kesalahan saat menyimpan detail'
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     // Handle back
     const handleBack = () => {
         if (window.confirm('Apakah Anda yakin ingin kembali? Data yang belum disimpan akan hilang.')) {
@@ -1047,6 +1220,22 @@ const AddEditPembelianPage = () => {
     const detailPerPage = 50;
     const totalDetailPages = Math.ceil(detailItems.length / detailPerPage);
     const paginatedDetailItems = detailItems.slice((detailPage - 1) * detailPerPage, detailPage * detailPerPage);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-2 sm:p-4 md:p-6">
@@ -1710,13 +1899,21 @@ const AddEditPembelianPage = () => {
                             >
                                 Batal
                             </button>
+                            
+                            {/* Simple Save Button */}
                             <button
                                 onClick={handleSubmit}
                                 disabled={isSubmitting}
-                                className="bg-gradient-to-r from-red-500 to-rose-600 text-white px-8 py-3 rounded-lg hover:from-red-600 hover:to-rose-700 transition-all duration-300 flex items-center gap-2 font-medium disabled:opacity-50 shadow-lg"
+                                className="px-8 py-3 bg-gradient-to-r from-red-500 to-rose-600 text-white rounded-lg hover:from-red-600 hover:to-rose-700 transition-all duration-300 flex items-center gap-3 font-medium shadow-lg"
+                                title="Simpan pembelian dan detail ternak"
                             >
                                 <Save className="w-5 h-5" />
-                                {isSubmitting ? 'Menyimpan...' : 'Simpan'}
+                                {isSubmitting ? (
+                                    <div className="flex items-center gap-2">
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                        Menyimpan...
+                                    </div>
+                                ) : 'Simpan Pembelian'}
                             </button>
                         </div>
                     </div>

@@ -1,4 +1,4 @@
-import { API_BASE_URL } from '../config/api';
+
 
 // Security constants
 export const SECURITY_CONFIG = {
@@ -330,112 +330,6 @@ export const generateDeviceFingerprint = () => {
   return btoa(JSON.stringify(fingerprint));
 };
 
-// === SECURITY HEADERS ===
-
-/**
- * Generate security headers untuk API requests - CORS-friendly version
- */
-export const getSecurityHeaders = () => {
-  // TEMPORARY: Remove custom headers that cause CORS preflight issues
-  // Keep only standard headers that don't trigger preflight
-  return {
-    'X-Requested-With': 'XMLHttpRequest'
-    // Commented out headers that cause CORS issues:
-    // 'X-Device-Fingerprint': deviceFingerprint,
-    // 'X-Timestamp': timestamp.toString(),
-    // 'X-Nonce': nonce,
-    // 'X-Frame-Options': 'DENY',              // These need to be set by server
-    // 'X-Content-Type-Options': 'nosniff',    // These need to be set by server
-    // 'X-XSS-Protection': '1; mode=block'     // These need to be set by server
-  };
-};
-
-// Keep the original function available for when CORS is fixed
-export const getFullSecurityHeaders = () => {
-  const deviceFingerprint = generateDeviceFingerprint();
-  const timestamp = Date.now();
-  const nonce = Math.random().toString(36).substring(2, 15);
-  
-  return {
-    'X-Device-Fingerprint': deviceFingerprint,
-    'X-Timestamp': timestamp.toString(),
-    'X-Nonce': nonce,
-    'X-Requested-With': 'XMLHttpRequest',
-    'X-Frame-Options': 'DENY',
-    'X-Content-Type-Options': 'nosniff',
-    'X-XSS-Protection': '1; mode=block'
-  };
-};
-
-
-
-// === SECURITY HEADERS ===
-
-/**
- * Set basic security headers (CSP removed - now handled by backend)
- */
-export const setSecurityHeaders = () => {
-    // CSP completely removed - now handled by backend
-    
-    // Set basic security headers yang bisa diset via meta tags
-    const securityHeaders = [
-        { name: 'X-Content-Type-Options', content: 'nosniff' },
-        { name: 'X-XSS-Protection', content: '1; mode=block' },
-        { name: 'Referrer-Policy', content: 'strict-origin-when-cross-origin' }
-    ];
-    
-    securityHeaders.forEach(header => {
-        const existing = document.querySelector(`meta[http-equiv="${header.name}"]`);
-        if (!existing) {
-            const meta = document.createElement('meta');
-            meta.httpEquiv = header.name;
-            meta.content = header.content;
-            document.head.appendChild(meta);
-        }
-    });
-
-    // Set Permissions Policy untuk security tambahan
-    const permissionsPolicyMeta = document.createElement('meta');
-    permissionsPolicyMeta.httpEquiv = 'Permissions-Policy';
-    permissionsPolicyMeta.content = [
-        'geolocation=()',
-        'microphone=()',
-        'camera=()',
-        'payment=()',
-        'usb=()',
-        'magnetometer=()',
-        'gyroscope=()',
-        'speaker=()',
-        'vibrate=()',
-        'fullscreen=(self)'
-    ].join(', ');
-    
-    if (!document.querySelector('meta[http-equiv="Permissions-Policy"]')) {
-        document.head.appendChild(permissionsPolicyMeta);
-    }
-
-    // Right-click enabled by default
-    if (process.env.REACT_APP_FORCE_DISABLE_RIGHT_CLICK === 'false') {
-        document.addEventListener('contextmenu', (e) => e.preventDefault());
-    }
-
-    // Text selection enabled by default
-    if (process.env.REACT_APP_FORCE_DISABLE_TEXT_SELECTION === 'true') {
-        document.body.style.userSelect = 'none';
-        document.body.style.webkitUserSelect = 'none';
-        document.body.style.mozUserSelect = 'none';
-        document.body.style.msUserSelect = 'none';
-    } else {
-        // Enable text selection for all elements
-        document.body.style.userSelect = 'auto';
-        document.body.style.webkitUserSelect = 'auto';
-        document.body.style.mozUserSelect = 'auto';
-        document.body.style.msUserSelect = 'auto';
-    }
-
-
-};
-
 /**
  * Fungsi untuk memverifikasi apakah Google Fonts dapat dimuat
  */
@@ -530,20 +424,6 @@ export const securityAudit = {
       
       localStorage.setItem(auditKey, JSON.stringify(existingLogs));
 
-      // In production, you might want to send this to your backend audit endpoint
-      if (process.env.NODE_ENV === 'production' && process.env.REACT_APP_AUDIT_ENDPOINT) {
-        fetch(process.env.REACT_APP_AUDIT_ENDPOINT, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...getSecurityHeaders()
-          },
-          body: JSON.stringify(logEntry)
-        }).catch(error => {
-          console.warn('Failed to send audit log to server:', error);
-        });
-      }
-
     } catch (error) {
       console.error('Security audit logging failed:', error);
     }
@@ -606,9 +486,6 @@ const securityUtils = {
   loginRateLimit,
   tokenSecurity,
   generateDeviceFingerprint,
-  getSecurityHeaders,
-  getFullSecurityHeaders,
-  setSecurityHeaders,
   securityAudit
 };
 
