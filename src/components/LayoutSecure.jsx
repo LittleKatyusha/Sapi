@@ -4,7 +4,7 @@ import {
   Home, Users, Package, FileText, Settings, Menu, LogOut,
   ChevronDown, ChevronRight, Shield, Beef, DollarSign,
   ShoppingCart, TrendingUp, RotateCcw, Truck, UserCheck, Key,
-  Building2
+  Building2, ArrowLeft, Plus, Search, Filter, Download, Eye, Edit, Trash2, Syringe
 } from 'lucide-react';
 import { useAuthSecure } from '../hooks/useAuthSecure';
 import SecurityNotification from './security/SecurityNotification';
@@ -57,6 +57,8 @@ const LayoutSecure = ({ children, title }) => {
       icon: Building2,
       children: [
         { name: 'Pembelian', path: '/ho/pembelian', icon: ShoppingCart },
+        { name: 'Pembelian Feedmil', path: '/ho/pembelian-feedmil', icon: Package },
+        { name: 'Pembelian OVK', path: '/ho/pembelian-ovk', icon: Syringe },
         { name: 'Penjualan', path: '/ho/penjualan', icon: TrendingUp }
       ]
     },
@@ -177,7 +179,7 @@ const LayoutSecure = ({ children, title }) => {
     <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar */}
       <div
-        className={`bg-red-800 shadow-lg sidebar-container sidebar-hover-transition sidebar-no-select ${
+        className={`bg-emerald-800 shadow-lg sidebar-container sidebar-hover-transition sidebar-no-select ${
           shouldShowExpanded ? 'w-64' : 'w-16'
         } ${sidebarOpen ? 'sidebar-mobile-open' : ''} flex flex-col`}
         onMouseEnter={handleMouseEnter}
@@ -185,7 +187,7 @@ const LayoutSecure = ({ children, title }) => {
       >
         
         {/* Fixed Header Section */}
-        <div className="fixed top-0 left-0 z-40 bg-red-800 border-b border-red-700/50"
+        <div className="fixed top-0 left-0 z-40 bg-emerald-800 border-b border-emerald-700/50"
              style={{
                width: shouldShowExpanded ? '256px' : '64px',
                transition: 'width 300ms ease-in-out'
@@ -194,14 +196,14 @@ const LayoutSecure = ({ children, title }) => {
             {shouldShowExpanded && (
               <div className="logo-fade-in sidebar-content-fade">
                 <h1 className="text-lg font-bold text-white">TernaSys</h1>
-                <p className="text-xs text-red-300">Secure Dashboard</p>
+                <p className="text-xs text-emerald-300">Secure Dashboard</p>
               </div>
             )}
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-1 rounded-md hover:bg-red-700/50 transition-colors"
+              className="p-1 rounded-md hover:bg-emerald-700/50 transition-colors"
             >
-              <Menu className="w-5 h-5 text-red-200" />
+              <Menu className="w-5 h-5 text-emerald-200" />
             </button>
           </div>
         </div>
@@ -223,8 +225,8 @@ const LayoutSecure = ({ children, title }) => {
                         onClick={() => toggleMenu(item.name)}
                         className={`w-full flex items-center justify-between px-3 py-2 rounded-lg sidebar-item-hover ${
                           isMenuActive(item)
-                            ? 'bg-red-900 text-white'
-                            : 'text-red-200 hover:bg-red-700/50'
+                            ? 'bg-emerald-900 text-white'
+                            : 'text-emerald-200 hover:bg-emerald-700/50'
                         }`}
                       >
                         <div className="flex items-center">
@@ -235,7 +237,7 @@ const LayoutSecure = ({ children, title }) => {
                                 {item.name}
                               </span>
                               {item.badge && (
-                                <span className="ml-2 bg-red-100 text-red-600 text-xs px-2 py-1 rounded-full font-medium">
+                                <span className="ml-2 bg-emerald-100 text-emerald-600 text-xs px-2 py-1 rounded-full font-medium">
                                   {item.badge}
                                 </span>
                               )}
@@ -244,8 +246,8 @@ const LayoutSecure = ({ children, title }) => {
                         </div>
                         {shouldShowExpanded && (
                           expandedMenus[item.name] ?
-                          <ChevronDown className="w-4 h-4 text-red-200" /> :
-                          <ChevronRight className="w-4 h-4 text-red-200" />
+                          <ChevronDown className="w-4 h-4 text-emerald-200" /> :
+                          <ChevronRight className="w-4 h-4 text-emerald-200" />
                         )}
                       </button>
                       
@@ -258,8 +260,8 @@ const LayoutSecure = ({ children, title }) => {
                                 to={child.path}
                                 className={`flex items-center px-3 py-2 rounded-lg text-sm transition-colors ${
                                   location.pathname === child.path
-                                    ? 'bg-red-900 text-white font-medium'
-                                    : 'text-red-300 hover:bg-red-700/30'
+                                    ? 'bg-emerald-900 text-white font-medium'
+                                    : 'text-emerald-300 hover:bg-emerald-700/30'
                                 }`}
                                 onClick={() => {
                                   securityAudit.log('NAVIGATION', {
@@ -283,8 +285,8 @@ const LayoutSecure = ({ children, title }) => {
                       to={item.path}
                       className={`flex items-center px-3 py-2 rounded-lg sidebar-item-hover ${
                         item.active
-                          ? 'bg-red-900 text-white'
-                          : 'text-red-200 hover:bg-red-700/50'
+                          ? 'bg-emerald-900 text-white'
+                          : 'text-emerald-200 hover:bg-emerald-700/50'
                       }`}
                       onClick={() => {
                         securityAudit.log('NAVIGATION', {
@@ -309,7 +311,7 @@ const LayoutSecure = ({ children, title }) => {
         </nav>
 
         {/* Fixed Profile Section */}
-        <div className="fixed bottom-0 left-0 z-40 bg-red-800 border-t border-red-700/50"
+        <div className="fixed bottom-0 left-0 z-40 bg-emerald-800 border-t border-emerald-700/50"
              style={{
                width: shouldShowExpanded ? '256px' : '64px',
                transition: 'width 300ms ease-in-out'
@@ -320,7 +322,7 @@ const LayoutSecure = ({ children, title }) => {
                 {/* User Info */}
                 <div className="flex items-center">
                   <img
-                    src={user?.avatar || `https://placehold.co/32x32/FFD5D5/B91C1C?text=${user?.name?.charAt(0) || 'U'}`}
+                    src={user?.avatar || `https://placehold.co/32x32/D1FAE5/065F46?text=${user?.name?.charAt(0) || 'U'}`}
                     alt="Avatar"
                     className="w-8 h-8 rounded-full"
                   />
@@ -328,7 +330,7 @@ const LayoutSecure = ({ children, title }) => {
                     <p className="text-sm font-medium text-white truncate">
                       {user?.name || 'User'}
                     </p>
-                    <p className="text-xs text-red-300 truncate">
+                    <p className="text-xs text-emerald-300 truncate">
                       {user?.email || 'user@example.com'}
                     </p>
                   </div>
@@ -337,7 +339,7 @@ const LayoutSecure = ({ children, title }) => {
                 {/* Logout Button */}
                 <button
                   onClick={handleLogout}
-                  className="w-full flex items-center px-3 py-2 text-red-200 hover:bg-red-700/50 hover:text-white rounded-lg transition-colors"
+                  className="w-full flex items-center px-3 py-2 text-emerald-200 hover:bg-emerald-700/50 hover:text-white rounded-lg transition-colors"
                 >
                   <LogOut className="w-5 h-5" />
                   <span className="ml-3 text-sm font-medium sidebar-content-fade">
@@ -348,13 +350,13 @@ const LayoutSecure = ({ children, title }) => {
             ) : (
               <div className="flex flex-col items-center space-y-2">
                 <img
-                  src={user?.avatar || `https://placehold.co/32x32/FFD5D5/B91C1C?text=${user?.name?.charAt(0) || 'U'}`}
+                  src={user?.avatar || `https://placehold.co/32x32/D1FAE5/065F46?text=${user?.name?.charAt(0) || 'U'}`}
                   alt="Avatar"
                   className="w-8 h-8 rounded-full"
                 />
                 <button
                   onClick={handleLogout}
-                  className="p-2 text-red-200 hover:bg-red-700/50 hover:text-white rounded-lg transition-colors"
+                  className="p-2 text-emerald-200 hover:bg-emerald-700/50 hover:text-white rounded-lg transition-colors"
                   title="Keluar"
                 >
                   <LogOut className="w-5 h-5" />
@@ -381,7 +383,7 @@ const LayoutSecure = ({ children, title }) => {
               {isMobile && (
                 <button
                   onClick={() => setSidebarOpen(!sidebarOpen)}
-                  className="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-red-500 mr-3"
+                  className="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 mr-3"
                 >
                   <Menu className="w-6 h-6" />
                 </button>
@@ -447,7 +449,7 @@ const LayoutSecure = ({ children, title }) => {
         /* Custom scrollbar for navigation */
         .scrollbar-custom {
           scrollbar-width: thin;
-          scrollbar-color: rgba(239, 68, 68, 0.3) transparent;
+          scrollbar-color: rgba(100, 250, 200, 0.3) transparent;
         }
 
         .scrollbar-custom::-webkit-scrollbar {
@@ -459,12 +461,12 @@ const LayoutSecure = ({ children, title }) => {
         }
 
         .scrollbar-custom::-webkit-scrollbar-thumb {
-          background-color: rgba(239, 68, 68, 0.3);
+          background-color: rgba(100, 250, 200, 0.3);
           border-radius: 2px;
         }
 
         .scrollbar-custom::-webkit-scrollbar-thumb:hover {
-          background-color: rgba(239, 68, 68, 0.5);
+          background-color: rgba(100, 250, 200, 0.5);
         }
 
         /* Mobile responsive adjustments */

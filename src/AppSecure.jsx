@@ -54,6 +54,11 @@ import PenjualanHOPage from './pages/ho/penjualan/PenjualanHOPage';
 import AddEditPenjualanPage from './pages/ho/penjualan/AddEditPenjualanPage';
 import PenjualanDetailPage from './pages/ho/penjualan/PenjualanDetailPage';
 
+// Import halaman baru
+import PembelianFeedmilPage from './pages/ho/pembelianFeedmil/PembelianFeedmilPage';
+import AddEditPembelianFeedmilPage from './pages/ho/pembelianFeedmil/AddEditPembelianFeedmilPage';
+import PembelianOVKPage from './pages/ho/pembelianOVK/PembelianOVKPage';
+
 const AppWrapperSecure = () => (
   <Router>
     <AppSecure />
@@ -101,6 +106,10 @@ const pageTitleMap = {
   '/hr/attendance': 'Absensi',
   '/hr/leave-requests': 'Pengajuan Cuti',
   '/settings': 'Pengaturan Keamanan',
+  '/ho/pembelian-feedmil': 'Head Office: Pembelian Feedmil',
+  '/ho/pembelian-feedmil/add': 'Head Office: Tambah Pembelian Feedmil',
+  '/ho/pembelian-feedmil/edit/:id': 'Head Office: Edit Pembelian Feedmil',
+  '/ho/pembelian-ovk': 'Head Office: Pembelian OVK',
 };
 
 // Security Error Boundary
@@ -410,6 +419,13 @@ function AppSecure() {
             <Route path="/ho/pembelian/edit/:id" element={<AddEditPembelianPage />} />
             <Route path="/ho/pembelian/detail/:id" element={<PembelianDetailPage />} />
             <Route path="/ho/distribusi/:id" element={<DistribusiPage />} />
+            
+            {/* Routes baru untuk Pembelian Feedmil dan OVK */}
+            <Route path="/ho/pembelian-feedmil" element={<PembelianFeedmilPage />} />
+            <Route path="/ho/pembelian-feedmil/add" element={<AddEditPembelianFeedmilPage />} />
+            <Route path="/ho/pembelian-feedmil/edit/:id" element={<AddEditPembelianFeedmilPage />} />
+            <Route path="/ho/pembelian-ovk" element={<PembelianOVKPage />} />
+            
             <Route path="/ho/penjualan" element={<PenjualanHOPage />} />
             <Route path="/ho/penjualan/add" element={<AddEditPenjualanPage />} />
             <Route path="/ho/penjualan/edit/:id" element={<AddEditPenjualanPage />} />
