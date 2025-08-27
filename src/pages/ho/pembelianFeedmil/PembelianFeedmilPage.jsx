@@ -59,6 +59,19 @@ const PembelianFeedmilPage = () => {
         setOpenMenuId(null);
     };
 
+    const handleDetail = (pembelian) => {
+        const id = pembelian.encryptedPid || pembelian.id;
+        if (!id || id.toString().startsWith('TEMP-')) {
+            setNotification({
+                type: 'error',
+                message: 'Data ini tidak dapat dilihat detailnya karena belum tersimpan dengan benar'
+            });
+            return;
+        }
+        navigate(`/ho/pembelian-feedmil/detail/${encodeURIComponent(id)}`);
+        setOpenMenuId(null);
+    };
+
     const handleDelete = (pembelian) => {
         setSelectedPembelian(pembelian);
         setIsDeleteModalOpen(true);
@@ -311,6 +324,7 @@ const PembelianFeedmilPage = () => {
                     setOpenMenuId={setOpenMenuId}
                     onEdit={handleEdit}
                     onDelete={handleDelete}
+                    onDetail={handleDetail}
                     isActive={openMenuId === (row.id || row.encryptedPid)}
                 />
             ),
@@ -624,6 +638,7 @@ const PembelianFeedmilPage = () => {
                                         index={(serverPagination.currentPage - 1) * serverPagination.perPage + index}
                                         onEdit={handleEdit}
                                         onDelete={handleDelete}
+                                        onDetail={handleDetail}
                                     />
                                 ))}
                             </div>

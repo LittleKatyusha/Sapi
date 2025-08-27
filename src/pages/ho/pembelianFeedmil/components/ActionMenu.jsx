@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Edit, Trash2, Eye } from 'lucide-react';
 
-const ActionMenu = ({ row, onEdit, onDelete, onClose, buttonRef }) => {
+const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef }) => {
     const menuRef = useRef(null);
     const [menuStyle, setMenuStyle] = useState(null);
 
@@ -39,10 +39,7 @@ const ActionMenu = ({ row, onEdit, onDelete, onClose, buttonRef }) => {
         {
             label: 'Detail Pembelian',
             icon: Eye,
-            onClick: () => {
-                // TODO: Implement detail modal later
-                console.log('Detail clicked for:', row);
-            },
+            onClick: () => onDetail && onDetail(row),
             className: 'text-gray-700',
             description: 'Lihat detail lengkap',
             bg: 'bg-blue-100',

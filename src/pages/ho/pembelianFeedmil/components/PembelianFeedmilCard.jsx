@@ -8,6 +8,7 @@ import {
   Package, 
   Edit, 
   Trash2, 
+  Eye,
   MoreVertical 
 } from 'lucide-react';
 
@@ -15,6 +16,7 @@ const PembelianFeedmilCard = ({
     data,
     onEdit,
     onDelete,
+    onDetail,
     index
 }) => {
     const [showMenu, setShowMenu] = useState(false);
@@ -41,6 +43,11 @@ const PembelianFeedmilCard = ({
 
     const handleMenuToggle = () => {
         setShowMenu(!showMenu);
+    };
+
+    const handleDetail = () => {
+        onDetail(data);
+        setShowMenu(false);
     };
 
     const handleEdit = () => {
@@ -77,6 +84,13 @@ const PembelianFeedmilCard = ({
                     
                     {showMenu && (
                         <div className="absolute right-0 top-10 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-20 min-w-[160px]">
+                            <button
+                                onClick={handleDetail}
+                                className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 transition-colors duration-150"
+                            >
+                                <Eye className="w-4 h-4 text-blue-500" />
+                                Detail
+                            </button>
                             <button
                                 onClick={handleEdit}
                                 className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150"

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import HttpClient from '../../../../services/httpClient';
 import { API_ENDPOINTS } from '../../../../config/api';
 
@@ -8,11 +8,17 @@ const useSuppliersAPI = (jenisSupplier = null) => {
     const [error, setError] = useState(null);
     const [lastFilter, setLastFilter] = useState(null); // Track last filter to avoid duplicate calls
 
-    const fetchSuppliers = async (filterJenisSupplier = jenisSupplier) => {
+    const fetchSuppliers = useCallback(async (filterJenisSupplier = jenisSupplier) => {
         // Avoid duplicate calls with same filter
-        if (loading || (lastFilter === filterJenisSupplier && suppliers.length > 0)) {
+        if (loading) {
             return;
         }
+        
+        // Only skip if we have data and same filter
+        if (lastFilter === filterJenisSupplier && suppliers.length > 0) {
+            return;
+        }
+        
         setLoading(true);
         setError(null);
         
@@ -35,10 +41,6 @@ const useSuppliersAPI = (jenisSupplier = null) => {
             
             // Handle DataTables format response
             if (result.data && Array.isArray(result.data)) {
-                // Log first supplier to see the data structure
-                if (result.data.length > 0) {
-                    
-                }
                 setSuppliers(result.data);
                 setLastFilter(filterJenisSupplier); // Track the filter used
                 
@@ -46,13 +48,13 @@ const useSuppliersAPI = (jenisSupplier = null) => {
                 throw new Error(result.message || 'Failed to fetch suppliers');
             }
         } catch (err) {
-            
+            console.error('Error fetching suppliers:', err);
             setError(err.message);
             setSuppliers([]);
         } finally {
             setLoading(false);
         }
-    };
+    }, [jenisSupplier]); // Only depend on jenisSupplier param
 
     // Remove auto-fetch on mount to avoid duplicate calls
     // Let the parent component control when to fetch

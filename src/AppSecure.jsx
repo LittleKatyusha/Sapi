@@ -57,6 +57,7 @@ import PenjualanDetailPage from './pages/ho/penjualan/PenjualanDetailPage';
 // Import halaman baru
 import PembelianFeedmilPage from './pages/ho/pembelianFeedmil/PembelianFeedmilPage';
 import AddEditPembelianFeedmilPage from './pages/ho/pembelianFeedmil/AddEditPembelianFeedmilPage';
+import PembelianFeedmilDetailPage from './pages/ho/pembelianFeedmil/PembelianFeedmilDetailPage';
 import PembelianOVKPage from './pages/ho/pembelianOVK/PembelianOVKPage';
 
 const AppWrapperSecure = () => (
@@ -109,6 +110,7 @@ const pageTitleMap = {
   '/ho/pembelian-feedmil': 'Head Office: Pembelian Feedmil',
   '/ho/pembelian-feedmil/add': 'Head Office: Tambah Pembelian Feedmil',
   '/ho/pembelian-feedmil/edit/:id': 'Head Office: Edit Pembelian Feedmil',
+  '/ho/pembelian-feedmil/detail/:id': 'Head Office: Detail Pembelian Feedmil',
   '/ho/pembelian-ovk': 'Head Office: Pembelian OVK',
 };
 
@@ -424,6 +426,7 @@ function AppSecure() {
             <Route path="/ho/pembelian-feedmil" element={<PembelianFeedmilPage />} />
             <Route path="/ho/pembelian-feedmil/add" element={<AddEditPembelianFeedmilPage />} />
             <Route path="/ho/pembelian-feedmil/edit/:id" element={<AddEditPembelianFeedmilPage />} />
+            <Route path="/ho/pembelian-feedmil/detail/:id" element={<PembelianFeedmilDetailPage />} />
             <Route path="/ho/pembelian-ovk" element={<PembelianOVKPage />} />
             
             <Route path="/ho/penjualan" element={<PenjualanHOPage />} />

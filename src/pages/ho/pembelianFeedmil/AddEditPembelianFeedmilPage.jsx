@@ -2,32 +2,16 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Save, Plus, Trash2, Building2, User, Calendar, Truck, Hash, Package, X, Settings, AlertCircle, Weight, DollarSign, Upload, FileText } from 'lucide-react';
 import usePembelianFeedmil from './hooks/usePembelianFeedmil';
+import useSuppliersAPI from '../pembelian/hooks/useSuppliersAPI';
 import SearchableSelect from '../../../components/shared/SearchableSelect';
 
-// Mock data untuk supplier feedmil
-const mockSuppliers = [
-    { value: '1', label: 'PT Feedmil Sukses', id: '1' },
-    { value: '2', label: 'CV Pakan Ternak', id: '2' },
-    { value: '3', label: 'PT Nutrisi Ternak', id: '3' },
-    { value: '4', label: 'CV Sumber Pakan', id: '4' },
-    { value: '5', label: 'PT Mega Feed', id: '5' }
-];
 
-// Mock data untuk jenis feedmil
-const mockJenisFeedmil = [
-    { value: 'pakan-ayam', label: 'Pakan Ayam' },
-    { value: 'pakan-sapi', label: 'Pakan Sapi' },
-    { value: 'pakan-kambing', label: 'Pakan Kambing' },
-    { value: 'konsentrat', label: 'Konsentrat' },
-    { value: 'premix', label: 'Premix' }
-];
 
 // Mock data untuk tipe pembelian feedmil
 const mockTipePembelian = [
-    { value: 'feedmil-supplier', label: 'FEEDMIL - SUPPLIER' },
-    { value: 'feedmil-langsung', label: 'FEEDMIL - LANGSUNG' },
-    { value: 'feedmil-kontrak', label: 'FEEDMIL - KONTRAK' },
-    { value: 'feedmil-konsinyasi', label: 'FEEDMIL - KONSINYASI' }
+    { value: 'Feedmil', label: 'FEEDMIL - SUPPLIER' },
+    { value: 'Supplier', label: 'FEEDMIL - LANGSUNG' },
+    { value: 'Pakan', label: 'FEEDMIL - KONTRAK' }
 ];
 
 const AddEditPembelianFeedmilPage = () => {
@@ -45,20 +29,29 @@ const AddEditPembelianFeedmilPage = () => {
         error
     } = usePembelianFeedmil();
 
+    // Supplier API integration
+    const {
+        suppliers,
+        supplierOptions,
+        loading: suppliersLoading,
+        error: suppliersError,
+        fetchSuppliersWithFilter
+    } = useSuppliersAPI();
+
     // Header form state
     const [headerData, setHeaderData] = useState({
         nota: '',
         idOffice: 'head-office', // Fixed to Head Office for HO
         tipePembelian: '',
         idSupplier: '',
-        tgl_masuk: new Date().toISOString().split('T')[0],
+        tgl_masuk: '',
         nama_supir: '',
         plat_nomor: '',
-        biaya_truck: 0,
-        biaya_lain: 0,
-        berat_total: 0,
-        harga_total: 0,
-        total_feedmil: 0,
+        biaya_truck: '',
+        biaya_lain: '',
+        berat_total: '',
+        harga_total: '',
+        total_feedmil: '',
         file: '',
         fileName: ''
     });
@@ -76,11 +69,24 @@ const AddEditPembelianFeedmilPage = () => {
 
     // Default data untuk batch operations
     const [defaultData, setDefaultData] = useState({
-        jenis_feedmil: '',
-        harga: 0,
-        satuan: 'sak'
+        item_name: '',
+        id_klasifikasi_ovk: '',
+        berat: '',
+        harga: '',
+        presentase: ''
     });
     const [batchCount, setBatchCount] = useState(1);
+
+    // Use all suppliers without filtering
+    const supplierOptionsToShow = supplierOptions;
+
+    // Fetch all suppliers once when component mounts
+    useEffect(() => {
+        fetchSuppliersWithFilter();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Intentionally empty - we only want to fetch once on mount
+
+
 
     // Helper functions for number formatting
     const formatNumber = (value) => {
@@ -123,14 +129,27 @@ const AddEditPembelianFeedmilPage = () => {
                         });
 
                         // Load detail items (mock detail items untuk feedmil)
-                        const detailData = [{
-                            id: 1,
-                            jenis_feedmil: data.jenis_pembelian || 'Feedmil',
-                            jumlah: data.jumlah || 0,
-                            satuan: data.satuan || 'sak',
-                            berat_total: data.berat_total || 0,
-                            harga: data.biaya_total || 0
-                        }];
+                        const totalItems = data.jumlah || 1;
+                        const pricePerItem = (data.biaya_total || 0) / totalItems;
+                        const weightPerItem = (data.berat_total || 0) / totalItems;
+                        
+                        const detailData = [];
+                        for (let i = 1; i <= totalItems; i++) {
+                            const harga = pricePerItem || 300000;
+                            const presentase = 15; // Default 15% markup
+                            const hpp = harga + (harga * presentase / 100); // HPP = harga + markup persen
+                            
+                            detailData.push({
+                                id: i,
+                                item_name: `Feedmil Item ${i}`,
+                                id_klasifikasi_ovk: `OVK-00${i}`,
+                                berat: Math.round(weightPerItem) || 50,
+                                harga: harga,
+                                presentase: presentase,
+                                hpp: hpp,
+                                tgl_masuk_rph: data.tgl_masuk || new Date().toISOString().split('T')[0]
+                            });
+                        }
                         
                         setDetailItems(detailData);
                     }
@@ -146,6 +165,10 @@ const AddEditPembelianFeedmilPage = () => {
             loadEditData();
         }
     }, [isEdit, id, getPembelianDetail]);
+
+
+
+
 
     // Handle header form changes
     const handleHeaderChange = (field, value) => {
@@ -169,11 +192,13 @@ const AddEditPembelianFeedmilPage = () => {
     const addDetailItem = () => {
         const newItem = {
             id: Date.now(),
-            jenis_feedmil: defaultData.jenis_feedmil,
-            jumlah: 0,
-            satuan: defaultData.satuan,
-            berat_total: 0,
-            harga: defaultData.harga
+            item_name: defaultData.item_name || '',
+            id_klasifikasi_ovk: defaultData.id_klasifikasi_ovk || '',
+            berat: defaultData.berat || '',
+            harga: defaultData.harga || '',
+            presentase: defaultData.presentase || '',
+            hpp: '', // Will be calculated
+            tgl_masuk_rph: ''
         };
         
         setDetailItems(prev => [...prev, newItem]);
@@ -181,18 +206,34 @@ const AddEditPembelianFeedmilPage = () => {
 
     // Add multiple detail items (batch)
     const addBatchDetailItems = () => {
+        if (batchCount < 1) {
+            setNotification({
+                type: 'error',
+                message: 'Jumlah batch minimal 1 item'
+            });
+            return;
+        }
+
         const newItems = [];
         for (let i = 0; i < batchCount; i++) {
             newItems.push({
                 id: Date.now() + i,
-                jenis_feedmil: defaultData.jenis_feedmil,
-                jumlah: 0,
-                satuan: defaultData.satuan,
-                berat_total: 0,
-                harga: defaultData.harga
+                item_name: defaultData.item_name || '',
+                id_klasifikasi_ovk: defaultData.id_klasifikasi_ovk || '',
+                berat: defaultData.berat || '',
+                harga: defaultData.harga || '',
+                presentase: defaultData.presentase || '',
+                hpp: '', // Will be calculated
+                tgl_masuk_rph: ''
             });
         }
         setDetailItems(prev => [...prev, ...newItems]);
+        
+        // Show success notification
+        setNotification({
+            type: 'success',
+            message: `Berhasil menambahkan ${batchCount} item dengan data default`
+        });
     };
 
     // Remove detail item
@@ -245,7 +286,7 @@ const AddEditPembelianFeedmilPage = () => {
             setFilePreview(file.type.startsWith('image/') ? URL.createObjectURL(file) : null);
             handleHeaderChange('file', file.name);
             handleHeaderChange('fileName', file.name);
-        }
+        };
     };
 
     // Handle drag and drop
@@ -279,11 +320,17 @@ const AddEditPembelianFeedmilPage = () => {
 
     // Calculate totals
     const totals = useMemo(() => {
-        const totalJumlah = detailItems.reduce((sum, item) => sum + (parseInt(item.jumlah) || 0), 0);
-        const totalBerat = detailItems.reduce((sum, item) => sum + (parseFloat(item.berat_total) || 0), 0);
-        const totalHarga = detailItems.reduce((sum, item) => sum + (parseFloat(item.harga) || 0), 0);
+        const totalJumlah = detailItems.length; // Count of items
+        const totalBerat = detailItems.reduce((sum, item) => {
+            const berat = parseFloat(item.berat);
+            return sum + (isNaN(berat) ? 0 : berat);
+        }, 0);
+        const totalHPP = detailItems.reduce((sum, item) => {
+            const hpp = parseFloat(item.hpp);
+            return sum + (isNaN(hpp) ? 0 : hpp);
+        }, 0);
         
-        return { totalJumlah, totalBerat, totalHarga };
+        return { totalJumlah, totalBerat, totalHPP };
     }, [detailItems]);
 
     // Form validation
@@ -302,6 +349,8 @@ const AddEditPembelianFeedmilPage = () => {
             errors.push('Supplier harus dipilih');
         }
 
+
+
         if (!headerData.tgl_masuk) {
             errors.push('Tanggal masuk harus diisi');
         }
@@ -314,7 +363,8 @@ const AddEditPembelianFeedmilPage = () => {
             errors.push('Plat nomor harus diisi');
         }
 
-        if (!headerData.biaya_truck || headerData.biaya_truck <= 0) {
+        const biayaTruck = parseFloat(headerData.biaya_truck);
+        if (isNaN(biayaTruck) || biayaTruck <= 0) {
             errors.push('Biaya Truck harus diisi dan lebih dari 0');
         }
 
@@ -323,17 +373,23 @@ const AddEditPembelianFeedmilPage = () => {
         }
 
         detailItems.forEach((item, index) => {
-            if (!item.jenis_feedmil) {
-                errors.push(`Item ${index + 1}: Jenis feedmil harus dipilih`);
+            if (!item.item_name || item.item_name.trim() === '') {
+                errors.push(`Item ${index + 1}: Nama item harus diisi`);
             }
-            if (!item.jumlah || item.jumlah <= 0) {
-                errors.push(`Item ${index + 1}: Jumlah harus lebih dari 0`);
+            if (!item.id_klasifikasi_ovk || item.id_klasifikasi_ovk.trim() === '') {
+                errors.push(`Item ${index + 1}: Klasifikasi OVK harus diisi`);
             }
-            if (!item.berat_total || item.berat_total <= 0) {
-                errors.push(`Item ${index + 1}: Berat total harus lebih dari 0`);
+            const berat = parseFloat(item.berat);
+            if (isNaN(berat) || berat <= 0) {
+                errors.push(`Item ${index + 1}: Berat harus lebih dari 0`);
             }
-            if (!item.harga || item.harga <= 0) {
+            const harga = parseFloat(item.harga);
+            if (isNaN(harga) || harga <= 0) {
                 errors.push(`Item ${index + 1}: Harga harus lebih dari 0`);
+            }
+            const presentase = parseFloat(item.presentase);
+            if (isNaN(presentase) || presentase <= 0) {
+                errors.push(`Item ${index + 1}: Persentase harus lebih dari 0`);
             }
         });
 
@@ -363,11 +419,20 @@ const AddEditPembelianFeedmilPage = () => {
         });
 
         try {
+            // Get selected supplier details
+            const selectedSupplier = suppliers.find(s => s.id === headerData.idSupplier);
+            
             const submissionData = {
                 ...headerData,
-                ...totals,
+                totalJumlah: totals.totalJumlah,
+                totalBerat: totals.totalBerat,
+                totalHPP: totals.totalHPP,
                 detailItems: detailItems,
-                jenis_pembelian: 'Feedmil'
+                jenis_pembelian: 'Feedmil',
+                supplier: selectedSupplier ? selectedSupplier.name : '',
+                nama_supplier: selectedSupplier ? selectedSupplier.name : '',
+                id_supplier: headerData.idSupplier,
+                jenis_supplier: selectedSupplier ? selectedSupplier.jenis_supplier : ''
             };
 
             let result;
@@ -421,12 +486,7 @@ const AddEditPembelianFeedmilPage = () => {
         }
     }, [notification]);
 
-    // Add initial detail item for new records
-    useEffect(() => {
-        if (!isEdit && detailItems.length === 0) {
-            addDetailItem();
-        }
-    }, [isEdit]);
+    // Detail section now starts empty - users must manually add items
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-2 sm:p-4 md:p-6">
@@ -519,20 +579,30 @@ const AddEditPembelianFeedmilPage = () => {
 
                         {/* Supplier */}
                         <div>
-                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <Building2 className="w-4 h-4" />
-                                Supplier *
-                            </label>
+                            <div className="flex items-center justify-between mb-2">
+                                <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                                    <Building2 className="w-4 h-4" />
+                                    Supplier *
+                                </label>
+                            </div>
                             <SearchableSelect
                                 value={headerData.idSupplier}
                                 onChange={(value) => handleHeaderChange('idSupplier', value)}
-                                options={mockSuppliers}
-                                placeholder="Pilih Supplier"
+                                options={supplierOptionsToShow}
+                                placeholder={suppliersLoading ? "Memuat supplier..." : "Pilih Supplier"}
                                 className="w-full"
+                                disabled={suppliersLoading}
                             />
-                            <p className="text-xs text-orange-600 mt-1">
-                                💡 Supplier akan difilter berdasarkan jenis_supplier sesuai tipe pembelian
-                            </p>
+                            {suppliersLoading && (
+                                <p className="text-xs text-blue-600 mt-1">
+                                    🔄 Memuat data supplier...
+                                </p>
+                            )}
+                            {suppliersError && (
+                                <p className="text-xs text-red-600 mt-1">
+                                    ❌ Error: {suppliersError}
+                                </p>
+                            )}
                         </div>
 
                         {/* Tanggal Masuk */}
@@ -608,7 +678,7 @@ const AddEditPembelianFeedmilPage = () => {
                                 value={formatNumber(headerData.biaya_lain)}
                                 onChange={(e) => handleHeaderChange('biaya_lain', parseNumber(e.target.value))}
                                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                placeholder="0"
+                                placeholder=""
                             />
                             <p className="text-xs text-gray-500 mt-1">
                                 💡 Biaya tambahan lainnya (opsional)
@@ -624,9 +694,9 @@ const AddEditPembelianFeedmilPage = () => {
                             <input
                                 type="number"
                                 value={headerData.berat_total}
-                                onChange={(e) => handleHeaderChange('berat_total', parseFloat(e.target.value) || 0)}
+                                onChange={(e) => handleHeaderChange('berat_total', e.target.value)}
                                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                placeholder="0"
+                                placeholder=""
                                 min="0"
                                 step="0.1"
                             />
@@ -646,7 +716,7 @@ const AddEditPembelianFeedmilPage = () => {
                                 value={formatNumber(headerData.harga_total)}
                                 onChange={(e) => handleHeaderChange('harga_total', parseNumber(e.target.value))}
                                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                placeholder="0"
+                                placeholder=""
                             />
                             <p className="text-xs text-blue-600 mt-1">
                                 💡 Total harga keseluruhan pembelian
@@ -662,15 +732,17 @@ const AddEditPembelianFeedmilPage = () => {
                             <input
                                 type="number"
                                 value={headerData.total_feedmil}
-                                onChange={(e) => handleHeaderChange('total_feedmil', parseInt(e.target.value) || 0)}
+                                onChange={(e) => handleHeaderChange('total_feedmil', e.target.value)}
                                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                placeholder="0"
+                                placeholder=""
                                 min="0"
                             />
                             <p className="text-xs text-blue-600 mt-1">
                                 💡 Total jumlah feedmil dalam pembelian ini
                             </p>
                         </div>
+
+
 
                         {/* File Upload */}
                         <div className="col-span-full">
@@ -740,35 +812,49 @@ const AddEditPembelianFeedmilPage = () => {
                         Data Default & Batch Add
                     </h2>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6 mb-6">
-                        {/* Jenis Feedmil Default */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6 mb-6">
+                        {/* Nama Item Default */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Jenis Feedmil Default
+                                Nama Item Default
                             </label>
-                            <SearchableSelect
-                                value={defaultData.jenis_feedmil}
-                                onChange={(value) => handleDefaultDataChange('jenis_feedmil', value)}
-                                options={mockJenisFeedmil}
-                                placeholder="Pilih Jenis Feedmil"
-                                className="w-full"
+                            <input
+                                type="text"
+                                value={defaultData.item_name}
+                                onChange={(e) => handleDefaultDataChange('item_name', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                placeholder="Contoh: Pakan Starter"
                             />
                         </div>
 
-                        {/* Satuan Default */}
+                        {/* Klasifikasi OVK Default */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Satuan Default
+                                Klasifikasi OVK Default
                             </label>
-                            <select
-                                value={defaultData.satuan}
-                                onChange={(e) => handleDefaultDataChange('satuan', e.target.value)}
+                            <input
+                                type="text"
+                                value={defaultData.id_klasifikasi_ovk}
+                                onChange={(e) => handleDefaultDataChange('id_klasifikasi_ovk', e.target.value)}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                            >
-                                <option value="sak">Sak</option>
-                                <option value="kg">Kg</option>
-                                <option value="ton">Ton</option>
-                            </select>
+                                placeholder="Contoh: OVK-001"
+                            />
+                        </div>
+
+                        {/* Berat Default */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Berat Default (kg)
+                            </label>
+                            <input
+                                type="number"
+                                value={defaultData.berat}
+                                onChange={(e) => handleDefaultDataChange('berat', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                placeholder="50"
+                                min="0"
+                                step="0.1"
+                            />
                         </div>
 
                         {/* Harga Default */}
@@ -781,54 +867,73 @@ const AddEditPembelianFeedmilPage = () => {
                                 value={formatNumber(defaultData.harga)}
                                 onChange={(e) => handleDefaultDataChange('harga', parseNumber(e.target.value))}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                                placeholder="0"
+                                placeholder="300000"
                             />
                         </div>
 
-                        {/* Batch Count */}
+                        {/* Persentase Default */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Jumlah Batch
+                                Persentase Default (%)
                             </label>
                             <input
                                 type="number"
-                                value={batchCount}
-                                onChange={(e) => setBatchCount(parseInt(e.target.value) || 1)}
+                                value={defaultData.presentase}
+                                onChange={(e) => handleDefaultDataChange('presentase', e.target.value)}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                                min="1"
-                                max="50"
+                                placeholder="15"
+                                min="0"
+                                step="0.1"
                             />
                         </div>
                     </div>
 
-                    {/* Batch Add Buttons */}
-                    <div className="flex flex-wrap gap-3">
-                        <button
-                            type="button"
-                            onClick={addDetailItem}
-                            className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-200 flex items-center gap-2"
-                        >
-                            <Plus className="w-4 h-4" />
-                            Tambah 1 Item
-                        </button>
+                    {/* Batch Add Section */}
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-lg border border-orange-200">
+                        <div className="flex items-center gap-2">
+                            <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                                Jumlah Batch:
+                            </label>
+                            <input
+                                type="number"
+                                min="1"
+                                value={batchCount}
+                                onChange={(e) => setBatchCount(parseInt(e.target.value) || 1)}
+                                className="w-20 px-2 py-1 border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                            />
+                        </div>
                         
                         <button
-                            type="button"
                             onClick={addBatchDetailItems}
-                            className="px-4 py-2 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg hover:from-orange-600 hover:to-red-700 transition-all duration-200 flex items-center gap-2"
+                            className="bg-gradient-to-r from-orange-500 to-amber-600 text-white px-4 py-2 rounded-lg hover:from-orange-600 hover:to-amber-700 transition-all duration-300 flex items-center gap-2 text-sm font-medium shadow-md hover:shadow-lg"
                         >
                             <Plus className="w-4 h-4" />
-                            Tambah {batchCount} Item
+                            Tambah {batchCount} Item Batch
                         </button>
+
+                        {/* Info Text */}
+                        <div className="text-xs text-gray-600 ml-auto">
+                            <p>💡 Isi data default untuk mempercepat input batch</p>
+                            <p>📝 Item baru akan menggunakan data default ini</p>
+                        </div>
                     </div>
                 </div>
 
                 {/* Detail Items Table */}
                 <div className="bg-white rounded-none sm:rounded-none p-4 sm:p-6 shadow-xl border border-gray-100">
-                    <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                        <Package className="w-6 h-6 text-green-600" />
-                        Detail Item Feedmil ({detailItems.length} items)
-                    </h2>
+                    <div className="flex items-center justify-between mb-6">
+                        <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                            <Package className="w-6 h-6 text-green-600" />
+                            Detail Item Feedmil ({detailItems.length} items)
+                        </h2>
+                        <button
+                            onClick={addDetailItem}
+                            className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-300 flex items-center gap-2 text-sm font-medium shadow-md hover:shadow-lg"
+                        >
+                            <Plus className="w-4 h-4" />
+                            Tambah Detail
+                        </button>
+                    </div>
 
                     {detailItems.length === 0 ? (
                         <div className="text-center py-12 bg-gray-50 rounded-xl">
@@ -843,77 +948,120 @@ const AddEditPembelianFeedmilPage = () => {
                                 <thead>
                                     <tr className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b-2 border-blue-200">
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 w-12">No</th>
-                                        <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[180px]">Jenis Feedmil</th>
-                                        <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 w-20">Jumlah</th>
-                                        <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 w-20">Satuan</th>
-                                        <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 w-28">Berat Total (kg)</th>
-                                        <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[140px]">Harga (Rp)</th>
+                                        <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[180px]">Nama Item</th>
+                                        <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[120px]">Klasifikasi OVK</th>
+                                        <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 w-24">Berat (kg)</th>
+                                        <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[120px]">Harga (Rp)</th>
+                                        <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 w-20">Persentase (%)</th>
+                                        <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[120px]">HPP (Rp)</th>
+                                        <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[120px]">Tgl Masuk RPH</th>
                                         <th className="p-2 sm:p-3 text-center text-xs sm:text-sm font-semibold text-blue-800 w-16">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {detailItems.map((item, index) => (
-                                        <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50">
-                                            <td className="p-2 sm:p-3 text-xs sm:text-sm text-gray-700">{index + 1}</td>
-                                            <td className="p-2 sm:p-3">
-                                                <SearchableSelect
-                                                    value={item.jenis_feedmil}
-                                                    onChange={(value) => handleDetailChange(item.id, 'jenis_feedmil', value)}
-                                                    options={mockJenisFeedmil}
-                                                    placeholder="Pilih Jenis"
-                                                    className="w-full min-w-[120px] sm:min-w-[150px] text-xs sm:text-sm"
-                                                />
-                                            </td>
-                                            <td className="p-2 sm:p-3">
-                                                <input
-                                                    type="number"
-                                                    value={item.jumlah}
-                                                    onChange={(e) => handleDetailChange(item.id, 'jumlah', parseInt(e.target.value) || 0)}
-                                                    className="w-full px-1 sm:px-2 py-1 border border-gray-300 rounded text-xs sm:text-sm"
-                                                    min="0"
-                                                />
-                                            </td>
-                                            <td className="p-2 sm:p-3">
-                                                <select
-                                                    value={item.satuan}
-                                                    onChange={(e) => handleDetailChange(item.id, 'satuan', e.target.value)}
-                                                    className="w-full px-1 sm:px-2 py-1 border border-gray-300 rounded text-xs sm:text-sm"
-                                                >
-                                                    <option value="sak">Sak</option>
-                                                    <option value="kg">Kg</option>
-                                                    <option value="ton">Ton</option>
-                                                </select>
-                                            </td>
-                                            <td className="p-2 sm:p-3">
-                                                <input
-                                                    type="number"
-                                                    value={item.berat_total}
-                                                    onChange={(e) => handleDetailChange(item.id, 'berat_total', parseFloat(e.target.value) || 0)}
-                                                    className="w-full px-1 sm:px-2 py-1 border border-gray-300 rounded text-xs sm:text-sm"
-                                                    min="0"
-                                                    step="0.1"
-                                                />
-                                            </td>
-                                            <td className="p-2 sm:p-3">
-                                                <input
-                                                    type="text"
-                                                    value={formatNumber(item.harga)}
-                                                    onChange={(e) => handleDetailChange(item.id, 'harga', parseNumber(e.target.value))}
-                                                    className="w-full px-1 sm:px-2 py-1 border border-gray-300 rounded text-xs sm:text-sm"
-                                                />
-                                            </td>
-                                            <td className="p-2 sm:p-3 text-center">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => removeDetailItem(item.id)}
-                                                    className="p-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded"
-                                                    title="Hapus item"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))}
+                                    {detailItems.map((item, index) => {
+                                        // Calculate HPP: harga + markup persen
+                                        const harga = parseFloat(item.harga) || 0;
+                                        const presentase = parseFloat(item.presentase) || 0;
+                                        const hpp = harga && presentase ? harga + (harga * presentase / 100) : harga;
+                                        
+                                        // Update item dengan calculated HPP value
+                                        if (item.hpp !== hpp) {
+                                            handleDetailChange(item.id, 'hpp', hpp);
+                                        }
+                                        
+                                        return (
+                                            <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50">
+                                                <td className="p-2 sm:p-3 text-xs sm:text-sm text-gray-700">{index + 1}</td>
+                                                
+                                                {/* Nama Item */}
+                                                <td className="p-2 sm:p-3">
+                                                    <input
+                                                        type="text"
+                                                        value={item.item_name}
+                                                        onChange={(e) => handleDetailChange(item.id, 'item_name', e.target.value)}
+                                                        className="w-full px-1 sm:px-2 py-1 border border-gray-300 rounded text-xs sm:text-sm"
+                                                        placeholder="Nama item feedmil"
+                                                    />
+                                                </td>
+                                                
+                                                {/* Klasifikasi OVK */}
+                                                <td className="p-2 sm:p-3">
+                                                    <input
+                                                        type="text"
+                                                        value={item.id_klasifikasi_ovk}
+                                                        onChange={(e) => handleDetailChange(item.id, 'id_klasifikasi_ovk', e.target.value)}
+                                                        className="w-full px-1 sm:px-2 py-1 border border-gray-300 rounded text-xs sm:text-sm"
+                                                        placeholder="OVK-001"
+                                                    />
+                                                </td>
+                                                
+                                                {/* Berat */}
+                                                <td className="p-2 sm:p-3">
+                                                    <input
+                                                        type="number"
+                                                        value={item.berat}
+                                                        onChange={(e) => handleDetailChange(item.id, 'berat', e.target.value)}
+                                                        className="w-full px-1 sm:px-2 py-1 border border-gray-300 rounded text-xs sm:text-sm"
+                                                        min="0"
+                                                        step="0.1"
+                                                    />
+                                                </td>
+                                                
+                                                {/* Harga */}
+                                                <td className="p-2 sm:p-3">
+                                                    <input
+                                                        type="text"
+                                                        value={formatNumber(item.harga)}
+                                                        onChange={(e) => handleDetailChange(item.id, 'harga', parseNumber(e.target.value))}
+                                                        className="w-full px-1 sm:px-2 py-1 border border-gray-300 rounded text-xs sm:text-sm"
+                                                    />
+                                                </td>
+                                                
+                                                {/* Persentase */}
+                                                <td className="p-2 sm:p-3">
+                                                    <input
+                                                        type="number"
+                                                        value={item.presentase}
+                                                        onChange={(e) => handleDetailChange(item.id, 'presentase', e.target.value)}
+                                                        className="w-full px-1 sm:px-2 py-1 border border-gray-300 rounded text-xs sm:text-sm"
+                                                        min="0"
+                                                        step="0.1"
+                                                        placeholder="%"
+                                                    />
+                                                </td>
+                                                
+                                                {/* HPP (calculated) */}
+                                                <td className="p-2 sm:p-3">
+                                                    <div className="w-full px-1 sm:px-2 py-1 border border-gray-300 rounded text-xs sm:text-sm bg-white text-gray-900">
+                                                        {formatNumber(hpp)}
+                                                    </div>
+                                                </td>
+                                                
+                                                {/* Tanggal Masuk RPH */}
+                                                <td className="p-2 sm:p-3">
+                                                    <input
+                                                        type="date"
+                                                        value={item.tgl_masuk_rph}
+                                                        onChange={(e) => handleDetailChange(item.id, 'tgl_masuk_rph', e.target.value)}
+                                                        className="w-full px-1 sm:px-2 py-1 border border-gray-300 rounded text-xs sm:text-sm"
+                                                    />
+                                                </td>
+                                                
+                                                {/* Aksi */}
+                                                <td className="p-2 sm:p-3 text-center">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeDetailItem(item.id)}
+                                                        className="p-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded"
+                                                        title="Hapus item"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                                 </table>
                             </div>
@@ -926,16 +1074,16 @@ const AddEditPembelianFeedmilPage = () => {
                             <h3 className="text-lg font-semibold text-blue-800 mb-3">Total Keseluruhan</h3>
                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 sm:gap-6">
                                 <div className="text-center">
-                                    <p className="text-sm text-blue-600">Total Jumlah</p>
-                                    <p className="text-xl font-bold text-blue-800">{totals.totalJumlah}</p>
+                                    <p className="text-sm text-blue-600">Total Items</p>
+                                    <p className="text-xl font-bold text-blue-800">{totals.totalJumlah} items</p>
                                 </div>
                                 <div className="text-center">
                                     <p className="text-sm text-blue-600">Total Berat</p>
                                     <p className="text-xl font-bold text-blue-800">{totals.totalBerat.toFixed(1)} kg</p>
                                 </div>
                                 <div className="text-center">
-                                    <p className="text-sm text-blue-600">Total Harga</p>
-                                    <p className="text-xl font-bold text-blue-800">Rp {formatNumber(totals.totalHarga)}</p>
+                                    <p className="text-sm text-blue-600">Total HPP</p>
+                                    <p className="text-xl font-bold text-blue-800">Rp {formatNumber(totals.totalHPP)}</p>
                                 </div>
                             </div>
                         </div>
