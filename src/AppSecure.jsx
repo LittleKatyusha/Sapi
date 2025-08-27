@@ -15,6 +15,11 @@ import LivestockStockPage from './pages/inventory/LivestockStockPage';
 import MeatStockPage from './pages/inventory/MeatStockPage';
 import EmployeePage from './pages/humanResources/EmployeePage';
 import ReportPage from './pages/reporting/ReportPage';
+import { 
+  LaporanNotaSupplierPage, 
+  LaporanSemuaSupplierPage, 
+  LaporanPajakPage 
+} from './pages/reporting';
 import SettingsPageSecure from './pages/SettingsPageSecure'; // Enhanced settings
 import AttendancePage from './pages/humanResources/AttendancePage';
 import LeaveRequestPage from './pages/humanResources/LeaveRequestPage';
@@ -391,6 +396,9 @@ function AppSecure() {
             
             {/* Rute Laporan */}
             <Route path="/reports" element={<ReportPage />} />
+            <Route path="/reports/nota-supplier" element={<LaporanNotaSupplierPage />} />
+            <Route path="/reports/semua-supplier" element={<LaporanSemuaSupplierPage />} />
+            <Route path="/reports/pajak" element={<LaporanPajakPage />} />
 
             {/* Rute SDM */}
             <Route path="/hr/employees" element={<EmployeePage />} />

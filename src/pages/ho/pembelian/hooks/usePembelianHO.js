@@ -146,6 +146,13 @@ const usePembelianHO = () => {
         } catch (err) {
             const errorMessage = err.message || 'Terjadi kesalahan saat mengambil data pembelian';
             
+            console.error('❌ Error in fetchPembelian:', {
+                error: err,
+                message: errorMessage,
+                isSearchRequest: isSearchRequest,
+                params: { page, perPage, search, filter }
+            });
+            
             if (isSearchRequest) {
                 setSearchError(errorMessage);
             } else {
@@ -264,18 +271,8 @@ const usePembelianHO = () => {
             const hasHeaderFields = data.id_office || data.nota || data.id_supplier;
             const isHeader = isHeaderUpdate || hasHeaderFields;
             
-            // Prepare the request data
-            const requestData = {
-                pid: data.pid || data.encryptedPid, // Use encrypted PID
-                ...data
-            };
-            
-            // Remove encryptedPid if it exists to avoid duplication
-            if (requestData.encryptedPid) {
-                delete requestData.encryptedPid;
-            }
-            
             // If it's a header update, ensure all required fields are present
+            let requestData;
             if (isHeader) {
                 // Handle supplier ID conversion for header updates
                 let supplierIdValue = data.idSupplier || data.id_supplier;
@@ -286,30 +283,58 @@ const usePembelianHO = () => {
                     }
                 }
                 
-                // Map frontend field names to backend field names
-                const mappedData = {
-                    id_office: data.idOffice || data.id_office,
-                    nota: data.nota,
-                    id_supplier: supplierIdValue, // Use the resolved supplier ID
-                    tgl_masuk: data.tglMasuk || data.tgl_masuk,
-                    nama_supir: data.namaSupir || data.nama_supir,
-                    plat_nomor: data.platNomor || data.plat_nomor,
-                    jumlah: data.jumlah,
-                    biaya_truk: data.biayaTruck || data.biaya_truk,
-                    biaya_lain: data.biayaLain || data.biaya_lain,
-                    biaya_total: data.biayaTotal || data.biaya_total,
-                    tipe_pembelian: data.tipePembelian || data.tipe_pembelian
+                // Create clean request data with only backend field names (no duplicates)
+                // Ensure all numeric fields are properly converted and not arrays
+                const biayaTrukValue = data.biayaTruck || data.biaya_truk;
+                const biayaLainValue = data.biayaLain || data.biaya_lain;
+                const biayaTotalValue = data.biayaTotal || data.biaya_total;
+                
+                requestData = {
+                    pid: data.pid || data.encryptedPid, // Use encrypted PID
+                    id_office: parseInt(data.idOffice || data.id_office) || 1,
+                    nota: String(data.nota || ''),
+                    id_supplier: parseInt(supplierIdValue) || 0, // Use the resolved supplier ID
+                    tgl_masuk: String(data.tglMasuk || data.tgl_masuk || ''),
+                    nama_supir: String(data.namaSupir || data.nama_supir || ''),
+                    plat_nomor: String(data.platNomor || data.plat_nomor || ''),
+                    jumlah: parseInt(data.jumlah) || 0,
+                    biaya_truk: parseFloat(Array.isArray(biayaTrukValue) ? biayaTrukValue[0] : biayaTrukValue) || 0,
+                    biaya_lain: parseFloat(Array.isArray(biayaLainValue) ? biayaLainValue[0] : biayaLainValue) || 0,
+                    biaya_total: parseFloat(Array.isArray(biayaTotalValue) ? biayaTotalValue[0] : biayaTotalValue) || 0,
+                    tipe_pembelian: parseInt(data.tipePembelian || data.tipe_pembelian) || 1
                 };
                 
                 // Add file if it exists
                 if (data.file) {
-                    mappedData.file = data.file;
+                    requestData.file = data.file;
                 }
                 
-                Object.assign(requestData, mappedData);
+                // Validate required fields for header update
+                if (!requestData.id_supplier || requestData.id_supplier <= 0) {
+                    throw new Error('Supplier harus dipilih');
+                }
+                if (!requestData.nota || requestData.nota.trim() === '') {
+                    throw new Error('Nota harus diisi');
+                }
+                if (!requestData.tgl_masuk || requestData.tgl_masuk.trim() === '') {
+                    throw new Error('Tanggal masuk harus diisi');
+                }
+                if (!requestData.nama_supir || requestData.nama_supir.trim() === '') {
+                    throw new Error('Nama supir harus diisi');
+                }
+                if (!requestData.plat_nomor || requestData.plat_nomor.trim() === '') {
+                    throw new Error('Plat nomor harus diisi');
+                }
+                if (requestData.biaya_truk <= 0) {
+                    throw new Error('Biaya truk harus lebih dari 0');
+                }
+                if (requestData.biaya_lain < 0) {
+                    throw new Error('Biaya lain tidak boleh negatif');
+                }
             } else {
-                // Detail update - map detail fields
-                const mappedData = {
+                // Detail update - create clean request data with only backend field names
+                requestData = {
+                    pid: data.pid || data.encryptedPid, // Use encrypted PID
                     id_pembelian: data.idPembelian || data.id_pembelian,
                     id_office: data.idOffice || data.id_office,
                     eartag: data.eartag,
@@ -320,17 +345,43 @@ const usePembelianHO = () => {
                     hpp: data.hpp,
                     total_harga: data.totalHarga || data.total_harga
                 };
-                
-                Object.assign(requestData, mappedData);
             }
             
-            const result = await HttpClient.put(`${API_ENDPOINTS.HO.PEMBELIAN}/update`, requestData);
+            // Debug logging to help identify data issues
+            console.log('📤 Sending update request:', {
+                isHeader: isHeader,
+                requestData: requestData,
+                originalData: data
+            });
+            
+            const result = await HttpClient.post(`${API_ENDPOINTS.HO.PEMBELIAN}/update`, requestData);
+            
+            console.log('📥 Update response received:', result);
             
             if (result.status === 'ok' || result.success) {
-                // Refresh data after successful update
-                await fetchPembelian();
-                return result;
+                console.log('✅ Update successful, refreshing data...');
+                
+                // Refresh data after successful update - use current pagination state
+                try {
+                    await fetchPembelian(serverPagination.currentPage, serverPagination.perPage);
+                    console.log('✅ Data refresh successful');
+                } catch (refreshError) {
+                    // Log the refresh error but don't throw it - update was successful
+                    console.warn('⚠️ Refresh after update failed:', refreshError);
+                    console.warn('⚠️ But update was successful, continuing...');
+                }
+                
+                console.log('📤 Returning successful result:', result);
+                
+                // Return consistent format for the calling component
+                return {
+                    status: 'ok',
+                    success: true,
+                    message: result.message || 'Data updated successfully',
+                    data: result.data || result // Handle both response formats
+                };
             } else {
+                console.error('❌ Update failed - invalid response:', result);
                 throw new Error(result.message || 'Update failed');
             }
             
@@ -448,10 +499,16 @@ const usePembelianHO = () => {
                 }))
             };
 
-            const result = await HttpClient.put(`${API_ENDPOINTS.HO.PEMBELIAN}/update`, requestData);
+            const result = await HttpClient.post(`${API_ENDPOINTS.HO.PEMBELIAN}/update`, requestData);
             
             if (result.status === 'ok' || result.success) {
-                await fetchPembelian();
+                // Refresh data after successful update - use current pagination state
+                try {
+                    await fetchPembelian(serverPagination.currentPage, serverPagination.perPage);
+                } catch (refreshError) {
+                    // Log the refresh error but don't throw it - update was successful
+                    console.warn('Refresh after detail save failed:', refreshError);
+                }
                 return {
                     success: true,
                     message: 'Detail pembelian berhasil disimpan!',
@@ -631,8 +688,8 @@ const usePembelianHO = () => {
         setError(null);
         
         try {
-            // Backend now uses PUT method and expects specific detail fields
-            const result = await HttpClient.put(`${API_ENDPOINTS.HO.PEMBELIAN}/update`, {
+            // Backend now uses post method and expects specific detail fields
+            const result = await HttpClient.post(`${API_ENDPOINTS.HO.PEMBELIAN}/update`, {
                 pid: encryptedPid, // Backend expects encrypted PID
                 id_pembelian: parseInt(detailData.idPembelian),
                 id_office: parseInt(detailData.idOffice),

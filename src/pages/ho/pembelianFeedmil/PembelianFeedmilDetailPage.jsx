@@ -52,7 +52,7 @@ const PembelianFeedmilDetailPage = () => {
                             item_name: item.item_name || '',
                             id_klasifikasi_feedmil: item.id_klasifikasi_feedmil || '',
                             harga: parseFloat(item.harga) || 0,
-                            presentase: parseFloat(item.presentase) || 0, // Backend uses 'presentase'
+                            persentase: parseFloat(item.persentase) || 0, // Backend uses 'persentase'
                             berat: parseInt(item.berat) || 0,
                             hpp: parseFloat(item.hpp) || 0,
                             total_harga: parseFloat(item.total_harga) || 0,
@@ -187,14 +187,14 @@ const PembelianFeedmilDetailPage = () => {
         },
         {
             name: 'Persentase (%)',
-            selector: row => row.presentase,
+            selector: row => row.persentase,
             sortable: true,
             width: '12%',
             wrap: true,
             cell: row => (
                 <div className="text-center">
                     <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 break-words">
-                        {row.presentase ? `${parseFloat(row.presentase).toFixed(1)}%` : '-'}
+                        {row.persentase ? `${parseFloat(row.persentase).toFixed(1)}%` : '-'}
                     </span>
                 </div>
             )

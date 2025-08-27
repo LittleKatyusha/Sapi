@@ -4,7 +4,8 @@ import {
   Home, Users, Package, FileText, Settings, Menu, LogOut,
   ChevronDown, ChevronRight, Shield, Beef, DollarSign,
   ShoppingCart, TrendingUp, RotateCcw, Truck, UserCheck, Key,
-  Building2, ArrowLeft, Plus, Search, Filter, Download, Eye, Edit, Trash2, Syringe
+  Building2, ArrowLeft, Plus, Search, Filter, Download, Eye, Edit, Trash2, Syringe,
+  BarChart3, Receipt
 } from 'lucide-react';
 import { useAuthSecure } from '../hooks/useAuthSecure';
 import SecurityNotification from './security/SecurityNotification';
@@ -124,12 +125,16 @@ const LayoutSecure = ({ children, title }) => {
         { name: 'Parameters', path: '/system/parameters', icon: Settings }
       ]
     },
-    // {
-    //   name: 'Laporan',
-    //   icon: FileText,
-    //   path: '/reports',
-    //   active: location.pathname === '/reports'
-    // },
+    {
+      name: 'Laporan',
+      icon: BarChart3,
+      children: [
+        { name: 'Dashboard Laporan', path: '/reports', icon: FileText },
+        { name: 'Laporan per Nota Supplier', path: '/reports/nota-supplier', icon: FileText },
+        { name: 'Laporan Semua Supplier', path: '/reports/semua-supplier', icon: Users },
+        { name: 'Laporan Pajak', path: '/reports/pajak', icon: Receipt }
+      ]
+    },
     {
       name: 'Pengaturan',
       icon: Settings,

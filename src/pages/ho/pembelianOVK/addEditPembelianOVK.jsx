@@ -823,9 +823,6 @@ const AddEditPembelianOVKPage = () => {
                                 placeholder="Masukkan catatan pembelian OVK..."
                                 rows="3"
                             />
-                            <p className="text-xs text-red-600 mt-1">
-                                ⚠️ Field ini wajib diisi untuk backend
-                            </p>
                         </div>
 
                         {/* File Upload */}
