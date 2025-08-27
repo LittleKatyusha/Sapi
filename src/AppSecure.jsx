@@ -14,7 +14,7 @@ import PurchasePage from './pages/operations/PurchasePage';
 import LivestockStockPage from './pages/inventory/LivestockStockPage';
 import MeatStockPage from './pages/inventory/MeatStockPage';
 import EmployeePage from './pages/humanResources/EmployeePage';
-import ReportPage from './pages/reporting/ReportPage';
+
 import { 
   LaporanNotaSupplierPage, 
   LaporanSemuaSupplierPage, 
@@ -29,6 +29,8 @@ import DeliveryOrderPage from './pages/operations/DeliveryOrderPage.jsx'; // Fix
 import KandangOfficePage from './pages/dataMaster/KandangOfficePage';
 import JenisHewanPage from './pages/dataMaster/JenisHewanPage';
 import KlasifikasiHewanPage from './pages/dataMaster/KlasifikasiHewanPage';
+import KlasifikasiOvkPage from './pages/dataMaster/KlasifikasiOvkPage';
+import KlasifikasiFeedmilPage from './pages/dataMaster/KlasifikasiFeedmilPage';
 import SupplierPage from './pages/dataMaster/SupplierPage';
 import PelangganPage from './pages/dataMaster/PelangganPage';
 import OutletPage from './pages/dataMaster/OutletPage';
@@ -85,6 +87,8 @@ const pageTitleMap = {
   '/master-data/kandang-office': 'Data Master: Kandang & Office',
   '/master-data/jenis-hewan': 'Data Master: Jenis Hewan',
   '/master-data/klasifikasi-hewan': 'Data Master: Klasifikasi Hewan',
+  '/master-data/klasifikasi-ovk': 'Data Master: Klasifikasi OVK',
+  '/master-data/klasifikasi-feedmil': 'Data Master: Klasifikasi Feedmil',
   '/master-data/supplier': 'Data Master: Supplier',
   '/master-data/pelanggan': 'Data Master: Pelanggan',
   '/master-data/outlet': 'Data Master: Outlet',
@@ -395,7 +399,6 @@ function AppSecure() {
             <Route path="/inventory/meat" element={<MeatStockPage />} />
             
             {/* Rute Laporan */}
-            <Route path="/reports" element={<ReportPage />} />
             <Route path="/reports/nota-supplier" element={<LaporanNotaSupplierPage />} />
             <Route path="/reports/semua-supplier" element={<LaporanSemuaSupplierPage />} />
             <Route path="/reports/pajak" element={<LaporanPajakPage />} />
@@ -412,6 +415,8 @@ function AppSecure() {
             <Route path="/master-data/kandang-office" element={<KandangOfficePage />} />
             <Route path="/master-data/jenis-hewan" element={<JenisHewanPage />} />
             <Route path="/master-data/klasifikasi-hewan" element={<KlasifikasiHewanPage />} />
+            <Route path="/master-data/klasifikasi-ovk" element={<KlasifikasiOvkPage />} />
+            <Route path="/master-data/klasifikasi-feedmil" element={<KlasifikasiFeedmilPage />} />
             <Route path="/master-data/supplier" element={<SupplierPage />} />
             <Route path="/master-data/pelanggan" element={<PelangganPage />} />
             <Route path="/master-data/outlet" element={<OutletPage />} />

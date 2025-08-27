@@ -89,14 +89,14 @@ const LoginPage = () => {
   return (
     <div className="min-h-screen relative overflow-hidden">
       {/* Animated Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-red-900 via-red-700 to-rose-800">
+      <div className="absolute inset-0 bg-gradient-to-br from-emerald-900 via-emerald-800 to-emerald-700">
         <div className="absolute inset-0 bg-black opacity-20"></div>
         
         {/* Floating Elements */}
-        <div className="absolute top-20 left-20 w-32 h-32 bg-red-500 rounded-full opacity-20 animate-pulse"></div>
-        <div className="absolute top-60 right-32 w-24 h-24 bg-rose-400 rounded-full opacity-30 animate-bounce"></div>
-        <div className="absolute bottom-40 left-40 w-20 h-20 bg-red-300 rounded-full opacity-25 animate-pulse"></div>
-        <div className="absolute bottom-20 right-20 w-16 h-16 bg-rose-500 rounded-full opacity-20 animate-bounce"></div>
+        <div className="absolute top-20 left-20 w-32 h-32 bg-emerald-500 rounded-full opacity-20 animate-pulse"></div>
+        <div className="absolute top-60 right-32 w-24 h-24 bg-emerald-400 rounded-full opacity-30 animate-bounce"></div>
+        <div className="absolute bottom-40 left-40 w-20 h-20 bg-emerald-300 rounded-full opacity-25 animate-pulse"></div>
+        <div className="absolute bottom-20 right-20 w-16 h-16 bg-emerald-500 rounded-full opacity-20 animate-bounce"></div>
         
         {/* Geometric Patterns */}
         <div className="absolute top-0 left-0 w-full h-full opacity-10">
@@ -113,14 +113,14 @@ const LoginPage = () => {
           <div className="backdrop-blur-lg bg-white/10 border border-white/20 rounded-3xl shadow-2xl p-8 md:p-10">
             {/* Logo/Brand Section */}
             <div className="text-center mb-8">
-              <div className="mx-auto w-20 h-20 bg-gradient-to-r from-white to-red-100 rounded-3xl flex items-center justify-center mb-6 shadow-xl">
-                <svg className="w-10 h-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="mx-auto w-20 h-20 bg-gradient-to-r from-white to-emerald-100 rounded-3xl flex items-center justify-center mb-6 shadow-xl">
+                <svg className="w-10 h-10 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                 </svg>
               </div>
               <h1 className="text-4xl font-bold text-white mb-3 tracking-tight">TernaSys</h1>
-              <p className="text-red-100 text-lg">Sistem Manajemen CV Puput Bersaudara</p>
-              <div className="w-24 h-1 bg-gradient-to-r from-red-400 to-rose-400 mx-auto mt-4 rounded-full"></div>
+              <p className="text-emerald-100 text-lg">Sistem Manajemen CV Puput Bersaudara</p>
+              <div className="w-24 h-1 bg-gradient-to-r from-emerald-400 to-emerald-300 mx-auto mt-4 rounded-full"></div>
             </div>
 
             {error && (
@@ -137,7 +137,7 @@ const LoginPage = () => {
                 </label>
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <svg className="h-5 w-5 text-red-300 group-focus-within:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="h-5 w-5 text-emerald-300 group-focus-within:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
                     </svg>
                   </div>
@@ -148,7 +148,7 @@ const LoginPage = () => {
                     required
                     value={formData.email}
                     onChange={handleInputChange}
-                    className="block w-full pl-12 pr-4 py-4 bg-white/10 border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-white/40 transition-all duration-200 text-white placeholder-red-200 backdrop-blur-sm"
+                    className="block w-full pl-12 pr-4 py-4 bg-white/10 border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-white/40 transition-all duration-200 text-white placeholder-emerald-200 backdrop-blur-sm"
                     placeholder="admin@example.com"
                   />
                 </div>
@@ -161,7 +161,7 @@ const LoginPage = () => {
                 </label>
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <svg className="h-5 w-5 text-red-300 group-focus-within:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="h-5 w-5 text-emerald-300 group-focus-within:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                     </svg>
                   </div>
@@ -172,7 +172,7 @@ const LoginPage = () => {
                     required
                     value={formData.password}
                     onChange={handleInputChange}
-                    className="block w-full pl-12 pr-4 py-4 bg-white/10 border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-white/40 transition-all duration-200 text-white placeholder-red-200 backdrop-blur-sm"
+                    className="block w-full pl-12 pr-4 py-4 bg-white/10 border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-white/40 transition-all duration-200 text-white placeholder-emerald-200 backdrop-blur-sm"
                     placeholder="••••••••"
                   />
                 </div>
@@ -192,11 +192,11 @@ const LoginPage = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full flex justify-center py-4 px-6 border border-transparent rounded-xl shadow-lg text-lg font-semibold text-red-700 bg-gradient-to-r from-white to-red-50 hover:from-red-50 hover:to-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105 hover:shadow-xl"
+                className="w-full flex justify-center py-4 px-6 border border-transparent rounded-xl shadow-lg text-lg font-semibold text-emerald-700 bg-gradient-to-r from-white to-emerald-50 hover:from-emerald-50 hover:to-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105 hover:shadow-xl"
               >
                 {isLoading ? (
                   <>
-                    <svg className="animate-spin -ml-1 mr-3 h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24">
+                    <svg className="animate-spin -ml-1 mr-3 h-6 w-6 text-emerald-600" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>

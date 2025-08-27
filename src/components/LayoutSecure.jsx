@@ -87,6 +87,8 @@ const LayoutSecure = ({ children, title }) => {
         { name: 'Kandang & Office', path: '/master-data/kandang-office' },
         { name: 'Jenis Hewan', path: '/master-data/jenis-hewan' },
         { name: 'Klasifikasi Hewan', path: '/master-data/klasifikasi-hewan' },
+        { name: 'Klasifikasi OVK', path: '/master-data/klasifikasi-ovk' },
+        { name: 'Klasifikasi Feedmil', path: '/master-data/klasifikasi-feedmil' },
         { name: 'Supplier', path: '/master-data/supplier' },
         { name: 'Pelanggan', path: '/master-data/pelanggan' },
         { name: 'Outlet', path: '/master-data/outlet' },
@@ -129,7 +131,6 @@ const LayoutSecure = ({ children, title }) => {
       name: 'Laporan',
       icon: BarChart3,
       children: [
-        { name: 'Dashboard Laporan', path: '/reports', icon: FileText },
         { name: 'Laporan per Nota Supplier', path: '/reports/nota-supplier', icon: FileText },
         { name: 'Laporan Semua Supplier', path: '/reports/semua-supplier', icon: Users },
         { name: 'Laporan Pajak', path: '/reports/pajak', icon: Receipt }
