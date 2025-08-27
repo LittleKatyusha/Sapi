@@ -11,8 +11,11 @@ const ActionButton = ({ row, openMenuId, setOpenMenuId, onEdit, onDelete, onDeta
         e.stopPropagation();
         e.preventDefault();
         setIsAnimating(true);
-        if (openMenuId !== row.id) {
-            setOpenMenuId(row.id);
+        const currentId = row.id || row.encryptedPid;
+        if (openMenuId !== currentId) {
+            setOpenMenuId(currentId);
+        } else {
+            setOpenMenuId(null);
         }
         setTimeout(() => setIsAnimating(false), 180);
     };
@@ -31,19 +34,19 @@ const ActionButton = ({ row, openMenuId, setOpenMenuId, onEdit, onDelete, onDeta
                 onKeyDown={handleKeyDown}
                 tabIndex={0}
                 className={`p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-all duration-150 rounded-lg hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 group ${
-                    openMenuId === row.id ? 'bg-blue-50 text-blue-600 scale-105' : ''
+                    openMenuId === (row.id || row.encryptedPid) ? 'bg-blue-50 text-blue-600 scale-105' : ''
                 } ${isAnimating ? 'animate-pulse' : ''}`}
                 aria-label="Menu Aksi"
-                aria-expanded={openMenuId === row.id}
+                aria-expanded={openMenuId === (row.id || row.encryptedPid)}
             >
                 <MoreVertical
                     size={16}
                     className={`transition-transform duration-150 ${
-                        openMenuId === row.id ? 'rotate-90' : 'group-hover:rotate-90'
+                        openMenuId === (row.id || row.encryptedPid) ? 'rotate-90' : 'group-hover:rotate-90'
                     }`}
                 />
             </button>
-            {openMenuId === row.id && (
+            {openMenuId === (row.id || row.encryptedPid) && (
                 <ActionMenu
                     row={row}
                     onEdit={onEdit}

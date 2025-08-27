@@ -55,13 +55,17 @@ export const API_ENDPOINTS = {
     OUTLET: '/api/master/outlet',
     JENIS_HEWAN: '/api/master/jenishewan',
     KLASIFIKASI_HEWAN: '/api/master/klasifikasihewan',
+    KLASIFIKASI_OVK: '/api/master/klasifikasiovk',
     PARAMETER: '/api/master/parameter'
   },
 
   // Head Office (HO)
   HO: {
     PEMBELIAN: '/api/ho/pembelian',
-    PENJUALAN: '/api/ho/penjualan'
+    PENJUALAN: '/api/ho/penjualan',
+    OVK: {
+      PEMBELIAN: '/api/ho/ovk/pembelian'
+    }
   },
 
   // SDM (Human Resources)

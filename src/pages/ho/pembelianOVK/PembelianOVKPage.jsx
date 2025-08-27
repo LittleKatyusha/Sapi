@@ -1,291 +1,731 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Search, Filter, Download, Eye, Edit, Trash2, Package, DollarSign, Calendar, Truck, Syringe } from 'lucide-react';
+import DataTable from 'react-data-table-component';
+import { PlusCircle, Search, Filter, Package, Building2, Truck, User, X, Loader2 } from 'lucide-react';
+
+import usePembelianOVK from './hooks/usePembelianOVK';
+import ActionButton from '../pembelianFeedmil/components/ActionButton';
+import PembelianFeedmilCard from '../pembelianFeedmil/components/PembelianFeedmilCard';
+import CustomPagination from '../pembelianFeedmil/components/CustomPagination';
+import customTableStyles from '../pembelianFeedmil/constants/tableStyles';
+
+// Import modals
+import DeleteConfirmationModal from '../pembelianFeedmil/modals/DeleteConfirmationModal';
 
 const PembelianOVKPage = () => {
-  const navigate = useNavigate();
-  const [pembelianData, setPembelianData] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
+    const navigate = useNavigate();
+    const [openMenuId, setOpenMenuId] = useState(null);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [selectedPembelian, setSelectedPembelian] = useState(null);
+    const [notification, setNotification] = useState(null);
+    
+    const {
+        pembelian: filteredData,
+        loading,
+        error,
+        searchTerm,
+        setSearchTerm,
+        filterJenisPembelian,
+        setFilterJenisPembelian,
+        isSearching,
+        searchError,
+        stats,
+        serverPagination,
+        fetchPembelian,
+        handleSearch,
+        clearSearch,
+        handleFilter,
+        handlePageChange: handleServerPageChange,
+        handlePerPageChange: handleServerPerPageChange,
+        createPembelian,
+        updatePembelian,
+        deletePembelian,
+    } = usePembelianOVK();
 
-  // Mock data untuk contoh
-  const mockData = [
-    {
-      id: 1,
-      nota: 'OVK-001-2024',
-      supplier: 'PT Obat Veteriner',
-      tglMasuk: '2024-01-15',
-      namaSupir: 'Rudi Hartono',
-      platNomor: 'B 9876 EF',
-      jumlah: 100,
-      satuan: 'botol',
-      biayaTotal: 5000000,
-      status: 'completed',
-      jenisObat: 'Antibiotik'
-    },
-    {
-      id: 2,
-      nota: 'OVK-002-2024',
-      supplier: 'CV Farmasi Ternak',
-      tglMasuk: '2024-01-16',
-      namaSupir: 'Joko Widodo',
-      platNomor: 'B 5432 GH',
-      jumlah: 50,
-      satuan: 'box',
-      biayaTotal: 3000000,
-      status: 'pending',
-      jenisObat: 'Vitamin'
-    }
-  ];
+    useEffect(() => {
+        fetchPembelian();
+    }, []);
 
-  useEffect(() => {
-    setPembelianData(mockData);
-  }, []);
-
-  const handleBack = () => {
-    navigate('/dashboard');
-  };
-
-  const handleAdd = () => {
-    navigate('/ho/pembelian-ovk/add');
-  };
-
-  const handleView = (id) => {
-    navigate(`/ho/pembelian-ovk/detail/${id}`);
-  };
-
-  const handleEdit = (id) => {
-    navigate(`/ho/pembelian-ovk/edit/${id}`);
-  };
-
-  const handleDelete = (id) => {
-    if (window.confirm('Apakah Anda yakin ingin menghapus data ini?')) {
-      setPembelianData(prev => prev.filter(item => item.id !== id));
-    }
-  };
-
-  const getStatusBadge = (status) => {
-    const statusConfig = {
-      completed: { label: 'Selesai', className: 'bg-green-100 text-green-800' },
-      pending: { label: 'Pending', className: 'bg-yellow-100 text-yellow-800' },
-      cancelled: { label: 'Dibatalkan', className: 'bg-red-100 text-red-800' }
+    const handleEdit = (pembelian) => {
+        const id = pembelian.encryptedPid || pembelian.id;
+        if (!id || id.toString().startsWith('TEMP-')) {
+            setNotification({
+                type: 'error',
+                message: 'Data ini tidak dapat diedit karena belum tersimpan dengan benar'
+            });
+            return;
+        }
+        navigate(`/ho/pembelian-ovk/edit/${encodeURIComponent(id)}`);
+        setOpenMenuId(null);
     };
 
-    const config = statusConfig[status] || { label: 'Unknown', className: 'bg-gray-100 text-gray-800' };
-    
-    return (
-      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${config.className}`}>
-        {config.label}
-      </span>
-    );
-  };
+    const handleDetail = (pembelian) => {
+        const id = pembelian.encryptedPid || pembelian.id;
+        if (!id || id.toString().startsWith('TEMP-')) {
+            setNotification({
+                type: 'error',
+                message: 'Data ini tidak dapat dilihat detailnya karena belum tersimpan dengan benar'
+            });
+            return;
+        }
+        navigate(`/ho/pembelian-ovk/detail/${encodeURIComponent(id)}`);
+        setOpenMenuId(null);
+    };
 
-  const filteredData = pembelianData.filter(item => {
-    const matchesSearch = item.nota.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.supplier.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.namaSupir.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.jenisObat.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesFilter = filterStatus === 'all' || item.status === filterStatus;
-    
-    return matchesSearch && matchesFilter;
-  });
+    const handleDelete = (pembelian) => {
+        setSelectedPembelian(pembelian);
+        setIsDeleteModalOpen(true);
+        setOpenMenuId(null);
+    };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center">
-              <button
-                onClick={handleBack}
-                className="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 mr-3"
-              >
-                <ArrowLeft className="w-6 h-6" />
-              </button>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Pembelian OVK</h1>
-                <p className="text-sm text-gray-600">Kelola data pembelian obat-obatan veteriner</p>
-              </div>
-            </div>
+    // Modal handlers
+    const handleCloseDeleteModal = () => {
+        setIsDeleteModalOpen(false);
+        setSelectedPembelian(null);
+    };
+
+    const handleDeletePembelian = useCallback(async (pembelian) => {
+        try {
+            const encryptedPid = pembelian.encryptedPid || pembelian.id;
             
-            <button
-              onClick={handleAdd}
-              className="bg-gradient-to-r from-purple-500 to-purple-600 text-white px-4 py-2 rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all duration-300 flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              Tambah Pembelian
-            </button>
-          </div>
-        </div>
-      </div>
+            if (!encryptedPid) {
+                throw new Error('ID pembelian tidak tersedia untuk penghapusan');
+            }
+            
+            if (encryptedPid.toString().startsWith('TEMP-')) {
+                throw new Error('Item ini adalah data sementara dan tidak dapat dihapus');
+            }
 
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Filters and Search */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 mb-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="text"
-                  placeholder="Cari nota, supplier, supir, atau jenis obat..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            const result = await deletePembelian(encryptedPid, pembelian);
+            
+            if (result.success) {
+                setNotification({
+                    type: 'success',
+                    message: result.message || 'Data pembelian OVK berhasil dihapus'
+                });
+                
+                handleCloseDeleteModal();
+            } else {
+                let errorMessage = result.message || 'Gagal menghapus data pembelian OVK';
+                
+                setNotification({
+                    type: 'error',
+                    message: errorMessage
+                });
+            }
+        } catch (error) {
+            setNotification({
+                type: 'error',
+                message: error.message || 'Terjadi kesalahan saat menghapus data pembelian OVK'
+            });
+        }
+    }, [deletePembelian]);
+
+    // Pagination handlers for mobile cards
+    const handlePageChange = (page) => {
+        handleServerPageChange(page);
+    };
+
+    const handleItemsPerPageChange = (newItemsPerPage) => {
+        handleServerPerPageChange(newItemsPerPage);
+    };
+
+    // Auto-hide notification
+    useEffect(() => {
+        if (notification) {
+            const timer = setTimeout(() => {
+                setNotification(null);
+            }, 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [notification]);
+
+    const columns = useMemo(() => [
+        {
+            name: 'No',
+            selector: (row, index) => index + 1,
+            sortable: false,
+            width: '60px',
+            ignoreRowClick: true,
+            cell: (row, index) => (
+                <div className="font-semibold text-gray-700 text-center">
+                    {index + 1}
+                </div>
+            )
+        },
+        {
+            name: 'Nota',
+            selector: row => row.nota,
+            sortable: true,
+            width: '12%',
+            wrap: true,
+            cell: row => (
+                <div className="text-center">
+                    <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded break-words" title={row.nota}>
+                        {row.nota || '-'}
+                    </span>
+                </div>
+            )
+        },
+        {
+            name: 'Tanggal Masuk',
+            selector: row => row.tgl_masuk,
+            sortable: true,
+            width: '12%',
+            wrap: true,
+            cell: row => (
+                <div className="text-center">
+                    <span className="text-gray-900 break-words">
+                        {row.tgl_masuk ? new Date(row.tgl_masuk).toLocaleDateString('id-ID') : '-'}
+                    </span>
+                </div>
+            )
+        },
+        {
+            name: 'Nama Supir',
+            selector: row => row.nama_supir,
+            sortable: true,
+            width: '15%',
+            wrap: true,
+            cell: row => (
+                <div className="flex items-center">
+                    <div className="w-7 h-7 rounded-full bg-green-100 flex items-center justify-center mr-3 flex-shrink-0">
+                        <User className="w-4 h-4 text-green-600" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                        <div className="font-medium text-gray-900 text-sm break-words" title={row.nama_supir}>
+                            {row.nama_supir || '-'}
+                        </div>
+                    </div>
+                </div>
+            )
+        },
+        {
+            name: 'Plat Nomor',
+            selector: row => row.plat_nomor,
+            sortable: true,
+            width: '10%',
+            wrap: true,
+            cell: row => (
+                <div className="flex items-center">
+                    <Truck className="w-4 h-4 text-gray-500 mr-2 flex-shrink-0" />
+                    <span className="font-mono text-sm break-words" title={row.plat_nomor}>
+                        {row.plat_nomor || '-'}
+                    </span>
+                </div>
+            )
+        },
+        {
+            name: 'Jumlah',
+            selector: row => row.jumlah,
+            sortable: true,
+            width: '8%',
+            wrap: true,
+            cell: row => (
+                <div className="text-center">
+                    <span className="inline-flex px-2 py-1 text-sm font-semibold rounded-full bg-indigo-100 text-indigo-800 break-words">
+                        {row.jumlah || 0} {row.satuan || 'sak'}
+                    </span>
+                </div>
+            )
+        },
+        {
+            name: 'Nama Supplier',
+            selector: row => row.nama_supplier || row.supplier,
+            sortable: true,
+            width: '18%',
+            wrap: true,
+            cell: row => (
+                <div className="flex items-center">
+                    <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center mr-3 flex-shrink-0">
+                        <Building2 className="w-4 h-4 text-blue-600" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                        <div className="font-medium text-gray-900 text-sm break-words" title={row.nama_supplier || row.supplier}>
+                            {row.nama_supplier || row.supplier || '-'}
+                        </div>
+                    </div>
+                </div>
+            )
+        },
+        {
+            name: 'Berat Total',
+            selector: row => row.berat_total,
+            sortable: true,
+            width: '12%',
+            wrap: true,
+            cell: row => (
+                <div className="text-center">
+                    <span className="text-gray-900 break-words">
+                        {row.berat_total ? `${parseFloat(row.berat_total).toFixed(1)} kg` : '-'}
+                    </span>
+                </div>
+            )
+        },
+        {
+            name: 'Biaya Total',
+            selector: row => row.biaya_total,
+            sortable: true,
+            width: '15%',
+            wrap: true,
+            cell: row => (
+                <div className="text-center">
+                    <span className="inline-flex px-3 py-1.5 text-sm font-semibold rounded-full bg-green-100 text-green-800 break-words">
+                        {row.biaya_total ? new Intl.NumberFormat('id-ID', {
+                            style: 'currency',
+                            currency: 'IDR',
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 0
+                        }).format(row.biaya_total) : 'Rp 0'}
+                    </span>
+                </div>
+            )
+        },
+        {
+            name: 'Biaya Lain',
+            selector: row => row.biaya_lain,
+            sortable: true,
+            width: '12%',
+            wrap: true,
+            cell: row => (
+                <div className="text-center">
+                    <span className="inline-flex px-3 py-1.5 text-sm font-semibold rounded-full bg-orange-100 text-orange-800 break-words">
+                        {row.biaya_lain ? new Intl.NumberFormat('id-ID', {
+                            style: 'currency',
+                            currency: 'IDR',
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 0
+                        }).format(row.biaya_lain) : 'Rp 0'}
+                    </span>
+                </div>
+            )
+        },
+        {
+            name: 'Jenis Pembelian',
+            selector: row => row.jenis_pembelian,
+            sortable: true,
+            width: '12%',
+            wrap: true,
+            cell: row => (
+                <div className="text-center">
+                    <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800">
+                        {row.jenis_pembelian || '-'}
+                    </span>
+                </div>
+            )
+        },
+        {
+            name: 'Aksi',
+            width: '8%',
+            cell: row => (
+                <ActionButton
+                    row={row}
+                    openMenuId={openMenuId}
+                    setOpenMenuId={setOpenMenuId}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                    onDetail={handleDetail}
+                    isActive={openMenuId === (row.id || row.encryptedPid)}
                 />
-              </div>
-            </div>
-            
-            <div className="flex gap-2">
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              >
-                <option value="all">Semua Status</option>
-                <option value="completed">Selesai</option>
-                <option value="pending">Pending</option>
-                <option value="cancelled">Dibatalkan</option>
-              </select>
-              
-              <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2">
-                <Filter className="w-4 h-4" />
-                Filter
-              </button>
-              
-              <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2">
-                <Download className="w-4 h-4" />
-                Export
-              </button>
-            </div>
-          </div>
-        </div>
+            ),
+            ignoreRowClick: true,
+        },
+    ], [openMenuId, filteredData]);
 
-        {/* Data Table */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    No
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Nota
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Supplier
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Jenis Obat
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Tanggal Masuk
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Supir
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Plat Nomor
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Jumlah
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Biaya Total
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Aksi
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredData.map((item, index) => (
-                  <tr key={item.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {index + 1}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
-                      {item.nota}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {item.supplier}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        <Syringe className="w-3 h-3 mr-1" />
-                        {item.jenisObat}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {item.tglMasuk}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {item.namaSupir}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
-                      {item.platNomor}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {item.jumlah} {item.satuan}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
-                      Rp {item.biayaTotal.toLocaleString('id-ID')}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {getStatusBadge(item.status)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleView(item.id)}
-                          className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50"
-                          title="Lihat Detail"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleEdit(item.id)}
-                          className="text-green-600 hover:text-green-900 p-1 rounded hover:bg-green-50"
-                          title="Edit"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(item.id)}
-                          className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50"
-                          title="Hapus"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          
-          {filteredData.length === 0 && (
-            <div className="text-center py-12">
-              <Syringe className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Tidak ada data</h3>
-              <p className="text-gray-500">Belum ada data pembelian OVK yang tersedia.</p>
+    return (
+        <>
+            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-2 sm:p-4 md:p-6">
+            <div className="w-full max-w-none mx-0 space-y-6 md:space-y-8">
+                <div className="bg-white rounded-none sm:rounded-none p-4 sm:p-6 shadow-xl border border-gray-100">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <h1 className="text-2xl sm:text-4xl font-bold text-gray-800 mb-1 sm:mb-2 flex items-center gap-3">
+                                <Package size={32} className="text-blue-500" />
+                                Pembelian OVK
+                            </h1>
+                            <p className="text-gray-600 text-sm sm:text-base">
+                                Kelola data pembelian OVK (Obat, Vitamin, Kimia) untuk ternak
+                            </p>
+                        </div>
+                        <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 md:gap-6">
+                            <button
+                                onClick={() => navigate('/ho/pembelian-ovk/add')}
+                                className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white px-4 py-2 sm:px-6 sm:py-3 md:px-7 md:py-4 lg:px-8 lg:py-4 rounded-xl sm:rounded-2xl hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 flex items-center gap-3 font-medium shadow-lg hover:shadow-xl text-sm sm:text-base"
+                            >
+                                <PlusCircle className="w-5 h-5 sm:w-6 sm:h-6" />
+                                Tambah Pembelian
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 sm:gap-4 md:gap-6 sm:grid-cols-2 md:grid-cols-4">
+                    <div className="bg-gradient-to-br from-blue-400 to-blue-500 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
+                        <h3 className="text-sm sm:text-base font-medium opacity-90 mb-2">Total Pembelian</h3>
+                        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold">{stats.total}</p>
+                    </div>
+                    <div className="bg-gradient-to-br from-emerald-400 to-emerald-500 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
+                        <h3 className="text-sm sm:text-base font-medium opacity-90 mb-2">Total OVK</h3>
+                        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold">{stats.totalOVK}</p>
+                    </div>
+                    <div className="bg-gradient-to-br from-amber-400 to-orange-500 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
+                        <h3 className="text-sm sm:text-base font-medium opacity-90 mb-2">Hari Ini</h3>
+                        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold">{stats.today}</p>
+                    </div>
+                    <div className="bg-gradient-to-br from-purple-400 to-purple-500 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
+                        <h3 className="text-sm sm:text-base font-medium opacity-90 mb-2">Bulan Ini</h3>
+                        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold">{stats.thisMonth}</p>
+                    </div>
+                </div>
+
+                <div className="bg-white rounded-none sm:rounded-none p-4 sm:p-6 shadow-lg border border-gray-100">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 md:gap-6 sm:items-center sm:justify-between">
+                        <div className="relative flex-1 max-w-full sm:max-w-md lg:max-w-lg">
+                            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                            
+                            {isSearching && (
+                                <Loader2 className="absolute right-12 top-1/2 transform -translate-y-1/2 w-4 h-4 text-blue-500 animate-spin" />
+                            )}
+                            
+                            {searchTerm && !isSearching && (
+                                <button
+                                    onClick={clearSearch}
+                                    className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                                    title="Clear search"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            )}
+                            
+                            <input
+                                type="text"
+                                placeholder="Cari berdasarkan nota, supplier, supir, atau plat nomor OVK..."
+                                value={searchTerm}
+                                onChange={(e) => handleSearch(e.target.value)}
+                                className={`w-full pl-12 ${searchTerm || isSearching ? 'pr-12' : 'pr-4'} py-2.5 sm:py-3 md:py-4 border ${searchError ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'} rounded-full transition-all duration-200 text-sm sm:text-base shadow-sm hover:shadow-md`}
+                            />
+                            
+                            {searchError && (
+                                <div className="absolute top-full left-0 right-0 mt-1 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                                    {searchError}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex flex-wrap gap-2 sm:gap-3 md:gap-4">
+                            <div className="flex items-center gap-2 md:gap-3">
+                                <Filter className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
+                                <select
+                                    value={filterJenisPembelian}
+                                    onChange={(e) => handleFilter(e.target.value)}
+                                    className="px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm sm:text-base shadow-sm hover:shadow-md transition-all duration-200"
+                                >
+                                    <option value="all">Semua Jenis</option>
+                                    <option value="Obat">Obat</option>
+                                    <option value="Vitamin">Vitamin</option>
+                                    <option value="Kimia">Kimia</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Desktop Table View - Hidden on mobile */}
+                <div className="bg-white rounded-none sm:rounded-none shadow-lg border border-gray-100 relative hidden md:block">
+                    <div className="w-full">
+                        <DataTable
+                            key={`datatable-${serverPagination.currentPage}-${filteredData.length}`}
+                            columns={columns}
+                            data={filteredData}
+                            pagination
+                            paginationServer
+                            paginationTotalRows={serverPagination.totalItems}
+                            paginationDefaultPage={serverPagination.currentPage}
+                            paginationPerPage={serverPagination.perPage}
+                            paginationRowsPerPageOptions={[10, 25, 50, 100]}
+                            onChangeRowsPerPage={handleServerPerPageChange}
+                            onChangePage={handleServerPageChange}
+                            customStyles={{
+                                ...customTableStyles,
+                                table: {
+                                    ...customTableStyles.table,
+                                    style: {
+                                        ...customTableStyles.table.style,
+                                        minWidth: '1200px',
+                                        width: '100%',
+                                        tableLayout: 'fixed',
+                                        wordWrap: 'break-word',
+                                        overflowWrap: 'break-word',
+                                    }
+                                },
+                                tableWrapper: {
+                                    style: {
+                                        overflowX: 'auto',
+                                        overflowY: 'auto',
+                                        maxHeight: '600px',
+                                        maxWidth: '100%',
+                                        width: '100%',
+                                        border: '1px solid #e2e8f0',
+                                        borderRadius: '12px',
+                                        WebkitOverflowScrolling: 'touch',
+                                        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+                                        position: 'relative',
+                                        isolation: 'isolate',
+                                    }
+                                },
+                                headRow: {
+                                    style: {
+                                        position: 'sticky',
+                                        top: 0,
+                                        zIndex: 1000,
+                                        backgroundColor: '#ffffff',
+                                        fontWeight: 'bold',
+                                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                                    }
+                                },
+                                headCells: {
+                                    style: {
+                                        fontSize: '13px',
+                                        fontWeight: 'bold',
+                                        color: 'inherit',
+                                        padding: '12px 16px',
+                                        '&:first-child': {
+                                            position: 'sticky',
+                                            left: 0,
+                                            zIndex: 1002,
+                                            backgroundColor: '#ffffff',
+                                            borderRight: '3px solid #e2e8f0',
+                                            boxShadow: 'inset -3px 0 4px -1px rgba(0, 0, 0, 0.1)',
+                                            willChange: 'transform',
+                                        },
+                                        '&:last-child': {
+                                            position: 'sticky',
+                                            right: 0,
+                                            zIndex: 1001,
+                                            backgroundColor: '#ffffff',
+                                            borderLeft: '3px solid #e2e8f0',
+                                            boxShadow: 'inset 3px 0 4px -1px rgba(0, 0, 0, 0.1)',
+                                            whiteSpace: 'nowrap',
+                                            textAlign: 'center',
+                                            verticalAlign: 'middle',
+                                            willChange: 'transform',
+                                        },
+                                    },
+                                },
+                                rows: {
+                                    style: {
+                                        '&:hover': {
+                                            backgroundColor: 'rgba(243, 244, 246, 0.7)',
+                                            transform: 'scale(1)',
+                                        },
+                                    },
+                                },
+                                cells: {
+                                    style: {
+                                        wordWrap: 'break-word',
+                                        wordBreak: 'break-word',
+                                        whiteSpace: 'normal',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        padding: '8px 12px',
+                                        fontSize: '12px',
+                                        lineHeight: '1.4',
+                                        '&:first-child': {
+                                            position: 'sticky',
+                                            left: 0,
+                                            zIndex: 999,
+                                            backgroundColor: '#fff !important',
+                                            borderRight: '2px solid #e2e8f0',
+                                            boxShadow: 'inset -3px 0 4px -1px rgba(0, 0, 0, 0.1)',
+                                            willChange: 'transform',
+                                        },
+                                        '&:last-child': {
+                                            position: 'sticky',
+                                            right: 0,
+                                            zIndex: 998,
+                                            backgroundColor: '#fff !important',
+                                            borderLeft: '2px solid #e2e8f0',
+                                            boxShadow: 'inset 3px 0 4px -1px rgba(0, 0, 0, 0.1)',
+                                            padding: '8px 12px',
+                                            whiteSpace: 'nowrap',
+                                            textAlign: 'center',
+                                            verticalAlign: 'middle',
+                                            willChange: 'transform',
+                                        },
+                                    }
+                                }
+                            }}
+                            progressPending={loading}
+                            progressComponent={
+                                <div className="text-center py-12">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                                    <p className="text-gray-500 text-sm mt-2">Memuat data...</p>
+                                </div>
+                            }
+                            noDataComponent={
+                                <div className="text-center py-12">
+                                    {error ? (
+                                        <div className="text-red-600">
+                                            <p className="text-lg font-semibold">Error</p>
+                                            <p className="text-sm">{error}</p>
+                                        </div>
+                                    ) : searchTerm ? (
+                                        <div className="text-gray-500">
+                                            <p className="text-lg font-semibold">Tidak ada hasil untuk "{searchTerm}"</p>
+                                            <p className="text-sm mt-2">Coba gunakan kata kunci yang berbeda</p>
+                                            <button
+                                                onClick={clearSearch}
+                                                className="mt-3 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200 text-sm"
+                                            >
+                                                Clear Search
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <p className="text-gray-500 text-lg">Tidak ada data pembelian OVK ditemukan</p>
+                                    )}
+                                </div>
+                            }
+                            responsive={false}
+                            highlightOnHover
+                            pointerOnHover
+                        />
+                    </div>
+                </div>
+
+                {/* Mobile Card View - Visible on mobile only */}
+                <div className="md:hidden">
+                    {loading ? (
+                        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+                            <div className="text-center">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                                <p className="text-gray-500 text-sm mt-2">Memuat data...</p>
+                            </div>
+                        </div>
+                    ) : error ? (
+                        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+                            <div className="text-center text-red-600">
+                                <p className="text-lg font-semibold">Error</p>
+                                <p className="text-sm">{error}</p>
+                            </div>
+                        </div>
+                    ) : filteredData.length === 0 ? (
+                        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+                            <div className="text-center">
+                                {searchTerm ? (
+                                    <div className="text-gray-500">
+                                        <p className="text-lg font-semibold">Tidak ada hasil untuk "{searchTerm}"</p>
+                                        <p className="text-sm mt-2">Coba gunakan kata kunci yang berbeda</p>
+                                        <button
+                                            onClick={clearSearch}
+                                            className="mt-3 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200 text-sm"
+                                        >
+                                            Clear Search
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <p className="text-gray-500 text-lg">Tidak ada data pembelian OVK ditemukan</p>
+                                )}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            {/* Cards Container */}
+                            <div className="space-y-3">
+                                {filteredData.map((item, index) => (
+                                    <PembelianFeedmilCard
+                                        key={item.encryptedPid || item.id}
+                                        data={item}
+                                        index={(serverPagination.currentPage - 1) * serverPagination.perPage + index}
+                                        onEdit={handleEdit}
+                                        onDelete={handleDelete}
+                                        onDetail={handleDetail}
+                                    />
+                                ))}
+                            </div>
+
+                            {/* Custom Pagination for Mobile - Server-side */}
+                            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+                                <CustomPagination
+                                    currentPage={serverPagination.currentPage}
+                                    totalPages={serverPagination.totalPages}
+                                    totalItems={serverPagination.totalItems}
+                                    itemsPerPage={serverPagination.perPage}
+                                    onPageChange={handlePageChange}
+                                    onItemsPerPageChange={handleItemsPerPageChange}
+                                    itemsPerPageOptions={[10, 25, 50, 100]}
+                                    loading={loading}
+                                />
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
-          )}
+
+            {/* Notification */}
+            {notification && (
+                <div className="fixed top-4 right-4 z-50">
+                    <div className={`max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden ${
+                        notification.type === 'success' ? 'border-l-4 border-green-400' :
+                        notification.type === 'info' ? 'border-l-4 border-blue-400' :
+                        'border-l-4 border-red-400'
+                    }`}>
+                        <div className="p-4">
+                            <div className="flex items-start">
+                                <div className="flex-shrink-0">
+                                    {notification.type === 'success' ? (
+                                        <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
+                                            <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                            </svg>
+                                        </div>
+                                    ) : notification.type === 'info' ? (
+                                        <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
+                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                                        </div>
+                                    ) : (
+                                        <div className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center">
+                                            <svg className="w-4 h-4 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                            </svg>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="ml-3 w-0 flex-1 pt-0.5">
+                                    <p className="text-sm font-medium text-gray-900">
+                                        {notification.type === 'success' ? 'Berhasil!' :
+                                         notification.type === 'info' ? 'Memproses...' : 'Error!'}
+                                    </p>
+                                    <p className="mt-1 text-sm text-gray-500">{notification.message}</p>
+                                </div>
+                                <div className="ml-4 flex-shrink-0 flex">
+                                    <button
+                                        onClick={() => setNotification(null)}
+                                        className="bg-white rounded-md inline-flex text-gray-400 hover:text-gray-500"
+                                    >
+                                        <span className="sr-only">Close</span>
+                                        <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modals */}
+            <DeleteConfirmationModal
+                isOpen={isDeleteModalOpen}
+                onClose={handleCloseDeleteModal}
+                onConfirm={handleDeletePembelian}
+                data={selectedPembelian}
+                loading={loading}
+                type="pembelian"
+            />
         </div>
-      </div>
-    </div>
-  );
+        </>
+    );
 };
 
 export default PembelianOVKPage;
-
-

@@ -59,6 +59,8 @@ import PembelianFeedmilPage from './pages/ho/pembelianFeedmil/PembelianFeedmilPa
 import AddEditPembelianFeedmilPage from './pages/ho/pembelianFeedmil/AddEditPembelianFeedmilPage';
 import PembelianFeedmilDetailPage from './pages/ho/pembelianFeedmil/PembelianFeedmilDetailPage';
 import PembelianOVKPage from './pages/ho/pembelianOVK/PembelianOVKPage';
+import AddEditPembelianOVKPage from './pages/ho/pembelianOVK/addEditPembelianOVK';
+import PembelianOVKDetailPage from './pages/ho/pembelianOVK/PembelianOVKDetailPage';
 
 const AppWrapperSecure = () => (
   <Router>
@@ -112,6 +114,9 @@ const pageTitleMap = {
   '/ho/pembelian-feedmil/edit/:id': 'Head Office: Edit Pembelian Feedmil',
   '/ho/pembelian-feedmil/detail/:id': 'Head Office: Detail Pembelian Feedmil',
   '/ho/pembelian-ovk': 'Head Office: Pembelian OVK',
+  '/ho/pembelian-ovk/add': 'Head Office: Tambah Pembelian OVK',
+  '/ho/pembelian-ovk/edit/:id': 'Head Office: Edit Pembelian OVK',
+  '/ho/pembelian-ovk/detail/:id': 'Head Office: Detail Pembelian OVK',
 };
 
 // Security Error Boundary
@@ -428,6 +433,9 @@ function AppSecure() {
             <Route path="/ho/pembelian-feedmil/edit/:id" element={<AddEditPembelianFeedmilPage />} />
             <Route path="/ho/pembelian-feedmil/detail/:id" element={<PembelianFeedmilDetailPage />} />
             <Route path="/ho/pembelian-ovk" element={<PembelianOVKPage />} />
+            <Route path="/ho/pembelian-ovk/add" element={<AddEditPembelianOVKPage />} />
+            <Route path="/ho/pembelian-ovk/edit/:id" element={<AddEditPembelianOVKPage />} />
+            <Route path="/ho/pembelian-ovk/detail/:id" element={<PembelianOVKDetailPage />} />
             
             <Route path="/ho/penjualan" element={<PenjualanHOPage />} />
             <Route path="/ho/penjualan/add" element={<AddEditPenjualanPage />} />
