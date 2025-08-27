@@ -23,62 +23,72 @@ const PembelianFeedmilDetailPage = () => {
             if (id) {
                 try {
                     const result = await getPembelianDetail(id);
-                    if (result.success && result.data.length > 0) {
-                        const data = result.data[0];
+                    if (result.success && result.data && result.data.length > 0) {
+                        // Backend returns array of detail items from dt_pembelian_ho_feedmil_detail view
+                        const detailItems = result.data;
                         
-                        // Set header data
+                        // Set header data from first item (all items have same header info)
+                        const firstItem = detailItems[0];
                         setPembelianData({
-                            encryptedPid: data.encryptedPid || id,
-                            nota: data.nota || '',
-                            nama_supplier: data.nama_supplier || '',
+                            encryptedPid: firstItem.pubid || id,
+                            nota: firstItem.nota || '',
+                            nama_supplier: firstItem.nama_supplier || '',
                             nama_office: 'Head Office (HO)',
-                            tgl_masuk: data.tgl_masuk || '',
-                            nama_supir: data.nama_supir || '',
-                            plat_nomor: data.plat_nomor || '',
-                            biaya_lain: data.biaya_lain || 0,
-                            biaya_total: data.biaya_total || 0,
-                            jumlah: data.jumlah || 0,
-                            satuan: data.satuan || 'sak',
-                            berat_total: data.berat_total || 0,
-                            jenis_pembelian: data.jenis_pembelian || 'Feedmil'
+                            tgl_masuk: firstItem.tgl_masuk || '',
+                            nama_supir: firstItem.nama_supir || '',
+                            plat_nomor: firstItem.plat_nomor || '',
+                            biaya_lain: firstItem.biaya_lain || 0,
+                            biaya_total: firstItem.biaya_total || 0,
+                            jumlah: firstItem.jumlah || 0,
+                            satuan: 'sak', // Default unit for feedmil
+                            berat_total: firstItem.berat_total || 0,
+                            jenis_pembelian: 'Feedmil'
                         });
 
-                        // Generate mock detail items for feedmill dengan struktur database tr_pembelian_ho_feedmil_detail
-                        const mockDetailItems = [];
-                        const totalItems = data.jumlah || 5; // Use actual quantity or default
-                        const pricePerItem = (data.biaya_total || 0) / totalItems;
-                        const weightPerItem = (data.berat_total || 0) / totalItems;
+                        // Transform detail items to match frontend structure
+                        const transformedDetailItems = detailItems.map((item, index) => ({
+                            id: index + 1,
+                            pubid: item.pubid || '',
+                            item_name: item.item_name || '',
+                            id_klasifikasi_feedmil: item.id_klasifikasi_feedmil || '',
+                            harga: parseFloat(item.harga) || 0,
+                            presentase: parseFloat(item.presentase) || 0, // Backend uses 'presentase'
+                            berat: parseInt(item.berat) || 0,
+                            hpp: parseFloat(item.hpp) || 0,
+                            total_harga: parseFloat(item.total_harga) || 0,
+                            status: item.status || 1,
+                            tgl_masuk_rph: item.tgl_masuk_rph || null
+                        }));
                         
-                        const feedmillTypes = ['Pakan Starter', 'Pakan Grower', 'Pakan Finisher', 'Concentrate', 'Vitamin Mix'];
-                        const klasifikasiOvk = ['OVK-001', 'OVK-002', 'OVK-003', 'OVK-004', 'OVK-005'];
-                        
-                        for (let i = 1; i <= totalItems; i++) {
-                            const harga = pricePerItem || 300000;
-                            const hpp = harga * 0.85; // HPP 85% dari harga
-                            const berat = Math.round(weightPerItem) || 50;
-                            const total_harga = harga;
-                            const presentase = ((harga - hpp) / hpp * 100).toFixed(1); // Margin percentage
-                            
-                            mockDetailItems.push({
-                                id: i,
-                                item_name: feedmillTypes[Math.floor(Math.random() * feedmillTypes.length)],
-                                id_klasifikasi_ovk: klasifikasiOvk[Math.floor(Math.random() * klasifikasiOvk.length)],
-                                harga: harga,
-                                presentase: parseFloat(presentase),
-                                berat: berat,
-                                hpp: hpp,
-                                total_harga: total_harga,
-                                tgl_masuk_rph: new Date(Date.now() + (i * 24 * 60 * 60 * 1000)).toISOString() // Random future dates
-                            });
-                        }
-                        
-                        setDetailData(mockDetailItems);
+                        setDetailData(transformedDetailItems);
+                    } else {
+                        // If no detail data found, but request was successful, show header with empty details
+                        console.warn('No detail data found for pembelian feedmil:', id);
+                        setPembelianData({
+                            encryptedPid: id,
+                            nota: '',
+                            nama_supplier: '',
+                            nama_office: 'Head Office (HO)',
+                            tgl_masuk: '',
+                            nama_supir: '',
+                            plat_nomor: '',
+                            biaya_lain: 0,
+                            biaya_total: 0,
+                            jumlah: 0,
+                            satuan: 'sak',
+                            berat_total: 0,
+                            jenis_pembelian: 'Feedmil'
+                        });
+                        setDetailData([]);
                     }
                 } catch (err) {
+                    console.error('Error fetching pembelian feedmil detail:', err);
                     setNotification({
                         type: 'error',
-                        message: 'Gagal memuat detail pembelian feedmil'
+                        message: err.message || 'Gagal memuat detail pembelian feedmil'
                     });
+                    setPembelianData(null);
+                    setDetailData([]);
                 }
             }
         };
@@ -100,7 +110,7 @@ const PembelianFeedmilDetailPage = () => {
         }
     }, [notification]);
 
-    // Columns for detail table - Sesuai dengan struktur database tr_pembelian_ho_feedmil_detail
+    // Columns for detail table - Sesuai dengan struktur backend dt_pembelian_ho_feedmil_detail view
     const detailColumns = [
         {
             name: 'No',
@@ -129,15 +139,15 @@ const PembelianFeedmilDetailPage = () => {
             )
         },
         {
-            name: 'Klasifikasi OVK',
-            selector: row => row.id_klasifikasi_ovk,
+            name: 'Klasifikasi Feedmil',
+            selector: row => row.id_klasifikasi_feedmil,
             sortable: true,
             width: '15%',
             wrap: true,
             cell: row => (
                 <div className="text-center">
                     <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
-                        {row.id_klasifikasi_ovk || '-'}
+                        {row.id_klasifikasi_feedmil || '-'}
                     </span>
                 </div>
             )

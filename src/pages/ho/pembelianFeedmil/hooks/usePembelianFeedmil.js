@@ -2,18 +2,7 @@ import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import HttpClient from '../../../../services/httpClient';
 import { API_ENDPOINTS } from '../../../../config/api';
 
-// Helper function to safely parse JSON response
-const safeJsonParse = async (response) => {
-    const contentType = response.headers.get('content-type');
-    
-    if (!contentType || !contentType.includes('application/json')) {
-        const responseText = await response.text();
-        throw new Error(`Server returned ${contentType || 'unknown content type'} instead of JSON. This usually means the API endpoint is not properly configured or the server returned an error page. Response: ${responseText.substring(0, 200)}...`);
-    }
-    
-    const jsonData = await response.json();
-    return jsonData;
-};
+// HttpClient already handles JSON parsing and error handling internally
 
 const usePembelianFeedmil = () => {
     const [pembelian, setPembelian] = useState([]);
@@ -33,54 +22,8 @@ const usePembelianFeedmil = () => {
         perPage: 10
     });
 
-    // Mock data untuk sementara - nanti bisa diganti dengan API call
-    const mockData = [
-        {
-            id: 1,
-            encryptedPid: 'encrypted_1',
-            nota: 'FM-001-2024',
-            nama_supplier: 'PT Feedmil Sukses',
-            tgl_masuk: '2024-01-15',
-            nama_supir: 'Budi Santoso',
-            plat_nomor: 'B 1234 AB',
-            jumlah: 50,
-            satuan: 'sak',
-            berat_total: 2500,
-            biaya_total: 15000000,
-            biaya_lain: 500000,
-            jenis_pembelian: 'Feedmil'
-        },
-        {
-            id: 2,
-            encryptedPid: 'encrypted_2',
-            nota: 'FM-002-2024',
-            nama_supplier: 'CV Pakan Ternak',
-            tgl_masuk: '2024-01-16',
-            nama_supir: 'Sukarno',
-            plat_nomor: 'B 5678 CD',
-            jumlah: 30,
-            satuan: 'sak',
-            berat_total: 1500,
-            biaya_total: 9000000,
-            biaya_lain: 300000,
-            jenis_pembelian: 'Supplier'
-        },
-        {
-            id: 3,
-            encryptedPid: 'encrypted_3',
-            nota: 'FM-003-2024',
-            nama_supplier: 'PT Nutrisi Ternak',
-            tgl_masuk: '2024-01-17',
-            nama_supir: 'Joko Widodo',
-            plat_nomor: 'B 9999 EF',
-            jumlah: 75,
-            satuan: 'sak',
-            berat_total: 3750,
-            biaya_total: 22500000,
-            biaya_lain: 750000,
-            jenis_pembelian: 'Pakan'
-        }
-    ];
+    // Base API endpoint for feedmil pembelian
+    const FEEDMIL_API_BASE = API_ENDPOINTS.HO.FEEDMIL.PEMBELIAN;
 
     // Fetch pembelian feedmil data from API
     const fetchPembelian = useCallback(async (page = 1, perPage = null, search = null, filter = null, isSearchRequest = false) => {
@@ -93,49 +36,59 @@ const usePembelianFeedmil = () => {
         }
         
         try {
-            // Simulate API call with mock data for now
-            await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
-            
-            // Use mock data untuk sekarang
-            let filteredData = [...mockData];
-            
-            // Apply search filter
-            const currentSearch = search !== null ? search : searchTerm;
-            if (currentSearch && currentSearch.trim()) {
-                filteredData = filteredData.filter(item => 
-                    item.nota.toLowerCase().includes(currentSearch.toLowerCase()) ||
-                    item.nama_supplier.toLowerCase().includes(currentSearch.toLowerCase()) ||
-                    item.nama_supir.toLowerCase().includes(currentSearch.toLowerCase()) ||
-                    item.plat_nomor.toLowerCase().includes(currentSearch.toLowerCase())
-                );
-            }
-            
-            // Apply jenis pembelian filter
-            const currentFilter = filter !== null ? filter : filterJenisPembelian;
-            if (currentFilter && currentFilter !== 'all') {
-                filteredData = filteredData.filter(item => item.jenis_pembelian === currentFilter);
-            }
-            
-            // Apply pagination
             const currentPage = page || serverPagination.currentPage;
             const currentPerPage = perPage || serverPagination.perPage;
-            const totalItems = filteredData.length;
-            const totalPages = Math.ceil(totalItems / currentPerPage);
-            const startIndex = (currentPage - 1) * currentPerPage;
-            const endIndex = startIndex + currentPerPage;
-            const paginatedData = filteredData.slice(startIndex, endIndex);
+            const currentSearch = search !== null ? search : searchTerm;
             
-            // Update pagination state
-            setServerPagination({
-                currentPage: currentPage,
-                totalPages: totalPages,
-                totalItems: totalItems,
-                perPage: currentPerPage
+            // Prepare DataTables format parameters for backend
+            const params = new URLSearchParams({
+                draw: '1',
+                start: ((currentPage - 1) * currentPerPage).toString(),
+                length: currentPerPage.toString(),
+                'search[value]': currentSearch || '',
+                'order[0][column]': '3', // tgl_masuk column
+                'order[0][dir]': 'desc'
             });
             
-            setPembelian(paginatedData);
+            const jsonData = await HttpClient.get(`${FEEDMIL_API_BASE}/data?${params}`);
+            
+            if (jsonData && jsonData.data) {
+                // Transform backend data to match frontend expectations
+                const transformedData = jsonData.data.map(item => ({
+                    id: item.pid, // Use encrypted pid as id
+                    encryptedPid: item.pid,
+                    nota: item.nota,
+                    nama_supplier: item.nama_supplier,
+                    tgl_masuk: item.tgl_masuk,
+                    nama_supir: item.nama_supir,
+                    plat_nomor: item.plat_nomor,
+                    jumlah: item.jumlah,
+                    satuan: 'sak', // Default unit
+                    berat_total: item.berat_total,
+                    biaya_total: item.biaya_total,
+                    biaya_lain: item.biaya_lain,
+                    biaya_truk: item.biaya_truk,
+                    jenis_pembelian: item.jenis_pembelian || 'Feedmil',
+                    file: item.file,
+                    note: item.note
+                }));
+                
+                // Update pagination state from server response
+                setServerPagination({
+                    currentPage: currentPage,
+                    totalPages: Math.ceil((jsonData.recordsFiltered || 0) / currentPerPage),
+                    totalItems: jsonData.recordsFiltered || 0,
+                    perPage: currentPerPage
+                });
+                
+                setPembelian(transformedData);
+            } else {
+                setPembelian([]);
+                setServerPagination(prev => ({ ...prev, totalItems: 0, totalPages: 0 }));
+            }
             
         } catch (err) {
+            console.error('Fetch pembelian feedmil error:', err);
             const errorMessage = err.message || 'Terjadi kesalahan saat mengambil data pembelian feedmil';
             
             if (isSearchRequest) {
@@ -157,29 +110,143 @@ const usePembelianFeedmil = () => {
         setError(null);
         
         try {
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            // Prepare form data for backend
+            const formData = new FormData();
             
-            const newItem = {
-                id: Date.now(),
-                encryptedPid: `encrypted_${Date.now()}`,
-                ...pembelianData,
-                jenis_pembelian: 'Feedmil'
+            // Header data mapping to backend fields - aligned with backend validation rules
+            formData.append('id_office', 1); // Head Office ID (required integer)
+            formData.append('nota', pembelianData.nota || '');
+            formData.append('id_supplier', pembelianData.idSupplier || pembelianData.id_supplier || '');
+            formData.append('tgl_masuk', pembelianData.tgl_masuk || '');
+            formData.append('nama_supir', pembelianData.nama_supir || '');
+            formData.append('plat_nomor', pembelianData.plat_nomor || '');
+            formData.append('jumlah', pembelianData.total_feedmil || pembelianData.totalJumlah || 0);
+            formData.append('biaya_truk', pembelianData.biaya_truck || pembelianData.biaya_truk || 0); // Fixed: backend expects 'biaya_truk'
+            formData.append('biaya_lain', pembelianData.biaya_lain || 0);
+            formData.append('biaya_total', pembelianData.harga_total || pembelianData.totalHPP || 0); // Backend expects 'biaya_total'
+            formData.append('berat_total', pembelianData.berat_total || pembelianData.totalBerat || 0);
+            // Map values to integers as per backend validation
+            // Handle both string values from dropdown and integer values from API
+            const mapTipePembelian = (tipe) => {
+                // Handle integer values from dropdown/API
+                if (tipe === 1 || tipe === '1') return 1; // FEEDMIL - SUPPLIER
+                if (tipe === 2 || tipe === '2') return 2; // FEEDMIL - LANGSUNG
+                if (tipe === 3 || tipe === '3') return 3; // FEEDMIL - KONTRAK
+                return parseInt(tipe) || 1; // Default to SUPPLIER if can't parse
             };
+            formData.append('tipe_pembelian', mapTipePembelian(pembelianData.tipePembelian));
+            formData.append('note', pembelianData.note || 'Pembelian Feedmil dari Head Office'); // Required field
             
-            // Add to mock data (in real implementation this would be API call)
-            mockData.push(newItem);
+            // Add file if exists
+            if (pembelianData.file && pembelianData.file instanceof File) {
+                formData.append('file', pembelianData.file);
+            }
             
-            await fetchPembelian(1, serverPagination.perPage);
+            // Add detail items if exists - aligned with backend detail validation rules
+            if (pembelianData.detailItems && pembelianData.detailItems.length > 0) {
+                pembelianData.detailItems.forEach((item, index) => {
+                    // Only append fields that match backend DETAIL_VALIDATION_RULES with proper type conversion
+                    formData.append(`details[${index}][item_name]`, item.item_name || '');
+                    
+                    // Convert id_klasifikasi_feedmil to integer (backend expects integer)
+                    const klasifikasiId = parseInt(item.id_klasifikasi_feedmil) || 0;
+                    if (klasifikasiId > 0) {
+                        formData.append(`details[${index}][id_klasifikasi_feedmil]`, klasifikasiId);
+                    }
+                    
+                    // Ensure numeric fields are properly formatted according to backend validation
+                    formData.append(`details[${index}][harga]`, parseFloat(item.harga) || 0);
+                    formData.append(`details[${index}][persentase]`, parseInt(item.persentase) || 0); // Backend expects integer
+                    formData.append(`details[${index}][berat]`, parseInt(item.berat) || 0);
+                    formData.append(`details[${index}][hpp]`, parseFloat(item.hpp) || 0);
+                    formData.append(`details[${index}][total_harga]`, parseFloat(item.total_harga || item.hpp) || 0);
+                });
+            }
             
-            return {
-                success: true,
-                message: 'Pembelian feedmil berhasil dibuat!',
-                data: newItem
-            };
+            console.log('📤 Sending create request to:', `${FEEDMIL_API_BASE}/store`);
+            console.log('📦 FormData contents:', {
+                hasFile: formData.has('file'),
+                keys: Array.from(formData.keys())
+            });
+            
+            // Debug: Log detail items data types
+            if (pembelianData.detailItems && pembelianData.detailItems.length > 0) {
+                console.log('📋 Detail items validation:', pembelianData.detailItems.map((item, index) => ({
+                    index,
+                    item_name: item.item_name,
+                    id_klasifikasi_feedmil: {
+                        original: item.id_klasifikasi_feedmil,
+                        parsed: parseInt(item.id_klasifikasi_feedmil),
+                        isValid: parseInt(item.id_klasifikasi_feedmil) > 0
+                    },
+                    harga: parseFloat(item.harga) || 0,
+                    persentase: parseInt(item.persentase) || 0,
+                    berat: parseInt(item.berat) || 0
+                })));
+            }
+            
+            // Debug: Check if auth token exists
+            const authToken = localStorage.getItem('authToken') || localStorage.getItem('token');
+            console.log('🔑 Auth token check:', {
+                hasToken: !!authToken,
+                tokenLength: authToken ? authToken.length : 0,
+                tokenStart: authToken ? authToken.substring(0, 20) + '...' : 'none'
+            });
+            
+            // Try with explicit options to handle 302 redirect issue
+            const jsonData = await HttpClient.post(`${FEEDMIL_API_BASE}/store`, formData, {
+                // Don't set Content-Type for FormData - browser will set it automatically with boundary
+                skipCsrf: true, // Skip CSRF token for JWT-based API
+                credentials: 'omit', // Don't send cookies that might interfere with JWT
+                redirect: 'error' // Throw error on redirect instead of following it
+            });
+            
+            console.log('📦 Backend response for create:', jsonData);
+            
+            // Backend uses sendResponse() which returns { status: 'ok', data: [...], message: '...' }
+            if (jsonData && jsonData.status === 'ok') {
+                await fetchPembelian(1, serverPagination.perPage);
+                
+                return {
+                    success: true,
+                    message: jsonData.message || 'Pembelian feedmil berhasil dibuat!',
+                    data: jsonData.data
+                };
+            } else {
+                // Backend returned error response with { status: 'no', message: '...' }
+                const errorMessage = jsonData?.message || 'Gagal menyimpan data';
+                throw new Error(errorMessage);
+            }
             
         } catch (err) {
-            const errorMsg = err.message || 'Terjadi kesalahan saat menyimpan data';
+            console.error('Create pembelian feedmil error:', err);
+            console.error('Error details:', {
+                message: err.message,
+                stack: err.stack,
+                name: err.name
+            });
+            
+            // Check if it's an authentication error (401 or redirect to login)
+            if (err.message.includes('401') || err.message.includes('login') || err.message.includes('302')) {
+                const authError = 'Sesi Anda telah berakhir atau ada masalah authentikasi. Silakan login kembali.';
+                setError(authError);
+                return { success: false, message: authError, needsLogin: true };
+            }
+            
+            // Check if it's a 405 Method Not Allowed (might be CSRF issue)
+            if (err.message.includes('405')) {
+                const methodError = 'Method tidak diizinkan. Kemungkinan masalah CSRF token atau routing.';
+                setError(methodError);
+                return { success: false, message: methodError };
+            }
+            
+            // For development: provide more detailed error info
+            const errorMsg = `${err.message || 'Terjadi kesalahan saat menyimpan data'}\n\nDetail: ${JSON.stringify({
+                endpoint: `${FEEDMIL_API_BASE}/store`,
+                hasFormData: true,
+                errorType: err.name || 'Unknown'
+            }, null, 2)}`;
+            
             setError(errorMsg);
             return { success: false, message: errorMsg };
         } finally {
@@ -193,26 +260,66 @@ const usePembelianFeedmil = () => {
         setError(null);
         
         try {
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            // Prepare form data for backend
+            const formData = new FormData();
             
-            // Update mock data
-            const index = mockData.findIndex(item => item.id === data.id);
-            if (index !== -1) {
-                mockData[index] = { ...mockData[index], ...data };
+            formData.append('pid', data.id || data.encryptedPid);
+            
+            // Header data mapping to backend fields - aligned with backend validation rules
+            formData.append('id_office', 1); // Head Office ID (required integer)
+            formData.append('nota', data.nota || '');
+            formData.append('id_supplier', data.idSupplier || data.id_supplier || '');
+            formData.append('tgl_masuk', data.tgl_masuk || '');
+            formData.append('nama_supir', data.nama_supir || '');
+            formData.append('plat_nomor', data.plat_nomor || '');
+            formData.append('jumlah', data.total_feedmil || data.totalJumlah || 0);
+            formData.append('biaya_truk', data.biaya_truck || data.biaya_truk || 0); // Fixed: backend expects 'biaya_truk'
+            formData.append('biaya_lain', data.biaya_lain || 0);
+            formData.append('biaya_total', data.harga_total || data.totalHPP || 0); // Backend expects 'biaya_total'
+            formData.append('berat_total', data.berat_total || data.totalBerat || 0);
+            // Map values to integers as per backend validation
+            // Handle both string values from dropdown and integer values from API
+            const mapTipePembelian = (tipe) => {
+                // Handle integer values from dropdown/API
+                if (tipe === 1 || tipe === '1') return 1; // FEEDMIL - SUPPLIER
+                if (tipe === 2 || tipe === '2') return 2; // FEEDMIL - LANGSUNG
+                if (tipe === 3 || tipe === '3') return 3; // FEEDMIL - KONTRAK
+                return parseInt(tipe) || 1; // Default to SUPPLIER if can't parse
+            };
+            formData.append('tipe_pembelian', mapTipePembelian(data.tipePembelian));
+            formData.append('note', data.note || 'Pembelian Feedmil dari Head Office'); // Required field
+            
+            // Add file if exists
+            if (data.file && data.file instanceof File) {
+                formData.append('file', data.file);
             }
             
-            await fetchPembelian();
+            const jsonData = await HttpClient.post(`${FEEDMIL_API_BASE}/update`, formData, {
+                // Don't set Content-Type for FormData - browser will set it automatically with boundary
+                skipCsrf: true // Skip CSRF token for JWT-based API
+            });
             
-            return {
-                success: true,
-                message: 'Pembelian feedmil berhasil diperbarui!'
-            };
+            console.log('📦 Backend response for update:', jsonData);
+            
+            // Backend uses sendResponse() which returns { status: 'ok', data: [...], message: '...' }
+            if (jsonData && jsonData.status === 'ok') {
+                await fetchPembelian();
+                
+                return {
+                    success: true,
+                    message: jsonData.message || 'Pembelian feedmil berhasil diperbarui!'
+                };
+            } else {
+                // Backend returned error response with { status: 'no', message: '...' }
+                const errorMessage = jsonData?.message || 'Gagal memperbarui data';
+                throw new Error(errorMessage);
+            }
             
         } catch (error) {
             console.error('Error updating pembelian feedmil:', error);
-            setError(error.message || 'Failed to update pembelian feedmil');
-            throw error;
+            const errorMsg = error.message || 'Failed to update pembelian feedmil';
+            setError(errorMsg);
+            return { success: false, message: errorMsg };
         } finally {
             setLoading(false);
         }
@@ -230,43 +337,51 @@ const usePembelianFeedmil = () => {
                 throw new Error('ID pembelian tidak valid atau tidak ditemukan');
             }
             
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            const jsonData = await HttpClient.post(`${FEEDMIL_API_BASE}/delete`, {
+                pid: encryptedPid
+            }, {
+                skipCsrf: true // Skip CSRF token for JWT-based API
+            });
             
-            // Remove from mock data
-            const index = mockData.findIndex(item => item.encryptedPid === encryptedPid);
-            if (index !== -1) {
-                mockData.splice(index, 1);
+            console.log('📦 Backend response for delete:', jsonData);
+            
+            // Backend uses sendResponse() which returns { status: 'ok', data: [...], message: '...' }
+            if (jsonData && jsonData.status === 'ok') {
+                // Update state immediately
+                setPembelian(prevData => 
+                    prevData.filter(item => 
+                        item.encryptedPid !== encryptedPid && 
+                        item.id !== encryptedPid
+                    )
+                );
+                
+                // Update pagination
+                setServerPagination(prev => ({
+                    ...prev,
+                    totalItems: Math.max(0, prev.totalItems - 1)
+                }));
+                
+                // Refresh data
+                setTimeout(async () => {
+                    try {
+                        await fetchPembelian(serverPagination.currentPage, serverPagination.perPage);
+                    } catch (refreshError) {
+                        console.warn('Refresh after delete failed:', refreshError);
+                    }
+                }, 500);
+                
+                return {
+                    success: true,
+                    message: jsonData.message || 'Data berhasil dihapus'
+                };
+            } else {
+                // Backend returned error response with { status: 'no', message: '...' }
+                const errorMessage = jsonData?.message || 'Gagal menghapus data';
+                throw new Error(errorMessage);
             }
             
-            // Update state immediately
-            setPembelian(prevData => 
-                prevData.filter(item => 
-                    item.encryptedPid !== encryptedPid && 
-                    item.id !== encryptedPid
-                )
-            );
-            
-            // Update pagination
-            setServerPagination(prev => ({
-                ...prev,
-                totalItems: Math.max(0, prev.totalItems - 1)
-            }));
-            
-            setTimeout(async () => {
-                try {
-                    await fetchPembelian(serverPagination.currentPage, serverPagination.perPage);
-                } catch (refreshError) {
-                    console.warn('Refresh after delete failed:', refreshError);
-                }
-            }, 500);
-            
-            return {
-                success: true,
-                message: 'Data berhasil dihapus'
-            };
-            
         } catch (err) {
+            console.error('Delete pembelian feedmil error:', err);
             let errorMsg = err.message || 'Terjadi kesalahan saat menghapus data';
             setError(errorMsg);
             return { success: false, message: errorMsg };
@@ -281,18 +396,30 @@ const usePembelianFeedmil = () => {
         setError(null);
         
         try {
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 500));
+            const jsonData = await HttpClient.post(`${FEEDMIL_API_BASE}/show`, {
+                pid: encryptedPid
+            }, {
+                skipCsrf: true // Skip CSRF token for JWT-based API
+            });
             
-            const item = mockData.find(item => item.encryptedPid === encryptedPid);
+            console.log('📦 Backend response for detail:', jsonData);
             
-            return {
-                success: true,
-                data: item ? [item] : [],
-                message: 'Detail pembelian berhasil diambil'
-            };
+            // Backend uses sendResponse() which returns { status: 'ok', data: [...], message: '...' }
+            if (jsonData && jsonData.status === 'ok') {
+                return {
+                    success: true,
+                    data: jsonData.data || [],
+                    message: jsonData.message || 'Detail pembelian berhasil diambil'
+                };
+            } else {
+                // Backend returned error response with { status: 'no', message: '...' }
+                const errorMessage = jsonData?.message || 'Detail tidak ditemukan';
+                console.warn('Backend returned error:', errorMessage);
+                return { success: false, data: [], message: errorMessage };
+            }
             
         } catch (err) {
+            console.error('Get pembelian detail error:', err);
             const errorMsg = err.message || 'Terjadi kesalahan saat mengambil detail pembelian';
             setError(errorMsg);
             return { success: false, data: [], message: errorMsg };
@@ -301,14 +428,14 @@ const usePembelianFeedmil = () => {
         }
     }, []);
 
-    // Computed stats
+    // Computed stats based on current data
     const stats = useMemo(() => {
-        const total = mockData.length;
-        const totalFeedmil = mockData.reduce((sum, item) => sum + (item.jumlah || 0), 0);
+        const total = pembelian.length;
+        const totalFeedmil = pembelian.reduce((sum, item) => sum + (item.jumlah || 0), 0);
         
         // Today's purchases
         const today = new Date().toDateString();
-        const todayPurchases = mockData.filter(item => {
+        const todayPurchases = pembelian.filter(item => {
             const itemDate = new Date(item.tgl_masuk).toDateString();
             return itemDate === today;
         }).length;
@@ -316,18 +443,18 @@ const usePembelianFeedmil = () => {
         // This month's purchases
         const thisMonth = new Date().getMonth();
         const thisYear = new Date().getFullYear();
-        const thisMonthPurchases = mockData.filter(item => {
+        const thisMonthPurchases = pembelian.filter(item => {
             const itemDate = new Date(item.tgl_masuk);
             return itemDate.getMonth() === thisMonth && itemDate.getFullYear() === thisYear;
         }).length;
         
         return {
-            total: total,
+            total: serverPagination.totalItems || total, // Use server total if available
             totalFeedmil: totalFeedmil,
             today: todayPurchases,
             thisMonth: thisMonthPurchases
         };
-    }, []);
+    }, [pembelian, serverPagination.totalItems]);
 
     // Enhanced debounced search handler
     const searchTimeoutRef = useRef(null);
