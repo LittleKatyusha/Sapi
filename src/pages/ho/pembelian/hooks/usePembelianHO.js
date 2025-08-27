@@ -477,10 +477,19 @@ const usePembelianHO = () => {
                 throw new Error('Data detail tidak valid atau kosong');
             }
 
-            // Validate each detail item
+            // Validate each detail item - check for null/undefined specifically, not falsy values
             detailsData.forEach((item, index) => {
-                if (!item.eartag || !item.id_klasifikasi_hewan || !item.harga || !item.berat) {
-                    throw new Error(`Detail ${index + 1}: Data tidak lengkap`);
+                if (!item.eartag || item.eartag === '') {
+                    throw new Error(`Detail ${index + 1}: Eartag tidak boleh kosong`);
+                }
+                if (item.id_klasifikasi_hewan === null || item.id_klasifikasi_hewan === undefined || item.id_klasifikasi_hewan === '') {
+                    throw new Error(`Detail ${index + 1}: Klasifikasi hewan harus dipilih`);
+                }
+                if (!item.harga || item.harga <= 0) {
+                    throw new Error(`Detail ${index + 1}: Harga harus diisi dan lebih dari 0`);
+                }
+                if (!item.berat || item.berat <= 0) {
+                    throw new Error(`Detail ${index + 1}: Berat harus diisi dan lebih dari 0`);
                 }
             });
 

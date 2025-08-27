@@ -11,17 +11,14 @@ class LaporanPembelianService {
   
   /**
    * Get laporan per nota supplier
-   * Sementara menggunakan endpoint yang sama dengan parameter tanggal
-   * @param {string} startDate - Tanggal mulai (YYYY-MM-DD)
-   * @param {string} endDate - Tanggal akhir (YYYY-MM-DD)
+   * @param {string} nota - Nomor nota yang akan dilaporkan
    * @returns {Promise} - Response dari API
    */
-  static async getReportNotaSupplier(startDate, endDate) {
+  static async getReportNotaSupplier(nota) {
     try {
-      const response = await HttpClient.get('/api/report/pembelian/getReportAllSupplier', {
+      const response = await HttpClient.get('/api/report/pembelian/getReportNotaSupplier', {
         params: { 
-          start_date: startDate,
-          end_date: endDate 
+          nota: nota
         }
       });
       return response;
@@ -53,15 +50,60 @@ class LaporanPembelianService {
   }
 
   /**
+   * Get all available nota numbers for dropdown selection
+   * @returns {Promise} - Response dari API containing list of nota numbers
+   */
+  static async getAllNotaNumbers() {
+    try {
+      const response = await HttpClient.get('/api/ho/pembelian/data', {
+        params: { 
+          start: 0,
+          length: 10000, // Get a large number to get all records
+          draw: Date.now(),
+          'search[value]': '',
+          'order[0][column]': '0',
+          'order[0][dir]': 'asc'
+        }
+      });
+      
+      // Extract nota numbers from the response
+      if (response.data && Array.isArray(response.data)) {
+        const notaList = response.data
+          .filter(item => item.nota) // Filter out items without nota
+          .map(item => ({
+            value: item.nota,
+            label: item.nota,
+            supplier: item.nama_supplier || 'Unknown Supplier'
+          }))
+          .filter((nota, index, self) => 
+            index === self.findIndex(n => n.value === nota.value)
+          ); // Remove duplicates
+        
+        return {
+          success: true,
+          data: notaList
+        };
+      }
+      
+      return {
+        success: false,
+        data: []
+      };
+    } catch (error) {
+      console.error('Error getting all nota numbers:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get laporan pajak supplier
-   * Sementara menggunakan endpoint yang sama
    * @param {string} startDate - Tanggal mulai (YYYY-MM-DD)
    * @param {string} endDate - Tanggal akhir (YYYY-MM-DD)
    * @returns {Promise} - Response dari API
    */
   static async getReportSupplierTax(startDate, endDate) {
     try {
-      const response = await HttpClient.get('/api/report/pembelian/getReportAllSupplier', {
+      const response = await HttpClient.get('/api/report/pembelian/getReportSupplierTax', {
         params: { 
           start_date: startDate,
           end_date: endDate 
@@ -76,32 +118,33 @@ class LaporanPembelianService {
 
   /**
    * Download PDF report dengan handling untuk response blob
-   * Semua endpoint menggunakan getReportAllSupplier sementara
    * Menggunakan HttpClient untuk consistency dengan auth flow
-   * @param {string} endpoint - API endpoint (tidak digunakan, semua menggunakan getReportAllSupplier)
+   * @param {string} endpoint - API endpoint yang akan digunakan
    * @param {Object} params - Parameters untuk request
    * @returns {Promise} - Blob response
    */
   static async downloadPdfReport(endpoint, params) {
     // Gunakan HttpClient untuk consistency dengan authentication
-    return await this.downloadPdfWithHttpClient(params);
+    return await this.downloadPdfWithHttpClient(endpoint, params);
   }
 
   /**
    * PDF download menggunakan HttpClient dengan handling khusus untuk blob response
+   * @param {string} endpoint - API endpoint yang akan digunakan
    * @param {Object} params - Parameters untuk request
    * @returns {Promise} - Blob response
    */
-  static async downloadPdfWithHttpClient(params) {
+  static async downloadPdfWithHttpClient(endpoint, params) {
     try {
+      const apiEndpoint = `/api/report/pembelian/${endpoint}`;
       console.log('🔐 Making PDF request with HttpClient:', {
-        endpoint: '/api/report/pembelian/getReportAllSupplier',
+        endpoint: apiEndpoint,
         params: params
       });
 
       // Gunakan fetch langsung dengan HttpClient headers untuk blob response
       // Build URL dengan parameters
-      let url = `/api/report/pembelian/getReportAllSupplier`;
+      let url = apiEndpoint;
       const urlParams = new URLSearchParams();
       
       Object.entries(params).forEach(([key, value]) => {

@@ -18,6 +18,7 @@ const AddEditPembelianPage = () => {
         getPembelianDetail,
         createPembelian,
         updatePembelian,
+        updateDetail,
         saveHeaderOnly,
         saveDetailsOnly,
         loading,
@@ -434,7 +435,9 @@ const AddEditPembelianPage = () => {
 
                             return {
                                 id: index + 1,
-                                pubid: item.pubid,
+                                pubid: item.pubid, // Header pubid
+                                pubidDetail: item.pubid_detail || item.pid, // Detail pubid/encrypted PID for updates
+                                encryptedPid: item.pubid_detail || item.pid, // Use detail identifier for operations
                                 eartag: eartagValue,
                                 eartagSupplier: eartagSupplierValue, // Use the debugged value
                                 idKlasifikasiHewan: klasifikasiIdFromId || item.id_klasifikasi_hewan || item.klasifikasi_id || item.klasifikasi_hewan_pubid || item.klasifikasihewan_id || item.pubid_klasifikasi || '', // Try multiple sources, prioritize ID match
@@ -819,6 +822,132 @@ const AddEditPembelianPage = () => {
     // Remove detail item
     const removeDetailItem = (itemId) => {
         setDetailItems(prev => prev.filter(item => item.id !== itemId));
+    };
+
+    // Save individual detail item
+    const handleSaveDetailItem = async (itemId) => {
+        if (!isEdit) {
+            setNotification({
+                type: 'error',
+                message: 'Header pembelian harus disimpan terlebih dahulu sebelum menyimpan detail individual'
+            });
+            return;
+        }
+
+        const item = detailItems.find(detail => detail.id === itemId);
+        if (!item) {
+            setNotification({
+                type: 'error',
+                message: 'Item detail tidak ditemukan'
+            });
+            return;
+        }
+
+        // Validate individual item
+        const itemErrors = [];
+        if (!item.eartag) itemErrors.push('Eartag harus dipilih');
+        if (!item.eartagSupplier) itemErrors.push('Eartag supplier harus diisi');
+        if (!item.idKlasifikasiHewan) itemErrors.push('Klasifikasi hewan harus dipilih');
+        if (!item.harga || item.harga <= 0) itemErrors.push('Harga harus diisi dan > 0');
+        if (!item.berat || item.berat <= 0) itemErrors.push('Berat harus diisi dan > 0');
+
+        if (itemErrors.length > 0) {
+            setNotification({
+                type: 'error',
+                message: itemErrors.join(', ')
+            });
+            return;
+        }
+
+        try {
+            // Prepare detail data for save - use snake_case format for backend compatibility
+            const detailData = {
+                id_pembelian: headerData.encryptedPid || id,
+                id_office: parseInt(headerData.idOffice) || 1,
+                eartag: String(item.eartag || ''),
+                eartag_supplier: String(item.eartagSupplier || ''),
+                id_klasifikasi_hewan: parseInt(item.idKlasifikasiHewan) || 0,
+                harga: parseFloat(item.harga) || 0,
+                berat: parseInt(item.berat) || 0,
+                persentase: parseFloat(item.persentase) || 0,
+                hpp: parseFloat(item.hpp) || 0,
+                total_harga: parseFloat(item.hpp) || parseFloat(item.harga) || 0
+            };
+
+            // Data validation passed, proceeding with save
+
+            // Check if this is an existing item from database or a new frontend-only item
+            const hasDetailIdentifier = !!(item.encryptedPid || item.pid || item.pubidDetail);
+            const isTimestampId = typeof item.id === 'number' && item.id > 1000000000; // Timestamp-based IDs are > 1B
+            const isSequentialId = typeof item.id === 'number' && item.id < 1000; // Sequential IDs from database are usually small
+            
+            // An item is existing if it has detail identifier AND is not a timestamp-based frontend ID
+            const isExistingItem = hasDetailIdentifier && !isTimestampId;
+            
+            // Classify item type for proper save operation
+
+            let result;
+            if (isExistingItem) {
+                // This is an existing database item - use updateDetail
+                const updateData = {
+                    idPembelian: detailData.id_pembelian,
+                    idOffice: detailData.id_office,
+                    eartag: detailData.eartag,
+                    eartagSupplier: detailData.eartag_supplier,
+                    idKlasifikasiHewan: detailData.id_klasifikasi_hewan,
+                    harga: detailData.harga,
+                    berat: detailData.berat,
+                    persentase: detailData.persentase,
+                    hpp: detailData.hpp,
+                    totalHarga: detailData.total_harga
+                };
+                const detailPid = item.encryptedPid || item.pid || item.pubidDetail;
+                result = await updateDetail(detailPid, updateData);
+            } else {
+                // This is a new item created in frontend - use saveDetailsOnly to create
+                result = await saveDetailsOnly(headerData.encryptedPid || id, [detailData]);
+            }
+
+            if (result.success) {
+                setNotification({
+                    type: 'success',
+                    message: 'Detail berhasil disimpan!'
+                });
+                
+                // Update the saved item with new encrypted PID if it was a new item
+                if (!isExistingItem && result.data && result.data.pid) {
+                    setDetailItems(prevItems => 
+                        prevItems.map(prevItem => 
+                            prevItem.id === item.id 
+                                ? { ...prevItem, encryptedPid: result.data.pid }
+                                : prevItem
+                        )
+                    );
+                }
+                
+                // Note: We don't do full refresh here to avoid losing user's unsaved changes
+                // The API show endpoint doesn't return id_klasifikasi_hewan and eartag_supplier
+                // which would cause data loss for other items being edited
+                
+                // Show additional info for debugging
+                console.log('✅ Individual save successful:', {
+                    itemId: item.id,
+                    wasExisting: isExistingItem,
+                    newPid: result.data?.pid,
+                    message: result.message
+                });
+            } else {
+                setNotification({
+                    type: 'error',
+                    message: result.message || 'Gagal menyimpan detail'
+                });
+            }
+        } catch (err) {
+            setNotification({
+                type: 'error',
+                message: err.message || 'Terjadi kesalahan saat menyimpan detail'
+            });
+        }
     };
 
     // Validation
@@ -1836,6 +1965,7 @@ const AddEditPembelianPage = () => {
                                 parameterLoading={parameterLoading}
                                 onDetailChange={handleDetailChange}
                                 onRemoveDetail={removeDetailItem}
+                                onSaveDetail={handleSaveDetailItem}
                                 formatNumber={formatNumber}
                                 parseNumber={parseNumber}
                             />

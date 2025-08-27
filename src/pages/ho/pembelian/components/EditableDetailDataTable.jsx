@@ -1,6 +1,6 @@
 import React from 'react';
 import DataTable from 'react-data-table-component';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Save } from 'lucide-react';
 import Select from 'react-select';
 
 const customStyles = {
@@ -67,6 +67,7 @@ const EditableDetailDataTable = ({
   parameterLoading,
   onDetailChange,
   onRemoveDetail,
+  onSaveDetail,
   formatNumber,
   parseNumber,
 }) => {
@@ -298,7 +299,17 @@ const EditableDetailDataTable = ({
     {
       name: 'Aksi',
       cell: (row) => (
-        <div className="flex justify-center items-center h-full group">
+        <div className="flex justify-center items-center gap-1 h-full group">
+          <button
+            onClick={() => onSaveDetail && onSaveDetail(row.id)}
+            className="opacity-60 group-hover:opacity-100 text-green-600 hover:text-white hover:bg-green-600 p-1 rounded transition-all duration-150"
+            title="Simpan item"
+            style={{ transition: 'all 0.2s' }}
+            aria-label={`Simpan item ${row.eartag || row.id}`}
+            disabled={!onSaveDetail}
+          >
+            <Save className="w-4 h-4" />
+          </button>
           <button
             onClick={() => onRemoveDetail(row.id)}
             className="opacity-60 group-hover:opacity-100 text-red-500 hover:text-white hover:bg-red-500 p-1 rounded transition-all duration-150"
@@ -312,7 +323,7 @@ const EditableDetailDataTable = ({
       ),
       center: true,
       ignoreRowClick: true,
-      width: '70px',
+      width: '100px',
       grow: false,
       sortable: false,
     },
