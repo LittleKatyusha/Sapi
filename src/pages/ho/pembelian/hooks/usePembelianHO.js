@@ -666,7 +666,7 @@ const usePembelianHO = () => {
         try {
             // Backend expects specific detail fields for creation
             const result = await HttpClient.post(`${API_ENDPOINTS.HO.PEMBELIAN}/store`, {
-                id_pembelian: parseInt(detailData.idPembelian),
+                id_pembelian: detailData.idPembelian, // Keep encrypted, backend will decrypt
                 id_office: parseInt(detailData.idOffice),
                 eartag: String(detailData.eartag),
                 id_klasifikasi_hewan: parseInt(detailData.idKlasifikasiHewan),
@@ -700,7 +700,7 @@ const usePembelianHO = () => {
             // Backend now uses post method and expects specific detail fields
             const result = await HttpClient.post(`${API_ENDPOINTS.HO.PEMBELIAN}/update`, {
                 pid: encryptedPid, // Backend expects encrypted PID
-                id_pembelian: parseInt(detailData.idPembelian),
+                id_pembelian: detailData.idPembelian, 
                 id_office: parseInt(detailData.idOffice),
                 eartag: String(detailData.eartag),
                 id_klasifikasi_hewan: parseInt(detailData.idKlasifikasiHewan),
