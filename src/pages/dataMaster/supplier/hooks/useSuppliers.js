@@ -203,7 +203,7 @@ const useSuppliers = () => {
         setLoading(true);
         setError(null);
         
-        const requiredParams = ['name', 'description', 'adress', 'order_no', 'jenis_supplier', 'kategori_supplier', 'status'];
+        const requiredParams = ['name', 'description', 'adress', 'jenis_supplier', 'kategori_supplier', 'status'];
         const missingParams = requiredParams.filter(param =>
             supplierData[param] === undefined || supplierData[param] === null || supplierData[param] === ''
         );
@@ -215,11 +215,15 @@ const useSuppliers = () => {
         }
         
         try {
+            // Generate order_no automatically based on existing suppliers
+            const maxOrderNo = suppliers.length > 0 ? Math.max(...suppliers.map(s => s.order_no || 0)) : 0;
+            const newOrderNo = maxOrderNo + 1;
+            
             const cleanSupplierData = {
                 name: String(supplierData.name).trim(),
                 description: String(supplierData.description).trim(),
                 adress: String(supplierData.adress).trim(),
-                order_no: parseInt(supplierData.order_no, 10),
+                order_no: newOrderNo,
                 jenis_supplier: supplierData.jenis_supplier,
                 kategori_supplier: supplierData.kategori_supplier,
                 status: parseInt(supplierData.status, 10)
@@ -257,7 +261,7 @@ const useSuppliers = () => {
                 supplier.encryptedPid = pubid;
             }
             
-            const requiredParams = ['name', 'description', 'adress', 'order_no', 'jenis_supplier', 'kategori_supplier', 'status'];
+            const requiredParams = ['name', 'description', 'adress', 'jenis_supplier', 'kategori_supplier', 'status'];
             const missingParams = requiredParams.filter(param =>
                 supplierData[param] === undefined || supplierData[param] === null || supplierData[param] === ''
             );
@@ -272,7 +276,7 @@ const useSuppliers = () => {
                 name: String(supplierData.name).trim(),
                 description: String(supplierData.description).trim(),
                 adress: String(supplierData.adress).trim(),
-                order_no: parseInt(supplierData.order_no, 10),
+                order_no: supplier.order_no || 1, // Keep existing order_no for updates
                 jenis_supplier: supplierData.jenis_supplier,
                 kategori_supplier: supplierData.kategori_supplier,
                 status: parseInt(supplierData.status, 10)
@@ -408,7 +412,6 @@ const useSuppliers = () => {
                 name: `${supplierData.name} (Copy)`,
                 description: `${supplierData.description || ''} - Salinan dari ${supplierData.name}`,
                 adress: supplierData.adress || '',
-                order_no: (Math.max(...suppliers.map(s => s.order_no || 0)) + 1),
                 jenis_supplier: supplierData.jenis_supplier || '',
                 kategori_supplier: supplierData.kategori_supplier || '',
                 status: 0 // Default inactive for duplicated items

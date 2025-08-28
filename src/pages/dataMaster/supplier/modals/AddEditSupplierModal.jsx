@@ -14,7 +14,6 @@ const AddEditSupplierModal = ({
         name: '',
         description: '',
         adress: '',
-        order_no: '',
         jenis_supplier: '',
         kategori_supplier: '',
         status: 1
@@ -60,7 +59,6 @@ const AddEditSupplierModal = ({
                 name: editData.name || '',
                 description: editData.description || '',
                 adress: editData.adress || '',
-                order_no: editData.order_no || '',
                 jenis_supplier: editData.jenis_supplier || '',
                 kategori_supplier: editData.kategori_supplier || '',
                 status: editData.status !== undefined ? editData.status : 1
@@ -70,7 +68,6 @@ const AddEditSupplierModal = ({
                 name: '',
                 description: '',
                 adress: '',
-                order_no: '',
                 jenis_supplier: '',
                 kategori_supplier: '',
                 status: 1
@@ -94,9 +91,7 @@ const AddEditSupplierModal = ({
             newErrors.adress = 'Alamat wajib diisi';
         }
 
-        if (!formData.order_no || formData.order_no <= 0) {
-            newErrors.order_no = 'Nomor urut harus lebih dari 0';
-        }
+
 
         if (!formData.jenis_supplier) {
             newErrors.jenis_supplier = 'Jenis supplier wajib dipilih';
@@ -246,30 +241,7 @@ const AddEditSupplierModal = ({
                          )}
                      </div>
 
-                    {/* Nomor Urut */}
-                    <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                            Nomor Urut *
-                        </label>
-                        <input
-                            type="number"
-                            name="order_no"
-                            value={formData.order_no}
-                            onChange={handleChange}
-                            min="1"
-                            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                                errors.order_no ? 'border-red-500' : 'border-gray-300'
-                            }`}
-                            placeholder="Masukkan nomor urut"
-                            disabled={loading}
-                        />
-                        {errors.order_no && (
-                            <div className="flex items-center mt-2 text-red-600">
-                                <AlertCircle className="w-4 h-4 mr-1" />
-                                <span className="text-sm">{errors.order_no}</span>
-                            </div>
-                        )}
-                    </div>
+
 
                     {/* Jenis Supplier */}
                     <div>
