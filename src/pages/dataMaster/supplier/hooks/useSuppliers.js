@@ -10,6 +10,7 @@ const useSuppliers = () => {
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
+    const [filterKategori, setFilterKategori] = useState('all');
     
     // Server-side pagination state
     const [serverPagination, setServerPagination] = useState({
@@ -119,9 +120,11 @@ const useSuppliers = () => {
                     encryptedPid: item.pid || item.pubid,
                     name: item.name || 'Nama tidak tersedia',
                     description: item.description || '',
+                    adress: item.adress || '',
                     status: item.status !== undefined ? item.status : 1,
                     order_no: item.order_no || index + 1,
-                    jenis_supplier: item.jenis_supplier ? String(item.jenis_supplier) : ''
+                    jenis_supplier: item.jenis_supplier || '',
+                    kategori_supplier: item.kategori_supplier || ''
                 }));
                 
                 setSuppliers(validatedData);
@@ -139,8 +142,10 @@ const useSuppliers = () => {
                     encryptedPid: "SUP001",
                     name: "PT. Sumber Berkah",
                     description: "Supplier pakan ternak berkualitas tinggi",
+                    adress: "Jl. Raya Bogor No. 123, Jakarta Selatan",
                     order_no: 1,
-                    jenis_supplier: "1",
+                    jenis_supplier: "Perusahaan",
+                    kategori_supplier: "Ternak",
                     status: 1
                 },
                 {
@@ -148,8 +153,10 @@ const useSuppliers = () => {
                     encryptedPid: "SUP002",
                     name: "CV. Mitra Tani",
                     description: "Supplier obat-obatan hewan dan vitamin",
+                    adress: "Jl. Gatot Subroto No. 456, Jakarta Pusat",
                     order_no: 2,
-                    jenis_supplier: "1",
+                    jenis_supplier: "Perusahaan",
+                    kategori_supplier: "Feedmil",
                     status: 1
                 },
                 {
@@ -157,8 +164,10 @@ const useSuppliers = () => {
                     encryptedPid: "SUP003",
                     name: "UD. Cahaya Mandiri",
                     description: "Supplier peralatan peternakan",
+                    adress: "Jl. Sudirman No. 789, Jakarta Barat",
                     order_no: 3,
-                    jenis_supplier: "2",
+                    jenis_supplier: "Perorangan",
+                    kategori_supplier: "Ovk",
                     status: 0
                 },
                 {
@@ -166,8 +175,10 @@ const useSuppliers = () => {
                     encryptedPid: "SUP004",
                     name: "PT. Agro Nusantara",
                     description: "Supplier bibit dan pakan organik",
+                    adress: "Jl. Thamrin No. 321, Jakarta Utara",
                     order_no: 4,
-                    jenis_supplier: "1",
+                    jenis_supplier: "Perusahaan",
+                    kategori_supplier: "Ternak",
                     status: 1
                 },
                 {
@@ -175,8 +186,10 @@ const useSuppliers = () => {
                     encryptedPid: "SUP005",
                     name: "CV. Jaya Abadi",
                     description: "Supplier alat kesehatan hewan",
+                    adress: "Jl. Hayam Wuruk No. 654, Jakarta Timur",
                     order_no: 5,
-                    jenis_supplier: "1",
+                    jenis_supplier: "Perusahaan",
+                    kategori_supplier: "Feedmil",
                     status: 1
                 }
             ]);
@@ -190,7 +203,7 @@ const useSuppliers = () => {
         setLoading(true);
         setError(null);
         
-        const requiredParams = ['name', 'description', 'order_no', 'jenis_supplier', 'status'];
+        const requiredParams = ['name', 'description', 'adress', 'order_no', 'jenis_supplier', 'kategori_supplier', 'status'];
         const missingParams = requiredParams.filter(param =>
             supplierData[param] === undefined || supplierData[param] === null || supplierData[param] === ''
         );
@@ -205,8 +218,10 @@ const useSuppliers = () => {
             const cleanSupplierData = {
                 name: String(supplierData.name).trim(),
                 description: String(supplierData.description).trim(),
+                adress: String(supplierData.adress).trim(),
                 order_no: parseInt(supplierData.order_no, 10),
                 jenis_supplier: supplierData.jenis_supplier,
+                kategori_supplier: supplierData.kategori_supplier,
                 status: parseInt(supplierData.status, 10)
             };
             
@@ -242,7 +257,7 @@ const useSuppliers = () => {
                 supplier.encryptedPid = pubid;
             }
             
-            const requiredParams = ['name', 'description', 'order_no', 'jenis_supplier', 'status'];
+            const requiredParams = ['name', 'description', 'adress', 'order_no', 'jenis_supplier', 'kategori_supplier', 'status'];
             const missingParams = requiredParams.filter(param =>
                 supplierData[param] === undefined || supplierData[param] === null || supplierData[param] === ''
             );
@@ -256,8 +271,10 @@ const useSuppliers = () => {
             const cleanData = {
                 name: String(supplierData.name).trim(),
                 description: String(supplierData.description).trim(),
+                adress: String(supplierData.adress).trim(),
                 order_no: parseInt(supplierData.order_no, 10),
                 jenis_supplier: supplierData.jenis_supplier,
+                kategori_supplier: supplierData.kategori_supplier,
                 status: parseInt(supplierData.status, 10)
             };
             
@@ -332,19 +349,25 @@ const useSuppliers = () => {
                 const matchesSearch =
                     (item.name && item.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
                     (item.pubid && item.pubid.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                    (item.description && item.description.toLowerCase().includes(searchTerm.toLowerCase()));
+                    (item.description && item.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                    (item.adress && item.adress.toLowerCase().includes(searchTerm.toLowerCase()));
                     
                 const matchesStatus = filterStatus === 'all' ||
                     (filterStatus === 'active' && item.status === 1) ||
                     (filterStatus === 'inactive' && item.status === 0);
+                
+                const matchesKategori = filterKategori === 'all' ||
+                    (filterKategori === 'Ternak' && (item.kategori_supplier === '1' || item.kategori_supplier === 'Ternak' || item.kategori_supplier === 'TERNAK')) ||
+                    (filterKategori === 'Feedmil' && (item.kategori_supplier === '2' || item.kategori_supplier === 'Feedmil' || item.kategori_supplier === 'FEEDMIL')) ||
+                    (filterKategori === 'Ovk' && (item.kategori_supplier === '3' || item.kategori_supplier === 'Ovk' || item.kategori_supplier === 'OVK'));
                       
-                return matchesSearch && matchesStatus;
+                return matchesSearch && matchesStatus && matchesKategori;
             } catch (error) {
                 console.warn('Error filtering item:', item, error);
                 return false;
             }
         });
-    }, [suppliers, searchTerm, filterStatus]);
+    }, [suppliers, searchTerm, filterStatus, filterKategori]);
 
     // Statistics
     const stats = useMemo(() => {
@@ -384,7 +407,10 @@ const useSuppliers = () => {
             const duplicatedData = {
                 name: `${supplierData.name} (Copy)`,
                 description: `${supplierData.description || ''} - Salinan dari ${supplierData.name}`,
+                adress: supplierData.adress || '',
                 order_no: (Math.max(...suppliers.map(s => s.order_no || 0)) + 1),
+                jenis_supplier: supplierData.jenis_supplier || '',
+                kategori_supplier: supplierData.kategori_supplier || '',
                 status: 0 // Default inactive for duplicated items
             };
 
@@ -441,8 +467,8 @@ const useSuppliers = () => {
                     mimeType = 'application/json';
                     break;
                 case 'csv':
-                    const csvHeaders = 'ID,Nama,Deskripsi,Urutan,Status\n';
-                    const csvData = `${supplierData.pubid},"${supplierData.name}","${supplierData.description || ''}",${supplierData.order_no},${supplierData.status === 1 ? 'Aktif' : 'Tidak Aktif'}`;
+                    const csvHeaders = 'ID,Nama,Deskripsi,Alamat,Urutan,Jenis,Kategori,Status\n';
+                    const csvData = `${supplierData.pubid},"${supplierData.name}","${supplierData.description || ''}","${supplierData.adress || ''}",${supplierData.order_no},"${supplierData.jenis_supplier || ''}","${supplierData.kategori_supplier || ''}",${supplierData.status === 1 ? 'Aktif' : 'Tidak Aktif'}`;
                     exportData = csvHeaders + csvData;
                     filename = `supplier_${supplierData.pubid}_${new Date().toISOString().split('T')[0]}.csv`;
                     mimeType = 'text/csv';
@@ -475,7 +501,7 @@ const useSuppliers = () => {
         if (!supplierData) return { success: false, message: 'Data supplier tidak ditemukan' };
 
         try {
-            const shareText = `Supplier: ${supplierData.name}\nDeskripsi: ${supplierData.description || 'Tidak ada deskripsi'}\nStatus: ${supplierData.status === 1 ? 'Aktif' : 'Tidak Aktif'}`;
+            const shareText = `Supplier: ${supplierData.name}\nDeskripsi: ${supplierData.description || 'Tidak ada deskripsi'}\nAlamat: ${supplierData.adress || 'Tidak ada alamat'}\nJenis: ${supplierData.jenis_supplier || '-'}\nKategori: ${supplierData.kategori_supplier || '-'}\nStatus: ${supplierData.status === 1 ? 'Aktif' : 'Tidak Aktif'}`;
             
             if (navigator.share) {
                 // Use Web Share API if available
@@ -510,6 +536,8 @@ const useSuppliers = () => {
         setSearchTerm,
         filterStatus,
         setFilterStatus,
+        filterKategori,
+        setFilterKategori,
         stats,
         fetchSuppliers,
         createSupplier,

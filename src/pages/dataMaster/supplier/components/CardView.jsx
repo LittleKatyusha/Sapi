@@ -108,20 +108,32 @@ const CardView = ({
                                         />
                                     </div>
                                     <div className="space-y-4">
-                                        {item.description && (
-                                            <div className="bg-gradient-to-r from-gray-50 to-gray-100 p-4 rounded-2xl border border-gray-200">
-                                                <div className="flex items-center mb-2">
-                                                    <FileText className="w-4 h-4 text-gray-600 mr-2" />
-                                                    <span className="text-sm font-semibold text-gray-700">Deskripsi</span>
-                                                </div>
-                                                <p className="text-sm text-gray-700 leading-relaxed">
-                                                    {item.description}
-                                                </p>
-                                            </div>
-                                        )}
+                                                                                 {item.description && (
+                                             <div className="bg-gradient-to-r from-gray-50 to-gray-100 p-4 rounded-2xl border border-gray-200">
+                                                 <div className="flex items-center mb-2">
+                                                     <FileText className="w-4 h-4 text-gray-600 mr-2" />
+                                                     <span className="text-sm font-semibold text-gray-700">Deskripsi</span>
+                                                 </div>
+                                                 <p className="text-sm text-gray-700 leading-relaxed">
+                                                     {item.description}
+                                                 </p>
+                                             </div>
+                                         )}
+                                         
+                                         {item.adress && (
+                                             <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-2xl border border-blue-200">
+                                                 <div className="flex items-center mb-2">
+                                                     <FileText className="w-4 h-4 text-blue-600 mr-2" />
+                                                     <span className="text-sm font-semibold text-blue-700">Alamat</span>
+                                                 </div>
+                                                 <p className="text-sm text-blue-700 leading-relaxed">
+                                                     {item.adress}
+                                                 </p>
+                                             </div>
+                                         )}
                                         
                                         <div className="flex items-center justify-start pt-3 sm:pt-4 border-t border-gray-100">
-                                            <div className="flex items-center text-xs text-gray-500">
+                                            <div className="flex flex-wrap items-center gap-2 text-xs">
                                                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                                                     item.status === 1
                                                         ? 'bg-green-100 text-green-800'
@@ -129,6 +141,26 @@ const CardView = ({
                                                 }`}>
                                                     {item.status === 1 ? 'Aktif' : 'Tidak Aktif'}
                                                 </span>
+                                                {item.kategori_supplier && (
+                                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                                        item.kategori_supplier === '1' || item.kategori_supplier === 1 || item.kategori_supplier === 'Ternak' || item.kategori_supplier === 'TERNAK'
+                                                            ? 'bg-orange-100 text-orange-800'
+                                                            : item.kategori_supplier === '2' || item.kategori_supplier === 2 || item.kategori_supplier === 'Feedmil' || item.kategori_supplier === 'FEEDMIL'
+                                                            ? 'bg-purple-100 text-purple-800'
+                                                            : item.kategori_supplier === '3' || item.kategori_supplier === 3 || item.kategori_supplier === 'Ovk' || item.kategori_supplier === 'OVK'
+                                                            ? 'bg-indigo-100 text-indigo-800'
+                                                            : 'bg-gray-100 text-gray-600'
+                                                    }`}>
+                                                        {item.kategori_supplier === '1' || item.kategori_supplier === 1 || item.kategori_supplier === 'Ternak' || item.kategori_supplier === 'TERNAK'
+                                                            ? 'Ternak'
+                                                            : item.kategori_supplier === '2' || item.kategori_supplier === 2 || item.kategori_supplier === 'Feedmil' || item.kategori_supplier === 'FEEDMIL'
+                                                            ? 'Feedmil'
+                                                            : item.kategori_supplier === '3' || item.kategori_supplier === 3 || item.kategori_supplier === 'Ovk' || item.kategori_supplier === 'OVK'
+                                                            ? 'Ovk'
+                                                            : item.kategori_supplier || '-'
+                                                        }
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
                                     </div>

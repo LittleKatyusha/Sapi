@@ -3,6 +3,8 @@ const customTableStyles = {
         style: {
             color: '#1f2937',
             backgroundColor: '#ffffff',
+            minWidth: '1300px', // Increased minimum width to accommodate wider columns
+            width: '100%',
         },
     },
     headRow: {
@@ -25,6 +27,10 @@ const customTableStyles = {
             paddingRight: '16px',
             paddingTop: '12px',
             paddingBottom: '12px',
+            minWidth: '140px', // Increased minimum width for header cells
+            whiteSpace: 'nowrap', // Prevent text wrapping in headers
+            overflow: 'visible', // Ensure text is not hidden
+            textOverflow: 'clip', // Don't truncate text
         },
     },
     cells: {
@@ -35,6 +41,7 @@ const customTableStyles = {
             paddingBottom: '12px',
             fontSize: '14px',
             color: '#374151',
+            minWidth: '140px', // Increased minimum width for data cells
         },
     },
     rows: {
@@ -43,6 +50,7 @@ const customTableStyles = {
             borderBottomColor: '#f3f4f6',
             borderBottomWidth: '1px',
             borderBottomStyle: 'solid',
+            minHeight: '48px',
             '&:hover': {
                 backgroundColor: '#f9fafb',
                 transition: 'background-color 0.2s ease',

@@ -13,14 +13,23 @@ const AddEditSupplierModal = ({
     const [formData, setFormData] = useState({
         name: '',
         description: '',
+        adress: '',
         order_no: '',
         jenis_supplier: '',
+        kategori_supplier: '',
         status: 1
     });
     const [errors, setErrors] = useState({});
     const { fetchParametersByGroup } = useParameters();
     const [jenisSupplierOptions, setJenisSupplierOptions] = useState([]);
     const [loadingParameters, setLoadingParameters] = useState(false);
+
+    // Kategori supplier options
+    const kategoriSupplierOptions = [
+        { value: 'Ternak', label: 'Ternak' },
+        { value: 'Feedmil', label: 'Feedmil' },
+        { value: 'Ovk', label: 'Ovk' }
+    ];
 
     // Fetch jenis supplier parameters on component mount
     useEffect(() => {
@@ -50,16 +59,20 @@ const AddEditSupplierModal = ({
             setFormData({
                 name: editData.name || '',
                 description: editData.description || '',
+                adress: editData.adress || '',
                 order_no: editData.order_no || '',
                 jenis_supplier: editData.jenis_supplier || '',
+                kategori_supplier: editData.kategori_supplier || '',
                 status: editData.status !== undefined ? editData.status : 1
             });
         } else {
             setFormData({
                 name: '',
                 description: '',
+                adress: '',
                 order_no: '',
                 jenis_supplier: '',
+                kategori_supplier: '',
                 status: 1
             });
         }
@@ -77,12 +90,20 @@ const AddEditSupplierModal = ({
             newErrors.description = 'Deskripsi wajib diisi';
         }
 
+        if (!formData.adress.trim()) {
+            newErrors.adress = 'Alamat wajib diisi';
+        }
+
         if (!formData.order_no || formData.order_no <= 0) {
             newErrors.order_no = 'Nomor urut harus lebih dari 0';
         }
 
         if (!formData.jenis_supplier) {
             newErrors.jenis_supplier = 'Jenis supplier wajib dipilih';
+        }
+
+        if (!formData.kategori_supplier) {
+            newErrors.kategori_supplier = 'Kategori supplier wajib dipilih';
         }
 
         setErrors(newErrors);
@@ -177,29 +198,53 @@ const AddEditSupplierModal = ({
                         )}
                     </div>
 
-                    {/* Deskripsi */}
-                    <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                            Deskripsi *
-                        </label>
-                        <textarea
-                            name="description"
-                            value={formData.description}
-                            onChange={handleChange}
-                            rows={4}
-                            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none ${
-                                errors.description ? 'border-red-500' : 'border-gray-300'
-                            }`}
-                            placeholder="Masukkan deskripsi supplier"
-                            disabled={loading}
-                        />
-                        {errors.description && (
-                            <div className="flex items-center mt-2 text-red-600">
-                                <AlertCircle className="w-4 h-4 mr-1" />
-                                <span className="text-sm">{errors.description}</span>
-                            </div>
-                        )}
-                    </div>
+                                         {/* Deskripsi */}
+                     <div>
+                         <label className="block text-sm font-semibold text-gray-700 mb-2">
+                             Deskripsi *
+                         </label>
+                         <textarea
+                             name="description"
+                             value={formData.description}
+                             onChange={handleChange}
+                             rows={4}
+                             className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none ${
+                                 errors.description ? 'border-red-500' : 'border-gray-300'
+                             }`}
+                             placeholder="Masukkan deskripsi supplier"
+                             disabled={loading}
+                         />
+                         {errors.description && (
+                             <div className="flex items-center mt-2 text-red-600">
+                                 <AlertCircle className="w-4 h-4 mr-1" />
+                                 <span className="text-sm">{errors.description}</span>
+                             </div>
+                         )}
+                     </div>
+
+                     {/* Alamat */}
+                     <div>
+                         <label className="block text-sm font-semibold text-gray-700 mb-2">
+                             Alamat *
+                         </label>
+                         <textarea
+                             name="adress"
+                             value={formData.adress}
+                             onChange={handleChange}
+                             rows={3}
+                             className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none ${
+                                 errors.adress ? 'border-red-500' : 'border-gray-300'
+                             }`}
+                             placeholder="Masukkan alamat supplier"
+                             disabled={loading}
+                         />
+                         {errors.adress && (
+                             <div className="flex items-center mt-2 text-red-600">
+                                 <AlertCircle className="w-4 h-4 mr-1" />
+                                 <span className="text-sm">{errors.adress}</span>
+                             </div>
+                         )}
+                     </div>
 
                     {/* Nomor Urut */}
                     <div>
@@ -244,6 +289,35 @@ const AddEditSupplierModal = ({
                             <div className="flex items-center mt-2 text-red-600">
                                 <AlertCircle className="w-4 h-4 mr-1" />
                                 <span className="text-sm">{errors.jenis_supplier}</span>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Kategori Supplier */}
+                    <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            Kategori Supplier *
+                        </label>
+                        <select
+                            name="kategori_supplier"
+                            value={formData.kategori_supplier}
+                            onChange={handleChange}
+                            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                                errors.kategori_supplier ? 'border-red-500' : 'border-gray-300'
+                            }`}
+                            disabled={loading}
+                        >
+                            <option value="">Pilih kategori supplier</option>
+                            {kategoriSupplierOptions.map(option => (
+                                <option key={option.value} value={option.value}>
+                                    {option.label}
+                                </option>
+                            ))}
+                        </select>
+                        {errors.kategori_supplier && (
+                            <div className="flex items-center mt-2 text-red-600">
+                                <AlertCircle className="w-4 h-4 mr-1" />
+                                <span className="text-sm">{errors.kategori_supplier}</span>
                             </div>
                         )}
                     </div>

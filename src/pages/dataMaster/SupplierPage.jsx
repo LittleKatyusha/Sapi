@@ -31,6 +31,10 @@ const SupplierPage = () => {
     const [viewMode, setViewMode] = useState('table'); // 'table' atau 'card'
     const [notification, setNotification] = useState({ show: false, message: '', type: '' });
     
+    // State untuk pagination
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(10);
+    
     // State untuk pagination card view
     const [cardCurrentPage, setCardCurrentPage] = useState(1);
     const [cardItemsPerPage, setCardItemsPerPage] = useState(12);
@@ -44,6 +48,8 @@ const SupplierPage = () => {
         setSearchTerm,
         filterStatus,
         setFilterStatus,
+        filterKategori,
+        setFilterKategori,
         stats,
         fetchSuppliers,
         createSupplier,
@@ -231,14 +237,30 @@ const SupplierPage = () => {
         }
     }, []);
 
-    // Table columns configuration - Konsisten dengan KandangOfficePage
+    // Pagination logic
+    const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const currentData = filteredData.slice(startIndex, endIndex);
+
+    const handlePageChange = useCallback((page) => {
+        setCurrentPage(page);
+    }, []);
+
+    const handleItemsPerPageChange = useCallback((newItemsPerPage) => {
+        setItemsPerPage(newItemsPerPage);
+        setCurrentPage(1); // Reset to first page
+    }, []);
+
+    // Table columns configuration - Updated for better spacing and horizontal scroll
     const columns = useMemo(() => [
         {
             name: 'No.',
             width: '80px',
+            minWidth: '80px',
             cell: (row, index) => (
                 <div className="font-medium text-gray-600 text-sm">
-                    {index + 1}
+                    {startIndex + index + 1}
                 </div>
             ),
             ignoreRowClick: true
@@ -247,7 +269,8 @@ const SupplierPage = () => {
             name: 'Nama',
             selector: row => row.name,
             sortable: true,
-            grow: 2,
+            width: '200px',
+            minWidth: '200px',
             cell: row => (
                 <div className="flex items-center">
                     <Building2 className="w-4 h-4 text-gray-500 mr-2 flex-shrink-0" />
@@ -262,11 +285,26 @@ const SupplierPage = () => {
             name: 'Deskripsi',
             selector: row => row.description,
             sortable: true,
-            grow: 3,
+            width: '250px',
+            minWidth: '250px',
             cell: row => (
-                <div className="text-sm text-gray-600 max-w-xs">
+                <div className="text-sm text-gray-600">
                     <p className="truncate" title={row.description || 'Tidak ada deskripsi'}>
                         {row.description || '-'}
+                    </p>
+                </div>
+            )
+        },
+        {
+            name: 'Alamat',
+            selector: row => row.adress,
+            sortable: true,
+            width: '300px',
+            minWidth: '300px',
+            cell: row => (
+                <div className="text-sm text-gray-600">
+                    <p className="truncate" title={row.adress || 'Tidak ada alamat'}>
+                        {row.adress || '-'}
                     </p>
                 </div>
             )
@@ -275,17 +313,19 @@ const SupplierPage = () => {
             name: 'Jenis Supplier',
             selector: row => row.jenis_supplier,
             sortable: true,
-            grow: 2,
+            width: '180px',
+            minWidth: '180px',
             cell: row => {
                 const getJenisSupplierBadge = (jenis) => {
-                    if (jenis === '1' || jenis === 1) {
+                    // Handle both string and numeric formats
+                    if (jenis === '1' || jenis === 1 || jenis === 'Perusahaan' || jenis === 'PERUSAHAAN') {
                         return (
                             <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                                 <Building2 className="w-3 h-3 mr-1" />
                                 PERUSAHAAN
                             </span>
                         );
-                    } else if (jenis === '2' || jenis === 2) {
+                    } else if (jenis === '2' || jenis === 2 || jenis === 'Perorangan' || jenis === 'PERORANGAN') {
                         return (
                             <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                                 <Hash className="w-3 h-3 mr-1" />
@@ -295,7 +335,7 @@ const SupplierPage = () => {
                     } else {
                         return (
                             <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-                                -
+                                {jenis || '-'}
                             </span>
                         );
                     }
@@ -308,10 +348,56 @@ const SupplierPage = () => {
             }
         },
         {
+            name: 'Kategori Supplier',
+            selector: row => row.kategori_supplier,
+            sortable: true,
+            width: '180px',
+            minWidth: '180px',
+            cell: row => {
+                const getKategoriSupplierBadge = (kategori) => {
+                    // Handle both string and numeric formats
+                    if (kategori === '1' || kategori === 1 || kategori === 'Ternak' || kategori === 'TERNAK') {
+                        return (
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                                <Activity className="w-3 h-3 mr-1" />
+                                TERNAK
+                            </span>
+                        );
+                    } else if (kategori === '2' || kategori === 2 || kategori === 'Feedmil' || kategori === 'FEEDMIL') {
+                        return (
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                <Hash className="w-3 h-3 mr-1" />
+                                FEEDMIL
+                            </span>
+                        );
+                    } else if (kategori === '3' || kategori === 3 || kategori === 'Ovk' || kategori === 'OVK') {
+                        return (
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                                <Activity className="w-3 h-3 mr-1" />
+                                OVK
+                            </span>
+                        );
+                    } else {
+                        return (
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                                {kategori || '-'}
+                            </span>
+                        );
+                    }
+                };
+                return (
+                    <div className="flex items-center">
+                        {getKategoriSupplierBadge(row.kategori_supplier)}
+                    </div>
+                );
+            }
+        },
+        {
             name: 'Status',
             selector: row => row.status,
             sortable: true,
-            grow: 2,
+            width: '120px',
+            minWidth: '120px',
             cell: row => (
                 <div className="flex items-center text-sm text-gray-600">
                     <StatusBadge status={row.status} />
@@ -321,6 +407,7 @@ const SupplierPage = () => {
         {
             name: 'Aksi',
             width: '120px',
+            minWidth: '120px',
             cell: row => (
                 <div className="flex items-center justify-center">
                     <ActionButton
@@ -409,6 +496,21 @@ const SupplierPage = () => {
                                 </select>
                             </div>
 
+                            {/* Kategori Filter */}
+                            <div className="flex items-center gap-2">
+                                <Filter className="w-4 h-4 text-gray-500" />
+                                <select
+                                    value={filterKategori}
+                                    onChange={(e) => setFilterKategori(e.target.value)}
+                                    className="px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 text-xs sm:text-sm"
+                                >
+                                    <option value="all">Semua Kategori</option>
+                                    <option value="Ternak">Ternak</option>
+                                    <option value="Feedmil">Feedmil</option>
+                                    <option value="Ovk">Ovk</option>
+                                </select>
+                            </div>
+
                             {/* View Mode Toggle */}
                             <div className="flex bg-gray-100 rounded-xl p-1">
                                 <button
@@ -455,7 +557,7 @@ const SupplierPage = () => {
                 )}
 
                 {/* Data Display */}
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 relative overflow-x-auto flex flex-col min-h-[400px]">
+                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 relative flex flex-col min-h-[400px]">
                     {/* Overlay anti-hover row, hanya muncul saat menu aktif */}
                     {openMenuId && viewMode === 'table' && (
                         <div
@@ -472,60 +574,86 @@ const SupplierPage = () => {
                                 </div>
                             </div>
                         ) : viewMode === 'table' ? (
-                            <div className={`w-full h-full overflow-x-auto ${openMenuId ? 'pointer-events-none' : ''} flex-1 flex flex-col`}>
-                                <div className="min-w-[340px] sm:min-w-0 h-full flex-1 flex flex-col">
-                                    <div className="w-full" style={{display: 'flex', flexDirection: 'column', height: '100%'}}>
+                            <div className={`w-full h-full ${openMenuId ? 'pointer-events-none' : ''} flex-1 flex flex-col`}>
+                                <div className="w-full h-full flex-1 flex flex-col">
+                                    <div className="overflow-x-auto">
                                         <DataTable
-                                            columns={columns}
-                                            data={filteredData}
-                                            pagination
-                                            paginationPerPage={10}
-                                            paginationRowsPerPageOptions={[5, 10, 15, 20]}
-                                            style={{ width: '100%' }}
-                                            customStyles={{
-                                                ...customTableStyles,
-                                                table: {
-                                                    style: {
-                                                        minHeight: '100%',
-                                                        height: '100%',
-                                                        width: '100%',
-                                                        display: 'flex',
-                                                        flexDirection: 'column',
-                                                    }
-                                                },
-                                                headRow: {
-                                                    style: {
-                                                        flex: '0 0 auto',
-                                                    }
-                                                },
-                                                body: {
-                                                    style: {
-                                                        flex: '1 1 auto',
-                                                        minHeight: '250px',
-                                                        display: 'flex',
-                                                        flexDirection: 'column',
-                                                        justifyContent: 'stretch',
-                                                        width: '100%',
-                                                    }
-                                                },
-                                                rows: {
-                                                    style: {
-                                                        minHeight: '48px',
-                                                        flex: '1 0 auto',
-                                                        width: '100%',
-                                                    }
-                                                },
-                                            }}
-                                            noDataComponent={
-                                                <div className="text-center py-12">
-                                                    <Building2 className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                                                    <p className="text-gray-500 text-lg">Tidak ada data supplier ditemukan</p>
+                                        columns={columns}
+                                        data={currentData}
+                                        pagination={false}
+                                        style={{ width: '100%' }}
+                                        customStyles={{
+                                            ...customTableStyles,
+                                            table: {
+                                                style: {
+                                                    width: '100%',
+                                                    minWidth: '1300px',
+                                                }
+                                            },
+                                        }}
+                                        noDataComponent={
+                                            <div className="text-center py-12">
+                                                <Building2 className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                                                <p className="text-gray-500 text-lg">Tidak ada data supplier ditemukan</p>
+                                            </div>
+                                        }
+                                        responsive={false}
+                                        highlightOnHover={true}
+                                        pointerOnHover={true}
+                                    />
+                                    </div>
+                                    {/* Custom Pagination */}
+                                    <div className="mt-4 px-4 py-3 border-t border-gray-200 bg-white">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-sm text-gray-600">Rows per page:</span>
+                                                <select 
+                                                    className="border border-gray-300 rounded px-2 py-1 text-sm"
+                                                    value={itemsPerPage}
+                                                    onChange={(e) => handleItemsPerPageChange(parseInt(e.target.value))}
+                                                >
+                                                    <option value={5}>5</option>
+                                                    <option value={10}>10</option>
+                                                    <option value={15}>15</option>
+                                                    <option value={20}>20</option>
+                                                </select>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-sm text-gray-600">
+                                                    {startIndex + 1}-{Math.min(endIndex, filteredData.length)} of {filteredData.length}
+                                                </span>
+                                                <div className="flex gap-1">
+                                                    <button 
+                                                        className="px-2 py-1 text-sm border border-gray-300 rounded disabled:opacity-50"
+                                                        onClick={() => handlePageChange(1)}
+                                                        disabled={currentPage === 1}
+                                                    >
+                                                        K
+                                                    </button>
+                                                    <button 
+                                                        className="px-2 py-1 text-sm border border-gray-300 rounded disabled:opacity-50"
+                                                        onClick={() => handlePageChange(currentPage - 1)}
+                                                        disabled={currentPage === 1}
+                                                    >
+                                                        &lt;
+                                                    </button>
+                                                    <button 
+                                                        className="px-2 py-1 text-sm border border-gray-300 rounded disabled:opacity-50"
+                                                        onClick={() => handlePageChange(currentPage + 1)}
+                                                        disabled={currentPage === totalPages}
+                                                    >
+                                                        &gt;
+                                                    </button>
+                                                    <button 
+                                                        className="px-2 py-1 text-sm border border-gray-300 rounded disabled:opacity-50"
+                                                        onClick={() => handlePageChange(totalPages)}
+                                                        disabled={currentPage === totalPages}
+                                                    >
+                                                        &gt;|
+                                                    </button>
                                                 </div>
-                                            }
-                                            responsive
-                                            highlightOnHover={true}
-                                            pointerOnHover={true}
-                                        />
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
