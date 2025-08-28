@@ -338,6 +338,7 @@ const usePembelianHO = () => {
                     id_pembelian: data.idPembelian || data.id_pembelian,
                     id_office: data.idOffice || data.id_office,
                     eartag: data.eartag,
+                    eartag_supplier: data.eartagSupplier || data.eartag_supplier || '', // Add eartag_supplier
                     id_klasifikasi_hewan: data.idKlasifikasiHewan || data.id_klasifikasi_hewan,
                     harga: data.harga,
                     persentase: data.persentase,
@@ -499,6 +500,7 @@ const usePembelianHO = () => {
                 details: detailsData.map(item => ({
                     id_office: parseInt(item.id_office) || 1,
                     eartag: String(item.eartag),
+                    eartag_supplier: String(item.eartag_supplier || item.eartagSupplier || ''), // Add eartag_supplier
                     id_klasifikasi_hewan: parseInt(item.id_klasifikasi_hewan),
                     harga: parseFloat(item.harga),
                     berat: parseInt(item.berat),
@@ -669,6 +671,7 @@ const usePembelianHO = () => {
                 id_pembelian: detailData.idPembelian, // Keep encrypted, backend will decrypt
                 id_office: parseInt(detailData.idOffice),
                 eartag: String(detailData.eartag),
+                eartag_supplier: String(detailData.eartagSupplier || ''), // Add eartag_supplier
                 id_klasifikasi_hewan: parseInt(detailData.idKlasifikasiHewan),
                 harga: parseFloat(detailData.harga),
                 persentase: parseInt(detailData.persentase) || 0,
@@ -703,6 +706,7 @@ const usePembelianHO = () => {
                 id_pembelian: detailData.idPembelian, 
                 id_office: parseInt(detailData.idOffice),
                 eartag: String(detailData.eartag),
+                eartag_supplier: String(detailData.eartagSupplier || ''), // Add eartag_supplier
                 id_klasifikasi_hewan: parseInt(detailData.idKlasifikasiHewan),
                 harga: parseFloat(detailData.harga),
                 persentase: parseInt(detailData.persentase) || 0,

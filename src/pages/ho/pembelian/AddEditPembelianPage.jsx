@@ -1067,7 +1067,7 @@ const AddEditPembelianPage = () => {
                         ? detailItems.map(item => ({ // Details are now required for all supplier types
                             id_office: 1, // Always Head Office as integer
                             eartag: String(item.eartag),
-                            // eartagSupplier is frontend-only field, not sent to backend
+                            eartag_supplier: String(item.eartagSupplier || ''), // Add eartag_supplier
                             id_klasifikasi_hewan: parseInt(item.idKlasifikasiHewan),
                             harga: parseFloat(item.harga),
                             berat: parseInt(item.berat),
@@ -1103,7 +1103,7 @@ const AddEditPembelianPage = () => {
                         ? detailItems.map(item => ({ // Details are now required for all supplier types
                             id_office: 1, // Always Head Office for all details as integer
                             eartag: String(item.eartag),
-                            // eartagSupplier is frontend-only field, not sent to backend
+                            eartag_supplier: String(item.eartagSupplier || ''),
                             id_klasifikasi_hewan: parseInt(item.idKlasifikasiHewan),
                             harga: parseFloat(item.harga),
                             berat: parseInt(item.berat),
@@ -1293,6 +1293,7 @@ const AddEditPembelianPage = () => {
             const detailsData = detailItems.map(item => ({
                 id_office: 1,
                 eartag: String(item.eartag),
+                eartag_supplier: String(item.eartagSupplier || ''), // Add eartag_supplier
                 id_klasifikasi_hewan: parseInt(item.idKlasifikasiHewan),
                 harga: parseFloat(item.harga),
                 berat: parseInt(item.berat),
