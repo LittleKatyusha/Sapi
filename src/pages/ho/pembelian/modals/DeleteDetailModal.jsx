@@ -54,7 +54,7 @@ const DeleteDetailModal = ({
                         </p>
                         <div className="space-y-1 text-sm">
                             <p><strong>Eartag:</strong> {data?.eartag || '-'}</p>
-                            <p><strong>Code:</strong> {data?.code_eartag || '-'}</p>
+                            <p><strong>Eartag Supplier:</strong> {data?.eartag_supplier || '-'}</p>
                             <p><strong>Berat:</strong> {data?.berat ? `${data.berat} kg` : '-'}</p>
                             <p><strong>Total Harga:</strong> {data?.total_harga ? `Rp ${Number(data.total_harga).toLocaleString('id-ID')}` : '-'}</p>
                         </div>

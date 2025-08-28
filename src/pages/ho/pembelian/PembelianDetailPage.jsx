@@ -110,7 +110,7 @@ const PembelianDetailPage = () => {
         const clonedData = {
             ...detail,
             eartag: `${detail.eartag}_COPY`,
-            code_eartag: `${detail.code_eartag}_COPY`,
+            eartag_supplier: `${detail.eartag_supplier || ''}_COPY`,
             // Remove ID fields so it will be treated as new record
             pubid: undefined,
             id: undefined
@@ -249,12 +249,12 @@ const PembelianDetailPage = () => {
             )
         },
         {
-            name: 'Code Eartag',
-            selector: row => row.code_eartag,
+            name: 'Eartag Supplier',
+            selector: row => row.eartag_supplier,
             sortable: true,
             cell: row => (
                 <span className="font-mono text-[11px] bg-gray-100 px-2 py-1 rounded">
-                    {row.code_eartag || '-'}
+                    {row.eartag_supplier || '-'}
                 </span>
             )
         },

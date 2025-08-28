@@ -4,9 +4,7 @@ import { useAuthSecure } from '../hooks/useAuthSecure';
 import { Eye, EyeOff, Shield, Clock, AlertTriangle } from 'lucide-react';
 import { 
   sanitizeHtml, 
-  validateEmail, 
-  loginRateLimit,
-  securityAudit
+  validateEmail
 } from '../utils/security';
 import SecurityNotification from '../components/security/SecurityNotification';
 
@@ -33,11 +31,6 @@ const LoginPageSecure = () => {
 
   // Set security headers saat komponen mount
   useEffect(() => {
-    securityAudit.log('LOGIN_PAGE_ACCESSED', {
-      referrer: document.referrer,
-      userAgent: navigator.userAgent.slice(0, 100)
-    });
-
     // Check if there's a message from redirect
     if (location.state?.message) {
       setNotification({
@@ -90,7 +83,6 @@ const LoginPageSecure = () => {
             if (mounted) {
               setCaptchaToken(token);
               setError('');
-              securityAudit.log('CAPTCHA_SUCCESS', { tokenReceived: true });
             }
           },
           'error-callback': (errorCode) => {
@@ -110,7 +102,6 @@ const LoginPageSecure = () => {
               
               const errorMsg = errorMessages[errorCode] || `Error code: ${errorCode}`;
               setError(`Verifikasi error: ${errorMsg}`);
-              securityAudit.log('CAPTCHA_ERROR', { errorCode, errorMsg });
               
               // Retry for certain errors
               if (['300010', '300020', '300030'].includes(errorCode) && captchaRetryCount < MAX_RETRIES) {
@@ -125,24 +116,20 @@ const LoginPageSecure = () => {
             if (mounted) {
               setCaptchaToken('');
               setError('Verifikasi expired, silakan ulangi');
-              securityAudit.log('CAPTCHA_EXPIRED');
             }
           },
           'timeout-callback': () => {
             if (mounted) {
               setCaptchaToken('');
               setError('Verifikasi timeout, silakan ulangi');
-              securityAudit.log('CAPTCHA_TIMEOUT');
             }
           }
         });
 
         if (widgetId !== null) {
           setCaptchaLoaded(true);
-          securityAudit.log('CAPTCHA_WIDGET_RENDERED', { widgetId });
         }
       } catch (err) {
-        securityAudit.log('CAPTCHA_RENDER_ERROR', { error: err.message });
         
         if (captchaRetryCount < MAX_RETRIES && mounted) {
           setCaptchaRetryCount(prev => prev + 1);
@@ -189,8 +176,6 @@ const LoginPageSecure = () => {
       script.id = 'turnstile-script';
       
       script.onload = () => {
-        securityAudit.log('CAPTCHA_SCRIPT_LOADED');
-        
         // Wait a bit for Turnstile to initialize
         setTimeout(() => {
           if (mounted && window.turnstile) {
@@ -200,7 +185,6 @@ const LoginPageSecure = () => {
       };
       
       script.onerror = (error) => {
-        securityAudit.log('CAPTCHA_SCRIPT_ERROR', { error: error.message });
         
         if (captchaRetryCount < MAX_RETRIES) {
           setCaptchaRetryCount(prev => prev + 1);
@@ -257,9 +241,15 @@ const LoginPageSecure = () => {
       case 'email':
         const sanitizedEmail = sanitizeHtml(value.trim());
         if (!sanitizedEmail) {
-          errors.email = 'Masukkan email Anda';
-        } else if (!validateEmail(sanitizedEmail)) {
-          errors.email = 'Email tidak valid';
+          errors.email = 'Masukkan email atau username Anda';
+        } else {
+          // Check if it's an email format
+          const isEmail = sanitizedEmail.includes('@');
+          if (isEmail && !validateEmail(sanitizedEmail)) {
+            errors.email = 'Format email tidak valid';
+          } else if (!isEmail && sanitizedEmail.length < 3) {
+            errors.email = 'Username minimal 3 karakter';
+          }
         }
         break;
         
@@ -315,13 +305,12 @@ const LoginPageSecure = () => {
     
     if (Object.keys(allErrors).length > 0) {
       setInputErrors(allErrors);
-      setError('Lengkapi email dan password');
+      setError('Lengkapi email/username dan password');
       return;
     }
 
     if (!captchaToken) {
       setError('Selesaikan verifikasi keamanan');
-      securityAudit.log('LOGIN_ATTEMPT_NO_CAPTCHA', { email: formData.email });
       return;
     }
 
@@ -332,14 +321,12 @@ const LoginPageSecure = () => {
 
     try {
       const result = await login({
-        email: formData.email.trim(),
-        password: formData.password,
+        login: formData.email.trim(),
+        password: formData.password, 
         captcha: captchaToken
       });
 
       if (result.success) {
-        securityAudit.log('LOGIN_SUCCESS_REDIRECT');
-        
         // Redirect ke halaman tujuan atau dashboard
         const redirectTo = location.state?.from?.pathname || '/dashboard';
         navigate(redirectTo, { replace: true });
@@ -349,7 +336,7 @@ const LoginPageSecure = () => {
           type: 'success'
         });
       } else {
-        setError('Email atau password salah');
+        setError('Email/username atau password salah');
         
         if (result.attempts) {
           setLoginAttempts(result.attempts);
@@ -357,7 +344,7 @@ const LoginPageSecure = () => {
           
           if (remaining <= 2 && remaining > 0) {
             setNotification({
-              message: `Pastikan email dan password benar`,
+              message: `Pastikan email/username dan password benar`,
               type: 'warning'
             });
           }
@@ -387,7 +374,6 @@ const LoginPageSecure = () => {
       }
     } catch (err) {
       setError('Koneksi bermasalah, coba lagi');
-      securityAudit.log('LOGIN_NETWORK_ERROR', { error: err.message });
       
       // Reset captcha on error with enhanced handling
       setCaptchaToken('');
@@ -465,7 +451,7 @@ const LoginPageSecure = () => {
               {/* Email Field */}
               <div className="space-y-2">
                 <label htmlFor="email" className="block text-sm font-semibold text-white">
-                  Email Address
+                  Email atau Username
                 </label>
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -476,14 +462,14 @@ const LoginPageSecure = () => {
                   <input
                     id="email"
                     name="email"
-                    type="email"
+                    type="text"
                     required
                     value={formData.email}
                     onChange={handleInputChange}
                     className={`block w-full pl-12 pr-4 py-4 bg-white/10 border rounded-xl focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-white/40 transition-all duration-200 text-white placeholder-emerald-200 backdrop-blur-sm ${
                       inputErrors.email ? 'border-red-400' : 'border-white/20'
                     }`}
-                    placeholder="admin@example.com"
+                    placeholder="email@example.com atau username"
                     disabled={isBlocked}
                   />
                 </div>

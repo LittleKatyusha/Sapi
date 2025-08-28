@@ -67,17 +67,9 @@ export const useAuthSecure = () => {
         const storedUser = secureStorage.getItem('user');
         const authStatus = secureStorage.getItem('isAuthenticated');
         
-        console.log('🔍 Auth Check:', {
-          hasToken: !!storedToken,
-          hasUser: !!storedUser,
-          authStatus,
-          pathname: window.location.pathname
-        });
-        
         if (storedToken && storedUser && authStatus === true) {
           // Validate token
           if (tokenSecurity.isExpired(storedToken)) {
-            console.log('❌ Token expired, clearing auth data');
             await clearAuthData();
             setLoading(false);
             return;
@@ -92,11 +84,9 @@ export const useAuthSecure = () => {
             deviceFingerprint: deviceFingerprint.current?.substring(0, 20) + '...'
           });
         } else {
-          console.log('❌ No valid auth data found, clearing');
           await clearAuthData();
         }
       } catch (error) {
-        console.error('❌ Auth check error:', error);
         securityAudit.log('AUTH_CHECK_ERROR', { error: error.message });
         await clearAuthData();
       }
@@ -139,17 +129,17 @@ export const useAuthSecure = () => {
 
   // Enhanced login function - with required API-KEY (Rate limiting disabled)
   const login = useCallback(async (credentials) => {
-    const userIdentifier = credentials.email;
+    const userIdentifier = credentials.login || credentials.email;
     
     try {
       securityAudit.log('LOGIN_ATTEMPT', {
-        email: userIdentifier,
+        login: userIdentifier,
         deviceFingerprint: deviceFingerprint.current.substring(0, 20) + '...'
       });
 
-      // Login request - only send email and password (filter out captcha, rememberMe, etc.)
+      // Login request - send login field (supports email or username)
       const loginData = {
-        email: credentials.email,
+        login: credentials.login || credentials.email,
         password: credentials.password
       };
       
@@ -175,14 +165,14 @@ export const useAuthSecure = () => {
         
         securityAudit.log('LOGIN_SUCCESS', {
           userId: user.id,
-          email: userIdentifier,
+          login: userIdentifier,
           deviceFingerprint: deviceFingerprint.current.substring(0, 20) + '...'
         });
         
         return { success: true, token, user };
       } else {
         securityAudit.log('LOGIN_FAILED', {
-          email: userIdentifier,
+          login: userIdentifier,
           reason: result.message
         });
         
@@ -193,7 +183,7 @@ export const useAuthSecure = () => {
       }
     } catch (error) {
       securityAudit.log('LOGIN_ERROR', {
-        email: userIdentifier,
+        login: userIdentifier,
         error: error.message
       });
       
