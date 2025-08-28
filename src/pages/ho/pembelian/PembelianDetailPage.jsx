@@ -231,6 +231,7 @@ const PembelianDetailPage = () => {
     const detailColumns = [
         {
             name: 'No',
+            width: '60px',
             cell: (row, index) => (
                 <div className="font-semibold text-gray-700">
                     {index + 1}
@@ -249,22 +250,12 @@ const PembelianDetailPage = () => {
             )
         },
         {
-            name: 'Eartag Supplier',
-            selector: row => row.eartag_supplier,
+            name: 'Code Eartag',
+            selector: row => row.code_eartag,
             sortable: true,
             cell: row => (
-                <span className="font-mono text-[11px] bg-gray-100 px-2 py-1 rounded">
-                    {row.eartag_supplier || '-'}
-                </span>
-            )
-        },
-        {
-            name: 'Klasifikasi',
-            selector: row => 'N/A',
-            sortable: true,
-            cell: row => (
-                <span className="inline-flex px-2 py-1 text-[11px] font-medium rounded-full bg-gray-100 text-gray-600">
-                    N/A
+                <span className="font-mono text-[11px] bg-purple-100 px-2 py-1 rounded text-purple-800">
+                    {row.code_eartag || '-'}
                 </span>
             )
         },
@@ -289,35 +280,6 @@ const PembelianDetailPage = () => {
             )
         },
         {
-            name: 'Markup',
-            selector: row => {
-                // Calculate markup percentage from harga and hpp
-                const harga = parseFloat(row.harga) || 0;
-                const hpp = parseFloat(row.hpp) || 0;
-                if (harga > 0 && hpp > harga) {
-                    return ((hpp - harga) / harga * 100).toFixed(1);
-                }
-                return 0;
-            },
-            sortable: true,
-            cell: row => {
-                // Calculate markup percentage from harga and hpp
-                const harga = parseFloat(row.harga) || 0;
-                const hpp = parseFloat(row.hpp) || 0;
-                let markupPercentage = 0;
-                
-                if (harga > 0 && hpp > harga) {
-                    markupPercentage = ((hpp - harga) / harga * 100).toFixed(1);
-                }
-                
-                return (
-                    <span className="text-green-600 font-medium text-xs">
-                        {markupPercentage > 0 ? `${markupPercentage}%` : '-'}
-                    </span>
-                );
-            }
-        },
-        {
             name: 'HPP',
             selector: row => row.hpp,
             sortable: true,
@@ -334,6 +296,26 @@ const PembelianDetailPage = () => {
             cell: row => (
                 <span className="text-red-600 font-bold text-xs">
                     {row.total_harga ? `Rp ${Number(row.total_harga).toLocaleString('id-ID')}` : '-'}
+                </span>
+            )
+        },
+        {
+            name: 'Persentase',
+            selector: row => row.persentase,
+            sortable: true,
+            cell: row => (
+                <span className="text-green-600 font-medium text-xs">
+                    {row.persentase ? `${row.persentase}%` : '-'}
+                </span>
+            )
+        },
+        {
+            name: 'Biaya Truk',
+            selector: row => row.biaya_truk,
+            sortable: true,
+            cell: row => (
+                <span className="text-orange-600 font-medium text-xs">
+                    {row.biaya_truk ? `Rp ${Number(row.biaya_truk).toLocaleString('id-ID')}` : '-'}
                 </span>
             )
         },
