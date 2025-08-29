@@ -120,7 +120,7 @@ const useSuppliers = () => {
                     encryptedPid: item.pid || item.pubid,
                     name: item.name || 'Nama tidak tersedia',
                     description: item.description || '',
-                    adress: item.adress || '',
+                    address: item.address || item.address || '',
                     status: item.status !== undefined ? item.status : 1,
                     order_no: item.order_no || index + 1,
                     jenis_supplier: item.jenis_supplier || '',
@@ -142,7 +142,7 @@ const useSuppliers = () => {
                     encryptedPid: "SUP001",
                     name: "PT. Sumber Berkah",
                     description: "Supplier pakan ternak berkualitas tinggi",
-                    adress: "Jl. Raya Bogor No. 123, Jakarta Selatan",
+                    address: "Jl. Raya Bogor No. 123, Jakarta Selatan",
                     order_no: 1,
                     jenis_supplier: "Perusahaan",
                     kategori_supplier: "Ternak",
@@ -153,7 +153,7 @@ const useSuppliers = () => {
                     encryptedPid: "SUP002",
                     name: "CV. Mitra Tani",
                     description: "Supplier obat-obatan hewan dan vitamin",
-                    adress: "Jl. Gatot Subroto No. 456, Jakarta Pusat",
+                    address: "Jl. Gatot Subroto No. 456, Jakarta Pusat",
                     order_no: 2,
                     jenis_supplier: "Perusahaan",
                     kategori_supplier: "Feedmil",
@@ -164,7 +164,7 @@ const useSuppliers = () => {
                     encryptedPid: "SUP003",
                     name: "UD. Cahaya Mandiri",
                     description: "Supplier peralatan peternakan",
-                    adress: "Jl. Sudirman No. 789, Jakarta Barat",
+                    address: "Jl. Sudirman No. 789, Jakarta Barat",
                     order_no: 3,
                     jenis_supplier: "Perorangan",
                     kategori_supplier: "Ovk",
@@ -175,7 +175,7 @@ const useSuppliers = () => {
                     encryptedPid: "SUP004",
                     name: "PT. Agro Nusantara",
                     description: "Supplier bibit dan pakan organik",
-                    adress: "Jl. Thamrin No. 321, Jakarta Utara",
+                    address: "Jl. Thamrin No. 321, Jakarta Utara",
                     order_no: 4,
                     jenis_supplier: "Perusahaan",
                     kategori_supplier: "Ternak",
@@ -186,7 +186,7 @@ const useSuppliers = () => {
                     encryptedPid: "SUP005",
                     name: "CV. Jaya Abadi",
                     description: "Supplier alat kesehatan hewan",
-                    adress: "Jl. Hayam Wuruk No. 654, Jakarta Timur",
+                    address: "Jl. Hayam Wuruk No. 654, Jakarta Timur",
                     order_no: 5,
                     jenis_supplier: "Perusahaan",
                     kategori_supplier: "Feedmil",
@@ -203,7 +203,7 @@ const useSuppliers = () => {
         setLoading(true);
         setError(null);
         
-        const requiredParams = ['name', 'description', 'adress', 'jenis_supplier', 'kategori_supplier', 'status'];
+        const requiredParams = ['name', 'description', 'address', 'jenis_supplier', 'kategori_supplier', 'status'];
         const missingParams = requiredParams.filter(param =>
             supplierData[param] === undefined || supplierData[param] === null || supplierData[param] === ''
         );
@@ -222,10 +222,10 @@ const useSuppliers = () => {
             const cleanSupplierData = {
                 name: String(supplierData.name).trim(),
                 description: String(supplierData.description).trim(),
-                adress: String(supplierData.adress).trim(),
+                address: String(supplierData.address).trim(),
                 order_no: newOrderNo,
                 jenis_supplier: supplierData.jenis_supplier,
-                kategori_supplier: supplierData.kategori_supplier,
+                kategori_supplier: parseInt(supplierData.kategori_supplier, 10),
                 status: parseInt(supplierData.status, 10)
             };
             
@@ -261,7 +261,7 @@ const useSuppliers = () => {
                 supplier.encryptedPid = pubid;
             }
             
-            const requiredParams = ['name', 'description', 'adress', 'jenis_supplier', 'kategori_supplier', 'status'];
+            const requiredParams = ['name', 'description', 'address', 'jenis_supplier', 'kategori_supplier', 'status'];
             const missingParams = requiredParams.filter(param =>
                 supplierData[param] === undefined || supplierData[param] === null || supplierData[param] === ''
             );
@@ -275,10 +275,10 @@ const useSuppliers = () => {
             const cleanData = {
                 name: String(supplierData.name).trim(),
                 description: String(supplierData.description).trim(),
-                adress: String(supplierData.adress).trim(),
+                address: String(supplierData.address).trim(),
                 order_no: supplier.order_no || 1, // Keep existing order_no for updates
                 jenis_supplier: supplierData.jenis_supplier,
-                kategori_supplier: supplierData.kategori_supplier,
+                kategori_supplier: parseInt(supplierData.kategori_supplier, 10),
                 status: parseInt(supplierData.status, 10)
             };
             
@@ -354,7 +354,7 @@ const useSuppliers = () => {
                     (item.name && item.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
                     (item.pubid && item.pubid.toLowerCase().includes(searchTerm.toLowerCase())) ||
                     (item.description && item.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                    (item.adress && item.adress.toLowerCase().includes(searchTerm.toLowerCase()));
+                    (item.address && item.address.toLowerCase().includes(searchTerm.toLowerCase()));
                     
                 const matchesStatus = filterStatus === 'all' ||
                     (filterStatus === 'active' && item.status === 1) ||
@@ -411,7 +411,7 @@ const useSuppliers = () => {
             const duplicatedData = {
                 name: `${supplierData.name} (Copy)`,
                 description: `${supplierData.description || ''} - Salinan dari ${supplierData.name}`,
-                adress: supplierData.adress || '',
+                address: supplierData.address || '',
                 jenis_supplier: supplierData.jenis_supplier || '',
                 kategori_supplier: supplierData.kategori_supplier || '',
                 status: 0 // Default inactive for duplicated items
@@ -471,7 +471,7 @@ const useSuppliers = () => {
                     break;
                 case 'csv':
                     const csvHeaders = 'ID,Nama,Deskripsi,Alamat,Urutan,Jenis,Kategori,Status\n';
-                    const csvData = `${supplierData.pubid},"${supplierData.name}","${supplierData.description || ''}","${supplierData.adress || ''}",${supplierData.order_no},"${supplierData.jenis_supplier || ''}","${supplierData.kategori_supplier || ''}",${supplierData.status === 1 ? 'Aktif' : 'Tidak Aktif'}`;
+                    const csvData = `${supplierData.pubid},"${supplierData.name}","${supplierData.description || ''}","${supplierData.address || ''}",${supplierData.order_no},"${supplierData.jenis_supplier || ''}","${supplierData.kategori_supplier || ''}",${supplierData.status === 1 ? 'Aktif' : 'Tidak Aktif'}`;
                     exportData = csvHeaders + csvData;
                     filename = `supplier_${supplierData.pubid}_${new Date().toISOString().split('T')[0]}.csv`;
                     mimeType = 'text/csv';
@@ -504,7 +504,7 @@ const useSuppliers = () => {
         if (!supplierData) return { success: false, message: 'Data supplier tidak ditemukan' };
 
         try {
-            const shareText = `Supplier: ${supplierData.name}\nDeskripsi: ${supplierData.description || 'Tidak ada deskripsi'}\nAlamat: ${supplierData.adress || 'Tidak ada alamat'}\nJenis: ${supplierData.jenis_supplier || '-'}\nKategori: ${supplierData.kategori_supplier || '-'}\nStatus: ${supplierData.status === 1 ? 'Aktif' : 'Tidak Aktif'}`;
+            const shareText = `Supplier: ${supplierData.name}\nDeskripsi: ${supplierData.description || 'Tidak ada deskripsi'}\nAlamat: ${supplierData.address || 'Tidak ada alamat'}\nJenis: ${supplierData.jenis_supplier || '-'}\nKategori: ${supplierData.kategori_supplier || '-'}\nStatus: ${supplierData.status === 1 ? 'Aktif' : 'Tidak Aktif'}`;
             
             if (navigator.share) {
                 // Use Web Share API if available

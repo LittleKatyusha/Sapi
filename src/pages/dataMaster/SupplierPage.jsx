@@ -252,59 +252,48 @@ const SupplierPage = () => {
         setCurrentPage(1); // Reset to first page
     }, []);
 
-    // Table columns configuration - Updated for better spacing and horizontal scroll
+    // Table columns configuration - Wider layout for better readability
     const columns = useMemo(() => [
         {
             name: 'No.',
             width: '80px',
             minWidth: '80px',
             cell: (row, index) => (
-                <div className="font-medium text-gray-600 text-sm">
+                <div className="font-medium text-gray-600 text-sm text-center py-3 px-3">
                     {startIndex + index + 1}
                 </div>
             ),
             ignoreRowClick: true
         },
         {
-            name: 'Nama',
+            name: 'Nama Supplier',
             selector: row => row.name,
             sortable: true,
-            width: '200px',
-            minWidth: '200px',
+            width: '350px',
+            minWidth: '300px',
+            wrap: true,
             cell: row => (
-                <div className="flex items-center">
-                    <Building2 className="w-4 h-4 text-gray-500 mr-2 flex-shrink-0" />
-                    <div className="flex flex-col">
-                        <span className="text-sm font-medium text-gray-800">{row.name}</span>
-                        <span className="text-xs text-gray-500">Supplier</span>
+                <div className="py-3 px-4 w-full flex justify-center">
+                    <div className="flex flex-col min-w-0 w-full text-center">
+                        <span className="text-sm font-semibold text-gray-800 leading-relaxed break-words" title={row.name}>
+                            {row.name}
+                        </span>
+                        <span className="text-xs text-gray-500 mt-1">ID: {row.pubid}</span>
                     </div>
                 </div>
             )
         },
         {
-            name: 'Deskripsi',
-            selector: row => row.description,
-            sortable: true,
-            width: '250px',
-            minWidth: '250px',
-            cell: row => (
-                <div className="text-sm text-gray-600">
-                    <p className="truncate" title={row.description || 'Tidak ada deskripsi'}>
-                        {row.description || '-'}
-                    </p>
-                </div>
-            )
-        },
-        {
             name: 'Alamat',
-            selector: row => row.adress,
+            selector: row => row.address || row.adress,
             sortable: true,
-            width: '300px',
-            minWidth: '300px',
+            width: '320px',
+            minWidth: '280px',
+            wrap: true,
             cell: row => (
-                <div className="text-sm text-gray-600">
-                    <p className="truncate" title={row.adress || 'Tidak ada alamat'}>
-                        {row.adress || '-'}
+                <div className="text-sm text-gray-600 py-3 px-4 w-full flex justify-center">
+                    <p className="leading-relaxed break-words max-w-full text-center" title={(row.address || row.adress) || 'Tidak ada alamat'}>
+                        {(row.address || row.adress) || '-'}
                     </p>
                 </div>
             )
@@ -313,7 +302,7 @@ const SupplierPage = () => {
             name: 'Jenis Supplier',
             selector: row => row.jenis_supplier,
             sortable: true,
-            width: '180px',
+            width: '200px',
             minWidth: '180px',
             cell: row => {
                 const getJenisSupplierBadge = (jenis) => {
@@ -322,26 +311,26 @@ const SupplierPage = () => {
                         return (
                             <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                                 <Building2 className="w-3 h-3 mr-1" />
-                                PERUSAHAAN
+                                Perusahaan
                             </span>
                         );
                     } else if (jenis === '2' || jenis === 2 || jenis === 'Perorangan' || jenis === 'PERORANGAN') {
                         return (
                             <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                                 <Hash className="w-3 h-3 mr-1" />
-                                PERORANGAN
+                                Perorangan
                             </span>
                         );
                     } else {
                         return (
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
                                 {jenis || '-'}
                             </span>
                         );
                     }
                 };
                 return (
-                    <div className="flex items-center">
+                    <div className="flex items-center justify-center py-3 px-4">
                         {getJenisSupplierBadge(row.jenis_supplier)}
                     </div>
                 );
@@ -351,11 +340,11 @@ const SupplierPage = () => {
             name: 'Kategori Supplier',
             selector: row => row.kategori_supplier,
             sortable: true,
-            width: '180px',
-            minWidth: '180px',
+            width: '220px',
+            minWidth: '200px',
             cell: row => {
                 const getKategoriSupplierBadge = (kategori) => {
-                    // Handle both string and numeric formats
+                    // Handle both string and numeric formats  
                     if (kategori === '1' || kategori === 1 || kategori === 'Ternak' || kategori === 'TERNAK') {
                         return (
                             <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
@@ -379,14 +368,14 @@ const SupplierPage = () => {
                         );
                     } else {
                         return (
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
                                 {kategori || '-'}
                             </span>
                         );
                     }
                 };
                 return (
-                    <div className="flex items-center">
+                    <div className="flex items-center justify-center py-3 px-4">
                         {getKategoriSupplierBadge(row.kategori_supplier)}
                     </div>
                 );
@@ -399,17 +388,18 @@ const SupplierPage = () => {
             width: '120px',
             minWidth: '120px',
             cell: row => (
-                <div className="flex items-center text-sm text-gray-600">
+                <div className="flex items-center justify-center py-3 px-4">
                     <StatusBadge status={row.status} />
                 </div>
             )
         },
         {
             name: 'Aksi',
-            width: '120px',
-            minWidth: '120px',
+            width: '140px',
+            minWidth: '140px',
+            center: true,
             cell: row => (
-                <div className="flex items-center justify-center">
+                <div className="flex items-center justify-center py-3 px-4">
                     <ActionButton
                         row={row}
                         openMenuId={openMenuId}
@@ -587,8 +577,50 @@ const SupplierPage = () => {
                                             table: {
                                                 style: {
                                                     width: '100%',
-                                                    minWidth: '1300px',
+                                                    minWidth: '1500px',
                                                 }
+                                            },
+                                            rows: {
+                                                style: {
+                                                    minHeight: 'auto',
+                                                    '&:not(:last-of-type)': {
+                                                        borderBottomStyle: 'solid',
+                                                        borderBottomWidth: '1px',
+                                                        borderBottomColor: '#e5e7eb',
+                                                    },
+                                                },
+                                            },
+                                            cells: {
+                                                style: {
+                                                    padding: '0px',
+                                                    paddingTop: '0px',
+                                                    paddingBottom: '0px',
+                                                    overflow: 'visible',
+                                                    whiteSpace: 'normal',
+                                                    wordBreak: 'break-word',
+                                                    textAlign: 'center',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    '&:not(:last-child)': {
+                                                        borderRight: '1px solid #f3f4f6',
+                                                    },
+                                                },
+                                            },
+                                            headCells: {
+                                                style: {
+                                                    backgroundColor: '#f8fafc',
+                                                    fontWeight: '600',
+                                                    fontSize: '14px',
+                                                    color: '#374151',
+                                                    paddingLeft: '16px',
+                                                    paddingRight: '16px',
+                                                    textAlign: 'center',
+                                                    justifyContent: 'center',
+                                                    '&:not(:last-child)': {
+                                                        borderRight: '1px solid #e5e7eb',
+                                                    },
+                                                },
                                             },
                                         }}
                                         noDataComponent={

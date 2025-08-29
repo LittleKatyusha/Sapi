@@ -13,7 +13,7 @@ const AddEditSupplierModal = ({
     const [formData, setFormData] = useState({
         name: '',
         description: '',
-        adress: '',
+        address: '',
         jenis_supplier: '',
         kategori_supplier: '',
         status: 1
@@ -25,9 +25,9 @@ const AddEditSupplierModal = ({
 
     // Kategori supplier options
     const kategoriSupplierOptions = [
-        { value: 'Ternak', label: 'Ternak' },
-        { value: 'Feedmil', label: 'Feedmil' },
-        { value: 'Ovk', label: 'Ovk' }
+        { value: 1, label: 'Ternak' },
+        { value: 2, label: 'Feedmil' },
+        { value: 3, label: 'Ovk' }
     ];
 
     // Fetch jenis supplier parameters on component mount
@@ -58,7 +58,7 @@ const AddEditSupplierModal = ({
             setFormData({
                 name: editData.name || '',
                 description: editData.description || '',
-                adress: editData.adress || '',
+                address: editData.address || editData.adress || '',
                 jenis_supplier: editData.jenis_supplier || '',
                 kategori_supplier: editData.kategori_supplier || '',
                 status: editData.status !== undefined ? editData.status : 1
@@ -67,7 +67,7 @@ const AddEditSupplierModal = ({
             setFormData({
                 name: '',
                 description: '',
-                adress: '',
+                address: '',
                 jenis_supplier: '',
                 kategori_supplier: '',
                 status: 1
@@ -87,8 +87,8 @@ const AddEditSupplierModal = ({
             newErrors.description = 'Deskripsi wajib diisi';
         }
 
-        if (!formData.adress.trim()) {
-            newErrors.adress = 'Alamat wajib diisi';
+        if (!formData.address.trim()) {
+            newErrors.address = 'Alamat wajib diisi';
         }
 
 
@@ -223,20 +223,20 @@ const AddEditSupplierModal = ({
                              Alamat *
                          </label>
                          <textarea
-                             name="adress"
-                             value={formData.adress}
+                             name="address"
+                             value={formData.address}
                              onChange={handleChange}
                              rows={3}
                              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none ${
-                                 errors.adress ? 'border-red-500' : 'border-gray-300'
+                                 errors.address ? 'border-red-500' : 'border-gray-300'
                              }`}
                              placeholder="Masukkan alamat supplier"
                              disabled={loading}
                          />
-                         {errors.adress && (
+                         {errors.address && (
                              <div className="flex items-center mt-2 text-red-600">
                                  <AlertCircle className="w-4 h-4 mr-1" />
-                                 <span className="text-sm">{errors.adress}</span>
+                                 <span className="text-sm">{errors.address}</span>
                              </div>
                          )}
                      </div>
