@@ -224,7 +224,7 @@ const useSuppliers = () => {
                 description: String(supplierData.description).trim(),
                 address: String(supplierData.address).trim(),
                 order_no: newOrderNo,
-                jenis_supplier: supplierData.jenis_supplier,
+                jenis_supplier: parseInt(supplierData.jenis_supplier, 10),
                 kategori_supplier: parseInt(supplierData.kategori_supplier, 10),
                 status: parseInt(supplierData.status, 10)
             };
@@ -277,7 +277,7 @@ const useSuppliers = () => {
                 description: String(supplierData.description).trim(),
                 address: String(supplierData.address).trim(),
                 order_no: supplier.order_no || 1, // Keep existing order_no for updates
-                jenis_supplier: supplierData.jenis_supplier,
+                jenis_supplier: parseInt(supplierData.jenis_supplier, 10),
                 kategori_supplier: parseInt(supplierData.kategori_supplier, 10),
                 status: parseInt(supplierData.status, 10)
             };

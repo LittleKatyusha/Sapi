@@ -141,8 +141,10 @@ const useEartagsAPI = () => {
             }
             
             if (dataArray.length > 0) {
-                const validatedData = dataArray.map((item, index) => ({
-                    pid: item.pubid || item.pid || `TEMP-${index + 1}`, // Backend uses 'pubid'
+                console.log('Raw backend response item sample:', dataArray[0]);
+                                 const validatedData = dataArray.map((item, index) => ({
+                     pid: item.pid || item.pubid || `TEMP-${index + 1}`, // Try pid first (encrypted), fallback to pubid
+                     rawPubid: item.pubid, // Store raw pubid separately for update operations
                     kode: item.kode || item.code || 'Kode tidak tersedia',
                     used_status: item.used_status !== undefined ? item.used_status : (item.usedStatus !== undefined ? item.usedStatus : 0),
                     status: item.status !== undefined ? item.status : (item.active !== undefined ? (item.active ? 1 : 0) : 1),
@@ -216,7 +218,7 @@ const useEartagsAPI = () => {
         setLoading(true);
         setError(null);
         
-        const requiredParams = ['kode', 'used_status', 'status'];
+        const requiredParams = ['kode', 'used_status'];
         const missingParams = requiredParams.filter(param =>
             eartagData[param] === undefined || eartagData[param] === null || eartagData[param] === ''
         );
@@ -230,8 +232,8 @@ const useEartagsAPI = () => {
         try {
             const cleanEartagData = {
                 kode: String(eartagData.kode).trim(),
-                used_status: parseInt(eartagData.used_status, 10),
-                status: parseInt(eartagData.status, 10)
+                used_status: parseInt(eartagData.used_status, 10)
+                // status field removed - tidak ada di backend database
             };
             
             const result = await HttpClient.post(`${API_BASE}/store`, cleanEartagData);
@@ -262,7 +264,7 @@ const useEartagsAPI = () => {
                 throw new Error('Eartag tidak ditemukan');
             }
             
-            const requiredParams = ['kode', 'used_status', 'status'];
+            const requiredParams = ['kode', 'used_status'];
             const missingParams = requiredParams.filter(param =>
                 eartagData[param] === undefined || eartagData[param] === null || eartagData[param] === ''
             );
@@ -273,18 +275,21 @@ const useEartagsAPI = () => {
                 return { success: false, message: errorMsg };
             }
             
-            const cleanData = {
-                kode: String(eartagData.kode).trim(),
-                used_status: parseInt(eartagData.used_status, 10),
-                status: parseInt(eartagData.status, 10)
+            // Check if we have the actual encrypted pid or need to use rawPubid
+            const actualPid = eartag.rawPubid || eartag.pid || pid;
+            
+            // Ensure all fields are properly formatted according to backend expectations
+            const payload = {
+                pid: String(actualPid).trim(), // Backend expects encrypted pid, fallback to raw pubid
+                kode: String(eartagData.kode).trim(), // Backend expects string max 50 chars
+                used_status: parseInt(eartagData.used_status, 10) // Backend expects integer (nullable)
             };
             
-            const payload = {
-                pid: pid,
-                ...cleanData
-            };
+            console.log('Update payload being sent:', payload);
+            console.log('Original eartag data:', eartag);
             
             const result = await HttpClient.post(`${API_BASE}/update`, payload);
+            console.log('Backend response:', result);
             await fetchEartags();
             
             return {
@@ -312,8 +317,11 @@ const useEartagsAPI = () => {
                 throw new Error('Eartag tidak ditemukan');
             }
             
+            // Use rawPubid if available, otherwise use pid
+            const actualPid = eartag.rawPubid || eartag.pid || pid;
+            
             const payload = {
-                pid: pid
+                pid: String(actualPid).trim()
             };
             
             const result = await HttpClient.post(`${API_BASE}/delete`, payload);

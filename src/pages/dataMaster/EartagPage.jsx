@@ -136,42 +136,53 @@ const EartagPage = () => {
             name: 'Kode Eartag',
             selector: row => row.kode,
             sortable: true,
+            minWidth: '140px',
+            width: '22%', // Increased width karena kolom status dihapus
             cell: row => (
-                <div className="font-mono font-bold text-gray-800 text-sm">
-                    {row.kode || row.id}
+                <div className="flex items-center justify-center w-full">
+                    <div className="font-mono font-semibold text-gray-800 text-sm break-words text-center">
+                        {row.kode || row.id}
+                    </div>
                 </div>
             )
         },
-        {
-            name: 'Status Aktif',
-            selector: row => row.status,
-            sortable: true,
-            cell: row => <StatusBadgeNew status={row.status} type="active" />
-        },
+        // Status Aktif column removed - field tidak ada di backend database
         {
             name: 'Status Pemasangan',
             selector: row => row.used_status,
             sortable: true,
-            cell: row => <StatusBadgeNew status={row.used_status} type="used" />
+            minWidth: '150px',
+            width: '25%', // Increased width karena kolom status dihapus
+            cell: row => (
+                <div className="flex items-center justify-center w-full">
+                    <StatusBadgeNew status={row.used_status} type="used" />
+                </div>
+            )
         },
         {
             name: 'Tanggal Pemasangan',
             selector: row => row.tanggalPemasangan,
             sortable: true,
+            minWidth: '180px',
+            width: '35%', // Increased width karena kolom status dihapus
             cell: row => (
-                <span className="text-sm text-gray-600">
-                    {row.tanggalPemasangan || (
-                        <span className="text-amber-600 bg-amber-50 px-2 py-1 rounded-full text-xs">
-                            Belum Terpasang
-                        </span>
-                    )}
-                </span>
+                <div className="flex items-center justify-center w-full">
+                    <div className="text-sm text-gray-600 text-center break-words">
+                        {row.tanggalPemasangan || (
+                            <span className="text-amber-600 bg-amber-50 px-3 py-1.5 rounded-full text-xs font-medium">
+                                Belum Terpasang
+                            </span>
+                        )}
+                    </div>
+                </div>
             )
         },
         {
             name: 'Aksi',
+            minWidth: '80px',
+            width: '18%', // Increased width karena kolom status dihapus
             cell: row => (
-                <div className="sticky bg-white z-10 flex items-center justify-center" style={{ maxWidth: 60, minWidth: 40 }}>
+                <div className="flex items-center justify-center w-full">
                     <ActionButton
                         row={row}
                         openMenuId={openMenuId}
@@ -251,20 +262,10 @@ const EartagPage = () => {
 
                         {/* Filters */}
                         <div className="flex flex-wrap gap-2 sm:gap-3">
+                            {/* Filter status aktif removed - field tidak ada di backend database */}
                             <div className="flex items-center gap-2">
                                 <Filter className="w-4 h-4 text-gray-500" />
                                 <select
-                                    value={filterStatus}
-                                    onChange={(e) => setFilterStatus(e.target.value)}
-                                    className="px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 text-xs sm:text-sm"
-                                >
-                                    <option value="all">Semua Status</option>
-                                    <option value="active">Aktif</option>
-                                    <option value="inactive">Nonaktif</option>
-                                </select>
-                            </div>
-
-                            <select
                                 value={filterUsedStatus}
                                 onChange={(e) => setFilterUsedStatus(e.target.value)}
                                 className="px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 text-xs sm:text-sm"
@@ -273,6 +274,7 @@ const EartagPage = () => {
                                 <option value="used">Sudah Terpasang</option>
                                 <option value="unused">Belum Terpasang</option>
                             </select>
+                            </div>
 
                             {/* View Mode Toggle */}
                             <div className="flex bg-gray-100 rounded-xl p-1">
@@ -302,7 +304,7 @@ const EartagPage = () => {
                 </div>
 
                 {/* Data Display */}
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 relative overflow-x-auto flex flex-col min-h-[400px]">
+                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 relative overflow-hidden flex flex-col min-h-[500px]">
                     {/* Overlay anti-hover row, hanya muncul saat menu aktif */}
                     {openMenuId && viewMode === 'table' && (
                         <div
@@ -312,9 +314,9 @@ const EartagPage = () => {
                     )}
                     <div className="flex-1 flex flex-col">
                         {viewMode === 'table' ? (
-                            <div className={`w-full h-full overflow-x-auto ${openMenuId ? 'pointer-events-none' : ''} flex-1 flex flex-col`}>
-                                <div className="min-w-[340px] sm:min-w-0 h-full flex-1 flex flex-col">
-                                    <div className="w-full" style={{display: 'flex', flexDirection: 'column', height: '100%'}}>
+                            <div className={`w-full h-full overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 ${openMenuId ? 'pointer-events-none' : ''} flex-1 flex flex-col`}>
+                                <div className="h-full flex-1 flex flex-col">
+                                    <div className="w-full flex-1" style={{display: 'flex', flexDirection: 'column', height: '100%'}}>
                                         <DataTable
                                             columns={columns}
                                             data={filteredData}
@@ -325,59 +327,40 @@ const EartagPage = () => {
                                             customStyles={{
                                                 ...customTableStyles,
                                                 table: {
+                                                    ...customTableStyles.table,
                                                     style: {
-                                                        minHeight: '100%',
-                                                        height: '100%',
+                                                        ...customTableStyles.table.style,
                                                         width: '100%',
-                                                        display: 'flex',
-                                                        flexDirection: 'column',
+                                                        maxWidth: '100%',
                                                     }
-                                                },
-                                                headRow: {
-                                                    style: {
-                                                        flex: '0 0 auto',
-                                                    }
-                                                },
-                                                body: {
-                                                    style: {
-                                                        flex: '1 1 auto',
-                                                        minHeight: '250px',
-                                                        display: 'flex',
-                                                        flexDirection: 'column',
-                                                        justifyContent: 'stretch',
-                                                        width: '100%',
-                                                    }
-                                                },
-                                                rows: {
-                                                    style: {
-                                                        minHeight: '48px',
-                                                        flex: '1 0 auto',
-                                                        width: '100%',
-                                                    }
-                                                },
+                                                }
                                             }}
                                             progressPending={loading}
                                             progressComponent={
-                                                <div className="text-center py-12">
-                                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto"></div>
-                                                    <p className="text-gray-500 text-sm mt-2">Memuat data...</p>
+                                                <div className="flex items-center justify-center py-12">
+                                                    <div className="text-center">
+                                                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto"></div>
+                                                        <p className="text-gray-500 text-sm mt-2">Memuat data...</p>
+                                                    </div>
                                                 </div>
                                             }
                                             noDataComponent={
-                                                <div className="text-center py-12">
-                                                    {error ? (
-                                                        <div className="text-red-600">
-                                                            <p className="text-lg font-semibold">Error</p>
-                                                            <p className="text-sm">{error}</p>
-                                                        </div>
-                                                    ) : (
-                                                        <p className="text-gray-500 text-lg">Tidak ada data eartag ditemukan</p>
-                                                    )}
+                                                <div className="flex items-center justify-center py-12">
+                                                    <div className="text-center">
+                                                        {error ? (
+                                                            <div className="text-red-600">
+                                                                <p className="text-lg font-semibold">Error</p>
+                                                                <p className="text-sm">{error}</p>
+                                                            </div>
+                                                        ) : (
+                                                            <p className="text-gray-500 text-lg">Tidak ada data eartag ditemukan</p>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             }
-                                            responsive
-                                            highlightOnHover={true}
-                                            pointerOnHover={true}
+                                            responsive={false}
+                                            highlightOnHover={false}
+                                            pointerOnHover={false}
                                         />
                                     </div>
                                 </div>

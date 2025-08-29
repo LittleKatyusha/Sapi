@@ -4,8 +4,8 @@ import { Edit2, Plus, X, Tag, Settings, ToggleLeft, ToggleRight } from 'lucide-r
 const AddEditEartagModalNew = ({ isOpen, onClose, onSave, editData = null }) => {
     const [formData, setFormData] = useState({
         kode: '',
-        status: 1, // 1 = Aktif, 0 = Nonaktif
         used_status: 0 // 0 = Belum Terpasang, 1 = Sudah Terpasang
+        // status field removed - tidak ada di backend database
     });
 
     const [loading, setLoading] = useState(false);
@@ -26,14 +26,14 @@ const AddEditEartagModalNew = ({ isOpen, onClose, onSave, editData = null }) => 
         if (editData) {
             setFormData({
                 kode: editData.kode || '',
-                status: editData.status !== undefined ? editData.status : 1,
                 used_status: editData.used_status !== undefined ? editData.used_status : 0
+                // status field removed - tidak ada di backend database
             });
         } else {
             setFormData({
                 kode: '',
-                status: 1,
                 used_status: 0
+                // status field removed - tidak ada di backend database
             });
         }
         setErrors({});
@@ -71,9 +71,7 @@ const AddEditEartagModalNew = ({ isOpen, onClose, onSave, editData = null }) => 
             newErrors.kode = 'Kode Eartag maksimal 50 karakter';
         }
         
-        if (formData.status === undefined || formData.status === null || formData.status === '') {
-            newErrors.status = 'Status harus dipilih';
-        }
+        // status validation removed - field tidak ada di backend database
         
         if (formData.used_status === undefined || formData.used_status === null || formData.used_status === '') {
             newErrors.used_status = 'Status pemasangan harus dipilih';
@@ -90,8 +88,8 @@ const AddEditEartagModalNew = ({ isOpen, onClose, onSave, editData = null }) => 
             try {
                 const submitData = {
                     kode: formData.kode.trim(),
-                    status: parseInt(formData.status, 10),
                     used_status: parseInt(formData.used_status, 10)
+                    // status field removed - tidak ada di backend database
                 };
                 
                 await onSave(submitData);
@@ -156,42 +154,7 @@ const AddEditEartagModalNew = ({ isOpen, onClose, onSave, editData = null }) => 
                         </p>
                     </div>
 
-                    {/* Status Aktif */}
-                    <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-3">
-                            Status Eartag *
-                        </label>
-                        <div className="flex items-center justify-between p-4 border border-gray-300 rounded-xl hover:border-red-300 transition-colors duration-200">
-                            <div className="flex items-center">
-                                <Settings className="w-5 h-5 text-gray-400 mr-3" />
-                                <div>
-                                    <p className="text-sm font-medium text-gray-700">
-                                        {formData.status === 1 ? 'Aktif' : 'Nonaktif'}
-                                    </p>
-                                    <p className="text-xs text-gray-500">
-                                        {formData.status === 1 ? 'Eartag dapat digunakan' : 'Eartag tidak dapat digunakan'}
-                                    </p>
-                                </div>
-                            </div>
-                            <button
-                                type="button"
-                                onClick={() => handleToggle('status')}
-                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${
-                                    formData.status === 1 ? 'bg-green-600' : 'bg-gray-300'
-                                }`}
-                                disabled={loading}
-                            >
-                                <span
-                                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${
-                                        formData.status === 1 ? 'translate-x-6' : 'translate-x-1'
-                                    }`}
-                                />
-                            </button>
-                        </div>
-                        {errors.status && (
-                            <p className="mt-1 text-sm text-red-600">{errors.status}</p>
-                        )}
-                    </div>
+                    {/* Status Aktif field removed - tidak ada di backend database */}
 
                     {/* Status Pemasangan */}
                     <div>

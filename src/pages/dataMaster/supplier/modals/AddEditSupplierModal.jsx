@@ -25,9 +25,9 @@ const AddEditSupplierModal = ({
 
     // Kategori supplier options
     const kategoriSupplierOptions = [
-        { value: 1, label: 'Ternak' },
-        { value: 2, label: 'Feedmil' },
-        { value: 3, label: 'Ovk' }
+        { value: '1', label: 'Ternak' },
+        { value: '2', label: 'Feedmil' },
+        { value: '3', label: 'Ovk' }
     ];
 
     // Fetch jenis supplier parameters on component mount
@@ -43,6 +43,11 @@ const AddEditSupplierModal = ({
                 setJenisSupplierOptions(options);
             } catch (error) {
                 console.error('Error loading jenis supplier data:', error);
+                // Fallback options if API fails
+                setJenisSupplierOptions([
+                    { value: '1', label: 'Perusahaan' },
+                    { value: '2', label: 'Perorangan' }
+                ]);
             } finally {
                 setLoadingParameters(false);
             }
@@ -55,12 +60,33 @@ const AddEditSupplierModal = ({
 
     useEffect(() => {
         if (editData) {
+            // Helper function to convert backend string values to frontend values
+            const convertJenisSupplier = (jenisValue) => {
+                if (jenisValue === 'Perusahaan' || jenisValue === 'PERUSAHAAN' || jenisValue === '1' || jenisValue === 1) {
+                    return '1';
+                } else if (jenisValue === 'Perorangan' || jenisValue === 'PERORANGAN' || jenisValue === '2' || jenisValue === 2) {
+                    return '2';
+                }
+                return jenisValue; // Keep original value if no conversion needed
+            };
+
+            const convertKategoriSupplier = (kategoriValue) => {
+                if (kategoriValue === 'Ternak' || kategoriValue === 'TERNAK' || kategoriValue === '1' || kategoriValue === 1) {
+                    return '1';
+                } else if (kategoriValue === 'Feedmil' || kategoriValue === 'FEEDMIL' || kategoriValue === '2' || kategoriValue === 2) {
+                    return '2';
+                } else if (kategoriValue === 'Ovk' || kategoriValue === 'OVK' || kategoriValue === '3' || kategoriValue === 3) {
+                    return '3';
+                }
+                return kategoriValue; // Keep original value if no conversion needed
+            };
+
             setFormData({
                 name: editData.name || '',
                 description: editData.description || '',
                 address: editData.address || editData.adress || '',
-                jenis_supplier: editData.jenis_supplier || '',
-                kategori_supplier: editData.kategori_supplier || '',
+                jenis_supplier: convertJenisSupplier(editData.jenis_supplier),
+                kategori_supplier: convertKategoriSupplier(editData.kategori_supplier),
                 status: editData.status !== undefined ? editData.status : 1
             });
         } else {

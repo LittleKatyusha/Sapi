@@ -82,11 +82,11 @@ const StatusBadgeNew = ({ status, type = 'active' }) => {
     }, [status, type]);
 
     return (
-        <div className="relative">
-            <span className={`px-4 py-2 text-xs font-bold rounded-full inline-flex items-center shadow-lg ${config.bg} ${config.text} transition-all duration-300 hover:scale-105`}>
+        <div className="relative flex items-center justify-center">
+            <span className={`px-3 py-1.5 text-xs font-semibold rounded-lg inline-flex items-center ${config.bg} ${config.text} transition-all duration-200 whitespace-nowrap`}>
                 {config.label}
                 {config.pulse && (
-                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-white bg-opacity-50 rounded-full animate-ping"></div>
+                    <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-white bg-opacity-60 rounded-full animate-ping"></div>
                 )}
             </span>
         </div>

@@ -62,14 +62,7 @@ const EartagDetailModalNew = ({ isOpen, onClose, data }) => {
                         <p className="text-2xl font-bold text-gray-800 font-mono">{data.kode || data.id}</p>
                     </div>
 
-                    {/* Status Aktif */}
-                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl">
-                        <div className="flex items-center">
-                            <Settings className="w-5 h-5 text-gray-600 mr-3" />
-                            <span className="text-sm font-semibold text-gray-700">Status Eartag</span>
-                        </div>
-                        <StatusBadgeNew status={data.status} type="active" />
-                    </div>
+                    {/* Status Aktif removed - field tidak ada di backend database */}
 
                     {/* Status Pemasangan */}
                     <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl">

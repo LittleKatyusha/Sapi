@@ -116,7 +116,7 @@ const CardView = ({
                                     <div className="space-y-4">
                                         <div className="flex items-center justify-between flex-wrap gap-2">
                                             <div className="flex items-center gap-2">
-                                                <StatusBadgeNew status={item.status} type="active" />
+                                                {/* Status active badge removed - field tidak ada di backend database */}
                                                 <StatusBadgeNew status={item.used_status} type="used" />
                                             </div>
                                             {item.tanggalPemasangan && (
