@@ -1216,6 +1216,7 @@ const AddEditPembelianPage = () => {
                     biaya_truk: headerOnlyData.biayaTruck,
                     biaya_lain: headerOnlyData.biayaLain,
                     biaya_total: headerOnlyData.biayaTotal,
+                    berat_total: headerOnlyData.beratTotal, // Add missing berat_total mapping
                     tipe_pembelian: headerOnlyData.tipePembelian,
                     file: headerOnlyData.file
                 };

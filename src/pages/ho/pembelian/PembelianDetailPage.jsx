@@ -3,7 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Building2, User, Calendar, Truck, Hash, Package, Eye, Plus } from 'lucide-react';
 import usePembelianHO from './hooks/usePembelianHO';
 import useParameterSelect from './hooks/useParameterSelect';
-import customTableStyles from './constants/tableStyles';
+
+import customTableStyles, { detailPageTableStyles } from './constants/tableStyles';
 import DataTable from 'react-data-table-component';
 import DetailActionButton from './components/DetailActionButton';
 import DetailActionMenu from './components/DetailActionMenu';
@@ -23,10 +24,13 @@ const PembelianDetailPage = () => {
     } = usePembelianHO();
     
     // Get classification data for fallback lookup
-    const { klasifikasiHewanOptions } = useParameterSelect();
+    const { klasifikasiHewanOptions, parameterData } = useParameterSelect();
+    
+
     
     const [pembelianData, setPembelianData] = useState(null);
     const [detailData, setDetailData] = useState([]);
+    const [mappedDetailData, setMappedDetailData] = useState([]);
     
     // Detail CRUD states
     const [openDetailMenuIndex, setOpenDetailMenuIndex] = useState(null);
@@ -70,6 +74,45 @@ const PembelianDetailPage = () => {
 
         fetchDetail();
     }, [id, getPembelianDetail]);
+
+    // Map detail data with eartag names whenever data changes
+    useEffect(() => {
+        if (detailData.length > 0) {
+            // Create a simple mapping using parameter data if available
+            const eartagMap = new Map();
+            if (parameterData.eartag && Array.isArray(parameterData.eartag)) {
+                parameterData.eartag.forEach(eartag => {
+                    if (eartag.id) eartagMap.set(String(eartag.id), eartag);
+                    if (eartag.pubid) eartagMap.set(String(eartag.pubid), eartag);
+                });
+            }
+            
+            console.log('🔍 Parameter eartag data:', parameterData.eartag?.slice(0, 3));
+            console.log('🔍 Eartag map keys:', Array.from(eartagMap.keys()));
+            
+            const mapped = detailData.map(detail => {
+                const eartagInfo = eartagMap.get(String(detail.eartag));
+                const eartagName = eartagInfo ? (eartagInfo.name || eartagInfo.nama || eartagInfo.kode) : null;
+                
+                console.log(`📋 Mapping eartag ${detail.eartag}:`, {
+                    found: !!eartagInfo,
+                    name: eartagName,
+                    info: eartagInfo
+                });
+                
+                return {
+                    ...detail,
+                    eartagInfo,
+                    eartagName: eartagName || `Eartag ${detail.eartag}`,
+                    eartagId: detail.eartag
+                };
+            });
+            
+            setMappedDetailData(mapped);
+        } else {
+            setMappedDetailData(detailData);
+        }
+    }, [detailData, parameterData.eartag]);
 
     const handleBack = () => {
         navigate('/ho/pembelian');
@@ -227,13 +270,13 @@ const PembelianDetailPage = () => {
         }
     }, [notification]);
 
-    // Columns for detail table
+    // Optimized columns for detail table with perfect UX
     const detailColumns = [
         {
             name: 'No',
-            width: '60px',
+            width: '80px',
             cell: (row, index) => (
-                <div className="font-semibold text-gray-700">
+                <div className="font-semibold text-gray-600 text-center">
                     {index + 1}
                 </div>
             ),
@@ -241,97 +284,125 @@ const PembelianDetailPage = () => {
         },
         {
             name: 'Eartag',
-            selector: row => row.eartag,
+            selector: row => row.eartagName || row.eartag,
             sortable: true,
+            width: '180px',
             cell: row => (
-                <span className="font-mono text-xs bg-blue-100 px-2 py-1 rounded text-blue-800">
-                    {row.eartag || '-'}
-                </span>
+                <div className="text-center">
+                    <div className="flex flex-col gap-1">
+                        <span className="inline-block font-mono text-sm bg-blue-50 px-3 py-1 rounded-md text-blue-700 border border-blue-200">
+                            {row.eartagName || row.eartag || '-'}
+                        </span>
+                    </div>
+                </div>
             )
         },
         {
             name: 'Code Eartag',
             selector: row => row.code_eartag,
             sortable: true,
+            width: '160px',
             cell: row => (
-                <span className="font-mono text-[11px] bg-purple-100 px-2 py-1 rounded text-purple-800">
-                    {row.code_eartag || '-'}
-                </span>
+                <div className="text-center">
+                    <span className="inline-block font-mono text-sm bg-purple-50 px-3 py-1 rounded-md text-purple-700 border border-purple-200">
+                        {row.code_eartag || '-'}
+                    </span>
+                </div>
             )
         },
         {
-            name: 'Berat (kg)',
+            name: 'Berat\n(kg)',
             selector: row => row.berat,
             sortable: true,
+            width: '120px',
             cell: row => (
-                <span className="text-gray-900 font-medium text-xs">
-                    {row.berat ? `${row.berat} kg` : '-'}
-                </span>
+                <div className="text-center">
+                    <span className="text-gray-900 font-medium text-sm">
+                        {row.berat ? `${row.berat} kg` : '-'}
+                    </span>
+                </div>
             )
         },
         {
-            name: 'Harga',
+            name: 'Harga\nSatuan',
             selector: row => row.harga,
             sortable: true,
+            width: '180px',
             cell: row => (
-                <span className="text-gray-900 font-medium text-xs">
-                    {row.harga ? `Rp ${Number(row.harga).toLocaleString('id-ID')}` : '-'}
-                </span>
+                <div className="text-center">
+                    <span className="text-gray-900 font-medium text-sm">
+                        {row.harga ? `Rp ${Number(row.harga).toLocaleString('id-ID')}` : '-'}
+                    </span>
+                </div>
             )
         },
         {
-            name: 'HPP',
+            name: 'HPP\nper Unit',
             selector: row => row.hpp,
             sortable: true,
+            width: '180px',
             cell: row => (
-                <span className="text-purple-600 font-medium text-xs">
-                    {row.hpp ? `Rp ${Number(row.hpp).toLocaleString('id-ID')}` : '-'}
-                </span>
+                <div className="text-center">
+                    <span className="text-purple-600 font-medium text-sm">
+                        {row.hpp ? `Rp ${Number(row.hpp).toLocaleString('id-ID')}` : '-'}
+                    </span>
+                </div>
             )
         },
         {
-            name: 'Total Harga',
+            name: 'Total\nHarga',
             selector: row => row.total_harga,
             sortable: true,
+            width: '200px',
             cell: row => (
-                <span className="text-red-600 font-bold text-xs">
-                    {row.total_harga ? `Rp ${Number(row.total_harga).toLocaleString('id-ID')}` : '-'}
-                </span>
+                <div className="text-center">
+                    <span className="text-red-600 font-semibold text-sm">
+                        {row.total_harga ? `Rp ${Number(row.total_harga).toLocaleString('id-ID')}` : '-'}
+                    </span>
+                </div>
             )
         },
         {
-            name: 'Persentase',
+            name: 'Persentase\nBiaya',
             selector: row => row.persentase,
             sortable: true,
+            width: '120px',
             cell: row => (
-                <span className="text-green-600 font-medium text-xs">
-                    {row.persentase ? `${row.persentase}%` : '-'}
-                </span>
+                <div className="text-center">
+                    <span className="inline-block bg-green-50 px-3 py-1 rounded-md text-green-700 font-medium text-sm border border-green-200">
+                        {row.persentase ? `${row.persentase}%` : '-'}
+                    </span>
+                </div>
             )
         },
         {
-            name: 'Biaya Truk',
+            name: 'Biaya\nTruk',
             selector: row => row.biaya_truk,
             sortable: true,
+            width: '180px',
             cell: row => (
-                <span className="text-orange-600 font-medium text-xs">
-                    {row.biaya_truk ? `Rp ${Number(row.biaya_truk).toLocaleString('id-ID')}` : '-'}
-                </span>
+                <div className="text-center">
+                    <span className="text-orange-600 font-medium text-sm">
+                        {row.biaya_truk ? `Rp ${Number(row.biaya_truk).toLocaleString('id-ID')}` : '-'}
+                    </span>
+                </div>
             )
         },
         {
             name: 'Aksi',
-            width: 'fit-content',
+            width: '100px',
             cell: (row, index) => (
-                <DetailActionButton
-                    row={row}
-                    rowIndex={index}
-                    openMenuIndex={openDetailMenuIndex}
-                    onOpenMenu={handleOpenMenu}
-                    onEdit={null} // Disabled edit functionality
-                    onDelete={handleDeleteDetail}
-                    onClone={handleCloneDetail}
-                />
+                <div className="flex justify-center">
+                    <DetailActionButton
+                        row={row}
+                        rowIndex={index}
+                        openMenuIndex={openDetailMenuIndex}
+                        onOpenMenu={handleOpenMenu}
+                        onEdit={null} // Disabled edit functionality
+                        onDelete={handleDeleteDetail}
+                        onClone={handleCloneDetail}
+                    />
+                </div>
             ),
             ignoreRowClick: true,
         }
@@ -428,7 +499,7 @@ const PembelianDetailPage = () => {
                                 Office
                             </label>
                             <p className="text-lg font-bold text-gray-900">
-                                {pembelianData.nama_office || '-'}
+                                {pembelianData.nama_office || 'Head Office (HO)'}
                             </p>
                         </div>
 
@@ -492,19 +563,19 @@ const PembelianDetailPage = () => {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div className="text-center">
                                 <p className="text-3xl font-bold text-indigo-600">
-                                    {detailData.length}
+                                    {mappedDetailData.length}
                                 </p>
                                 <p className="text-sm text-gray-600">Total Detail</p>
                             </div>
                             <div className="text-center">
                                 <p className="text-3xl font-bold text-green-600">
-                                    {detailData.reduce((sum, item) => sum + (parseFloat(item.berat) || 0), 0).toFixed(1)} kg
+                                    {mappedDetailData.reduce((sum, item) => sum + (parseFloat(item.berat) || 0), 0).toFixed(1)} kg
                                 </p>
                                 <p className="text-sm text-gray-600">Total Berat</p>
                             </div>
                             <div className="text-center">
                                 <p className="text-3xl font-bold text-red-600">
-                                    Rp {detailData.reduce((sum, item) => sum + (parseFloat(item.total_harga) || 0), 0).toLocaleString('id-ID')}
+                                    Rp {mappedDetailData.reduce((sum, item) => sum + (parseFloat(item.total_harga) || 0), 0).toLocaleString('id-ID')}
                                 </p>
                                 <p className="text-sm text-gray-600">Total Harga</p>
                             </div>
@@ -512,155 +583,87 @@ const PembelianDetailPage = () => {
                     </div>
                 </div>
 
-                {/* Detail Table */}
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 relative w-full">
-                    <div className="p-6 border-b border-gray-200">
+                {/* Enhanced Detail Table Section */}
+                <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+                    {/* Table Instructions for Better UX */}
+                    <div className="px-6 py-5 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-blue-50">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                            <div>
-                                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                            <div className="flex-1">
+                                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-3">
                                     <Package className="w-6 h-6 text-purple-600" />
                                     Detail Ternak
                                 </h2>
                                 <p className="text-gray-600 text-sm mt-1">
-                                    Rincian setiap ternak dalam pembelian ini
+                                    Rincian lengkap setiap ternak dalam pembelian ini dengan informasi harga dan biaya
                                 </p>
                             </div>
-                            {/* Button Tambah Detail dihilangkan sesuai permintaan */}
+                            <div className="flex items-center gap-3">
+                                <div className="text-right">
+                                    <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-medium text-sm">
+                                        {mappedDetailData.length} Item
+                                    </span>
+                                </div>
+                                {mappedDetailData.length > 0 && (
+                                    <div className="text-right text-xs text-gray-500">
+                                        <div>Total Berat: <span className="font-medium">{mappedDetailData.reduce((sum, item) => sum + (parseFloat(item.berat) || 0), 0).toFixed(1)} kg</span></div>
+                                        <div>Total Nilai: <span className="font-medium">Rp {mappedDetailData.reduce((sum, item) => sum + (parseFloat(item.total_harga) || 0), 0).toLocaleString('id-ID')}</span></div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                     
-                    {/* Tabel Detail Ternak - Diperbarui untuk Estetika dan Konsistensi */}
-                    <div className="w-full"> {/* Tambahkan wrapper untuk konsistensi */}
+                    {/* Enhanced Detail Table with Optimal UX */}
+                    <div className="w-full overflow-hidden relative">
+                        {loading && (
+                            <div className="absolute inset-0 bg-white bg-opacity-80 flex items-center justify-center z-50">
+                                <div className="flex flex-col items-center">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mb-2"></div>
+                                    <p className="text-sm text-gray-600">Memuat data...</p>
+                                </div>
+                            </div>
+                        )}
                         <DataTable
-                            title="Daftar Detail Ternak" // Opsional: Tambahkan judul
                             columns={detailColumns}
-                            data={detailData}
+                            data={mappedDetailData}
                             pagination
-                            // --- PERUBAHAN/KONSISTENSI DIMULAI DI SINI ---
-                            // 1. Gunakan customStyles yang lengkap dan disesuaikan
-                            customStyles={{
-                                // Mulai dengan gaya dasar yang ada
-                                ...customTableStyles,
-                                // Timpa atau tambahkan gaya spesifik untuk tabel ini
-                                table: {
-                                    ...customTableStyles.table,
-                                    style: {
-                                        ...customTableStyles.table.style,
-                                        // Sesuaikan minWidth dengan jumlah dan lebar kolom
-                                        // Gunakan nilai yang konsisten dengan halaman lain, misalnya 800px
-                                        // atau sesuaikan dengan breakpoint jika perlu (lihat Pasted_Text_1753621272467.txt)
-                                        minWidth: '800px', // Misalnya, sesuaikan jika diperlukan
-                                        width: '100%',
-                                        tableLayout: 'fixed', // Kritis untuk kontrol lebar kolom
-                                        wordWrap: 'break-word',
-                                        overflowWrap: 'break-word',
-                                    }
-                                },
-                                tableWrapper: {
-                                    style: {
-                                        overflowX: 'auto', // Aktifkan scroll horizontal
-                                        overflowY: 'auto', // Aktifkan scroll vertikal jika perlu
-                                        maxHeight: '500px', // Sesuaikan tinggi maksimal
-                                        maxWidth: '100%',
-                                        width: '100%',
-                                        border: '1px solid #e2e8f0',
-                                        borderRadius: '8px', // Sesuaikan border radius
-                                        WebkitOverflowScrolling: 'touch',
-                                        // Tambahkan boxShadow ringan jika diinginkan (opsional)
-                                        // boxShadow: 'inset 0 0 4px rgba(0, 0, 0, 0.05)',
-                                    }
-                                },
-                                headRow: {
-                                    style: {
-                                        position: 'sticky',
-                                        top: 0,
-                                        // --- PERBAIKAN Z-INDEX ---
-                                        // Pastikan z-index headRow lebih tinggi dari sel data sticky
-                                        zIndex: 1000,
-                                        // --------------------------
-                                        backgroundColor: '#ffffff',
-                                        fontWeight: 'bold',
-                                        // Sesuaikan boxShadow untuk konsistensi
-                                        boxShadow: '0 2px 4px rgba(0,0,0,0.08)', // Bayangan lebih halus
-                                    }
-                                },
-                                // --- TAMBAHKAN headCells untuk styling header sticky ---
-                                headCells: {
-                                    style: {
-                                        fontSize: '12px',
-                                        fontWeight: 'bold',
-                                        color: 'inherit',
-                                        padding: '8px 12px', // Sesuaikan padding
-                                        // --- PERBAIKAN/PASTIKAN STYLING KOLOM "NO" DI HEADER ---
-                                        '&:first-child': { // Target header kolom pertama ("No")
-                                            position: 'sticky',
-                                            left: 0,
-                                            // --- PERBAIKAN Z-INDEX ---
-                                            // z-index header kolom "No" harus > headRow dan > sel data sticky
-                                            zIndex: 1002,
-                                            // --------------------------
-                                            backgroundColor: '#ffffff', // Latar belakang header
-                                            borderRight: '2px solid #e2e8f0', // Border kanan
-                                            // Tambahkan bayangan vertikal untuk efek pemisahan
-                                            boxShadow: 'inset -3px 0 4px -1px rgba(0, 0, 0, 0.1)',
-                                        },
-                                        // ------------------------------
-                                    },
-                                },
-                                // --- AKHIR TAMBAHAN headCells ---
-                                cells: {
-                                    style: {
-                                        wordWrap: 'break-word',
-                                        wordBreak: 'break-word',
-                                        whiteSpace: 'normal',
-                                        overflow: 'hidden',
-                                        textOverflow: 'ellipsis',
-                                        // Sesuaikan padding untuk konsistensi
-                                        padding: '8px 12px',
-                                        fontSize: '12px',
-                                        lineHeight: '1.4',
-                                        // --- PERBAIKAN/PASTIKAN STYLING KOLOM "NO" DI DATA ---
-                                        '&:first-child': { // Target sel data kolom pertama ("No")
-                                            position: 'sticky',
-                                            left: 0,
-                                            // --- PERBAIKAN Z-INDEX ---
-                                            // z-index sel data kolom "No" harus < headRow
-                                            zIndex: 999,
-                                            // --------------------------
-                                            backgroundColor: '#fff', // Latar belakang sel
-                                            borderRight: '2px solid #e2e8f0', // Border kanan
-                                            // Tambahkan bayangan vertikal untuk efek pemisahan
-                                            boxShadow: 'inset -3px 0 4px -1px rgba(0, 0, 0, 0.1)',
-                                        },
-                                        // ------------------------------
-                                    }
-                                }
-                                // --- PERBAIKAN HOVER UNTUK BARIS ---
-                                // Jika ingin hover menyeluruh termasuk kolom sticky (kecuali "No")
-                                // rows: {
-                                //     style: {
-                                //         '&:hover': {
-                                //             backgroundColor: 'rgba(243, 244, 246, 0.7)', // Contoh warna hover
-                                //         },
-                                //     },
-                                // },
-                                // -----------------------------------
+                            paginationPerPage={10}
+                            paginationRowsPerPageOptions={[5, 10, 15, 20, 25]}
+                            paginationComponentOptions={{
+                                rowsPerPageText: 'Baris per halaman:',
+                                rangeSeparatorText: 'dari',
+                                noRowsPerPage: false,
+                                selectAllRowsItem: false,
+                                selectAllRowsItemText: 'Semua',
                             }}
-                            // --- AKHIR PERUBAHAN/KONSISTENSI customStyles ---
+                            customStyles={detailPageTableStyles}
                             noDataComponent={
-                                <div className="text-center py-12">
-                                    <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                                    <p className="text-gray-500 text-lg">Tidak ada detail ternak ditemukan</p>
-                                    {/* Tambahkan tombol jika perlu */}
-                                    {/* <button ...>Tambah Detail Ternak</button> */}
+                                <div className="text-center py-20">
+                                    <div className="flex flex-col items-center">
+                                        <div className="bg-gray-100 rounded-full p-6 mb-6">
+                                            <Package className="w-16 h-16 text-gray-400" />
+                                        </div>
+                                        <h3 className="text-xl font-semibold text-gray-700 mb-2">Tidak ada detail ternak</h3>
+                                        <p className="text-gray-500 text-base max-w-md">
+                                            Belum ada data detail ternak untuk pembelian ini. Data akan muncul setelah detail ternak ditambahkan.
+                                        </p>
+                                    </div>
                                 </div>
                             }
-                            responsive={false} // Konsisten dengan halaman utama untuk kontrol penuh scrolling
+                            responsive={false}
                             highlightOnHover
                             pointerOnHover
+                            striped={false}
+                            dense={false}
+                            progressPending={loading}
+                            progressComponent={
+                                <div className="flex flex-col items-center py-12">
+                                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-600 mb-4"></div>
+                                    <p className="text-gray-600">Memuat detail ternak...</p>
+                                </div>
+                            }
                         />
                     </div>
-                    {/* Akhir Tabel Detail Ternak - Diperbarui */}
                 </div>
 
                 {/* Notification */}
@@ -673,6 +676,8 @@ const PembelianDetailPage = () => {
                         <p className="text-sm font-medium">{notification.message}</p>
                     </div>
                 )}
+
+
 
                 {/* Modals */}
                 <AddEditDetailModal

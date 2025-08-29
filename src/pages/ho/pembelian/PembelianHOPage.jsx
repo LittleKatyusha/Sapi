@@ -7,7 +7,7 @@ import usePembelianHO from './hooks/usePembelianHO';
 import ActionButton from './components/ActionButton';
 import PembelianCard from './components/PembelianCard';
 import CustomPagination from './components/CustomPagination';
-import customTableStyles from './constants/tableStyles';
+import customTableStyles, { enhancedTableStyles } from './constants/tableStyles';
 
 // Import modals
 import DeleteConfirmationModal from './modals/DeleteConfirmationModal';
@@ -160,8 +160,8 @@ const PembelianHOPage = () => {
             width: '60px',
             ignoreRowClick: true,
             cell: (row, index) => (
-                <div className="font-semibold text-gray-700 text-center">
-                    {index + 1}
+                <div className="flex items-center justify-center w-full h-full font-semibold text-gray-600">
+                    {(serverPagination.currentPage - 1) * serverPagination.perPage + index + 1}
                 </div>
             )
         },
@@ -169,13 +169,13 @@ const PembelianHOPage = () => {
             name: 'Nota',
             selector: row => row.nota,
             sortable: true,
-            width: '12%',
+            width: '150px', // Increased width to prevent wrapping
             wrap: true,
             cell: row => (
-                <div className="text-center">
-                    <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded break-words" title={row.nota}>
+                <div className="w-full px-2 flex items-center justify-center">
+                    <div className="font-mono text-sm bg-gray-50 px-3 py-2 rounded-lg inline-block whitespace-nowrap">
                         {row.nota || '-'}
-                    </span>
+                    </div>
                 </div>
             )
         },
@@ -183,13 +183,17 @@ const PembelianHOPage = () => {
             name: 'Tanggal Masuk',
             selector: row => row.tgl_masuk,
             sortable: true,
-            width: '12%',
+            width: '140px', // Further increased to prevent header truncation
             wrap: true,
             cell: row => (
-                <div className="text-center">
-                    <span className="text-gray-900 break-words">
-                        {row.tgl_masuk ? new Date(row.tgl_masuk).toLocaleDateString('id-ID') : '-'}
-                    </span>
+                <div className="flex items-center justify-center w-full h-full min-h-[40px]">
+                    <div className="text-center font-medium text-gray-800 no-wrap">
+                        {row.tgl_masuk ? new Date(row.tgl_masuk).toLocaleDateString('id-ID', {
+                            day: '2-digit',
+                            month: '2-digit', 
+                            year: 'numeric'
+                        }) : '-'}
+                    </div>
                 </div>
             )
         },
@@ -197,17 +201,12 @@ const PembelianHOPage = () => {
             name: 'Nama Supir',
             selector: row => row.nama_supir,
             sortable: true,
-            width: '15%',
+            width: '200px', // Increased for longer names
             wrap: true,
             cell: row => (
-                <div className="flex items-center">
-                    <div className="w-7 h-7 rounded-full bg-green-100 flex items-center justify-center mr-3 flex-shrink-0">
-                        <User className="w-4 h-4 text-green-600" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                        <div className="font-medium text-gray-900 text-sm break-words" title={row.nama_supir}>
-                            {row.nama_supir || '-'}
-                        </div>
+                <div className="flex items-center justify-center w-full h-full min-h-[40px] px-2">
+                    <div className="text-center font-medium text-gray-800 force-wrap">
+                        {row.nama_supir || '-'}
                     </div>
                 </div>
             )
@@ -216,14 +215,13 @@ const PembelianHOPage = () => {
             name: 'Plat Nomor',
             selector: row => row.plat_nomor,
             sortable: true,
-            width: '10%',
+            width: '140px', // Increased for license plates
             wrap: true,
             cell: row => (
-                <div className="flex items-center">
-                    <Truck className="w-4 h-4 text-gray-500 mr-2 flex-shrink-0" />
-                    <span className="font-mono text-sm break-words" title={row.plat_nomor}>
+                <div className="flex items-center justify-center w-full h-full min-h-[40px]">
+                    <div className="font-mono text-sm bg-gray-50 px-3 py-2 rounded-lg inline-block whitespace-nowrap">
                         {row.plat_nomor || '-'}
-                    </span>
+                    </div>
                 </div>
             )
         },
@@ -231,13 +229,14 @@ const PembelianHOPage = () => {
             name: 'Jumlah',
             selector: row => row.jumlah,
             sortable: true,
-            width: '8%',
+            width: '100px', // Slightly increased
             wrap: true,
             cell: row => (
-                <div className="text-center">
-                    <span className="inline-flex px-2 py-1 text-sm font-semibold rounded-full bg-indigo-100 text-indigo-800 break-words">
-                        {row.jumlah || 0} ekor
-                    </span>
+                <div className="flex items-center justify-center w-full h-full min-h-[40px]">
+                    <div className="bg-indigo-50 text-indigo-700 px-3 py-2 rounded-lg font-semibold text-center min-w-[80px]">
+                        {row.jumlah || 0}<br/>
+                        <span className="text-xs text-indigo-500">ekor</span>
+                    </div>
                 </div>
             )
         },
@@ -245,17 +244,12 @@ const PembelianHOPage = () => {
             name: 'Nama Supplier',
             selector: row => row.nama_supplier,
             sortable: true,
-            width: '18%',
+            width: '260px', // Further increased for header text and long supplier names
             wrap: true,
             cell: row => (
-                <div className="flex items-center">
-                    <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center mr-3 flex-shrink-0">
-                        <Building2 className="w-4 h-4 text-blue-600" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                        <div className="font-medium text-gray-900 text-sm break-words" title={row.nama_supplier}>
-                            {row.nama_supplier || '-'}
-                        </div>
+                <div className="flex items-center justify-center w-full h-full min-h-[40px] px-2">
+                    <div className="text-center font-medium text-gray-800 leading-tight force-wrap">
+                        {row.nama_supplier || '-'}
                     </div>
                 </div>
             )
@@ -264,11 +258,13 @@ const PembelianHOPage = () => {
             name: 'Nama Office',
             selector: row => row.nama_office,
             sortable: true,
-            width: '12%',
+            width: '160px', // Increased for office names
             wrap: true,
             cell: row => (
-                <div className="text-gray-900 text-sm break-words" title={row.nama_office}>
-                    {row.nama_office || '-'}
+                <div className="flex items-center justify-center w-full h-full min-h-[40px] px-2">
+                    <div className="text-center font-medium text-gray-800 force-wrap">
+                        {row.nama_office || '-'}
+                    </div>
                 </div>
             )
         },
@@ -276,18 +272,18 @@ const PembelianHOPage = () => {
             name: 'Total Belanja',
             selector: row => row.total_belanja,
             sortable: true,
-            width: '15%',
+            width: '200px', // Increased to accommodate full currency display
             wrap: true,
             cell: row => (
-                <div className="text-center">
-                    <span className="inline-flex px-3 py-1.5 text-sm font-semibold rounded-full bg-green-100 text-green-800 break-words">
+                <div className="flex items-center justify-center w-full h-full min-h-[40px] px-1">
+                    <div className="bg-green-50 text-green-700 px-3 py-2 rounded-lg font-semibold text-center text-xs leading-tight">
                         {row.total_belanja ? new Intl.NumberFormat('id-ID', {
                             style: 'currency',
                             currency: 'IDR',
                             minimumFractionDigits: 0,
                             maximumFractionDigits: 0
                         }).format(row.total_belanja) : 'Rp 0'}
-                    </span>
+                    </div>
                 </div>
             )
         },
@@ -295,18 +291,18 @@ const PembelianHOPage = () => {
             name: 'Biaya Lain',
             selector: row => row.biaya_lain,
             sortable: true,
-            width: '12%',
+            width: '180px', // Increased to accommodate full currency display
             wrap: true,
             cell: row => (
-                <div className="text-center">
-                    <span className="inline-flex px-3 py-1.5 text-sm font-semibold rounded-full bg-orange-100 text-orange-800 break-words">
+                <div className="flex items-center justify-center w-full h-full min-h-[40px] px-1">
+                    <div className="bg-orange-50 text-orange-700 px-3 py-2 rounded-lg font-semibold text-center text-xs leading-tight">
                         {row.biaya_lain ? new Intl.NumberFormat('id-ID', {
                             style: 'currency',
                             currency: 'IDR',
                             minimumFractionDigits: 0,
                             maximumFractionDigits: 0
                         }).format(row.biaya_lain) : 'Rp 0'}
-                    </span>
+                    </div>
                 </div>
             )
         },
@@ -314,13 +310,14 @@ const PembelianHOPage = () => {
             name: 'Berat Total',
             selector: row => row.berat_total,
             sortable: true,
-            width: '12%',
+            width: '140px', // Further increased for header text
             wrap: true,
             cell: row => (
-                <div className="text-center">
-                    <span className="text-gray-900 break-words">
-                        {row.berat_total ? `${parseFloat(row.berat_total).toFixed(1)} kg` : '-'}
-                    </span>
+                <div className="flex items-center justify-center w-full h-full min-h-[40px]">
+                    <div className="bg-gray-50 text-gray-700 px-3 py-2 rounded-lg font-semibold text-center">
+                        {row.berat_total ? `${parseFloat(row.berat_total).toFixed(1)}` : '-'}<br/>
+                        <span className="text-xs text-gray-500">kg</span>
+                    </div>
                 </div>
             )
         },
@@ -328,19 +325,19 @@ const PembelianHOPage = () => {
             name: 'Jenis Pembelian',
             selector: row => row.jenis_pembelian,
             sortable: true,
-            width: '15%',
+            width: '190px', // Further increased for header text
             wrap: true,
             cell: row => (
-                <div className="text-center">
-                    <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800 break-words" title={row.jenis_pembelian}>
+                <div className="flex items-center justify-center w-full h-full min-h-[40px] px-2">
+                    <div className="bg-purple-50 text-purple-700 px-3 py-2 rounded-lg font-medium text-center text-xs leading-tight force-wrap">
                         {row.jenis_pembelian || '-'}
-                    </span>
+                    </div>
                 </div>
             )
         },
         {
             name: 'Aksi',
-            width: '8%',
+            width: '80px',
             cell: row => (
                 <ActionButton
                     row={row}
@@ -354,10 +351,84 @@ const PembelianHOPage = () => {
             ),
             ignoreRowClick: true,
         },
-    ], [openMenuId, filteredData]);
+    ], [openMenuId, filteredData, serverPagination]);
 
     return (
         <>
+            <style jsx>{`
+                .word-break-all {
+                    word-break: break-all;
+                    overflow-wrap: break-word;
+                    hyphens: auto;
+                }
+                
+                .no-wrap {
+                    white-space: nowrap;
+                    overflow: visible;
+                    text-overflow: clip;
+                }
+                
+                .force-wrap {
+                    white-space: normal;
+                    word-wrap: break-word;
+                    overflow-wrap: break-word;
+                }
+                
+                /* Custom scrollbar styling */
+                .table-scroll-container::-webkit-scrollbar {
+                    height: 8px;
+                }
+                
+                .table-scroll-container::-webkit-scrollbar-track {
+                    background: #f1f5f9;
+                    border-radius: 4px;
+                }
+                
+                .table-scroll-container::-webkit-scrollbar-thumb {
+                    background: #cbd5e1;
+                    border-radius: 4px;
+                    transition: background 0.2s ease;
+                }
+                
+                .table-scroll-container::-webkit-scrollbar-thumb:hover {
+                    background: #94a3b8;
+                }
+                
+                /* Hide scrollbar on Firefox while keeping functionality */
+                .table-scroll-container {
+                    scrollbar-width: thin;
+                    scrollbar-color: #cbd5e1 #f1f5f9;
+                }
+                
+                /* Force header center alignment override */
+                .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol {
+                    text-align: center !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                }
+                
+                .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol > div {
+                    text-align: center !important;
+                    width: 100% !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                }
+                
+                /* Override sort buttons and text alignment */
+                .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol .rdt_TableCol_Sortable {
+                    text-align: center !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    width: 100% !important;
+                }
+                
+                .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol span {
+                    text-align: center !important;
+                }
+            `}</style>
             <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-2 sm:p-4 md:p-6">
             <div className="w-full max-w-none mx-0 space-y-6 md:space-y-8">
                 <div className="bg-white rounded-none sm:rounded-none p-4 sm:p-6 shadow-xl border border-gray-100">
@@ -458,148 +529,32 @@ const PembelianHOPage = () => {
                 </div>
 
                 {/* Desktop Table View - Hidden on mobile */}
-                <div className="bg-white rounded-none sm:rounded-none shadow-lg border border-gray-100 relative hidden md:block">
-                    <div className="w-full">
+                <div className="bg-white rounded-xl shadow-lg border border-gray-100 relative hidden md:block overflow-hidden">
+                    {/* Scroll Indicator */}
+                    <div className="px-6 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                        <div className="flex items-center text-sm text-gray-600">
+                            <svg className="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16l-4-4m0 0l4-4m-4 4h18"></path>
+                            </svg>
+                            Scroll horizontal untuk melihat semua kolom
+                            <svg className="w-4 h-4 ml-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m0-4H3"></path>
+                            </svg>
+                        </div>
+                        <div className="text-xs text-gray-500">
+                            {filteredData.length} item{filteredData.length !== 1 ? 's' : ''}
+                        </div>
+                    </div>
+                    
+                    {/* Table Container with proper scroll */}
+                    <div className="w-full overflow-x-auto max-w-full table-scroll-container" style={{maxHeight: '60vh'}}>
+                        <div className="min-w-full">
                         <DataTable
                             key={`datatable-${serverPagination.currentPage}-${filteredData.length}`}
                             columns={columns}
                             data={filteredData}
-                            pagination
-                            paginationServer
-                            paginationTotalRows={serverPagination.totalItems}
-                            paginationDefaultPage={serverPagination.currentPage}
-                            paginationPerPage={serverPagination.perPage}
-                            paginationRowsPerPageOptions={[10, 25, 50, 100]}
-                            onChangeRowsPerPage={handleServerPerPageChange}
-                            onChangePage={handleServerPageChange}
-                            customStyles={{
-                                ...customTableStyles,
-                                table: {
-                                    ...customTableStyles.table,
-                                    style: {
-                                        ...customTableStyles.table.style,
-                                        minWidth: '1200px', // Increased to accommodate all columns properly
-                                        width: '100%',
-                                        tableLayout: 'fixed',
-                                        wordWrap: 'break-word',
-                                        overflowWrap: 'break-word',
-                                    }
-                                },
-                                tableWrapper: {
-                                    style: {
-                                        overflowX: 'auto',
-                                        overflowY: 'auto',
-                                        maxHeight: '600px',
-                                        maxWidth: '100%',
-                                        width: '100%',
-                                        border: '1px solid #e2e8f0',
-                                        borderRadius: '12px',
-                                        WebkitOverflowScrolling: 'touch',
-                                        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
-                                        position: 'relative', // Ensure proper positioning context for sticky elements
-                                        // Additional properties for better sticky positioning
-                                        isolation: 'isolate', // Create stacking context
-                                    }
-                                },
-                                headRow: {
-                                    style: {
-                                        position: 'sticky',
-                                        top: 0,
-                                        zIndex: 1000,
-                                        backgroundColor: '#ffffff',
-                                        fontWeight: 'bold',
-                                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                                    }
-                                },
-                                headCells: {
-                                    style: {
-                                        fontSize: '13px',
-                                        fontWeight: 'bold',
-                                        color: 'inherit',
-                                        padding: '12px 16px',
-                                        '&:first-child': {
-                                            position: 'sticky',
-                                            left: 0,
-                                            zIndex: 1002,
-                                            backgroundColor: '#ffffff',
-                                            borderRight: '3px solid #e2e8f0',
-                                            boxShadow: 'inset -3px 0 4px -1px rgba(0, 0, 0, 0.1)',
-                                            // Additional properties for better sticky positioning
-                                            willChange: 'transform', // Optimize for animations
-                                        },
-                                        // Sticky "Aksi" header column on the right
-                                        '&:last-child': {
-                                            position: 'sticky',
-                                            right: 0,
-                                            zIndex: 1001,
-                                            backgroundColor: '#ffffff',
-                                            borderLeft: '3px solid #e2e8f0',
-                                            boxShadow: 'inset 3px 0 4px -1px rgba(0, 0, 0, 0.1)',
-                                            // Ensure proper alignment and prevent text wrapping
-                                            whiteSpace: 'nowrap',
-                                            textAlign: 'center',
-                                            verticalAlign: 'middle',
-                                            // Additional properties for better sticky positioning
-                                            willChange: 'transform', // Optimize for animations
-                                        },
-                                    },
-                                },
-                                rows: {
-                                    style: {
-                                        // ... Gaya baris lainnya
-                                        // --- PASTIKAN INI ---
-                                        '&:hover': {
-                                            backgroundColor: 'rgba(243, 244, 246, 0.7)', // Tailwind's gray-100 dengan opacity
-                                            // Atau gunakan warna solid jika diinginkan: backgroundColor: '#f9fafb',
-                                            transform: 'scale(1)',
-                                        },
-                                        // --- AKHIR PASTIKAN ---
-                                    },
-                                },
-                                cells: {
-                                    style: {
-                                        wordWrap: 'break-word',
-                                        wordBreak: 'break-word',
-                                        whiteSpace: 'normal',
-                                        overflow: 'hidden',
-                                        textOverflow: 'ellipsis',
-                                        padding: '8px 12px', // Pastikan padding konsisten
-                                        fontSize: '12px',
-                                        lineHeight: '1.4',
-                                        // --- PERUBAHAN/PASTIKAN INI ---
-                                        '&:first-child': { // Kolom "No"
-                                            position: 'sticky',
-                                            left: 0,
-                                            zIndex: 999,
-                                            // --- PERUBAHAN PENTING ---
-                                            // Pastikan latar belakang tetap putih saat hover baris
-                                            backgroundColor: '#fff !important', // Gunakan !important untuk override
-                                            // -------------------------
-                                            borderRight: '2px solid #e2e8f0',
-                                            boxShadow: 'inset -3px 0 4px -1px rgba(0, 0, 0, 0.1)',
-                                            // padding: '8px 12px', // Pastikan padding konsisten
-                                            // Additional properties for better sticky positioning
-                                            willChange: 'transform', // Optimize for animations
-                                        },
-                                        // Sticky "Aksi" column on the right
-                                        '&:last-child': {
-                                            position: 'sticky',
-                                            right: 0,
-                                            zIndex: 998,
-                                            backgroundColor: '#fff !important', // Tetap putih saat hover
-                                            borderLeft: '2px solid #e2e8f0',
-                                            boxShadow: 'inset 3px 0 4px -1px rgba(0, 0, 0, 0.1)',
-                                            padding: '8px 12px',
-                                            // Ensure proper alignment and prevent text wrapping
-                                            whiteSpace: 'nowrap',
-                                            textAlign: 'center',
-                                            verticalAlign: 'middle',
-                                            // Additional properties for better sticky positioning
-                                            willChange: 'transform', // Optimize for animations
-                                        },
-                                    }
-                                }
-                            }}
+                            pagination={false}
+                            customStyles={enhancedTableStyles}
                             progressPending={loading}
                             progressComponent={
                                 <div className="text-center py-12">
@@ -634,6 +589,92 @@ const PembelianHOPage = () => {
                             highlightOnHover
                             pointerOnHover
                         />
+                        </div>
+                    </div>
+                    
+                    {/* Custom Pagination - Fixed outside scroll area */}
+                    <div className="border-t border-gray-200 bg-gray-50 px-6 py-4 flex items-center justify-between">
+                        <div className="flex items-center text-sm text-gray-700">
+                            <span>
+                                Menampilkan{' '}
+                                <span className="font-semibold">
+                                    {((serverPagination.currentPage - 1) * serverPagination.perPage) + 1}
+                                </span>
+                                {' '}sampai{' '}
+                                <span className="font-semibold">
+                                    {Math.min(serverPagination.currentPage * serverPagination.perPage, serverPagination.totalItems)}
+                                </span>
+                                {' '}dari{' '}
+                                <span className="font-semibold">{serverPagination.totalItems}</span>
+                                {' '}hasil
+                            </span>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2">
+                            {/* Rows per page selector */}
+                            <div className="flex items-center space-x-2">
+                                <span className="text-sm text-gray-700">Rows per page:</span>
+                                <select
+                                    value={serverPagination.perPage}
+                                    onChange={(e) => handleServerPerPageChange(parseInt(e.target.value))}
+                                    className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                                >
+                                    <option value={10}>10</option>
+                                    <option value={25}>25</option>
+                                    <option value={50}>50</option>
+                                    <option value={100}>100</option>
+                                </select>
+                            </div>
+                            
+                            {/* Pagination buttons */}
+                            <div className="flex items-center space-x-1">
+                                <button
+                                    onClick={() => handleServerPageChange(1)}
+                                    disabled={serverPagination.currentPage === 1}
+                                    className="p-2 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    title="First page"
+                                >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                                    </svg>
+                                </button>
+                                <button
+                                    onClick={() => handleServerPageChange(serverPagination.currentPage - 1)}
+                                    disabled={serverPagination.currentPage === 1}
+                                    className="p-2 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    title="Previous page"
+                                >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                                    </svg>
+                                </button>
+                                
+                                <span className="px-3 py-1 text-sm font-medium">
+                                    {serverPagination.currentPage} of {serverPagination.totalPages}
+                                </span>
+                                
+                                <button
+                                    onClick={() => handleServerPageChange(serverPagination.currentPage + 1)}
+                                    disabled={serverPagination.currentPage === serverPagination.totalPages}
+                                    className="p-2 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    title="Next page"
+                                >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                                    </svg>
+                                </button>
+                                <button
+                                    onClick={() => handleServerPageChange(serverPagination.totalPages)}
+                                    disabled={serverPagination.currentPage === serverPagination.totalPages}
+                                    className="p-2 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    title="Last page"
+                                >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

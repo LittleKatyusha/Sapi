@@ -81,127 +81,343 @@ const customTableStyles = {
             borderRadius: '0 0 18px 18px',
             padding: '12px 16px',
             backgroundColor: '#f8fafc',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            gap: '8px',
         }
     }
 };
 
-// Updated custom table styles with sticky columns for both "No" and "Aksi"
-const updatedCustomStyles = {
-    ...customTableStyles, // Start with base styles
+// Enhanced table styles optimized for detail page with perfect UX
+const detailPageTableStyles = {
     table: {
-        ...customTableStyles.table,
         style: {
-            ...customTableStyles.table.style,
-            minWidth: '1200px', // Adjusted for better column layout
+            backgroundColor: '#ffffff',
+            borderRadius: '0px',
             width: '100%',
-            tableLayout: 'fixed', // Ensure this is present
-            wordWrap: 'break-word',
-            overflowWrap: 'break-word',
+            minWidth: '1400px', // Optimized for detail table columns
+            maxWidth: '100%',
+            tableLayout: 'fixed', // Critical for consistent column widths
+            borderCollapse: 'separate',
+            borderSpacing: 0,
+            margin: 0,
         }
     },
     tableWrapper: {
         style: {
             overflowX: 'auto',
-            overflowY: 'auto',
-            maxHeight: '600px', // Adjust if needed
-            maxWidth: '100%',
+            overflowY: 'visible',
             width: '100%',
-            border: '1px solid #e2e8f0',
-            borderRadius: '8px',
+            maxWidth: '100%',
+            border: 'none', // Remove border, handled by parent
+            borderRadius: '0',
             WebkitOverflowScrolling: 'touch',
+            position: 'relative',
+            scrollBehavior: 'smooth',
+            // Enhanced scrollbar styling
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#cbd5e1 #f1f5f9',
+            '&::-webkit-scrollbar': {
+                height: '8px',
+            },
+            '&::-webkit-scrollbar-track': {
+                backgroundColor: '#f1f5f9',
+                borderRadius: '4px',
+            },
+            '&::-webkit-scrollbar-thumb': {
+                backgroundColor: '#cbd5e1',
+                borderRadius: '4px',
+                '&:hover': {
+                    backgroundColor: '#94a3b8',
+                },
+            },
         }
     },
     headRow: {
         style: {
-            ...customTableStyles.headRow.style,
             position: 'sticky',
             top: 0,
             zIndex: 1000,
-            backgroundColor: '#ffffff',
-            fontWeight: 'bold',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-        }
-    },
-    rows: {
-        style: {
-            ...customTableStyles.rows.style,
-            '&:hover': {
-                backgroundColor: 'rgba(243, 244, 246, 0.7)', // Tailwind's gray-100 with opacity
-                transform: 'scale(1)',
-            },
+            backgroundColor: '#f8fafc',
+            borderBottom: '2px solid #e2e8f0',
+            minHeight: '60px', // Increased for better text wrapping
+            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
         }
     },
     headCells: {
         style: {
-            fontSize: '13px', // Consistent with other pages
-            fontWeight: 'bold',
-            color: 'inherit',
-            padding: '8px 12px', // Consistent padding with cells
+            fontSize: '14px',
+            fontWeight: '600',
+            color: '#374151',
+            padding: '16px 12px', // py-4 px-3 - optimal padding
+            textAlign: 'center',
+            whiteSpace: 'pre-line', // Allow line breaks in headers
             wordWrap: 'break-word',
             wordBreak: 'break-word',
-            whiteSpace: 'normal',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            // Sticky "No" column on the left
-            '&:first-child': {
-                position: 'sticky',
-                left: 0,
-                zIndex: 1002, // Higher than headRow
-                backgroundColor: '#ffffff',
-                borderRight: '2px solid #e2e8f0',
-                boxShadow: 'inset -3px 0 4px -1px rgba(0, 0, 0, 0.1)',
-                padding: '8px 12px', // Explicit consistent padding
-            },
-            // Sticky "Aksi" column on the right
+            lineHeight: '1.3',
+            letterSpacing: '0.025em',
+            borderRight: '1px solid #e5e7eb',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
             '&:last-child': {
-                position: 'sticky',
-                right: 0, // Sticky on the right
-                zIndex: 1001, // Higher than headRow
-                backgroundColor: '#ffffff',
-                borderLeft: '2px solid #e2e8f0', // Border on left of action column
-                boxShadow: 'inset 3px 0 4px -1px rgba(0, 0, 0, 0.1)', // Shadow on left
-                padding: '8px 12px', // Explicit consistent padding
+                borderRight: 'none',
             },
-        },
+        }
+    },
+    rows: {
+        style: {
+            minHeight: '52px', // Increased for better content spacing
+            borderBottom: '1px solid #f3f4f6',
+            transition: 'background-color 0.2s ease',
+            '&:hover': {
+                backgroundColor: '#f9fafb',
+                transform: 'none', // Disable transform for better performance
+            },
+            '&:last-child': {
+                borderBottom: 'none',
+            },
+            '&:nth-of-type(even)': {
+                backgroundColor: '#fafbfc', // Very subtle striping
+            }
+        }
     },
     cells: {
         style: {
+            padding: '14px 16px', // Increased padding for better breathing room
+            fontSize: '13px',
+            color: '#374151',
+            lineHeight: '1.5',
+            textAlign: 'center',
+            whiteSpace: 'normal', // Enable word wrapping
+            wordWrap: 'break-word',
+            wordBreak: 'break-words', // Handle very long text
+            overflow: 'visible', // Prevent data truncation
+            verticalAlign: 'middle',
+            borderRight: '1px solid #f3f4f6',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            '&:last-child': {
+                borderRight: 'none',
+            },
+            // Enhance hover effect for individual cells
+            '&:hover': {
+                backgroundColor: 'rgba(59, 130, 246, 0.05)',
+            }
+        }
+    },
+    pagination: {
+        style: {
+            borderTop: '1px solid #e2e8f0',
+            borderRadius: '0 0 12px 12px',
+            padding: '16px 20px',
+            backgroundColor: '#f8fafc',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end', // Align pagination to the right
+            gap: '8px', // Add spacing between pagination elements
+        }
+    }
+};
+
+// Enhanced table styles with improved layout and structure
+const enhancedTableStyles = {
+    table: {
+        style: {
+            backgroundColor: '#fff',
+            borderRadius: '0px', // Remove border radius from table itself
+            width: '100%',
+            minWidth: '2000px', // Adjusted for full currency display in Total Belanja and Biaya Lain
+            maxWidth: '100%',
+            tableLayout: 'fixed',
+            borderCollapse: 'separate',
+            borderSpacing: 0,
+            margin: 0,
+        }
+    },
+    tableWrapper: {
+        style: {
+            overflowX: 'auto',
+            overflowY: 'visible',
+            width: '100%',
+            maxWidth: '100%',
+            border: 'none', // Remove border as it's handled by parent container
+            borderRadius: '0',
+            WebkitOverflowScrolling: 'touch',
+            position: 'relative',
+            // Ensure smooth scrolling
+            scrollBehavior: 'smooth',
+            // Custom scrollbar styling
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#cbd5e1 #f1f5f9',
+        }
+    },
+    headRow: {
+        style: {
+            position: 'sticky',
+            top: 0,
+            zIndex: 1000,
+            backgroundColor: '#f8fafc', // Subtle background instead of gradient
+            borderBottom: '2px solid #e2e8f0',
+            minHeight: '52px', // Increased for better breathing room
+            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+        }
+    },
+    headCells: {
+        style: {
+            fontSize: '13px',
+            fontWeight: '600',
+            color: '#374151',
+            padding: '16px 12px', // py-4 px-3 equivalent - optimal padding
+            textAlign: 'center !important', // Force center alignment for all headers
+            whiteSpace: 'normal',
             wordWrap: 'break-word',
             wordBreak: 'break-word',
-            whiteSpace: 'normal',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            padding: '8px 12px', // Default padding for cells
-            fontSize: '12px',
             lineHeight: '1.4',
-            // Sticky "No" column on the left for data
+            letterSpacing: '0.025em',
+            borderRight: '1px solid #e5e7eb', // Vertical borders except last
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            '&:last-child': {
+                borderRight: 'none', // No border on last column
+            },
+            // Sticky "No" column styling
+            '&:first-child': {
+                position: 'sticky',
+                left: 0,
+                zIndex: 1002,
+                backgroundColor: '#f8fafc',
+                borderRight: '2px solid #e5e7eb',
+                boxShadow: '1px 0 2px rgba(0, 0, 0, 0.05)',
+                willChange: 'transform',
+                minWidth: '60px',
+                maxWidth: '60px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center !important',
+            },
+            // Sticky "Aksi" column styling  
+            '&:last-child': {
+                position: 'sticky',
+                right: 0,
+                zIndex: 1001,
+                backgroundColor: '#f8fafc',
+                borderLeft: '2px solid #e5e7eb',
+                borderRight: 'none',
+                boxShadow: '-1px 0 2px rgba(0, 0, 0, 0.05)',
+                willChange: 'transform',
+                minWidth: '80px',
+                maxWidth: '80px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center !important',
+            },
+        }
+    },
+    rows: {
+        style: {
+            minHeight: '48px', // Dynamic height that adjusts to content
+            borderBottom: '1px solid #f3f4f6',
+            transition: 'all 0.2s ease',
+            '&:hover': {
+                backgroundColor: '#f9fafb',
+                transform: 'none', // Remove scale effect for cleaner look
+            },
+            '&:last-child': {
+                borderBottom: 'none',
+            }
+        }
+    },
+    cells: {
+        style: {
+            padding: '12px', // py-3 px-3 equivalent - consistent spacing
+            fontSize: '13px',
+            color: '#374151',
+            lineHeight: '1.5',
+            textAlign: 'center', // Center alignment for all content
+            whiteSpace: 'normal', // Allow text wrapping
+            wordWrap: 'break-word',
+            wordBreak: 'break-word',
+            overflow: 'visible', // Remove hidden to prevent truncation
+            verticalAlign: 'middle',
+            borderRight: '1px solid #f3f4f6', // Subtle vertical borders
+            '&:last-child': {
+                borderRight: 'none', // No border on last column
+            },
+            // Sticky "No" column styling
             '&:first-child': {
                 position: 'sticky',
                 left: 0,
                 zIndex: 999,
-                backgroundColor: '#fff',
-                borderRight: '2px solid #e2e8f0',
-                boxShadow: 'inset -3px 0 4px -1px rgba(0, 0, 0, 0.1)',
-                padding: '8px 12px', // Explicit consistent padding
+                backgroundColor: '#ffffff !important',
+                borderRight: '2px solid #e5e7eb',
+                boxShadow: '1px 0 2px rgba(0, 0, 0, 0.05)',
+                willChange: 'transform',
+                fontWeight: '600',
+                color: '#6b7280',
+                minWidth: '60px',
+                maxWidth: '60px',
             },
-            // Sticky "Aksi" column on the right for data
+            // Sticky "Aksi" column styling
             '&:last-child': {
                 position: 'sticky',
-                right: 0, // Sticky on the right
-                zIndex: 998, // Higher than background row hover
-                backgroundColor: 'rgba(243, 244, 246, 0.7)', // Ikuti warna hover baris
-                borderLeft: '2px solid #e2e8f0', // Border on left of action column
-                boxShadow: 'inset 3px 0 4px -1px rgba(0, 0, 0, 0.1)', // Shadow on left
-                padding: '8px 12px', // Explicit consistent padding
-                // Center align content vertically and horizontally
+                right: 0,
+                zIndex: 998,
+                backgroundColor: '#ffffff !important',
+                borderLeft: '2px solid #e5e7eb',
+                borderRight: 'none',
+                boxShadow: '-1px 0 2px rgba(0, 0, 0, 0.05)',
+                willChange: 'transform',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center', // Center button horizontally too
-                transition: 'background 0.2s',
+                justifyContent: 'center',
+                minWidth: '80px',
+                maxWidth: '80px',
             },
+        }
+    },
+    pagination: {
+        style: {
+            display: 'none', // Hide default pagination since we use custom one
         }
     }
 };
 
 export default customTableStyles;
-export { updatedCustomStyles };
+export { enhancedTableStyles, detailPageTableStyles };
+
+// Additional utility styles for enhanced user experience
+export const tableUtilityStyles = {
+    loadingOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(255, 255, 255, 0.8)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1001,
+    },
+    errorState: {
+        padding: '40px 20px',
+        textAlign: 'center',
+        color: '#ef4444',
+        backgroundColor: '#fef2f2',
+        border: '1px solid #fecaca',
+        borderRadius: '8px',
+        margin: '20px',
+    },
+    emptyState: {
+        padding: '60px 20px',
+        textAlign: 'center',
+        color: '#6b7280',
+        backgroundColor: '#f9fafb',
+    }
+};

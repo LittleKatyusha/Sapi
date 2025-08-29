@@ -194,6 +194,7 @@ const usePembelianHO = () => {
                 biaya_truk: parseFloat(pembelianData.biayaTruck) || 0,
                 biaya_lain: parseFloat(pembelianData.biayaLain) || 0,
                 biaya_total: parseFloat(pembelianData.biayaTotal) || 0,
+                berat_total: parseFloat(pembelianData.beratTotal) || 0, // Add missing berat_total mapping
                 tipe_pembelian: parseInt(pembelianData.tipePembelian) || 1,
                 file: pembelianData.file || null
             };
@@ -288,6 +289,7 @@ const usePembelianHO = () => {
                 const biayaTrukValue = data.biayaTruck || data.biaya_truk;
                 const biayaLainValue = data.biayaLain || data.biaya_lain;
                 const biayaTotalValue = data.biayaTotal || data.biaya_total;
+                const beratTotalValue = data.beratTotal || data.berat_total;
                 
                 requestData = {
                     pid: data.pid || data.encryptedPid, // Use encrypted PID
@@ -301,6 +303,7 @@ const usePembelianHO = () => {
                     biaya_truk: parseFloat(Array.isArray(biayaTrukValue) ? biayaTrukValue[0] : biayaTrukValue) || 0,
                     biaya_lain: parseFloat(Array.isArray(biayaLainValue) ? biayaLainValue[0] : biayaLainValue) || 0,
                     biaya_total: parseFloat(Array.isArray(biayaTotalValue) ? biayaTotalValue[0] : biayaTotalValue) || 0,
+                    berat_total: parseFloat(Array.isArray(beratTotalValue) ? beratTotalValue[0] : beratTotalValue) || 0, // Add missing berat_total mapping
                     tipe_pembelian: parseInt(data.tipePembelian || data.tipe_pembelian) || 1
                 };
                 
@@ -418,6 +421,7 @@ const usePembelianHO = () => {
                 biaya_truk: parseFloat(headerData.biaya_truk) || 0,
                 biaya_lain: parseFloat(headerData.biaya_lain) || 0,
                 biaya_total: parseFloat(headerData.biaya_total) || 0,
+                berat_total: parseFloat(headerData.berat_total) || 0, // Add missing berat_total mapping
                 tipe_pembelian: parseInt(headerData.tipe_pembelian) || 1,
                 file: headerData.file || null,
             };

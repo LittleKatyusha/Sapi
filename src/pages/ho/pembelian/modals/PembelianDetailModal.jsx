@@ -68,7 +68,7 @@ const PembelianDetailModal = ({ isOpen, onClose, pembelian }) => {
                                     Office
                                 </label>
                                 <p className="text-gray-900 bg-white px-3 py-2 rounded border">
-                                    {pembelian.nama_office || '-'}
+                                    {pembelian.nama_office || 'Head Office (HO)'}
                                 </p>
                             </div>
                         </div>
