@@ -173,14 +173,54 @@ const usePembelianOVK = () => {
         }
     }, [searchTerm, filterJenisPembelian, serverPagination.currentPage, serverPagination.perPage]);
 
-    // Create pembelian OVK
+    // Create pembelian OVK - handle header + details array format with file upload support
     const createPembelian = useCallback(async (pembelianData) => {
         setLoading(true);
         setError(null);
         
         try {
+            // Validate required fields before sending
+            if (!pembelianData.id_supplier || pembelianData.id_supplier <= 0) {
+                throw new Error('Supplier harus dipilih sebelum menyimpan data');
+            }
+            
+            if (!pembelianData.biaya_truk || pembelianData.biaya_truk <= 0) {
+                throw new Error('Biaya truck harus diisi dengan nilai numerik > 0');
+            }
+
+            // Prepare request data - handle file upload with FormData
+            let requestData;
+            
+            // If there's a file, use FormData for proper file upload
+            if (pembelianData.file && pembelianData.file instanceof File) {
+                requestData = new FormData();
+                
+                // Add all header fields to FormData
+                Object.keys(pembelianData).forEach(key => {
+                    if (key === 'file') {
+                        requestData.append('file', pembelianData.file);
+                    } else if (key === 'details') {
+                        requestData.append('details', JSON.stringify(pembelianData.details || []));
+                    } else {
+                        requestData.append(key, pembelianData[key]);
+                    }
+                });
+                
+            } else {
+                // No file upload, use regular JSON format
+                requestData = {
+                    ...pembelianData,
+                    details: pembelianData.details || []
+                };
+                
+                // Remove file field if null to avoid validation issues
+                if (!requestData.file) {
+                    delete requestData.file;
+                }
+            }
+            
             // Call real API endpoint for OVK creation
-            const responseData = await HttpClient.post(`${API_ENDPOINTS.HO.OVK.PEMBELIAN}/store`, pembelianData);
+            const responseData = await HttpClient.post(`${API_ENDPOINTS.HO.OVK.PEMBELIAN}/store`, requestData);
             
             if (responseData.status === 'ok') {
                 // Refresh the data list
@@ -196,32 +236,15 @@ const usePembelianOVK = () => {
             }
             
         } catch (err) {
-            // Fallback to mock data for development
-            console.warn('API call failed, using mock data:', err.message);
-            
-            const newItem = {
-                id: Date.now(),
-                encryptedPid: `encrypted_${Date.now()}`,
-                ...pembelianData,
-                jenis_pembelian: 'OVK'
-            };
-            
-            // Add to mock data (in real implementation this would be API call)
-            mockData.push(newItem);
-            
-            await fetchPembelian(1, serverPagination.perPage);
-            
-            return {
-                success: true,
-                message: 'Pembelian OVK berhasil dibuat! (mock data)',
-                data: newItem
-            };
+            const errorMsg = err.message || 'Terjadi kesalahan saat menyimpan data';
+            setError(errorMsg);
+            return { success: false, message: errorMsg };
         } finally {
             setLoading(false);
         }
     }, [fetchPembelian, serverPagination.perPage]);
 
-    // Update pembelian OVK
+    // Update pembelian OVK - support file upload
     const updatePembelian = useCallback(async (data) => {
         setLoading(true);
         setError(null);
@@ -232,8 +255,47 @@ const usePembelianOVK = () => {
                 throw new Error('PID is required for update operation');
             }
 
+            // Validate required fields for update
+            if (!data.id_supplier || data.id_supplier <= 0) {
+                throw new Error('Supplier harus dipilih');
+            }
+            if (!data.nota || data.nota.trim() === '') {
+                throw new Error('Nomor nota harus diisi');
+            }
+
+            // Prepare request data - handle file upload with FormData
+            let requestData;
+            
+            // If there's a file, use FormData for proper file upload
+            if (data.file && data.file instanceof File) {
+                requestData = new FormData();
+                
+                // Add all fields to FormData
+                Object.keys(data).forEach(key => {
+                    if (key === 'file') {
+                        requestData.append('file', data.file);
+                    } else if (key === 'details') {
+                        requestData.append('details', JSON.stringify(data.details || []));
+                    } else {
+                        requestData.append(key, data[key]);
+                    }
+                });
+                
+            } else {
+                // No file upload, use regular JSON format
+                requestData = {
+                    ...data,
+                    details: data.details || []
+                };
+                
+                // Remove file field if null to avoid validation issues
+                if (!requestData.file) {
+                    delete requestData.file;
+                }
+            }
+
             // Call real API endpoint for OVK update
-            const responseData = await HttpClient.post(`${API_ENDPOINTS.HO.OVK.PEMBELIAN}/update`, data);
+            const responseData = await HttpClient.post(`${API_ENDPOINTS.HO.OVK.PEMBELIAN}/update`, requestData);
             
             if (responseData.status === 'ok') {
                 // Refresh the data list
@@ -248,21 +310,9 @@ const usePembelianOVK = () => {
             }
             
         } catch (err) {
-            // Fallback to mock data for development
-            console.warn('API call failed, using mock data:', err.message);
-            
-            // Update mock data
-            const index = mockData.findIndex(item => item.id === data.id);
-            if (index !== -1) {
-                mockData[index] = { ...mockData[index], ...data };
-            }
-            
-            await fetchPembelian();
-            
-            return {
-                success: true,
-                message: 'Pembelian OVK berhasil diperbarui! (mock data)'
-            };
+            const errorMsg = err.message || 'Terjadi kesalahan saat memperbarui data';
+            setError(errorMsg);
+            return { success: false, message: errorMsg };
         } finally {
             setLoading(false);
         }
@@ -395,6 +445,43 @@ const usePembelianOVK = () => {
         }
     }, []);
 
+    // Download file from pembelian OVK
+    const downloadFile = useCallback(async (filePath) => {
+        try {
+            // Call API endpoint for file download
+            const response = await HttpClient.get(`${API_ENDPOINTS.HO.OVK.PEMBELIAN}/file/${encodeURIComponent(filePath)}`, {
+                responseType: 'blob'
+            });
+            
+            // Create blob URL and trigger download
+            const blob = new Blob([response], { type: response.type || 'application/octet-stream' });
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            
+            // Extract filename from path or use default
+            const filename = filePath.split('/').pop() || 'dokumen-pembelian-ovk';
+            link.setAttribute('download', filename);
+            
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+            
+            return {
+                success: true,
+                message: 'File berhasil didownload'
+            };
+            
+        } catch (err) {
+            console.error('Download file error:', err);
+            return {
+                success: false,
+                message: err.message || 'Gagal mendownload file'
+            };
+        }
+    }, []);
+
     // Computed stats
     const stats = useMemo(() => {
         const total = mockData.length;
@@ -504,7 +591,8 @@ const usePembelianOVK = () => {
         updatePembelian,
         deletePembelian,
         deleteLoading,
-        getPembelianDetail
+        getPembelianDetail,
+        downloadFile
     };
 };
 

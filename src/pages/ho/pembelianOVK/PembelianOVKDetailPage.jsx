@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Building2, User, Calendar, Truck, Hash, Package, Eye, Weight, DollarSign } from 'lucide-react';
+import { ArrowLeft, Building2, User, Calendar, Truck, Hash, Package, Eye, Weight, DollarSign, Download, FileText } from 'lucide-react';
 import usePembelianOVK from './hooks/usePembelianOVK';
 import customTableStyles from './constants/tableStyles';
 import DataTable from 'react-data-table-component';
@@ -10,6 +10,7 @@ const PembelianOVKDetailPage = () => {
     const navigate = useNavigate();
     const {
         getPembelianDetail,
+        downloadFile,
         loading,
         error
     } = usePembelianOVK();
@@ -46,7 +47,8 @@ const PembelianOVKDetailPage = () => {
                             satuan: 'item',
                             berat_total: detailItems.reduce((sum, item) => sum + (parseFloat(item.berat) || 0), 0),
                             jenis_pembelian: firstItem.jenis_pembelian || 'OVK',
-                            note: firstItem.note || ''
+                            note: firstItem.note || '',
+                            file: firstItem.file || null // File path dari backend
                         });
 
                         // Set detail data - map backend fields to frontend structure
@@ -93,6 +95,23 @@ const PembelianOVKDetailPage = () => {
 
     const handleBack = () => {
         navigate('/ho/pembelian-ovk');
+    };
+
+    // Handle file download
+    const handleDownloadFile = async (filePath) => {
+        if (!filePath) {
+            setNotification({
+                type: 'error',
+                message: 'Path file tidak tersedia'
+            });
+            return;
+        }
+
+        const result = await downloadFile(filePath);
+        setNotification({
+            type: result.success ? 'success' : 'error',
+            message: result.message
+        });
     };
 
     // Auto hide notification
@@ -462,6 +481,37 @@ const PembelianOVKDetailPage = () => {
                         </div>
                     </div>
 
+                    {/* File Section - jika ada file */}
+                    {pembelianData.file && (
+                        <div className="mt-6 p-4 bg-gradient-to-r from-slate-50 to-gray-50 rounded-lg border border-gray-200">
+                            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                                <FileText className="w-5 h-5 text-blue-600" />
+                                Dokumen Lampiran
+                            </h3>
+                            <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-blue-100 rounded-lg">
+                                        <FileText className="w-6 h-6 text-blue-600" />
+                                    </div>
+                                    <div>
+                                        <p className="font-medium text-gray-900">
+                                            {pembelianData.file.split('/').pop() || 'Dokumen Pembelian'}
+                                        </p>
+                                        <p className="text-sm text-gray-500">
+                                            File lampiran pembelian OVK
+                                        </p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => handleDownloadFile(pembelianData.file)}
+                                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
+                                >
+                                    <Download className="w-4 h-4" />
+                                    Download
+                                </button>
+                            </div>
+                        </div>
+                    )}
 
                 </div>
 

@@ -19,6 +19,7 @@ const AddEditPembelianPage = () => {
         createPembelian,
         updatePembelian,
         updateDetail,
+        deleteDetail,
         saveHeaderOnly,
         saveDetailsOnly,
         fetchPembelian,
@@ -817,9 +818,67 @@ const AddEditPembelianPage = () => {
         setMarkupPercentage(newPercentage); // Biarkan nilai kosong tetap kosong
     };
 
+
+
     // Remove detail item
-    const removeDetailItem = (itemId) => {
-        setDetailItems(prev => prev.filter(item => item.id !== itemId));
+    const removeDetailItem = async (itemId) => {
+        const item = detailItems.find(detail => detail.id === itemId);
+        if (!item) {
+            setNotification({
+                type: 'error',
+                message: 'Item detail tidak ditemukan'
+            });
+            return;
+        }
+
+        // Jika dalam mode edit dan item sudah ada di database (memiliki encrypted PID)
+        if (isEdit && (item.encryptedPid || item.pid || item.pubidDetail)) {
+            const confirmed = window.confirm(
+                `Apakah Anda yakin ingin menghapus detail ternak dengan eartag "${item.eartag || 'N/A'}"? \n\nTindakan ini tidak dapat dibatalkan dan akan menghapus data dari database.`
+            );
+            
+            if (!confirmed) {
+                return;
+            }
+
+            try {
+                // Gunakan encrypted PID dari item untuk hapus di database
+                const pidToDelete = item.encryptedPid || item.pid || item.pubidDetail;
+                
+                console.log('🗑️ Menghapus detail dari database dengan PID:', pidToDelete);
+                
+                const result = await deleteDetail(pidToDelete);
+                
+                if (result.success) {
+                    // Hapus dari state lokal setelah berhasil hapus dari database
+                    setDetailItems(prev => prev.filter(detail => detail.id !== itemId));
+                    
+                    setNotification({
+                        type: 'success',
+                        message: result.message || 'Detail ternak berhasil dihapus dari database'
+                    });
+                } else {
+                    setNotification({
+                        type: 'error',
+                        message: result.message || 'Gagal menghapus detail ternak dari database'
+                    });
+                }
+            } catch (error) {
+                console.error('❌ Error saat hapus detail:', error);
+                setNotification({
+                    type: 'error',
+                    message: error.message || 'Terjadi kesalahan saat menghapus detail ternak'
+                });
+            }
+        } else {
+            // Jika bukan mode edit atau item belum disimpan ke database, hapus langsung dari state
+            setDetailItems(prev => prev.filter(detail => detail.id !== itemId));
+            
+            setNotification({
+                type: 'info',
+                message: 'Detail ternak dihapus dari form (belum tersimpan ke database)'
+            });
+        }
     };
 
     // Save individual detail item

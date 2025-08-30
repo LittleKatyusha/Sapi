@@ -1,10 +1,12 @@
 import React, { useRef, useEffect, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Eye, Edit, Copy, Trash2 } from 'lucide-react';
+import { Eye, Edit, Copy, Trash2, Download, Loader2 } from 'lucide-react';
+import LaporanPembelianService from '../../../../services/laporanPembelianService';
 
 const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef }) => {
     const menuRef = useRef(null);
     const [menuStyle, setMenuStyle] = useState(null);
+    const [downloadLoading, setDownloadLoading] = useState(false);
 
     useLayoutEffect(() => {
         function updatePosition() {
@@ -35,6 +37,40 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef }) => 
         };
     }, [onClose, buttonRef]);
 
+    // Handle download functionality
+    const handleDownload = async (row) => {
+        if (!row.nota) {
+            alert('Nomor nota tidak tersedia');
+            return;
+        }
+
+        setDownloadLoading(true);
+        try {
+            const blob = await LaporanPembelianService.downloadPdfReport('getReportNotaSupplier', {
+                nota: row.nota
+            });
+            
+            // Create download link
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `LAPORAN_PEMBELIAN_${row.nota}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            
+            // Close menu after successful download
+            onClose();
+            
+        } catch (error) {
+            console.error('Error downloading report:', error);
+            alert(error.message || 'Terjadi kesalahan saat mengunduh laporan');
+        } finally {
+            setDownloadLoading(false);
+        }
+    };
+
     const actions = [
         {
             label: 'Lihat Detail',
@@ -55,6 +91,18 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef }) => 
             bg: 'bg-amber-100',
             hoverBg: 'group-hover:bg-amber-200',
             text: 'text-amber-600',
+        },
+        {
+            label: 'Unduh Laporan',
+            icon: downloadLoading ? Loader2 : Download,
+            onClick: () => handleDownload(row),
+            className: downloadLoading ? 'text-gray-400' : 'text-gray-700',
+            description: downloadLoading ? 'Mengunduh...' : 'Download PDF',
+            bg: 'bg-green-100',
+            hoverBg: 'group-hover:bg-green-200',
+            text: 'text-green-600',
+            disabled: downloadLoading,
+            isLoading: downloadLoading,
         },
         {
             divider: true
@@ -97,13 +145,22 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef }) => 
                     ) : (
                         <button
                             key={action.label}
-                            onClick={() => { action.onClick(); onClose(); }}
-                            className={`w-full text-left flex items-center px-3 py-2.5 text-sm hover:bg-gradient-to-r transition-all duration-150 rounded-lg group mt-1 ${action.className}`}
+                            onClick={() => { 
+                                if (!action.disabled) {
+                                    action.onClick(); 
+                                    // onClose is handled individually in each action
+                                    if (action.label === 'Lihat Detail' || action.label === 'Edit Pembelian' || action.label === 'Hapus Pembelian') {
+                                        onClose(); 
+                                    }
+                                }
+                            }}
+                            disabled={action.disabled}
+                            className={`w-full text-left flex items-center px-3 py-2.5 text-sm hover:bg-gradient-to-r transition-all duration-150 rounded-lg group mt-1 ${action.className} ${action.disabled ? 'cursor-not-allowed opacity-50' : ''}`}
                             role="menuitem"
                             tabIndex={0}
                         >
                             <div className={`w-7 h-7 ${action.bg} rounded-lg flex items-center justify-center mr-3 ${action.hoverBg} group-hover:scale-105 transition-all duration-150`}>
-                                <action.icon size={14} className={action.text} />
+                                <action.icon size={14} className={`${action.text} ${action.isLoading ? 'animate-spin' : ''}`} />
                             </div>
                             <div className="flex-1">
                                 <span className="font-semibold block text-xs">{action.label}</span>

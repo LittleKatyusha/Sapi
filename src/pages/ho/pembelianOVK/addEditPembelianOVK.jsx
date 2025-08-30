@@ -268,44 +268,40 @@ const AddEditPembelianOVKPage = () => {
         }));
     };
 
-    // Handle file upload
+    // Handle file upload - sesuai dengan validasi backend (max 2MB, jpg,jpeg,png,pdf)
     const handleFileUpload = (file) => {
         if (file) {
-            // Validate file size (max 5MB)
-            const maxSize = 5 * 1024 * 1024;
+            // Validate file size (max 2MB sesuai backend)
+            const maxSize = 2 * 1024 * 1024; // 2MB
             if (file.size > maxSize) {
                 setNotification({
                     type: 'error',
-                    message: 'Ukuran file terlalu besar. Maksimal 5MB.'
+                    message: 'Ukuran file terlalu besar. Maksimal 2MB.'
                 });
                 return;
             }
 
-            // Validate file type
+            // Validate file type - sesuai dengan backend (jpg,jpeg,png,pdf)
             const allowedTypes = [
                 'application/pdf',
-                'application/msword',
-                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                'application/vnd.ms-excel',
-                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                 'image/jpeg',
-                'image/jpg',
+                'image/jpg', 
                 'image/png'
             ];
 
             if (!allowedTypes.includes(file.type)) {
                 setNotification({
                     type: 'error',
-                    message: 'Tipe file tidak didukung. Gunakan PDF, DOC, XLS, atau gambar.'
+                    message: 'Tipe file tidak didukung. Gunakan PDF atau gambar (JPG, JPEG, PNG).'
                 });
                 return;
             }
 
             setSelectedFile(file);
             setFilePreview(file.type.startsWith('image/') ? URL.createObjectURL(file) : null);
-            handleHeaderChange('file', file.name);
+            handleHeaderChange('file', file);  // Store the actual File object
             handleHeaderChange('fileName', file.name);
-        };
+        }
     };
 
     // Handle drag and drop
@@ -333,7 +329,7 @@ const AddEditPembelianOVKPage = () => {
     const removeFile = () => {
         setSelectedFile(null);
         setFilePreview(null);
-        handleHeaderChange('file', '');
+        handleHeaderChange('file', null);  // Reset to null instead of empty string
         handleHeaderChange('fileName', '');
     };
 
@@ -1251,7 +1247,7 @@ const AddEditPembelianOVKPage = () => {
                                 }`}>
                                     <input
                                         type="file"
-                                        accept=".pdf, .doc, .docx, .xls, .xlsx, .jpg, .jpeg, .png"
+                                        accept=".pdf, .jpg, .jpeg, .png"
                                         onChange={(e) => handleFileUpload(e.target.files[0])}
                                         className="hidden"
                                         id="file-upload-modal"
@@ -1265,13 +1261,13 @@ const AddEditPembelianOVKPage = () => {
                                             Klik area ini atau drag & drop file
                                         </p>
                                         <div className="flex justify-center gap-2 mt-4">
-                                            {['PDF', 'DOC', 'XLS', 'IMG'].map((type) => (
+                                            {['PDF', 'JPG', 'JPEG', 'PNG'].map((type) => (
                                                 <span key={type} className="px-2 py-1 bg-white text-gray-600 rounded text-xs">
                                                     {type}
                                                 </span>
                                             ))}
                                         </div>
-                                        <p className="text-xs text-gray-400 mt-2">Maksimal 5MB</p>
+                                        <p className="text-xs text-gray-400 mt-2">Maksimal 2MB</p>
                                     </label>
                                 </div>
                             </div>
