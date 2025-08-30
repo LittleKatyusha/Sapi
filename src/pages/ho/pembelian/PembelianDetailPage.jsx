@@ -16,6 +16,8 @@ const PembelianDetailPage = () => {
     const navigate = useNavigate();
     const {
         getPembelianDetail,
+        fetchPembelian,
+        pembelian: pembelianList,
         createDetail,
         updateDetail,
         deleteDetail,
@@ -42,39 +44,140 @@ const PembelianDetailPage = () => {
     const [selectedDetail, setSelectedDetail] = useState(null);
     const [notification, setNotification] = useState(null);
 
+    // Load pembelian list first
+    useEffect(() => {
+        if (!pembelianList || pembelianList.length === 0) {
+            console.log('🔄 Loading pembelian list...');
+            fetchPembelian(1, 1000, '', '', null, false);
+        }
+    }, []);
+
+    // Then fetch detail when both ID and pembelian list are available
     useEffect(() => {
         const fetchDetail = async () => {
-            if (id) {
+            if (id && pembelianList && pembelianList.length > 0) {
                 try {
-                    const result = await getPembelianDetail(id);
-                    if (result.success) {
-                        // Assuming the response contains header and detail data
-                        if (Array.isArray(result.data) && result.data.length > 0) {
-                            // Get header info from first detail record
-                            const firstDetail = result.data[0];
-                            setPembelianData({
-                                pubid: firstDetail.pubid_header || id,
-                                nota: firstDetail.nota || '',
-                                nama_supplier: firstDetail.nama_supplier || '',
-                                nama_office: firstDetail.nama_office || '',
-                                tgl_masuk: firstDetail.tgl_masuk || '',
-                                nama_supir: firstDetail.nama_supir || '',
-                                plat_nomor: firstDetail.plat_nomor || '',
-                                biaya_lain: firstDetail.biaya_lain || 0,
-                                biaya_truk: firstDetail.biaya_truk || 0,
-                                jumlah: firstDetail.jumlah_total || result.data.length
-                            });
-                            setDetailData(result.data);
+                    console.log('🚀 Fetching detail for ID:', id);
+                    console.log('📊 Pembelian list:', pembelianList);
+                    console.log('🔍 Looking for encryptedPid:', id);
+                    console.log('🔍 Available encryptedPids in list:', pembelianList.map(item => item.encryptedPid));
+                    
+                    // 1. Find header data dari pembelian list (dt_pembelian_ho data)
+                    let headerData = pembelianList.find(item => item.encryptedPid === id);
+                    
+                    // Try alternative matching jika tidak ketemu
+                    if (!headerData) {
+                        console.log('🔄 Trying alternative matching methods...');
+                        // Try dengan decodeURIComponent jika ada URL encoding
+                        const decodedId = decodeURIComponent(id);
+                        headerData = pembelianList.find(item => item.encryptedPid === decodedId);
+                        
+                        if (headerData) {
+                            console.log('✅ Found with decoded ID:', decodedId);
                         }
                     }
+                    
+                    console.log('🎯 Found header data:', headerData);
+                    
+                    // 2. Ambil detail data dari show endpoint
+                    const detailResult = await getPembelianDetail(id);
+                    console.log('📋 Detail result:', detailResult);
+                    
+                    if (detailResult.success && Array.isArray(detailResult.data) && detailResult.data.length > 0) {
+                        // Set header data dari dt_pembelian_ho (dari pembelian list)
+                        if (headerData) {
+                            console.log('✅ Using header data from pembelian list');
+                            setPembelianData({
+                                pubid: headerData.pubid || id,
+                                encryptedPid: headerData.encryptedPid || id,
+                                nota: headerData.nota || '',
+                                nama_supplier: headerData.nama_supplier || '',
+                                nama_office: headerData.nama_office || '',
+                                tgl_masuk: headerData.tgl_masuk || '',
+                                nama_supir: headerData.nama_supir || '',
+                                plat_nomor: headerData.plat_nomor || '',
+                                biaya_lain: headerData.biaya_lain || 0,
+                                biaya_truk: headerData.biaya_truk || 0,
+                                biaya_total: headerData.biaya_total || 0,
+                                //total_belanja: headerData.total_belanja || 0,
+                                berat_total: parseFloat(headerData.berat_total) || 0,
+                                jumlah: headerData.jumlah || 0,
+                                jenis_pembelian: headerData.jenis_pembelian || '',
+                                file: headerData.file || null
+                            });
+                        } else {
+                            console.log('⚠️ Header not found in list, trying nota matching...');
+                            const firstDetail = detailResult.data[0];
+                            
+                            // Try to find by nota (nomor nota) sebagai backup
+                            let headerDataByNota = null;
+                            if (firstDetail.nota) {
+                                headerDataByNota = pembelianList.find(item => item.nota === firstDetail.nota);
+                                if (headerDataByNota) {
+                                    console.log('✅ Found header data by nota:', firstDetail.nota);
+                                }
+                            }
+                            
+                            if (headerDataByNota) {
+                                // Gunakan data yang ditemukan berdasarkan nota
+                                console.log('📊 Header data found by nota:', headerDataByNota);
+                                console.log('🔍 Field debugging:');
+                                console.log('- biaya_total:', headerDataByNota.biaya_total, typeof headerDataByNota.biaya_total);
+                                console.log('- berat_total:', headerDataByNota.berat_total, typeof headerDataByNota.berat_total);
+                                console.log('- jenis_pembelian:', headerDataByNota.jenis_pembelian, typeof headerDataByNota.jenis_pembelian);
+                                
+                                setPembelianData({
+                                    pubid: headerDataByNota.pubid || id,
+                                    encryptedPid: headerDataByNota.pid || id,
+                                    nota: headerDataByNota.nota || '',
+                                    nama_supplier: headerDataByNota.nama_supplier || '',
+                                    nama_office: headerDataByNota.nama_office || '',
+                                    tgl_masuk: headerDataByNota.tgl_masuk || '',
+                                    nama_supir: headerDataByNota.nama_supir || '',
+                                    plat_nomor: headerDataByNota.plat_nomor || '',
+                                    biaya_lain: headerDataByNota.biaya_lain || 0,
+                                    biaya_truk: headerDataByNota.biaya_truk || 0,
+                                    biaya_total: headerDataByNota.biaya_total || 0,
+                                    total_belanja: headerDataByNota.total_belanja || 0,
+                                    berat_total: parseFloat(headerDataByNota.berat_total) || 0,
+                                    jumlah: headerDataByNota.jumlah || 0,
+                                    jenis_pembelian: headerDataByNota.jenis_pembelian || '',
+                                    file: headerDataByNota.file || null
+                                });
+                            } else {
+                                console.log('⚠️ Header not found by nota either, using detail data only');
+                                // Fallback terakhir: gunakan data dari detail response saja
+                                setPembelianData({
+                                    pubid: firstDetail.pubid || id,
+                                    nota: firstDetail.nota || '',
+                                    nama_supplier: firstDetail.nama_supplier || '',
+                                    nama_office: firstDetail.nama_office || '',
+                                    tgl_masuk: firstDetail.tgl_masuk || '',
+                                    nama_supir: firstDetail.nama_supir || '',
+                                    plat_nomor: firstDetail.plat_nomor || '',
+                                    // Set default values karena tidak ada di detail response
+                                    biaya_lain: 0,
+                                    biaya_truk: firstDetail.biaya_truk || 0,
+                                    biaya_total: 0,
+                                    total_belanja: 0,
+                                    berat_total: 0,
+                                    jumlah: 1,
+                                    jenis_pembelian: '',
+                                    file: null
+                                });
+                            }
+                        }
+                        
+                        setDetailData(detailResult.data);
+                    }
                 } catch (err) {
-                    // Handle error silently
+                    console.error('❌ Error fetching detail:', err);
                 }
             }
         };
 
         fetchDetail();
-    }, [id, getPembelianDetail]);
+    }, [id, pembelianList]);
 
     // Map detail data with eartag names whenever data changes
     useEffect(() => {
@@ -312,6 +415,19 @@ const PembelianDetailPage = () => {
             )
         },
         {
+            name: 'Klasifikasi\nHewan',
+            selector: row => row.nama_klasifikasi_hewan,
+            sortable: true,
+            width: '180px',
+            cell: row => (
+                <div className="text-center">
+                    <span className="inline-block bg-amber-50 px-3 py-1 rounded-md text-amber-700 font-medium text-sm border border-amber-200">
+                        {row.nama_klasifikasi_hewan || '-'}
+                    </span>
+                </div>
+            )
+        },
+        {
             name: 'Berat\n(kg)',
             selector: row => row.berat,
             sortable: true,
@@ -364,7 +480,7 @@ const PembelianDetailPage = () => {
             )
         },
         {
-            name: 'Persentase\nBiaya',
+            name: 'Persentase',
             selector: row => row.persentase,
             sortable: true,
             width: '140px',
@@ -375,25 +491,6 @@ const PembelianDetailPage = () => {
                     </span>
                 </div>
             )
-        },
-
-        {
-            name: 'Aksi',
-            width: '120px',
-            cell: (row, index) => (
-                <div className="flex justify-center">
-                    <DetailActionButton
-                        row={row}
-                        rowIndex={index}
-                        openMenuIndex={openDetailMenuIndex}
-                        onOpenMenu={handleOpenMenu}
-                        onEdit={null} // Disabled edit functionality
-                        onDelete={handleDeleteDetail}
-                        onClone={handleCloneDetail}
-                    />
-                </div>
-            ),
-            ignoreRowClick: true,
         }
     ];
 
@@ -461,7 +558,7 @@ const PembelianDetailPage = () => {
                         Informasi Pembelian
                     </h2>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg">
                             <label className="block text-sm font-medium text-gray-600 mb-2">
                                 <Hash className="w-4 h-4 inline mr-1" />
@@ -556,6 +653,20 @@ const PembelianDetailPage = () => {
                                 }).format(pembelianData.biaya_truk) : 'Rp 0'}
                             </p>
                         </div>
+
+
+
+                        <div className="bg-gradient-to-r from-slate-50 to-gray-50 p-4 rounded-lg">
+                            <label className="block text-sm font-medium text-gray-600 mb-2">
+                                <Package className="w-4 h-4 inline mr-1" />
+                                Jenis Pembelian
+                            </label>
+                            <p className="text-lg font-bold text-gray-900">
+                                {pembelianData.jenis_pembelian || '-'}
+                            </p>
+                        </div>
+
+
                     </div>
 
                     {/* Summary */}
@@ -567,21 +678,22 @@ const PembelianDetailPage = () => {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div className="text-center">
                                 <p className="text-3xl font-bold text-indigo-600">
-                                    {mappedDetailData.length}
+                                    {pembelianData?.jumlah || mappedDetailData.length}
                                 </p>
-                                <p className="text-sm text-gray-600">Total Detail</p>
+                                <p className="text-sm text-gray-600">Jumlah</p>
                             </div>
                             <div className="text-center">
                                 <p className="text-3xl font-bold text-green-600">
-                                    {mappedDetailData.reduce((sum, item) => sum + (parseFloat(item.berat) || 0), 0).toFixed(1)} kg
+                                    {(pembelianData?.berat_total || 0).toFixed(1)} kg
                                 </p>
-                                <p className="text-sm text-gray-600">Total Berat</p>
+                                <p className="text-sm text-gray-600">Berat Total</p>
                             </div>
+
                             <div className="text-center">
-                                <p className="text-3xl font-bold text-red-600">
-                                    Rp {mappedDetailData.reduce((sum, item) => sum + (parseFloat(item.total_harga) || 0), 0).toLocaleString('id-ID')}
+                                <p className="text-3xl font-bold text-purple-600">
+                                    Rp {(pembelianData?.biaya_total || 0).toLocaleString('id-ID')}
                                 </p>
-                                <p className="text-sm text-gray-600">Total Harga</p>
+                                <p className="text-sm text-gray-600">Biaya Total</p>
                             </div>
                         </div>
                     </div>
@@ -600,19 +712,6 @@ const PembelianDetailPage = () => {
                                 <p className="text-gray-600 text-sm mt-1">
                                     Rincian lengkap setiap ternak dalam pembelian ini dengan informasi harga dan biaya
                                 </p>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <div className="text-right">
-                                    <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-medium text-sm">
-                                        {mappedDetailData.length} Item
-                                    </span>
-                                </div>
-                                {mappedDetailData.length > 0 && (
-                                    <div className="text-right text-xs text-gray-500">
-                                        <div>Total Berat: <span className="font-medium">{mappedDetailData.reduce((sum, item) => sum + (parseFloat(item.berat) || 0), 0).toFixed(1)} kg</span></div>
-                                        <div>Total Nilai: <span className="font-medium">Rp {mappedDetailData.reduce((sum, item) => sum + (parseFloat(item.total_harga) || 0), 0).toLocaleString('id-ID')}</span></div>
-                                    </div>
-                                )}
                             </div>
                         </div>
                     </div>

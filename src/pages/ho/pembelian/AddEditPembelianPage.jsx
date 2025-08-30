@@ -21,6 +21,8 @@ const AddEditPembelianPage = () => {
         updateDetail,
         saveHeaderOnly,
         saveDetailsOnly,
+        fetchPembelian,
+        pembelian: pembelianList,
         loading,
         error
     } = usePembelianHO();
@@ -215,6 +217,14 @@ const AddEditPembelianPage = () => {
     // Add ref to track if edit data has been loaded to prevent re-loading
     const editDataLoadedRef = useRef(false);
     
+    // Load pembelian list first for edit mode
+    useEffect(() => {
+        if (isEdit && id && (!pembelianList || pembelianList.length === 0)) {
+            console.log('🔄 Loading pembelian list for edit mode...');
+            fetchPembelian(1, 1000, '', '', null, false);
+        }
+    }, [isEdit, id, fetchPembelian]);
+
     useEffect(() => {
         // Enhanced debugging untuk diagnosa masalah
         
@@ -229,7 +239,8 @@ const AddEditPembelianPage = () => {
         const hasRequiredData = (supplierOptions?.length > 0 || parameterData.supplier?.length > 0) &&
                                parameterData.eartag?.length > 0 &&
                                parameterData.klasifikasihewan?.length > 0 &&
-                               tipePembelianOptions?.length > 0;
+                               tipePembelianOptions?.length > 0 &&
+                               (isEdit ? pembelianList && pembelianList.length > 0 : true); // For edit mode, also need pembelian list
         
         // Tambahkan kondisi untuk memastikan data tidak sedang loading
         const isDataReady = !parameterLoading && !tipePembelianLoading && !supplierLoading;
@@ -242,7 +253,35 @@ const AddEditPembelianPage = () => {
                 try {
                     const decodedId = decodeURIComponent(id);
                     
+                    // 1. Find header data dari pembelian list (dt_pembelian_HO data)
+                    let headerDataFromList = pembelianList.find(item => item.encryptedPid === id);
+                    
+                    // Try alternative matching jika tidak ketemu
+                    if (!headerDataFromList) {
+                        console.log('🔄 Trying alternative matching methods...');
+                        headerDataFromList = pembelianList.find(item => item.encryptedPid === decodedId);
+                        
+                        if (headerDataFromList) {
+                            console.log('✅ Found with decoded ID:', decodedId);
+                        }
+                    }
+                    
+                    console.log('🎯 Found header data from dt_pembelian_HO:', headerDataFromList);
+                    
+                    // 2. Get detail data from show endpoint
                     const result = await getPembelianDetail(decodedId);
+                    
+                    // If still not found header data, try to match by nota (fallback method)
+                    if (!headerDataFromList && result.success && result.data.length > 0) {
+                        console.log('🔄 Trying to match by nota...');
+                        const firstDetail = result.data[0];
+                        if (firstDetail.nota) {
+                            headerDataFromList = pembelianList.find(item => item.nota === firstDetail.nota);
+                            if (headerDataFromList) {
+                                console.log('✅ Found by nota matching:', firstDetail.nota);
+                            }
+                        }
+                    }
                     
                     
                     
@@ -250,29 +289,43 @@ const AddEditPembelianPage = () => {
                         
                         const firstDetail = result.data[0];
                         
-                        // Find supplier ID by name since backend doesn't return supplier ID
+                        // Find supplier ID - prefer from dt_pembelian_HO, fallback to detail data
                         let supplierIdFromName = '';
-                        if (firstDetail.nama_supplier && supplierOptions.length > 0) {
+                        const supplierNameToMatch = headerDataFromList?.nama_supplier || firstDetail.nama_supplier;
+                        if (supplierNameToMatch && supplierOptions.length > 0) {
                             const matchedSupplier = supplierOptions.find(supplier =>
-                                supplier.label === firstDetail.nama_supplier
+                                supplier.label === supplierNameToMatch
                             );
                             if (matchedSupplier) {
                                 supplierIdFromName = matchedSupplier.value;
                             }
                         }
                         
-                        // Backend returns tipe_pembelian as the ID value
+                        // Determine tipe pembelian - prefer from dt_pembelian_HO, fallback to detail data
                         let tipePembelianIdFromBackend = '';
-                        if (firstDetail.tipe_pembelian !== null && firstDetail.tipe_pembelian !== undefined) {
-                            // Use the tipe_pembelian value directly from backend
+                        
+                        // Try to get from header data first (dt_pembelian_HO)
+                        if (headerDataFromList?.jenis_pembelian_id !== null && headerDataFromList?.jenis_pembelian_id !== undefined) {
+                            tipePembelianIdFromBackend = String(headerDataFromList.jenis_pembelian_id);
+                            console.log('✅ Using tipe pembelian from dt_pembelian_HO:', tipePembelianIdFromBackend);
+                        } 
+                        // Try to match jenis_pembelian label with tipePembelianOptions
+                        else if (headerDataFromList?.jenis_pembelian && tipePembelianOptions.length > 0) {
+                            const matchedTipe = tipePembelianOptions.find(tipe => 
+                                tipe.label === headerDataFromList.jenis_pembelian
+                            );
+                            if (matchedTipe) {
+                                tipePembelianIdFromBackend = String(matchedTipe.value);
+                                console.log('✅ Matched tipe pembelian by label from dt_pembelian_HO:', tipePembelianIdFromBackend);
+                            }
+                        }
+                        // Fallback to detail data
+                        else if (firstDetail.tipe_pembelian !== null && firstDetail.tipe_pembelian !== undefined) {
                             tipePembelianIdFromBackend = String(firstDetail.tipe_pembelian);
-                            
-                            
+                            console.log('✅ Using tipe pembelian from detail:', tipePembelianIdFromBackend);
                         } else if (firstDetail.jenis_pembelian_id !== null && firstDetail.jenis_pembelian_id !== undefined) {
-                            // Fallback to jenis_pembelian_id if available
                             tipePembelianIdFromBackend = String(firstDetail.jenis_pembelian_id);
-                            
-                            
+                            console.log('✅ Using jenis_pembelian_id from detail:', tipePembelianIdFromBackend);
                         }
 
 
@@ -282,24 +335,30 @@ const AddEditPembelianPage = () => {
                         const calculatedHargaTotal = result.data.reduce((sum, item) => sum + (parseFloat(item.harga) || 0), 0);
                         const totalSapiCount = result.data.length;
                         
-                        // Load header data - map from actual backend response fields (match with PembelianDetailPage)
+                        // Load header data - prefer from dt_pembelian_HO, fallback to detail data
+                        const headerDataToUse = headerDataFromList || {};
+                        const detailDataFallback = firstDetail || {};
+                        
                         setHeaderData({
                             idOffice: 1, // Always Head Office
-                            nota: firstDetail.nota || '',
+                            nota: headerDataToUse.nota || detailDataFallback.nota || '',
                             idSupplier: supplierIdFromName || '', // Use matched supplier ID from name
-                            tglMasuk: firstDetail.tgl_masuk || '',
-                            namaSupir: firstDetail.nama_supir || '',
-                            platNomor: firstDetail.plat_nomor || '',
-                            biayaTruck: firstDetail.biaya_truck || firstDetail.biaya_truk || 0, // Try common field names
-                            biayaLain: firstDetail.biaya_lain || 0, // Load other costs from backend
-                            jumlah: firstDetail.jumlah_total || result.data.length,
-                            beratTotal: calculatedBeratTotal || 0, // Always calculate from items
+                            tglMasuk: headerDataToUse.tgl_masuk || detailDataFallback.tgl_masuk || '',
+                            namaSupir: headerDataToUse.nama_supir || detailDataFallback.nama_supir || '',
+                            platNomor: headerDataToUse.plat_nomor || detailDataFallback.plat_nomor || '',
+                            biayaTruck: parseFloat(headerDataToUse.biaya_truk) || parseFloat(detailDataFallback.biaya_truck) || parseFloat(detailDataFallback.biaya_truk) || 0,
+                            biayaLain: parseFloat(headerDataToUse.biaya_lain) || parseFloat(detailDataFallback.biaya_lain) || 0,
+                            jumlah: parseInt(headerDataToUse.jumlah) || parseInt(detailDataFallback.jumlah_total) || result.data.length,
+                            beratTotal: parseFloat(headerDataToUse.berat_total) || calculatedBeratTotal || 0, // Prefer from dt_pembelian_HO, backend returns string format like "100.00"
                             tipePembelian: tipePembelianIdFromBackend || '', // Use ID from backend
-                            file: firstDetail.file || '', // Field baru dari backend
-                            fileName: firstDetail.file_name || firstDetail.filename || '', // Load file name from backend
-                            hargaTotal: calculatedHargaTotal || 0, // Always calculate from items
+                            file: headerDataToUse.file || detailDataFallback.file || null, // Backend returns null for file
+                            fileName: headerDataToUse.file_name || detailDataFallback.file_name || detailDataFallback.filename || '', // File name if available
+                            hargaTotal: parseFloat(headerDataToUse.biaya_total) || parseFloat(detailDataFallback.biaya_total) || calculatedHargaTotal || 0, // Prefer biaya_total from backend
                             totalSapi: totalSapiCount, // Always use calculated count
-                            // markup removed - no longer needed
+                            // Additional fields from backend response for reference:
+                            // total_belanja: headerDataToUse.total_belanja (available in backend response)
+                            // biaya_total: headerDataToUse.biaya_total (available in backend response) 
+                            // jenis_pembelian: headerDataToUse.jenis_pembelian (available in backend response)
                         });
 
 
@@ -442,8 +501,8 @@ const AddEditPembelianPage = () => {
         }
         // Remove automatic detail item creation for new records
         // Users will add details manually using the "Tambah Detail" button
-    }, [isEdit, id, cloneData, parameterLoading, tipePembelianLoading, supplierLoading, tipePembelianOptions, parameterData.eartag, parameterData.klasifikasihewan]);
-    // Removed supplierOptions from dependency to prevent unnecessary re-renders
+    }, [isEdit, id, cloneData, parameterLoading, tipePembelianLoading, supplierLoading, tipePembelianOptions, parameterData.eartag, parameterData.klasifikasihewan, pembelianList]);
+    // Added pembelianList to dependency array for edit mode header data loading
 
     // Check if current purchase type is SUPPLIER (PERORANGAN)
     const isSupplierPerorangan = useMemo(() => {
@@ -981,8 +1040,7 @@ const AddEditPembelianPage = () => {
                     ...updatedHeaderData,
                     biayaTruck: parseFloat(updatedHeaderData.biayaTruck),
                     biayaLain: parseFloat(updatedHeaderData.biayaLain) || 0,
-                    biayaTotal: parseFloat(updatedHeaderData.biayaTotal) || 0,
-                    hargaTotal: parseFloat(updatedHeaderData.hargaTotal) || 0,
+                    biayaTotal: parseFloat(updatedHeaderData.hargaTotal) || 0, // Map hargaTotal to biayaTotal for backend
                     totalSapi: parseInt(updatedHeaderData.totalSapi) || 0,
                     tipePembelian: parseInt(updatedHeaderData.tipePembelian) || 1,
                     file: selectedFile || updatedHeaderData.file, // Send actual file object
@@ -1017,8 +1075,8 @@ const AddEditPembelianPage = () => {
                     idOffice: 1, // Always ensure Head Office ID as integer
                     biayaTruck: parseFloat(updatedHeaderData.biayaTruck),
                     biayaLain: parseFloat(updatedHeaderData.biayaLain) || 0,
-                    biayaTotal: parseFloat(updatedHeaderData.biayaTotal) || 0,
-                    hargaTotal: parseFloat(updatedHeaderData.hargaTotal) || 0,
+                    biayaTotal: parseFloat(updatedHeaderData.hargaTotal) || 0,
+                    //hargaTotal: parseFloat(updatedHeaderData.hargaTotal) || 0,
                     totalSapi: parseInt(updatedHeaderData.totalSapi) || 0,
                     tipePembelian: parseInt(updatedHeaderData.tipePembelian) || 1,
                     file: selectedFile, // Send actual file object
@@ -1101,8 +1159,7 @@ const AddEditPembelianPage = () => {
                 jumlah: isSupplierPerorangan ? (parseInt(headerData.totalSapi) || 0) : 0, // Set to 0 if no details
                 biayaTruck: parseFloat(headerData.biayaTruck),
                 biayaLain: parseFloat(headerData.biayaLain) || 0,
-                biayaTotal: parseFloat(headerData.biayaTotal) || 0,
-                hargaTotal: parseFloat(headerData.hargaTotal) || 0,
+                biayaTotal: parseFloat(headerData.hargaTotal) || 0, // Map hargaTotal to biayaTotal for backend
                 totalSapi: parseInt(headerData.totalSapi) || 0,
                 tipePembelian: parseInt(headerData.tipePembelian) || 1,
                 file: selectedFile,
@@ -1756,7 +1813,7 @@ const AddEditPembelianPage = () => {
                                             ? 'border-teal-300 bg-teal-50 text-gray-700 cursor-not-allowed'
                                         : 'border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500'
                                 }`}
-                                placeholder="5.000.000"
+                                placeholder="70.000"
                                 readOnly={isSupplierPerorangan}
                                 disabled={isSupplierPerorangan}
                             />

@@ -146,6 +146,7 @@ const usePembelianHO = () => {
                         total_belanja: parseFloat(item.total_belanja) || 0,
                         biaya_lain: parseFloat(item.biaya_lain) || 0,
                         biaya_truk: parseFloat(item.biaya_truk) || 0,
+                        biaya_total: parseFloat(item.biaya_total) || 0, // Field yang missing!
                         berat_total: parseFloat(item.berat_total) || 0, // Field baru dari backend
                         jenis_pembelian: item.jenis_pembelian || '', // Field baru dari backend (now label)
                         jenis_pembelian_id: item.jenis_pembelian_id || null, // ID untuk forms
@@ -583,7 +584,7 @@ const usePembelianHO = () => {
             // Backend expects POST method with pid parameter
             const requestPayload = { pid: encryptedPid };
             
-            const result = await HttpClient.post(`${API_ENDPOINTS.HO.PEMBELIAN}/delete`, requestPayload);
+            const result = await HttpClient.post(`${API_ENDPOINTS.HO.PEMBELIAN}/hapus`, requestPayload);
             
             if (result.status === 'ok' || result.success === true) {
                 // Track deleted PID for debugging
@@ -760,7 +761,7 @@ const usePembelianHO = () => {
         
         try {
             // Backend delete method menggunakan POST method
-            const result = await HttpClient.post(`${API_ENDPOINTS.HO.PEMBELIAN}/delete`, {
+            const result = await HttpClient.post(`${API_ENDPOINTS.HO.PEMBELIAN}/hapus`, {
                 pid: encryptedPid
             });
             
