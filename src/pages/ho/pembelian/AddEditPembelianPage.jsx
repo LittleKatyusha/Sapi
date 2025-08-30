@@ -6,6 +6,7 @@ import usePembelianHO from './hooks/usePembelianHO';
 import useParameterSelect from './hooks/useParameterSelect';
 import useTipePembelian from './hooks/useTipePembelian';
 import SearchableSelect from '../../../components/shared/SearchableSelect';
+import { API_ENDPOINTS, API_BASE_URL } from '../../../config/api';
 
 const AddEditPembelianPage = () => {
     const { id } = useParams(); // ID untuk edit mode
@@ -340,6 +341,8 @@ const AddEditPembelianPage = () => {
                         const headerDataToUse = headerDataFromList || {};
                         const detailDataFallback = firstDetail || {};
                         
+
+                        
                         setHeaderData({
                             idOffice: 1, // Always Head Office
                             nota: headerDataToUse.nota || detailDataFallback.nota || '',
@@ -635,32 +638,28 @@ const AddEditPembelianPage = () => {
     // Handle file upload
     const handleFileUpload = (file) => {
         if (file) {
-            // Validate file size (max 5MB)
-            const maxSize = 5 * 1024 * 1024; // 5MB
+            // Validate file size (max 2MB) - sesuai backend
+            const maxSize = 2 * 1024 * 1024; // 2MB
             if (file.size > maxSize) {
                 setNotification({
                     type: 'error',
-                    message: 'Ukuran file terlalu besar. Maksimal 5MB.'
+                    message: 'Ukuran file terlalu besar. Maksimal 2MB.'
                 });
                 return;
             }
 
-            // Validate file type
+            // Validate file type - sesuai backend (jpg,jpeg,png,pdf)
             const allowedTypes = [
                 'application/pdf',
-                'application/msword',
-                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                'application/vnd.ms-excel',
-                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                 'image/jpeg',
-                'image/jpg',
+                'image/jpg', 
                 'image/png'
             ];
 
             if (!allowedTypes.includes(file.type)) {
                 setNotification({
                     type: 'error',
-                    message: 'Tipe file tidak didukung. Gunakan PDF, DOC, XLS, atau gambar.'
+                    message: 'Tipe file tidak didukung. Gunakan JPG, JPEG, PNG, atau PDF.'
                 });
                 return;
             }
@@ -678,6 +677,117 @@ const AddEditPembelianPage = () => {
         setFilePreview(null);
         handleHeaderChange('file', '');
         handleHeaderChange('fileName', '');
+    };
+
+    // View uploaded file from backend
+    const viewUploadedFile = (filePath) => {
+        if (filePath) {
+            try {
+                // Clean file path - remove extra slashes and decode
+                const cleanPath = filePath.replace(/\\/g, '/');
+                const fileUrl = `${API_BASE_URL}${API_ENDPOINTS.HO.PEMBELIAN}/file/${cleanPath}`;
+                
+                // Get auth token for authenticated request
+                const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+                
+                if (!token) {
+                    setNotification({
+                        type: 'error',
+                        message: 'Sesi login telah berakhir. Silakan login kembali.'
+                    });
+                    return;
+                }
+                
+                // Try to open in new tab with authentication
+                const newWindow = window.open('about:blank', '_blank');
+                
+                // Create authenticated request and open in new window
+                fetch(fileUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/pdf,image/*,*/*'
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        return response.blob();
+                    } else if (response.status === 401) {
+                        throw new Error('Sesi login telah berakhir');
+                    } else {
+                        throw new Error(`File tidak dapat diakses (${response.status})`);
+                    }
+                })
+                .then(blob => {
+                    const blobUrl = URL.createObjectURL(blob);
+                    if (newWindow && !newWindow.closed) {
+                        newWindow.location.href = blobUrl;
+                    } else {
+                        // Fallback: download file
+                        const link = document.createElement('a');
+                        link.href = blobUrl;
+                        link.download = cleanPath.split('/').pop();
+                        link.click();
+                        URL.revokeObjectURL(blobUrl);
+                    }
+                })
+                .catch(error => {
+                    if (newWindow && !newWindow.closed) {
+                        newWindow.close();
+                    }
+                    setNotification({
+                        type: 'error',
+                        message: error.message || 'Gagal membuka file'
+                    });
+                });
+                
+
+            } catch (error) {
+                setNotification({
+                    type: 'error',
+                    message: 'Gagal membuka file. Silakan coba lagi.'
+                });
+            }
+        } else {
+            setNotification({
+                type: 'error',
+                message: 'Path file tidak valid'
+            });
+        }
+    };
+
+
+
+    // Get file type from path
+    const getFileTypeFromPath = (filePath) => {
+        if (!filePath) return 'unknown';
+        const extension = filePath.split('.').pop()?.toLowerCase();
+        if (['jpg', 'jpeg', 'png', 'gif', 'bmp'].includes(extension)) return 'image';
+        if (['pdf'].includes(extension)) return 'pdf';
+        if (['doc', 'docx'].includes(extension)) return 'document';
+        if (['xls', 'xlsx'].includes(extension)) return 'spreadsheet';
+        return 'file';
+    };
+
+    // Get file icon based on type
+    const getFileIcon = (fileType) => {
+        switch (fileType) {
+            case 'image': return '🖼️';
+            case 'pdf': return '📄';
+            case 'document': return '📝';
+            case 'spreadsheet': return '📊';
+            default: return '📁';
+        }
+    };
+
+    // Remove existing file from backend
+    const removeExistingFile = () => {
+        handleHeaderChange('file', '');
+        handleHeaderChange('fileName', '');
+        setNotification({
+            type: 'info',
+            message: 'File akan dihapus saat data disimpan'
+        });
     };
 
     // Open file upload modal
@@ -1026,26 +1136,22 @@ const AddEditPembelianPage = () => {
         if (!headerData.biayaTruck || parseInt(headerData.biayaTruck) <= 0) errors.push('Biaya truck harus diisi dan > 0');
         // biayaLain is optional, no validation needed
 
-        // File validation (optional)
+        // File validation (optional) - sesuai backend
         if (selectedFile) {
-            const maxSize = 5 * 1024 * 1024; // 5MB
+            const maxSize = 2 * 1024 * 1024; // 2MB
             if (selectedFile.size > maxSize) {
-                errors.push('Ukuran file terlalu besar. Maksimal 5MB.');
+                errors.push('Ukuran file terlalu besar. Maksimal 2MB.');
             }
             
             const allowedTypes = [
                 'application/pdf',
-                'application/msword',
-                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                'application/vnd.ms-excel',
-                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                 'image/jpeg',
                 'image/jpg',
                 'image/png'
             ];
             
             if (!allowedTypes.includes(selectedFile.type)) {
-                errors.push('Tipe file tidak didukung. Gunakan PDF, DOC, XLS, atau gambar.');
+                errors.push('Tipe file tidak didukung. Gunakan JPG, JPEG, PNG, atau PDF.');
             }
         }
         // Note: File upload is optional, no error if no file selected
@@ -1102,7 +1208,7 @@ const AddEditPembelianPage = () => {
                     biayaTotal: parseFloat(updatedHeaderData.hargaTotal) || 0, // Map hargaTotal to biayaTotal for backend
                     totalSapi: parseInt(updatedHeaderData.totalSapi) || 0,
                     tipePembelian: parseInt(updatedHeaderData.tipePembelian) || 1,
-                    file: selectedFile || updatedHeaderData.file, // Send actual file object
+                    file: selectedFile, // Only send file if there's a new file upload
                     details: Array.isArray(detailItems) && detailItems.length > 0 
                         ? detailItems.map(item => ({ // Details are now required for all supplier types
                             id_office: 1, // Always Head Office as integer
@@ -1729,7 +1835,57 @@ const AddEditPembelianPage = () => {
                                             )}
                                         </div>
 
-                                        {/* File Display */}
+                                        {/* Existing File from Backend (Edit Mode) */}
+                                        {isEdit && headerData.file && !selectedFile && (
+                                            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 shadow-lg">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="flex-shrink-0">
+                                                        <div className="relative w-16 h-16 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl flex items-center justify-center border-2 border-blue-200 shadow-md">
+                                                            <span className="text-2xl">{getFileIcon(getFileTypeFromPath(headerData.file))}</span>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-start justify-between">
+                                                            <div className="min-w-0 flex-1">
+                                                                <h4 className="text-sm font-bold text-blue-800 mb-1 truncate">
+                                                                    📂 File Tersimpan
+                                                                </h4>
+                                                                <p className="text-sm text-blue-600 mb-2 break-all">
+                                                                    {headerData.file.split('/').pop() || 'File dokumen'}
+                                                                </p>
+                                                                <div className="flex flex-wrap gap-2">
+                                                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                                        {getFileTypeFromPath(headerData.file).toUpperCase()}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="flex-shrink-0 flex gap-2">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => viewUploadedFile(headerData.file)}
+                                                            className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium"
+                                                            title="Lihat file"
+                                                        >
+                                                            👁️ Lihat
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={removeExistingFile}
+                                                            className="px-3 py-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors border border-red-200 hover:border-red-300"
+                                                            title="Hapus file"
+                                                        >
+                                                            <X size={16} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* New File Upload Display */}
                                         {selectedFile && (
                                             <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 shadow-lg">
                                                 <div className="flex items-center gap-4">
@@ -2208,7 +2364,7 @@ const AddEditPembelianPage = () => {
                                         <div className="relative p-8 text-center">
                                             <input
                                                 type="file"
-                                                accept=".pdf, .doc, .docx, .xls, .xlsx, .jpg, .jpeg, .png"
+                                                accept=".pdf, .jpg, .jpeg, .png"
                                                 onChange={(e) => handleFileUpload(e.target.files[0])}
                                                 className="hidden"
                                                 id="file-upload-modal"
@@ -2259,9 +2415,9 @@ const AddEditPembelianPage = () => {
                                                     </p>
                                                 </div>
                                                 
-                                                {/* File type badges with enhanced styling */}
+                                                {/* File type badges with enhanced styling - sesuai backend */}
                                                 <div className="flex flex-wrap justify-center gap-2">
-                                                    {['PDF', 'DOC', 'XLS', 'IMG'].map((type, index) => (
+                                                    {['PDF', 'JPG', 'JPEG', 'PNG'].map((type, index) => (
                                                         <span key={type} className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-300 ${
                                                             isDragOver 
                                                                 ? 'bg-white/20 text-white border border-white/30 shadow-lg' 
@@ -2278,7 +2434,7 @@ const AddEditPembelianPage = () => {
                                                         ? 'bg-white/20 text-white shadow-lg' 
                                                         : 'bg-white/80 text-gray-600 hover:bg-white hover:shadow-md'
                                                 }`}>
-                                                    <span className="text-xs font-medium">Maksimal 5MB</span>
+                                                    <span className="text-xs font-medium">Maksimal 2MB</span>
                                                 </div>
                                             </label>
                                             
@@ -2358,8 +2514,8 @@ const AddEditPembelianPage = () => {
                                                 </h5>
                                                 <p className="text-sm text-blue-700 leading-relaxed">
                                                     Upload file dokumen terkait pembelian seperti invoice, kontrak, atau foto barang (opsional). 
-                                                    Format yang didukung: <span className="font-semibold">PDF, DOC, XLS, atau gambar</span>. 
-                                                    Maksimal ukuran file: <span className="font-semibold text-blue-800">5MB</span>.
+                                                    Format yang didukung: <span className="font-semibold">JPG, JPEG, PNG, atau PDF</span>. 
+                                                    Maksimal ukuran file: <span className="font-semibold text-blue-800">2MB</span>.
                                                 </p>
                                             </div>
                                         </div>

@@ -1,12 +1,14 @@
 import React, { useRef, useEffect, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Eye, Edit, Copy, Trash2, Download, Loader2 } from 'lucide-react';
+import { Eye, Edit, Copy, Trash2, Download, Loader2, FileText } from 'lucide-react';
 import LaporanPembelianService from '../../../../services/laporanPembelianService';
+import { API_ENDPOINTS, API_BASE_URL } from '../../../../config/api';
 
 const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef }) => {
     const menuRef = useRef(null);
     const [menuStyle, setMenuStyle] = useState(null);
     const [downloadLoading, setDownloadLoading] = useState(false);
+    const [fileLoading, setFileLoading] = useState(false);
 
     useLayoutEffect(() => {
         function updatePosition() {
@@ -36,6 +38,76 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef }) => 
             document.removeEventListener("mousedown", handleClickOutside);
         };
     }, [onClose, buttonRef]);
+
+    // Handle view file functionality
+    const handleViewFile = async (row) => {
+        if (!row.file) {
+            alert('File tidak tersedia untuk pembelian ini');
+            return;
+        }
+
+        setFileLoading(true);
+        try {
+            // Get auth token
+            const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+            
+            if (!token) {
+                alert('Sesi login telah berakhir. Silakan login kembali.');
+                return;
+            }
+
+            // Clean file path
+            const cleanPath = row.file.replace(/\\/g, '/');
+            const fileUrl = `${API_BASE_URL}${API_ENDPOINTS.HO.PEMBELIAN}/file/${cleanPath}`;
+            
+            // Create new window
+            const newWindow = window.open('about:blank', '_blank');
+            
+            // Fetch file with authentication
+            const response = await fetch(fileUrl, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/pdf,image/*,*/*'
+                }
+            });
+
+            if (response.ok) {
+                const blob = await response.blob();
+                const blobUrl = URL.createObjectURL(blob);
+                
+                if (newWindow && !newWindow.closed) {
+                    newWindow.location.href = blobUrl;
+                } else {
+                    // Fallback: download file
+                    const link = document.createElement('a');
+                    link.href = blobUrl;
+                    link.download = cleanPath.split('/').pop();
+                    link.click();
+                    URL.revokeObjectURL(blobUrl);
+                }
+            } else if (response.status === 401) {
+                alert('Sesi login telah berakhir');
+                if (newWindow && !newWindow.closed) {
+                    newWindow.close();
+                }
+            } else {
+                alert(`File tidak dapat diakses (${response.status})`);
+                if (newWindow && !newWindow.closed) {
+                    newWindow.close();
+                }
+            }
+            
+            // Close menu after successful view
+            onClose();
+            
+        } catch (error) {
+            console.error('Error viewing file:', error);
+            alert('Gagal membuka file');
+        } finally {
+            setFileLoading(false);
+        }
+    };
 
     // Handle download functionality
     const handleDownload = async (row) => {
@@ -71,6 +143,13 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef }) => 
         }
     };
 
+    // Debug logging untuk melihat data row
+    console.log('🔍 Row data for actions:', {
+        file: row.file,
+        nota: row.nota,
+        hasFile: !!row.file
+    });
+
     const actions = [
         {
             label: 'Lihat Detail',
@@ -92,6 +171,18 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef }) => 
             hoverBg: 'group-hover:bg-amber-200',
             text: 'text-amber-600',
         },
+        ...(row.file ? [{
+            label: 'Lihat File',
+            icon: fileLoading ? Loader2 : FileText,
+            onClick: () => handleViewFile(row),
+            className: fileLoading ? 'text-gray-400' : 'text-gray-700',
+            description: fileLoading ? 'Membuka...' : 'Buka dokumen',
+            bg: 'bg-purple-100',
+            hoverBg: 'group-hover:bg-purple-200',
+            text: 'text-purple-600',
+            disabled: fileLoading,
+            isLoading: fileLoading,
+        }] : []),
         {
             label: 'Unduh Laporan',
             icon: downloadLoading ? Loader2 : Download,

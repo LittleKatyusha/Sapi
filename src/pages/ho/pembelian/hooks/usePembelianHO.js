@@ -150,6 +150,8 @@ const usePembelianHO = () => {
                         berat_total: parseFloat(item.berat_total) || 0, // Field baru dari backend
                         jenis_pembelian: item.jenis_pembelian || '', // Field baru dari backend (now label)
                         jenis_pembelian_id: item.jenis_pembelian_id || null, // ID untuk forms
+                        file: item.file || null, // File path dari backend
+                        note: item.note || null, // Note field dari backend
                         createdAt: item.created_at || new Date().toISOString(),
                         updatedAt: item.updated_at || new Date().toISOString(),
                         id: item.pid || `TEMP-${index + 1}` // Gunakan encrypted PID sebagai primary ID
@@ -379,7 +381,29 @@ const usePembelianHO = () => {
                 originalData: data
             });
             
-            const result = await HttpClient.post(`${API_ENDPOINTS.HO.PEMBELIAN}/update`, requestData);
+            // Handle file upload for update - use FormData if file exists
+            let result;
+            if (isHeader && requestData.file && requestData.file instanceof File) {
+                const formData = new FormData();
+                
+                // Add all request data to FormData
+                Object.keys(requestData).forEach(key => {
+                    if (key === 'file') {
+                        formData.append('file', requestData.file);
+                    } else {
+                        formData.append(key, requestData[key]);
+                    }
+                });
+                
+                result = await HttpClient.post(`${API_ENDPOINTS.HO.PEMBELIAN}/update`, formData);
+            } else {
+                // No file upload or not a header update, use regular JSON
+                if (requestData.file && typeof requestData.file === 'string') {
+                    // If file is a string (path from backend), remove it to avoid validation error
+                    delete requestData.file;
+                }
+                result = await HttpClient.post(`${API_ENDPOINTS.HO.PEMBELIAN}/update`, requestData);
+            }
             
             console.log('📥 Update response received:', result);
             
