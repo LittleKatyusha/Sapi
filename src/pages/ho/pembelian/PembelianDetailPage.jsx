@@ -61,6 +61,7 @@ const PembelianDetailPage = () => {
                                 nama_supir: firstDetail.nama_supir || '',
                                 plat_nomor: firstDetail.plat_nomor || '',
                                 biaya_lain: firstDetail.biaya_lain || 0,
+                                biaya_truk: firstDetail.biaya_truk || 0,
                                 jumlah: firstDetail.jumlah_total || result.data.length
                             });
                             setDetailData(result.data);
@@ -286,7 +287,7 @@ const PembelianDetailPage = () => {
             name: 'Eartag',
             selector: row => row.eartagName || row.eartag,
             sortable: true,
-            width: '180px',
+            width: '200px',
             cell: row => (
                 <div className="text-center">
                     <div className="flex flex-col gap-1">
@@ -301,7 +302,7 @@ const PembelianDetailPage = () => {
             name: 'Code Eartag',
             selector: row => row.code_eartag,
             sortable: true,
-            width: '160px',
+            width: '180px',
             cell: row => (
                 <div className="text-center">
                     <span className="inline-block font-mono text-sm bg-purple-50 px-3 py-1 rounded-md text-purple-700 border border-purple-200">
@@ -314,7 +315,7 @@ const PembelianDetailPage = () => {
             name: 'Berat\n(kg)',
             selector: row => row.berat,
             sortable: true,
-            width: '120px',
+            width: '140px',
             cell: row => (
                 <div className="text-center">
                     <span className="text-gray-900 font-medium text-sm">
@@ -327,7 +328,7 @@ const PembelianDetailPage = () => {
             name: 'Harga\nSatuan',
             selector: row => row.harga,
             sortable: true,
-            width: '180px',
+            width: '200px',
             cell: row => (
                 <div className="text-center">
                     <span className="text-gray-900 font-medium text-sm">
@@ -340,7 +341,7 @@ const PembelianDetailPage = () => {
             name: 'HPP\nper Unit',
             selector: row => row.hpp,
             sortable: true,
-            width: '180px',
+            width: '200px',
             cell: row => (
                 <div className="text-center">
                     <span className="text-purple-600 font-medium text-sm">
@@ -353,7 +354,7 @@ const PembelianDetailPage = () => {
             name: 'Total\nHarga',
             selector: row => row.total_harga,
             sortable: true,
-            width: '200px',
+            width: '220px',
             cell: row => (
                 <div className="text-center">
                     <span className="text-red-600 font-semibold text-sm">
@@ -366,7 +367,7 @@ const PembelianDetailPage = () => {
             name: 'Persentase\nBiaya',
             selector: row => row.persentase,
             sortable: true,
-            width: '120px',
+            width: '140px',
             cell: row => (
                 <div className="text-center">
                     <span className="inline-block bg-green-50 px-3 py-1 rounded-md text-green-700 font-medium text-sm border border-green-200">
@@ -375,22 +376,10 @@ const PembelianDetailPage = () => {
                 </div>
             )
         },
-        {
-            name: 'Biaya\nTruk',
-            selector: row => row.biaya_truk,
-            sortable: true,
-            width: '180px',
-            cell: row => (
-                <div className="text-center">
-                    <span className="text-orange-600 font-medium text-sm">
-                        {row.biaya_truk ? `Rp ${Number(row.biaya_truk).toLocaleString('id-ID')}` : '-'}
-                    </span>
-                </div>
-            )
-        },
+
         {
             name: 'Aksi',
-            width: '100px',
+            width: '120px',
             cell: (row, index) => (
                 <div className="flex justify-center">
                     <DetailActionButton
@@ -550,6 +539,21 @@ const PembelianDetailPage = () => {
                                     minimumFractionDigits: 0,
                                     maximumFractionDigits: 0
                                 }).format(pembelianData.biaya_lain) : 'Rp 0'}
+                            </p>
+                        </div>
+
+                        <div className="bg-gradient-to-r from-blue-50 to-sky-50 p-4 rounded-lg">
+                            <label className="block text-sm font-medium text-gray-600 mb-2">
+                                <Truck className="w-4 h-4 inline mr-1" />
+                                Biaya Truk
+                            </label>
+                            <p className="text-lg font-bold text-gray-900">
+                                {pembelianData.biaya_truk ? new Intl.NumberFormat('id-ID', {
+                                    style: 'currency',
+                                    currency: 'IDR',
+                                    minimumFractionDigits: 0,
+                                    maximumFractionDigits: 0
+                                }).format(pembelianData.biaya_truk) : 'Rp 0'}
                             </p>
                         </div>
                     </div>

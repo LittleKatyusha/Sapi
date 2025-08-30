@@ -115,7 +115,7 @@ const AddEditPembelianPage = () => {
     const [batchCount, setBatchCount] = useState(1);
 
     // Markup percentage state - user can change this manually
-    const [markupPercentage, setMarkupPercentage] = useState(12); // Default 12%
+    const [markupPercentage, setMarkupPercentage] = useState(0); // Default 12%
 
     // Supplier options are now filtered server-side, no need for client-side filtering
     const filteredSupplierOptions = supplierOptions;
@@ -674,7 +674,7 @@ const AddEditPembelianPage = () => {
     // Add new detail item with default data
     const addDetailItem = () => {
         const harga = parseFloat(defaultData.harga) || 0;
-        const markup = 0; // Default markup percentage to 0 for new items
+        const markup = parseFloat(markupPercentage) || 0; // Use actual markup percentage from state
         const markupAmount = harga * (markup / 100);
         const hpp = harga + markupAmount;
         
@@ -692,7 +692,7 @@ const AddEditPembelianPage = () => {
             idKlasifikasiHewan: defaultData.idKlasifikasiHewan || '',
             harga: harga,
             berat: parseFloat(defaultData.berat) || 0,
-            persentase: 0, // Default markup percentage to 0
+            persentase: markup, // Use actual markup percentage from state
             hpp: hpp,
         };
         setDetailItems(prev => [...prev, newItem]);
@@ -709,7 +709,7 @@ const AddEditPembelianPage = () => {
         }
 
         const harga = parseFloat(defaultData.harga) || 0;
-        const markup = 0; // Default markup percentage to 0 for new items
+        const markup = parseFloat(markupPercentage) || 0; // Use actual markup percentage from state
         const markupAmount = harga * (markup / 100);
         const hpp = harga + markupAmount;
         
@@ -730,7 +730,7 @@ const AddEditPembelianPage = () => {
                 idKlasifikasiHewan: defaultData.idKlasifikasiHewan || '',
                 harga: harga,
                 berat: parseFloat(defaultData.berat) || 0,
-                persentase: 0, // Default markup percentage to 0
+                persentase: markup, // Use actual markup percentage from state
                 hpp: hpp,
             };
             newItems.push(newItem);
@@ -1514,9 +1514,12 @@ const AddEditPembelianPage = () => {
                                         )}
                                     </label>
                                     <input
-                                        type="number"
-                                        value={headerData.beratTotal}
-                                        onChange={(e) => handleHeaderChange('beratTotal', e.target.value)}
+                                        type="text"
+                                        value={formatNumber(headerData.beratTotal)}
+                                        onChange={(e) => {
+                                            const rawValue = parseNumber(e.target.value);
+                                            handleHeaderChange('beratTotal', rawValue);
+                                        }}
                                         className={`w-full px-3 py-2 border rounded-lg ${
                                             isSupplierPerorangan && !isSupplierPerorangan2
                                                 ? 'border-orange-300 bg-orange-50 text-gray-600 cursor-not-allowed' 
@@ -1565,9 +1568,12 @@ const AddEditPembelianPage = () => {
                                         Total Ternak (ekor)
                                     </label>
                                     <input
-                                        type="number"
-                                        value={headerData.totalSapi}
-                                        onChange={(e) => handleHeaderChange('totalSapi', e.target.value)}
+                                        type="text"
+                                        value={formatNumber(headerData.totalSapi)}
+                                        onChange={(e) => {
+                                            const rawValue = parseNumber(e.target.value);
+                                            handleHeaderChange('totalSapi', rawValue);
+                                        }}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
                                         placeholder="0"
                                         min="0"
@@ -1722,7 +1728,7 @@ const AddEditPembelianPage = () => {
                         {/* Harga Default */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Harga Default (Rp)
+                                Harga Default (Rp Per Kilo)
                                 {isSupplierPerorangan && !isSupplierPerorangan2 && (
                                     <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
                                         Auto-Updated

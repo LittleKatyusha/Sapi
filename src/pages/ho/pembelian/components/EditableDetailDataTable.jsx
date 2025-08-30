@@ -216,7 +216,7 @@ const EditableDetailDataTable = ({
       sortable: false,
     },
     {
-      name: 'Harga (Rp) *',
+      name: 'Harga (Rp Per Kilo) *',
       cell: (row) => (
         <input
           type="text"
@@ -228,7 +228,6 @@ const EditableDetailDataTable = ({
           className={`${inputClass} ${
             row.errors?.harga ? 'border-red-500' : ''
           }`}
-          placeholder="5.000.000"
           required
           style={{
             minHeight: 32,

@@ -117,7 +117,7 @@ const detailPageTableStyles = {
             backgroundColor: '#ffffff',
             borderRadius: '0px',
             width: '100%',
-            minWidth: '1400px', // Optimized for detail table columns
+            minWidth: '1220px', // Optimized for detail table columns (reduced after removing biaya truk)
             maxWidth: '100%',
             tableLayout: 'fixed', // Critical for consistent column widths
             borderCollapse: 'separate',
