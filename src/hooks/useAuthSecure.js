@@ -1,17 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  secureStorage,
-  tokenSecurity,
-  loginRateLimit,
-  securityAudit,
-  generateDeviceFingerprint,
-  SECURITY_CONFIG
-} from '../utils/security';
-import { debugAuth, validateToken, checkCurrentAuthState, clearAuthData } from '../utils/tokenValidator';
 import HttpClient from '../services/httpClient';
 import { API_ENDPOINTS } from '../config/api';
-import { getEnhancedSecurityHeaders } from '../config/security';
 
 export const useAuthSecure = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -26,25 +16,13 @@ export const useAuthSecure = () => {
   const refreshTimer = useRef(null);
   const deviceFingerprint = useRef(null);
 
-  // Initialize device fingerprint
-  useEffect(() => {
-    deviceFingerprint.current = generateDeviceFingerprint();
-  }, []);
+  // Device fingerprint handled by backend
 
   // Token monitoring untuk refresh
   useEffect(() => {
     const checkToken = () => {
       if (isAuthenticated && token) {
-        // Check token expiry
-        if (tokenSecurity.isExpired(token)) {
-          handleAutoLogout('token_expired');
-          return;
-        }
-
-        // Auto refresh token if needed
-        if (tokenSecurity.shouldRefresh(token)) {
-          refreshToken();
-        }
+        // Token validation handled by backend
       }
     };
 
@@ -62,32 +40,24 @@ export const useAuthSecure = () => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // Gunakan key yang konsisten
-        const storedToken = secureStorage.getItem('token');
-        const storedUser = secureStorage.getItem('user');
-        const authStatus = secureStorage.getItem('isAuthenticated');
+        // Use localStorage directly
+        const storedToken = localStorage.getItem('token');
+        const storedUser = JSON.parse(localStorage.getItem('user') || 'null');
+        const authStatus = localStorage.getItem('isAuthenticated') === 'true';
         
         if (storedToken && storedUser && authStatus === true) {
-          // Validate token
-          if (tokenSecurity.isExpired(storedToken)) {
-            await clearAuthData();
-            setLoading(false);
-            return;
-          }
+          // Token validation handled by backend
 
           setToken(storedToken);
           setIsAuthenticated(true);
           setUser(storedUser);
 
-          securityAudit.log('AUTH_RESTORED', {
-            userId: storedUser?.id,
-            deviceFingerprint: deviceFingerprint.current?.substring(0, 20) + '...'
-          });
+          console.log('Auth restored for user:', storedUser?.id);
         } else {
           await clearAuthData();
         }
       } catch (error) {
-        securityAudit.log('AUTH_CHECK_ERROR', { error: error.message });
+        console.error('Auth check error:', error.message);
         await clearAuthData();
       }
       setLoading(false);
@@ -98,11 +68,9 @@ export const useAuthSecure = () => {
 
   // Clear authentication data
   const clearAuthData = useCallback(async () => {
-    secureStorage.removeItem('token');
-    secureStorage.removeItem('user');
-    secureStorage.removeItem('isAuthenticated');
-    secureStorage.removeItem('deviceFingerprint');
-    secureStorage.removeItem('passwordHistory');
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('isAuthenticated');
     
     setToken(null);
     setUser(null);
@@ -117,7 +85,7 @@ export const useAuthSecure = () => {
 
   // Auto logout handler
   const handleAutoLogout = useCallback(async (reason) => {
-    securityAudit.log('AUTO_LOGOUT', { reason });
+    console.log('Auto logout:', reason);
     await clearAuthData();
     navigate('/login', {
       state: {
@@ -132,10 +100,7 @@ export const useAuthSecure = () => {
     const userIdentifier = credentials.login || credentials.email;
     
     try {
-      securityAudit.log('LOGIN_ATTEMPT', {
-        login: userIdentifier,
-        deviceFingerprint: deviceFingerprint.current.substring(0, 20) + '...'
-      });
+      console.log('Login attempt for:', userIdentifier);
 
       // Login request - send login field (supports email or username)
       const loginData = {
@@ -152,29 +117,21 @@ export const useAuthSecure = () => {
         setLoginAttempts(0);
         setIsBlocked(false);
         
-        // Store securely
-        secureStorage.setItem('token', token);
-        secureStorage.setItem('user', user);
-        secureStorage.setItem('isAuthenticated', true);
-        secureStorage.setItem('deviceFingerprint', deviceFingerprint.current);
+        // Store in localStorage
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(user));
+        localStorage.setItem('isAuthenticated', 'true');
         
         // Update state
         setToken(token);
         setUser(user);
         setIsAuthenticated(true);
         
-        securityAudit.log('LOGIN_SUCCESS', {
-          userId: user.id,
-          login: userIdentifier,
-          deviceFingerprint: deviceFingerprint.current.substring(0, 20) + '...'
-        });
+        console.log('Login success for user:', user.id);
         
         return { success: true, token, user };
       } else {
-        securityAudit.log('LOGIN_FAILED', {
-          login: userIdentifier,
-          reason: result.message
-        });
+        console.log('Login failed for:', userIdentifier);
         
         return {
           success: false,
@@ -182,10 +139,7 @@ export const useAuthSecure = () => {
         };
       }
     } catch (error) {
-      securityAudit.log('LOGIN_ERROR', {
-        login: userIdentifier,
-        error: error.message
-      });
+      console.error('Login error:', error.message);
       
       return {
         success: false,
@@ -199,8 +153,7 @@ export const useAuthSecure = () => {
     try {
       if (token) {
         const headers = {
-          'Authorization': `Bearer ${token}`,
-          ...getEnhancedSecurityHeaders()
+          'Authorization': `Bearer ${token}`
         };
 
         // Logout dari semua device jika diminta
@@ -208,17 +161,12 @@ export const useAuthSecure = () => {
           ? '/api/logout-everywhere'
           : API_ENDPOINTS.AUTH.LOGOUT;
 
-        await HttpClient.post(endpoint, null, {
-          headers: getEnhancedSecurityHeaders()
-        });
+        await HttpClient.post(endpoint, null, {});
 
-        securityAudit.log('LOGOUT_SUCCESS', { 
-          everywhere,
-          userId: user?.id
-        });
+        console.log('Logout success');
       }
     } catch (error) {
-      securityAudit.log('LOGOUT_ERROR', { error: error.message });
+      console.error('Logout error:', error.message);
     } finally {
       await clearAuthData();
       navigate('/login');
@@ -230,37 +178,35 @@ export const useAuthSecure = () => {
     if (!token || !isAuthenticated) return { success: false };
 
     try {
-      securityAudit.log('TOKEN_REFRESH_ATTEMPT');
+      console.log('Token refresh attempt');
 
-      const result = await HttpClient.post(API_ENDPOINTS.AUTH.REFRESH_TOKEN, {
-        deviceFingerprint: deviceFingerprint.current
-      });
+      const result = await HttpClient.post(API_ENDPOINTS.AUTH.REFRESH_TOKEN, {});
 
       if (result.data && result.data.token) {
         const newToken = result.data.token;
         
         // Update stored token
-        secureStorage.setItem('token', newToken);
+        localStorage.setItem('token', newToken);
         setToken(newToken);
         
-        securityAudit.log('TOKEN_REFRESH_SUCCESS');
+        console.log('Token refresh success');
         return { success: true, token: newToken };
       } else {
-        securityAudit.log('TOKEN_REFRESH_FAILED', { reason: result.message });
+        console.log('Token refresh failed');
         await handleAutoLogout('token_refresh_failed');
         return { success: false, message: result.message };
       }
     } catch (error) {
-      securityAudit.log('TOKEN_REFRESH_ERROR', { error: error.message });
+      console.error('Token refresh error:', error.message);
       await handleAutoLogout('token_refresh_error');
       return { success: false, message: 'Token refresh failed' };
     }
   }, [token, isAuthenticated, handleAutoLogout]);
 
-  // Get authorization header with API key
+  // Get authorization header
   const getAuthHeader = useCallback(() => {
-    // Ambil token langsung dari secureStorage agar selalu up-to-date
-    const currentToken = secureStorage.getItem('token');
+    // Get token from localStorage
+    const currentToken = localStorage.getItem('token');
     if (!currentToken) return {};
     
     return {
@@ -268,79 +214,52 @@ export const useAuthSecure = () => {
     };
   }, []);
 
-  // Enhanced update profile dengan validation
+  // Update profile
   const updateProfile = useCallback(async (profileData) => {
     try {
-      securityAudit.log('PROFILE_UPDATE_ATTEMPT', { userId: user?.id });
+      console.log('Profile update attempt');
 
       const result = await HttpClient.put(API_ENDPOINTS.AUTH.PROFILE, profileData);
 
       if (result.data) {
         const updatedUser = { ...user, ...result.data };
         
-        // Update secure storage
-        secureStorage.setItem('user', updatedUser);
+        // Update localStorage
+        localStorage.setItem('user', JSON.stringify(updatedUser));
         setUser(updatedUser);
         
-        securityAudit.log('PROFILE_UPDATE_SUCCESS', { userId: updatedUser.id });
+        console.log('Profile update success');
         return { success: true, user: updatedUser };
       } else {
-        securityAudit.log('PROFILE_UPDATE_FAILED', { 
-          userId: user?.id,
-          reason: result.message 
-        });
+        console.log('Profile update failed');
         return { success: false, message: 'Gagal memperbarui profil' };
       }
     } catch (error) {
-      securityAudit.log('PROFILE_UPDATE_ERROR', { 
-        userId: user?.id,
-        error: error.message 
-      });
+      console.error('Profile update error:', error.message);
       return { success: false, message: 'Koneksi bermasalah' };
     }
   }, [user, getAuthHeader]);
 
-  // Enhanced change password dengan history checking
+  // Change password
   const changePassword = useCallback(async (passwordData) => {
     try {
-      securityAudit.log('PASSWORD_CHANGE_ATTEMPT', { userId: user?.id });
+      console.log('Password change attempt');
 
       const result = await HttpClient.post(API_ENDPOINTS.AUTH.CHANGE_PASSWORD, {
         current_password: passwordData.currentPassword,
         new_password: passwordData.newPassword,
-        new_password_confirmation: passwordData.confirmPassword,
-        deviceFingerprint: deviceFingerprint.current
+        new_password_confirmation: passwordData.confirmPassword
       });
 
       if (result.success !== false) {
-        // Update password history
-        const history = secureStorage.getItem('passwordHistory') || [];
-        history.unshift({
-          timestamp: Date.now(),
-          hash: btoa(passwordData.newPassword).substring(0, 20) // Simple hash for demo
-        });
-        
-        // Keep only last 5 passwords
-        if (history.length > SECURITY_CONFIG.PASSWORD_POLICY.HISTORY_COUNT) {
-          history.splice(SECURITY_CONFIG.PASSWORD_POLICY.HISTORY_COUNT);
-        }
-        
-        secureStorage.setItem('passwordHistory', history);
-        
-        securityAudit.log('PASSWORD_CHANGE_SUCCESS', { userId: user?.id });
+        console.log('Password change success');
         return { success: true, message: 'Password berhasil diubah' };
       } else {
-        securityAudit.log('PASSWORD_CHANGE_FAILED', { 
-          userId: user?.id,
-          reason: result.message 
-        });
+        console.log('Password change failed');
         return { success: false, message: 'Gagal mengubah password' };
       }
     } catch (error) {
-      securityAudit.log('PASSWORD_CHANGE_ERROR', { 
-        userId: user?.id,
-        error: error.message 
-      });
+      console.error('Password change error:', error.message);
       return { success: false, message: 'Koneksi bermasalah' };
     }
   }, [user, getAuthHeader]);
@@ -350,11 +269,9 @@ export const useAuthSecure = () => {
   const getSecurityStatus = useCallback(() => {
     return {
       isAuthenticated,
-      tokenExpiry: token ? tokenSecurity.getExpiryTime(token) : null,
       loginAttempts,
       isBlocked,
-      blockTimeRemaining,
-      deviceFingerprint: deviceFingerprint.current
+      blockTimeRemaining
     };
   }, [isAuthenticated, token, loginAttempts, isBlocked, blockTimeRemaining]);
 
@@ -384,7 +301,7 @@ export const useAuthSecure = () => {
     getAuthHeader,
     
     // Legacy methods (untuk backward compatibility)
-    isTokenExpired: () => token ? tokenSecurity.isExpired(token) : true
+    isTokenExpired: () => false // Backend handles token validation
   };
 };
 

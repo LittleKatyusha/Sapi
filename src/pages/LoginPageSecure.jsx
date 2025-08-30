@@ -2,10 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthSecure } from '../hooks/useAuthSecure';
 import { Eye, EyeOff, Shield, Clock, AlertTriangle } from 'lucide-react';
-import { 
-  sanitizeHtml, 
-  validateEmail
-} from '../utils/security';
+
 import SecurityNotification from '../components/security/SecurityNotification';
 
 const LoginPageSecure = () => {
@@ -239,13 +236,13 @@ const LoginPageSecure = () => {
     
     switch (name) {
       case 'email':
-        const sanitizedEmail = sanitizeHtml(value.trim());
+        const sanitizedEmail = value.trim();
         if (!sanitizedEmail) {
           errors.email = 'Masukkan email atau username Anda';
         } else {
           // Check if it's an email format
           const isEmail = sanitizedEmail.includes('@');
-          if (isEmail && !validateEmail(sanitizedEmail)) {
+          if (isEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(sanitizedEmail)) {
             errors.email = 'Format email tidak valid';
           } else if (!isEmail && sanitizedEmail.length < 3) {
             errors.email = 'Username minimal 3 karakter';
@@ -272,14 +269,9 @@ const LoginPageSecure = () => {
     const { name, value, type, checked } = e.target;
     const newValue = type === 'checkbox' ? checked : value;
     
-    // Sanitize input
-    const sanitizedValue = type === 'text' || type === 'email' 
-      ? sanitizeHtml(newValue) 
-      : newValue;
-    
     setFormData(prev => ({
       ...prev,
-      [name]: sanitizedValue
+      [name]: newValue
     }));
     
     // Clear errors
@@ -290,7 +282,7 @@ const LoginPageSecure = () => {
     
     // Real-time validation
     if (name === 'email' || name === 'password') {
-      const validationErrors = validateInput(name, sanitizedValue);
+      const validationErrors = validateInput(name, newValue);
       setInputErrors(prev => ({ ...prev, ...validationErrors }));
     }
   };

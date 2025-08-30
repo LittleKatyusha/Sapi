@@ -1,12 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuthSecure } from '../hooks/useAuthSecure';
-import {
-  securityAudit,
-  tokenSecurity,
-  generateDeviceFingerprint,
-  secureStorage
-} from '../utils/security';
+
 import { Shield, AlertTriangle, Clock } from 'lucide-react';
 
 const SecurityCheckScreen = ({ message, type = 'warning' }) => {
@@ -70,83 +65,23 @@ const ProtectedRouteSecure = ({ children }) => {
       try {
 
         // Log access attempt
-        securityAudit.log('ROUTE_ACCESS_ATTEMPT', {
-          path: location.pathname,
-          authenticated: isAuthenticated,
-          hasToken: !!token,
-          hasUser: !!user
-        });
+        console.log('Route access attempt:', location.pathname);
 
         // Basic authentication check
         if (!isAuthenticated || !token || !user) {
-          securityAudit.log('ROUTE_ACCESS_DENIED', {
-            reason: 'not_authenticated',
-            path: location.pathname
-          });
+          console.log('Route access denied: not authenticated');
           setSecurityCheck({ status: 'redirect' });
           return;
         }
 
-        // Check token validity
-        if (tokenSecurity.isExpired(token)) {
-          securityAudit.log('ROUTE_ACCESS_DENIED', {
-            reason: 'token_expired',
-            path: location.pathname,
-            userId: user.id
-          });
-          setSecurityCheck({
-            status: 'error',
-            message: 'Token keamanan telah berakhir. Anda akan diarahkan ke halaman login.'
-          });
-          setTimeout(() => setSecurityCheck({ status: 'redirect' }), 3000);
-          return;
-        }
+        // Backend handles token validation
 
 
-        // Device fingerprint validation - TEMPORARILY RELAXED for debugging
-        const currentFingerprint = generateDeviceFingerprint();
-        const storedFingerprint = secureStorage.getItem('deviceFingerprint');
-        
-        
-        if (storedFingerprint && storedFingerprint !== currentFingerprint) {
-          securityAudit.log('ROUTE_ACCESS_DEVICE_MISMATCH_DEBUG', {
-            reason: 'device_mismatch',
-            path: location.pathname,
-            userId: user.id,
-            storedFingerprint: storedFingerprint.substring(0, 20) + '...',
-            currentFingerprint: currentFingerprint.substring(0, 20) + '...',
-            action: 'allowing_temporarily'
-          });
-          
-          // TEMPORARY: Update stored fingerprint instead of blocking
-          secureStorage.setItem('deviceFingerprint', currentFingerprint);
-          
-          // Show warning but continue
-        }
+        // Device validation handled by backend
 
-        // Check suspicious activity patterns
-        const securityStatus = getSecurityStatus();
-        if (securityStatus.loginAttempts > 3) {
-          securityAudit.log('ROUTE_ACCESS_WARNING', {
-            reason: 'multiple_login_attempts',
-            path: location.pathname,
-            userId: user.id,
-            attempts: securityStatus.loginAttempts
-          });
-        }
+        // Security monitoring handled by backend
 
-        // Rate limiting check for rapid navigation
-        const lastNavigation = sessionStorage.getItem('lastNavigation');
-        const now = Date.now();
-        if (lastNavigation && (now - parseInt(lastNavigation)) < 100) {
-          securityAudit.log('ROUTE_ACCESS_WARNING', {
-            reason: 'rapid_navigation',
-            path: location.pathname,
-            userId: user.id,
-            timeDiff: now - parseInt(lastNavigation)
-          });
-        }
-        sessionStorage.setItem('lastNavigation', now.toString());
+        // Rate limiting handled by backend
 
         // Additional security checks for sensitive routes
         const sensitiveRoutes = ['/settings', '/hr/', '/master-data/'];
@@ -189,47 +124,19 @@ const ProtectedRouteSecure = ({ children }) => {
           
           // Log warning instead of blocking access
           if (!hasPermission) {
-            securityAudit.log('ROUTE_ACCESS_WARNING_DEBUG', {
-              reason: 'insufficient_permissions_but_allowing',
-              path: location.pathname,
-              userId: user.id,
-              userRole,
-              allowedRoles
-            });
+            console.log('Permission warning for user:', userRole);
           }
 
-          // Additional verification for highly sensitive routes
-          if (location.pathname.includes('/settings')) {
-            const lastPasswordChange = secureStorage.getItem('lastPasswordChange');
-            const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
-            
-            if (lastPasswordChange && lastPasswordChange < thirtyDaysAgo) {
-              securityAudit.log('ROUTE_ACCESS_WARNING', {
-                reason: 'password_age_warning',
-                path: location.pathname,
-                userId: user.id,
-                lastPasswordChange
-              });
-            }
-          }
+          // Password age verification handled by backend
         }
 
 
         // All checks passed
-        securityAudit.log('ROUTE_ACCESS_GRANTED', {
-          path: location.pathname,
-          userId: user.id,
-          deviceFingerprint: currentFingerprint.substring(0, 20) + '...'
-        });
-
+        console.log('Route access granted:', location.pathname);
         setSecurityCheck({ status: 'granted' });
 
       } catch (error) {
-        securityAudit.log('ROUTE_SECURITY_CHECK_ERROR', {
-          error: error.message,
-          path: location.pathname,
-          userId: user?.id
-        });
+        console.error('Security check error:', error.message);
         
         setSecurityCheck({
           status: 'error',

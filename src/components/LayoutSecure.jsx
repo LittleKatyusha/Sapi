@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { useAuthSecure } from '../hooks/useAuthSecure';
 import SecurityNotification from './security/SecurityNotification';
-import { securityAudit } from '../utils/security';
+
 
 const LayoutSecure = ({ children, title }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -39,11 +39,7 @@ const LayoutSecure = ({ children, title }) => {
 
   // Log page access
   useEffect(() => {
-    securityAudit.log('PAGE_ACCESS', {
-      page: location.pathname,
-      title,
-      userId: user?.id
-    });
+    console.log('Page access:', location.pathname);
   }, [location.pathname, title, user?.id]);
 
   const menuItems = [
@@ -153,7 +149,7 @@ const LayoutSecure = ({ children, title }) => {
 
   const handleLogout = async () => {
     if (window.confirm('Apakah Anda yakin ingin keluar?')) {
-      securityAudit.log('LOGOUT_INITIATED', { userId: user?.id });
+      console.log('Logout initiated');
       await logout();
     }
   };
@@ -270,11 +266,7 @@ const LayoutSecure = ({ children, title }) => {
                                     : 'text-emerald-300 hover:bg-emerald-700/30'
                                 }`}
                                 onClick={() => {
-                                  securityAudit.log('NAVIGATION', {
-                                    from: location.pathname,
-                                    to: child.path,
-                                    userId: user?.id
-                                  });
+                                  console.log('Navigation:', location.pathname, '->', child.path);
                                 }}
                               >
                                 {child.icon && <child.icon className="w-4 h-4 mr-2" />}
@@ -295,11 +287,7 @@ const LayoutSecure = ({ children, title }) => {
                           : 'text-emerald-200 hover:bg-emerald-700/50'
                       }`}
                       onClick={() => {
-                        securityAudit.log('NAVIGATION', {
-                          from: location.pathname,
-                          to: item.path,
-                          userId: user?.id
-                        });
+                        console.log('Navigation:', location.pathname, '->', item.path);
                       }}
                     >
                       <item.icon className="w-5 h-5" />

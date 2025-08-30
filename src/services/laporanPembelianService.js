@@ -5,7 +5,7 @@
 
 import HttpClient from './httpClient.js';
 import { API_BASE_URL } from '../config/api.js';
-import { secureStorage } from '../utils/security.js';
+
 
 class LaporanPembelianService {
   
@@ -158,8 +158,8 @@ class LaporanPembelianService {
         url += '?' + queryString;
       }
 
-      // Get JWT token menggunakan secureStorage (sama seperti useAuthSecure)
-      let token = secureStorage.getItem('token');
+      // Get JWT token from localStorage
+      let token = localStorage.getItem('token');
       if (!token) {
         // Fallback ke method lama untuk backward compatibility
         token = localStorage.getItem('authToken') || localStorage.getItem('secureAuthToken');

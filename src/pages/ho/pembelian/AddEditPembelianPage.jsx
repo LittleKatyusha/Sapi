@@ -735,7 +735,7 @@ const AddEditPembelianPage = () => {
     // Add new detail item with default data
     const addDetailItem = () => {
         const harga = parseFloat(defaultData.harga) || 0;
-        const markup = markupPercentage; // Use default markup percentage
+        const markup = 0; // Default markup percentage to 0 for new items
         const markupAmount = harga * (markup / 100);
         const hpp = harga + markupAmount;
         
@@ -749,11 +749,11 @@ const AddEditPembelianPage = () => {
         const newItem = {
             id: timestamp,
             eartag: tnEartagOption ? tnEartagOption.value : (eartagOptions.length > 0 ? eartagOptions[0].value : 'AUTO'), // Default to T/N or first option
-            eartagSupplier: 'T/N', // Auto-generate T/N for new data
+            eartagSupplier: '', // Default to empty for new items
             idKlasifikasiHewan: defaultData.idKlasifikasiHewan || '',
             harga: harga,
             berat: parseFloat(defaultData.berat) || 0,
-            persentase: markup, // Individual markup per ternak
+            persentase: 0, // Default markup percentage to 0
             hpp: hpp,
         };
         setDetailItems(prev => [...prev, newItem]);
@@ -770,7 +770,7 @@ const AddEditPembelianPage = () => {
         }
 
         const harga = parseFloat(defaultData.harga) || 0;
-        const markup = markupPercentage; // Use default markup percentage
+        const markup = 0; // Default markup percentage to 0 for new items
         const markupAmount = harga * (markup / 100);
         const hpp = harga + markupAmount;
         
@@ -787,11 +787,11 @@ const AddEditPembelianPage = () => {
             const newItem = {
                 id: uniqueTimestamp,
                 eartag: tnEartagOption ? tnEartagOption.value : (eartagOptions.length > 0 ? eartagOptions[0].value : 'AUTO'), // Default to T/N or first option
-                eartagSupplier: 'T/N', // Auto-generate T/N for new data
+                eartagSupplier: '', // Default to empty for new items
                 idKlasifikasiHewan: defaultData.idKlasifikasiHewan || '',
                 harga: harga,
                 berat: parseFloat(defaultData.berat) || 0,
-                persentase: markup, // Individual markup per ternak
+                persentase: 0, // Default markup percentage to 0
                 hpp: hpp,
             };
             newItems.push(newItem);
@@ -1542,7 +1542,7 @@ const AddEditPembelianPage = () => {
                             <input
                                 type="text"
                                 value={headerData.platNomor}
-                                onChange={(e) => handleHeaderChange('platNomor', e.target.value)}
+                                onChange={(e) => handleHeaderChange('platNomor', e.target.value.toUpperCase())}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
                                 placeholder="B1234XX"
                                 required
@@ -1648,7 +1648,7 @@ const AddEditPembelianPage = () => {
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Total Sapi (ekor)
+                                        Total Ternak (ekor)
                                     </label>
                                     <input
                                         type="number"
@@ -1659,7 +1659,7 @@ const AddEditPembelianPage = () => {
                                         min="0"
                                     />
                                     <p className="text-xs text-gray-500 mt-1">
-                                        💡 Total jumlah sapi dalam pembelian ini
+                                        💡 Total jumlah Ternak dalam pembelian ini
                                     </p>
                                 </div>
         

@@ -1,15 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, Lock, Upload, X, Eye, EyeOff, Save, Edit2, Check, AlertCircle, Shield, LogOut, Smartphone } from 'lucide-react';
 import { useAuthSecure } from '../hooks/useAuthSecure';
-import { 
-  sanitizeHtml, 
-  validateEmail, 
-  validatePasswordStrength, 
-  validateFileUpload,
-  securityAudit,
-  secureStorage,
-  SECURITY_CONFIG 
-} from '../utils/security';
+
 import PasswordStrengthIndicator from '../components/security/PasswordStrengthIndicator';
 import SecurityNotification from '../components/security/SecurityNotification';
 
@@ -43,7 +35,7 @@ const ChangePasswordModalSecure = ({ isOpen, onClose, onSubmit, loading }) => {
         confirm: false
       });
       
-      securityAudit.log('PASSWORD_CHANGE_MODAL_OPENED');
+      console.log('Password change modal opened');
     }
   }, [isOpen]);
 
@@ -57,10 +49,9 @@ const ChangePasswordModalSecure = ({ isOpen, onClose, onSubmit, loading }) => {
     if (!formData.newPassword) {
       newErrors.newPassword = 'Kata sandi baru wajib diisi';
     } else {
-      // Validate password strength
-      const validation = validatePasswordStrength(formData.newPassword);
-      if (!validation.isValid) {
-        newErrors.newPassword = validation.errors[0];
+      // Basic password validation (backend handles full validation)
+      if (formData.newPassword.length < 8) {
+        newErrors.newPassword = 'Password minimal 8 karakter';
       }
       
       // Check against current password
@@ -68,14 +59,7 @@ const ChangePasswordModalSecure = ({ isOpen, onClose, onSubmit, loading }) => {
         newErrors.newPassword = 'Kata sandi baru harus berbeda dari kata sandi lama';
       }
       
-      // Check password history
-      const passwordHistory = secureStorage.getItem('passwordHistory') || [];
-      const newPasswordHash = btoa(formData.newPassword).substring(0, 20);
-      const isInHistory = passwordHistory.some(entry => entry.hash === newPasswordHash);
-      
-      if (isInHistory) {
-        newErrors.newPassword = `Kata sandi ini telah digunakan sebelumnya. Gunakan kata sandi yang berbeda dari ${SECURITY_CONFIG.PASSWORD_POLICY.HISTORY_COUNT} kata sandi terakhir.`;
-      }
+      // Password history check handled by backend
     }
 
     if (!formData.confirmPassword) {
@@ -91,22 +75,24 @@ const ChangePasswordModalSecure = ({ isOpen, onClose, onSubmit, loading }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (validateForm()) {
-      securityAudit.log('PASSWORD_CHANGE_FORM_SUBMITTED');
+      console.log('Password change form submitted');
       onSubmit(formData);
     }
   };
 
   const handleInputChange = (field, value) => {
-    const sanitizedValue = sanitizeHtml(value);
-    setFormData(prev => ({ ...prev, [field]: sanitizedValue }));
+    setFormData(prev => ({ ...prev, [field]: value }));
     
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
     
-    // Real-time password validation
+    // Simple password validation
     if (field === 'newPassword') {
-      const validation = validatePasswordStrength(sanitizedValue);
+      const validation = {
+        isValid: value.length >= 8,
+        errors: value.length < 8 ? ['Password minimal 8 karakter'] : []
+      };
       setPasswordValidation(validation);
     }
   };
@@ -135,11 +121,10 @@ const ChangePasswordModalSecure = ({ isOpen, onClose, onSubmit, loading }) => {
         </div>
         
         <div className="p-6">
-          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-sm text-blue-800 font-medium">Kebijakan Kata Sandi:</p>
             <ul className="text-xs text-blue-700 mt-1 space-y-1">
               <li>• Minimal 8 karakter dengan kombinasi huruf besar, kecil, angka, dan simbol</li>
-              <li>• Tidak boleh sama dengan {SECURITY_CONFIG.PASSWORD_POLICY.HISTORY_COUNT} kata sandi sebelumnya</li>
               <li>• Hindari kata sandi yang mudah ditebak</li>
             </ul>
           </div>
@@ -326,7 +311,7 @@ const SettingsPageSecure = () => {
     // Update security status
     setSecurityStatus(getSecurityStatus());
     
-    securityAudit.log('SETTINGS_PAGE_ACCESSED', { userId: user?.id });
+    console.log('Settings page accessed');
   }, [user, getSecurityStatus]);
 
   // Fungsi untuk generate avatar URL
@@ -340,19 +325,21 @@ const SettingsPageSecure = () => {
     return `https://placehold.co/120x120/FFD5D5/B91C1C?text=${initials}`;
   };
 
-  // Enhanced file upload dengan security validation
+  // File upload with basic validation
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      const validation = validateFileUpload(file);
+      // Basic file validation
+      const maxSize = 2 * 1024 * 1024; // 2MB
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
       
-      if (!validation.isValid) {
-        showNotification(validation.errors[0], 'error');
-        securityAudit.log('FILE_UPLOAD_REJECTED', { 
-          reason: validation.errors[0],
-          fileSize: file.size,
-          fileType: file.type 
-        });
+      if (file.size > maxSize) {
+        showNotification('File terlalu besar. Maksimal 2MB.', 'error');
+        return;
+      }
+      
+      if (!allowedTypes.includes(file.type)) {
+        showNotification('Format file tidak didukung. Gunakan JPG, PNG, atau GIF.', 'error');
         return;
       }
 
@@ -365,10 +352,7 @@ const SettingsPageSecure = () => {
       };
       reader.readAsDataURL(file);
       
-      securityAudit.log('FILE_UPLOAD_ACCEPTED', { 
-        fileSize: file.size,
-        fileType: file.type 
-      });
+      console.log('File upload accepted:', file.name);
     }
   };
 
@@ -377,13 +361,13 @@ const SettingsPageSecure = () => {
     setNotification({ message, type });
   };
 
-  // Enhanced form validation
+  // Form validation
   const validateProfileForm = () => {
     const errors = {};
 
-    const sanitizedName = sanitizeHtml(profileData.name.trim());
-    const sanitizedEmail = sanitizeHtml(profileData.email.trim());
-    const sanitizedUsername = sanitizeHtml(profileData.username.trim());
+    const sanitizedName = profileData.name.trim();
+    const sanitizedEmail = profileData.email.trim();
+    const sanitizedUsername = profileData.username.trim();
 
     if (!sanitizedName) {
       errors.name = 'Nama lengkap wajib diisi';
@@ -391,7 +375,7 @@ const SettingsPageSecure = () => {
 
     if (!sanitizedEmail) {
       errors.email = 'Email wajib diisi';
-    } else if (!validateEmail(sanitizedEmail)) {
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(sanitizedEmail)) {
       errors.email = 'Format email tidak valid';
     }
 
@@ -406,16 +390,15 @@ const SettingsPageSecure = () => {
     return errors;
   };
 
-  // Enhanced input handling dengan sanitization
+  // Input handling
   const handleInputChange = (field, value) => {
-    const sanitizedValue = sanitizeHtml(value);
-    setProfileData(prev => ({ ...prev, [field]: sanitizedValue }));
+    setProfileData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleStartEdit = () => {
     setIsEditing(true);
     setOriginalData({...profileData});
-    securityAudit.log('PROFILE_EDIT_STARTED', { userId: user?.id });
+    console.log('Profile edit started');
   };
 
   const handleCancelEdit = () => {
@@ -423,7 +406,7 @@ const SettingsPageSecure = () => {
     setProfileData({...originalData});
     setAvatarFile(null);
     setAvatarPreview(null);
-    securityAudit.log('PROFILE_EDIT_CANCELLED', { userId: user?.id });
+    console.log('Profile edit cancelled');
   };
 
   // Enhanced save profile
@@ -481,7 +464,7 @@ const SettingsPageSecure = () => {
   // Logout everywhere function
   const handleLogoutEverywhere = async () => {
     if (window.confirm('Apakah Anda yakin ingin keluar dari semua perangkat? Anda harus login ulang di semua perangkat.')) {
-      securityAudit.log('LOGOUT_EVERYWHERE_INITIATED', { userId: user?.id });
+      console.log('Logout everywhere initiated');
       await logout(true);
       showNotification('Berhasil keluar dari semua perangkat.', 'success');
     }

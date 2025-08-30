@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DataTable from 'react-data-table-component';
-import { PlusCircle, Search, Filter, ShoppingCart, Building2, Truck, User, X, Loader2 } from 'lucide-react';
+import { PlusCircle, Search, ShoppingCart, Building2, Truck, User, X, Loader2, Calendar } from 'lucide-react';
 
 import usePembelianHO from './hooks/usePembelianHO';
 import ActionButton from './components/ActionButton';
@@ -27,6 +27,8 @@ const PembelianHOPage = () => {
         setSearchTerm,
         filterStatus,
         setFilterStatus,
+        dateRange,
+        setDateRange,
         isSearching,
         searchError,
         stats,
@@ -35,6 +37,8 @@ const PembelianHOPage = () => {
         handleSearch,
         clearSearch,
         handleFilter,
+        handleDateRangeFilter,
+        clearDateRange,
         handlePageChange: handleServerPageChange,
         handlePerPageChange: handleServerPerPageChange,
         createPembelian,
@@ -307,6 +311,25 @@ const PembelianHOPage = () => {
             )
         },
         {
+            name: 'Biaya Truk',
+            selector: row => row.biaya_truk,
+            sortable: true,
+            width: '180px', // Same width as biaya_lain for consistency
+            wrap: true,
+            cell: row => (
+                <div className="flex items-center justify-center w-full h-full min-h-[40px] px-1">
+                    <div className="bg-blue-50 text-blue-700 px-3 py-2 rounded-lg font-semibold text-center text-xs leading-tight">
+                        {row.biaya_truk ? new Intl.NumberFormat('id-ID', {
+                            style: 'currency',
+                            currency: 'IDR',
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 0
+                        }).format(row.biaya_truk) : 'Rp 0'}
+                    </div>
+                </div>
+            )
+        },
+        {
             name: 'Berat Total',
             selector: row => row.berat_total,
             sortable: true,
@@ -454,7 +477,7 @@ const PembelianHOPage = () => {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-3 sm:gap-4 md:gap-6 sm:grid-cols-2 md:grid-cols-4">
+                <div className="grid grid-cols-1 gap-3 sm:gap-4 md:gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
                     <div className="bg-gradient-to-br from-blue-400 to-blue-500 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
                         <h3 className="text-sm sm:text-base font-medium opacity-90 mb-2">Total Ritasi</h3>
                         <p className="text-2xl sm:text-3xl lg:text-4xl font-bold">{stats.total}</p>
@@ -470,6 +493,10 @@ const PembelianHOPage = () => {
                     <div className="bg-gradient-to-br from-purple-400 to-purple-500 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
                         <h3 className="text-sm sm:text-base font-medium opacity-90 mb-2">Bulan Ini</h3>
                         <p className="text-2xl sm:text-3xl lg:text-4xl font-bold">{stats.thisMonth}</p>
+                    </div>
+                    <div className="bg-gradient-to-br from-indigo-400 to-indigo-500 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
+                        <h3 className="text-sm sm:text-base font-medium opacity-90 mb-2">Tahun Ini</h3>
+                        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold">{stats.thisYear}</p>
                     </div>
                 </div>
 
@@ -511,18 +538,59 @@ const PembelianHOPage = () => {
                         </div>
 
                         <div className="flex flex-wrap gap-2 sm:gap-3 md:gap-4">
-                            <div className="flex items-center gap-2 md:gap-3">
-                                <Filter className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
-                                <select
-                                    value={filterStatus}
-                                    onChange={(e) => handleFilter(e.target.value)}
-                                    className="px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 text-sm sm:text-base shadow-sm hover:shadow-md transition-all duration-200"
-                                >
-                                    <option value="all">Semua</option>
-                                    <option value="today">Hari Ini</option>
-                                    <option value="week">Minggu Ini</option>
-                                    <option value="month">Bulan Ini</option>
-                                </select>
+                            {/* Date Range Filter */}
+                            <div className="flex items-center gap-2 md:gap-3 flex-wrap">
+                                <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
+                                <div className="flex items-center gap-2">
+                                    <div 
+                                        className="relative cursor-pointer"
+                                        onClick={() => document.getElementById('startDateInput').showPicker()}
+                                    >
+                                        <input
+                                            id="startDateInput"
+                                            type="date"
+                                            value={dateRange.startDate}
+                                            onChange={(e) => {
+                                                const newDateRange = { ...dateRange, startDate: e.target.value };
+                                                setDateRange(newDateRange);
+                                                // Apply filter immediately when start date is set, regardless of end date
+                                                handleDateRangeFilter(newDateRange);
+                                            }}
+                                            className="px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 text-sm sm:text-base shadow-sm hover:shadow-md hover:border-gray-400 transition-all duration-200 cursor-pointer w-full"
+                                            style={{ minWidth: '150px' }}
+                                            title="Pilih Tanggal Mulai"
+                                        />
+                                    </div>
+                                    <span className="text-gray-500 text-sm font-medium">s/d</span>
+                                    <div 
+                                        className="relative cursor-pointer"
+                                        onClick={() => document.getElementById('endDateInput').showPicker()}
+                                    >
+                                        <input
+                                            id="endDateInput"
+                                            type="date"
+                                            value={dateRange.endDate}
+                                            onChange={(e) => {
+                                                const newDateRange = { ...dateRange, endDate: e.target.value };
+                                                setDateRange(newDateRange);
+                                                // Apply filter immediately when end date is set, regardless of start date
+                                                handleDateRangeFilter(newDateRange);
+                                            }}
+                                            className="px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 text-sm sm:text-base shadow-sm hover:shadow-md hover:border-gray-400 transition-all duration-200 cursor-pointer w-full"
+                                            style={{ minWidth: '150px' }}
+                                            title="Pilih Tanggal Akhir"
+                                        />
+                                    </div>
+                                    {(dateRange.startDate || dateRange.endDate) && (
+                                        <button
+                                            onClick={clearDateRange}
+                                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all duration-200"
+                                            title="Hapus Filter Tanggal"
+                                        >
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>

@@ -5,13 +5,15 @@
  */
 
 import { API_BASE_URL } from '../config/api.js';
-import { getApiAuthHeaders, getEnhancedSecurityHeaders } from '../config/security.js';
+
 
 /**
  * Default headers for all requests
  */
 const DEFAULT_HEADERS = {
-  ...getApiAuthHeaders()
+  'Content-Type': 'application/json',
+  'Accept': 'application/json',
+  'X-Requested-With': 'XMLHttpRequest'
 };
 
 /**
@@ -33,64 +35,21 @@ const getAuthToken = () => {
   return localStorage.getItem('authToken') || localStorage.getItem('secureAuthToken');
 };
 
-/**
- * Get CSRF token from Laravel Sanctum
- */
-const getCsrfToken = async () => {
-  try {
-    // First, make a request to the sanctum/csrf-cookie endpoint to set the CSRF cookie
-    await fetch(`${API_BASE_URL}/sanctum/csrf-cookie`, {
-      method: 'GET',
-      credentials: 'include'
-    });
-    
-    // Then extract the CSRF token from the cookie
-    // Laravel sets both XSRF-TOKEN and laravel_session cookies
-    const csrfCookie = document.cookie
-      .split('; ')
-      .find(row => row.startsWith('XSRF-TOKEN='));
-    
-    if (csrfCookie) {
-      const token = decodeURIComponent(csrfCookie.split('=')[1]);
-      // CSRF Token retrieved silently
-      return token;
-    } else {
-      console.warn('CSRF token cookie not found in:', document.cookie);
-    }
-  } catch (error) {
-    console.warn('Failed to get CSRF token:', error);
-  }
-  return null;
-};
-
-let csrfToken = null;
+// CSRF token handling removed - using JWT authentication only
 
 /**
- * Build headers for request
+ * Build headers for request (JWT authentication only)
  */
-const buildHeaders = async (customHeaders = {}, skipCsrf = false) => {
+const buildHeaders = async (customHeaders = {}) => {
   const headers = { ...DEFAULT_HEADERS, ...customHeaders };
   
   // Add authentication token if available
   const token = getAuthToken();
   if (token) {
     headers.Authorization = `Bearer ${token}`;
-    console.log('🔑 Auth token added to headers:', token ? 'Present' : 'Missing');
+    console.log('🔑 JWT token added to headers');
   } else {
-    console.warn('⚠️ No authentication token found in localStorage');
-  }
-  
-  // Add CSRF token for non-GET requests (skip for JWT-based login)
-  if (!skipCsrf) {
-    if (!csrfToken) {
-      csrfToken = await getCsrfToken();
-    }
-    
-    if (csrfToken) {
-      headers['X-XSRF-TOKEN'] = csrfToken;
-      // Also try the alternative header name that Laravel might expect
-      headers['X-CSRF-TOKEN'] = csrfToken;
-    }
+    console.warn('⚠️ No JWT token found in localStorage');
   }
   
   return headers;
@@ -154,10 +113,9 @@ const handleResponseError = async (response) => {
       // Don't redirect here to avoid issues, let components handle it
     }
     
-    // Handle 419 - CSRF token mismatch, refresh token and retry
+    // Handle 419 - Token mismatch (should not occur with JWT)
     if (response.status === 419) {
-      csrfToken = null; // Reset CSRF token to force refresh
-      errorMessage = 'Token keamanan tidak valid. Silakan refresh halaman dan coba lagi.';
+      errorMessage = 'Token tidak valid. Silakan login ulang.';
     }
     
     // Handle 500 Internal Server Error with more specific messaging
@@ -234,13 +192,9 @@ class HttpClient {
       API_BASE_URL_Value: API_BASE_URL
     });
     
-    // Skip CSRF tokens for JWT-based authentication endpoints
-    const isAuthEndpoint = endpoint.includes('/login') || endpoint.includes('/register');
-    const skipCsrf = isAuthEndpoint || options.skipCsrf;
-    const useCredentials = !isAuthEndpoint; // Don't use credentials for JWT auth
-    
+    // Skip CSRF completely for JWT authentication
     let body = null;
-    let headers = await buildHeaders(options.headers, skipCsrf);
+    let headers = await buildHeaders(options.headers);
     
     // Handle different data types
     if (data instanceof FormData) {
@@ -255,13 +209,9 @@ class HttpClient {
       method: 'POST',
       headers,
       body,
+      credentials: 'include',
       ...options
     };
-    
-    // Only include credentials for session-based routes
-    if (useCredentials) {
-      fetchOptions.credentials = 'include';
-    }
     
     const response = await fetch(url, fetchOptions);
     

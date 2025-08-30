@@ -24,6 +24,12 @@ const usePembelianHO = () => {
     const [isSearching, setIsSearching] = useState(false);
     const [searchError, setSearchError] = useState(null);
     const [deleteLoading, setDeleteLoading] = useState(null); // Track which item is being deleted
+    
+    // Date range filter state
+    const [dateRange, setDateRange] = useState({
+        startDate: '',
+        endDate: ''
+    });
 
     // Server-side pagination state
     const [serverPagination, setServerPagination] = useState({
@@ -34,7 +40,7 @@ const usePembelianHO = () => {
     });
 
     // Fetch pembelian data from API with DataTables server-side pagination format
-    const fetchPembelian = useCallback(async (page = 1, perPage = null, search = null, filter = null, isSearchRequest = false) => {
+    const fetchPembelian = useCallback(async (page = 1, perPage = null, search = null, filter = null, dateRangeFilter = null, isSearchRequest = false) => {
         setLoading(true);
         setError(null);
         setSearchError(null);
@@ -49,6 +55,7 @@ const usePembelianHO = () => {
             const currentPerPage = perPage || serverPagination.perPage;
             const currentSearch = search !== null ? search : searchTerm;
             const currentFilter = filter !== null ? filter : filterStatus;
+            const currentDateRange = dateRangeFilter !== null ? dateRangeFilter : dateRange;
             
             // DataTables pagination parameters for server-side processing
             const start = (currentPage - 1) * currentPerPage;
@@ -65,6 +72,19 @@ const usePembelianHO = () => {
             if (currentFilter && currentFilter !== 'all') {
                 params.filter = currentFilter;
             }
+            
+            // Add date range filter parameters
+            if (currentDateRange.startDate) {
+                params.start_date = currentDateRange.startDate;
+                console.log('🗓️ Adding start_date filter:', currentDateRange.startDate);
+            }
+            if (currentDateRange.endDate) {
+                params.end_date = currentDateRange.endDate;
+                console.log('🗓️ Adding end_date filter:', currentDateRange.endDate);
+            }
+            
+            // Log all parameters being sent to backend
+            console.log('📤 API Parameters:', params);
             
 
             
@@ -165,7 +185,7 @@ const usePembelianHO = () => {
             setLoading(false);
             setIsSearching(false);
         }
-    }, [searchTerm, filterStatus, serverPagination.currentPage, serverPagination.perPage]);
+    }, [searchTerm, filterStatus, dateRange, serverPagination.currentPage, serverPagination.perPage]);
 
     // Create pembelian - handle header + details array format
     const createPembelian = useCallback(async (pembelianData, supplierOptions = []) => {
@@ -778,11 +798,18 @@ const usePembelianHO = () => {
             return itemDate.getMonth() === thisMonth && itemDate.getFullYear() === thisYear;
         }).length;
         
+        // This year's purchases
+        const thisYearPurchases = pembelian.filter(item => {
+            const itemDate = new Date(item.tgl_masuk);
+            return itemDate.getFullYear() === thisYear;
+        }).length;
+        
         return {
             total: total,
             totalTernak: totalTernak,
             today: todayPurchases,
-            thisMonth: thisMonthPurchases
+            thisMonth: thisMonthPurchases,
+            thisYear: thisYearPurchases
         };
     }, [pembelian]);
 
@@ -800,15 +827,15 @@ const usePembelianHO = () => {
         
         // If search term is empty, fetch immediately without debouncing
         if (!newSearchTerm.trim()) {
-            fetchPembelian(1, serverPagination.perPage, '', filterStatus, false);
+            fetchPembelian(1, serverPagination.perPage, '', filterStatus, dateRange, false);
             return;
         }
         
         // Set new timeout for debounced search with shorter delay (300ms)
         searchTimeoutRef.current = setTimeout(() => {
-            fetchPembelian(1, serverPagination.perPage, newSearchTerm, filterStatus, true);
+            fetchPembelian(1, serverPagination.perPage, newSearchTerm, filterStatus, dateRange, true);
         }, 300); // 300ms delay for better UX
-    }, [fetchPembelian, serverPagination.perPage, filterStatus]);
+    }, [fetchPembelian, serverPagination.perPage, filterStatus, dateRange]);
     
     // Clear search function
     const clearSearch = useCallback(() => {
@@ -821,8 +848,8 @@ const usePembelianHO = () => {
         }
         
         // Fetch data without search filter
-        fetchPembelian(1, serverPagination.perPage, '', filterStatus, false);
-    }, [fetchPembelian, serverPagination.perPage, filterStatus]);
+        fetchPembelian(1, serverPagination.perPage, '', filterStatus, dateRange, false);
+    }, [fetchPembelian, serverPagination.perPage, filterStatus, dateRange]);
     
     // Cleanup timeout on unmount
     useEffect(() => {
@@ -837,18 +864,34 @@ const usePembelianHO = () => {
     const handleFilter = useCallback((newFilter) => {
         setFilterStatus(newFilter);
         setSearchError(null);
-        fetchPembelian(1, serverPagination.perPage, searchTerm, newFilter, false);
-    }, [fetchPembelian, serverPagination.perPage, searchTerm]);
+        fetchPembelian(1, serverPagination.perPage, searchTerm, newFilter, dateRange, false);
+    }, [fetchPembelian, serverPagination.perPage, searchTerm, dateRange]);
+    
+    // Date range filter handler
+    const handleDateRangeFilter = useCallback((newDateRange) => {
+        console.log('🎯 Date range filter triggered:', newDateRange);
+        setDateRange(newDateRange);
+        setSearchError(null);
+        fetchPembelian(1, serverPagination.perPage, searchTerm, filterStatus, newDateRange, false);
+    }, [fetchPembelian, serverPagination.perPage, searchTerm, filterStatus]);
+    
+    // Clear date range filter
+    const clearDateRange = useCallback(() => {
+        const emptyDateRange = { startDate: '', endDate: '' };
+        setDateRange(emptyDateRange);
+        setSearchError(null);
+        fetchPembelian(1, serverPagination.perPage, searchTerm, filterStatus, emptyDateRange, false);
+    }, [fetchPembelian, serverPagination.perPage, searchTerm, filterStatus]);
 
     // Pagination handlers - maintain search term and filter
     const handlePageChange = useCallback((newPage) => {
 
-        fetchPembelian(newPage, serverPagination.perPage, searchTerm, filterStatus, false);
-    }, [fetchPembelian, serverPagination.currentPage, serverPagination.perPage, serverPagination.totalPages, searchTerm, filterStatus]);
+        fetchPembelian(newPage, serverPagination.perPage, searchTerm, filterStatus, dateRange, false);
+    }, [fetchPembelian, serverPagination.currentPage, serverPagination.perPage, serverPagination.totalPages, searchTerm, filterStatus, dateRange]);
 
     const handlePerPageChange = useCallback((newPerPage) => {
-        fetchPembelian(1, newPerPage, searchTerm, filterStatus, false);
-    }, [fetchPembelian, searchTerm, filterStatus]);
+        fetchPembelian(1, newPerPage, searchTerm, filterStatus, dateRange, false);
+    }, [fetchPembelian, searchTerm, filterStatus, dateRange]);
 
     // For server-side pagination, we don't need client-side filtering
     // The data returned is already filtered by the server
@@ -863,6 +906,8 @@ const usePembelianHO = () => {
         setSearchTerm,
         filterStatus,
         setFilterStatus,
+        dateRange,
+        setDateRange,
         isSearching,
         searchError,
         stats,
@@ -871,6 +916,8 @@ const usePembelianHO = () => {
         handleSearch,
         clearSearch,
         handleFilter,
+        handleDateRangeFilter,
+        clearDateRange,
         handlePageChange,
         handlePerPageChange,
         createPembelian,

@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import LayoutSecure from './components/LayoutSecure';
 import ProtectedRouteSecure from './components/ProtectedRouteSecure';
-import { securityAudit } from './utils/security';
+
 
 // Import halaman authentication yang sudah enhanced
 import LoginPageSecure from './pages/LoginPageSecure';
@@ -141,12 +141,7 @@ class SecurityErrorBoundary extends React.Component {
 
   componentDidCatch(error, errorInfo) {
     // Log security-related errors
-    securityAudit.log('SECURITY_ERROR_BOUNDARY', {
-      error: error.message,
-      stack: error.stack,
-      errorInfo: JSON.stringify(errorInfo),
-      url: window.location.href
-    });
+    console.error('Security Error:', error.message);
 
     console.error('Security Error Boundary:', error, errorInfo);
   }

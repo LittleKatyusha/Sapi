@@ -252,6 +252,24 @@ const PembelianCard = ({
                     </span>
                 </div>
 
+                {/* Biaya Truk */}
+                <div>
+                    <div className="flex items-center gap-2 mb-1.5">
+                        <div className="p-1.5 rounded-lg bg-blue-100">
+                            <Truck className="w-4 h-4 text-blue-600" />
+                        </div>
+                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Biaya Truk</span>
+                    </div>
+                    <span className="inline-flex px-4 py-2 text-base font-bold rounded-xl bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-800 shadow-inner">
+                        {data.biaya_truk ? new Intl.NumberFormat('id-ID', {
+                            style: 'currency',
+                            currency: 'IDR',
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 0
+                        }).format(data.biaya_truk) : 'Rp 0'}
+                    </span>
+                </div>
+
                 {/* Jenis Pembelian */}
                 <div>
                     <div className="flex items-center gap-2 mb-1.5">

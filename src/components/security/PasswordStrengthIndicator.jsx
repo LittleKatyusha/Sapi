@@ -1,9 +1,23 @@
 import React from 'react';
 import { Check, X, Shield } from 'lucide-react';
-import { validatePasswordStrength } from '../../utils/security';
+
 
 const PasswordStrengthIndicator = ({ password, showDetails = true }) => {
-  const validation = validatePasswordStrength(password);
+  // Simple password strength calculation since backend handles validation
+  const calculateStrength = (password) => {
+    let score = 0;
+    if (password.length >= 8) score += 25;
+    if (/[A-Z]/.test(password)) score += 25;
+    if (/[a-z]/.test(password)) score += 25;
+    if (/\d/.test(password)) score += 15;
+    if (/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) score += 10;
+    return Math.min(score, 100);
+  };
+  
+  const validation = {
+    strength: calculateStrength(password),
+    errors: []
+  };
   
   const getStrengthColor = (strength) => {
     if (strength < 30) return 'bg-red-500';
@@ -70,17 +84,7 @@ const PasswordStrengthIndicator = ({ password, showDetails = true }) => {
             </div>
           ))}
           
-          {/* Error Messages */}
-          {validation.errors.length > 0 && (
-            <div className="mt-2 p-2 bg-red-50 rounded border border-red-200">
-              {validation.errors.map((error, index) => (
-                <p key={index} className="text-xs text-red-600 flex items-center">
-                  <X className="w-3 h-3 mr-1" />
-                  {error}
-                </p>
-              ))}
-            </div>
-          )}
+
         </div>
       )}
     </div>
