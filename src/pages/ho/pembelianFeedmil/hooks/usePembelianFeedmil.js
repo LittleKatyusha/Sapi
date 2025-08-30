@@ -156,7 +156,7 @@ const usePembelianFeedmil = () => {
                     
                     // Ensure numeric fields are properly formatted according to backend validation
                     formData.append(`details[${index}][harga]`, parseFloat(item.harga) || 0);
-                    formData.append(`details[${index}][persentase]`, parseInt(item.persentase) || 0); // Backend expects integer
+                    formData.append(`details[${index}][persentase]`, parseFloat(item.persentase) || 0); // Changed to parseFloat to support decimals
                     formData.append(`details[${index}][berat]`, parseInt(item.berat) || 0);
                     formData.append(`details[${index}][hpp]`, parseFloat(item.hpp) || 0);
                     formData.append(`details[${index}][total_harga]`, parseFloat(item.total_harga || item.hpp) || 0);
@@ -180,7 +180,7 @@ const usePembelianFeedmil = () => {
                         isValid: parseInt(item.id_klasifikasi_feedmil) > 0
                     },
                     harga: parseFloat(item.harga) || 0,
-                    persentase: parseInt(item.persentase) || 0,
+                    persentase: parseFloat(item.persentase) || 0,
                     berat: parseInt(item.berat) || 0
                 })));
             }

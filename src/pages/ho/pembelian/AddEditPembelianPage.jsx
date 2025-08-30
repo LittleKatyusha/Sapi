@@ -261,31 +261,21 @@ const AddEditPembelianPage = () => {
                             }
                         }
                         
-                        // Backend now returns both ID and label for jenis_pembelian
+                        // Backend returns tipe_pembelian as the ID value
                         let tipePembelianIdFromBackend = '';
-                        if (firstDetail.jenis_pembelian_id !== null && firstDetail.jenis_pembelian_id !== undefined) {
-                            // Use the ID for form values, not the label
+                        if (firstDetail.tipe_pembelian !== null && firstDetail.tipe_pembelian !== undefined) {
+                            // Use the tipe_pembelian value directly from backend
+                            tipePembelianIdFromBackend = String(firstDetail.tipe_pembelian);
+                            
+                            
+                        } else if (firstDetail.jenis_pembelian_id !== null && firstDetail.jenis_pembelian_id !== undefined) {
+                            // Fallback to jenis_pembelian_id if available
                             tipePembelianIdFromBackend = String(firstDetail.jenis_pembelian_id);
                             
                             
                         }
 
-                        // Debug supplier matching
-                        console.log('🔍 DEBUG: Supplier matching:', {
-                            nama_supplier: firstDetail.nama_supplier,
-                            supplierOptions: supplierOptions.map(s => ({ label: s.label, value: s.value })),
-                            matchedSupplier: supplierIdFromName,
-                            id_supplier: firstDetail.id_supplier,
-                            supplier_id: firstDetail.supplier_id
-                        });
-                        
-                        // Debug purchase type matching
-                        console.log('🔍 DEBUG: Purchase type matching:', {
-                            jenis_pembelian_label: firstDetail.jenis_pembelian,
-                            jenis_pembelian_id: firstDetail.jenis_pembelian_id,
-                            tipePembelianOptions: tipePembelianOptions.map(t => ({ label: t.label, value: t.value })),
-                            matchedTipePembelianId: tipePembelianIdFromBackend
-                        });
+
                         
                         // Calculate totals from detail items if not available in header
                         const calculatedBeratTotal = result.data.reduce((sum, item) => sum + (parseInt(item.berat) || 0), 0);
@@ -312,31 +302,7 @@ const AddEditPembelianPage = () => {
                             // markup removed - no longer needed
                         });
 
-                        // Debug logging to see what data we're getting
-                        console.log('🔍 DEBUG: Final header data being set:', {
-                            tipePembelian: tipePembelianIdFromBackend,
-                            originalJenisPembelian: firstDetail.jenis_pembelian,
-                            idSupplier: supplierIdFromName,
-                            originalNamaSupplier: firstDetail.nama_supplier,
-                            availableTipePembelian: tipePembelianOptions,
-                            availableSuppliers: supplierOptions.slice(0, 3) // Only show first 3 for brevity
-                        });
-                        
-                        
-                        
-                        console.log('🔍 DEBUG: Purchase type fields check:', {
-                            id_jenis_pembelian: firstDetail.id_jenis_pembelian,
-                            jenis_pembelian_id: firstDetail.jenis_pembelian_id,
-                            jenis_pembelian: firstDetail.jenis_pembelian,
-                            tipe_pembelian: firstDetail.tipe_pembelian,
-                            tipePembelian: firstDetail.tipePembelian,
-                            purchase_type_id: firstDetail.purchase_type_id,
-                            purchase_type: firstDetail.purchase_type,
-                            type_id: firstDetail.type_id,
-                            type: firstDetail.type,
-                            id_tipe_pembelian: firstDetail.id_tipe_pembelian,
-                            allKeys: Object.keys(firstDetail).sort()
-                        });
+
                         
                         
 
@@ -349,15 +315,6 @@ const AddEditPembelianPage = () => {
                         }
 
                         // Load detail data - calculate persentase from harga and hpp if not available
-                        console.log('🔍 DEBUG: Backend response for edit:', {
-                            itemCount: result.data.length,
-                            firstItem: result.data[0],
-                            allFieldsFirstItem: result.data[0] ? Object.keys(result.data[0]) : [],
-                            eartagOptionsCount: eartagOptions.length,
-                            firstEartagOption: eartagOptions[0],
-                            klasifikasiOptionsCount: klasifikasiHewanOptions.length,
-                            firstKlasifikasiOption: klasifikasiHewanOptions[0]
-                        });
                         
                         setDetailItems(result.data.map((item, index) => {
                             // Calculate markup percentage if not provided by backend
@@ -390,25 +347,7 @@ const AddEditPembelianPage = () => {
                                     );
                                 }
                                 const finalMatch = matchedById || matchedByName;
-                                console.log('🔍 DEBUG: Klasifikasi matching for item', index, {
-                                    backendKlasifikasi: {
-                                        id_klasifikasi_hewan: item.id_klasifikasi_hewan,
-                                        klasifikasi_id: item.klasifikasi_id,
-                                        klasifikasi_hewan_pubid: item.klasifikasi_hewan_pubid,
-                                        klasifikasihewan_id: item.klasifikasihewan_id,
-                                        pubid_klasifikasi: item.pubid_klasifikasi,
-                                        klasifikasi_name: item.klasifikasi_name,
-                                        klasifikasi: item.klasifikasi,
-                                        nama_klasifikasi: item.nama_klasifikasi
-                                    },
-                                    idToFind: idToFind,
-                                    nameToFind: item.klasifikasi_name || item.klasifikasi || item.nama_klasifikasi,
-                                    availableOptions: klasifikasiHewanOptions.slice(0, 3), // Show first 3 options for debugging
-                                    matchedById: matchedById,
-                                    matchedByName: matchedByName,
-                                    finalMatch: finalMatch,
-                                    finalValue: finalMatch ? finalMatch.value : ''
-                                });
+
                                 if (finalMatch) {
                                     klasifikasiIdFromId = finalMatch.value;
                                 }
@@ -959,11 +898,6 @@ const AddEditPembelianPage = () => {
         // Header validation (Office removed since it's now fixed)
         if (!headerData.nota) errors.push('Nota harus diisi');
         if (!headerData.idSupplier) {
-            console.log('❌ DEBUG: Supplier validation failed:', {
-                idSupplier: headerData.idSupplier,
-                supplierType: typeof headerData.idSupplier,
-                supplierOptions: filteredSupplierOptions.map(s => ({ label: s.label, value: s.value }))
-            });
             errors.push('Supplier harus dipilih');
         } else {
             
@@ -1015,17 +949,6 @@ const AddEditPembelianPage = () => {
 
     // Handle submit - Save header and details together (legacy function)
     const handleSubmit = async () => {
-        
-        console.log('🔍 DEBUG: Pre-validation state:', {
-            idSupplier: headerData.idSupplier,
-            supplierType: typeof headerData.idSupplier,
-            supplierValue: headerData.idSupplier,
-            isEmpty: !headerData.idSupplier,
-            isFalsy: !headerData.idSupplier,
-            filteredSupplierOptions: filteredSupplierOptions.length,
-            currentSupplierInOptions: filteredSupplierOptions.find(s => s.value === headerData.idSupplier)
-        });
-        
         // Add a small delay to ensure state updates are complete
         await new Promise(resolve => setTimeout(resolve, 100));
         
@@ -1071,7 +994,7 @@ const AddEditPembelianPage = () => {
                             id_klasifikasi_hewan: parseInt(item.idKlasifikasiHewan),
                             harga: parseFloat(item.harga),
                             berat: parseInt(item.berat),
-                            persentase: parseInt(item.persentase) || 0,
+                            persentase: parseFloat(item.persentase) || 0,
                             hpp: parseFloat(item.hpp),
                             total_harga: parseFloat(item.totalHarga || item.hpp)
                         }))
@@ -1107,21 +1030,14 @@ const AddEditPembelianPage = () => {
                             id_klasifikasi_hewan: parseInt(item.idKlasifikasiHewan),
                             harga: parseFloat(item.harga),
                             berat: parseInt(item.berat),
-                            persentase: parseInt(item.persentase) || 0,
+                            persentase: parseFloat(item.persentase) || 0,
                             hpp: parseFloat(item.hpp),
                             total_harga: parseFloat(item.totalHarga || item.hpp)
                         }))
                         : [] // Ensure it's always an array, even if empty
                 };
                 
-                console.log('📡 DEBUG: Calling createPembelian with data:', {
-                    idSupplier: completeData.idSupplier,
-                    tipePembelian: completeData.tipePembelian,
-                    detailsCount: completeData.details.length,
-                    completeDataKeys: Object.keys(completeData),
-                    supplierOptionsCount: filteredSupplierOptions.length
-                });
-                
+
                 result = await createPembelian(completeData, filteredSupplierOptions);
             }
 
@@ -1158,8 +1074,6 @@ const AddEditPembelianPage = () => {
 
     // New function: Save header only (without details)
     const handleSaveHeader = async () => {
-        console.log('🔍 DEBUG: Saving header only...');
-        
         // Validate header fields only
         const headerValidationErrors = [];
         
@@ -1298,7 +1212,7 @@ const AddEditPembelianPage = () => {
                 id_klasifikasi_hewan: parseInt(item.idKlasifikasiHewan),
                 harga: parseFloat(item.harga),
                 berat: parseInt(item.berat),
-                persentase: parseInt(item.persentase) || 0,
+                persentase: parseFloat(item.persentase) || 0,
                 hpp: parseFloat(item.hpp),
                 total_harga: parseFloat(item.totalHarga || item.hpp)
             }));

@@ -528,7 +528,7 @@ const usePembelianHO = () => {
                     id_klasifikasi_hewan: parseInt(item.id_klasifikasi_hewan),
                     harga: parseFloat(item.harga),
                     berat: parseInt(item.berat),
-                    persentase: parseInt(item.persentase) || 0,
+                    persentase: parseFloat(item.persentase) || 0,
                     hpp: parseFloat(item.hpp) || 0,
                     total_harga: parseFloat(item.total_harga) || parseFloat(item.hpp) || 0
                 }))
@@ -698,7 +698,7 @@ const usePembelianHO = () => {
                 eartag_supplier: String(detailData.eartagSupplier || ''), // Add eartag_supplier
                 id_klasifikasi_hewan: parseInt(detailData.idKlasifikasiHewan),
                 harga: parseFloat(detailData.harga),
-                persentase: parseInt(detailData.persentase) || 0,
+                persentase: parseFloat(detailData.persentase) || 0,
                 berat: parseInt(detailData.berat),
                 hpp: parseFloat(detailData.hpp),
                 total_harga: parseFloat(detailData.totalHarga)
