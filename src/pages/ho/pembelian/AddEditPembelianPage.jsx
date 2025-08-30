@@ -439,7 +439,9 @@ const AddEditPembelianPage = () => {
                                 id: index + 1,
                                 pubid: item.pubid, // Header pubid
                                 pubidDetail: item.pubid_detail || item.pid, // Detail pubid/encrypted PID for updates
-                                encryptedPid: item.pubid_detail || item.pid, // Use detail identifier for operations
+                                encryptedPid: item.pid || item.pubid_detail, // Use pid first (from DataPembelianDetail), then fallback
+                                pid: item.pid, // Store original pid from backend
+                                idPembelian: item.id_pembelian || null, // Store id_pembelian if available from backend
                                 eartag: eartagValue,
                                 eartagSupplier: eartagSupplierValue, // Use the debugged value
                                 idKlasifikasiHewan: klasifikasiIdFromId || item.id_klasifikasi_hewan || item.klasifikasi_id || item.klasifikasi_hewan_pubid || item.klasifikasihewan_id || item.pubid_klasifikasi || '', // Try multiple sources, prioritize ID match
@@ -941,8 +943,27 @@ const AddEditPembelianPage = () => {
             return;
         }
 
-        // Jika dalam mode edit dan item sudah ada di database (memiliki encrypted PID)
-        if (isEdit && (item.encryptedPid || item.pid || item.pubidDetail)) {
+        // Check if this is an existing item from database or a new frontend-only item
+        const hasDetailIdentifier = !!(item.encryptedPid || item.pid || item.pubidDetail);
+        const isTimestampId = typeof item.id === 'number' && item.id > 1000000000; // Timestamp-based IDs are > 1B
+        const isSequentialId = typeof item.id === 'number' && item.id < 1000; // Sequential IDs from database are usually small
+        
+        // An item is existing if it has detail identifier AND is sequential ID (from backend mapping)
+        const isExistingItemInDatabase = hasDetailIdentifier && isSequentialId;
+        
+        // Debug logging untuk memahami delete decision
+        console.log('🗑️ Delete detail decision:', {
+            itemId: item.id,
+            hasDetailIdentifier,
+            isTimestampId,
+            isSequentialId,
+            isExistingItemInDatabase,
+            isEdit,
+            willDeleteFromDatabase: isEdit && isExistingItemInDatabase
+        });
+        
+        // Jika dalam mode edit dan item sudah ada di database (existing item)
+        if (isEdit && isExistingItemInDatabase) {
             const confirmed = window.confirm(
                 `Apakah Anda yakin ingin menghapus detail ternak dengan eartag "${item.eartag || 'N/A'}"? \n\nTindakan ini tidak dapat dibatalkan dan akan menghapus data dari database.`
             );
@@ -967,6 +988,11 @@ const AddEditPembelianPage = () => {
                         type: 'success',
                         message: result.message || 'Detail ternak berhasil dihapus dari database'
                     });
+                    
+                    // Auto hard refresh setelah delete berhasil dalam mode edit
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500); // Delay 1.5 detik untuk memberi waktu user melihat notification
                 } else {
                     setNotification({
                         type: 'error',
@@ -1029,7 +1055,7 @@ const AddEditPembelianPage = () => {
         try {
             // Prepare detail data for save - use snake_case format for backend compatibility
             const detailData = {
-                id_pembelian: headerData.encryptedPid || id,
+                id_pembelian: item.idPembelian || null, // Use item's id_pembelian if available (for existing items)
                 id_office: parseInt(headerData.idOffice) || 1,
                 eartag: String(item.eartag || ''),
                 eartag_supplier: String(item.eartagSupplier || ''),
@@ -1048,14 +1074,33 @@ const AddEditPembelianPage = () => {
             const isTimestampId = typeof item.id === 'number' && item.id > 1000000000; // Timestamp-based IDs are > 1B
             const isSequentialId = typeof item.id === 'number' && item.id < 1000; // Sequential IDs from database are usually small
             
-            // An item is existing if it has detail identifier AND is not a timestamp-based frontend ID
-            const isExistingItem = hasDetailIdentifier && !isTimestampId;
+            // An item is existing if:
+            // 1. Has detail identifier (encrypted pid) AND is sequential ID (from backend mapping)
+            // 2. OR has detail identifier AND is not timestamp ID
+            const isExistingItem = hasDetailIdentifier && (isSequentialId || !isTimestampId);
+            
+            // Debug logging untuk memahami classification
+            console.log('🔍 Detail item classification:', {
+                itemId: item.id,
+                hasDetailIdentifier,
+                isTimestampId,
+                isSequentialId,
+                isExistingItem,
+                encryptedPid: item.encryptedPid,
+                pid: item.pid,
+                pubidDetail: item.pubidDetail
+            });
             
             // Classify item type for proper save operation
 
             let result;
             if (isExistingItem) {
                 // This is an existing database item - use updateDetail
+                // Validate that we have id_pembelian for backend validation
+                if (!detailData.id_pembelian) {
+                    throw new Error('ID pembelian tidak ditemukan untuk detail existing. Data mungkin tidak lengkap.');
+                }
+                
                 const updateData = {
                     idPembelian: detailData.id_pembelian,
                     idOffice: detailData.id_office,
@@ -1071,8 +1116,34 @@ const AddEditPembelianPage = () => {
                 const detailPid = item.encryptedPid || item.pid || item.pubidDetail;
                 result = await updateDetail(detailPid, updateData);
             } else {
-                // This is a new item created in frontend - use saveDetailsOnly to create
-                result = await saveDetailsOnly(headerData.encryptedPid || id, [detailData]);
+                // This is a new item created in frontend - use updateDetail with null pid to create new detail
+                // Get id_pembelian from existing detail items or fallback method
+                let idPembelianValue = null;
+                
+                // Try to get id_pembelian from existing detail items
+                const existingDetailWithId = detailItems.find(item => item.idPembelian);
+                if (existingDetailWithId) {
+                    idPembelianValue = existingDetailWithId.idPembelian;
+                } else {
+                    // Fallback: For new pembelian without existing details, use header ID from backend response
+                    // This should not happen in edit mode since we need existing header, but adding as safety
+                    console.warn('⚠️ No existing detail with id_pembelian found. Cannot create new detail without valid id_pembelian.');
+                    throw new Error('Tidak dapat menambah detail baru: ID pembelian tidak ditemukan. Pastikan header pembelian sudah disimpan dan detail lain sudah ada.');
+                }
+                
+                const createData = {
+                    idPembelian: idPembelianValue, // Use the resolved id_pembelian
+                    idOffice: detailData.id_office,
+                    eartag: detailData.eartag,
+                    eartagSupplier: detailData.eartag_supplier,
+                    idKlasifikasiHewan: detailData.id_klasifikasi_hewan,
+                    harga: detailData.harga,
+                    berat: detailData.berat,
+                    persentase: detailData.persentase,
+                    hpp: detailData.hpp,
+                    totalHarga: detailData.total_harga
+                };
+                result = await updateDetail(null, createData); // null pid will trigger create in backend
             }
 
             if (result.success) {
@@ -1091,6 +1162,11 @@ const AddEditPembelianPage = () => {
                         )
                     );
                 }
+                
+                // Auto hard refresh setelah save berhasil dalam mode edit
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500); // Delay 1.5 detik untuk memberi waktu user melihat notification
                 
                 // Note: We don't do full refresh here to avoid losing user's unsaved changes
                 // The API show endpoint doesn't return id_klasifikasi_hewan and eartag_supplier

@@ -22,6 +22,8 @@ const AddEditPembelianFeedmilPage = () => {
         getPembelianDetail,
         createPembelian,
         updatePembelian,
+        fetchPembelian,
+        pembelian: pembelianList,
         loading,
         error
     } = usePembelianFeedmil();
@@ -99,6 +101,14 @@ const AddEditPembelianFeedmilPage = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []); // Intentionally empty - we only want to fetch once on mount
 
+    // Load pembelian list first for header data (similar to regular pembelian page)
+    useEffect(() => {
+        if (!pembelianList || pembelianList.length === 0) {
+            console.log('🔄 Loading pembelian feedmil list...');
+            fetchPembelian(1, 1000, '', '', false); // Fetch large list to get all header data
+        }
+    }, [fetchPembelian, pembelianList]);
+
 
 
     // Helper functions for number formatting
@@ -112,60 +122,165 @@ const AddEditPembelianFeedmilPage = () => {
         return parseInt(value.toString().replace(/\./g, '')) || 0;
     };
 
-    // Load data untuk edit mode
+    // Load data untuk edit mode - fetch header from list first, then details
     useEffect(() => {
-        if (isEdit && id) {
+        // Check if we have the required data for edit mode - simplified conditions
+        const isDataReady = pembelianList && suppliers;
+        const hasRequiredData = isDataReady; // Simplified - just need the arrays to exist
+        
+        console.log('🔍 Edit mode data check:', {
+            isEdit,
+            id,
+            hasPembelianList: !!pembelianList,
+            pembelianListLength: pembelianList?.length || 0,
+            hasSuppliers: !!suppliers,
+            suppliersLength: suppliers?.length || 0,
+            hasSupplierOptions: !!supplierOptions,
+            supplierOptionsLength: supplierOptions?.length || 0,
+            isDataReady,
+            hasRequiredData
+        });
+        
+        // Try to load data if we're in edit mode and have an ID, even with partial data
+        if (isEdit && id && (isDataReady || suppliers)) {
             const loadEditData = async () => {
                 try {
                     const decodedId = decodeURIComponent(id);
-                    const result = await getPembelianDetail(decodedId);
                     
+                    console.log('🔄 Starting edit data load for ID:', { originalId: id, decodedId });
+                    
+                    // 1. First get detail data from show endpoint to get the nota
+                    const result = await getPembelianDetail(decodedId);
+                    console.log('📋 Detail result:', result);
+                    
+                    if (!result.success || !result.data || result.data.length === 0) {
+                        throw new Error('Tidak dapat mengambil detail data pembelian');
+                    }
+                    
+                    const firstDetail = result.data[0];
+                    console.log('📄 First detail item:', firstDetail);
+                    
+                    // 2. Find header data from pembelian list - try multiple methods
+                    let headerDataFromList = null;
+                    
+                    // Method 1: Try PID matching
+                    if (!headerDataFromList) {
+                        headerDataFromList = pembelianList.find(item => item.encryptedPid === id);
+                        if (headerDataFromList) {
+                            console.log('✅ Found by original PID:', id);
+                        }
+                    }
+                    
+                    // Method 2: Try decoded PID matching  
+                    if (!headerDataFromList) {
+                        headerDataFromList = pembelianList.find(item => item.encryptedPid === decodedId);
+                        if (headerDataFromList) {
+                            console.log('✅ Found by decoded PID:', decodedId);
+                        }
+                    }
+                    
+                    // Method 3: PRIMARY - Try nota matching (most reliable)
+                    if (!headerDataFromList && firstDetail.nota && pembelianList && pembelianList.length > 0) {
+                        headerDataFromList = pembelianList.find(item => item.nota === firstDetail.nota);
+                        if (headerDataFromList) {
+                            console.log('✅ Found by nota matching:', firstDetail.nota);
+                        }
+                    }
+                    
+                    // If still no header data found and pembelianList is empty, we'll use only detail data
+                    if (!headerDataFromList) {
+                        console.log('⚠️ No header data found in list, will use detail data only');
+                    }
+                    
+                    console.log('🎯 Final header data from list:', headerDataFromList);
+                    console.log('📋 Available pembelian list for reference:', pembelianList?.map(item => ({
+                        pid: item.encryptedPid,
+                        nota: item.nota,
+                        nama_supplier: item.nama_supplier
+                    })) || 'Empty list');
+                    
+                    // 3. Process the data for form population
                     if (result.success && result.data.length > 0) {
-                        const data = result.data[0];
+                        // Handle supplier selection - jenis_pembelian might contain supplier info like "SUPPLIER (PERUSAHAAN)"
+                        let supplierName = headerDataFromList?.nama_supplier || firstDetail.nama_supplier;
+                        let supplierIdFromName = '';
                         
-                        // Load header data
-                        setHeaderData({
-                            nota: data.nota || '',
-                            idOffice: 'head-office',
-                            tipePembelian: data.tipe_pembelian || data.tipePembelian || data.jenis_pembelian || '', // Use tipe_pembelian from backend (integer)
-                            idSupplier: data.idSupplier || '',
-                            tgl_masuk: data.tgl_masuk || '',
-                            nama_supir: data.nama_supir || '',
-                            plat_nomor: data.plat_nomor || '',
-                            biaya_truck: data.biaya_truk || data.biaya_truck || 0, // Aligned with backend field name
-                            biaya_lain: data.biaya_lain || 0,
-                            berat_total: data.berat_total || 0,
-                            harga_total: data.biaya_total || data.harga_total || 0, // Aligned with backend field name
-                            total_feedmil: data.jumlah || data.total_feedmil || 0, // Aligned with backend field name
-                            file: data.file || '',
-                            fileName: data.fileName || '',
-                            note: data.note || '' // Add note field for backend requirement
-                        });
-
-                        // Load detail items (mock detail items untuk feedmil)
-                        const totalItems = data.jumlah || 1;
-                        const pricePerItem = (data.biaya_total || 0) / totalItems;
-                        const weightPerItem = (data.berat_total || 0) / totalItems;
-                        
-                        const detailData = [];
-                        for (let i = 1; i <= totalItems; i++) {
-                            const harga = pricePerItem || 300000;
-                            const persentase = 15; // Default 15% markup - fixed spelling
-                            const hpp = harga + (harga * persentase / 100); // HPP = harga + markup persen
+                        // If nama_supplier is null but we have jenis_pembelian with supplier info
+                        if (!supplierName) {
+                            const jenisPembelian = headerDataFromList?.jenis_pembelian || firstDetail.jenis_pembelian;
+                            console.log('🔍 Checking jenis_pembelian for supplier info:', jenisPembelian);
                             
-                            detailData.push({
-                                id: i,
-                                item_name: `Feedmil Item ${i}`,
-                                id_klasifikasi_feedmil: `FEEDMIL-00${i}`, // Fix: changed from id_klasifikasi_ovk
-                                berat: Math.round(weightPerItem) || 50,
-                                harga: harga,
-                                persentase: persentase, // Fix: correct spelling
-                                hpp: hpp,
-                                tgl_masuk_rph: data.tgl_masuk || new Date().toISOString().split('T')[0]
-                            });
+                            // Don't use jenis_pembelian as supplier name - it's classification, not supplier name
+                            // Leave supplier empty if nama_supplier is null
+                            supplierName = null;
                         }
                         
-                        setDetailItems(detailData);
+                        // Find supplier ID from name if we have a valid supplier name
+                        if (supplierName) {
+                            supplierIdFromName = suppliers.find(s => s.name === supplierName)?.id || '';
+                        }
+                        
+                        console.log('🏢 Supplier ID matching:', {
+                            headerSupplierName: headerDataFromList?.nama_supplier,
+                            detailSupplierName: firstDetail.nama_supplier,
+                            jenisPembelian: headerDataFromList?.jenis_pembelian || firstDetail.jenis_pembelian,
+                            finalSupplierName: supplierName,
+                            foundId: supplierIdFromName,
+                            isSupplierNull: supplierName === null,
+                            availableSuppliers: suppliers.map(s => ({ id: s.id, name: s.name }))
+                        });
+                        
+                        // Use header data from list if available, fallback to detail data
+                        const headerDataToUse = headerDataFromList || {};
+                        const detailDataFallback = firstDetail || {};
+                        
+                        // Prepare final header data for form population
+                        const finalHeaderData = {
+                            nota: headerDataToUse.nota || detailDataFallback.nota || '',
+                            idOffice: 'head-office',
+                            // FIXED: Don't map jenis_pembelian to tipePembelian - tipePembelian should be external/internal classification
+                            tipePembelian: headerDataToUse.tipe_pembelian_id || detailDataFallback.tipe_pembelian_id || '', // Use proper tipe_pembelian field
+                            idSupplier: supplierIdFromName || '', // Use matched supplier ID from name (handle null case)
+                            tgl_masuk: headerDataToUse.tgl_masuk || detailDataFallback.tgl_masuk || '',
+                            nama_supir: headerDataToUse.nama_supir || detailDataFallback.nama_supir || '',
+                            plat_nomor: headerDataToUse.plat_nomor || detailDataFallback.plat_nomor || '',
+                            biaya_truck: parseFloat(headerDataToUse.biaya_truk) || parseFloat(detailDataFallback.biaya_truk) || 0,
+                            biaya_lain: parseFloat(headerDataToUse.biaya_lain) || parseFloat(detailDataFallback.biaya_lain) || 0,
+                            berat_total: parseFloat(headerDataToUse.berat_total) || parseFloat(detailDataFallback.berat_total) || 0,
+                            harga_total: parseFloat(headerDataToUse.biaya_total) || parseFloat(detailDataFallback.biaya_total) || 0, // Backend uses biaya_total
+                            total_feedmil: parseInt(headerDataToUse.jumlah) || parseInt(detailDataFallback.jumlah) || result.data.length,
+                            file: headerDataToUse.file || detailDataFallback.file || '',
+                            fileName: headerDataToUse.file_name || detailDataFallback.file_name || '',
+                            note: headerDataToUse.note || detailDataFallback.note || ''
+                        };
+                        
+                        console.log('📝 Final header data being set:', finalHeaderData);
+                        console.log('🔍 Backend field analysis:', {
+                            'jenis_pembelian (supplier classification)': headerDataToUse.jenis_pembelian || detailDataFallback.jenis_pembelian,
+                            'tipe_pembelian (external/internal)': headerDataToUse.tipe_pembelian || detailDataFallback.tipe_pembelian,
+                            'tipe_pembelian_id': headerDataToUse.tipe_pembelian_id || detailDataFallback.tipe_pembelian_id,
+                            'nama_supplier': headerDataToUse.nama_supplier || detailDataFallback.nama_supplier
+                        });
+                        
+                        // Load header data - matching exact backend response structure
+                        setHeaderData(finalHeaderData);
+
+                        // Transform detail items from backend data
+                        const transformedDetailItems = result.data.map((item, index) => ({
+                            id: index + 1,
+                            item_name: item.item_name || `Feedmil Item ${index + 1}`,
+                            id_klasifikasi_feedmil: item.id_klasifikasi_feedmil || '',
+                            berat: parseInt(item.berat) || 0,
+                            harga: parseFloat(item.harga) || 0,
+                            persentase: parseFloat(item.persentase) || 0,
+                            hpp: parseFloat(item.hpp) || 0,
+                            tgl_masuk_rph: item.tgl_masuk_rph || new Date().toISOString().split('T')[0]
+                        }));
+                        
+                        console.log('🗂️ Detail items being set:', transformedDetailItems);
+                        setDetailItems(transformedDetailItems);
+                        
+                        console.log('✅ Data loading completed successfully!');
                     }
                 } catch (error) {
                     console.error('Error loading edit data:', error);
@@ -178,7 +293,7 @@ const AddEditPembelianFeedmilPage = () => {
             
             loadEditData();
         }
-    }, [isEdit, id, getPembelianDetail]);
+    }, [isEdit, id, getPembelianDetail, pembelianList, suppliers, supplierOptions]);
 
 
 

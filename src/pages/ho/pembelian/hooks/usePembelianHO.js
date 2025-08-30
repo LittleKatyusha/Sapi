@@ -750,10 +750,10 @@ const usePembelianHO = () => {
         
         try {
             // Backend now uses post method and expects specific detail fields
-            const result = await HttpClient.post(`${API_ENDPOINTS.HO.PEMBELIAN}/update`, {
-                pid: encryptedPid, // Backend expects encrypted PID
-                id_pembelian: detailData.idPembelian, 
-                id_office: parseInt(detailData.idOffice),
+            // Backend validator always requires id_pembelian for detail operations
+            const requestData = {
+                pid: encryptedPid, // Backend expects encrypted PID (null for new items)
+                id_pembelian: detailData.idPembelian, // Always required by backend validator
                 eartag: String(detailData.eartag),
                 eartag_supplier: String(detailData.eartagSupplier || ''), // Add eartag_supplier
                 id_klasifikasi_hewan: parseInt(detailData.idKlasifikasiHewan),
@@ -762,7 +762,14 @@ const usePembelianHO = () => {
                 berat: parseInt(detailData.berat),
                 hpp: parseFloat(detailData.hpp),
                 total_harga: parseFloat(detailData.totalHarga)
-            });
+            };
+            
+            // Add id_office for new detail creation (when pid is null)
+            if (!encryptedPid) {
+                requestData.id_office = parseInt(detailData.idOffice);
+            }
+            
+            const result = await HttpClient.post(`${API_ENDPOINTS.HO.PEMBELIAN}/update`, requestData);
             
             return {
                 success: result.status === 'ok' || result.success === true,

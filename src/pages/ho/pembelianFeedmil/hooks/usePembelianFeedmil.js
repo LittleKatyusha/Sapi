@@ -58,7 +58,8 @@ const usePembelianFeedmil = () => {
                     id: item.pid, // Use encrypted pid as id
                     encryptedPid: item.pid,
                     nota: item.nota,
-                    nama_supplier: item.nama_supplier,
+                    nama_supplier: item.nama_supplier, // Can be null according to backend
+                    nama_office: item.nama_office,
                     tgl_masuk: item.tgl_masuk,
                     nama_supir: item.nama_supir,
                     plat_nomor: item.plat_nomor,
@@ -66,9 +67,12 @@ const usePembelianFeedmil = () => {
                     satuan: 'sak', // Default unit
                     berat_total: item.berat_total,
                     biaya_total: item.biaya_total,
+                    total_belanja: item.total_belanja, // Add total_belanja field from backend
                     biaya_lain: item.biaya_lain,
                     biaya_truk: item.biaya_truk,
-                    jenis_pembelian: item.jenis_pembelian || 'Feedmil',
+                    jenis_pembelian: item.jenis_pembelian || 'Feedmil', // This is supplier classification like "SUPPLIER (PERUSAHAAN)"
+                    tipe_pembelian: item.tipe_pembelian, // This should be external/internal classification
+                    tipe_pembelian_id: item.tipe_pembelian_id || item.tipe_pembelian, // ID for external/internal
                     file: item.file,
                     note: item.note
                 }));
