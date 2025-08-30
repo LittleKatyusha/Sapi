@@ -733,7 +733,7 @@ const usePembelianHO = () => {
                 eartag_supplier: String(detailData.eartagSupplier || ''), // Add eartag_supplier
                 id_klasifikasi_hewan: parseInt(detailData.idKlasifikasiHewan),
                 harga: parseFloat(detailData.harga),
-                persentase: parseInt(detailData.persentase) || 0,
+                persentase: detailData.persentase || 0,
                 berat: parseInt(detailData.berat),
                 hpp: parseFloat(detailData.hpp),
                 total_harga: parseFloat(detailData.totalHarga)
