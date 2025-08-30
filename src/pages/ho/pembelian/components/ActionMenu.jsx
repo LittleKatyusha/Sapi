@@ -143,13 +143,6 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef }) => 
         }
     };
 
-    // Debug logging untuk melihat data row
-    console.log('🔍 Row data for actions:', {
-        file: row.file,
-        nota: row.nota,
-        hasFile: !!row.file
-    });
-
     const actions = [
         {
             label: 'Lihat Detail',
