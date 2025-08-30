@@ -76,15 +76,7 @@ const OfficeDetailModal = ({ isOpen, onClose, data, getKategoriName }) => {
                         </span>
                     </div>
 
-                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl">
-                        <div className="flex items-center">
-                            <Hash className="w-5 h-5 text-gray-600 mr-3" />
-                            <span className="text-sm font-semibold text-gray-700">Order Number</span>
-                        </div>
-                        <span className="text-sm font-medium text-gray-800 bg-white px-3 py-1 rounded-full border">
-                            #{data.order_no}
-                        </span>
-                    </div>
+
 
                     {data.location && (
                         <div className="flex items-center justify-between p-4 bg-blue-50 rounded-2xl">

@@ -84,11 +84,7 @@ const KlasifikasiFeedmilDetailModal = ({
                 </div>
                 <h4 className="font-semibold text-gray-900">Nomor Urutan</h4>
               </div>
-              <p className="text-gray-700 ml-10">
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium bg-orange-100 text-orange-800">
-                  {item.order_no}
-                </span>
-              </p>
+
             </div>
           </div>
 

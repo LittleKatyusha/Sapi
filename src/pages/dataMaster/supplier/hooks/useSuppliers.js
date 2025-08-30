@@ -122,7 +122,7 @@ const useSuppliers = () => {
                     description: item.description || '',
                     address: item.address || item.address || '',
                     status: item.status !== undefined ? item.status : 1,
-                    order_no: item.order_no || index + 1,
+
                     jenis_supplier: item.jenis_supplier || '',
                     kategori_supplier: item.kategori_supplier || ''
                 }));
@@ -143,7 +143,7 @@ const useSuppliers = () => {
                     name: "PT. Sumber Berkah",
                     description: "Supplier pakan ternak berkualitas tinggi",
                     address: "Jl. Raya Bogor No. 123, Jakarta Selatan",
-                    order_no: 1,
+
                     jenis_supplier: "Perusahaan",
                     kategori_supplier: "Ternak",
                     status: 1
@@ -154,7 +154,7 @@ const useSuppliers = () => {
                     name: "CV. Mitra Tani",
                     description: "Supplier obat-obatan hewan dan vitamin",
                     address: "Jl. Gatot Subroto No. 456, Jakarta Pusat",
-                    order_no: 2,
+
                     jenis_supplier: "Perusahaan",
                     kategori_supplier: "Feedmil",
                     status: 1
@@ -165,7 +165,7 @@ const useSuppliers = () => {
                     name: "UD. Cahaya Mandiri",
                     description: "Supplier peralatan peternakan",
                     address: "Jl. Sudirman No. 789, Jakarta Barat",
-                    order_no: 3,
+
                     jenis_supplier: "Perorangan",
                     kategori_supplier: "Ovk",
                     status: 0
@@ -176,7 +176,7 @@ const useSuppliers = () => {
                     name: "PT. Agro Nusantara",
                     description: "Supplier bibit dan pakan organik",
                     address: "Jl. Thamrin No. 321, Jakarta Utara",
-                    order_no: 4,
+
                     jenis_supplier: "Perusahaan",
                     kategori_supplier: "Ternak",
                     status: 1
@@ -187,7 +187,7 @@ const useSuppliers = () => {
                     name: "CV. Jaya Abadi",
                     description: "Supplier alat kesehatan hewan",
                     address: "Jl. Hayam Wuruk No. 654, Jakarta Timur",
-                    order_no: 5,
+
                     jenis_supplier: "Perusahaan",
                     kategori_supplier: "Feedmil",
                     status: 1
@@ -215,15 +215,13 @@ const useSuppliers = () => {
         }
         
         try {
-            // Generate order_no automatically based on existing suppliers
-            const maxOrderNo = suppliers.length > 0 ? Math.max(...suppliers.map(s => s.order_no || 0)) : 0;
-            const newOrderNo = maxOrderNo + 1;
+
             
             const cleanSupplierData = {
                 name: String(supplierData.name).trim(),
                 description: String(supplierData.description).trim(),
                 address: String(supplierData.address).trim(),
-                order_no: newOrderNo,
+
                 jenis_supplier: parseInt(supplierData.jenis_supplier, 10),
                 kategori_supplier: parseInt(supplierData.kategori_supplier, 10),
                 status: parseInt(supplierData.status, 10)
@@ -276,7 +274,7 @@ const useSuppliers = () => {
                 name: String(supplierData.name).trim(),
                 description: String(supplierData.description).trim(),
                 address: String(supplierData.address).trim(),
-                order_no: supplier.order_no || 1, // Keep existing order_no for updates
+
                 jenis_supplier: parseInt(supplierData.jenis_supplier, 10),
                 kategori_supplier: parseInt(supplierData.kategori_supplier, 10),
                 status: parseInt(supplierData.status, 10)
@@ -470,8 +468,8 @@ const useSuppliers = () => {
                     mimeType = 'application/json';
                     break;
                 case 'csv':
-                    const csvHeaders = 'ID,Nama,Deskripsi,Alamat,Urutan,Jenis,Kategori,Status\n';
-                    const csvData = `${supplierData.pubid},"${supplierData.name}","${supplierData.description || ''}","${supplierData.address || ''}",${supplierData.order_no},"${supplierData.jenis_supplier || ''}","${supplierData.kategori_supplier || ''}",${supplierData.status === 1 ? 'Aktif' : 'Tidak Aktif'}`;
+                    const csvHeaders = 'ID,Nama,Deskripsi,Alamat,Jenis,Kategori,Status\n';
+                    const csvData = `${supplierData.pubid},"${supplierData.name}","${supplierData.description || ''}","${supplierData.address || ''}","${supplierData.jenis_supplier || ''}","${supplierData.kategori_supplier || ''}",${supplierData.status === 1 ? 'Aktif' : 'Tidak Aktif'}`;
                     exportData = csvHeaders + csvData;
                     filename = `supplier_${supplierData.pubid}_${new Date().toISOString().split('T')[0]}.csv`;
                     mimeType = 'text/csv';

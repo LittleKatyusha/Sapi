@@ -33,7 +33,7 @@ const useKlasifikasiFeedmil = () => {
             pid: item.pid || item.pubid, // encrypted PID from backend
             name: item.name || 'Nama tidak tersedia',
             description: item.description || '',
-            order_no: item.order_no || index + 1,
+
           };
         });
         
@@ -51,35 +51,35 @@ const useKlasifikasiFeedmil = () => {
           pid: "kf-001-fallback",
           name: "Pakan Starter",
           description: "Pakan untuk ternak muda umur 0-8 minggu",
-          order_no: 1,
+
         },
         {
           pubid: "kf-002-fallback",
           pid: "kf-002-fallback",
           name: "Pakan Grower",
           description: "Pakan untuk ternak umur 9-20 minggu",
-          order_no: 2,
+
         },
         {
           pubid: "kf-003-fallback",
           pid: "kf-003-fallback",
           name: "Pakan Finisher",
           description: "Pakan untuk ternak siap potong umur 21+ minggu",
-          order_no: 3,
+
         },
         {
           pubid: "kf-004-fallback",
           pid: "kf-004-fallback",
           name: "Pakan Layer",
           description: "Pakan untuk ternak petelur",
-          order_no: 4,
+
         },
         {
           pubid: "kf-005-fallback",
           pid: "kf-005-fallback",
           name: "Pakan Breeder",
           description: "Pakan untuk indukan ternak",
-          order_no: 5,
+
         },
       ]);
     } finally {
@@ -196,9 +196,7 @@ const useKlasifikasiFeedmil = () => {
       errors.push('Deskripsi wajib diisi');
     }
     
-    if (!data.order_no || isNaN(data.order_no) || data.order_no <= 0) {
-      errors.push('Nomor urutan harus berupa angka positif');
-    }
+
     
     return {
       isValid: errors.length === 0,

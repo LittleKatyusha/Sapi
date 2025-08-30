@@ -7,7 +7,6 @@ const AddEditKlasifikasiHewanModal = ({ item, onClose, onSave, loading, jenisHew
     name: "",
     id_jenis_hewan: 1,
     description: "",
-    order_no: "",
     status: 1
   });
   const isEditMode = !!item;
@@ -93,21 +92,7 @@ const AddEditKlasifikasiHewanModal = ({ item, onClose, onSave, loading, jenisHew
               />
             </div>
             
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                No
-              </label>
-              <input
-                type="number"
-                name="order_no"
-                value={formData.order_no}
-                onChange={handleChange}
-                className="input-field w-full"
-                placeholder="Nomor klasifikasi"
-                min="1"
-                required
-              />
-            </div>
+
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">

@@ -41,7 +41,7 @@ const useJenisHewan = () => {
             encryptedPid: "jh-001-uuid",
             name: "Sapi",
             description: "Jenis hewan ternak sapi untuk produksi daging dan susu",
-            order_no: 1,
+  
             status: 1
           },
           {
@@ -49,7 +49,7 @@ const useJenisHewan = () => {
             encryptedPid: "jh-002-uuid",
             name: "Domba",
             description: "Jenis hewan ternak domba untuk produksi wol dan daging",
-            order_no: 2,
+  
             status: 1
           },
           {
@@ -57,7 +57,7 @@ const useJenisHewan = () => {
             encryptedPid: "jh-003-uuid",
             name: "Kambing",
             description: "Jenis hewan ternak kambing untuk produksi susu dan daging",
-            order_no: 3,
+  
             status: 1
           }
         ]);
@@ -73,7 +73,7 @@ const useJenisHewan = () => {
           encryptedPid: item.pid || item.pubid,
           name: item.name || 'Nama tidak tersedia',
           description: item.description || '',
-          order_no: item.order_no || index + 1,
+
           status: item.status !== undefined ? item.status : 1
         }));
         
@@ -92,7 +92,7 @@ const useJenisHewan = () => {
           encryptedPid: "jh-001-uuid",
           name: "Sapi",
           description: "Jenis hewan ternak sapi untuk produksi daging dan susu",
-          order_no: 1,
+
           status: 1
         },
         {
@@ -100,7 +100,7 @@ const useJenisHewan = () => {
           encryptedPid: "jh-002-uuid",
           name: "Domba",
           description: "Jenis hewan ternak domba untuk produksi wol dan daging",
-          order_no: 2,
+
           status: 1
         },
         {
@@ -108,7 +108,7 @@ const useJenisHewan = () => {
           encryptedPid: "jh-003-uuid",
           name: "Kambing",
           description: "Jenis hewan ternak kambing untuk produksi susu dan daging",
-          order_no: 3,
+
           status: 1
         }
       ]);
@@ -122,7 +122,7 @@ const useJenisHewan = () => {
     setLoading(true);
     setError(null);
     
-    const requiredParams = ['name', 'description', 'order_no', 'status'];
+    const requiredParams = ['name', 'description', 'status'];
     const missingParams = requiredParams.filter(param =>
       jenisHewanData[param] === undefined || jenisHewanData[param] === null || jenisHewanData[param] === ''
     );
@@ -137,7 +137,7 @@ const useJenisHewan = () => {
       const cleanJenisHewanData = {
         name: String(jenisHewanData.name).trim(),
         description: String(jenisHewanData.description).trim(),
-        order_no: parseInt(jenisHewanData.order_no, 10),
+
         status: parseInt(jenisHewanData.status, 10)
       };
       
@@ -173,7 +173,7 @@ const useJenisHewan = () => {
         jenisHewanItem.encryptedPid = pubid;
       }
       
-      const requiredParams = ['name', 'description', 'order_no', 'status'];
+      const requiredParams = ['name', 'description', 'status'];
       const missingParams = requiredParams.filter(param =>
         jenisHewanData[param] === undefined || jenisHewanData[param] === null || jenisHewanData[param] === ''
       );
@@ -187,7 +187,7 @@ const useJenisHewan = () => {
       const cleanData = {
         name: String(jenisHewanData.name).trim(),
         description: String(jenisHewanData.description).trim(),
-        order_no: parseInt(jenisHewanData.order_no, 10),
+
         status: parseInt(jenisHewanData.status, 10)
       };
       

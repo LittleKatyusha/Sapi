@@ -36,10 +36,21 @@ const customTableStyles = {
                 position: 'sticky',
                 left: 0,
                 backgroundColor: 'linear-gradient(90deg, #f8fafc 0%, #e0e7ff 100%)',
-                zIndex: 10,
+                zIndex: 11,
                 textAlign: 'center',
                 minWidth: '48px',
                 maxWidth: '48px',
+                borderRight: '2px solid #e2e8f0',
+            },
+            '&:nth-of-type(2)': {
+                position: 'sticky',
+                left: '48px',
+                backgroundColor: 'linear-gradient(90deg, #f8fafc 0%, #e0e7ff 100%)',
+                zIndex: 10,
+                textAlign: 'center',
+                minWidth: '60px',
+                maxWidth: '60px',
+                borderLeft: '2px solid #e2e8f0',
                 borderRight: '2px solid #e2e8f0',
             }
         }
@@ -68,9 +79,19 @@ const customTableStyles = {
                 position: 'sticky',
                 left: 0,
                 backgroundColor: '#fff',
+                zIndex: 6,
+                textAlign: 'center',
+                fontWeight: '600',
+                borderRight: '2px solid #f1f5f9',
+            },
+            '&:nth-of-type(2)': {
+                position: 'sticky',
+                left: '48px',
+                backgroundColor: '#fff',
                 zIndex: 5,
                 textAlign: 'center',
                 fontWeight: '600',
+                borderLeft: '2px solid #f1f5f9',
                 borderRight: '2px solid #f1f5f9',
             }
         }
@@ -300,15 +321,15 @@ const enhancedTableStyles = {
                 justifyContent: 'center',
                 textAlign: 'center !important',
             },
-            // Sticky "Aksi" column styling  
-            '&:last-child': {
+            // Sticky "Aksi" column styling - now second column (nth-child(2))
+            '&:nth-child(2)': {
                 position: 'sticky',
-                right: 0,
+                left: '60px', // Position after the No column width
                 zIndex: 1001,
                 backgroundColor: '#f8fafc',
                 borderLeft: '2px solid #e5e7eb',
-                borderRight: 'none',
-                boxShadow: '-1px 0 2px rgba(0, 0, 0, 0.05)',
+                borderRight: '2px solid #e5e7eb',
+                boxShadow: '1px 0 2px rgba(0, 0, 0, 0.05)',
                 willChange: 'transform',
                 minWidth: '80px',
                 maxWidth: '80px',
@@ -363,15 +384,15 @@ const enhancedTableStyles = {
                 minWidth: '60px',
                 maxWidth: '60px',
             },
-            // Sticky "Aksi" column styling
-            '&:last-child': {
+            // Sticky "Aksi" column styling - now second column (nth-child(2))
+            '&:nth-child(2)': {
                 position: 'sticky',
-                right: 0,
+                left: '60px', // Position after the No column width
                 zIndex: 998,
                 backgroundColor: '#ffffff !important',
                 borderLeft: '2px solid #e5e7eb',
-                borderRight: 'none',
-                boxShadow: '-1px 0 2px rgba(0, 0, 0, 0.05)',
+                borderRight: '2px solid #e5e7eb',
+                boxShadow: '1px 0 2px rgba(0, 0, 0, 0.05)',
                 willChange: 'transform',
                 display: 'flex',
                 alignItems: 'center',

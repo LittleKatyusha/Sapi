@@ -187,10 +187,7 @@ const SupplierDetailModal = ({ isOpen, onClose, data }) => {
                                 <span className="text-sm font-semibold text-yellow-700">Informasi Tambahan</span>
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                                <div>
-                                    <span className="text-gray-600">Nomor Urut:</span>
-                                    <span className="ml-2 font-medium text-gray-800">{data.order_no || '-'}</span>
-                                </div>
+
                                 <div>
                                     <span className="text-gray-600">Dibuat:</span>
                                     <span className="ml-2 font-medium text-gray-800">{data.created_at || '-'}</span>

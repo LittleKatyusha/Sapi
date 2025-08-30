@@ -170,6 +170,22 @@ const PembelianHOPage = () => {
             )
         },
         {
+            name: 'Aksi',
+            width: '80px',
+            cell: row => (
+                <ActionButton
+                    row={row}
+                    openMenuId={openMenuId}
+                    setOpenMenuId={setOpenMenuId}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                    onDetail={handleDetail}
+                    isActive={openMenuId === (row.id || row.pubid)}
+                />
+            ),
+            ignoreRowClick: true,
+        },
+        {
             name: 'Nota',
             selector: row => row.nota,
             sortable: true,
@@ -357,22 +373,6 @@ const PembelianHOPage = () => {
                     </div>
                 </div>
             )
-        },
-        {
-            name: 'Aksi',
-            width: '80px',
-            cell: row => (
-                <ActionButton
-                    row={row}
-                    openMenuId={openMenuId}
-                    setOpenMenuId={setOpenMenuId}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                    onDetail={handleDetail}
-                    isActive={openMenuId === (row.id || row.pubid)}
-                />
-            ),
-            ignoreRowClick: true,
         },
     ], [openMenuId, filteredData, serverPagination]);
 

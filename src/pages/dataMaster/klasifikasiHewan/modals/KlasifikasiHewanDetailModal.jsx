@@ -14,10 +14,7 @@ const KlasifikasiHewanDetailModal = ({ isOpen, onClose, data }) => {
           </button>
         </div>
         <div className="p-6 space-y-4">
-          <div>
-            <span className="block text-xs text-gray-500 mb-1">No</span>
-            <span className="font-mono text-sm font-semibold text-gray-700 bg-gray-100 px-2 py-1 rounded">{data.order_no}</span>
-          </div>
+
           <div>
             <span className="block text-xs text-gray-500 mb-1">Nama Klasifikasi</span>
             <span className="font-bold text-lg text-gray-800">{data.name}</span>

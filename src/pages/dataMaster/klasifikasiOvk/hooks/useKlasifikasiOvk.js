@@ -33,7 +33,7 @@ const useKlasifikasiOvk = () => {
             pid: item.pid || item.pubid, // encrypted PID from backend
             name: item.name || 'Nama tidak tersedia',
             description: item.description || '',
-            order_no: item.order_no || index + 1,
+
           };
         });
         
@@ -51,28 +51,28 @@ const useKlasifikasiOvk = () => {
           pid: "ko-001-fallback",
           name: "Antibiotik",
           description: "Obat untuk pengobatan infeksi bakteri pada ternak",
-          order_no: 1,
+
         },
         {
           pubid: "ko-002-fallback",
           pid: "ko-002-fallback",
           name: "Vaksin",
           description: "Vaksin untuk pencegahan penyakit pada ternak",
-          order_no: 2,
+
         },
         {
           pubid: "ko-003-fallback",
           pid: "ko-003-fallback",
           name: "Vitamin",
           description: "Suplemen vitamin untuk kesehatan ternak",
-          order_no: 3,
+
         },
         {
           pubid: "ko-004-fallback",
           pid: "ko-004-fallback",
           name: "Desinfektan",
           description: "Bahan kimia untuk sanitasi kandang dan peralatan",
-          order_no: 4,
+
         },
       ]);
     } finally {
@@ -189,9 +189,7 @@ const useKlasifikasiOvk = () => {
       errors.push('Deskripsi wajib diisi');
     }
     
-    if (!data.order_no || isNaN(data.order_no) || data.order_no <= 0) {
-      errors.push('Nomor urutan harus berupa angka positif');
-    }
+
     
     return {
       isValid: errors.length === 0,

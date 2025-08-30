@@ -18,9 +18,7 @@ const CardView = ({ data, onEdit, onDelete, onDetail, openMenuId, setOpenMenuId 
               </span>
             </div>
             <p className="text-sm text-gray-600 mb-2 line-clamp-2">{item.description}</p>
-            <div className="flex items-center justify-between text-xs text-gray-500">
-              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded font-semibold">No: {item.order_no}</span>
-            </div>
+
           </div>
           <div className="ml-2">
             <ActionButton

@@ -41,10 +41,7 @@ const CardView = ({
                   {item.name}
                 </h3>
                 <div className="flex items-center gap-2 mt-1">
-                  <div className="flex items-center gap-1 text-sm text-gray-500">
-                    <Hash className="h-4 w-4" />
-                    <span>#{item.order_no}</span>
-                  </div>
+
                 </div>
               </div>
               
@@ -76,11 +73,7 @@ const CardView = ({
           {/* Card Footer - Quick Actions */}
           <div className="border-t border-gray-100 px-4 py-3 bg-gray-50">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                  Urutan {item.order_no}
-                </span>
-              </div>
+
               
               <div className="flex items-center gap-1">
                 <button

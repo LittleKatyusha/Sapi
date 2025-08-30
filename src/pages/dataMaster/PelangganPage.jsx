@@ -152,9 +152,9 @@ const PelangganPage = () => {
     const columns = useMemo(() => [
         {
             name: 'No.',
-            width: '80px',
+            width: '5%',
             cell: (row, index) => (
-                <div className="font-medium text-gray-600 text-sm">
+                <div className="font-medium text-gray-600 text-sm text-center">
                     {index + 1}
                 </div>
             ),
@@ -164,13 +164,12 @@ const PelangganPage = () => {
             name: 'Nama',
             selector: row => row.name,
             sortable: true,
-            grow: 2,
+            width: '25%',
             cell: row => (
-                <div className="flex items-center">
-                    <Users className="w-4 h-4 text-gray-500 mr-2 flex-shrink-0" />
-                    <div className="flex flex-col">
-                        <span className="text-sm font-medium text-gray-800">{row.name}</span>
-                        <span className="text-xs text-gray-500">Pelanggan</span>
+                <div className="text-center px-2">
+                    <div className="break-words">
+                        <span className="text-sm font-medium text-gray-800 block">{row.name}</span>
+                        <span className="text-xs text-gray-500 block">Pelanggan</span>
                     </div>
                 </div>
             )
@@ -179,14 +178,11 @@ const PelangganPage = () => {
             name: 'Alamat',
             selector: row => row.address,
             sortable: true,
-            grow: 3,
+            width: '35%',
             cell: row => (
-                <div className="flex items-start text-sm text-gray-600">
-                    <MapPin className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0 text-gray-400" />
-                    <div className="max-w-xs">
-                        <p className="truncate" title={row.address || 'Tidak ada alamat'}>
-                            {row.address || '-'}
-                        </p>
+                <div className="text-center px-3 py-2">
+                    <div className="break-words text-sm text-gray-600">
+                        {row.address || '-'}
                     </div>
                 </div>
             )
@@ -195,11 +191,10 @@ const PelangganPage = () => {
             name: 'Kontak',
             selector: row => row.phone,
             sortable: true,
-            grow: 2,
+            width: '15%',
             cell: row => (
-                <div className="flex items-center text-sm text-gray-600">
-                    <Phone className="w-4 h-4 mr-2 flex-shrink-0 text-gray-400" />
-                    <span className="whitespace-nowrap">{row.phone}</span>
+                <div className="text-center px-2">
+                    <span className="text-sm text-gray-600 break-words">{row.phone || '-'}</span>
                 </div>
             )
         },
@@ -207,16 +202,16 @@ const PelangganPage = () => {
             name: 'Status',
             selector: row => row.status,
             sortable: true,
-            grow: 1,
+            width: '10%',
             cell: row => (
-                <div className="flex items-center text-sm text-gray-600">
+                <div className="flex justify-center items-center">
                     <StatusBadge status={row.status} />
                 </div>
             )
         },
         {
             name: 'Aksi',
-            width: '120px',
+            width: '10%',
             cell: row => (
                 <div className="flex items-center justify-center">
                     <ActionButton
@@ -369,7 +364,7 @@ const PelangganPage = () => {
                             </div>
                         ) : viewMode === 'table' ? (
                             <div className={`w-full h-full overflow-x-auto ${openMenuId ? 'pointer-events-none' : ''} flex-1 flex flex-col`}>
-                                <div className="min-w-[340px] sm:min-w-0 h-full flex-1 flex flex-col">
+                                <div className="w-full h-full flex-1 flex flex-col">
                                     <div className="w-full" style={{display: 'flex', flexDirection: 'column', height: '100%'}}>
                                         <DataTable
                                             columns={columns}
@@ -382,15 +377,17 @@ const PelangganPage = () => {
                                                 ...customTableStyles,
                                                 table: {
                                                     style: {
+                                                        ...customTableStyles.table.style,
                                                         minHeight: '100%',
                                                         height: '100%',
-                                                        width: '100%',
                                                         display: 'flex',
                                                         flexDirection: 'column',
+                                                        width: '100%',
                                                     }
                                                 },
                                                 headRow: {
                                                     style: {
+                                                        ...customTableStyles.headRow.style,
                                                         flex: '0 0 auto',
                                                     }
                                                 },
@@ -406,7 +403,7 @@ const PelangganPage = () => {
                                                 },
                                                 rows: {
                                                     style: {
-                                                        minHeight: '48px',
+                                                        ...customTableStyles.rows.style,
                                                         flex: '1 0 auto',
                                                         width: '100%',
                                                     }

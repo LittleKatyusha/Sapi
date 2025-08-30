@@ -3,6 +3,8 @@ const customTableStyles = {
         style: {
             color: '#1f2937',
             backgroundColor: '#ffffff',
+            minWidth: '100%', // Full width
+            width: '100%', // Full width from edge to edge
         },
     },
     headRow: {
@@ -25,6 +27,14 @@ const customTableStyles = {
             paddingRight: '16px',
             paddingTop: '12px',
             paddingBottom: '12px',
+            textAlign: 'center', // Center alignment for headers
+            justifyContent: 'center',
+            display: 'flex',
+            alignItems: 'center',
+            borderRight: '1px solid #e5e7eb', // Vertical borders
+            '&:last-child': {
+                borderRight: 'none', // No border on last column
+            },
         },
     },
     cells: {
@@ -35,6 +45,17 @@ const customTableStyles = {
             paddingBottom: '12px',
             fontSize: '14px',
             color: '#374151',
+            textAlign: 'center', // Center alignment for cells
+            justifyContent: 'center',
+            display: 'flex',
+            alignItems: 'center',
+            borderRight: '1px solid #f3f4f6', // Vertical borders
+            '&:last-child': {
+                borderRight: 'none', // No border on last column
+            },
+            minHeight: '48px', // Dynamic row height base
+            wordWrap: 'break-word', // Word wrapping
+            whiteSpace: 'normal', // Allow text wrapping
         },
     },
     rows: {
@@ -43,6 +64,7 @@ const customTableStyles = {
             borderBottomColor: '#f3f4f6',
             borderBottomWidth: '1px',
             borderBottomStyle: 'solid',
+            minHeight: '60px', // Dynamic row height
             '&:hover': {
                 backgroundColor: '#f9fafb',
                 transition: 'background-color 0.2s ease',

@@ -31,11 +31,7 @@ const CardView = ({ data, onEdit, onDelete, onDetail, openMenuId, setOpenMenuId,
                         />
                     </div>
                     <div className="space-y-4">
-                        <div className="flex items-center justify-end">
-                            <div className="flex items-center text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-full">
-                                <span className="text-xs sm:text-sm">Order: {item.order_no}</span>
-                            </div>
-                        </div>
+
                         
                         {item.location && (
                             <div className="flex items-center text-sm text-gray-600 bg-blue-50 px-3 py-2 rounded-full">

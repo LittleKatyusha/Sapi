@@ -5,7 +5,6 @@ const AddEditJenisHewanModal = ({ item, onClose, onSave, loading }) => {
   const [formData, setFormData] = useState(item || {
     name: "",
     description: "",
-    order_no: "",
     status: 1
   });
   const isEditMode = !!item;
@@ -64,21 +63,7 @@ const AddEditJenisHewanModal = ({ item, onClose, onSave, loading }) => {
               />
             </div>
             
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                No
-              </label>
-              <input
-                type="number"
-                name="order_no"
-                value={formData.order_no}
-                onChange={handleChange}
-                className="input-field w-full"
-                placeholder="Nomor jenis hewan"
-                min="1"
-                required
-              />
-            </div>
+
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">

@@ -18,12 +18,7 @@ const CardView = ({ data, onEdit, onDelete, onDetail, openMenuId, setOpenMenuId 
           <div className="flex justify-between items-start mb-3">
             <div className="flex-1">
               <h3 className="font-bold text-lg text-gray-800 mb-1 line-clamp-1">{item.name}</h3>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-500 font-medium">No:</span>
-                <span className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-2 py-1 rounded-full text-xs font-bold">
-                  {item.order_no}
-                </span>
-              </div>
+
             </div>
             <div className="flex flex-col items-end gap-2">
               <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${

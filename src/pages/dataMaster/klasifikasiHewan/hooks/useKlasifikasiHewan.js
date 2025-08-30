@@ -40,7 +40,7 @@ const useKlasifikasiHewan = () => {
       
       if (result.status === 'ok' && result.data && Array.isArray(result.data)) {
         const validatedOptions = result.data.map((item, index) => ({
-          id: item.order_no || index + 1, // Menggunakan order_no sebagai ID
+          id: index + 1, // Menggunakan index sebagai ID
           pubid: item.pubid,
           name: item.name || 'Nama tidak tersedia'
         }));
@@ -86,7 +86,7 @@ const useKlasifikasiHewan = () => {
             id_jenis_hewan: item.id_jenis_hewan || 1,
             jenis: jenisName,
             description: item.description || '',
-            order_no: item.order_no || index + 1,
+
             status: item.status !== undefined ? item.status : 1
           };
         });
@@ -107,7 +107,7 @@ const useKlasifikasiHewan = () => {
           id_jenis_hewan: 1,
           jenis: getJenisHewanName(1),
           description: "Jenis sapi potong hasil persilangan",
-          order_no: 1,
+
           status: 1
         },
         {
@@ -117,7 +117,7 @@ const useKlasifikasiHewan = () => {
           id_jenis_hewan: 2,
           jenis: getJenisHewanName(2),
           description: "Domba aduan dan pedaging asli Garut",
-          order_no: 2,
+
           status: 1
         }
       ]);
@@ -131,7 +131,7 @@ const useKlasifikasiHewan = () => {
     setLoading(true);
     setError(null);
     
-    const requiredParams = ['name', 'id_jenis_hewan', 'description', 'order_no', 'status'];
+    const requiredParams = ['name', 'id_jenis_hewan', 'description', 'status'];
     const missingParams = requiredParams.filter(param =>
       klasifikasiData[param] === undefined || klasifikasiData[param] === null || klasifikasiData[param] === ''
     );
@@ -147,7 +147,7 @@ const useKlasifikasiHewan = () => {
         name: String(klasifikasiData.name).trim(),
         id_jenis_hewan: parseInt(klasifikasiData.id_jenis_hewan, 10),
         description: String(klasifikasiData.description).trim(),
-        order_no: parseInt(klasifikasiData.order_no, 10),
+
         status: parseInt(klasifikasiData.status, 10)
       };
       
@@ -183,7 +183,7 @@ const useKlasifikasiHewan = () => {
         klasifikasiItem.encryptedPid = pubid;
       }
       
-      const requiredParams = ['name', 'id_jenis_hewan', 'description', 'order_no', 'status'];
+      const requiredParams = ['name', 'id_jenis_hewan', 'description', 'status'];
       const missingParams = requiredParams.filter(param =>
         klasifikasiData[param] === undefined || klasifikasiData[param] === null || klasifikasiData[param] === ''
       );
@@ -198,7 +198,7 @@ const useKlasifikasiHewan = () => {
         name: String(klasifikasiData.name).trim(),
         id_jenis_hewan: parseInt(klasifikasiData.id_jenis_hewan, 10),
         description: String(klasifikasiData.description).trim(),
-        order_no: parseInt(klasifikasiData.order_no, 10),
+
         status: parseInt(klasifikasiData.status, 10)
       };
       

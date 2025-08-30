@@ -11,7 +11,7 @@ const AddEditKlasifikasiOvkModal = ({
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    order_no: 1
+
   });
   
   const [errors, setErrors] = useState({});
@@ -23,13 +23,13 @@ const AddEditKlasifikasiOvkModal = ({
       setFormData({
         name: item.name || '',
         description: item.description || '',
-        order_no: item.order_no || 1
+
       });
     } else {
       setFormData({
         name: '',
         description: '',
-        order_no: 1
+    
       });
     }
     setErrors({});
@@ -49,9 +49,7 @@ const AddEditKlasifikasiOvkModal = ({
       newErrors.description = 'Deskripsi wajib diisi';
     }
     
-    if (!formData.order_no || isNaN(formData.order_no) || formData.order_no <= 0) {
-      newErrors.order_no = 'Nomor urutan harus berupa angka positif';
-    }
+
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -78,7 +76,7 @@ const AddEditKlasifikasiOvkModal = ({
       await onSave({
         name: formData.name.trim(),
         description: formData.description.trim(),
-        order_no: parseInt(formData.order_no)
+
       });
     } catch (error) {
       console.error('Error saving:', error);
@@ -182,32 +180,7 @@ const AddEditKlasifikasiOvkModal = ({
             )}
           </div>
 
-          {/* Nomor Urutan */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Nomor Urutan <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="number"
-              value={formData.order_no}
-              onChange={(e) => handleInputChange('order_no', e.target.value)}
-              min="1"
-              className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${
-                errors.order_no ? 'border-red-300 bg-red-50' : 'border-gray-300'
-              }`}
-              placeholder="Masukkan nomor urutan"
-              disabled={isSubmitting}
-            />
-            {errors.order_no && (
-              <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
-                <AlertCircle className="h-4 w-4" />
-                {errors.order_no}
-              </p>
-            )}
-            <p className="mt-1 text-xs text-gray-500">
-              Nomor urutan digunakan untuk mengurutkan tampilan data
-            </p>
-          </div>
+
 
           {/* Action Buttons */}
           <div className="flex justify-end gap-3 pt-6 border-t border-gray-200">

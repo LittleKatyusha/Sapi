@@ -26,7 +26,6 @@ const AddEditOfficeModal = ({
         name: '',
         id_kategori: '',
         description: '',
-        order_no: '',
         status: statusList && statusList.length > 0 ? statusList[0].value : 1,
         location: ''
     });
@@ -56,7 +55,6 @@ const AddEditOfficeModal = ({
                 name: '',
                 id_kategori: '',
                 description: '',
-                order_no: '',
                 status: 1,
                 location: ''
             });
@@ -69,7 +67,7 @@ const AddEditOfficeModal = ({
         
         // Parse nilai integer untuk field yang diperlukan
         let parsedValue = value;
-        if (name === 'order_no' || name === 'status') {
+        if (name === 'status') {
             parsedValue = value === '' ? '' : parseInt(value, 10);
         }
         // id_kategori tetap string agar select bisa berubah sesuai pilihan
@@ -105,9 +103,7 @@ const AddEditOfficeModal = ({
             newErrors.description = 'Deskripsi harus diisi';
         }
         
-        if (!formData.order_no || formData.order_no < 1) {
-            newErrors.order_no = 'Order number harus diisi dan lebih dari 0';
-        }
+
         
         if (!formData.location.trim()) {
             newErrors.location = 'Lokasi harus diisi';
@@ -229,28 +225,7 @@ const AddEditOfficeModal = ({
                         )}
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                            Order Number *
-                        </label>
-                        <div className="relative">
-                            <Hash className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                            <input
-                                type="number"
-                                name="order_no"
-                                value={formData.order_no}
-                                onChange={handleInputChange}
-                                min="1"
-                                className={`w-full pl-11 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors duration-200 ${
-                                    errors.order_no ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                                }`}
-                                placeholder="Urutan tampilan"
-                            />
-                        </div>
-                        {errors.order_no && (
-                            <p className="mt-1 text-sm text-red-600">{errors.order_no}</p>
-                        )}
-                    </div>
+
 
                     <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-2">

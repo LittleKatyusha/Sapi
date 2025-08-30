@@ -6,7 +6,7 @@ const klasifikasiHewanData = [
     name: "Sapi Brahman",
     jenis: "Sapi",
     description: "Jenis sapi potong hasil persilangan dengan ketahanan tinggi terhadap panas",
-    order_no: 1,
+
     status: 1
   },
   {
@@ -15,7 +15,7 @@ const klasifikasiHewanData = [
     name: "Sapi Limousin",
     jenis: "Sapi",
     description: "Sapi potong dengan warna bulu emas-merah, pertumbuhan cepat",
-    order_no: 2,
+
     status: 1
   },
   {
@@ -24,7 +24,7 @@ const klasifikasiHewanData = [
     name: "Sapi Simmental",
     jenis: "Sapi",
     description: "Sapi dwi fungsi untuk daging dan susu dengan produktivitas tinggi",
-    order_no: 3,
+
     status: 1
   },
   {
@@ -33,7 +33,7 @@ const klasifikasiHewanData = [
     name: "Domba Garut",
     jenis: "Domba",
     description: "Domba aduan dan pedaging asli Garut dengan postur tubuh besar",
-    order_no: 4,
+
     status: 1
   },
   {
@@ -42,7 +42,7 @@ const klasifikasiHewanData = [
     name: "Domba Merino",
     jenis: "Domba",
     description: "Domba penghasil wol berkualitas tinggi dengan adaptasi baik",
-    order_no: 5,
+
     status: 1
   },
   {
@@ -51,7 +51,7 @@ const klasifikasiHewanData = [
     name: "Kambing Boer",
     jenis: "Kambing",
     description: "Kambing potong unggul dari Afrika Selatan dengan pertumbuhan cepat",
-    order_no: 6,
+
     status: 1
   },
   {
@@ -60,7 +60,7 @@ const klasifikasiHewanData = [
     name: "Kambing Etawa",
     jenis: "Kambing",
     description: "Kambing perah dengan produksi susu tinggi dan kualitas baik",
-    order_no: 7,
+
     status: 1
   },
   {
@@ -69,7 +69,7 @@ const klasifikasiHewanData = [
     name: "Kambing Kacang",
     jenis: "Kambing",
     description: "Kambing lokal Indonesia dengan daya adaptasi tinggi",
-    order_no: 8,
+
     status: 1
   }
 ];
@@ -101,7 +101,7 @@ export const EMPTY_KLASIFIKASI_FORM = {
   id_jenis_hewan: 1,
   jenis: 'Sapi',
   description: '',
-  order_no: 1,
+
   status: 1
 };
 

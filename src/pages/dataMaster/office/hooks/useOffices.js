@@ -63,7 +63,7 @@ const useOffices = () => {
                     location: item.location || '',
                     id_kategori: item.id_kategori || 5,
                     status: item.status !== undefined ? item.status : 1,
-                    order_no: item.order_no || index + 1
+
                 }));
                 
                 setOffices(validatedData);
@@ -82,7 +82,7 @@ const useOffices = () => {
                     name: "Kandang Utama A",
                     id_kategori: 1,
                     description: "Kandang utama untuk sapi perah dengan fasilitas lengkap",
-                    order_no: 1,
+
                     status: 1,
                     location: "Blok A-1, Sektor Utara"
                 },
@@ -92,7 +92,7 @@ const useOffices = () => {
                     name: "Kandang Muda B",
                     id_kategori: 2,
                     description: "Kandang khusus untuk sapi muda dan anak sapi",
-                    order_no: 2,
+
                     status: 1,
                     location: "Blok B-1, Sektor Timur"
                 },
@@ -102,7 +102,7 @@ const useOffices = () => {
                     name: "Kandang Karantina",
                     id_kategori: 3,
                     description: "Kandang isolasi untuk sapi sakit atau dalam masa karantina",
-                    order_no: 3,
+
                     status: 0,
                     location: "Blok C-1, Sektor Selatan"
                 },
@@ -112,7 +112,7 @@ const useOffices = () => {
                     name: "Kandang Betina",
                     id_kategori: 1,
                     description: "Kandang khusus untuk sapi betina produktif",
-                    order_no: 4,
+
                     status: 1,
                     location: "Blok A-2, Sektor Utara"
                 },
@@ -122,7 +122,7 @@ const useOffices = () => {
                     name: "Office Administrasi",
                     id_kategori: 4,
                     description: "Ruang kantor untuk administrasi dan manajemen",
-                    order_no: 5,
+
                     status: 1,
                     location: "Gedung Utama, Lantai 1"
                 }
@@ -151,7 +151,7 @@ const useOffices = () => {
             return { success: false, message: errorMsg };
         }
         
-        const requiredParams = ['name', 'description', 'order_no', 'status'];
+        const requiredParams = ['name', 'description', 'status'];
         const missingParams = requiredParams.filter(param =>
             officeData[param] === undefined || officeData[param] === null || officeData[param] === ''
         );
@@ -167,7 +167,7 @@ const useOffices = () => {
                 name: String(officeData.name).trim(),
                 id_kategori: kategoriId,
                 description: String(officeData.description).trim(),
-                order_no: parseInt(officeData.order_no, 10),
+
                 status: parseInt(officeData.status, 10),
                 location: String(officeData.location || '').trim()
             };
@@ -218,7 +218,7 @@ const useOffices = () => {
                 return { success: false, message: errorMsg };
             }
             
-            const requiredParams = ['name', 'description', 'order_no', 'status'];
+            const requiredParams = ['name', 'description', 'status'];
             const missingParams = requiredParams.filter(param =>
                 officeData[param] === undefined || officeData[param] === null || officeData[param] === ''
             );
@@ -233,7 +233,7 @@ const useOffices = () => {
                 name: String(officeData.name).trim(),
                 id_kategori: kategoriId,
                 description: String(officeData.description).trim(),
-                order_no: parseInt(officeData.order_no, 10),
+
                 status: parseInt(officeData.status, 10),
                 location: String(officeData.location || '').trim()
             };
