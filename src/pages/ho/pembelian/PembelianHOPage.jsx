@@ -289,8 +289,8 @@ const PembelianHOPage = () => {
             )
         },
         {
-            name: 'Total Belanja',
-            selector: row => row.total_belanja,
+            name: 'Biaya Total',
+            selector: row => row.biaya_total,
             sortable: true,
             width: '200px', // Increased to accommodate full currency display
             wrap: true,
@@ -302,7 +302,7 @@ const PembelianHOPage = () => {
                             currency: 'IDR',
                             minimumFractionDigits: 0,
                             maximumFractionDigits: 0
-                        }).format(row.total_belanja) : 'Rp 0'}
+                        }).format(row.biaya_total) : 'Rp 0'}
                     </div>
                 </div>
             )
