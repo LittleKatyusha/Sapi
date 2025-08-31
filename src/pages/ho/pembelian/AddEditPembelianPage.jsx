@@ -1603,7 +1603,35 @@ const AddEditPembelianPage = () => {
                                 </p>
                             </div>
                         </div>
-                        {/* Buttons moved to bottom for better UX */}
+                        
+                        {/* Action Buttons in Header for Edit Mode */}
+                        {isEdit && (
+                            <div className="flex gap-4">
+                                <button
+                                    onClick={handleBack}
+                                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                                    disabled={isSubmitting}
+                                >
+                                    Batal
+                                </button>
+                                
+                                {/* Simple Save Button */}
+                                <button
+                                    onClick={handleSubmit}
+                                    disabled={isSubmitting}
+                                    className="px-8 py-3 bg-gradient-to-r from-red-500 to-rose-600 text-white rounded-lg hover:from-red-600 hover:to-rose-700 transition-all duration-300 flex items-center gap-3 font-medium shadow-lg"
+                                    title="Simpan pembelian dan detail ternak"
+                                >
+                                    <Save className="w-5 h-5" />
+                                    {isSubmitting ? (
+                                        <div className="flex items-center gap-2">
+                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                            Menyimpan...
+                                        </div>
+                                    ) : 'Simpan Pembelian'}
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -2290,32 +2318,34 @@ const AddEditPembelianPage = () => {
                             </div>
                         </div>
 
-                        {/* Action Buttons at Bottom */}
-                        <div className="mt-8 flex justify-end gap-4 pt-6 border-t border-gray-200">
-                            <button
-                                onClick={handleBack}
-                                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-                                disabled={isSubmitting}
-                            >
-                                Batal
-                            </button>
-                            
-                            {/* Simple Save Button */}
-                            <button
-                                onClick={handleSubmit}
-                                disabled={isSubmitting}
-                                className="px-8 py-3 bg-gradient-to-r from-red-500 to-rose-600 text-white rounded-lg hover:from-red-600 hover:to-rose-700 transition-all duration-300 flex items-center gap-3 font-medium shadow-lg"
-                                title="Simpan pembelian dan detail ternak"
-                            >
-                                <Save className="w-5 h-5" />
-                                {isSubmitting ? (
-                                    <div className="flex items-center gap-2">
-                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                        Menyimpan...
-                                    </div>
-                                ) : 'Simpan Pembelian'}
-                            </button>
-                        </div>
+                        {/* Action Buttons at Bottom - Only for Add Mode */}
+                        {!isEdit && (
+                            <div className="mt-8 flex justify-end gap-4 pt-6 border-t border-gray-200">
+                                <button
+                                    onClick={handleBack}
+                                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                                    disabled={isSubmitting}
+                                >
+                                    Batal
+                                </button>
+                                
+                                {/* Simple Save Button */}
+                                <button
+                                    onClick={handleSubmit}
+                                    disabled={isSubmitting}
+                                    className="px-8 py-3 bg-gradient-to-r from-red-500 to-rose-600 text-white rounded-lg hover:from-red-600 hover:to-rose-700 transition-all duration-300 flex items-center gap-3 font-medium shadow-lg"
+                                    title="Simpan pembelian dan detail ternak"
+                                >
+                                    <Save className="w-5 h-5" />
+                                    {isSubmitting ? (
+                                        <div className="flex items-center gap-2">
+                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                            Menyimpan...
+                                        </div>
+                                    ) : 'Simpan Pembelian'}
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
 
