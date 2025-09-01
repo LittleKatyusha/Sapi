@@ -203,7 +203,7 @@ const useSuppliers = () => {
         setLoading(true);
         setError(null);
         
-        const requiredParams = ['name', 'description', 'address', 'jenis_supplier', 'kategori_supplier', 'status'];
+        const requiredParams = ['name', 'description', 'address', 'jenis_supplier', 'kategori_supplier'];
         const missingParams = requiredParams.filter(param =>
             supplierData[param] === undefined || supplierData[param] === null || supplierData[param] === ''
         );
@@ -216,15 +216,12 @@ const useSuppliers = () => {
         
         try {
 
-            
             const cleanSupplierData = {
                 name: String(supplierData.name).trim(),
                 description: String(supplierData.description).trim(),
                 address: String(supplierData.address).trim(),
-
                 jenis_supplier: parseInt(supplierData.jenis_supplier, 10),
-                kategori_supplier: parseInt(supplierData.kategori_supplier, 10),
-                status: parseInt(supplierData.status, 10)
+                kategori_supplier: parseInt(supplierData.kategori_supplier, 10)
             };
             
             const result = await HttpClient.post(`${API_BASE}/store`, cleanSupplierData);
@@ -242,7 +239,7 @@ const useSuppliers = () => {
         } finally {
             setLoading(false);
         }
-    }, [getAuthHeader, fetchSuppliers]);
+    }, [getAuthHeader, fetchSuppliers, suppliers]);
 
     // Update supplier - menggunakan encrypted PID dari backend
     const updateSupplier = useCallback(async (pubid, supplierData) => {
@@ -259,7 +256,7 @@ const useSuppliers = () => {
                 supplier.encryptedPid = pubid;
             }
             
-            const requiredParams = ['name', 'description', 'address', 'jenis_supplier', 'kategori_supplier', 'status'];
+            const requiredParams = ['name', 'description', 'address', 'jenis_supplier', 'kategori_supplier'];
             const missingParams = requiredParams.filter(param =>
                 supplierData[param] === undefined || supplierData[param] === null || supplierData[param] === ''
             );
@@ -274,10 +271,8 @@ const useSuppliers = () => {
                 name: String(supplierData.name).trim(),
                 description: String(supplierData.description).trim(),
                 address: String(supplierData.address).trim(),
-
                 jenis_supplier: parseInt(supplierData.jenis_supplier, 10),
-                kategori_supplier: parseInt(supplierData.kategori_supplier, 10),
-                status: parseInt(supplierData.status, 10)
+                kategori_supplier: parseInt(supplierData.kategori_supplier, 10)
             };
             
             const payload = {
@@ -300,7 +295,7 @@ const useSuppliers = () => {
         } finally {
             setLoading(false);
         }
-    }, [fetchSuppliers, getAuthHeader, suppliers]);
+    }, [getAuthHeader, fetchSuppliers, suppliers]);
 
     // Delete supplier - menggunakan encrypted PID dari backend
     const deleteSupplier = useCallback(async (pubid) => {

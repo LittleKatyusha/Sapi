@@ -15,8 +15,7 @@ const AddEditSupplierModal = ({
         description: '',
         address: '',
         jenis_supplier: '',
-        kategori_supplier: '',
-        status: 1
+        kategori_supplier: ''
     });
     const [errors, setErrors] = useState({});
     const { fetchParametersByGroup } = useParameters();
@@ -86,8 +85,7 @@ const AddEditSupplierModal = ({
                 description: editData.description || '',
                 address: editData.address || editData.adress || '',
                 jenis_supplier: convertJenisSupplier(editData.jenis_supplier),
-                kategori_supplier: convertKategoriSupplier(editData.kategori_supplier),
-                status: editData.status !== undefined ? editData.status : 1
+                kategori_supplier: convertKategoriSupplier(editData.kategori_supplier)
             });
         } else {
             setFormData({
@@ -95,8 +93,7 @@ const AddEditSupplierModal = ({
                 description: '',
                 address: '',
                 jenis_supplier: '',
-                kategori_supplier: '',
-                status: 1
+                kategori_supplier: ''
             });
         }
         setErrors({});
@@ -320,22 +317,7 @@ const AddEditSupplierModal = ({
                         )}
                     </div>
 
-                    {/* Status */}
-                    <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                            Status *
-                        </label>
-                        <select
-                            name="status"
-                            value={formData.status}
-                            onChange={handleChange}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                            disabled={loading}
-                        >
-                            <option value={1}>Aktif</option>
-                            <option value={0}>Tidak Aktif</option>
-                        </select>
-                    </div>
+
 
                     {/* Actions */}
                     <div className="flex gap-3 pt-4 border-t border-gray-200">

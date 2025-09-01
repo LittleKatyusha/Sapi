@@ -152,11 +152,9 @@ const usePembelianFeedmil = () => {
                     // Only append fields that match backend DETAIL_VALIDATION_RULES with proper type conversion
                     formData.append(`details[${index}][item_name]`, item.item_name || '');
                     
-                    // Convert id_klasifikasi_feedmil to integer (backend expects integer)
-                    const klasifikasiId = parseInt(item.id_klasifikasi_feedmil) || 0;
-                    if (klasifikasiId > 0) {
-                        formData.append(`details[${index}][id_klasifikasi_feedmil]`, klasifikasiId);
-                    }
+                    // Convert id_klasifikasi_feedmil to integer (backend expects integer or null)
+                    const klasifikasiId = item.id_klasifikasi_feedmil ? parseInt(item.id_klasifikasi_feedmil) : null;
+                    formData.append(`details[${index}][id_klasifikasi_feedmil]`, klasifikasiId || '');
                     
                     // Ensure numeric fields are properly formatted according to backend validation
                     formData.append(`details[${index}][harga]`, parseFloat(item.harga) || 0);
@@ -432,6 +430,101 @@ const usePembelianFeedmil = () => {
         }
     }, []);
 
+    // Update individual detail item (feedmil specific)
+    const updateDetail = useCallback(async (encryptedPid, detailData) => {
+        setLoading(true);
+        setError(null);
+        
+        try {
+            // Backend now uses post method and expects specific detail fields
+            // Backend validator always requires id_pembelian for detail operations
+            const idPembelian = detailData.idPembelian || detailData.id_pembelian;
+            
+            if (!idPembelian) {
+                throw new Error('ID pembelian tidak ditemukan. Field idPembelian atau id_pembelian harus ada.');
+            }
+            
+            const requestData = {
+                pid: encryptedPid, // Backend expects encrypted PID (null for new items)
+                id_pembelian: idPembelian, // Always required by backend validator
+                item_name: String(detailData.item_name || ''),
+                id_klasifikasi_feedmil: (() => {
+                    const value = detailData.id_klasifikasi_feedmil;
+                    // Handle both string and integer values
+                    if (value === null || value === undefined || value === '') return null;
+                    const parsed = parseInt(value);
+                    return isNaN(parsed) ? null : parsed;
+                })(),
+                harga: parseFloat(detailData.harga || 0),
+                persentase: parseFloat(detailData.persentase || 0),
+                berat: parseInt(detailData.berat || 0),
+                hpp: parseFloat(detailData.hpp || 0),
+                total_harga: parseFloat(detailData.total_harga || detailData.hpp || 0)
+            };
+            
+            // Add id_office for new detail creation (when pid is null)
+            if (!encryptedPid) {
+                requestData.id_office = parseInt(detailData.idOffice || 1);
+            }
+            
+
+            
+            const result = await HttpClient.post(`${FEEDMIL_API_BASE}/update`, requestData);
+            
+
+            
+            if (result && result.status === 'ok') {
+                return {
+                    success: true,
+                    message: result.message || 'Detail feedmil berhasil diperbarui',
+                    data: result.data
+                };
+            } else {
+                throw new Error(result?.message || 'Gagal memperbarui detail feedmil');
+            }
+            
+        } catch (err) {
+            console.error('Update detail feedmil error:', err);
+            const errorMsg = err.message || 'Terjadi kesalahan saat memperbarui detail feedmil';
+            setError(errorMsg);
+            return { success: false, message: errorMsg };
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    // Delete individual detail item (feedmil specific)
+    const deleteDetail = useCallback(async (encryptedPid) => {
+        setLoading(true);
+        setError(null);
+        
+        try {
+            // Backend delete method menggunakan POST method
+            const result = await HttpClient.post(`${FEEDMIL_API_BASE}/hapus`, {
+                pid: encryptedPid
+            });
+            
+            console.log('📦 Backend response for detail delete:', result);
+            
+            if (result && result.status === 'ok') {
+                return {
+                    success: true,
+                    message: result.message || 'Detail feedmil berhasil dihapus'
+                };
+            } else {
+                throw new Error(result?.message || 'Gagal menghapus detail feedmil');
+            }
+            
+        } catch (err) {
+            console.error('Delete detail feedmil error:', err);
+            const errorMsg = err.message || 'Terjadi kesalahan saat menghapus detail feedmil';
+            setError(errorMsg);
+            return { success: false, message: errorMsg };
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
     // Computed stats based on current data
     const stats = useMemo(() => {
         const total = pembelian.length;
@@ -541,7 +634,9 @@ const usePembelianFeedmil = () => {
         updatePembelian,
         deletePembelian,
         deleteLoading,
-        getPembelianDetail
+        getPembelianDetail,
+        updateDetail,
+        deleteDetail
     };
 };
 

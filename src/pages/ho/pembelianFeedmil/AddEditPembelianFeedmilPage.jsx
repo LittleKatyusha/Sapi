@@ -25,7 +25,9 @@ const AddEditPembelianFeedmilPage = () => {
         fetchPembelian,
         pembelian: pembelianList,
         loading,
-        error
+        error,
+        updateDetail,
+        deleteDetail
     } = usePembelianFeedmil();
 
     // Supplier API integration - filter for Feedmil suppliers only (kategori_supplier = 2)
@@ -57,6 +59,7 @@ const AddEditPembelianFeedmilPage = () => {
         nota: '',
         idOffice: 'head-office', // Fixed to Head Office for HO
         tipePembelian: '',
+        jenis_pembelian: '', // New field for jenis pembelian
         idSupplier: '',
         tgl_masuk: '',
         nama_supir: '',
@@ -75,6 +78,9 @@ const AddEditPembelianFeedmilPage = () => {
     const [detailItems, setDetailItems] = useState([]);
     const [notification, setNotification] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    
+    // Flag to prevent unnecessary data reloading
+    const [isDataLoaded, setIsDataLoaded] = useState(false);
 
     // File upload state
     const [selectedFile, setSelectedFile] = useState(null);
@@ -142,7 +148,8 @@ const AddEditPembelianFeedmilPage = () => {
         });
         
         // Try to load data if we're in edit mode and have an ID, even with partial data
-        if (isEdit && id && (isDataReady || suppliers)) {
+        // But only if data hasn't been loaded yet
+        if (isEdit && id && (isDataReady || suppliers) && !isDataLoaded) {
             const loadEditData = async () => {
                 try {
                     const decodedId = decodeURIComponent(id);
@@ -151,14 +158,22 @@ const AddEditPembelianFeedmilPage = () => {
                     
                     // 1. First get detail data from show endpoint to get the nota
                     const result = await getPembelianDetail(decodedId);
-                    console.log('📋 Detail result:', result);
-                    
-                    if (!result.success || !result.data || result.data.length === 0) {
-                        throw new Error('Tidak dapat mengambil detail data pembelian');
-                    }
-                    
-                    const firstDetail = result.data[0];
-                    console.log('📄 First detail item:', firstDetail);
+                                            console.log('📋 Detail result:', result);
+                        console.log('🔍 Raw backend detail data analysis:', result.data?.map(item => ({
+                            item_name: item.item_name,
+                            id_klasifikasi_feedmil: item.id_klasifikasi_feedmil,
+                            klasifikasi_type: typeof item.id_klasifikasi_feedmil,
+                            id_pembelian: item.id_pembelian,
+                            pid: item.pid,
+                            allFields: Object.keys(item)
+                        })));
+                        
+                        if (!result.success || !result.data || result.data.length === 0) {
+                            throw new Error('Tidak dapat mengambil detail data pembelian');
+                        }
+                        
+                        const firstDetail = result.data[0];
+                        console.log('📄 First detail item:', firstDetail);
                     
                     // 2. Find header data from pembelian list - try multiple methods
                     let headerDataFromList = null;
@@ -238,8 +253,36 @@ const AddEditPembelianFeedmilPage = () => {
                         const finalHeaderData = {
                             nota: headerDataToUse.nota || detailDataFallback.nota || '',
                             idOffice: 'head-office',
-                            // FIXED: Don't map jenis_pembelian to tipePembelian - tipePembelian should be external/internal classification
-                            tipePembelian: headerDataToUse.tipe_pembelian_id || detailDataFallback.tipe_pembelian_id || '', // Use proper tipe_pembelian field
+                            // Map jenis_pembelian string to parameter values from sys_ms_parameter
+                            tipePembelian: (function() {
+                                const jenisPembelianStr = headerDataToUse.jenis_pembelian || detailDataFallback.jenis_pembelian;
+                                // Check if we already have integer value from tipe_pembelian field
+                                const tipeFromBackend = headerDataToUse.tipe_pembelian || detailDataFallback.tipe_pembelian;
+                                
+                                if (tipeFromBackend && !isNaN(parseInt(tipeFromBackend))) {
+                                    return parseInt(tipeFromBackend);
+                                }
+                                
+                                // Map string values to parameter values as per sys_ms_parameter table
+                                // Based on database screenshot: INTERNAL=1, EXTERNAL=2
+                                switch (jenisPembelianStr) {
+                                    case 'INTERNAL': return 1; // Parameter value from database
+                                    case 'EXTERNAL': return 2; // Parameter value from database
+                                    case 'KONTRAK': return 3;  // Potential third option
+                                    default: return '';
+                                }
+                            })(),
+                            // Add jenis_pembelian field - map from backend data
+                            jenis_pembelian: (function() {
+                                const jenisPembelianStr = headerDataToUse.jenis_pembelian || detailDataFallback.jenis_pembelian;
+                                // Map string values to parameter values as per sys_ms_parameter table
+                                switch (jenisPembelianStr) {
+                                    case 'INTERNAL': return 1; // Parameter value from database
+                                    case 'EXTERNAL': return 2; // Parameter value from database
+                                    case 'KONTRAK': return 3;  // Potential third option
+                                    default: return jenisPembelianStr || '';
+                                }
+                            })(),
                             idSupplier: supplierIdFromName || '', // Use matched supplier ID from name (handle null case)
                             tgl_masuk: headerDataToUse.tgl_masuk || detailDataFallback.tgl_masuk || '',
                             nama_supir: headerDataToUse.nama_supir || detailDataFallback.nama_supir || '',
@@ -259,8 +302,18 @@ const AddEditPembelianFeedmilPage = () => {
                             'jenis_pembelian (supplier classification)': headerDataToUse.jenis_pembelian || detailDataFallback.jenis_pembelian,
                             'tipe_pembelian (external/internal)': headerDataToUse.tipe_pembelian || detailDataFallback.tipe_pembelian,
                             'tipe_pembelian_id': headerDataToUse.tipe_pembelian_id || detailDataFallback.tipe_pembelian_id,
-                            'nama_supplier': headerDataToUse.nama_supplier || detailDataFallback.nama_supplier
+                            'nama_supplier': headerDataToUse.nama_supplier || detailDataFallback.nama_supplier,
+                            'final_tipePembelian_value': finalHeaderData.tipePembelian
                         });
+                        console.log('🎯 Tipe Pembelian mapping logic:', {
+                            'jenis_pembelian_from_backend': headerDataToUse.jenis_pembelian || detailDataFallback.jenis_pembelian,
+                            'tipe_pembelian_integer': headerDataToUse.tipe_pembelian || detailDataFallback.tipe_pembelian,
+                            'final_tipePembelian_value': finalHeaderData.tipePembelian,
+                            'is_integer': Number.isInteger(finalHeaderData.tipePembelian),
+                            'will_match_options': [1, 2, 3].includes(finalHeaderData.tipePembelian)
+                        });
+                        console.log('📊 Available jenisPembelianOptions:', jenisPembelianOptions);
+                        console.log('🔄 JenisPembelianLoading status:', jenisPembelianLoading);
                         
                         // Load header data - matching exact backend response structure
                         setHeaderData(finalHeaderData);
@@ -268,17 +321,36 @@ const AddEditPembelianFeedmilPage = () => {
                         // Transform detail items from backend data
                         const transformedDetailItems = result.data.map((item, index) => ({
                             id: index + 1,
+                            // Include backend identifiers for update operations
+                            idPembelian: item.id_pembelian, // This is crucial for update operations
+                            id_pembelian: item.id_pembelian, // Keep both for compatibility
+                            encryptedPid: item.pid, // Encrypted PID for existing items
+                            pubidDetail: item.pubid_detail, // Raw pubid if available
+                            // Detail fields
                             item_name: item.item_name || `Feedmil Item ${index + 1}`,
                             id_klasifikasi_feedmil: item.id_klasifikasi_feedmil || '',
                             berat: parseInt(item.berat) || 0,
                             harga: parseFloat(item.harga) || 0,
                             persentase: parseFloat(item.persentase) || 0,
                             hpp: parseFloat(item.hpp) || 0,
+                            total_harga: parseFloat(item.total_harga) || 0,
                             tgl_masuk_rph: item.tgl_masuk_rph || new Date().toISOString().split('T')[0]
                         }));
                         
                         console.log('🗂️ Detail items being set:', transformedDetailItems);
+                        console.log('🔍 Detailed structure of loaded items:', transformedDetailItems.map(item => ({
+                            id: item.id,
+                            item_name: item.item_name,
+                            id_klasifikasi_feedmil: item.id_klasifikasi_feedmil,
+                            klasifikasi_type: typeof item.id_klasifikasi_feedmil,
+                            idPembelian: item.idPembelian,
+                            encryptedPid: item.encryptedPid,
+                            fullItem: item
+                        })));
                         setDetailItems(transformedDetailItems);
+                        
+                        // Mark data as loaded to prevent unnecessary reloading
+                        setIsDataLoaded(true);
                         
                         console.log('✅ Data loading completed successfully!');
                     }
@@ -293,7 +365,7 @@ const AddEditPembelianFeedmilPage = () => {
             
             loadEditData();
         }
-    }, [isEdit, id, getPembelianDetail, pembelianList, suppliers, supplierOptions]);
+    }, [isEdit, id, getPembelianDetail, pembelianList, suppliers, isDataLoaded]);
 
 
 
@@ -309,9 +381,15 @@ const AddEditPembelianFeedmilPage = () => {
 
     // Handle detail item changes
     const handleDetailChange = (itemId, field, value) => {
+
+        
         setDetailItems(prev => prev.map(item => {
             if (item.id === itemId) {
-                return { ...item, [field]: value };
+                const updatedItem = { ...item, [field]: value };
+                
+
+                
+                return updatedItem;
             }
             return item;
         }));
@@ -368,6 +446,165 @@ const AddEditPembelianFeedmilPage = () => {
     // Remove detail item
     const removeDetailItem = (itemId) => {
         setDetailItems(prev => prev.filter(item => item.id !== itemId));
+    };
+
+    // Save individual detail item - following regular pembelian pattern
+    const handleSaveDetailItem = async (itemId) => {
+        if (!isEdit) {
+            setNotification({
+                type: 'error',
+                message: 'Header pembelian harus disimpan terlebih dahulu sebelum menyimpan detail individual'
+            });
+            return;
+        }
+
+        const item = detailItems.find(detail => detail.id === itemId);
+        if (!item) {
+            setNotification({
+                type: 'error',
+                message: 'Item detail tidak ditemukan'
+            });
+            return;
+        }
+
+        // Validate individual item
+        const itemErrors = [];
+        if (!item.item_name || item.item_name.trim() === '') {
+            itemErrors.push('Nama item harus diisi');
+        }
+        // id_klasifikasi_feedmil is nullable according to backend rules - no validation needed
+        if (!item.harga || parseFloat(item.harga) <= 0) {
+            itemErrors.push('Harga harus diisi dan > 0');
+        }
+        if (!item.berat || parseInt(item.berat) <= 0) {
+            itemErrors.push('Berat harus diisi dan > 0');
+        }
+        if (!item.persentase || parseFloat(item.persentase) <= 0) {
+            itemErrors.push('Persentase harus diisi dan > 0');
+        }
+
+        if (itemErrors.length > 0) {
+            setNotification({
+                type: 'error',
+                message: itemErrors.join(', ')
+            });
+            return;
+        }
+
+        try {
+            // Calculate HPP
+            const harga = parseFloat(item.harga) || 0;
+            const persentase = parseFloat(item.persentase) || 0;
+            const hpp = harga + (harga * persentase / 100);
+            const totalHarga = hpp * parseInt(item.berat);
+
+
+
+            // Prepare detail data for save - use snake_case format for backend compatibility
+            const detailData = {
+                idPembelian: item.idPembelian || null, // Use item's id_pembelian if available (for existing items)
+                idOffice: 1, // Head Office
+                item_name: String(item.item_name || ''),
+                id_klasifikasi_feedmil: (() => {
+                    const rawValue = item.id_klasifikasi_feedmil;
+                    
+                    if (rawValue === null || rawValue === undefined || rawValue === '') {
+                        return null;
+                    }
+                    
+                    const parsed = parseInt(rawValue);
+                    if (isNaN(parsed)) {
+                        return null;
+                    }
+                    
+                    return parsed;
+                })(),
+                harga: parseFloat(item.harga) || 0,
+                berat: parseInt(item.berat) || 0,
+                persentase: parseFloat(item.persentase) || 0,
+                hpp: hpp,
+                total_harga: totalHarga
+            };
+
+
+
+            // Check if this is an existing item from database or a new frontend-only item
+            const hasDetailIdentifier = !!(item.encryptedPid || item.pid || item.pubidDetail);
+            const isTimestampId = typeof item.id === 'number' && item.id > 1000000000; // Timestamp-based IDs are > 1B
+            const isSequentialId = typeof item.id === 'number' && item.id < 1000; // Sequential IDs from database are usually small
+            
+            // An item is existing if:
+            // 1. Has detail identifier (encrypted pid) AND is sequential ID (from backend mapping)
+            // 2. OR has detail identifier AND is not timestamp ID
+            const isExistingItem = hasDetailIdentifier && (isSequentialId || !isTimestampId);
+            
+
+
+            let result;
+            if (isExistingItem) {
+                // This is an existing database item - use updateDetail
+                // Validate that we have id_pembelian for backend validation
+                if (!detailData.idPembelian) {
+                    throw new Error('ID pembelian tidak ditemukan untuk detail existing. Data mungkin tidak lengkap.');
+                }
+                
+                const detailPid = item.encryptedPid || item.pid || item.pubidDetail;
+                result = await updateDetail(detailPid, detailData);
+            } else {
+                // This is a new item created in frontend - use updateDetail with null pid to create new detail
+                // Get id_pembelian from existing detail items or fallback method
+                let idPembelianValue = null;
+                
+                // Try to get id_pembelian from existing detail items
+                const existingDetailWithId = detailItems.find(item => item.idPembelian);
+                if (existingDetailWithId) {
+                    idPembelianValue = existingDetailWithId.idPembelian;
+                } else {
+                    // Fallback: For new pembelian without existing details, use header ID from backend response
+                    console.warn('⚠️ No existing detail with id_pembelian found. Cannot create new detail without valid id_pembelian.');
+                    throw new Error('Tidak dapat menambah detail baru: ID pembelian tidak ditemukan. Pastikan header pembelian sudah disimpan dan detail lain sudah ada.');
+                }
+                
+                detailData.idPembelian = idPembelianValue; // Use the resolved id_pembelian
+                result = await updateDetail(null, detailData); // null pid will trigger create in backend
+            }
+
+            if (result.success) {
+                setNotification({
+                    type: 'success',
+                    message: 'Detail feedmil berhasil disimpan!'
+                });
+                
+                // Update the saved item with new encrypted PID if it was a new item
+                if (!isExistingItem && result.data && result.data.pid) {
+                    setDetailItems(prevItems => 
+                        prevItems.map(prevItem => 
+                            prevItem.id === item.id 
+                                ? { ...prevItem, encryptedPid: result.data.pid }
+                                : prevItem
+                        )
+                    );
+                }
+                
+                // Auto hard refresh setelah save berhasil dalam mode edit
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500); // Delay 1.5 detik untuk memberi waktu user melihat notification
+                
+
+            } else {
+                setNotification({
+                    type: 'error',
+                    message: result.message || 'Gagal menyimpan detail'
+                });
+            }
+        } catch (err) {
+            console.error('Error saving detail feedmil item:', err);
+            setNotification({
+                type: 'error',
+                message: err.message || 'Terjadi kesalahan saat menyimpan detail'
+            });
+        }
     };
 
     // Handle default data changes
@@ -474,6 +711,10 @@ const AddEditPembelianFeedmilPage = () => {
             errors.push('Tipe Pembelian harus dipilih');
         }
 
+        if (!headerData.jenis_pembelian) {
+            errors.push('Jenis Pembelian harus dipilih');
+        }
+
         if (!headerData.idSupplier) {
             errors.push('Supplier harus dipilih');
         }
@@ -505,9 +746,8 @@ const AddEditPembelianFeedmilPage = () => {
             if (!item.item_name || item.item_name.trim() === '') {
                 errors.push(`Item ${index + 1}: Nama item harus diisi`);
             }
-            if (!item.id_klasifikasi_feedmil || item.id_klasifikasi_feedmil.trim() === '') {
-                errors.push(`Item ${index + 1}: Klasifikasi Feedmil harus diisi`);
-            }
+            // id_klasifikasi_feedmil is nullable according to backend validation rules
+            // Remove required validation for klasifikasi feedmil
             const berat = parseFloat(item.berat);
             if (isNaN(berat) || berat <= 0) {
                 errors.push(`Item ${index + 1}: Berat harus lebih dari 0`);
@@ -562,7 +802,8 @@ const AddEditPembelianFeedmilPage = () => {
                 totalBerat: totals.totalBerat,
                 totalHPP: totals.totalHPP,
                 detailItems: detailItems,
-                jenis_pembelian: 'Feedmil',
+                tipe_pembelian: headerData.tipePembelian, // Backend expects tipe_pembelian as integer
+                jenis_pembelian: headerData.jenis_pembelian, // Include jenis_pembelian field
                 supplier: selectedSupplier ? selectedSupplier.name : '',
                 nama_supplier: selectedSupplier ? selectedSupplier.name : '',
                 id_supplier: headerData.idSupplier,
@@ -719,6 +960,7 @@ const AddEditPembelianFeedmilPage = () => {
                                     ❌ Error: {jenisPembelianError}
                                 </p>
                             )}
+
                         </div>
 
                         {/* Supplier */}
@@ -791,6 +1033,32 @@ const AddEditPembelianFeedmilPage = () => {
                                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
                                 placeholder="B1234XX"
                             />
+                        </div>
+
+                        {/* Jenis Pembelian */}
+                        <div>
+                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <Package className="w-4 h-4" />
+                                Jenis Pembelian *
+                            </label>
+                            <SearchableSelect
+                                value={headerData.jenis_pembelian}
+                                onChange={(value) => handleHeaderChange('jenis_pembelian', value)}
+                                options={jenisPembelianOptions}
+                                placeholder={jenisPembelianLoading ? "Memuat jenis pembelian..." : "Pilih Jenis Pembelian"}
+                                className="w-full"
+                                disabled={jenisPembelianLoading}
+                            />
+                            {jenisPembelianLoading && (
+                                <p className="text-xs text-blue-600 mt-1">
+                                    🔄 Memuat jenis pembelian...
+                                </p>
+                            )}
+                            {jenisPembelianError && (
+                                <p className="text-xs text-red-600 mt-1">
+                                    ❌ Error: {jenisPembelianError}
+                                </p>
+                            )}
                         </div>
 
                         {/* Biaya Truck */}
@@ -1155,12 +1423,15 @@ const AddEditPembelianFeedmilPage = () => {
                                                 <td className="p-2 sm:p-3">
                                                     <SearchableSelect
                                                         value={item.id_klasifikasi_feedmil}
-                                                        onChange={(value) => handleDetailChange(item.id, 'id_klasifikasi_feedmil', value)}
+                                                                                                            onChange={(value) => {
+                                                        handleDetailChange(item.id, 'id_klasifikasi_feedmil', value);
+                                                    }}
                                                         options={klasifikasiFeedmilOptions}
                                                         placeholder={klasifikasiLoading ? "Memuat..." : "Pilih Klasifikasi"}
                                                         className="w-full text-xs sm:text-sm"
                                                         disabled={klasifikasiLoading}
                                                     />
+
                                                 </td>
                                                 
                                                 {/* Berat */}
@@ -1217,14 +1488,26 @@ const AddEditPembelianFeedmilPage = () => {
                                                 
                                                 {/* Aksi */}
                                                 <td className="p-2 sm:p-3 text-center">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => removeDetailItem(item.id)}
-                                                        className="p-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded"
-                                                        title="Hapus item"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </button>
+                                                    <div className="flex items-center justify-center gap-1">
+                                                        {isEdit && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleSaveDetailItem(item.id)}
+                                                                className="p-1 text-green-600 hover:text-green-700 hover:bg-green-50 rounded"
+                                                                title="Simpan item"
+                                                            >
+                                                                <Save className="w-4 h-4" />
+                                                            </button>
+                                                        )}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeDetailItem(item.id)}
+                                                            className="p-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded"
+                                                            title="Hapus item"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         );

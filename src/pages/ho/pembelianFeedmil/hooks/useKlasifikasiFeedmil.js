@@ -12,26 +12,32 @@ const useKlasifikasiFeedmil = () => {
         setError(null);
         
         try {
-            // Prepare DataTables format parameters for backend
-            const params = new URLSearchParams({
-                draw: '1',
-                start: '0',
-                length: '1000', // Get all records for master data
-                'search[value]': '',
-                'order[0][column]': '0',
-                'order[0][dir]': 'asc'
-            });
+            // Use centralized parameter endpoint like pembelian HO (includes id field)
+            const jsonData = await HttpClient.get(`${API_ENDPOINTS.MASTER.PARAMETER}/data`);
             
-            const jsonData = await HttpClient.get(`${API_ENDPOINTS.MASTER.KLASIFIKASI_FEEDMIL}/data?${params}`);
-            console.log('📦 Fetching klasifikasi feedmil:', jsonData);
-            
-            // Handle API response format from backend
-            if (jsonData && jsonData.data && Array.isArray(jsonData.data)) {
-                setKlasifikasiFeedmil(jsonData.data);
-                console.log('✅ Klasifikasi feedmil loaded:', jsonData.data.length, 'items');
+            // Handle ParameterSelectController response format
+            if (jsonData && jsonData.data && Array.isArray(jsonData.data) && jsonData.data.length > 0) {
+                const parameterData = jsonData.data[0];
+                
+                // Extract klasifikasi feedmil data from ParameterSelectController
+                const klasifikasiData = parameterData.klasifikasifeedmil || [];
+                
+
+                
+                // Map the data to feedmil format with proper ID field
+                const mappedData = klasifikasiData.map((item, index) => ({
+                    id: item.id, // ✅ Now we have the ID field from ParameterSelectController!
+                    pubid: item.pubid || `temp_pubid_${index}`,
+                    name: item.name,
+                    description: item.description || item.name, // Use description or fallback to name
+                    pid: item.pid || `temp_pid_${index}`
+                }));
+                
+                setKlasifikasiFeedmil(mappedData);
                 
             } else {
-                throw new Error(jsonData?.message || 'Failed to fetch klasifikasi feedmil');
+
+                throw new Error('Failed to fetch parameter data');
             }
         } catch (err) {
             console.error('❌ Error fetching klasifikasi feedmil:', err);
@@ -77,14 +83,30 @@ const useKlasifikasiFeedmil = () => {
 
     // Transform data to select options
     const klasifikasiFeedmilOptions = useMemo(() => {
-        return klasifikasiFeedmil.map(item => ({
-            value: item.pid || item.id, // Use encrypted pid as value
-            label: item.name || item.description,
-            id: item.id,
-            name: item.name,
-            description: item.description,
-            rawData: item
-        }));
+        const options = klasifikasiFeedmil.map(item => {
+            // ParameterSelectController now provides proper integer ID field
+            let rawId = item.id;
+            
+            // Validate that we have a proper integer ID
+            if (!rawId || typeof rawId !== 'number') {
+                // Use index as fallback (should not happen with ParameterSelectController)
+                rawId = klasifikasiFeedmil.indexOf(item) + 1;
+            }
+            
+            return {
+                value: rawId, // Use raw integer ID (required by backend validation)
+                label: item.name || item.description || `Item ${rawId}`,
+                id: rawId,
+                name: item.name,
+                description: item.description,
+                pid: item.pid, // Keep encrypted pid for reference
+                rawData: item
+            };
+        });
+        
+
+        
+        return options;
     }, [klasifikasiFeedmil]);
 
     return {

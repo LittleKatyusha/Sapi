@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Building2, User, Calendar, Truck, Hash, Package, Eye, Weight, DollarSign } from 'lucide-react';
 import usePembelianFeedmil from './hooks/usePembelianFeedmil';
@@ -10,6 +10,8 @@ const PembelianFeedmilDetailPage = () => {
     const navigate = useNavigate();
     const {
         getPembelianDetail,
+        fetchPembelian,
+        pembelian: pembelianList,
         loading,
         error
     } = usePembelianFeedmil();
@@ -17,6 +19,61 @@ const PembelianFeedmilDetailPage = () => {
     const [pembelianData, setPembelianData] = useState(null);
     const [detailData, setDetailData] = useState([]);
     const [notification, setNotification] = useState(null);
+    const [scrollPosition, setScrollPosition] = useState({ canScrollLeft: false, canScrollRight: false });
+    
+    // Pagination state
+    const [pagination, setPagination] = useState({
+        currentPage: 1,
+        perPage: 10,
+        totalItems: 0,
+        totalPages: 0
+    });
+
+    // Update pagination when detail data changes
+    useEffect(() => {
+        if (detailData.length > 0) {
+            const totalPages = Math.ceil(detailData.length / pagination.perPage);
+            setPagination(prev => ({
+                ...prev,
+                totalItems: detailData.length,
+                totalPages: totalPages,
+                // Reset to page 1 if current page exceeds total pages
+                currentPage: prev.currentPage > totalPages ? 1 : prev.currentPage
+            }));
+        }
+    }, [detailData.length, pagination.perPage]);
+
+    // Pagination handlers
+    const handlePageChange = (page) => {
+        setPagination(prev => ({
+            ...prev,
+            currentPage: page
+        }));
+    };
+
+    const handlePerPageChange = (perPage) => {
+        const newTotalPages = Math.ceil(detailData.length / perPage);
+        setPagination(prev => ({
+            ...prev,
+            perPage: perPage,
+            totalPages: newTotalPages,
+            currentPage: 1 // Reset to first page when changing per page
+        }));
+    };
+
+    // Get paginated data
+    const getPaginatedData = () => {
+        const startIndex = (pagination.currentPage - 1) * pagination.perPage;
+        const endIndex = startIndex + pagination.perPage;
+        return detailData.slice(startIndex, endIndex);
+    };
+
+    // Load pembelian list first (untuk ambil header seperti halaman utama)
+    useEffect(() => {
+        if (!pembelianList || pembelianList.length === 0) {
+            fetchPembelian(1, 1000, '', 'all', false);
+        }
+    }, []);
 
     useEffect(() => {
         const fetchDetail = async () => {
@@ -24,45 +81,102 @@ const PembelianFeedmilDetailPage = () => {
                 try {
                     const result = await getPembelianDetail(id);
                     if (result.success && result.data && result.data.length > 0) {
-                        // Backend returns array of detail items from dt_pembelian_ho_feedmil_detail view
+                        // Detail items dari view dt_pembelian_ho_feedmil_detail
                         const detailItems = result.data;
-                        
-                        // Set header data from first item (all items have same header info)
-                        const firstItem = detailItems[0];
-                        setPembelianData({
-                            encryptedPid: firstItem.pubid || id,
-                            nota: firstItem.nota || '',
-                            nama_supplier: firstItem.nama_supplier || '',
-                            nama_office: 'Head Office (HO)',
-                            tgl_masuk: firstItem.tgl_masuk || '',
-                            nama_supir: firstItem.nama_supir || '',
-                            plat_nomor: firstItem.plat_nomor || '',
-                            biaya_lain: firstItem.biaya_lain || 0,
-                            biaya_total: firstItem.biaya_total || 0,
-                            jumlah: firstItem.jumlah || 0,
-                            satuan: 'sak', // Default unit for feedmil
-                            berat_total: firstItem.berat_total || 0,
-                            jenis_pembelian: 'Feedmil'
-                        });
 
-                        // Transform detail items to match frontend structure
+                        // 1) Coba ambil header dari list pembelian (seperti halaman utama)
+                        let headerData = null;
+                        if (pembelianList && pembelianList.length > 0) {
+                            headerData = pembelianList.find(item => item.encryptedPid === id || item.id === id);
+                            if (!headerData) {
+                                const decodedId = decodeURIComponent(id);
+                                headerData = pembelianList.find(item => item.encryptedPid === decodedId || item.id === decodedId);
+                            }
+                        }
+
+                        if (headerData) {
+                            setPembelianData({
+                                encryptedPid: headerData.encryptedPid || id,
+                                nota: headerData.nota || '',
+                                nama_supplier: headerData.nama_supplier || '',
+                                nama_office: headerData.nama_office || 'Head Office (HO)',
+                                tgl_masuk: headerData.tgl_masuk || '',
+                                nama_supir: headerData.nama_supir || '',
+                                plat_nomor: headerData.plat_nomor || '',
+                                biaya_lain: headerData.biaya_lain || 0,
+                                biaya_truk: headerData.biaya_truk || 0,
+                                biaya_total: headerData.biaya_total || 0,
+                                jumlah: headerData.jumlah || 0,
+                                satuan: headerData.satuan || 'sak',
+                                berat_total: headerData.berat_total || 0,
+                                jenis_pembelian: headerData.jenis_pembelian || 'Feedmil',
+                                file: headerData.file || null
+                            });
+                        } else {
+                            // 2) Fallback: cocokan berdasarkan nota dari detail pertama
+                            const firstDetail = detailItems[0];
+                            let headerByNota = null;
+                            if (firstDetail?.nota && pembelianList && pembelianList.length > 0) {
+                                headerByNota = pembelianList.find(item => item.nota === firstDetail.nota);
+                            }
+
+                            if (headerByNota) {
+                                setPembelianData({
+                                    encryptedPid: headerByNota.encryptedPid || id,
+                                    nota: headerByNota.nota || '',
+                                    nama_supplier: headerByNota.nama_supplier || '',
+                                    nama_office: headerByNota.nama_office || 'Head Office (HO)',
+                                    tgl_masuk: headerByNota.tgl_masuk || '',
+                                    nama_supir: headerByNota.nama_supir || '',
+                                    plat_nomor: headerByNota.plat_nomor || '',
+                                    biaya_lain: headerByNota.biaya_lain || 0,
+                                    biaya_truk: headerByNota.biaya_truk || 0,
+                                    biaya_total: headerByNota.biaya_total || 0,
+                                    jumlah: headerByNota.jumlah || 0,
+                                    satuan: headerByNota.satuan || 'sak',
+                                    berat_total: headerByNota.berat_total || 0,
+                                    jenis_pembelian: headerByNota.jenis_pembelian || 'Feedmil',
+                                    file: headerByNota.file || null
+                                });
+                            } else {
+                                // 3) Fallback terakhir: gunakan informasi dari detail pertama
+                                const firstItem = detailItems[0];
+                                setPembelianData({
+                                    encryptedPid: firstItem.pubid || id,
+                                    nota: firstItem.nota || '',
+                                    nama_supplier: firstItem.nama_supplier || '',
+                                    nama_office: firstItem.nama_office || 'Head Office (HO)',
+                                    tgl_masuk: firstItem.tgl_masuk || '',
+                                    nama_supir: firstItem.nama_supir || '',
+                                    plat_nomor: firstItem.plat_nomor || '',
+                                    biaya_lain: firstItem.biaya_lain || 0,
+                                    biaya_truk: firstItem.biaya_truk || 0,
+                                    biaya_total: firstItem.biaya_total || 0,
+                                    jumlah: firstItem.jumlah || 0,
+                                    satuan: 'sak',
+                                    berat_total: firstItem.berat_total || 0,
+                                    jenis_pembelian: 'Feedmil'
+                                });
+                            }
+                        }
+
+                        // Transform detail items untuk struktur frontend
                         const transformedDetailItems = detailItems.map((item, index) => ({
                             id: index + 1,
                             pubid: item.pubid || '',
                             item_name: item.item_name || '',
                             id_klasifikasi_feedmil: item.id_klasifikasi_feedmil || '',
                             harga: parseFloat(item.harga) || 0,
-                            persentase: parseFloat(item.persentase) || 0, // Backend uses 'persentase'
+                            persentase: parseFloat(item.persentase) || 0,
                             berat: parseInt(item.berat) || 0,
                             hpp: parseFloat(item.hpp) || 0,
                             total_harga: parseFloat(item.total_harga) || 0,
                             status: item.status || 1,
                             tgl_masuk_rph: item.tgl_masuk_rph || null
                         }));
-                        
+
                         setDetailData(transformedDetailItems);
                     } else {
-                        // If no detail data found, but request was successful, show header with empty details
                         console.warn('No detail data found for pembelian feedmil:', id);
                         setPembelianData({
                             encryptedPid: id,
@@ -94,7 +208,7 @@ const PembelianFeedmilDetailPage = () => {
         };
 
         fetchDetail();
-    }, [id, getPembelianDetail]);
+    }, [id, getPembelianDetail, pembelianList]);
 
     const handleBack = () => {
         navigate('/ho/pembelian-feedmil');
@@ -110,17 +224,47 @@ const PembelianFeedmilDetailPage = () => {
         }
     }, [notification]);
 
+    // Handle table scroll for visual feedback
+    const handleTableScroll = useCallback((e) => {
+        const { scrollLeft, scrollWidth, clientWidth } = e.target;
+        setScrollPosition({
+            canScrollLeft: scrollLeft > 0,
+            canScrollRight: scrollLeft < scrollWidth - clientWidth - 1
+        });
+    }, []);
+
+    // Check initial scroll state when data loads
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            const scrollContainer = document.querySelector('.table-scroll-container');
+            if (scrollContainer) {
+                const { scrollWidth, clientWidth } = scrollContainer;
+                setScrollPosition({
+                    canScrollLeft: false,
+                    canScrollRight: scrollWidth > clientWidth
+                });
+            }
+        }, 100);
+        return () => clearTimeout(timer);
+    }, [detailData]);
+
+
+
+
+
     // Columns for detail table - Sesuai dengan struktur backend dt_pembelian_ho_feedmil_detail view
     const detailColumns = [
         {
             name: 'No',
-            selector: (row, index) => index + 1,
+            selector: (row, index) => ((pagination.currentPage - 1) * pagination.perPage) + index + 1,
             sortable: false,
-            width: '60px',
+            minWidth: '60px',
+            maxWidth: '80px',
+            center: true,
             ignoreRowClick: true,
             cell: (row, index) => (
-                <div className="font-semibold text-gray-700 text-center">
-                    {index + 1}
+                <div className="font-semibold text-gray-600 w-full flex items-center justify-center">
+                    {((pagination.currentPage - 1) * pagination.perPage) + index + 1}
                 </div>
             )
         },
@@ -128,13 +272,12 @@ const PembelianFeedmilDetailPage = () => {
             name: 'Nama Item',
             selector: row => row.item_name,
             sortable: true,
-            width: '18%',
+            grow: 2,
             wrap: true,
+            center: true,
             cell: row => (
-                <div className="text-center">
-                    <span className="font-medium text-gray-900 break-words" title={row.item_name}>
-                        {row.item_name || '-'}
-                    </span>
+                <div className="font-medium text-gray-900 text-center w-full flex items-center justify-center" title={row.item_name}>
+                    {row.item_name || '-'}
                 </div>
             )
         },
@@ -142,12 +285,13 @@ const PembelianFeedmilDetailPage = () => {
             name: 'Klasifikasi Feedmil',
             selector: row => row.id_klasifikasi_feedmil,
             sortable: true,
-            width: '15%',
+            grow: 1.5,
             wrap: true,
+            center: true,
             cell: row => (
-                <div className="text-center">
-                    <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
-                        {row.id_klasifikasi_feedmil || '-'}
+                <div className="w-full flex items-center justify-center">
+                    <span className="inline-flex px-3 py-1.5 text-xs font-medium rounded-lg bg-green-100 text-green-800">
+                        {row.id_klasifikasi_feedmil ? `ID: ${row.id_klasifikasi_feedmil}` : 'Tidak ada klasifikasi'}
                     </span>
                 </div>
             )
@@ -156,11 +300,12 @@ const PembelianFeedmilDetailPage = () => {
             name: 'Berat (kg)',
             selector: row => row.berat,
             sortable: true,
-            width: '12%',
+            grow: 1,
             wrap: true,
+            center: true,
             cell: row => (
-                <div className="text-center">
-                    <span className="text-gray-900 break-words">
+                <div className="w-full flex items-center justify-center">
+                    <span className="text-gray-900 font-medium">
                         {row.berat ? `${row.berat} kg` : '-'}
                     </span>
                 </div>
@@ -170,11 +315,12 @@ const PembelianFeedmilDetailPage = () => {
             name: 'Harga',
             selector: row => row.harga,
             sortable: true,
-            width: '15%',
+            grow: 1.2,
             wrap: true,
+            center: true,
             cell: row => (
-                <div className="text-center">
-                    <span className="inline-flex px-3 py-1.5 text-sm font-semibold rounded-full bg-green-100 text-green-800 break-words">
+                <div className="w-full flex items-center justify-center">
+                    <span className="inline-flex px-3 py-2 text-sm font-semibold rounded-lg bg-green-100 text-green-800">
                         {row.harga ? new Intl.NumberFormat('id-ID', {
                             style: 'currency',
                             currency: 'IDR',
@@ -189,11 +335,12 @@ const PembelianFeedmilDetailPage = () => {
             name: 'Persentase (%)',
             selector: row => row.persentase,
             sortable: true,
-            width: '12%',
+            grow: 1,
             wrap: true,
+            center: true,
             cell: row => (
-                <div className="text-center">
-                    <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 break-words">
+                <div className="w-full flex items-center justify-center">
+                    <span className="inline-flex px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-100 text-blue-800">
                         {row.persentase ? `${parseFloat(row.persentase).toFixed(1)}%` : '-'}
                     </span>
                 </div>
@@ -203,11 +350,12 @@ const PembelianFeedmilDetailPage = () => {
             name: 'HPP',
             selector: row => row.hpp,
             sortable: true,
-            width: '15%',
+            grow: 1.2,
             wrap: true,
+            center: true,
             cell: row => (
-                <div className="text-center">
-                    <span className="inline-flex px-3 py-1.5 text-sm font-semibold rounded-full bg-purple-100 text-purple-800 break-words">
+                <div className="w-full flex items-center justify-center">
+                    <span className="inline-flex px-3 py-2 text-sm font-semibold rounded-lg bg-purple-100 text-purple-800">
                         {row.hpp ? new Intl.NumberFormat('id-ID', {
                             style: 'currency',
                             currency: 'IDR',
@@ -222,11 +370,12 @@ const PembelianFeedmilDetailPage = () => {
             name: 'Total Harga',
             selector: row => row.total_harga,
             sortable: true,
-            width: '15%',
+            grow: 1.2,
             wrap: true,
+            center: true,
             cell: row => (
-                <div className="text-center">
-                    <span className="inline-flex px-3 py-1.5 text-sm font-semibold rounded-full bg-red-100 text-red-800 break-words">
+                <div className="w-full flex items-center justify-center">
+                    <span className="inline-flex px-3 py-2 text-sm font-semibold rounded-lg bg-red-100 text-red-800">
                         {row.total_harga ? new Intl.NumberFormat('id-ID', {
                             style: 'currency',
                             currency: 'IDR',
@@ -241,11 +390,12 @@ const PembelianFeedmilDetailPage = () => {
             name: 'Tgl Masuk RPH',
             selector: row => row.tgl_masuk_rph,
             sortable: true,
-            width: '15%',
+            grow: 1.1,
             wrap: true,
+            center: true,
             cell: row => (
-                <div className="text-center">
-                    <span className="text-gray-900 break-words">
+                <div className="w-full flex items-center justify-center">
+                    <span className="text-gray-900">
                         {row.tgl_masuk_rph ? new Date(row.tgl_masuk_rph).toLocaleDateString('id-ID') : '-'}
                     </span>
                 </div>
@@ -423,124 +573,278 @@ const PembelianFeedmilDetailPage = () => {
                 </div>
 
                 {/* Detail Table */}
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 relative w-full">
-                    <div className="p-6 border-b border-gray-200">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                            <div>
-                                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                                    <Package className="w-6 h-6 text-green-600" />
-                                    Detail Item Feedmil
-                                </h2>
-                                <p className="text-gray-600 text-sm mt-1">
-                                    Rincian setiap item feedmil dalam pembelian ini
-                                </p>
+                <>
+                    <style jsx>{`
+                        /* Custom scrollbar styling for table container */
+                        .table-scroll-container::-webkit-scrollbar {
+                            height: 8px;
+                        }
+                        
+                        .table-scroll-container::-webkit-scrollbar-track {
+                            background: #f1f5f9;
+                            border-radius: 4px;
+                        }
+                        
+                        .table-scroll-container::-webkit-scrollbar-thumb {
+                            background: #cbd5e1;
+                            border-radius: 4px;
+                            transition: background 0.2s ease;
+                        }
+                        
+                        .table-scroll-container::-webkit-scrollbar-thumb:hover {
+                            background: #94a3b8;
+                        }
+                        
+                        /* Firefox scrollbar styling */
+                        .table-scroll-container {
+                            scrollbar-width: thin;
+                            scrollbar-color: #cbd5e1 #f1f5f9;
+                        }
+                    `}</style>
+                    
+                    <div className="bg-white rounded-xl shadow-lg border border-gray-100 relative overflow-hidden">
+                        {/* Enhanced Scroll Indicator - Top */}
+                        <div className="px-6 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <Package className="w-5 h-5 text-green-600" />
+                                <div>
+                                    <h2 className="text-lg font-bold text-gray-900">Detail Item Feedmil</h2>
+                                    <p className="text-gray-500 text-xs mt-1">
+                                        Rincian setiap item feedmil dalam pembelian ini
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <div className="flex items-center text-sm text-gray-600">
+                                    <svg className="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16l-4-4m0 0l4-4m-4 4h18"></path>
+                                    </svg>
+                                    Tabel responsif menggunakan ruang optimal
+                                    <svg className="w-4 h-4 ml-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m0-4H3"></path>
+                                    </svg>
+                                </div>
+                                <div className="text-xs text-gray-500">
+                                    {detailData.length} item{detailData.length !== 1 ? 's' : ''}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {/* Table Container with proper scroll */}
+                        <div className="w-full overflow-x-auto max-w-full table-scroll-container" onScroll={handleTableScroll}>
+                            <div className="min-w-full">
+                                <DataTable
+                                    title="Daftar Detail Item Feedmil"
+                                    columns={detailColumns}
+                                    data={getPaginatedData()}
+                                    pagination={false}
+                                    customStyles={{
+                                        ...customTableStyles,
+                                        table: {
+                                            ...customTableStyles.table,
+                                            style: {
+                                                ...customTableStyles.table.style,
+                                                width: '100%',
+                                                minWidth: '100%', // Use full width available
+                                                tableLayout: 'auto', // Auto layout for flexible column widths
+                                            }
+                                        },
+                                        tableWrapper: {
+                                            ...customTableStyles.tableWrapper,
+                                            style: {
+                                                ...customTableStyles.tableWrapper.style,
+                                                overflowX: 'visible', // Let parent container handle scroll
+                                                overflowY: 'visible',
+                                                width: '100%',
+                                                border: 'none', // Remove border as it's handled by parent container
+                                                borderRadius: '0',
+                                                WebkitOverflowScrolling: 'touch',
+                                                position: 'relative',
+                                                scrollBehavior: 'smooth',
+                                            }
+                                        },
+                                        headCells: {
+                                            ...customTableStyles.headCells,
+                                            style: {
+                                                ...customTableStyles.headCells.style,
+                                                textAlign: 'center !important',
+                                                // Keep first column sticky
+                                                '&:first-child': {
+                                                    position: 'sticky',
+                                                    left: 0,
+                                                    zIndex: 1002,
+                                                    backgroundColor: '#f8fafc',
+                                                    borderRight: '2px solid #e5e7eb',
+                                                    boxShadow: '1px 0 2px rgba(0, 0, 0, 0.05)',
+                                                },
+                                                // Remove sticky from last column 
+                                                '&:last-of-type': {
+                                                    position: 'static !important',
+                                                    right: 'unset !important',
+                                                    zIndex: 'unset !important',
+                                                    backgroundColor: 'inherit !important',
+                                                    borderLeft: 'none !important',
+                                                    boxShadow: 'none !important',
+                                                    textAlign: 'center !important',
+                                                },
+                                            },
+                                        },
+                                        cells: {
+                                            ...customTableStyles.cells,
+                                            style: {
+                                                ...customTableStyles.cells.style,
+                                                textAlign: 'center !important',
+                                                display: 'flex !important',
+                                                alignItems: 'center !important',
+                                                justifyContent: 'center !important',
+                                                // Keep first column sticky
+                                                '&:first-child': {
+                                                    position: 'sticky',
+                                                    left: 0,
+                                                    zIndex: 999,
+                                                    backgroundColor: '#ffffff !important',
+                                                    borderRight: '2px solid #e5e7eb',
+                                                    boxShadow: '1px 0 2px rgba(0, 0, 0, 0.05)',
+                                                    display: 'flex !important',
+                                                    alignItems: 'center !important',
+                                                    justifyContent: 'center !important',
+                                                },
+                                                // Remove sticky from last column
+                                                '&:last-of-type': {
+                                                    position: 'static !important',
+                                                    right: 'unset !important',
+                                                    zIndex: 'unset !important',
+                                                    backgroundColor: 'inherit !important',
+                                                    borderLeft: 'none !important',
+                                                    boxShadow: 'none !important',
+                                                    textAlign: 'center !important',
+                                                    display: 'flex !important',
+                                                    alignItems: 'center !important',
+                                                    justifyContent: 'center !important',
+                                                },
+                                            }
+                                        }
+                                    }}
+                                    wrapperStyle={{ 'data-detail-table-wrapper': 'true' }}
+                                    noDataComponent={
+                                        <div className="text-center py-12">
+                                            <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                                            <p className="text-gray-500 text-lg">Tidak ada detail item feedmil ditemukan</p>
+                                        </div>
+                                    }
+                                    responsive={false}
+                                    highlightOnHover
+                                    pointerOnHover
+                                />
+                            </div>
+                        </div>
+                        
+                        {/* Enhanced Scroll Status Footer */}
+                        <div className="bg-gray-50 px-4 py-2 border-t border-gray-200">
+                            <div className="flex items-center justify-between text-xs text-gray-500">
+                                <span className="flex items-center gap-1">
+                                    {scrollPosition.canScrollLeft && (
+                                        <span className="text-blue-600 font-medium">← Scroll kiri</span>
+                                    )}
+                                    {!scrollPosition.canScrollLeft && !scrollPosition.canScrollRight && (
+                                        <span className="text-green-600 font-medium">✓ Tampilan optimal</span>
+                                    )}
+                                    {scrollPosition.canScrollRight && (
+                                        <span className="text-blue-600 font-medium">Scroll kanan →</span>
+                                    )}
+                                </span>
+                                <span className="text-gray-400">
+                                    {detailData.length} item detail feedmil
+                                </span>
+                            </div>
+                        </div>
+                        
+                        {/* Custom Pagination - Fixed outside scroll area */}
+                        <div className="border-t border-gray-200 bg-gray-50 px-6 py-4 flex items-center justify-between rounded-b-xl">
+                            <div className="flex items-center text-sm text-gray-700">
+                                <span>
+                                    Menampilkan{' '}
+                                    <span className="font-semibold">
+                                        {pagination.totalItems === 0 ? 0 : ((pagination.currentPage - 1) * pagination.perPage) + 1}
+                                    </span>
+                                    {' '}sampai{' '}
+                                    <span className="font-semibold">
+                                        {Math.min(pagination.currentPage * pagination.perPage, pagination.totalItems)}
+                                    </span>
+                                    {' '}dari{' '}
+                                    <span className="font-semibold">{pagination.totalItems}</span>
+                                    {' '}hasil
+                                </span>
+                            </div>
+                            
+                            <div className="flex items-center space-x-2">
+                                {/* Rows per page selector */}
+                                <div className="flex items-center space-x-2">
+                                    <span className="text-sm text-gray-700">Rows per page:</span>
+                                    <select
+                                        value={pagination.perPage}
+                                        onChange={(e) => handlePerPageChange(parseInt(e.target.value))}
+                                        className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                                    >
+                                        <option value={10}>10</option>
+                                        <option value={25}>25</option>
+                                        <option value={50}>50</option>
+                                        <option value={100}>100</option>
+                                    </select>
+                                </div>
+                                
+                                {/* Pagination buttons */}
+                                <div className="flex items-center space-x-1">
+                                    <button
+                                        onClick={() => handlePageChange(1)}
+                                        disabled={pagination.currentPage === 1}
+                                        className="p-2 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        title="First page"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                                        </svg>
+                                    </button>
+                                    <button
+                                        onClick={() => handlePageChange(pagination.currentPage - 1)}
+                                        disabled={pagination.currentPage === 1}
+                                        className="p-2 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        title="Previous page"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                                        </svg>
+                                    </button>
+                                    
+                                    <span className="px-3 py-1 text-sm font-medium">
+                                        {pagination.currentPage} of {pagination.totalPages}
+                                    </span>
+                                    
+                                    <button
+                                        onClick={() => handlePageChange(pagination.currentPage + 1)}
+                                        disabled={pagination.currentPage === pagination.totalPages}
+                                        className="p-2 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        title="Next page"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    </button>
+                                    <button
+                                        onClick={() => handlePageChange(pagination.totalPages)}
+                                        disabled={pagination.currentPage === pagination.totalPages}
+                                        className="p-2 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        title="Last page"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                                        </svg>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    
-                    <div className="w-full">
-                        <DataTable
-                            title="Daftar Detail Item Feedmil"
-                            columns={detailColumns}
-                            data={detailData}
-                            pagination
-                            customStyles={{
-                                 // Mulai dengan gaya dasar yang ada
-                                 ...customTableStyles,
-                                 // Timpa atau tambahkan gaya spesifik untuk tabel ini
-                                 table: {
-                                     ...customTableStyles.table,
-                                     style: {
-                                         ...customTableStyles.table.style,
-                                         // Sesuaikan minWidth dengan jumlah dan lebar kolom feedmil detail
-                                         minWidth: '1200px', // Lebar untuk 9 kolom dengan total width ~1000px
-                                         width: '100%',
-                                         tableLayout: 'fixed', // Kritis untuk kontrol lebar kolom
-                                         wordWrap: 'break-word',
-                                         overflowWrap: 'break-word',
-                                     }
-                                 },
-                                 tableWrapper: {
-                                     style: {
-                                         overflowX: 'auto', // Aktifkan scroll horizontal
-                                         overflowY: 'auto', // Aktifkan scroll vertikal jika perlu
-                                         maxHeight: '500px', // Sesuaikan tinggi maksimal
-                                         maxWidth: '100%',
-                                         width: '100%',
-                                         border: '1px solid #e2e8f0',
-                                         borderRadius: '8px', // Sesuaikan border radius
-                                         WebkitOverflowScrolling: 'touch',
-                                     }
-                                 },
-                                 headRow: {
-                                     style: {
-                                         position: 'sticky',
-                                         top: 0,
-                                         // Pastikan z-index headRow lebih tinggi dari sel data sticky
-                                         zIndex: 1000,
-                                         backgroundColor: '#ffffff',
-                                         fontWeight: 'bold',
-                                         // Sesuaikan boxShadow untuk konsistensi
-                                         boxShadow: '0 2px 4px rgba(0,0,0,0.08)', // Bayangan lebih halus
-                                     }
-                                 },
-                                 // Tambahkan headCells untuk styling header sticky
-                                 headCells: {
-                                     style: {
-                                         fontSize: '12px',
-                                         fontWeight: 'bold',
-                                         color: 'inherit',
-                                         padding: '8px 12px', // Sesuaikan padding
-                                         // Perbaikan/pastikan styling kolom "No" di header
-                                         '&:first-child': { // Target header kolom pertama ("No")
-                                             position: 'sticky',
-                                             left: 0,
-                                             // z-index header kolom "No" harus > headRow dan > sel data sticky
-                                             zIndex: 1002,
-                                             backgroundColor: '#ffffff', // Latar belakang header
-                                             borderRight: '2px solid #e2e8f0', // Border kanan
-                                             // Tambahkan bayangan vertikal untuk efek pemisahan
-                                             boxShadow: 'inset -3px 0 4px -1px rgba(0, 0, 0, 0.1)',
-                                         },
-                                     },
-                                 },
-                                 cells: {
-                                     style: {
-                                         wordWrap: 'break-word',
-                                         wordBreak: 'break-word',
-                                         whiteSpace: 'normal',
-                                         overflow: 'hidden',
-                                         textOverflow: 'ellipsis',
-                                         // Sesuaikan padding untuk konsistensi
-                                         padding: '8px 12px',
-                                         fontSize: '12px',
-                                         lineHeight: '1.4',
-                                         // Perbaikan/pastikan styling kolom "No" di data
-                                         '&:first-child': { // Target sel data kolom pertama ("No")
-                                             position: 'sticky',
-                                             left: 0,
-                                             // z-index sel data kolom "No" harus < headRow
-                                             zIndex: 999,
-                                             backgroundColor: '#fff', // Latar belakang sel
-                                             borderRight: '2px solid #e2e8f0', // Border kanan
-                                             // Tambahkan bayangan vertikal untuk efek pemisahan
-                                             boxShadow: 'inset -3px 0 4px -1px rgba(0, 0, 0, 0.1)',
-                                         },
-                                     }
-                                 }
-                             }}
-                            noDataComponent={
-                                <div className="text-center py-12">
-                                    <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                                    <p className="text-gray-500 text-lg">Tidak ada detail item feedmil ditemukan</p>
-                                </div>
-                            }
-                            responsive={false} // Konsisten dengan halaman utama untuk kontrol penuh scrolling
-                            highlightOnHover
-                            pointerOnHover
-                        />
-                    </div>
-                </div>
+                </>
 
                 {/* Notification */}
                 {notification && (

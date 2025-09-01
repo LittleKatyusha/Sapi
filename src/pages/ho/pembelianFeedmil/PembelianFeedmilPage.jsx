@@ -18,6 +18,7 @@ const PembelianFeedmilPage = () => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [selectedPembelian, setSelectedPembelian] = useState(null);
     const [notification, setNotification] = useState(null);
+    const [scrollPosition, setScrollPosition] = useState({ canScrollLeft: false, canScrollRight: false });
     
     const {
         pembelian: filteredData,
@@ -140,6 +141,30 @@ const PembelianFeedmilPage = () => {
         }
     }, [notification]);
 
+    // Handle table scroll for visual feedback
+    const handleTableScroll = useCallback((e) => {
+        const { scrollLeft, scrollWidth, clientWidth } = e.target;
+        setScrollPosition({
+            canScrollLeft: scrollLeft > 0,
+            canScrollRight: scrollLeft < scrollWidth - clientWidth - 1
+        });
+    }, []);
+
+    // Check initial scroll state when data loads
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            const tableWrapper = document.querySelector('[data-table-wrapper="true"]');
+            if (tableWrapper) {
+                const { scrollWidth, clientWidth } = tableWrapper;
+                setScrollPosition({
+                    canScrollLeft: false,
+                    canScrollRight: scrollWidth > clientWidth
+                });
+            }
+        }, 100);
+        return () => clearTimeout(timer);
+    }, [filteredData]);
+
     const columns = useMemo(() => [
         {
             name: 'No',
@@ -148,7 +173,7 @@ const PembelianFeedmilPage = () => {
             width: '60px',
             ignoreRowClick: true,
             cell: (row, index) => (
-                <div className="font-semibold text-gray-700 text-center">
+                <div className="font-semibold text-gray-600">
                     {index + 1}
                 </div>
             )
@@ -157,46 +182,35 @@ const PembelianFeedmilPage = () => {
             name: 'Nota',
             selector: row => row.nota,
             sortable: true,
-            width: '12%',
+            width: '150px',
             wrap: true,
             cell: row => (
-                <div className="text-center">
-                    <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded break-words" title={row.nota}>
-                        {row.nota || '-'}
-                    </span>
-                </div>
+                <span className="font-mono text-sm bg-gray-100 px-3 py-1.5 rounded-lg" title={row.nota}>
+                    {row.nota || '-'}
+                </span>
             )
         },
         {
             name: 'Tanggal Masuk',
             selector: row => row.tgl_masuk,
             sortable: true,
-            width: '12%',
+            width: '140px',
             wrap: true,
             cell: row => (
-                <div className="text-center">
-                    <span className="text-gray-900 break-words">
-                        {row.tgl_masuk ? new Date(row.tgl_masuk).toLocaleDateString('id-ID') : '-'}
-                    </span>
-                </div>
+                <span className="text-gray-900">
+                    {row.tgl_masuk ? new Date(row.tgl_masuk).toLocaleDateString('id-ID') : '-'}
+                </span>
             )
         },
         {
             name: 'Nama Supir',
             selector: row => row.nama_supir,
             sortable: true,
-            width: '15%',
+            width: '180px',
             wrap: true,
             cell: row => (
-                <div className="flex items-center">
-                    <div className="w-7 h-7 rounded-full bg-green-100 flex items-center justify-center mr-3 flex-shrink-0">
-                        <User className="w-4 h-4 text-green-600" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                        <div className="font-medium text-gray-900 text-sm break-words" title={row.nama_supir}>
-                            {row.nama_supir || '-'}
-                        </div>
-                    </div>
+                <div className="font-medium text-gray-900" title={row.nama_supir}>
+                    {row.nama_supir || '-'}
                 </div>
             )
         },
@@ -204,47 +218,47 @@ const PembelianFeedmilPage = () => {
             name: 'Plat Nomor',
             selector: row => row.plat_nomor,
             sortable: true,
-            width: '10%',
+            width: '130px',
             wrap: true,
             cell: row => (
-                <div className="flex items-center">
-                    <Truck className="w-4 h-4 text-gray-500 mr-2 flex-shrink-0" />
-                    <span className="font-mono text-sm break-words" title={row.plat_nomor}>
-                        {row.plat_nomor || '-'}
-                    </span>
-                </div>
+                <span className="font-mono text-sm" title={row.plat_nomor}>
+                    {row.plat_nomor || '-'}
+                </span>
+            )
+        },
+        {
+            name: 'Jenis Pembelian',
+            selector: row => row.jenis_pembelian,
+            sortable: true,
+            width: '140px',
+            wrap: true,
+            cell: row => (
+                <span className="inline-flex px-3 py-1.5 text-xs font-medium rounded-lg bg-purple-100 text-purple-800">
+                    {row.jenis_pembelian || '-'}
+                </span>
             )
         },
         {
             name: 'Jumlah',
             selector: row => row.jumlah,
             sortable: true,
-            width: '8%',
+            width: '120px',
             wrap: true,
             cell: row => (
-                <div className="text-center">
-                    <span className="inline-flex px-2 py-1 text-sm font-semibold rounded-full bg-indigo-100 text-indigo-800 break-words">
-                        {row.jumlah || 0} {row.satuan || 'sak'}
-                    </span>
-                </div>
+                <span className="inline-flex px-3 py-1.5 text-sm font-semibold rounded-lg bg-indigo-100 text-indigo-800">
+                    {row.jumlah || 0} {row.satuan || 'sak'}
+                </span>
             )
         },
         {
             name: 'Nama Supplier',
             selector: row => row.nama_supplier || row.supplier,
             sortable: true,
-            width: '18%',
+            width: '200px',
             wrap: true,
             cell: row => (
-                <div className="flex items-center">
-                    <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center mr-3 flex-shrink-0">
-                        <Building2 className="w-4 h-4 text-blue-600" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                        <div className="font-medium text-gray-900 text-sm break-words" title={row.nama_supplier || row.supplier}>
-                            {row.nama_supplier || row.supplier || '-'}
-                        </div>
-                    </div>
+                <div className="font-medium text-gray-900" title={row.nama_supplier || row.supplier}>
+                    {row.nama_supplier || row.supplier || '-'}
                 </div>
             )
         },
@@ -252,71 +266,51 @@ const PembelianFeedmilPage = () => {
             name: 'Berat Total',
             selector: row => row.berat_total,
             sortable: true,
-            width: '12%',
+            width: '140px',
             wrap: true,
             cell: row => (
-                <div className="text-center">
-                    <span className="text-gray-900 break-words">
-                        {row.berat_total ? `${parseFloat(row.berat_total).toFixed(1)} kg` : '-'}
-                    </span>
-                </div>
+                <span className="text-gray-900 font-medium">
+                    {row.berat_total ? `${parseFloat(row.berat_total).toFixed(1)} kg` : '-'}
+                </span>
             )
         },
         {
             name: 'Biaya Total',
             selector: row => row.biaya_total,
             sortable: true,
-            width: '15%',
+            width: '160px',
             wrap: true,
             cell: row => (
-                <div className="text-center">
-                    <span className="inline-flex px-3 py-1.5 text-sm font-semibold rounded-full bg-green-100 text-green-800 break-words">
-                        {row.biaya_total ? new Intl.NumberFormat('id-ID', {
-                            style: 'currency',
-                            currency: 'IDR',
-                            minimumFractionDigits: 0,
-                            maximumFractionDigits: 0
-                        }).format(row.biaya_total) : 'Rp 0'}
-                    </span>
-                </div>
+                <span className="inline-flex px-3 py-2 text-sm font-semibold rounded-lg bg-green-100 text-green-800">
+                    {row.biaya_total ? new Intl.NumberFormat('id-ID', {
+                        style: 'currency',
+                        currency: 'IDR',
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0
+                    }).format(row.biaya_total) : 'Rp 0'}
+                </span>
             )
         },
         {
             name: 'Biaya Lain',
             selector: row => row.biaya_lain,
             sortable: true,
-            width: '12%',
+            width: '150px',
             wrap: true,
             cell: row => (
-                <div className="text-center">
-                    <span className="inline-flex px-3 py-1.5 text-sm font-semibold rounded-full bg-orange-100 text-orange-800 break-words">
-                        {row.biaya_lain ? new Intl.NumberFormat('id-ID', {
-                            style: 'currency',
-                            currency: 'IDR',
-                            minimumFractionDigits: 0,
-                            maximumFractionDigits: 0
-                        }).format(row.biaya_lain) : 'Rp 0'}
-                    </span>
-                </div>
-            )
-        },
-        {
-            name: 'Jenis Pembelian',
-            selector: row => row.jenis_pembelian,
-            sortable: true,
-            width: '12%',
-            wrap: true,
-            cell: row => (
-                <div className="text-center">
-                    <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800">
-                        {row.jenis_pembelian || '-'}
-                    </span>
-                </div>
+                <span className="inline-flex px-3 py-2 text-sm font-semibold rounded-lg bg-orange-100 text-orange-800">
+                    {row.biaya_lain ? new Intl.NumberFormat('id-ID', {
+                        style: 'currency',
+                        currency: 'IDR',
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0
+                    }).format(row.biaya_lain) : 'Rp 0'}
+                </span>
             )
         },
         {
             name: 'Aksi',
-            width: '8%',
+            width: '80px',
             cell: row => (
                 <ActionButton
                     row={row}
@@ -334,6 +328,27 @@ const PembelianFeedmilPage = () => {
 
     return (
         <>
+            {/* Custom CSS for horizontal scrollbar styling */}
+            <style jsx>{`
+                .horizontal-scroll-container::-webkit-scrollbar {
+                    height: 12px;
+                }
+                .horizontal-scroll-container::-webkit-scrollbar-track {
+                    background: #f1f5f9;
+                    border-radius: 6px;
+                }
+                .horizontal-scroll-container::-webkit-scrollbar-thumb {
+                    background: #94a3b8;
+                    border-radius: 6px;
+                    border: 2px solid #f1f5f9;
+                }
+                .horizontal-scroll-container::-webkit-scrollbar-thumb:hover {
+                    background: #64748b;
+                }
+                .horizontal-scroll-container::-webkit-scrollbar-corner {
+                    background: #f1f5f9;
+                }
+            `}</style>
             <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-2 sm:p-4 md:p-6">
             <div className="w-full max-w-none mx-0 space-y-6 md:space-y-8">
                 <div className="bg-white rounded-none sm:rounded-none p-4 sm:p-6 shadow-xl border border-gray-100">
@@ -431,130 +446,63 @@ const PembelianFeedmilPage = () => {
                 </div>
 
                 {/* Desktop Table View - Hidden on mobile */}
-                <div className="bg-white rounded-none sm:rounded-none shadow-lg border border-gray-100 relative hidden md:block">
-                    <div className="w-full">
-                        <DataTable
+                <div className="bg-white rounded-lg shadow-lg border border-gray-100 relative hidden md:block">
+                    {/* Table Header */}
+                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-4 py-2 border-b border-gray-200">
+                        <div className="flex items-center justify-between text-sm text-gray-600">
+                            <span className="flex items-center gap-2">
+                                <Package className="w-4 h-4" />
+                                Data Pembelian Feedmil
+                            </span>
+                            <div className="flex items-center gap-2 text-xs">
+                                {scrollPosition.canScrollLeft && (
+                                    <span className="text-blue-600 animate-pulse">← Scroll kiri untuk melihat kolom sebelumnya</span>
+                                )}
+                                {scrollPosition.canScrollRight && (
+                                    <span className="text-blue-600 animate-pulse">Scroll kanan untuk melihat kolom lainnya →</span>
+                                )}
+                                {!scrollPosition.canScrollLeft && !scrollPosition.canScrollRight && (
+                                    <span className="text-green-600">✓ Semua kolom terlihat</span>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {/* Scrollable Table Content */}
+                    <div 
+                        className="w-full overflow-x-auto overflow-y-hidden horizontal-scroll-container" 
+                        onScroll={handleTableScroll} 
+                        style={{ 
+                            maxWidth: '100vw',
+                            scrollBehavior: 'smooth',
+                            WebkitOverflowScrolling: 'touch',
+                            scrollbarWidth: 'thin',
+                            scrollbarColor: '#94a3b8 #e2e8f0',
+                        }}
+                    >
+                        <div style={{ minWidth: '1400px' }}>
+                            <DataTable
                             key={`datatable-${serverPagination.currentPage}-${filteredData.length}`}
                             columns={columns}
                             data={filteredData}
-                            pagination
-                            paginationServer
-                            paginationTotalRows={serverPagination.totalItems}
-                            paginationDefaultPage={serverPagination.currentPage}
-                            paginationPerPage={serverPagination.perPage}
-                            paginationRowsPerPageOptions={[10, 25, 50, 100]}
-                            onChangeRowsPerPage={handleServerPerPageChange}
-                            onChangePage={handleServerPageChange}
+                            pagination={false}
                             customStyles={{
                                 ...customTableStyles,
-                                table: {
-                                    ...customTableStyles.table,
-                                    style: {
-                                        ...customTableStyles.table.style,
-                                        minWidth: '1200px',
-                                        width: '100%',
-                                        tableLayout: 'fixed',
-                                        wordWrap: 'break-word',
-                                        overflowWrap: 'break-word',
-                                    }
-                                },
                                 tableWrapper: {
+                                    ...customTableStyles.tableWrapper,
                                     style: {
-                                        overflowX: 'auto',
-                                        overflowY: 'auto',
-                                        maxHeight: '600px',
-                                        maxWidth: '100%',
-                                        width: '100%',
-                                        border: '1px solid #e2e8f0',
-                                        borderRadius: '12px',
-                                        WebkitOverflowScrolling: 'touch',
-                                        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
-                                        position: 'relative',
-                                        isolation: 'isolate',
+                                        ...customTableStyles.tableWrapper.style,
+                                        overflow: 'visible',
+                                        scrollBehavior: 'smooth',
                                     }
                                 },
-                                headRow: {
+                                table: {
                                     style: {
-                                        position: 'sticky',
-                                        top: 0,
-                                        zIndex: 1000,
-                                        backgroundColor: '#ffffff',
-                                        fontWeight: 'bold',
-                                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                                    }
-                                },
-                                headCells: {
-                                    style: {
-                                        fontSize: '13px',
-                                        fontWeight: 'bold',
-                                        color: 'inherit',
-                                        padding: '12px 16px',
-                                        '&:first-child': {
-                                            position: 'sticky',
-                                            left: 0,
-                                            zIndex: 1002,
-                                            backgroundColor: '#ffffff',
-                                            borderRight: '3px solid #e2e8f0',
-                                            boxShadow: 'inset -3px 0 4px -1px rgba(0, 0, 0, 0.1)',
-                                            willChange: 'transform',
-                                        },
-                                        '&:last-child': {
-                                            position: 'sticky',
-                                            right: 0,
-                                            zIndex: 1001,
-                                            backgroundColor: '#ffffff',
-                                            borderLeft: '3px solid #e2e8f0',
-                                            boxShadow: 'inset 3px 0 4px -1px rgba(0, 0, 0, 0.1)',
-                                            whiteSpace: 'nowrap',
-                                            textAlign: 'center',
-                                            verticalAlign: 'middle',
-                                            willChange: 'transform',
-                                        },
-                                    },
-                                },
-                                rows: {
-                                    style: {
-                                        '&:hover': {
-                                            backgroundColor: 'rgba(243, 244, 246, 0.7)',
-                                            transform: 'scale(1)',
-                                        },
-                                    },
-                                },
-                                cells: {
-                                    style: {
-                                        wordWrap: 'break-word',
-                                        wordBreak: 'break-word',
-                                        whiteSpace: 'normal',
-                                        overflow: 'hidden',
-                                        textOverflow: 'ellipsis',
-                                        padding: '8px 12px',
-                                        fontSize: '12px',
-                                        lineHeight: '1.4',
-                                        '&:first-child': {
-                                            position: 'sticky',
-                                            left: 0,
-                                            zIndex: 999,
-                                            backgroundColor: '#fff !important',
-                                            borderRight: '2px solid #e2e8f0',
-                                            boxShadow: 'inset -3px 0 4px -1px rgba(0, 0, 0, 0.1)',
-                                            willChange: 'transform',
-                                        },
-                                        '&:last-child': {
-                                            position: 'sticky',
-                                            right: 0,
-                                            zIndex: 998,
-                                            backgroundColor: '#fff !important',
-                                            borderLeft: '2px solid #e2e8f0',
-                                            boxShadow: 'inset 3px 0 4px -1px rgba(0, 0, 0, 0.1)',
-                                            padding: '8px 12px',
-                                            whiteSpace: 'nowrap',
-                                            textAlign: 'center',
-                                            verticalAlign: 'middle',
-                                            willChange: 'transform',
-                                        },
+                                        minWidth: '1400px',
                                     }
                                 }
                             }}
+                            wrapperStyle={{ 'data-table-wrapper': 'true' }}
                             progressPending={loading}
                             progressComponent={
                                 <div className="text-center py-12">
@@ -589,6 +537,78 @@ const PembelianFeedmilPage = () => {
                             highlightOnHover
                             pointerOnHover
                         />
+                        </div>
+                    </div>
+                    
+                    {/* Fixed Pagination */}
+                    <div className="bg-white px-4 py-3 border-t border-gray-200 rounded-b-lg">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                                {scrollPosition.canScrollLeft && (
+                                    <span className="text-blue-600 bg-blue-50 px-2 py-1 rounded-md">← Geser kiri untuk melihat kolom sebelumnya</span>
+                                )}
+                                {scrollPosition.canScrollRight && (
+                                    <span className="text-blue-600 bg-blue-50 px-2 py-1 rounded-md">Geser kanan untuk melihat kolom lainnya →</span>
+                                )}
+                                {!scrollPosition.canScrollLeft && !scrollPosition.canScrollRight && (
+                                    <span className="text-green-600 bg-green-50 px-2 py-1 rounded-md">✓ Semua kolom terlihat</span>
+                                )}
+                            </div>
+                            
+                            {/* Custom Pagination Controls */}
+                            <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-sm text-gray-700">Items per page:</span>
+                                    <select
+                                        value={serverPagination.perPage}
+                                        onChange={(e) => handleServerPerPageChange(parseInt(e.target.value))}
+                                        className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    >
+                                        {[10, 25, 50, 100].map(size => (
+                                            <option key={size} value={size}>{size}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                
+                                <span className="text-sm text-gray-700">
+                                    {((serverPagination.currentPage - 1) * serverPagination.perPage) + 1}-{Math.min(serverPagination.currentPage * serverPagination.perPage, serverPagination.totalItems)} of {serverPagination.totalItems}
+                                </span>
+                                
+                                <div className="flex items-center gap-1">
+                                    <button
+                                        onClick={() => handleServerPageChange(1)}
+                                        disabled={serverPagination.currentPage === 1}
+                                        className="px-2 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        «
+                                    </button>
+                                    <button
+                                        onClick={() => handleServerPageChange(serverPagination.currentPage - 1)}
+                                        disabled={serverPagination.currentPage === 1}
+                                        className="px-2 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        ‹
+                                    </button>
+                                    <span className="px-3 py-1 text-sm border border-gray-300 bg-blue-50 text-blue-600 rounded">
+                                        {serverPagination.currentPage}
+                                    </span>
+                                    <button
+                                        onClick={() => handleServerPageChange(serverPagination.currentPage + 1)}
+                                        disabled={serverPagination.currentPage === serverPagination.totalPages}
+                                        className="px-2 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        ›
+                                    </button>
+                                    <button
+                                        onClick={() => handleServerPageChange(serverPagination.totalPages)}
+                                        disabled={serverPagination.currentPage === serverPagination.totalPages}
+                                        className="px-2 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        »
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
