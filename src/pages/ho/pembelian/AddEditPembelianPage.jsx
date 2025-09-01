@@ -1111,7 +1111,7 @@ const AddEditPembelianPage = () => {
                     berat: detailData.berat,
                     persentase: detailData.persentase,
                     hpp: detailData.hpp,
-                    totalHarga: detailData.total_harga
+                    totalHarga: detailData.hpp * detailData.berat
                 };
                 const detailPid = item.encryptedPid || item.pid || item.pubidDetail;
                 result = await updateDetail(detailPid, updateData);
@@ -1141,7 +1141,7 @@ const AddEditPembelianPage = () => {
                     berat: detailData.berat,
                     persentase: detailData.persentase,
                     hpp: detailData.hpp,
-                    totalHarga: detailData.total_harga
+                    totalHarga: detailData.hpp * detailData.berat
                 };
                 result = await updateDetail(null, createData); // null pid will trigger create in backend
             }
@@ -1295,7 +1295,7 @@ const AddEditPembelianPage = () => {
                             berat: parseInt(item.berat),
                             persentase: parseFloat(item.persentase) || 0,
                             hpp: parseFloat(item.hpp),
-                            total_harga: parseFloat(item.totalHarga || item.hpp)
+                            total_harga: item.berat * parseFloat(item.hpp)
                         }))
                         : [] // Ensure it's always an array, even if empty
                 };
@@ -1331,7 +1331,7 @@ const AddEditPembelianPage = () => {
                             berat: parseInt(item.berat),
                             persentase: parseFloat(item.persentase) || 0,
                             hpp: parseFloat(item.hpp),
-                            total_harga: parseFloat(item.totalHarga || item.hpp)
+                            total_harga: item.berat * parseFloat(item.hpp)
                         }))
                         : [] // Ensure it's always an array, even if empty
                 };
@@ -1512,7 +1512,7 @@ const AddEditPembelianPage = () => {
                 berat: parseInt(item.berat),
                 persentase: parseFloat(item.persentase) || 0,
                 hpp: parseFloat(item.hpp),
-                total_harga: parseFloat(item.totalHarga || item.hpp)
+                total_harga: item.berat * parseFloat(item.hpp)
             }));
 
             // Update pembelian with details only using new function
