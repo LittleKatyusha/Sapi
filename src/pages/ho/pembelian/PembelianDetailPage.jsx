@@ -468,19 +468,16 @@ const PembelianDetailPage = () => {
         },
         {
             name: 'Total\nHarga',
-            selector: row => (row.hpp || 0) * (row.berat || 0),
+            selector: row => row.total_harga,
             sortable: true,
             width: '220px',
-            cell: row => {
-                const totalHarga = (row.hpp || 0) * (row.berat || 0);
-                return (
-                    <div className="text-center">
-                        <span className="text-red-600 font-semibold text-sm">
-                            {totalHarga > 0 ? `Rp ${totalHarga.toLocaleString('id-ID')}` : '-'}
-                        </span>
-                    </div>
-                );
-            }
+            cell: row => (
+                <div className="text-center">
+                    <span className="text-red-600 font-semibold text-sm">
+                        {row.total_harga ? `Rp ${Number(row.total_harga).toLocaleString('id-ID')}` : '-'}
+                    </span>
+                </div>
+            )
         },
         {
             name: 'Persentase',
