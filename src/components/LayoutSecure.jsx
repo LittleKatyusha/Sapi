@@ -113,16 +113,16 @@ const LayoutSecure = ({ children, title }) => {
     //     { name: 'Surat Jalan', path: '/boning/surat-jalan', icon: Truck }
     //   ]
     // },
-    {
-      name: 'System',
-      icon: Shield,
-      children: [
-        { name: 'Role', path: '/system/role', icon: UserCheck },
-        { name: 'Permission', path: '/system/permission', icon: Key },
-        { name: 'Users', path: '/system/users', icon: Users },
-        { name: 'Parameters', path: '/system/parameters', icon: Settings }
-      ]
-    },
+    // {
+    //   name: 'System',
+    //   icon: Shield,
+    //   children: [
+    //     { name: 'Role', path: '/system/role', icon: UserCheck },
+    //     { name: 'Permission', path: '/system/permission', icon: Key },
+    //     { name: 'Users', path: '/system/users', icon: Users },
+    //     { name: 'Parameters', path: '/system/parameters', icon: Settings }
+    //   ]
+    // },
     {
       name: 'Laporan',
       icon: BarChart3,
