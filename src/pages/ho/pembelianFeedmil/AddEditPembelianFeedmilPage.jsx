@@ -59,7 +59,6 @@ const AddEditPembelianFeedmilPage = () => {
         nota: '',
         idOffice: 'head-office', // Fixed to Head Office for HO
         tipePembelian: '',
-        jenis_pembelian: '', // New field for jenis pembelian
         idSupplier: '',
         tgl_masuk: '',
         nama_supir: '',
@@ -216,19 +215,9 @@ const AddEditPembelianFeedmilPage = () => {
                     
                     // 3. Process the data for form population
                     if (result.success && result.data.length > 0) {
-                        // Handle supplier selection - jenis_pembelian might contain supplier info like "SUPPLIER (PERUSAHAAN)"
+                        // Handle supplier selection
                         let supplierName = headerDataFromList?.nama_supplier || firstDetail.nama_supplier;
                         let supplierIdFromName = '';
-                        
-                        // If nama_supplier is null but we have jenis_pembelian with supplier info
-                        if (!supplierName) {
-                            const jenisPembelian = headerDataFromList?.jenis_pembelian || firstDetail.jenis_pembelian;
-                            console.log('🔍 Checking jenis_pembelian for supplier info:', jenisPembelian);
-                            
-                            // Don't use jenis_pembelian as supplier name - it's classification, not supplier name
-                            // Leave supplier empty if nama_supplier is null
-                            supplierName = null;
-                        }
                         
                         // Find supplier ID from name if we have a valid supplier name
                         if (supplierName) {
@@ -238,7 +227,6 @@ const AddEditPembelianFeedmilPage = () => {
                         console.log('🏢 Supplier ID matching:', {
                             headerSupplierName: headerDataFromList?.nama_supplier,
                             detailSupplierName: firstDetail.nama_supplier,
-                            jenisPembelian: headerDataFromList?.jenis_pembelian || firstDetail.jenis_pembelian,
                             finalSupplierName: supplierName,
                             foundId: supplierIdFromName,
                             isSupplierNull: supplierName === null,
@@ -253,9 +241,8 @@ const AddEditPembelianFeedmilPage = () => {
                         const finalHeaderData = {
                             nota: headerDataToUse.nota || detailDataFallback.nota || '',
                             idOffice: 'head-office',
-                            // Map jenis_pembelian string to parameter values from sys_ms_parameter
+                            // Map tipe_pembelian from backend data
                             tipePembelian: (function() {
-                                const jenisPembelianStr = headerDataToUse.jenis_pembelian || detailDataFallback.jenis_pembelian;
                                 // Check if we already have integer value from tipe_pembelian field
                                 const tipeFromBackend = headerDataToUse.tipe_pembelian || detailDataFallback.tipe_pembelian;
                                 
@@ -263,6 +250,8 @@ const AddEditPembelianFeedmilPage = () => {
                                     return parseInt(tipeFromBackend);
                                 }
                                 
+                                // Fallback to jenis_pembelian string if tipe_pembelian is not available
+                                const jenisPembelianStr = headerDataToUse.jenis_pembelian || detailDataFallback.jenis_pembelian;
                                 // Map string values to parameter values as per sys_ms_parameter table
                                 // Based on database screenshot: INTERNAL=1, EXTERNAL=2
                                 switch (jenisPembelianStr) {
@@ -270,17 +259,6 @@ const AddEditPembelianFeedmilPage = () => {
                                     case 'EXTERNAL': return 2; // Parameter value from database
                                     case 'KONTRAK': return 3;  // Potential third option
                                     default: return '';
-                                }
-                            })(),
-                            // Add jenis_pembelian field - map from backend data
-                            jenis_pembelian: (function() {
-                                const jenisPembelianStr = headerDataToUse.jenis_pembelian || detailDataFallback.jenis_pembelian;
-                                // Map string values to parameter values as per sys_ms_parameter table
-                                switch (jenisPembelianStr) {
-                                    case 'INTERNAL': return 1; // Parameter value from database
-                                    case 'EXTERNAL': return 2; // Parameter value from database
-                                    case 'KONTRAK': return 3;  // Potential third option
-                                    default: return jenisPembelianStr || '';
                                 }
                             })(),
                             idSupplier: supplierIdFromName || '', // Use matched supplier ID from name (handle null case)
@@ -299,21 +277,18 @@ const AddEditPembelianFeedmilPage = () => {
                         
                         console.log('📝 Final header data being set:', finalHeaderData);
                         console.log('🔍 Backend field analysis:', {
-                            'jenis_pembelian (supplier classification)': headerDataToUse.jenis_pembelian || detailDataFallback.jenis_pembelian,
                             'tipe_pembelian (external/internal)': headerDataToUse.tipe_pembelian || detailDataFallback.tipe_pembelian,
                             'tipe_pembelian_id': headerDataToUse.tipe_pembelian_id || detailDataFallback.tipe_pembelian_id,
                             'nama_supplier': headerDataToUse.nama_supplier || detailDataFallback.nama_supplier,
                             'final_tipePembelian_value': finalHeaderData.tipePembelian
                         });
                         console.log('🎯 Tipe Pembelian mapping logic:', {
-                            'jenis_pembelian_from_backend': headerDataToUse.jenis_pembelian || detailDataFallback.jenis_pembelian,
                             'tipe_pembelian_integer': headerDataToUse.tipe_pembelian || detailDataFallback.tipe_pembelian,
                             'final_tipePembelian_value': finalHeaderData.tipePembelian,
                             'is_integer': Number.isInteger(finalHeaderData.tipePembelian),
                             'will_match_options': [1, 2, 3].includes(finalHeaderData.tipePembelian)
                         });
-                        console.log('📊 Available jenisPembelianOptions:', jenisPembelianOptions);
-                        console.log('🔄 JenisPembelianLoading status:', jenisPembelianLoading);
+
                         
                         // Load header data - matching exact backend response structure
                         setHeaderData(finalHeaderData);
@@ -711,10 +686,6 @@ const AddEditPembelianFeedmilPage = () => {
             errors.push('Tipe Pembelian harus dipilih');
         }
 
-        if (!headerData.jenis_pembelian) {
-            errors.push('Jenis Pembelian harus dipilih');
-        }
-
         if (!headerData.idSupplier) {
             errors.push('Supplier harus dipilih');
         }
@@ -803,7 +774,6 @@ const AddEditPembelianFeedmilPage = () => {
                 totalHPP: totals.totalHPP,
                 detailItems: detailItems,
                 tipe_pembelian: headerData.tipePembelian, // Backend expects tipe_pembelian as integer
-                jenis_pembelian: headerData.jenis_pembelian, // Include jenis_pembelian field
                 supplier: selectedSupplier ? selectedSupplier.name : '',
                 nama_supplier: selectedSupplier ? selectedSupplier.name : '',
                 id_supplier: headerData.idSupplier,
@@ -1035,31 +1005,7 @@ const AddEditPembelianFeedmilPage = () => {
                             />
                         </div>
 
-                        {/* Jenis Pembelian */}
-                        <div>
-                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <Package className="w-4 h-4" />
-                                Jenis Pembelian *
-                            </label>
-                            <SearchableSelect
-                                value={headerData.jenis_pembelian}
-                                onChange={(value) => handleHeaderChange('jenis_pembelian', value)}
-                                options={jenisPembelianOptions}
-                                placeholder={jenisPembelianLoading ? "Memuat jenis pembelian..." : "Pilih Jenis Pembelian"}
-                                className="w-full"
-                                disabled={jenisPembelianLoading}
-                            />
-                            {jenisPembelianLoading && (
-                                <p className="text-xs text-blue-600 mt-1">
-                                    🔄 Memuat jenis pembelian...
-                                </p>
-                            )}
-                            {jenisPembelianError && (
-                                <p className="text-xs text-red-600 mt-1">
-                                    ❌ Error: {jenisPembelianError}
-                                </p>
-                            )}
-                        </div>
+
 
                         {/* Biaya Truck */}
                         <div>
