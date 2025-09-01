@@ -7,8 +7,7 @@ const AddEditOfficeModal = ({
     onSave,
     editData = null,
     kategoriList = [],
-    kategoriLoading = false,
-    statusList = []
+    kategoriLoading = false
 }) => {
     // Helper function untuk mendapatkan kategori aktif
     // Hanya menampilkan kategori dari database dengan grup kategori_office
@@ -26,7 +25,6 @@ const AddEditOfficeModal = ({
         name: '',
         id_kategori: '',
         description: '',
-        status: statusList && statusList.length > 0 ? statusList[0].value : 1,
         location: ''
     });
 
@@ -55,7 +53,6 @@ const AddEditOfficeModal = ({
                 name: '',
                 id_kategori: '',
                 description: '',
-                status: 1,
                 location: ''
             });
         }
@@ -67,9 +64,6 @@ const AddEditOfficeModal = ({
         
         // Parse nilai integer untuk field yang diperlukan
         let parsedValue = value;
-        if (name === 'status') {
-            parsedValue = value === '' ? '' : parseInt(value, 10);
-        }
         // id_kategori tetap string agar select bisa berubah sesuai pilihan
         
         setFormData(prev => ({
@@ -249,33 +243,7 @@ const AddEditOfficeModal = ({
                         )}
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                            Status
-                        </label>
-                        <select
-                            name="status"
-                            value={formData.status}
-                            onChange={handleInputChange}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors duration-200"
-                        >
-                            <option key="empty" value="">
-                                Pilih Status
-                            </option>
-                            {statusList && statusList.length > 0 ? (
-                                statusList.map((status, idx) => (
-                                    <option key={`status-${status.value || status.id || idx}`} value={status.value}>
-                                        {status.label || status.nama || status.description || `Status ${idx + 1}`}
-                                    </option>
-                                ))
-                            ) : (
-                                <>
-                                    <option value={1}>Aktif</option>
-                                    <option value={0}>Tidak Aktif</option>
-                                </>
-                            )}
-                        </select>
-                    </div>
+
 
                     <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-2">

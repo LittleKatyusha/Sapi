@@ -10,7 +10,7 @@ const useOffices = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
-    const [filterStatus, setFilterStatus] = useState('all');
+
     const [filterKategori, setFilterKategori] = useState('all');
 
     // Integrate kategori hook
@@ -62,7 +62,6 @@ const useOffices = () => {
                     description: item.description || '',
                     location: item.location || '',
                     id_kategori: item.id_kategori || 5,
-                    status: item.status !== undefined ? item.status : 1,
 
                 }));
                 
@@ -83,7 +82,6 @@ const useOffices = () => {
                     id_kategori: 1,
                     description: "Kandang utama untuk sapi perah dengan fasilitas lengkap",
 
-                    status: 1,
                     location: "Blok A-1, Sektor Utara"
                 },
                 {
@@ -93,7 +91,6 @@ const useOffices = () => {
                     id_kategori: 2,
                     description: "Kandang khusus untuk sapi muda dan anak sapi",
 
-                    status: 1,
                     location: "Blok B-1, Sektor Timur"
                 },
                 {
@@ -103,7 +100,6 @@ const useOffices = () => {
                     id_kategori: 3,
                     description: "Kandang isolasi untuk sapi sakit atau dalam masa karantina",
 
-                    status: 0,
                     location: "Blok C-1, Sektor Selatan"
                 },
                 {
@@ -113,7 +109,6 @@ const useOffices = () => {
                     id_kategori: 1,
                     description: "Kandang khusus untuk sapi betina produktif",
 
-                    status: 1,
                     location: "Blok A-2, Sektor Utara"
                 },
                 {
@@ -123,7 +118,6 @@ const useOffices = () => {
                     id_kategori: 4,
                     description: "Ruang kantor untuk administrasi dan manajemen",
 
-                    status: 1,
                     location: "Gedung Utama, Lantai 1"
                 }
             ]);
@@ -151,24 +145,11 @@ const useOffices = () => {
             return { success: false, message: errorMsg };
         }
         
-        const requiredParams = ['name', 'description', 'status'];
-        const missingParams = requiredParams.filter(param =>
-            officeData[param] === undefined || officeData[param] === null || officeData[param] === ''
-        );
-        
-        if (missingParams.length > 0) {
-            const errorMsg = `Parameter wajib tidak lengkap: ${missingParams.join(', ')}`;
-            setError(errorMsg);
-            return { success: false, message: errorMsg };
-        }
-        
         try {
             const cleanOfficeData = {
                 name: String(officeData.name).trim(),
                 id_kategori: kategoriId,
                 description: String(officeData.description).trim(),
-
-                status: parseInt(officeData.status, 10),
                 location: String(officeData.location || '').trim()
             };
             
@@ -218,23 +199,10 @@ const useOffices = () => {
                 return { success: false, message: errorMsg };
             }
             
-            const requiredParams = ['name', 'description', 'status'];
-            const missingParams = requiredParams.filter(param =>
-                officeData[param] === undefined || officeData[param] === null || officeData[param] === ''
-            );
-            
-            if (missingParams.length > 0) {
-                const errorMsg = `Parameter wajib tidak lengkap: ${missingParams.join(', ')}`;
-                setError(errorMsg);
-                return { success: false, message: errorMsg };
-            }
-            
             const cleanData = {
                 name: String(officeData.name).trim(),
                 id_kategori: kategoriId,
                 description: String(officeData.description).trim(),
-
-                status: parseInt(officeData.status, 10),
                 location: String(officeData.location || '').trim()
             };
             
@@ -312,37 +280,29 @@ const useOffices = () => {
                     (item.description && item.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
                     (item.location && item.location.toLowerCase().includes(searchTerm.toLowerCase()));
                     
-                const matchesStatus = filterStatus === 'all' ||
-                    (filterStatus === 'active' && item.status === 1) ||
-                    (filterStatus === 'inactive' && item.status === 0);
-                    
                 const matchesKategori = filterKategori === 'all' ||
                     (item.id_kategori !== undefined && item.id_kategori !== null &&
                      item.id_kategori.toString() === filterKategori);
                      
-                return matchesSearch && matchesStatus && matchesKategori;
+                return matchesSearch && matchesKategori;
             } catch (error) {
                 console.warn('Error filtering item:', item, error);
                 return false;
             }
         });
-    }, [offices, searchTerm, filterStatus, filterKategori]);
+    }, [offices, searchTerm, filterKategori]);
 
     // Statistics
     const stats = useMemo(() => {
         if (!offices || !Array.isArray(offices)) {
             return {
                 total: 0,
-                active: 0,
-                inactive: 0,
                 kandang: 0
             };
         }
         
         try {
             const total = offices.length;
-            const active = offices.filter(item => item && item.status === 1).length;
-            const inactive = offices.filter(item => item && item.status === 0).length;
             const kandang = offices.filter(item =>
                 item && item.id_kategori !== undefined && item.id_kategori !== null &&
                 [1, 2, 3].includes(item.id_kategori)
@@ -350,16 +310,12 @@ const useOffices = () => {
             
             return {
                 total,
-                active,
-                inactive,
                 kandang
             };
         } catch (error) {
             console.warn('Error calculating stats:', error);
             return {
                 total: 0,
-                active: 0,
-                inactive: 0,
                 kandang: 0
             };
         }
@@ -399,8 +355,6 @@ const useOffices = () => {
         error: error || kategoriError,
         searchTerm,
         setSearchTerm,
-        filterStatus,
-        setFilterStatus,
         filterKategori,
         setFilterKategori,
         stats,

@@ -36,8 +36,7 @@ const KandangOfficePage = () => {
         error,
         searchTerm,
         setSearchTerm,
-        filterStatus,
-        setFilterStatus,
+
         filterKategori,
         setFilterKategori,
         stats,
@@ -242,19 +241,7 @@ const KandangOfficePage = () => {
 
                         {/* Filters */}
                         <div className="flex flex-wrap gap-2 sm:gap-3">
-                            {/* Status Filter */}
-                            <div className="flex items-center gap-2">
-                                <Filter className="w-4 h-4 text-gray-500" />
-                                <select
-                                    value={filterStatus}
-                                    onChange={(e) => setFilterStatus(e.target.value)}
-                                    className="px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 text-xs sm:text-sm"
-                                >
-                                    <option value="all">Semua Status</option>
-                                    <option value="active">Office/Kandang Aktif</option>
-                                    <option value="inactive">Office/Kandang Tidak Aktif</option>
-                                </select>
-                            </div>
+
 
                             {/* Kategori Filter */}
                             <select

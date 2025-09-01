@@ -52,17 +52,7 @@ const CardView = ({ data, onEdit, onDelete, onDetail, openMenuId, setOpenMenuId,
                             </div>
                         )}
                         
-                        <div className="flex items-center justify-between pt-3 sm:pt-4 border-t border-gray-100">
-                            <div className="flex items-center text-xs text-gray-500">
-                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                    item.status === 1
-                                        ? 'bg-green-100 text-green-800'
-                                        : 'bg-red-100 text-red-800'
-                                }`}>
-                                    {item.status === 1 ? 'Aktif' : 'Tidak Aktif'}
-                                </span>
-                            </div>
-                        </div>
+
                     </div>
                 </div>
             </div>

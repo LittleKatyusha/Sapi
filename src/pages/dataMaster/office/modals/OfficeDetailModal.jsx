@@ -1,6 +1,6 @@
 import React from 'react';
 import { Building2, Hash, MapPin, FileText, Activity, Info, X } from 'lucide-react';
-import StatusBadge from '../components/StatusBadge';
+
 
 import { useEffect } from 'react';
 
@@ -58,13 +58,7 @@ const OfficeDetailModal = ({ isOpen, onClose, data, getKategoriName }) => {
                     </div>
 
 
-                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl">
-                        <div className="flex items-center">
-                            <Activity className="w-5 h-5 text-gray-600 mr-3" />
-                            <span className="text-sm font-semibold text-gray-700">Status</span>
-                        </div>
-                        <StatusBadge status={data.status} />
-                    </div>
+
 
                     <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl">
                         <div className="flex items-center">
@@ -109,7 +103,7 @@ const OfficeDetailModal = ({ isOpen, onClose, data, getKategoriName }) => {
                         <div className="text-sm text-blue-700">
                             <p>Office <span className="font-bold">{data.name}</span></p>
                             <p>Kategori: <span className="font-medium">{getKategoriNameSafe(data.id_kategori)}</span></p>
-                            <p>Status: <span className="font-medium">{data.status === 1 ? 'Aktif' : 'Tidak Aktif'}</span></p>
+
                             {data.location && (
                                 <p>Lokasi: <span className="font-medium">{data.location}</span></p>
                             )}
