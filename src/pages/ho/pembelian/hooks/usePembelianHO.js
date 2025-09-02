@@ -206,8 +206,12 @@ const usePembelianHO = () => {
                 throw new Error('Supplier ID tidak valid. Pastikan supplier sudah dipilih dengan benar.');
             }
             
+            if (!Number.isInteger(officeIdParsed) || officeIdParsed <= 0) {
+                throw new Error('Office ID tidak valid. Pastikan office sudah dipilih dengan benar.');
+            }
+            
             const headerData = {
-                id_office: !isNaN(officeIdParsed) ? officeIdParsed : 1,
+                id_office: officeIdParsed,
                 nota: pembelianData.nota,
                 id_supplier: supplierIdValue, // Use the resolved numeric ID
                 tgl_masuk: pembelianData.tglMasuk, // Use original date format
@@ -219,7 +223,8 @@ const usePembelianHO = () => {
                 biaya_total: parseFloat(pembelianData.biayaTotal) || 0,
                 berat_total: parseFloat(pembelianData.beratTotal) || 0, // Add missing berat_total mapping
                 tipe_pembelian: parseInt(pembelianData.tipePembelian) || 1,
-                file: pembelianData.file || null
+                file: pembelianData.file || null,
+                note: pembelianData.note || null // Add note field
             };
 
             // Validate required fields before sending - handle both numeric and encrypted supplier IDs

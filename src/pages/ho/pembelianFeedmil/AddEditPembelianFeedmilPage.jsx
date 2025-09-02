@@ -5,6 +5,7 @@ import usePembelianFeedmil from './hooks/usePembelianFeedmil';
 import useSuppliersAPI from '../pembelian/hooks/useSuppliersAPI';
 import useKlasifikasiFeedmil from './hooks/useKlasifikasiFeedmil';
 import useJenisPembelianFeedmil from './hooks/useJenisPembelianFeedmil';
+import useOfficesAPI from '../pembelian/hooks/useOfficesAPI';
 import SearchableSelect from '../../../components/shared/SearchableSelect';
 
 
@@ -54,10 +55,17 @@ const AddEditPembelianFeedmilPage = () => {
         getLabelByValue
     } = useJenisPembelianFeedmil();
 
+    // Office API integration
+    const {
+        officeOptions,
+        loading: officeLoading,
+        error: officeError
+    } = useOfficesAPI();
+
     // Header form state - aligned with backend validation requirements
     const [headerData, setHeaderData] = useState({
         nota: '',
-        idOffice: 'head-office', // Fixed to Head Office for HO
+        idOffice: '', // Office now selectable
         tipePembelian: '',
         idSupplier: '',
         tgl_masuk: '',
@@ -240,7 +248,7 @@ const AddEditPembelianFeedmilPage = () => {
                         // Prepare final header data for form population
                         const finalHeaderData = {
                             nota: headerDataToUse.nota || detailDataFallback.nota || '',
-                            idOffice: 'head-office',
+                            idOffice: headerDataToUse.id_office || detailDataFallback.id_office || '',
                             // Map tipe_pembelian from backend data
                             tipePembelian: (function() {
                                 // Check if we already have integer value from tipe_pembelian field
@@ -478,7 +486,7 @@ const AddEditPembelianFeedmilPage = () => {
             // Prepare detail data for save - use snake_case format for backend compatibility
             const detailData = {
                 idPembelian: item.idPembelian || null, // Use item's id_pembelian if available (for existing items)
-                idOffice: 1, // Head Office
+                idOffice: parseInt(headerData.idOffice) || 1, // Use selected office ID
                 item_name: String(item.item_name || ''),
                 id_klasifikasi_feedmil: (() => {
                     const rawValue = item.id_klasifikasi_feedmil;
@@ -888,22 +896,21 @@ const AddEditPembelianFeedmilPage = () => {
                                 <Building2 className="w-4 h-4" />
                                 Office *
                             </label>
-                            <div className="relative">
-                                <input
-                                    type="text"
-                                    value="Head Office (HO)"
-                                    readOnly
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-blue-50 text-gray-600 cursor-not-allowed"
-                                />
-                                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full font-medium">
-                                        Fixed Value
-                                    </span>
-                                </div>
-                            </div>
-                            <p className="text-xs text-blue-600 mt-1">
-                                💡 Office is automatically set to Head Office for HO Pembelian
-                            </p>
+                            <SearchableSelect
+                                value={headerData.idOffice}
+                                onChange={(value) => setHeaderData(prev => ({ ...prev, idOffice: value }))}
+                                options={officeOptions}
+                                placeholder={officeLoading ? 'Loading offices...' : officeError ? 'Error loading offices' : 'Pilih Office'}
+                                isLoading={officeLoading}
+                                isDisabled={officeLoading || officeError}
+                                required
+                                className="w-full"
+                            />
+                            {officeError && (
+                                <p className="text-xs text-red-500 mt-1">
+                                    ⚠️ Error loading offices: {officeError}
+                                </p>
+                            )}
                         </div>
 
                         {/* Tipe Pembelian */}

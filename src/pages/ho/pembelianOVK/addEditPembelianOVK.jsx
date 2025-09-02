@@ -5,6 +5,7 @@ import usePembelianOVK from './hooks/usePembelianOVK';
 import useSuppliersAPI from '../pembelian/hooks/useSuppliersAPI';
 import useJenisPembelianOVK from './hooks/useJenisPembelianOVK';
 import useKlasifikasiOVK from './hooks/useKlasifikasiOVK';
+import useOfficesAPI from '../pembelian/hooks/useOfficesAPI';
 import SearchableSelect from '../../../components/shared/SearchableSelect';
 
 
@@ -49,10 +50,17 @@ const AddEditPembelianOVKPage = () => {
         error: klasifikasiOVKError
     } = useKlasifikasiOVK();
 
+    // Office API integration
+    const {
+        officeOptions,
+        loading: officeLoading,
+        error: officeError
+    } = useOfficesAPI();
+
     // Header form state
     const [headerData, setHeaderData] = useState({
         nota: '',
-        idOffice: 'head-office', // Fixed to Head Office for HO
+        idOffice: '', // Office now selectable
         tipePembelian: '',
         idSupplier: '',
         tgl_masuk: '',
@@ -154,7 +162,7 @@ const AddEditPembelianOVKPage = () => {
                             
                             detailData.push({
                                 id: i,
-                                id_office: 'head-office', // Added: id_office field
+                                id_office: headerData.idOffice || 'head-office', // Use selected office or fallback
                                 item_name: `OVK Item ${i}`,
                                 id_klasifikasi_ovk: `OVK-00${i}`,
                                 berat: Math.round(weightPerItem) || 5,
@@ -207,7 +215,7 @@ const AddEditPembelianOVKPage = () => {
     const addDetailItem = () => {
         const newItem = {
             id: Date.now(),
-            id_office: 'head-office', // Added: id_office field
+            id_office: headerData.idOffice || 'head-office', // Use selected office or fallback
             item_name: defaultData.item_name || '',
             id_klasifikasi_ovk: defaultData.id_klasifikasi_ovk || '',
             berat: defaultData.berat || '',
@@ -235,7 +243,7 @@ const AddEditPembelianOVKPage = () => {
         for (let i = 0; i < batchCount; i++) {
             newItems.push({
                 id: Date.now() + i,
-                id_office: 'head-office', // Added: id_office field
+                id_office: headerData.idOffice || 'head-office', // Use selected office or fallback
                 item_name: defaultData.item_name || '',
                 id_klasifikasi_ovk: defaultData.id_klasifikasi_ovk || '',
                 berat: defaultData.berat || '',
@@ -448,7 +456,7 @@ const AddEditPembelianOVKPage = () => {
             // Map frontend fields to backend expected format
             const submissionData = {
                 // Header data mapping to backend format
-                id_office: 1, // Head Office ID (fixed)
+                id_office: parseInt(headerData.idOffice) || 1, // Use selected office ID
                 nota: headerData.nota,
                 id_supplier: parseInt(headerData.idSupplier),
                 tgl_masuk: headerData.tgl_masuk,
@@ -465,7 +473,7 @@ const AddEditPembelianOVKPage = () => {
 
                 // Detail items mapping
                 details: detailItems.map(item => ({
-                    id_office: 1, // Head Office ID (fixed)
+                    id_office: parseInt(headerData.idOffice) || 1, // Use selected office ID
                     item_name: item.item_name || null,
                     id_klasifikasi_ovk: item.id_klasifikasi_ovk ? parseInt(item.id_klasifikasi_ovk) || null : null, // Use selected ID directly from dropdown
                     harga: parseFloat(item.harga) || null,
@@ -592,22 +600,21 @@ const AddEditPembelianOVKPage = () => {
                                 <Building2 className="w-4 h-4" />
                                 Office *
                             </label>
-                            <div className="relative">
-                                <input
-                                    type="text"
-                                    value="Head Office (HO)"
-                                    readOnly
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-blue-50 text-gray-600 cursor-not-allowed"
-                                />
-                                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full font-medium">
-                                        Fixed Value
-                                    </span>
-                                </div>
-                            </div>
-                            <p className="text-xs text-blue-600 mt-1">
-                                💡 Office is automatically set to Head Office for HO Pembelian
-                            </p>
+                            <SearchableSelect
+                                value={headerData.idOffice}
+                                onChange={(value) => setHeaderData(prev => ({ ...prev, idOffice: value }))}
+                                options={officeOptions}
+                                placeholder={officeLoading ? 'Loading offices...' : officeError ? 'Error loading offices' : 'Pilih Office'}
+                                isLoading={officeLoading}
+                                isDisabled={officeLoading || officeError}
+                                required
+                                className="w-full"
+                            />
+                            {officeError && (
+                                <p className="text-xs text-red-500 mt-1">
+                                    ⚠️ Error loading offices: {officeError}
+                                </p>
+                            )}
                         </div>
 
                         {/* Tipe Pembelian */}

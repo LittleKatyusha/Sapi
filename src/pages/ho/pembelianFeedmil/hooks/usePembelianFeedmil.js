@@ -118,7 +118,7 @@ const usePembelianFeedmil = () => {
             const formData = new FormData();
             
             // Header data mapping to backend fields - aligned with backend validation rules
-            formData.append('id_office', 1); // Head Office ID (required integer)
+            formData.append('id_office', parseInt(pembelianData.idOffice) || 1); // Use selected office ID
             formData.append('nota', pembelianData.nota || '');
             formData.append('id_supplier', pembelianData.idSupplier || pembelianData.id_supplier || '');
             formData.append('tgl_masuk', pembelianData.tgl_masuk || '');

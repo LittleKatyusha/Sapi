@@ -5,6 +5,7 @@ import { ArrowLeft, Save, Plus, Trash2, Building2, User, Calendar, Truck, Hash, 
 import usePembelianHO from './hooks/usePembelianHO';
 import useParameterSelect from './hooks/useParameterSelect';
 import useTipePembelian from './hooks/useTipePembelian';
+import useOfficesAPI from './hooks/useOfficesAPI';
 import SearchableSelect from '../../../components/shared/SearchableSelect';
 import { API_ENDPOINTS, API_BASE_URL } from '../../../config/api';
 
@@ -49,13 +50,19 @@ const AddEditPembelianPage = () => {
         error: tipePembelianError
     } = useTipePembelian();
 
+    const {
+        officeOptions: officeAPIOptions,
+        loading: officeLoading,
+        error: officeError
+    } = useOfficesAPI();
+
     // Extract raw data for compatibility with existing logic
     const availableKlasifikasi = parameterData.klasifikasihewan || [];
     const availableSuppliers = parameterData.supplier || [];
 
-    // Header form state - Head Office fixed
+    // Header form state - Office now selectable
     const [headerData, setHeaderData] = useState({
-        idOffice: 1, // Fixed Head Office ID as integer
+        idOffice: '', // Office ID now selectable
         nota: '',
         idSupplier: '',
         tglMasuk: new Date().toISOString().split('T')[0],
@@ -70,6 +77,7 @@ const AddEditPembelianPage = () => {
         fileName: '', // New field for file name display
         hargaTotal: 0, // New field for total price
         totalSapi: 0, // New field for total cattle count
+        note: '', // Note field from backend
         // markup removed - no longer needed in header
     });
 
@@ -341,10 +349,24 @@ const AddEditPembelianPage = () => {
                         const headerDataToUse = headerDataFromList || {};
                         const detailDataFallback = firstDetail || {};
                         
+                        // Find office ID from nama_office since backend returns nama_office instead of id_office
+                        let officeIdFromName = '';
+                        const officeNameToMatch = headerDataToUse.nama_office || detailDataFallback.nama_office;
+                        if (officeNameToMatch && officeAPIOptions.length > 0) {
+                            const matchedOffice = officeAPIOptions.find(office =>
+                                office.label === officeNameToMatch
+                            );
+                            if (matchedOffice) {
+                                officeIdFromName = matchedOffice.value;
+                                console.log('✅ Matched office by name:', officeNameToMatch, '-> ID:', officeIdFromName);
+                            } else {
+                                console.log('⚠️ Office not found in options:', officeNameToMatch);
+                            }
+                        }
 
                         
                         setHeaderData({
-                            idOffice: 1, // Always Head Office
+                            idOffice: officeIdFromName || '', // Use matched office ID from name
                             nota: headerDataToUse.nota || detailDataFallback.nota || '',
                             idSupplier: supplierIdFromName || '', // Use matched supplier ID from name
                             tglMasuk: headerDataToUse.tgl_masuk || detailDataFallback.tgl_masuk || '',
@@ -359,6 +381,7 @@ const AddEditPembelianPage = () => {
                             fileName: headerDataToUse.file_name || detailDataFallback.file_name || detailDataFallback.filename || '', // File name if available
                             hargaTotal: parseFloat(headerDataToUse.biaya_total) || parseFloat(detailDataFallback.biaya_total) || calculatedHargaTotal || 0, // Prefer biaya_total from backend
                             totalSapi: totalSapiCount, // Always use calculated count
+                            note: headerDataToUse.note || detailDataFallback.note || '', // Note field from backend
                             // Additional fields from backend response for reference:
                             // total_belanja: headerDataToUse.total_belanja (available in backend response)
                             // biaya_total: headerDataToUse.biaya_total (available in backend response) 
@@ -490,6 +513,7 @@ const AddEditPembelianPage = () => {
                 fileName: cloneData.file_name || '', // Load file name from clone data
                 hargaTotal: cloneData.harga_total || 0, // Load total price from clone data
                 totalSapi: cloneData.total_sapi || 0, // Load total cattle from clone data
+                note: cloneData.note || '', // Load note from clone data
                 // markup removed - no longer needed
             });
             
@@ -1056,7 +1080,7 @@ const AddEditPembelianPage = () => {
             // Prepare detail data for save - use snake_case format for backend compatibility
             const detailData = {
                 id_pembelian: item.idPembelian || null, // Use item's id_pembelian if available (for existing items)
-                id_office: parseInt(headerData.idOffice) || 1,
+                id_office: parseInt(headerData.idOffice) || 1, // Use selected office ID
                 eartag: String(item.eartag || ''),
                 eartag_supplier: String(item.eartagSupplier || ''),
                 id_klasifikasi_hewan: parseInt(item.idKlasifikasiHewan) || 0,
@@ -1287,7 +1311,7 @@ const AddEditPembelianPage = () => {
                     file: selectedFile, // Only send file if there's a new file upload
                     details: Array.isArray(detailItems) && detailItems.length > 0 
                         ? detailItems.map(item => ({ // Details are now required for all supplier types
-                            id_office: 1, // Always Head Office as integer
+                            id_office: parseInt(updatedHeaderData.idOffice) || 1, // Use selected office ID
                             eartag: String(item.eartag),
                             eartag_supplier: String(item.eartagSupplier || ''), // Add eartag_supplier
                             id_klasifikasi_hewan: parseInt(item.idKlasifikasiHewan),
@@ -1313,7 +1337,7 @@ const AddEditPembelianPage = () => {
                 // For add mode, create with header and details array
                 const completeData = {
                     ...updatedHeaderData,
-                    idOffice: 1, // Always ensure Head Office ID as integer
+                    idOffice: parseInt(updatedHeaderData.idOffice) || 1, // Use selected office ID
                     biayaTruck: parseFloat(updatedHeaderData.biayaTruck),
                     biayaLain: parseFloat(updatedHeaderData.biayaLain) || 0,
                     biayaTotal: parseFloat(updatedHeaderData.hargaTotal) || 0,
@@ -1323,7 +1347,7 @@ const AddEditPembelianPage = () => {
                     file: selectedFile, // Send actual file object
                     details: Array.isArray(detailItems) && detailItems.length > 0 
                         ? detailItems.map(item => ({ // Details are now required for all supplier types
-                            id_office: 1, // Always Head Office for all details as integer
+                            id_office: parseInt(updatedHeaderData.idOffice) || 1, // Use selected office ID
                             eartag: String(item.eartag),
                             eartag_supplier: String(item.eartagSupplier || ''),
                             id_klasifikasi_hewan: parseInt(item.idKlasifikasiHewan),
@@ -1658,22 +1682,27 @@ const AddEditPembelianPage = () => {
                             />
                         </div>
 
-                        {/* Office - Fixed Head Office */}
+                        {/* Office - Searchable Select */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 <Building2 className="w-4 h-4 inline mr-1" />
                                 Office *
                             </label>
-                            <div className="w-full px-3 py-2 border border-blue-300 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 text-gray-800 font-semibold flex items-center gap-2">
-                                <Building2 className="w-5 h-5 text-blue-600" />
-                                <span>Head Office (HO)</span>
-                                <span className="ml-auto text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
-                                    Fixed Value
-                                </span>
-                            </div>
-                            <p className="text-xs text-gray-500 mt-1">
-                                💡 Office is automatically set to Head Office for HO Pembelian
-                            </p>
+                            <SearchableSelect
+                                value={headerData.idOffice}
+                                onChange={(value) => handleHeaderChange('idOffice', value)}
+                                options={officeAPIOptions}
+                                placeholder={officeLoading ? 'Loading offices...' : officeError ? 'Error loading offices' : 'Pilih Office'}
+                                isLoading={officeLoading}
+                                isDisabled={officeLoading || officeError}
+                                required
+                                className="w-full"
+                            />
+                            {officeError && (
+                                <p className="text-xs text-red-500 mt-1">
+                                    ⚠️ Error loading offices: {officeError}
+                                </p>
+                            )}
                         </div>
 
                         <div>
@@ -1827,8 +1856,10 @@ const AddEditPembelianPage = () => {
                             />
                             <p className="text-xs text-gray-500 mt-1">
                                 💡 Biaya tambahan lainnya (opsional)
-                                    </p>
-                                </div>
+                            </p>
+                        </div>
+
+
         
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -2035,6 +2066,24 @@ const AddEditPembelianPage = () => {
                                         )}
                                     </div>
                                 </div>
+
+                            {/* Note / Catatan - Full Width */}
+                            <div className="md:col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    <Hash className="w-4 h-4 inline mr-1" />
+                                    Note / Catatan
+                                </label>
+                                <textarea
+                                    value={headerData.note}
+                                    onChange={(e) => handleHeaderChange('note', e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                    placeholder="Masukkan catatan tambahan (opsional)"
+                                    rows="3"
+                                />
+                                <p className="text-xs text-gray-500 mt-1">
+                                    💡 Catatan tambahan untuk pembelian ini (opsional)
+                                </p>
+                            </div>
         
                             </div>
                         </div>

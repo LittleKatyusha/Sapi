@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { HttpClient } from '../../../../services/httpClient';
+import HttpClient from '../../../../services/httpClient';
 import { API_ENDPOINTS } from '../../../../config/api';
 
 const useOfficesAPI = () => {
@@ -38,7 +38,7 @@ const useOfficesAPI = () => {
 
     const officeOptions = useMemo(() => {
         return offices.map(office => ({
-            value: office.pubid,
+            value: office.id,
             label: office.name
         }));
     }, [offices]);
