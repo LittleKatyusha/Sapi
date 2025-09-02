@@ -4,8 +4,9 @@ import './index.css';
 import App from './AppSecure.jsx';
 import reportWebVitals from './reportWebVitals';
 
-// Suppress React DevTools console message in development
+// Environment validation
 if (process.env.NODE_ENV === 'development') {
+  // Suppress React DevTools console message in development
   const originalLog = console.log;
   console.log = (...args) => {
     const message = args.join(' ');
@@ -15,13 +16,39 @@ if (process.env.NODE_ENV === 'development') {
     }
     originalLog.apply(console, args);
   };
+
+  // Development environment checks
+  console.log('🚀 Application starting in development mode');
+  
+  // Check for required environment variables
+  const requiredEnvVars = ['REACT_APP_API_URL'];
+  const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
+  
+  if (missingEnvVars.length > 0) {
+    console.warn('⚠️ Missing environment variables:', missingEnvVars);
+  }
+}
+
+// Production environment setup
+if (process.env.NODE_ENV === 'production') {
+  // Disable console logs in production (optional)
+  if (process.env.REACT_APP_DISABLE_CONSOLE === 'true') {
+    console.log = () => {};
+    console.warn = () => {};
+    console.error = () => {};
+  }
 }
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
-// Temporary fix: Remove StrictMode to prevent double rendering of Cloudflare Turnstile
+
+// Render application
+// Note: StrictMode removed to prevent double rendering issues with certain components
 root.render(<App />);
 
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
-reportWebVitals();
+// Performance monitoring
+// Only measure performance if explicitly enabled
+if (process.env.REACT_APP_MEASURE_PERFORMANCE === 'true') {
+  reportWebVitals(console.log);
+} else {
+  reportWebVitals();
+}
