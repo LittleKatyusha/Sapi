@@ -480,7 +480,7 @@ const PembelianHOPage = () => {
                 <div className="grid grid-cols-1 gap-3 sm:gap-4 md:gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
                     <div className="bg-gradient-to-br from-blue-400 to-blue-500 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
                         <h3 className="text-sm sm:text-base font-medium opacity-90 mb-2">Total Ritasi</h3>
-                        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold">{stats.total}</p>
+                        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold">{serverPagination.totalItems}</p>
                     </div>
                     <div className="bg-gradient-to-br from-emerald-400 to-emerald-500 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
                         <h3 className="text-sm sm:text-base font-medium opacity-90 mb-2">Total Ternak</h3>
