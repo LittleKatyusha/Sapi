@@ -2071,7 +2071,7 @@ const AddEditPembelianPage = () => {
                             <div className="md:col-span-2">
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                     <Hash className="w-4 h-4 inline mr-1" />
-                                    Note / Catatan
+                                    Alamat Tujuan
                                 </label>
                                 <textarea
                                     value={headerData.note}
@@ -2080,9 +2080,6 @@ const AddEditPembelianPage = () => {
                                     placeholder="Masukkan catatan tambahan (opsional)"
                                     rows="3"
                                 />
-                                <p className="text-xs text-gray-500 mt-1">
-                                    💡 Catatan tambahan untuk pembelian ini (opsional)
-                                </p>
                             </div>
         
                             </div>
