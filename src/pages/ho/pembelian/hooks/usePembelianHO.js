@@ -332,7 +332,8 @@ const usePembelianHO = () => {
                     biaya_lain: parseFloat(Array.isArray(biayaLainValue) ? biayaLainValue[0] : biayaLainValue) || 0,
                     biaya_total: parseFloat(Array.isArray(biayaTotalValue) ? biayaTotalValue[0] : biayaTotalValue) || 0,
                     berat_total: parseFloat(Array.isArray(beratTotalValue) ? beratTotalValue[0] : beratTotalValue) || 0, // Add missing berat_total mapping
-                    tipe_pembelian: parseInt(data.tipePembelian || data.tipe_pembelian) || 1
+                    tipe_pembelian: parseInt(data.tipePembelian || data.tipe_pembelian) || 1,
+                    note: String(data.note || '') // Add missing note field
                 };
                 
                 // Add file if it exists
@@ -474,6 +475,7 @@ const usePembelianHO = () => {
                 berat_total: parseFloat(headerData.berat_total) || 0, // Add missing berat_total mapping
                 tipe_pembelian: parseInt(headerData.tipe_pembelian) || 1,
                 file: headerData.file || null,
+                note: headerData.note || null // Add missing note field
             };
 
             // Handle file upload if present

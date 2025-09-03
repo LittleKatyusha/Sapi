@@ -18,6 +18,7 @@ const useOfficesAPI = () => {
             
             
             if (result.status === 'ok' && result.data) {
+                console.log('✅ Office data fetched:', result.data);
                 setOffices(result.data);
                 
             } else {
@@ -37,10 +38,12 @@ const useOfficesAPI = () => {
     }, []);
 
     const officeOptions = useMemo(() => {
-        return offices.map(office => ({
-            value: office.id,
+        const options = offices.map(office => ({
+            value: office.id, // Use id (integer) for backend validation
             label: office.name
         }));
+        console.log('✅ Office options created:', options);
+        return options;
     }, [offices]);
 
     return {

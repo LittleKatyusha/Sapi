@@ -654,11 +654,15 @@ const AddEditPembelianPage = () => {
 
     // Handle header form changes
     const handleHeaderChange = (field, value) => {
-        
-        setHeaderData(prev => ({
-            ...prev,
-            [field]: value
-        }));
+        console.log(`📝 Header change: ${field} = ${value}`);
+        setHeaderData(prev => {
+            const newData = {
+                ...prev,
+                [field]: value
+            };
+            console.log(`📝 Updated headerData:`, newData);
+            return newData;
+        });
     };
 
     // Handle file upload
@@ -1080,7 +1084,7 @@ const AddEditPembelianPage = () => {
             // Prepare detail data for save - use snake_case format for backend compatibility
             const detailData = {
                 id_pembelian: item.idPembelian || null, // Use item's id_pembelian if available (for existing items)
-                id_office: parseInt(headerData.idOffice) || 1, // Use selected office ID
+                id_office: parseInt(headerData.idOffice) || 1, // Use selected office ID (integer)
                 eartag: String(item.eartag || ''),
                 eartag_supplier: String(item.eartagSupplier || ''),
                 id_klasifikasi_hewan: parseInt(item.idKlasifikasiHewan) || 0,
@@ -1337,7 +1341,7 @@ const AddEditPembelianPage = () => {
                 // For add mode, create with header and details array
                 const completeData = {
                     ...updatedHeaderData,
-                    idOffice: parseInt(updatedHeaderData.idOffice) || 1, // Use selected office ID
+                    idOffice: parseInt(updatedHeaderData.idOffice) || 1, // Use selected office ID (integer)
                     biayaTruck: parseFloat(updatedHeaderData.biayaTruck),
                     biayaLain: parseFloat(updatedHeaderData.biayaLain) || 0,
                     biayaTotal: parseFloat(updatedHeaderData.hargaTotal) || 0,
@@ -1528,7 +1532,7 @@ const AddEditPembelianPage = () => {
         try {
             // Prepare details data
             const detailsData = detailItems.map(item => ({
-                id_office: 1,
+                id_office: parseInt(headerData.idOffice) || 1, // Use selected office ID (integer)
                 eartag: String(item.eartag),
                 eartag_supplier: String(item.eartagSupplier || ''), // Add eartag_supplier
                 id_klasifikasi_hewan: parseInt(item.idKlasifikasiHewan),
