@@ -266,7 +266,7 @@ const useOutlets = () => {
                 throw new Error('Outlet tidak ditemukan');
             }
             
-            const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.OUTLET}/delete`, {
+            const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.OUTLET}/hapus`, {
                 pid: outlet.encryptedPid || outlet.pubid
             });
             

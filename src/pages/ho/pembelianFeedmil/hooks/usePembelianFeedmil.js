@@ -339,7 +339,7 @@ const usePembelianFeedmil = () => {
                 throw new Error('ID pembelian tidak valid atau tidak ditemukan');
             }
             
-            const jsonData = await HttpClient.post(`${FEEDMIL_API_BASE}/delete`, {
+            const jsonData = await HttpClient.post(`${FEEDMIL_API_BASE}/hapus`, {
                 pid: encryptedPid
             }, {
                 skipCsrf: true // Skip CSRF token for JWT-based API

@@ -331,7 +331,7 @@ const usePembelianOVK = () => {
             }
             
             // Call real API endpoint for OVK deletion
-            const responseData = await HttpClient.post(`${API_ENDPOINTS.HO.OVK.PEMBELIAN}/delete`, {
+            const responseData = await HttpClient.post(`${API_ENDPOINTS.HO.OVK.PEMBELIAN}/hapus`, {
                 pid: encryptedPid
             });
             

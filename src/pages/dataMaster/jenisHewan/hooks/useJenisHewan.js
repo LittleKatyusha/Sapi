@@ -232,7 +232,7 @@ const useJenisHewan = () => {
         pid: jenisHewanItem.encryptedPid
       };
       
-      const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.JENIS_HEWAN}/delete`, payload);
+      const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.JENIS_HEWAN}/hapus`, payload);
       await fetchJenisHewan();
       
       return {

@@ -192,15 +192,15 @@ const EditableDetailDataTable = ({
       name: 'Berat (kg) *',
       cell: (row) => (
         <input
-          type="number"
-          value={row.berat}
-          onChange={(e) =>
-            onDetailChange(row.id, 'berat', e.target.value)
-          }
+          type="text"
+          value={formatNumber(row.berat)}
+          onChange={(e) => {
+            const rawValue = parseNumber(e.target.value);
+            onDetailChange(row.id, 'berat', rawValue);
+          }}
           className={`${inputClass} ${
             row.errors?.berat ? 'border-red-500' : ''
           }`}
-          min="1"
           required
           style={{
             minHeight: 32,
@@ -208,6 +208,7 @@ const EditableDetailDataTable = ({
             fontSize: 13,
             borderRadius: 8,
           }}
+          placeholder="0"
         />
       ),
       center: true,

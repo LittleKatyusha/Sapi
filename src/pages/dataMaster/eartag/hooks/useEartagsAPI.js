@@ -324,7 +324,7 @@ const useEartagsAPI = () => {
                 pid: String(actualPid).trim()
             };
             
-            const result = await HttpClient.post(`${API_BASE}/delete`, payload);
+            const result = await HttpClient.post(`${API_BASE}/hapus`, payload);
             await fetchEartags();
             
             return {

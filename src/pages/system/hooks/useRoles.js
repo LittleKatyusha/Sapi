@@ -208,7 +208,7 @@ const useRoles = () => {
                 throw new Error('Token authentication tidak ditemukan.');
             }
             
-            const result = await HttpClient.post(`${API_BASE}/delete`, { pid: pubid });
+            const result = await HttpClient.post(`${API_BASE}/hapus`, { pid: pubid });
             await fetchRoles(1, 10);
             
             return {

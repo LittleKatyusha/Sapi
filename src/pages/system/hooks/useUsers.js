@@ -235,7 +235,7 @@ const useUsers = () => {
                 throw new Error('Token authentication tidak ditemukan. Silakan login ulang.');
             }
             
-            const result = await HttpClient.post(`${API_BASE}/delete`, {
+            const result = await HttpClient.post(`${API_BASE}/hapus`, {
                 pid: pubid
             });
             await fetchUsers(1, 1000); // Refresh data

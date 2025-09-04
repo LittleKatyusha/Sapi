@@ -139,7 +139,7 @@ const useKlasifikasiOvk = () => {
     setError(null);
     
     try {
-      const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.KLASIFIKASI_OVK}/delete`, {
+      const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.KLASIFIKASI_OVK}/hapus`, {
         pid: pid // Menggunakan encrypted PID
       });
       

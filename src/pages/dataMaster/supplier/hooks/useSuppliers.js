@@ -316,7 +316,7 @@ const useSuppliers = () => {
                 pid: supplier.encryptedPid
             };
             
-            const result = await HttpClient.post(`${API_BASE}/delete`, payload);
+            const result = await HttpClient.post(`${API_BASE}/hapus`, payload);
             await fetchSuppliers();
             
             return {

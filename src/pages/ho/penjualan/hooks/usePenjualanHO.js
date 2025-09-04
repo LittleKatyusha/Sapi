@@ -261,7 +261,7 @@ const usePenjualanHO = () => {
         setError(null);
         
         try {
-            const result = await HttpClient.post(`${API_ENDPOINTS.HO.PENJUALAN}/delete`, {
+            const result = await HttpClient.post(`${API_ENDPOINTS.HO.PENJUALAN}/hapus`, {
                 pid: pubid
             });
             

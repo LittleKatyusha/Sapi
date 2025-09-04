@@ -22,18 +22,29 @@ const AddEditDetailModal = ({
     const [formData, setFormData] = useState({
         eartag: '',
         idKlasifikasiHewan: '',
-        harga: '',
-        biayaTruck: '',
-        berat: '',
-        persentase: '',
-        hpp: '',
-        totalHarga: '',
+        harga: 0,
+        biayaTruck: 0,
+        berat: 0,
+        persentase: 0,
+        hpp: 0,
+        totalHarga: 0,
         status: '1',
         tglMasukRph: '',
         tglPemotongan: ''
     });
 
     const [errors, setErrors] = useState({});
+
+    // Helper functions for number formatting (same as parent component)
+    const formatNumber = (value) => {
+        if (!value) return '';
+        return parseInt(value).toLocaleString('id-ID');
+    };
+
+    const parseNumber = (value) => {
+        if (!value) return 0;
+        return parseInt(value.toString().replace(/\./g, '')) || 0;
+    };
 
     // Reset form when modal opens/closes or editData changes
     useEffect(() => {
@@ -56,12 +67,12 @@ const AddEditDetailModal = ({
                 setFormData({
                     eartag: '',
                     idKlasifikasiHewan: '',
-                    harga: '',
-                    biayaTruck: '',
-                    berat: '',
-                    persentase: '',
-                    hpp: '',
-                    totalHarga: '',
+                    harga: 0,
+                    biayaTruck: 0,
+                    berat: 0,
+                    persentase: 0,
+                    hpp: 0,
+                    totalHarga: 0,
                     status: '1',
                     tglMasukRph: '',
                     tglPemotongan: ''
@@ -253,11 +264,13 @@ const AddEditDetailModal = ({
                                 Berat (kg) *
                             </label>
                             <input
-                                type="number"
+                                type="text"
                                 name="berat"
-                                value={formData.berat}
-                                onChange={handleInputChange}
-                                min="1"
+                                value={formatNumber(formData.berat)}
+                                onChange={(e) => {
+                                    const rawValue = parseNumber(e.target.value);
+                                    setFormData(prev => ({ ...prev, berat: rawValue }));
+                                }}
                                 className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
                                     errors.berat ? 'border-red-500' : 'border-gray-300'
                                 }`}

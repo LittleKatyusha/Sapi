@@ -120,17 +120,31 @@ const AddEditPembelianPage = () => {
     // Default data state for batch operations
     const [defaultData, setDefaultData] = useState({
         idKlasifikasiHewan: '',
-        berat: '',
-        harga: ''
+        berat: 0, // Start with 0 like harga total pattern
+        harga: 0 // Also change to 0 for consistency
         // markup removed - no longer used
     });
-    const [batchCount, setBatchCount] = useState(1);
+    const [batchCount, setBatchCount] = useState(0);
+    
+    // Ref to track if batchCount has been manually set by user
+    const batchCountManuallySetRef = useRef(false);
+    
+    // Protect batchCount from being reset during re-renders
+    useEffect(() => {
+        // Only reset batchCount if it hasn't been manually set and we're not in edit mode
+        if (!batchCountManuallySetRef.current && !isEdit) {
+            setBatchCount(0);
+        }
+    }, [isEdit]);
 
     // Markup percentage state - user can change this manually
     const [markupPercentage, setMarkupPercentage] = useState(0); // Default 12%
 
     // Supplier options are now filtered server-side, no need for client-side filtering
     const filteredSupplierOptions = supplierOptions;
+    
+    // Memoize pembelianList to prevent unnecessary re-renders
+    const stablePembelianList = useMemo(() => pembelianList, [pembelianList?.length]);
 
     // Helper functions for number formatting
     const formatNumber = (value) => {
@@ -244,13 +258,19 @@ const AddEditPembelianPage = () => {
             
             return;
         }
+        
+        // Skip if batchCount has been manually set by user and we're in edit mode
+        if (isEdit && batchCountManuallySetRef.current) {
+            console.log('🛡️ Skipping useEffect to protect manually set batchCount:', batchCount);
+            return;
+        }
 
         // Revisi kondisi - gunakan supplierOptions langsung dan tambahkan tipePembelianOptions
         const hasRequiredData = (supplierOptions?.length > 0 || parameterData.supplier?.length > 0) &&
                                parameterData.eartag?.length > 0 &&
                                parameterData.klasifikasihewan?.length > 0 &&
                                tipePembelianOptions?.length > 0 &&
-                               (isEdit ? pembelianList && pembelianList.length > 0 : true); // For edit mode, also need pembelian list
+                               (isEdit ? (stablePembelianList && stablePembelianList.length > 0) : true); // For edit mode, also need pembelian list
         
         // Tambahkan kondisi untuk memastikan data tidak sedang loading
         const isDataReady = !parameterLoading && !tipePembelianLoading && !supplierLoading;
@@ -264,12 +284,12 @@ const AddEditPembelianPage = () => {
                     const decodedId = decodeURIComponent(id);
                     
                     // 1. Find header data dari pembelian list (dt_pembelian_HO data)
-                    let headerDataFromList = pembelianList.find(item => item.encryptedPid === id);
+                    let headerDataFromList = stablePembelianList.find(item => item.encryptedPid === id);
                     
                     // Try alternative matching jika tidak ketemu
                     if (!headerDataFromList) {
                         console.log('🔄 Trying alternative matching methods...');
-                        headerDataFromList = pembelianList.find(item => item.encryptedPid === decodedId);
+                        headerDataFromList = stablePembelianList.find(item => item.encryptedPid === decodedId);
                         
                         if (headerDataFromList) {
                             console.log('✅ Found with decoded ID:', decodedId);
@@ -286,7 +306,7 @@ const AddEditPembelianPage = () => {
                         console.log('🔄 Trying to match by nota...');
                         const firstDetail = result.data[0];
                         if (firstDetail.nota) {
-                            headerDataFromList = pembelianList.find(item => item.nota === firstDetail.nota);
+                            headerDataFromList = stablePembelianList.find(item => item.nota === firstDetail.nota);
                             if (headerDataFromList) {
                                 console.log('✅ Found by nota matching:', firstDetail.nota);
                             }
@@ -469,7 +489,7 @@ const AddEditPembelianPage = () => {
                                 eartagSupplier: eartagSupplierValue, // Use the debugged value
                                 idKlasifikasiHewan: klasifikasiIdFromId || item.id_klasifikasi_hewan || item.klasifikasi_id || item.klasifikasi_hewan_pubid || item.klasifikasihewan_id || item.pubid_klasifikasi || '', // Try multiple sources, prioritize ID match
                                 harga: harga,
-                                berat: parseInt(item.berat) || 0,
+                                berat: item.berat && parseInt(item.berat) > 0 ? parseInt(item.berat) : '',
                                 persentase: item.persentase || calculatedPersentase, // Use backend persentase or calculate from harga/hpp
                                 hpp: hpp,
                             };
@@ -531,7 +551,7 @@ const AddEditPembelianPage = () => {
         }
         // Remove automatic detail item creation for new records
         // Users will add details manually using the "Tambah Detail" button
-    }, [isEdit, id, cloneData, parameterLoading, tipePembelianLoading, supplierLoading, tipePembelianOptions, parameterData.eartag, parameterData.klasifikasihewan, pembelianList]);
+    }, [isEdit, id, cloneData, parameterLoading, tipePembelianLoading, supplierLoading, tipePembelianOptions, parameterData.eartag, parameterData.klasifikasihewan]);
     // Added pembelianList to dependency array for edit mode header data loading
 
     // Check if current purchase type is SUPPLIER (PERORANGAN)
@@ -891,7 +911,7 @@ const AddEditPembelianPage = () => {
             eartagSupplier: '', // Default to empty for new items
             idKlasifikasiHewan: defaultData.idKlasifikasiHewan || '',
             harga: harga,
-            berat: parseFloat(defaultData.berat) || 0,
+            berat: defaultData.berat || 0,
             persentase: markup, // Use actual markup percentage from state
             hpp: hpp,
         };
@@ -900,10 +920,10 @@ const AddEditPembelianPage = () => {
 
     // Handle batch add with default data
     const handleBatchAdd = () => {
-        if (batchCount < 1) {
+        if (!batchCount || batchCount < 1) {
             setNotification({
                 type: 'error',
-                message: 'Jumlah batch minimal 1 item'
+                message: 'Jumlah batch harus diisi dan minimal 1 item'
             });
             return;
         }
@@ -929,7 +949,7 @@ const AddEditPembelianPage = () => {
                 eartagSupplier: '', // Default to empty for new items
                 idKlasifikasiHewan: defaultData.idKlasifikasiHewan || '',
                 harga: harga,
-                berat: parseFloat(defaultData.berat) || 0,
+                berat: defaultData.berat || 0,
                 persentase: markup, // Use actual markup percentage from state
                 hpp: hpp,
             };
@@ -943,6 +963,9 @@ const AddEditPembelianPage = () => {
             type: 'success',
             message: `Berhasil menambahkan ${batchCount} item dengan data default`
         });
+        
+        // Reset the manual flag after successful batch add
+        batchCountManuallySetRef.current = false;
     };
 
     // Handle default data changes
@@ -2126,11 +2149,12 @@ const AddEditPembelianPage = () => {
                                 )}
                             </label>
                             <input
-                                type="number"
-                                value={defaultData.berat}
+                                type="text"
+                                value={defaultData.berat === 0 ? '0' : formatNumber(defaultData.berat)}
                                 onChange={(e) => {
                                     if (!isSupplierPerorangan2) {
-                                        handleDefaultDataChange('berat', e.target.value);
+                                        const rawValue = parseNumber(e.target.value);
+                                        handleDefaultDataChange('berat', rawValue);
                                     }
                                 }}
                                 className={`w-full px-3 py-2 border rounded-lg ${
@@ -2138,9 +2162,7 @@ const AddEditPembelianPage = () => {
                                         ? 'border-purple-300 bg-purple-50 text-gray-700 cursor-not-allowed'
                                         : 'border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500'
                                 }`}
-                                placeholder="100"
-                                min="0"
-                                step="0.1"
+                                placeholder="Masukkan berat dalam kg"
                                 readOnly={isSupplierPerorangan2}
                                 disabled={isSupplierPerorangan2}
                             />
@@ -2226,11 +2248,15 @@ const AddEditPembelianPage = () => {
                                 Jumlah Batch:
                             </label>
                             <input
-                                type="number"
-                                min="1"
-                                value={batchCount}
-                                onChange={(e) => setBatchCount(parseInt(e.target.value) || 1)}
+                                type="text"
+                                value={formatNumber(batchCount)}
+                                onChange={(e) => {
+                                    const rawValue = parseNumber(e.target.value);
+                                    batchCountManuallySetRef.current = true; // Mark as manually set
+                                    setBatchCount(rawValue);
+                                }}
                                 className="w-20 px-2 py-1 border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                placeholder="0"
                             />
                         </div>
                         
@@ -2239,7 +2265,7 @@ const AddEditPembelianPage = () => {
                             className="bg-gradient-to-r from-orange-500 to-amber-600 text-white px-4 py-2 rounded-lg hover:from-orange-600 hover:to-amber-700 transition-all duration-300 flex items-center gap-2 text-sm font-medium shadow-md hover:shadow-lg"
                         >
                             <Plus className="w-4 h-4" />
-                            Tambah {batchCount} Item Batch
+                            Tambah {formatNumber(batchCount)} Item Batch
                         </button>
 
                         {/* Info Text */}

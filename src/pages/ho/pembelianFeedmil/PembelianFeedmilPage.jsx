@@ -179,6 +179,22 @@ const PembelianFeedmilPage = () => {
             )
         },
         {
+            name: 'Aksi',
+            width: '80px',
+            cell: row => (
+                <ActionButton
+                    row={row}
+                    openMenuId={openMenuId}
+                    setOpenMenuId={setOpenMenuId}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                    onDetail={handleDetail}
+                    isActive={openMenuId === (row.id || row.encryptedPid)}
+                />
+            ),
+            ignoreRowClick: true,
+        },
+        {
             name: 'Nota',
             selector: row => row.nota,
             sortable: true,
@@ -307,22 +323,6 @@ const PembelianFeedmilPage = () => {
                     }).format(row.biaya_lain) : 'Rp 0'}
                 </span>
             )
-        },
-        {
-            name: 'Aksi',
-            width: '80px',
-            cell: row => (
-                <ActionButton
-                    row={row}
-                    openMenuId={openMenuId}
-                    setOpenMenuId={setOpenMenuId}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                    onDetail={handleDetail}
-                    isActive={openMenuId === (row.id || row.encryptedPid)}
-                />
-            ),
-            ignoreRowClick: true,
         },
     ], [openMenuId, filteredData]);
 

@@ -146,7 +146,7 @@ const useKlasifikasiFeedmil = () => {
     setError(null);
     
     try {
-      const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.KLASIFIKASI_FEEDMIL}/delete`, {
+      const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.KLASIFIKASI_FEEDMIL}/hapus`, {
         pid: pid // Menggunakan encrypted PID
       });
       

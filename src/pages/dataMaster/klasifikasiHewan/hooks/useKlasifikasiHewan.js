@@ -243,7 +243,7 @@ const useKlasifikasiHewan = () => {
         pid: klasifikasiItem.encryptedPid
       };
       
-      const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.KLASIFIKASI_HEWAN}/delete`, payload);
+      const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.KLASIFIKASI_HEWAN}/hapus`, payload);
       await fetchKlasifikasiHewan();
       
       return {

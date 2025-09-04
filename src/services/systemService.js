@@ -78,7 +78,7 @@ class SystemService {
     // Delete user
     async deleteUser(pid) {
         try {
-            const response = await api.post('/system/pegawai/delete', { pid });
+            const response = await api.post('/system/pegawai/hapus', { pid });
             return response.data;
         } catch (error) {
             console.error('Error deleting user:', error);
@@ -170,7 +170,7 @@ class SystemService {
     // Delete permission
     async deletePermission(pid) {
         try {
-            const response = await api.post('/system/permissions/delete', { pid });
+            const response = await api.post('/system/permissions/hapus', { pid });
             return response.data;
         } catch (error) {
             console.error('Error deleting permission:', error);
@@ -218,7 +218,7 @@ class SystemService {
     // Delete parameter
     async deleteParameter(pid) {
         try {
-            const response = await api.post('/system/parameter/delete', { pid });
+            const response = await api.post('/system/parameter/hapus', { pid });
             return response.data;
         } catch (error) {
             console.error('Error deleting parameter:', error);

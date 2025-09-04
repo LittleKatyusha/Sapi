@@ -283,7 +283,7 @@ const useKaryawan = () => {
                 throw new Error('Karyawan tidak ditemukan');
             }
             
-            const response = await fetch(`${API_BASE}/delete`, {
+            const response = await fetch(`${API_BASE}/hapus`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

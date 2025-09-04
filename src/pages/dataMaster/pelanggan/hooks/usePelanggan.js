@@ -242,7 +242,7 @@ const usePelanggan = () => {
                 throw new Error('Pelanggan tidak ditemukan');
             }
             
-            const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.OUTLET}/delete`, {
+            const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.OUTLET}/hapus`, {
                 pid: pelangganItem.encryptedPid || pelangganItem.pubid
             });
             
