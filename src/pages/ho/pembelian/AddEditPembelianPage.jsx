@@ -204,12 +204,7 @@ const AddEditPembelianPage = () => {
             
             
             
-            if (!currentSupplierExists) {
-                console.log('⚠️ Resetting supplier because it\'s not in filtered list:', {
-                    currentSupplier: headerData.idSupplier,
-                    filteredOptions: filteredSupplierOptions.map(s => s.value),
-                    isEditMode: isEdit
-                });
+            if (!currentSupplierExists) {;
                 
                 // Only reset supplier if we're not in edit mode or if we've finished loading edit data
                 if (!isEdit) {
@@ -244,79 +239,62 @@ const AddEditPembelianPage = () => {
     // Load pembelian list first for edit mode
     useEffect(() => {
         if (isEdit && id && (!pembelianList || pembelianList.length === 0)) {
-            console.log('🔄 Loading pembelian list for edit mode...');
-            fetchPembelian(1, 1000, '', '', null, false);
+            fetchPembelian(1, 1000, '', '', null, false)
+                .catch((error) => {
+                    console.error('Error loading pembelian list for edit mode:', error);
+                });
         }
     }, [isEdit, id, fetchPembelian]);
 
     useEffect(() => {
-        // Enhanced debugging untuk diagnosa masalah
         
-
         // Skip if edit data has already been loaded
         if (editDataLoadedRef.current) {
-            
             return;
         }
         
         // Skip if batchCount has been manually set by user and we're in edit mode
         if (isEdit && batchCountManuallySetRef.current) {
-            console.log('🛡️ Skipping useEffect to protect manually set batchCount:', batchCount);
             return;
         }
 
         // Revisi kondisi - gunakan supplierOptions langsung dan tambahkan tipePembelianOptions
+        // Untuk edit mode, kita tidak perlu menunggu stablePembelianList karena kita bisa menggunakan getPembelianDetail
         const hasRequiredData = (supplierOptions?.length > 0 || parameterData.supplier?.length > 0) &&
                                parameterData.eartag?.length > 0 &&
                                parameterData.klasifikasihewan?.length > 0 &&
-                               tipePembelianOptions?.length > 0 &&
-                               (isEdit ? (stablePembelianList && stablePembelianList.length > 0) : true); // For edit mode, also need pembelian list
+                               tipePembelianOptions?.length > 0;
         
         // Tambahkan kondisi untuk memastikan data tidak sedang loading
         const isDataReady = !parameterLoading && !tipePembelianLoading && !supplierLoading;
-        
-        
-        
         if (isEdit && id && isDataReady && hasRequiredData) {
             const loadEditData = async () => {
-                
                 try {
                     const decodedId = decodeURIComponent(id);
                     
                     // 1. Find header data dari pembelian list (dt_pembelian_HO data)
-                    let headerDataFromList = stablePembelianList.find(item => item.encryptedPid === id);
-                    
-                    // Try alternative matching jika tidak ketemu
-                    if (!headerDataFromList) {
-                        console.log('🔄 Trying alternative matching methods...');
-                        headerDataFromList = stablePembelianList.find(item => item.encryptedPid === decodedId);
+                    let headerDataFromList = null;
+                    if (stablePembelianList && stablePembelianList.length > 0) {
+                        headerDataFromList = stablePembelianList.find(item => item.encryptedPid === id);
                         
-                        if (headerDataFromList) {
-                            console.log('✅ Found with decoded ID:', decodedId);
+                        // Try alternative matching jika tidak ketemu
+                        if (!headerDataFromList) {
+                            headerDataFromList = stablePembelianList.find(item => item.encryptedPid === decodedId);
                         }
                     }
-                    
-                    console.log('🎯 Found header data from dt_pembelian_HO:', headerDataFromList);
                     
                     // 2. Get detail data from show endpoint
                     const result = await getPembelianDetail(decodedId);
                     
                     // If still not found header data, try to match by nota (fallback method)
                     if (!headerDataFromList && result.success && result.data.length > 0) {
-                        console.log('🔄 Trying to match by nota...');
                         const firstDetail = result.data[0];
-                        if (firstDetail.nota) {
+                        if (firstDetail.nota && stablePembelianList && stablePembelianList.length > 0) {
                             headerDataFromList = stablePembelianList.find(item => item.nota === firstDetail.nota);
-                            if (headerDataFromList) {
-                                console.log('✅ Found by nota matching:', firstDetail.nota);
-                            }
                         }
                     }
                     
-                    
-                    
                     if (result.success && result.data.length > 0) {
-                        
                         const firstDetail = result.data[0];
                         
                         // Find supplier ID - prefer from dt_pembelian_HO, fallback to detail data
@@ -337,7 +315,6 @@ const AddEditPembelianPage = () => {
                         // Try to get from header data first (dt_pembelian_HO)
                         if (headerDataFromList?.jenis_pembelian_id !== null && headerDataFromList?.jenis_pembelian_id !== undefined) {
                             tipePembelianIdFromBackend = String(headerDataFromList.jenis_pembelian_id);
-                            console.log('✅ Using tipe pembelian from dt_pembelian_HO:', tipePembelianIdFromBackend);
                         } 
                         // Try to match jenis_pembelian label with tipePembelianOptions
                         else if (headerDataFromList?.jenis_pembelian && tipePembelianOptions.length > 0) {
@@ -346,16 +323,13 @@ const AddEditPembelianPage = () => {
                             );
                             if (matchedTipe) {
                                 tipePembelianIdFromBackend = String(matchedTipe.value);
-                                console.log('✅ Matched tipe pembelian by label from dt_pembelian_HO:', tipePembelianIdFromBackend);
                             }
                         }
                         // Fallback to detail data
                         else if (firstDetail.tipe_pembelian !== null && firstDetail.tipe_pembelian !== undefined) {
                             tipePembelianIdFromBackend = String(firstDetail.tipe_pembelian);
-                            console.log('✅ Using tipe pembelian from detail:', tipePembelianIdFromBackend);
                         } else if (firstDetail.jenis_pembelian_id !== null && firstDetail.jenis_pembelian_id !== undefined) {
                             tipePembelianIdFromBackend = String(firstDetail.jenis_pembelian_id);
-                            console.log('✅ Using jenis_pembelian_id from detail:', tipePembelianIdFromBackend);
                         }
 
 
@@ -369,23 +343,44 @@ const AddEditPembelianPage = () => {
                         const headerDataToUse = headerDataFromList || {};
                         const detailDataFallback = firstDetail || {};
                         
-                        // Find office ID from nama_office since backend returns nama_office instead of id_office
+                        // Find office ID from nama_office - ONLY from header data (dt_pembelian_ho)
+                        // Detail data (dt_pembelian_ho_detail) does NOT have nama_office field
                         let officeIdFromName = '';
-                        const officeNameToMatch = headerDataToUse.nama_office || detailDataFallback.nama_office;
-                        if (officeNameToMatch && officeAPIOptions.length > 0) {
-                            const matchedOffice = officeAPIOptions.find(office =>
-                                office.label === officeNameToMatch
-                            );
+                        const officeNameToMatch = (headerDataToUse.nama_office || '').trim(); // Only use header data
+                        
+                        // Helper function to find office match
+                        const findOfficeMatch = (nameToMatch, options) => {
+                            if (!nameToMatch || !options.length) return null;
+                            
+                            // Normalize the name to match (trim and lowercase)
+                            const normalizedName = nameToMatch.trim().toLowerCase();
+                            
+                            return options.find(office => {
+                                const labelMatch = office.label && office.label.trim().toLowerCase() === normalizedName;
+                                const nameMatch = office.name && office.name.trim().toLowerCase() === normalizedName;
+                                
+                                if (labelMatch || nameMatch) {
+                                    return true;
+                                }
+                                return false;
+                            });
+                        };
+                        
+                        if (!officeNameToMatch) {
+                            // No office name from header data
+                        } else if (officeLoading || officeAPIOptions.length === 0) {
+                            // Store the office name temporarily for delayed mapping
+                            window.tempOfficeNameToMatch = officeNameToMatch;
+                        } else {
+                            const matchedOffice = findOfficeMatch(officeNameToMatch, officeAPIOptions);
+                            
                             if (matchedOffice) {
                                 officeIdFromName = matchedOffice.value;
-                                console.log('✅ Matched office by name:', officeNameToMatch, '-> ID:', officeIdFromName);
-                            } else {
-                                console.log('⚠️ Office not found in options:', officeNameToMatch);
                             }
                         }
 
                         
-                        setHeaderData({
+                        const finalHeaderData = {
                             idOffice: officeIdFromName || '', // Use matched office ID from name
                             nota: headerDataToUse.nota || detailDataFallback.nota || '',
                             idSupplier: supplierIdFromName || '', // Use matched supplier ID from name
@@ -402,11 +397,9 @@ const AddEditPembelianPage = () => {
                             hargaTotal: parseFloat(headerDataToUse.biaya_total) || parseFloat(detailDataFallback.biaya_total) || calculatedHargaTotal || 0, // Prefer biaya_total from backend
                             totalSapi: totalSapiCount, // Always use calculated count
                             note: headerDataToUse.note || detailDataFallback.note || '', // Note field from backend
-                            // Additional fields from backend response for reference:
-                            // total_belanja: headerDataToUse.total_belanja (available in backend response)
-                            // biaya_total: headerDataToUse.biaya_total (available in backend response) 
-                            // jenis_pembelian: headerDataToUse.jenis_pembelian (available in backend response)
-                        });
+                        };
+                        
+                        setHeaderData(finalHeaderData);
 
 
                         
@@ -501,12 +494,6 @@ const AddEditPembelianPage = () => {
                         throw new Error(result.message || 'Data tidak ditemukan atau kosong');
                     }
                 } catch (err) {
-                    console.error('❌ DEBUG: Error in loadEditData:', {
-                        error: err.message,
-                        stack: err.stack,
-                        id: id,
-                        decodedId: decodeURIComponent(id)
-                    });
                     setNotification({
                         type: 'error',
                         message: `Gagal memuat data untuk edit: ${err.message}`
@@ -515,7 +502,9 @@ const AddEditPembelianPage = () => {
             };
 
             loadEditData();
-        } else if (cloneData) {
+        }
+        
+        if (cloneData) {
             // Clone mode - populate with clone data
             setHeaderData({
                 idOffice: cloneData.id_office || '',
@@ -551,8 +540,31 @@ const AddEditPembelianPage = () => {
         }
         // Remove automatic detail item creation for new records
         // Users will add details manually using the "Tambah Detail" button
-    }, [isEdit, id, cloneData, parameterLoading, tipePembelianLoading, supplierLoading, tipePembelianOptions, parameterData.eartag, parameterData.klasifikasihewan]);
-    // Added pembelianList to dependency array for edit mode header data loading
+    }, [isEdit, id, cloneData, parameterLoading, tipePembelianLoading, supplierLoading, officeLoading, tipePembelianOptions, parameterData.eartag, parameterData.klasifikasihewan, officeAPIOptions.length, pembelianList.length]);
+    // Added officeAPIOptions.length, officeLoading, and pembelianList.length to dependency array
+
+    // Separate useEffect to handle office mapping when office options become available
+    useEffect(() => {
+        // Only run in edit mode and when office options are loaded but office field is empty
+        if (!isEdit || !id || !officeAPIOptions.length || headerData.idOffice || officeLoading) return;
+
+        // Check if we have a stored office name to map
+        if (window.tempOfficeNameToMatch) {
+            const officeNameToMatch = window.tempOfficeNameToMatch.trim();
+            
+            const matchedOffice = officeAPIOptions.find(office => {
+                const labelMatch = office.label && office.label.trim().toLowerCase() === officeNameToMatch.toLowerCase();
+                const nameMatch = office.name && office.name.trim().toLowerCase() === officeNameToMatch.toLowerCase();
+                return labelMatch || nameMatch;
+            });
+            
+            if (matchedOffice) {
+                setHeaderData(prev => ({ ...prev, idOffice: matchedOffice.value }));
+                // Clear the temp storage
+                delete window.tempOfficeNameToMatch;
+            }
+        }
+    }, [isEdit, id, officeAPIOptions, headerData.idOffice, officeLoading]);
 
     // Check if current purchase type is SUPPLIER (PERORANGAN)
     const isSupplierPerorangan = useMemo(() => {
@@ -674,15 +686,10 @@ const AddEditPembelianPage = () => {
 
     // Handle header form changes
     const handleHeaderChange = (field, value) => {
-        console.log(`📝 Header change: ${field} = ${value}`);
-        setHeaderData(prev => {
-            const newData = {
-                ...prev,
-                [field]: value
-            };
-            console.log(`📝 Updated headerData:`, newData);
-            return newData;
-        });
+        setHeaderData(prev => ({
+            ...prev,
+            [field]: value
+        }));
     };
 
     // Handle file upload
@@ -1002,16 +1009,6 @@ const AddEditPembelianPage = () => {
         // An item is existing if it has detail identifier AND is sequential ID (from backend mapping)
         const isExistingItemInDatabase = hasDetailIdentifier && isSequentialId;
         
-        // Debug logging untuk memahami delete decision
-        console.log('🗑️ Delete detail decision:', {
-            itemId: item.id,
-            hasDetailIdentifier,
-            isTimestampId,
-            isSequentialId,
-            isExistingItemInDatabase,
-            isEdit,
-            willDeleteFromDatabase: isEdit && isExistingItemInDatabase
-        });
         
         // Jika dalam mode edit dan item sudah ada di database (existing item)
         if (isEdit && isExistingItemInDatabase) {
@@ -1027,7 +1024,6 @@ const AddEditPembelianPage = () => {
                 // Gunakan encrypted PID dari item untuk hapus di database
                 const pidToDelete = item.encryptedPid || item.pid || item.pubidDetail;
                 
-                console.log('🗑️ Menghapus detail dari database dengan PID:', pidToDelete);
                 
                 const result = await deleteDetail(pidToDelete);
                 
@@ -1051,7 +1047,6 @@ const AddEditPembelianPage = () => {
                     });
                 }
             } catch (error) {
-                console.error('❌ Error saat hapus detail:', error);
                 setNotification({
                     type: 'error',
                     message: error.message || 'Terjadi kesalahan saat menghapus detail ternak'
@@ -1130,17 +1125,6 @@ const AddEditPembelianPage = () => {
             // 2. OR has detail identifier AND is not timestamp ID
             const isExistingItem = hasDetailIdentifier && (isSequentialId || !isTimestampId);
             
-            // Debug logging untuk memahami classification
-            console.log('🔍 Detail item classification:', {
-                itemId: item.id,
-                hasDetailIdentifier,
-                isTimestampId,
-                isSequentialId,
-                isExistingItem,
-                encryptedPid: item.encryptedPid,
-                pid: item.pid,
-                pubidDetail: item.pubidDetail
-            });
             
             // Classify item type for proper save operation
 
@@ -1178,7 +1162,6 @@ const AddEditPembelianPage = () => {
                 } else {
                     // Fallback: For new pembelian without existing details, use header ID from backend response
                     // This should not happen in edit mode since we need existing header, but adding as safety
-                    console.warn('⚠️ No existing detail with id_pembelian found. Cannot create new detail without valid id_pembelian.');
                     throw new Error('Tidak dapat menambah detail baru: ID pembelian tidak ditemukan. Pastikan header pembelian sudah disimpan dan detail lain sudah ada.');
                 }
                 
@@ -1224,12 +1207,6 @@ const AddEditPembelianPage = () => {
                 // which would cause data loss for other items being edited
                 
                 // Show additional info for debugging
-                console.log('✅ Individual save successful:', {
-                    itemId: item.id,
-                    wasExisting: isExistingItem,
-                    newPid: result.data?.pid,
-                    message: result.message
-                });
             } else {
                 setNotification({
                     type: 'error',

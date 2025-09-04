@@ -99,11 +99,25 @@ const AddEditPembelianFeedmilPage = () => {
     const [defaultData, setDefaultData] = useState({
         item_name: '',
         id_klasifikasi_feedmil: '', // Correct field name for feedmil classification
-        berat: '',
-        harga: '',
-        persentase: '' // Correct spelling
+        berat: 0, // Start with 0 like harga total pattern
+        harga: 0, // Also change to 0 for consistency
+        persentase: 0 // Also change to 0 for consistency
     });
-    const [batchCount, setBatchCount] = useState(1);
+    const [batchCount, setBatchCount] = useState(0);
+    
+    // Ref to track if batchCount has been manually set by user
+    const batchCountManuallySetRef = useRef(false);
+    
+    // Helper functions for number formatting (same as pembelian)
+    const formatNumber = (value) => {
+        if (!value) return '';
+        return parseInt(value).toLocaleString('id-ID');
+    };
+
+    const parseNumber = (value) => {
+        if (!value) return 0;
+        return parseInt(value.toString().replace(/\./g, '')) || 0;
+    };
 
     // Use Feedmil suppliers only (kategori_supplier = 2)
     const supplierOptionsToShow = supplierOptions;
@@ -124,16 +138,6 @@ const AddEditPembelianFeedmilPage = () => {
 
 
 
-    // Helper functions for number formatting
-    const formatNumber = (value) => {
-        if (!value) return '';
-        return parseInt(value).toLocaleString('id-ID');
-    };
-
-    const parseNumber = (value) => {
-        if (!value) return 0;
-        return parseInt(value.toString().replace(/\./g, '')) || 0;
-    };
 
     // Load data untuk edit mode - fetch header from list first, then details
     useEffect(() => {
@@ -312,7 +316,7 @@ const AddEditPembelianFeedmilPage = () => {
                             // Detail fields
                             item_name: item.item_name || `Feedmil Item ${index + 1}`,
                             id_klasifikasi_feedmil: item.id_klasifikasi_feedmil || '',
-                            berat: parseInt(item.berat) || 0,
+                            berat: item.berat && parseInt(item.berat) > 0 ? parseInt(item.berat) : 0,
                             harga: parseFloat(item.harga) || 0,
                             persentase: parseFloat(item.persentase) || 0,
                             hpp: parseFloat(item.hpp) || 0,
@@ -384,7 +388,7 @@ const AddEditPembelianFeedmilPage = () => {
             id: Date.now(),
             item_name: defaultData.item_name || '',
             id_klasifikasi_feedmil: defaultData.id_klasifikasi_feedmil || '', // Fix: correct field name
-            berat: defaultData.berat || '',
+            berat: defaultData.berat || 0,
             harga: defaultData.harga || '',
             persentase: defaultData.persentase || '', // Fix: correct spelling
             hpp: '', // Will be calculated
@@ -396,10 +400,10 @@ const AddEditPembelianFeedmilPage = () => {
 
     // Add multiple detail items (batch)
     const addBatchDetailItems = () => {
-        if (batchCount < 1) {
+        if (!batchCount || batchCount < 1) {
             setNotification({
                 type: 'error',
-                message: 'Jumlah batch minimal 1 item'
+                message: 'Jumlah batch harus diisi dan minimal 1 item'
             });
             return;
         }
@@ -410,7 +414,7 @@ const AddEditPembelianFeedmilPage = () => {
                 id: Date.now() + i,
                 item_name: defaultData.item_name || '',
                 id_klasifikasi_feedmil: defaultData.id_klasifikasi_feedmil || '', // Fix: correct field name
-                berat: defaultData.berat || '',
+                berat: defaultData.berat || 0,
                 harga: defaultData.harga || '',
                 persentase: defaultData.persentase || '', // Fix: correct spelling
                 hpp: '', // Will be calculated
@@ -1234,13 +1238,14 @@ const AddEditPembelianFeedmilPage = () => {
                                 Berat Default (kg)
                             </label>
                             <input
-                                type="number"
-                                value={defaultData.berat}
-                                onChange={(e) => handleDefaultDataChange('berat', e.target.value)}
+                                type="text"
+                                value={defaultData.berat === 0 ? '0' : formatNumber(defaultData.berat)}
+                                onChange={(e) => {
+                                    const rawValue = parseNumber(e.target.value);
+                                    handleDefaultDataChange('berat', rawValue);
+                                }}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                                placeholder="50"
-                                min="0"
-                                step="0.1"
+                                placeholder="Masukkan berat dalam kg"
                             />
                         </div>
 
@@ -1282,11 +1287,15 @@ const AddEditPembelianFeedmilPage = () => {
                                 Jumlah Batch:
                             </label>
                             <input
-                                type="number"
-                                min="1"
-                                value={batchCount}
-                                onChange={(e) => setBatchCount(parseInt(e.target.value) || 1)}
+                                type="text"
+                                value={formatNumber(batchCount)}
+                                onChange={(e) => {
+                                    const rawValue = parseNumber(e.target.value);
+                                    batchCountManuallySetRef.current = true; // Mark as manually set
+                                    setBatchCount(rawValue);
+                                }}
                                 className="w-20 px-2 py-1 border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                placeholder="0"
                             />
                         </div>
                         
@@ -1295,7 +1304,7 @@ const AddEditPembelianFeedmilPage = () => {
                             className="bg-gradient-to-r from-orange-500 to-amber-600 text-white px-4 py-2 rounded-lg hover:from-orange-600 hover:to-amber-700 transition-all duration-300 flex items-center gap-2 text-sm font-medium shadow-md hover:shadow-lg"
                         >
                             <Plus className="w-4 h-4" />
-                            Tambah {batchCount} Item Batch
+                            Tambah {formatNumber(batchCount)} Item Batch
                         </button>
 
                         {/* Info Text */}
@@ -1390,12 +1399,14 @@ const AddEditPembelianFeedmilPage = () => {
                                                 {/* Berat */}
                                                 <td className="p-2 sm:p-3">
                                                     <input
-                                                        type="number"
-                                                        value={item.berat}
-                                                        onChange={(e) => handleDetailChange(item.id, 'berat', e.target.value)}
+                                                        type="text"
+                                                        value={formatNumber(item.berat)}
+                                                        onChange={(e) => {
+                                                            const rawValue = parseNumber(e.target.value);
+                                                            handleDetailChange(item.id, 'berat', rawValue);
+                                                        }}
                                                         className="w-full px-1 sm:px-2 py-1 border border-gray-300 rounded text-xs sm:text-sm"
-                                                        min="0"
-                                                        step="0.1"
+                                                        placeholder="0"
                                                     />
                                                 </td>
                                                 

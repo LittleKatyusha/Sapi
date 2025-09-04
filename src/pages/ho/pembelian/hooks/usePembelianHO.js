@@ -99,6 +99,16 @@ const usePembelianHO = () => {
                 params: paramsWithCache
             });
             
+            console.log('📡 fetchPembelian raw response:', result);
+            console.log('📡 Response structure check:', {
+                hasDraw: 'draw' in result,
+                hasData: 'data' in result,
+                isDataArray: Array.isArray(result.data),
+                hasStatus: 'status' in result,
+                statusValue: result.status,
+                dataLength: result.data?.length || 0
+            });
+            
             let dataArray = [];
             let totalRecords = 0;
             let filteredRecords = 0;
@@ -130,6 +140,9 @@ const usePembelianHO = () => {
             
             setServerPagination(newPaginationState);
             
+            console.log('📊 Processing data array, length:', dataArray.length);
+            console.log('📊 Sample raw data:', dataArray.slice(0, 2));
+            
             if (dataArray.length >= 0) {
                 const validatedData = dataArray.map((item, index) => {
                     const mappedItem = {
@@ -160,6 +173,14 @@ const usePembelianHO = () => {
                     return mappedItem;
                 });
                 
+                console.log('📊 Final validated data being set to state, length:', validatedData.length);
+                console.log('📊 Sample final data:', validatedData.slice(0, 2).map(item => ({
+                    encryptedPid: item.encryptedPid,
+                    nota: item.nota,
+                    nama_supplier: item.nama_supplier,
+                    nama_office: item.nama_office,
+                    note: item.note
+                })));
 
                 setPembelian(validatedData);
             } else {
