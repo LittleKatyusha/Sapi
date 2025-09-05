@@ -6,14 +6,14 @@
 
 import { API_BASE_URL } from '../config/api.js';
 import performanceMonitor from '../utils/performanceMonitor';
+import { CORS_CONFIG, generateCorsHeaders } from '../config/cors.js';
 
 
 /**
- * Default headers for all requests
+ * Default headers for all requests (includes CORS headers)
  */
 const DEFAULT_HEADERS = {
-  'Content-Type': 'application/json',
-  'Accept': 'application/json',
+  ...CORS_CONFIG.defaultHeaders,
   'X-Requested-With': 'XMLHttpRequest'
 };
 
@@ -39,7 +39,7 @@ const getAuthToken = () => {
 // CSRF token handling removed - using JWT authentication only
 
 /**
- * Build headers for request (JWT authentication only)
+ * Build headers for request (JWT authentication + CORS)
  */
 const buildHeaders = async (customHeaders = {}) => {
   const headers = { ...DEFAULT_HEADERS, ...customHeaders };
@@ -48,21 +48,47 @@ const buildHeaders = async (customHeaders = {}) => {
   const token = getAuthToken();
   if (token) {
     headers.Authorization = `Bearer ${token}`;
-    console.log('🔑 JWT token added to headers');
-  } else {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔑 JWT token added to headers');
+    }
+  } else if (process.env.NODE_ENV === 'development') {
     console.warn('⚠️ No JWT token found in localStorage');
+  }
+  
+  // Add CORS headers for preflight requests
+  const corsHeaders = generateCorsHeaders(window.location.origin);
+  Object.keys(corsHeaders).forEach(key => {
+    if (key.startsWith('Access-Control-Request-')) {
+      headers[key] = corsHeaders[key];
+    }
+  });
+  
+  // Add origin header for CORS
+  if (window.location.origin) {
+    headers.Origin = window.location.origin;
   }
   
   return headers;
 };
 
 /**
- * Handle response errors
+ * Handle response errors (including CORS errors)
  */
 const handleResponseError = async (response) => {
   if (!response.ok) {
     let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
     let errorDetails = null;
+    
+    // Handle CORS errors specifically
+    if (response.status === 0 || response.type === 'opaque') {
+      errorMessage = 'CORS error: Tidak dapat mengakses server. Periksa konfigurasi CORS.';
+      console.error('🚨 CORS Error:', {
+        status: response.status,
+        type: response.type,
+        url: response.url
+      });
+      throw new Error(errorMessage);
+    }
     
     try {
       const contentType = response.headers.get('content-type');

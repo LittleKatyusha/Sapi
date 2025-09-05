@@ -4,6 +4,7 @@ import './index.css';
 import App from './AppSecure.jsx';
 import reportWebVitals from './reportWebVitals';
 import performanceMonitor from './utils/performanceMonitor';
+import { initializeCorsMonitoring } from './utils/corsHelper';
 
 // Environment validation
 if (process.env.NODE_ENV === 'development') {
@@ -44,6 +45,9 @@ const root = ReactDOM.createRoot(document.getElementById('root'));
 
 // Initialize performance monitoring
 performanceMonitor.init();
+
+// Initialize CORS monitoring
+initializeCorsMonitoring();
 
 // Render application
 // Note: StrictMode removed to prevent double rendering issues with certain components
