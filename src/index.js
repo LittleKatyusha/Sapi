@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './AppSecure.jsx';
 import reportWebVitals from './reportWebVitals';
+import performanceMonitor from './utils/performanceMonitor';
 
 // Environment validation
 if (process.env.NODE_ENV === 'development') {
@@ -41,14 +42,27 @@ if (process.env.NODE_ENV === 'production') {
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 
+// Initialize performance monitoring
+performanceMonitor.init();
+
 // Render application
 // Note: StrictMode removed to prevent double rendering issues with certain components
+performanceMonitor.startTiming('app-render');
 root.render(<App />);
+performanceMonitor.endTiming('app-render');
 
 // Performance monitoring
 // Only measure performance if explicitly enabled
 if (process.env.REACT_APP_MEASURE_PERFORMANCE === 'true') {
   reportWebVitals(console.log);
+  
+  // Log initial memory usage
+  performanceMonitor.logMemoryUsage('Initial Load');
 } else {
   reportWebVitals();
 }
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', () => {
+  performanceMonitor.cleanup();
+});

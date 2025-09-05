@@ -5,6 +5,7 @@
  */
 
 import { API_BASE_URL } from '../config/api.js';
+import performanceMonitor from '../utils/performanceMonitor';
 
 
 /**
@@ -145,123 +146,131 @@ class HttpClient {
    * GET request
    */
   static async get(endpoint, options = {}) {
-    let url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
-    
-    // Handle query parameters
-    if (options.params) {
-      const urlParams = new URLSearchParams();
-      Object.entries(options.params).forEach(([key, value]) => {
-        if (value !== null && value !== undefined) {
-          urlParams.append(key, value);
+    return performanceMonitor.measureApiCall(endpoint, async () => {
+      let url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
+      
+      // Handle query parameters
+      if (options.params) {
+        const urlParams = new URLSearchParams();
+        Object.entries(options.params).forEach(([key, value]) => {
+          if (value !== null && value !== undefined) {
+            urlParams.append(key, value);
+          }
+        });
+        
+        const queryString = urlParams.toString();
+        if (queryString) {
+          url += (url.includes('?') ? '&' : '?') + queryString;
         }
+      }
+      
+      // Remove params from options before passing to fetch
+      const { params, ...fetchOptions } = options;
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: await buildHeaders(options.headers),
+        credentials: 'include',
+        ...fetchOptions
       });
       
-      const queryString = urlParams.toString();
-      if (queryString) {
-        url += (url.includes('?') ? '&' : '?') + queryString;
-      }
-    }
-    
-    // Remove params from options before passing to fetch
-    const { params, ...fetchOptions } = options;
-    
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: await buildHeaders(options.headers),
-      credentials: 'include',
-      ...fetchOptions
+      await handleResponseError(response);
+      return response.json();
     });
-    
-    await handleResponseError(response);
-    return response.json();
   }
 
   /**
    * POST request
    */
   static async post(endpoint, data = null, options = {}) {
-    console.log('🚀 POST METHOD CALLED - Entry point');
-    const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
-    
-    // Debug logging
-    console.log('📡 POST Request Debug:', {
-      endpoint,
-      fullUrl: url,
-      dataType: data instanceof FormData ? 'FormData' : typeof data,
-      apiBaseUrl: API_BASE_URL,
-      API_BASE_URL_Value: API_BASE_URL
+    return performanceMonitor.measureApiCall(endpoint, async () => {
+      console.log('🚀 POST METHOD CALLED - Entry point');
+      const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
+      
+      // Debug logging
+      console.log('📡 POST Request Debug:', {
+        endpoint,
+        fullUrl: url,
+        dataType: data instanceof FormData ? 'FormData' : typeof data,
+        apiBaseUrl: API_BASE_URL,
+        API_BASE_URL_Value: API_BASE_URL
+      });
+      
+      // Skip CSRF completely for JWT authentication
+      let body = null;
+      let headers = await buildHeaders(options.headers);
+      
+      // Handle different data types
+      if (data instanceof FormData) {
+        body = data;
+        // Remove Content-Type header for FormData (browser will set it automatically)
+        delete headers['Content-Type'];
+      } else if (data) {
+        body = JSON.stringify(data);
+      }
+      
+      const fetchOptions = {
+        method: 'POST',
+        headers,
+        body,
+        credentials: 'include',
+        ...options
+      };
+      
+      const response = await fetch(url, fetchOptions);
+      
+      await handleResponseError(response);
+      return response.json();
     });
-    
-    // Skip CSRF completely for JWT authentication
-    let body = null;
-    let headers = await buildHeaders(options.headers);
-    
-    // Handle different data types
-    if (data instanceof FormData) {
-      body = data;
-      // Remove Content-Type header for FormData (browser will set it automatically)
-      delete headers['Content-Type'];
-    } else if (data) {
-      body = JSON.stringify(data);
-    }
-    
-    const fetchOptions = {
-      method: 'POST',
-      headers,
-      body,
-      credentials: 'include',
-      ...options
-    };
-    
-    const response = await fetch(url, fetchOptions);
-    
-    await handleResponseError(response);
-    return response.json();
   }
 
   /**
    * PUT request
    */
   static async put(endpoint, data = null, options = {}) {
-    const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
-    
-    let body = null;
-    let headers = await buildHeaders(options.headers);
-    
-    if (data instanceof FormData) {
-      body = data;
-      delete headers['Content-Type'];
-    } else if (data) {
-      body = JSON.stringify(data);
-    }
-    
-    const response = await fetch(url, {
-      method: 'PUT',
-      headers,
-      body,
-      credentials: 'include',
-      ...options
+    return performanceMonitor.measureApiCall(endpoint, async () => {
+      const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
+      
+      let body = null;
+      let headers = await buildHeaders(options.headers);
+      
+      if (data instanceof FormData) {
+        body = data;
+        delete headers['Content-Type'];
+      } else if (data) {
+        body = JSON.stringify(data);
+      }
+      
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers,
+        body,
+        credentials: 'include',
+        ...options
+      });
+      
+      await handleResponseError(response);
+      return response.json();
     });
-    
-    await handleResponseError(response);
-    return response.json();
   }
 
   /**
    * DELETE request
    */
   static async delete(endpoint, options = {}) {
-    const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
-    
-    const response = await fetch(url, {
-      method: 'DELETE',
-      headers: await buildHeaders(options.headers),
-      credentials: 'include',
-      ...options
+    return performanceMonitor.measureApiCall(endpoint, async () => {
+      const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
+      
+      const response = await fetch(url, {
+        method: 'DELETE',
+        headers: await buildHeaders(options.headers),
+        credentials: 'include',
+        ...options
+      });
+      
+      await handleResponseError(response);
+      return response.json();
     });
-    
-    await handleResponseError(response);
-    return response.json();
   }
 
   /**

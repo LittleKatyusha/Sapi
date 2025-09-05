@@ -7,6 +7,7 @@ import { useSecurityMonitoring } from './hooks/useSecurityMonitoring';
 import { pageTitleMap } from './config/pageTitleMap';
 import SecurityErrorBoundary from './components/SecurityErrorBoundary';
 import LoadingSpinner from './components/LoadingSpinner';
+import useDocumentTitle from './hooks/useDocumentTitle';
 
 // Lazy load components for better performance
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
@@ -83,12 +84,16 @@ function AppSecure() {
   // Initialize security monitoring
   useSecurityMonitoring();
 
+  // Initialize dynamic document title
+  useDocumentTitle();
+
   // Debug logging only in development
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
       console.log('📍 AppSecure Route Change:', {
         pathname: location.pathname,
         isLoginPage,
+        title: document.title,
         timestamp: new Date().toISOString()
       });
     }
