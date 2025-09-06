@@ -328,7 +328,7 @@ const PembelianFeedmilPage = () => {
 
     return (
         <>
-            {/* Custom CSS for horizontal scrollbar styling */}
+            {/* Custom CSS for horizontal scrollbar styling and sticky action column */}
             <style jsx>{`
                 .horizontal-scroll-container::-webkit-scrollbar {
                     height: 12px;
@@ -347,6 +347,67 @@ const PembelianFeedmilPage = () => {
                 }
                 .horizontal-scroll-container::-webkit-scrollbar-corner {
                     background: #f1f5f9;
+                }
+                
+                /* Sticky Action Column Styles - Specific to Pembelian Feedmill Page */
+                .pembelian-feedmill-table .rdt_TableHeadRow .rdt_TableCol:nth-child(2),
+                .pembelian-feedmill-table .rdt_TableHeadRow th:nth-child(2) {
+                    position: sticky !important;
+                    left: 60px !important;
+                    z-index: 1001 !important;
+                    background-color: #f8fafc !important;
+                    border-right: 2px solid #e5e7eb !important;
+                    box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
+                    will-change: transform !important;
+                    min-width: 80px !important;
+                    max-width: 80px !important;
+                }
+                
+                .pembelian-feedmill-table .rdt_TableBodyRow .rdt_TableCell:nth-child(2),
+                .pembelian-feedmill-table .rdt_TableBodyRow td:nth-child(2) {
+                    position: sticky !important;
+                    left: 60px !important;
+                    z-index: 998 !important;
+                    background-color: #ffffff !important;
+                    border-right: 2px solid #e5e7eb !important;
+                    box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
+                    will-change: transform !important;
+                    min-width: 80px !important;
+                    max-width: 80px !important;
+                }
+                
+                .pembelian-feedmill-table .rdt_TableBodyRow:hover .rdt_TableCell:nth-child(2),
+                .pembelian-feedmill-table .rdt_TableBodyRow:hover td:nth-child(2) {
+                    background-color: #f9fafb !important;
+                }
+                
+                /* Additional selectors for better compatibility */
+                .pembelian-feedmill-table table thead tr th:nth-child(2) {
+                    position: sticky !important;
+                    left: 60px !important;
+                    z-index: 1001 !important;
+                    background-color: #f8fafc !important;
+                    border-right: 2px solid #e5e7eb !important;
+                    box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
+                    will-change: transform !important;
+                    min-width: 80px !important;
+                    max-width: 80px !important;
+                }
+                
+                .pembelian-feedmill-table table tbody tr td:nth-child(2) {
+                    position: sticky !important;
+                    left: 60px !important;
+                    z-index: 998 !important;
+                    background-color: #ffffff !important;
+                    border-right: 2px solid #e5e7eb !important;
+                    box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
+                    will-change: transform !important;
+                    min-width: 80px !important;
+                    max-width: 80px !important;
+                }
+                
+                .pembelian-feedmill-table table tbody tr:hover td:nth-child(2) {
+                    background-color: #f9fafb !important;
                 }
             `}</style>
             <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-2 sm:p-4 md:p-6">
@@ -486,6 +547,7 @@ const PembelianFeedmilPage = () => {
                             columns={columns}
                             data={filteredData}
                             pagination={false}
+                            className="pembelian-feedmill-table"
                             customStyles={{
                                 ...customTableStyles,
                                 tableWrapper: {
@@ -499,6 +561,38 @@ const PembelianFeedmilPage = () => {
                                 table: {
                                     style: {
                                         minWidth: '1400px',
+                                    }
+                                },
+                                headCells: {
+                                    style: {
+                                        ...customTableStyles.headCells.style,
+                                        // Ensure sticky positioning for action column
+                                        '&:nth-child(2)': {
+                                            position: 'sticky',
+                                            left: '60px',
+                                            zIndex: 1001,
+                                            backgroundColor: '#f8fafc',
+                                            borderRight: '2px solid #e5e7eb',
+                                            boxShadow: '1px 0 2px rgba(0, 0, 0, 0.05)',
+                                            minWidth: '80px',
+                                            maxWidth: '80px',
+                                        }
+                                    }
+                                },
+                                cells: {
+                                    style: {
+                                        ...customTableStyles.cells.style,
+                                        // Ensure sticky positioning for action column
+                                        '&:nth-child(2)': {
+                                            position: 'sticky',
+                                            left: '60px',
+                                            zIndex: 998,
+                                            backgroundColor: '#ffffff',
+                                            borderRight: '2px solid #e5e7eb',
+                                            boxShadow: '1px 0 2px rgba(0, 0, 0, 0.05)',
+                                            minWidth: '80px',
+                                            maxWidth: '80px',
+                                        }
                                     }
                                 }
                             }}

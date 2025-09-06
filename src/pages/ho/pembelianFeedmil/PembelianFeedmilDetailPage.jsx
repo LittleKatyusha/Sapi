@@ -13,7 +13,10 @@ const PembelianFeedmilDetailPage = () => {
         fetchPembelian,
         pembelian: pembelianList,
         loading,
-        error
+        error,
+        klasifikasiFeedmil,
+        fetchKlasifikasiFeedmil,
+        getKlasifikasiName
     } = usePembelianFeedmil();
     
     const [pembelianData, setPembelianData] = useState(null);
@@ -72,6 +75,13 @@ const PembelianFeedmilDetailPage = () => {
     useEffect(() => {
         if (!pembelianList || pembelianList.length === 0) {
             fetchPembelian(1, 1000, '', 'all', false);
+        }
+    }, []);
+
+    // Load klasifikasi feedmil data
+    useEffect(() => {
+        if (!klasifikasiFeedmil || klasifikasiFeedmil.length === 0) {
+            fetchKlasifikasiFeedmil();
         }
     }, []);
 
@@ -252,11 +262,26 @@ const PembelianFeedmilDetailPage = () => {
 
 
 
-    // Columns for detail table - Sesuai dengan struktur backend dt_pembelian_ho_feedmil_detail view
+    // Helper function for currency formatting
+    const formatCurrency = (amount) => {
+        return amount ? new Intl.NumberFormat('id-ID', {
+            style: 'currency',
+            currency: 'IDR',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }).format(amount) : 'Rp 0';
+    };
+
+    // Helper function for row number calculation
+    const getRowNumber = (index) => {
+        return ((pagination.currentPage - 1) * pagination.perPage) + index + 1;
+    };
+
+    // Columns for detail table - Clean and optimized structure
     const detailColumns = [
         {
             name: 'No',
-            selector: (row, index) => ((pagination.currentPage - 1) * pagination.perPage) + index + 1,
+            selector: (row, index) => getRowNumber(index),
             sortable: false,
             minWidth: '60px',
             maxWidth: '80px',
@@ -264,7 +289,7 @@ const PembelianFeedmilDetailPage = () => {
             ignoreRowClick: true,
             cell: (row, index) => (
                 <div className="font-semibold text-gray-600 w-full flex items-center justify-center">
-                    {((pagination.currentPage - 1) * pagination.perPage) + index + 1}
+                    {getRowNumber(index)}
                 </div>
             )
         },
@@ -272,7 +297,8 @@ const PembelianFeedmilDetailPage = () => {
             name: 'Nama Item',
             selector: row => row.item_name,
             sortable: true,
-            grow: 2,
+            grow: 1.8,
+            minWidth: '150px',
             wrap: true,
             center: true,
             cell: row => (
@@ -288,13 +314,16 @@ const PembelianFeedmilDetailPage = () => {
             grow: 1.5,
             wrap: true,
             center: true,
-            cell: row => (
-                <div className="w-full flex items-center justify-center">
-                    <span className="inline-flex px-3 py-1.5 text-xs font-medium rounded-lg bg-green-100 text-green-800">
-                        {row.id_klasifikasi_feedmil ? `ID: ${row.id_klasifikasi_feedmil}` : 'Tidak ada klasifikasi'}
-                    </span>
-                </div>
-            )
+            cell: row => {
+                const klasifikasiName = getKlasifikasiName(row.id_klasifikasi_feedmil);
+                return (
+                    <div className="w-full flex items-center justify-center">
+                        <span className="inline-flex px-3 py-1.5 text-xs font-medium rounded-lg bg-green-100 text-green-800">
+                            {klasifikasiName || 'Tidak ada klasifikasi'}
+                        </span>
+                    </div>
+                );
+            }
         },
         {
             name: 'Berat (kg)',
@@ -321,12 +350,7 @@ const PembelianFeedmilDetailPage = () => {
             cell: row => (
                 <div className="w-full flex items-center justify-center">
                     <span className="inline-flex px-3 py-2 text-sm font-semibold rounded-lg bg-green-100 text-green-800">
-                        {row.harga ? new Intl.NumberFormat('id-ID', {
-                            style: 'currency',
-                            currency: 'IDR',
-                            minimumFractionDigits: 0,
-                            maximumFractionDigits: 0
-                        }).format(row.harga) : 'Rp 0'}
+                        {formatCurrency(row.harga)}
                     </span>
                 </div>
             )
@@ -335,7 +359,8 @@ const PembelianFeedmilDetailPage = () => {
             name: 'Persentase (%)',
             selector: row => row.persentase,
             sortable: true,
-            grow: 1,
+            grow: 1.2,
+            minWidth: '120px',
             wrap: true,
             center: true,
             cell: row => (
@@ -356,12 +381,7 @@ const PembelianFeedmilDetailPage = () => {
             cell: row => (
                 <div className="w-full flex items-center justify-center">
                     <span className="inline-flex px-3 py-2 text-sm font-semibold rounded-lg bg-purple-100 text-purple-800">
-                        {row.hpp ? new Intl.NumberFormat('id-ID', {
-                            style: 'currency',
-                            currency: 'IDR',
-                            minimumFractionDigits: 0,
-                            maximumFractionDigits: 0
-                        }).format(row.hpp) : 'Rp 0'}
+                        {formatCurrency(row.hpp)}
                     </span>
                 </div>
             )
@@ -376,12 +396,7 @@ const PembelianFeedmilDetailPage = () => {
             cell: row => (
                 <div className="w-full flex items-center justify-center">
                     <span className="inline-flex px-3 py-2 text-sm font-semibold rounded-lg bg-red-100 text-red-800">
-                        {row.total_harga ? new Intl.NumberFormat('id-ID', {
-                            style: 'currency',
-                            currency: 'IDR',
-                            minimumFractionDigits: 0,
-                            maximumFractionDigits: 0
-                        }).format(row.total_harga) : 'Rp 0'}
+                        {formatCurrency(row.total_harga)}
                     </span>
                 </div>
             )
@@ -645,18 +660,18 @@ const PembelianFeedmilDetailPage = () => {
                                             style: {
                                                 ...customTableStyles.table.style,
                                                 width: '100%',
-                                                minWidth: '100%', // Use full width available
-                                                tableLayout: 'auto', // Auto layout for flexible column widths
+                                                minWidth: '100%',
+                                                tableLayout: 'auto',
                                             }
                                         },
                                         tableWrapper: {
                                             ...customTableStyles.tableWrapper,
                                             style: {
                                                 ...customTableStyles.tableWrapper.style,
-                                                overflowX: 'visible', // Let parent container handle scroll
+                                                overflowX: 'visible',
                                                 overflowY: 'visible',
                                                 width: '100%',
-                                                border: 'none', // Remove border as it's handled by parent container
+                                                border: 'none',
                                                 borderRadius: '0',
                                                 WebkitOverflowScrolling: 'touch',
                                                 position: 'relative',
@@ -668,7 +683,7 @@ const PembelianFeedmilDetailPage = () => {
                                             style: {
                                                 ...customTableStyles.headCells.style,
                                                 textAlign: 'center !important',
-                                                // Keep first column sticky
+                                                // Only keep first column (No) sticky
                                                 '&:first-child': {
                                                     position: 'sticky',
                                                     left: 0,
@@ -676,16 +691,6 @@ const PembelianFeedmilDetailPage = () => {
                                                     backgroundColor: '#f8fafc',
                                                     borderRight: '2px solid #e5e7eb',
                                                     boxShadow: '1px 0 2px rgba(0, 0, 0, 0.05)',
-                                                },
-                                                // Remove sticky from last column 
-                                                '&:last-of-type': {
-                                                    position: 'static !important',
-                                                    right: 'unset !important',
-                                                    zIndex: 'unset !important',
-                                                    backgroundColor: 'inherit !important',
-                                                    borderLeft: 'none !important',
-                                                    boxShadow: 'none !important',
-                                                    textAlign: 'center !important',
                                                 },
                                             },
                                         },
@@ -697,7 +702,7 @@ const PembelianFeedmilDetailPage = () => {
                                                 display: 'flex !important',
                                                 alignItems: 'center !important',
                                                 justifyContent: 'center !important',
-                                                // Keep first column sticky
+                                                // Only keep first column (No) sticky
                                                 '&:first-child': {
                                                     position: 'sticky',
                                                     left: 0,
@@ -705,19 +710,6 @@ const PembelianFeedmilDetailPage = () => {
                                                     backgroundColor: '#ffffff !important',
                                                     borderRight: '2px solid #e5e7eb',
                                                     boxShadow: '1px 0 2px rgba(0, 0, 0, 0.05)',
-                                                    display: 'flex !important',
-                                                    alignItems: 'center !important',
-                                                    justifyContent: 'center !important',
-                                                },
-                                                // Remove sticky from last column
-                                                '&:last-of-type': {
-                                                    position: 'static !important',
-                                                    right: 'unset !important',
-                                                    zIndex: 'unset !important',
-                                                    backgroundColor: 'inherit !important',
-                                                    borderLeft: 'none !important',
-                                                    boxShadow: 'none !important',
-                                                    textAlign: 'center !important',
                                                     display: 'flex !important',
                                                     alignItems: 'center !important',
                                                     justifyContent: 'center !important',

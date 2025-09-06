@@ -13,6 +13,7 @@ const usePembelianFeedmil = () => {
     const [isSearching, setIsSearching] = useState(false);
     const [searchError, setSearchError] = useState(null);
     const [deleteLoading, setDeleteLoading] = useState(null);
+    const [klasifikasiFeedmil, setKlasifikasiFeedmil] = useState([]);
 
     // Server-side pagination state
     const [serverPagination, setServerPagination] = useState({
@@ -24,6 +25,26 @@ const usePembelianFeedmil = () => {
 
     // Base API endpoint for feedmil pembelian
     const FEEDMIL_API_BASE = API_ENDPOINTS.HO.FEEDMIL.PEMBELIAN;
+    
+    // Fetch klasifikasi feedmil data
+    const fetchKlasifikasiFeedmil = useCallback(async () => {
+        try {
+            const data = await HttpClient.get(API_ENDPOINTS.MASTER.KLASIFIKASI_FEEDMIL + '/data');
+            if (data && data.data) {
+                setKlasifikasiFeedmil(data.data);
+            }
+        } catch (err) {
+            console.error('Error fetching klasifikasi feedmil:', err);
+            // Don't set error state for this as it's not critical
+        }
+    }, []);
+
+    // Get klasifikasi name by ID
+    const getKlasifikasiName = useCallback((id) => {
+        if (!id || !klasifikasiFeedmil.length) return null;
+        const klasifikasi = klasifikasiFeedmil.find(k => k.id === parseInt(id));
+        return klasifikasi ? klasifikasi.name : null;
+    }, [klasifikasiFeedmil]);
 
     // Fetch pembelian feedmil data from API
     const fetchPembelian = useCallback(async (page = 1, perPage = null, search = null, filter = null, isSearchRequest = false) => {
@@ -82,6 +103,7 @@ const usePembelianFeedmil = () => {
                     currentPage: currentPage,
                     totalPages: Math.ceil((jsonData.recordsFiltered || 0) / currentPerPage),
                     totalItems: jsonData.recordsFiltered || 0,
+                    recordsTotal: jsonData.recordsTotal || 0, // Total records before filtering
                     perPage: currentPerPage
                 });
                 
@@ -533,12 +555,12 @@ const usePembelianFeedmil = () => {
         }).length;
         
         return {
-            total: serverPagination.totalItems || total, // Use server total if available
+            total: serverPagination.recordsTotal || serverPagination.totalItems || total, // Use recordsTotal from API response
             totalFeedmil: totalFeedmil,
             today: todayPurchases,
             thisMonth: thisMonthPurchases
         };
-    }, [pembelian, serverPagination.totalItems]);
+    }, [pembelian, serverPagination.totalItems, serverPagination.recordsTotal]);
 
     // Enhanced debounced search handler
     const searchTimeoutRef = useRef(null);
@@ -623,7 +645,10 @@ const usePembelianFeedmil = () => {
         deleteLoading,
         getPembelianDetail,
         updateDetail,
-        deleteDetail
+        deleteDetail,
+        klasifikasiFeedmil,
+        fetchKlasifikasiFeedmil,
+        getKlasifikasiName
     };
 };
 

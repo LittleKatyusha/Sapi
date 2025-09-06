@@ -69,23 +69,6 @@ const customTableStyles = {
                 justifyContent: 'center',
                 textAlign: 'center !important',
             },
-            // Sticky "Aksi" column styling - second column
-            '&:nth-child(2)': {
-                position: 'sticky',
-                left: '60px', // Position after the No column (60px width)
-                zIndex: 1001,
-                backgroundColor: '#f8fafc',
-                borderLeft: '2px solid #e5e7eb',
-                borderRight: '2px solid #e5e7eb',
-                boxShadow: '1px 0 2px rgba(0, 0, 0, 0.05)',
-                willChange: 'transform',
-                minWidth: '80px',
-                maxWidth: '80px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                textAlign: 'center !important',
-            },
         }
     },
     rows: {
@@ -131,22 +114,6 @@ const customTableStyles = {
                 color: '#6b7280',
                 minWidth: '60px',
                 maxWidth: '60px',
-            },
-            // Sticky "Aksi" column styling - second column
-            '&:nth-child(2)': {
-                position: 'sticky',
-                left: '60px', // Position after the No column (60px width)
-                zIndex: 998,
-                backgroundColor: '#ffffff !important',
-                borderLeft: '2px solid #e5e7eb',
-                borderRight: '2px solid #e5e7eb',
-                boxShadow: '1px 0 2px rgba(0, 0, 0, 0.05)',
-                willChange: 'transform',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                minWidth: '80px',
-                maxWidth: '80px',
             },
         }
     }

@@ -544,8 +544,8 @@ const AddEditPembelianFeedmilPage = () => {
         if (!item.berat || parseInt(item.berat) <= 0) {
             itemErrors.push('Berat harus diisi dan > 0');
         }
-        if (!item.persentase || getParsedPersentase(item.persentase) <= 0) {
-            itemErrors.push('Persentase harus diisi dan > 0');
+        if (!item.persentase || getParsedPersentase(item.persentase) < 0) {
+            itemErrors.push('Persentase harus diisi dan >= 0');
         }
 
         if (itemErrors.length > 0) {
@@ -652,10 +652,9 @@ const AddEditPembelianFeedmilPage = () => {
                 }
                 
                 // Auto hard refresh setelah save berhasil dalam mode edit
-                // DISABLED: Auto refresh untuk debugging persentase issue
-                // setTimeout(() => {
-                //     window.location.reload();
-                // }, 1500); // Delay 1.5 detik untuk memberi waktu user melihat notification
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500); // Delay 1.5 detik untuk memberi waktu user melihat notification
                 
 
             } else {
@@ -819,8 +818,8 @@ const AddEditPembelianFeedmilPage = () => {
                 errors.push(`Item ${index + 1}: Harga harus lebih dari 0`);
             }
             const persentase = getParsedPersentase(item.persentase);
-            if (isNaN(persentase) || persentase <= 0) {
-                errors.push(`Item ${index + 1}: Persentase harus lebih dari 0`);
+            if (isNaN(persentase) || persentase < 0) {
+                errors.push(`Item ${index + 1}: Persentase harus >= 0`);
             }
         });
 
@@ -1715,51 +1714,87 @@ const AddEditPembelianFeedmilPage = () => {
                 </div>
             )}
 
-            {/* Notification */}
+            {/* Enhanced Notification */}
             {notification && (
-                <div className="fixed top-4 right-4 z-50">
-                    <div className={`max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden ${
-                        notification.type === 'success' ? 'border-l-4 border-green-400' :
-                        notification.type === 'info' ? 'border-l-4 border-blue-400' :
-                        'border-l-4 border-red-400'
+                <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-right duration-300">
+                    <div className={`max-w-md w-full bg-white shadow-2xl rounded-xl pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden border-l-4 ${
+                        notification.type === 'success' ? 'border-green-500 bg-gradient-to-r from-green-50 to-white' :
+                        notification.type === 'info' ? 'border-blue-500 bg-gradient-to-r from-blue-50 to-white' :
+                        'border-red-500 bg-gradient-to-r from-red-50 to-white'
                     }`}>
-                        <div className="p-4">
+                        <div className="p-5">
                             <div className="flex items-start">
                                 <div className="flex-shrink-0">
                                     {notification.type === 'success' ? (
-                                        <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
-                                            <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center ring-2 ring-green-200">
+                                            <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
                                                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                             </svg>
                                         </div>
                                     ) : notification.type === 'info' ? (
-                                        <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
-                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center ring-2 ring-blue-200">
+                                            <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-600 border-t-transparent"></div>
                                         </div>
                                     ) : (
-                                        <div className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center">
-                                            <AlertCircle className="w-4 h-4 text-red-600" />
+                                        <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center ring-2 ring-red-200">
+                                            <AlertCircle className="w-5 h-5 text-red-600" />
                                         </div>
                                     )}
                                 </div>
-                                <div className="ml-3 w-0 flex-1 pt-0.5">
-                                    <p className="text-sm font-medium text-gray-900">
-                                        {notification.type === 'success' ? 'Berhasil!' :
-                                         notification.type === 'info' ? 'Memproses...' : 'Error!'}
+                                <div className="ml-4 flex-1 min-w-0">
+                                    <div className="flex items-center justify-between">
+                                        <p className={`text-sm font-semibold ${
+                                            notification.type === 'success' ? 'text-green-800' :
+                                            notification.type === 'info' ? 'text-blue-800' :
+                                            'text-red-800'
+                                        }`}>
+                                            {notification.type === 'success' ? 'Berhasil!' :
+                                             notification.type === 'info' ? 'Memproses...' : 'Error!'}
+                                        </p>
+                                        <button
+                                            onClick={() => setNotification(null)}
+                                            className={`ml-4 flex-shrink-0 rounded-full p-1.5 hover:bg-opacity-20 transition-colors ${
+                                                notification.type === 'success' ? 'text-green-600 hover:bg-green-200' :
+                                                notification.type === 'info' ? 'text-blue-600 hover:bg-blue-200' :
+                                                'text-red-600 hover:bg-red-200'
+                                            }`}
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                    <p className={`mt-1 text-sm ${
+                                        notification.type === 'success' ? 'text-green-700' :
+                                        notification.type === 'info' ? 'text-blue-700' :
+                                        'text-red-700'
+                                    }`}>
+                                        {notification.message}
                                     </p>
-                                    <p className="mt-1 text-sm text-gray-500">{notification.message}</p>
-                                </div>
-                                <div className="ml-4 flex-shrink-0 flex">
-                                    <button
-                                        onClick={() => setNotification(null)}
-                                        className="bg-white rounded-md inline-flex text-gray-400 hover:text-gray-500"
-                                    >
-                                        <X className="h-5 w-5" />
-                                    </button>
                                 </div>
                             </div>
                         </div>
+                        
+                        {/* Progress bar for auto-hide */}
+                        <div className={`h-1 w-full ${
+                            notification.type === 'success' ? 'bg-green-200' :
+                            notification.type === 'info' ? 'bg-blue-200' :
+                            'bg-red-200'
+                        }`}>
+                            <div className={`h-full animate-pulse ${
+                                notification.type === 'success' ? 'bg-green-500' :
+                                notification.type === 'info' ? 'bg-blue-500' :
+                                'bg-red-500'
+                            }`} style={{
+                                animation: 'progress 5s linear forwards'
+                            }}></div>
+                        </div>
                     </div>
+                    
+                    <style jsx>{`
+                        @keyframes progress {
+                            from { width: 100%; }
+                            to { width: 0%; }
+                        }
+                    `}</style>
                 </div>
             )}
         </div>
