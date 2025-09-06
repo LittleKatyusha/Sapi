@@ -99,16 +99,6 @@ const usePembelianHO = () => {
                 params: paramsWithCache
             });
             
-            console.log('📡 fetchPembelian raw response:', result);
-            console.log('📡 Response structure check:', {
-                hasDraw: 'draw' in result,
-                hasData: 'data' in result,
-                isDataArray: Array.isArray(result.data),
-                hasStatus: 'status' in result,
-                statusValue: result.status,
-                dataLength: result.data?.length || 0
-            });
-            
             let dataArray = [];
             let totalRecords = 0;
             let filteredRecords = 0;
