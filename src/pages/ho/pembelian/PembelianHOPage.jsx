@@ -1,16 +1,174 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DataTable from 'react-data-table-component';
-import { PlusCircle, Search, ShoppingCart, Building2, Truck, User, X, Loader2, Calendar } from 'lucide-react';
+import { PlusCircle, Search, ShoppingCart, X, Loader2, Calendar } from 'lucide-react';
 
 import usePembelianHO from './hooks/usePembelianHO';
 import ActionButton from './components/ActionButton';
 import PembelianCard from './components/PembelianCard';
 import CustomPagination from './components/CustomPagination';
-import customTableStyles, { enhancedTableStyles } from './constants/tableStyles';
+import { enhancedTableStyles } from './constants/tableStyles';
 
 // Import modals
 import DeleteConfirmationModal from './modals/DeleteConfirmationModal';
+
+// Constants for better maintainability
+const NOTIFICATION_TIMEOUT = 5000;
+const ITEMS_PER_PAGE_OPTIONS = [10, 25, 50, 100];
+
+// Memoized components for better performance
+const StatCard = React.memo(({ title, value, bgColor }) => (
+    <div className={`${bgColor} text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300`}>
+        <h3 className="text-sm sm:text-base font-medium opacity-90 mb-2">{title}</h3>
+        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold">{value}</p>
+    </div>
+));
+
+const SearchInput = React.memo(({ 
+    searchTerm, 
+    isSearching, 
+    searchError, 
+    onSearch, 
+    onClear 
+}) => (
+    <div className="relative flex-1 max-w-full sm:max-w-md lg:max-w-lg">
+        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+        
+        {isSearching && (
+            <Loader2 className="absolute right-12 top-1/2 transform -translate-y-1/2 w-4 h-4 text-red-500 animate-spin" />
+        )}
+        
+        {searchTerm && !isSearching && (
+            <button
+                onClick={onClear}
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                title="Clear search"
+            >
+                <X className="w-4 h-4" />
+            </button>
+        )}
+        
+        <input
+            type="text"
+            placeholder="Cari berdasarkan nota, supplier, office, supir, atau plat nomor..."
+            value={searchTerm}
+            onChange={(e) => onSearch(e.target.value)}
+            className={`w-full pl-12 ${searchTerm || isSearching ? 'pr-12' : 'pr-4'} py-2.5 sm:py-3 md:py-4 border ${
+                searchError 
+                    ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
+                    : 'border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-red-500'
+            } rounded-full transition-all duration-200 text-sm sm:text-base shadow-sm hover:shadow-md`}
+        />
+        
+        {searchError && (
+            <div className="absolute top-full left-0 right-0 mt-1 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                {searchError}
+            </div>
+        )}
+    </div>
+));
+
+const DateRangeFilter = React.memo(({ 
+    dateRange, 
+    onDateRangeChange, 
+    onClearDateRange 
+}) => (
+    <div className="flex items-center gap-2 md:gap-3 flex-wrap">
+        <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
+        <div className="flex items-center gap-2">
+            <input
+                id="startDateInput"
+                type="date"
+                value={dateRange.startDate}
+                onChange={(e) => {
+                    const newDateRange = { ...dateRange, startDate: e.target.value };
+                    onDateRangeChange(newDateRange);
+                }}
+                className="px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 text-sm sm:text-base shadow-sm hover:shadow-md hover:border-gray-400 transition-all duration-200 cursor-pointer w-full"
+                style={{ minWidth: '150px' }}
+                title="Pilih Tanggal Mulai"
+            />
+            <span className="text-gray-500 text-sm font-medium">s/d</span>
+            <input
+                id="endDateInput"
+                type="date"
+                value={dateRange.endDate}
+                onChange={(e) => {
+                    const newDateRange = { ...dateRange, endDate: e.target.value };
+                    onDateRangeChange(newDateRange);
+                }}
+                className="px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 text-sm sm:text-base shadow-sm hover:shadow-md hover:border-gray-400 transition-all duration-200 cursor-pointer w-full"
+                style={{ minWidth: '150px' }}
+                title="Pilih Tanggal Akhir"
+            />
+            {(dateRange.startDate || dateRange.endDate) && (
+                <button
+                    onClick={onClearDateRange}
+                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all duration-200"
+                    title="Hapus Filter Tanggal"
+                >
+                    <X className="w-4 h-4" />
+                </button>
+            )}
+        </div>
+    </div>
+));
+
+const Notification = React.memo(({ notification, onClose }) => {
+    if (!notification) return null;
+
+    return (
+        <div className="fixed top-4 right-4 z-50">
+            <div className={`max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden ${
+                notification.type === 'success' ? 'border-l-4 border-green-400' :
+                notification.type === 'info' ? 'border-l-4 border-blue-400' :
+                'border-l-4 border-red-400'
+            }`}>
+                <div className="p-4">
+                    <div className="flex items-start">
+                        <div className="flex-shrink-0">
+                            {notification.type === 'success' ? (
+                                <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
+                                    <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                    </svg>
+                                </div>
+                            ) : notification.type === 'info' ? (
+                                <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                                </div>
+                            ) : (
+                                <div className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center">
+                                    <svg className="w-4 h-4 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                    </svg>
+                                </div>
+                            )}
+                        </div>
+                        <div className="ml-3 w-0 flex-1 pt-0.5">
+                            <p className="text-sm font-medium text-gray-900">
+                                {notification.type === 'success' ? 'Berhasil!' :
+                                 notification.type === 'info' ? 'Memproses...' : 'Error!'}
+                            </p>
+                            <p className="mt-1 text-sm text-gray-500">{notification.message}</p>
+                        </div>
+                        <div className="ml-4 flex-shrink-0 flex">
+                            <button
+                                onClick={onClose}
+                                className="bg-white rounded-md inline-flex text-gray-400 hover:text-gray-500"
+                            >
+                                <span className="sr-only">Close</span>
+                                <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+});
 
 const PembelianHOPage = () => {
     const navigate = useNavigate();
@@ -502,96 +660,20 @@ const PembelianHOPage = () => {
 
                 <div className="bg-white rounded-none sm:rounded-none p-4 sm:p-6 shadow-lg border border-gray-100">
                     <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 md:gap-6 sm:items-center sm:justify-between">
-                        <div className="relative flex-1 max-w-full sm:max-w-md lg:max-w-lg">
-                            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                            
-                            {/* Loading spinner for search */}
-                            {isSearching && (
-                                <Loader2 className="absolute right-12 top-1/2 transform -translate-y-1/2 w-4 h-4 text-red-500 animate-spin" />
-                            )}
-                            
-                            {/* Clear search button */}
-                            {searchTerm && !isSearching && (
-                                <button
-                                    onClick={clearSearch}
-                                    className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 hover:text-gray-600 transition-colors duration-200"
-                                    title="Clear search"
-                                >
-                                    <X className="w-4 h-4" />
-                                </button>
-                            )}
-                            
-                            <input
-                                type="text"
-                                placeholder="Cari berdasarkan nota, supplier, office, supir, atau plat nomor..."
-                                value={searchTerm}
-                                onChange={(e) => handleSearch(e.target.value)}
-                                className={`w-full pl-12 ${searchTerm || isSearching ? 'pr-12' : 'pr-4'} py-2.5 sm:py-3 md:py-4 border ${searchError ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-red-500'} rounded-full transition-all duration-200 text-sm sm:text-base shadow-sm hover:shadow-md`}
-                            />
-                            
-                            {/* Search error message */}
-                            {searchError && (
-                                <div className="absolute top-full left-0 right-0 mt-1 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-                                    {searchError}
-                                </div>
-                            )}
-                        </div>
+                        <SearchInput
+                            searchTerm={searchTerm}
+                            isSearching={isSearching}
+                            searchError={searchError}
+                            onSearch={handleSearch}
+                            onClear={clearSearch}
+                        />
 
                         <div className="flex flex-wrap gap-2 sm:gap-3 md:gap-4">
-                            {/* Date Range Filter */}
-                            <div className="flex items-center gap-2 md:gap-3 flex-wrap">
-                                <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
-                                <div className="flex items-center gap-2">
-                                    <div 
-                                        className="relative cursor-pointer"
-                                        onClick={() => document.getElementById('startDateInput').showPicker()}
-                                    >
-                                        <input
-                                            id="startDateInput"
-                                            type="date"
-                                            value={dateRange.startDate}
-                                            onChange={(e) => {
-                                                const newDateRange = { ...dateRange, startDate: e.target.value };
-                                                setDateRange(newDateRange);
-                                                // Apply filter immediately when start date is set, regardless of end date
-                                                handleDateRangeFilter(newDateRange);
-                                            }}
-                                            className="px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 text-sm sm:text-base shadow-sm hover:shadow-md hover:border-gray-400 transition-all duration-200 cursor-pointer w-full"
-                                            style={{ minWidth: '150px' }}
-                                            title="Pilih Tanggal Mulai"
-                                        />
-                                    </div>
-                                    <span className="text-gray-500 text-sm font-medium">s/d</span>
-                                    <div 
-                                        className="relative cursor-pointer"
-                                        onClick={() => document.getElementById('endDateInput').showPicker()}
-                                    >
-                                        <input
-                                            id="endDateInput"
-                                            type="date"
-                                            value={dateRange.endDate}
-                                            onChange={(e) => {
-                                                const newDateRange = { ...dateRange, endDate: e.target.value };
-                                                setDateRange(newDateRange);
-                                                // Apply filter immediately when end date is set, regardless of start date
-                                                handleDateRangeFilter(newDateRange);
-                                            }}
-                                            className="px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 text-sm sm:text-base shadow-sm hover:shadow-md hover:border-gray-400 transition-all duration-200 cursor-pointer w-full"
-                                            style={{ minWidth: '150px' }}
-                                            title="Pilih Tanggal Akhir"
-                                        />
-                                    </div>
-                                    {(dateRange.startDate || dateRange.endDate) && (
-                                        <button
-                                            onClick={clearDateRange}
-                                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all duration-200"
-                                            title="Hapus Filter Tanggal"
-                                        >
-                                            <X className="w-4 h-4" />
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
+                            <DateRangeFilter
+                                dateRange={dateRange}
+                                onDateRangeChange={handleDateRangeFilter}
+                                onClearDateRange={clearDateRange}
+                            />
                         </div>
                     </div>
                 </div>
@@ -815,58 +897,10 @@ const PembelianHOPage = () => {
                 </div>
             </div>
 
-            {/* Notification */}
-            {notification && (
-                <div className="fixed top-4 right-4 z-50">
-                    <div className={`max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden ${
-                        notification.type === 'success' ? 'border-l-4 border-green-400' :
-                        notification.type === 'info' ? 'border-l-4 border-blue-400' :
-                        'border-l-4 border-red-400'
-                    }`}>
-                        <div className="p-4">
-                            <div className="flex items-start">
-                                <div className="flex-shrink-0">
-                                    {notification.type === 'success' ? (
-                                        <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
-                                            <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                            </svg>
-                                        </div>
-                                    ) : notification.type === 'info' ? (
-                                        <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
-                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                                        </div>
-                                    ) : (
-                                        <div className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center">
-                                            <svg className="w-4 h-4 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                                            </svg>
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="ml-3 w-0 flex-1 pt-0.5">
-                                    <p className="text-sm font-medium text-gray-900">
-                                        {notification.type === 'success' ? 'Berhasil!' :
-                                         notification.type === 'info' ? 'Memproses...' : 'Error!'}
-                                    </p>
-                                    <p className="mt-1 text-sm text-gray-500">{notification.message}</p>
-                                </div>
-                                <div className="ml-4 flex-shrink-0 flex">
-                                    <button
-                                        onClick={() => setNotification(null)}
-                                        className="bg-white rounded-md inline-flex text-gray-400 hover:text-gray-500"
-                                    >
-                                        <span className="sr-only">Close</span>
-                                        <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                                        </svg>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <Notification 
+                notification={notification} 
+                onClose={() => setNotification(null)} 
+            />
 
             {/* Modals */}
             <DeleteConfirmationModal

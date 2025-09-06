@@ -5,14 +5,15 @@
  */
 
 import { API_BASE_URL } from '../config/api.js';
+import performanceMonitor from '../utils/performanceMonitor';
+import { CORS_CONFIG, generateCorsHeaders } from '../config/cors.js';
 
 
 /**
- * Default headers for all requests
+ * Default headers for all requests (includes CORS headers)
  */
 const DEFAULT_HEADERS = {
-  'Content-Type': 'application/json',
-  'Accept': 'application/json',
+  ...CORS_CONFIG.defaultHeaders,
   'X-Requested-With': 'XMLHttpRequest'
 };
 
@@ -38,7 +39,7 @@ const getAuthToken = () => {
 // CSRF token handling removed - using JWT authentication only
 
 /**
- * Build headers for request (JWT authentication only)
+ * Build headers for request (JWT authentication + CORS)
  */
 const buildHeaders = async (customHeaders = {}) => {
   const headers = { ...DEFAULT_HEADERS, ...customHeaders };
@@ -47,21 +48,47 @@ const buildHeaders = async (customHeaders = {}) => {
   const token = getAuthToken();
   if (token) {
     headers.Authorization = `Bearer ${token}`;
-    console.log('🔑 JWT token added to headers');
-  } else {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔑 JWT token added to headers');
+    }
+  } else if (process.env.NODE_ENV === 'development') {
     console.warn('⚠️ No JWT token found in localStorage');
+  }
+  
+  // Add CORS headers for preflight requests
+  const corsHeaders = generateCorsHeaders(window.location.origin);
+  Object.keys(corsHeaders).forEach(key => {
+    if (key.startsWith('Access-Control-Request-')) {
+      headers[key] = corsHeaders[key];
+    }
+  });
+  
+  // Add origin header for CORS
+  if (window.location.origin) {
+    headers.Origin = window.location.origin;
   }
   
   return headers;
 };
 
 /**
- * Handle response errors
+ * Handle response errors (including CORS errors)
  */
 const handleResponseError = async (response) => {
   if (!response.ok) {
     let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
     let errorDetails = null;
+    
+    // Handle CORS errors specifically
+    if (response.status === 0 || response.type === 'opaque') {
+      errorMessage = 'CORS error: Tidak dapat mengakses server. Periksa konfigurasi CORS.';
+      console.error('🚨 CORS Error:', {
+        status: response.status,
+        type: response.type,
+        url: response.url
+      });
+      throw new Error(errorMessage);
+    }
     
     try {
       const contentType = response.headers.get('content-type');
@@ -145,123 +172,131 @@ class HttpClient {
    * GET request
    */
   static async get(endpoint, options = {}) {
-    let url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
-    
-    // Handle query parameters
-    if (options.params) {
-      const urlParams = new URLSearchParams();
-      Object.entries(options.params).forEach(([key, value]) => {
-        if (value !== null && value !== undefined) {
-          urlParams.append(key, value);
+    return performanceMonitor.measureApiCall(endpoint, async () => {
+      let url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
+      
+      // Handle query parameters
+      if (options.params) {
+        const urlParams = new URLSearchParams();
+        Object.entries(options.params).forEach(([key, value]) => {
+          if (value !== null && value !== undefined) {
+            urlParams.append(key, value);
+          }
+        });
+        
+        const queryString = urlParams.toString();
+        if (queryString) {
+          url += (url.includes('?') ? '&' : '?') + queryString;
         }
+      }
+      
+      // Remove params from options before passing to fetch
+      const { params, ...fetchOptions } = options;
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: await buildHeaders(options.headers),
+        credentials: 'include',
+        ...fetchOptions
       });
       
-      const queryString = urlParams.toString();
-      if (queryString) {
-        url += (url.includes('?') ? '&' : '?') + queryString;
-      }
-    }
-    
-    // Remove params from options before passing to fetch
-    const { params, ...fetchOptions } = options;
-    
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: await buildHeaders(options.headers),
-      credentials: 'include',
-      ...fetchOptions
+      await handleResponseError(response);
+      return response.json();
     });
-    
-    await handleResponseError(response);
-    return response.json();
   }
 
   /**
    * POST request
    */
   static async post(endpoint, data = null, options = {}) {
-    console.log('🚀 POST METHOD CALLED - Entry point');
-    const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
-    
-    // Debug logging
-    console.log('📡 POST Request Debug:', {
-      endpoint,
-      fullUrl: url,
-      dataType: data instanceof FormData ? 'FormData' : typeof data,
-      apiBaseUrl: API_BASE_URL,
-      API_BASE_URL_Value: API_BASE_URL
+    return performanceMonitor.measureApiCall(endpoint, async () => {
+      console.log('🚀 POST METHOD CALLED - Entry point');
+      const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
+      
+      // Debug logging
+      console.log('📡 POST Request Debug:', {
+        endpoint,
+        fullUrl: url,
+        dataType: data instanceof FormData ? 'FormData' : typeof data,
+        apiBaseUrl: API_BASE_URL,
+        API_BASE_URL_Value: API_BASE_URL
+      });
+      
+      // Skip CSRF completely for JWT authentication
+      let body = null;
+      let headers = await buildHeaders(options.headers);
+      
+      // Handle different data types
+      if (data instanceof FormData) {
+        body = data;
+        // Remove Content-Type header for FormData (browser will set it automatically)
+        delete headers['Content-Type'];
+      } else if (data) {
+        body = JSON.stringify(data);
+      }
+      
+      const fetchOptions = {
+        method: 'POST',
+        headers,
+        body,
+        credentials: 'include',
+        ...options
+      };
+      
+      const response = await fetch(url, fetchOptions);
+      
+      await handleResponseError(response);
+      return response.json();
     });
-    
-    // Skip CSRF completely for JWT authentication
-    let body = null;
-    let headers = await buildHeaders(options.headers);
-    
-    // Handle different data types
-    if (data instanceof FormData) {
-      body = data;
-      // Remove Content-Type header for FormData (browser will set it automatically)
-      delete headers['Content-Type'];
-    } else if (data) {
-      body = JSON.stringify(data);
-    }
-    
-    const fetchOptions = {
-      method: 'POST',
-      headers,
-      body,
-      credentials: 'include',
-      ...options
-    };
-    
-    const response = await fetch(url, fetchOptions);
-    
-    await handleResponseError(response);
-    return response.json();
   }
 
   /**
    * PUT request
    */
   static async put(endpoint, data = null, options = {}) {
-    const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
-    
-    let body = null;
-    let headers = await buildHeaders(options.headers);
-    
-    if (data instanceof FormData) {
-      body = data;
-      delete headers['Content-Type'];
-    } else if (data) {
-      body = JSON.stringify(data);
-    }
-    
-    const response = await fetch(url, {
-      method: 'PUT',
-      headers,
-      body,
-      credentials: 'include',
-      ...options
+    return performanceMonitor.measureApiCall(endpoint, async () => {
+      const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
+      
+      let body = null;
+      let headers = await buildHeaders(options.headers);
+      
+      if (data instanceof FormData) {
+        body = data;
+        delete headers['Content-Type'];
+      } else if (data) {
+        body = JSON.stringify(data);
+      }
+      
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers,
+        body,
+        credentials: 'include',
+        ...options
+      });
+      
+      await handleResponseError(response);
+      return response.json();
     });
-    
-    await handleResponseError(response);
-    return response.json();
   }
 
   /**
    * DELETE request
    */
   static async delete(endpoint, options = {}) {
-    const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
-    
-    const response = await fetch(url, {
-      method: 'DELETE',
-      headers: await buildHeaders(options.headers),
-      credentials: 'include',
-      ...options
+    return performanceMonitor.measureApiCall(endpoint, async () => {
+      const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
+      
+      const response = await fetch(url, {
+        method: 'DELETE',
+        headers: await buildHeaders(options.headers),
+        credentials: 'include',
+        ...options
+      });
+      
+      await handleResponseError(response);
+      return response.json();
     });
-    
-    await handleResponseError(response);
-    return response.json();
   }
 
   /**
