@@ -85,6 +85,7 @@ const AddEditPembelianFeedmilPage = () => {
     const [detailItems, setDetailItems] = useState([]);
     const [notification, setNotification] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [deletingItemId, setDeletingItemId] = useState(null);
     
     // Flag to prevent unnecessary data reloading
     const [isDataLoaded, setIsDataLoaded] = useState(false);
@@ -156,15 +157,23 @@ const AddEditPembelianFeedmilPage = () => {
     // Convert backend decimal persentase to display format with comma
     const formatPersentaseFromBackend = (value) => {
         if (!value && value !== 0) return '';
+        
+        
         // If value is already a decimal string (like "12,5"), return as is
         if (typeof value === 'string' && value.includes(',')) {
             return value;
         }
+        
         // If value is decimal from backend (like 12.5), convert to comma format
         const numValue = parseFloat(value);
-        if (isNaN(numValue)) return '';
+        if (isNaN(numValue)) {
+            return '';
+        }
+        
         // Convert decimal to comma format (12.5 -> "12,5")
-        return numValue.toString().replace('.', ',');
+        const result = numValue.toString().replace('.', ',');
+        
+        return result;
     };
 
     // Use Feedmil suppliers only (kategori_supplier = 2)
@@ -179,7 +188,6 @@ const AddEditPembelianFeedmilPage = () => {
     // Load pembelian list first for header data (similar to regular pembelian page)
     useEffect(() => {
         if (!pembelianList || pembelianList.length === 0) {
-            console.log('🔄 Loading pembelian feedmil list...');
             fetchPembelian(1, 1000, '', '', false); // Fetch large list to get all header data
         }
     }, [fetchPembelian, pembelianList]);
@@ -193,18 +201,6 @@ const AddEditPembelianFeedmilPage = () => {
         const isDataReady = pembelianList && suppliers;
         const hasRequiredData = isDataReady; // Simplified - just need the arrays to exist
         
-        console.log('🔍 Edit mode data check:', {
-            isEdit,
-            id,
-            hasPembelianList: !!pembelianList,
-            pembelianListLength: pembelianList?.length || 0,
-            hasSuppliers: !!suppliers,
-            suppliersLength: suppliers?.length || 0,
-            hasSupplierOptions: !!supplierOptions,
-            supplierOptionsLength: supplierOptions?.length || 0,
-            isDataReady,
-            hasRequiredData
-        });
         
         // Try to load data if we're in edit mode and have an ID, even with partial data
         // But only if data hasn't been loaded yet
@@ -213,26 +209,15 @@ const AddEditPembelianFeedmilPage = () => {
                 try {
                     const decodedId = decodeURIComponent(id);
                     
-                    console.log('🔄 Starting edit data load for ID:', { originalId: id, decodedId });
                     
                     // 1. First get detail data from show endpoint to get the nota
                     const result = await getPembelianDetail(decodedId);
-                                            console.log('📋 Detail result:', result);
-                        console.log('🔍 Raw backend detail data analysis:', result.data?.map(item => ({
-                            item_name: item.item_name,
-                            id_klasifikasi_feedmil: item.id_klasifikasi_feedmil,
-                            klasifikasi_type: typeof item.id_klasifikasi_feedmil,
-                            id_pembelian: item.id_pembelian,
-                            pid: item.pid,
-                            allFields: Object.keys(item)
-                        })));
                         
                         if (!result.success || !result.data || result.data.length === 0) {
                             throw new Error('Tidak dapat mengambil detail data pembelian');
                         }
                         
                         const firstDetail = result.data[0];
-                        console.log('📄 First detail item:', firstDetail);
                     
                     // 2. Find header data from pembelian list - try multiple methods
                     let headerDataFromList = null;
@@ -241,7 +226,6 @@ const AddEditPembelianFeedmilPage = () => {
                     if (!headerDataFromList) {
                         headerDataFromList = pembelianList.find(item => item.encryptedPid === id);
                         if (headerDataFromList) {
-                            console.log('✅ Found by original PID:', id);
                         }
                     }
                     
@@ -249,7 +233,6 @@ const AddEditPembelianFeedmilPage = () => {
                     if (!headerDataFromList) {
                         headerDataFromList = pembelianList.find(item => item.encryptedPid === decodedId);
                         if (headerDataFromList) {
-                            console.log('✅ Found by decoded PID:', decodedId);
                         }
                     }
                     
@@ -257,21 +240,13 @@ const AddEditPembelianFeedmilPage = () => {
                     if (!headerDataFromList && firstDetail.nota && pembelianList && pembelianList.length > 0) {
                         headerDataFromList = pembelianList.find(item => item.nota === firstDetail.nota);
                         if (headerDataFromList) {
-                            console.log('✅ Found by nota matching:', firstDetail.nota);
                         }
                     }
                     
                     // If still no header data found and pembelianList is empty, we'll use only detail data
                     if (!headerDataFromList) {
-                        console.log('⚠️ No header data found in list, will use detail data only');
                     }
                     
-                    console.log('🎯 Final header data from list:', headerDataFromList);
-                    console.log('📋 Available pembelian list for reference:', pembelianList?.map(item => ({
-                        pid: item.encryptedPid,
-                        nota: item.nota,
-                        nama_supplier: item.nama_supplier
-                    })) || 'Empty list');
                     
                     // 3. Process the data for form population
                     if (result.success && result.data.length > 0) {
@@ -298,23 +273,7 @@ const AddEditPembelianFeedmilPage = () => {
                             officeIdFromName = officeOptions.find(o => o.label === officeName)?.value || '';
                         }
                         
-                        console.log('🏢 Supplier ID matching:', {
-                            headerSupplierName: headerDataFromList?.nama_supplier,
-                            detailSupplierName: firstDetail.nama_supplier,
-                            finalSupplierName: supplierName,
-                            foundId: supplierIdFromName,
-                            isSupplierNull: supplierName === null,
-                            availableSuppliers: suppliers.map(s => ({ id: s.id, name: s.name }))
-                        });
                         
-                        console.log('🏢 Office ID matching:', {
-                            headerOfficeName: headerDataFromList?.nama_office,
-                            detailOfficeName: firstDetail.nama_office,
-                            finalOfficeName: officeName,
-                            foundId: officeIdFromName,
-                            isOfficeNull: officeName === null,
-                            availableOffices: officeOptions.map(o => ({ value: o.value, label: o.label }))
-                        });
                         
                         // Use header data from list if available, fallback to detail data
                         const headerDataToUse = headerDataFromList || {};
@@ -358,19 +317,6 @@ const AddEditPembelianFeedmilPage = () => {
                             note: headerDataToUse.note || detailDataFallback.note || ''
                         };
                         
-                        console.log('📝 Final header data being set:', finalHeaderData);
-                        console.log('🔍 Backend field analysis:', {
-                            'tipe_pembelian (external/internal)': headerDataToUse.tipe_pembelian || detailDataFallback.tipe_pembelian,
-                            'tipe_pembelian_id': headerDataToUse.tipe_pembelian_id || detailDataFallback.tipe_pembelian_id,
-                            'nama_supplier': headerDataToUse.nama_supplier || detailDataFallback.nama_supplier,
-                            'final_tipePembelian_value': finalHeaderData.tipePembelian
-                        });
-                        console.log('🎯 Tipe Pembelian mapping logic:', {
-                            'tipe_pembelian_integer': headerDataToUse.tipe_pembelian || detailDataFallback.tipe_pembelian,
-                            'final_tipePembelian_value': finalHeaderData.tipePembelian,
-                            'is_integer': Number.isInteger(finalHeaderData.tipePembelian),
-                            'will_match_options': [1, 2, 3].includes(finalHeaderData.tipePembelian)
-                        });
 
                         
                         // Load header data - matching exact backend response structure
@@ -389,28 +335,19 @@ const AddEditPembelianFeedmilPage = () => {
                             id_klasifikasi_feedmil: parseInt(item.id_klasifikasi_feedmil) || '',
                             berat: item.berat && parseInt(item.berat) > 0 ? parseInt(item.berat) : 0,
                             harga: parseFloat(item.harga) || 0,
-                            persentase: formatPersentaseFromBackend(item.persentase),
+                            persentase: (() => {
+                                return formatPersentaseFromBackend(item.persentase);
+                            })(),
                             hpp: parseFloat(item.hpp) || 0,
                             total_harga: parseFloat(item.total_harga) || 0,
                             tgl_masuk_rph: item.tgl_masuk_rph || new Date().toISOString().split('T')[0]
                         }));
                         
-                        console.log('🗂️ Detail items being set:', transformedDetailItems);
-                        console.log('🔍 Detailed structure of loaded items:', transformedDetailItems.map(item => ({
-                            id: item.id,
-                            item_name: item.item_name,
-                            id_klasifikasi_feedmil: item.id_klasifikasi_feedmil,
-                            klasifikasi_type: typeof item.id_klasifikasi_feedmil,
-                            idPembelian: item.idPembelian,
-                            encryptedPid: item.encryptedPid,
-                            fullItem: item
-                        })));
                         setDetailItems(transformedDetailItems);
                         
                         // Mark data as loaded to prevent unnecessary reloading
                         setIsDataLoaded(true);
                         
-                        console.log('✅ Data loading completed successfully!');
                     }
                 } catch (error) {
                     console.error('Error loading edit data:', error);
@@ -501,9 +438,79 @@ const AddEditPembelianFeedmilPage = () => {
         });
     };
 
-    // Remove detail item
-    const removeDetailItem = (itemId) => {
-        setDetailItems(prev => prev.filter(item => item.id !== itemId));
+    // Remove detail item - enhanced for edit mode
+    const removeDetailItem = async (itemId) => {
+        const item = detailItems.find(detail => detail.id === itemId);
+        if (!item) {
+            setNotification({
+                type: 'error',
+                message: 'Item detail tidak ditemukan'
+            });
+            return;
+        }
+
+        // Set loading state for this specific item
+        setDeletingItemId(itemId);
+
+        try {
+            // Check if this is an existing item from database (has encryptedPid)
+            const hasDetailIdentifier = !!(item.encryptedPid || item.pid || item.pubidDetail);
+            const isTimestampId = typeof item.id === 'number' && item.id > 1000000000; // Timestamp-based IDs are > 1B
+            const isSequentialId = typeof item.id === 'number' && item.id < 1000; // Sequential IDs from database are usually small
+            
+            // An item is existing if:
+            // 1. Has detail identifier (encrypted pid) AND is sequential ID (from backend mapping)
+            // 2. OR has detail identifier AND is not timestamp ID
+            const isExistingItem = hasDetailIdentifier && (isSequentialId || !isTimestampId);
+
+            if (isExistingItem && isEdit) {
+                // This is an existing database item - call backend delete API
+                const detailPid = item.encryptedPid || item.pid || item.pubidDetail;
+                
+                if (!detailPid) {
+                    throw new Error('ID detail tidak ditemukan untuk penghapusan');
+                }
+
+                setNotification({
+                    type: 'info',
+                    message: 'Menghapus detail dari database...'
+                });
+
+                const result = await deleteDetail(detailPid);
+                
+                if (result.success) {
+                    // Remove from local state after successful backend deletion
+                    setDetailItems(prev => prev.filter(item => item.id !== itemId));
+                    
+                    setNotification({
+                        type: 'success',
+                        message: result.message || 'Detail feedmil berhasil dihapus dari database'
+                    });
+                } else {
+                    setNotification({
+                        type: 'error',
+                        message: result.message || 'Gagal menghapus detail dari database'
+                    });
+                }
+            } else {
+                // This is a new item created in frontend - just remove from local state
+                setDetailItems(prev => prev.filter(item => item.id !== itemId));
+                
+                setNotification({
+                    type: 'success',
+                    message: 'Item detail berhasil dihapus'
+                });
+            }
+        } catch (err) {
+            console.error('Error deleting detail:', err);
+            setNotification({
+                type: 'error',
+                message: err.message || 'Terjadi kesalahan saat menghapus detail'
+            });
+        } finally {
+            // Clear loading state
+            setDeletingItemId(null);
+        }
     };
 
     // Save individual detail item - following regular pembelian pattern
@@ -645,9 +652,10 @@ const AddEditPembelianFeedmilPage = () => {
                 }
                 
                 // Auto hard refresh setelah save berhasil dalam mode edit
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1500); // Delay 1.5 detik untuk memberi waktu user melihat notification
+                // DISABLED: Auto refresh untuk debugging persentase issue
+                // setTimeout(() => {
+                //     window.location.reload();
+                // }, 1500); // Delay 1.5 detik untuk memberi waktu user melihat notification
                 
 
             } else {
@@ -923,22 +931,46 @@ const AddEditPembelianFeedmilPage = () => {
             <div className="w-full max-w-none mx-0 space-y-6 md:space-y-8">
                 {/* Header */}
                 <div className="bg-white rounded-none sm:rounded-none p-4 sm:p-6 shadow-xl border border-gray-100">
-                    <div className="flex items-center gap-4 mb-6">
-                        <button
-                            onClick={handleBack}
-                            className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors duration-200"
-                        >
-                            <ArrowLeft className="w-6 h-6 text-gray-600" />
-                        </button>
-                        <div>
-                            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 flex items-center gap-3">
-                                <Package className="w-8 h-8 text-blue-500" />
-                                {isEdit ? 'Edit Pembelian Feedmil' : 'Tambah Pembelian Feedmil'}
-                            </h1>
-                            <p className="text-gray-600 mt-1">
-                                {isEdit ? 'Perbarui data pembelian feedmil' : 'Tambahkan data pembelian feedmil baru'}
-                            </p>
+                    <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-4">
+                            <button
+                                onClick={handleBack}
+                                className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors duration-200"
+                            >
+                                <ArrowLeft className="w-6 h-6 text-gray-600" />
+                            </button>
+                            <div>
+                                <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 flex items-center gap-3">
+                                    <Package className="w-8 h-8 text-blue-500" />
+                                    {isEdit ? 'Edit Pembelian Feedmil' : 'Tambah Pembelian Feedmil'}
+                                </h1>
+                                <p className="text-gray-600 mt-1">
+                                    {isEdit ? 'Perbarui data pembelian feedmil' : 'Tambahkan data pembelian feedmil baru'}
+                                </p>
+                            </div>
                         </div>
+                        
+                        {/* Action buttons for edit mode only */}
+                        {isEdit && (
+                            <div className="flex gap-3">
+                                <button
+                                    type="button"
+                                    onClick={handleBack}
+                                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors duration-200"
+                                >
+                                    Batal
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleSubmit}
+                                    disabled={isSubmitting}
+                                    className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-xl hover:from-blue-600 hover:to-cyan-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    <Save className="w-5 h-5" />
+                                    {isSubmitting ? 'Menyimpan...' : 'Perbarui Data'}
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -1533,10 +1565,19 @@ const AddEditPembelianFeedmilPage = () => {
                                                         <button
                                                             type="button"
                                                             onClick={() => removeDetailItem(item.id)}
-                                                            className="p-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded"
-                                                            title="Hapus item"
+                                                            disabled={deletingItemId === item.id}
+                                                            className={`p-1 rounded transition-colors ${
+                                                                deletingItemId === item.id 
+                                                                    ? 'text-gray-400 cursor-not-allowed' 
+                                                                    : 'text-red-600 hover:text-red-700 hover:bg-red-50'
+                                                            }`}
+                                                            title={deletingItemId === item.id ? "Menghapus..." : "Hapus item"}
                                                         >
-                                                            <Trash2 className="w-4 h-4" />
+                                                            {deletingItemId === item.id ? (
+                                                                <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                                                            ) : (
+                                                                <Trash2 className="w-4 h-4" />
+                                                            )}
                                                         </button>
                                                     </div>
                                                 </td>
@@ -1571,27 +1612,29 @@ const AddEditPembelianFeedmilPage = () => {
                     )}
                 </div>
 
-                {/* Submit Buttons */}
-                <div className="bg-white rounded-none sm:rounded-none p-4 sm:p-6 shadow-xl border border-gray-100">
-                    <div className="flex flex-col sm:flex-row gap-4 justify-end">
-                        <button
-                            type="button"
-                            onClick={handleBack}
-                            className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors duration-200"
-                        >
-                            Batal
-                        </button>
-                        <button
-                            type="button"
-                            onClick={handleSubmit}
-                            disabled={isSubmitting}
-                            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-xl hover:from-blue-600 hover:to-cyan-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            <Save className="w-5 h-5" />
-                            {isSubmitting ? 'Menyimpan...' : (isEdit ? 'Perbarui Data' : 'Simpan Data')}
-                        </button>
+                {/* Submit Buttons - Only show for add mode */}
+                {!isEdit && (
+                    <div className="bg-white rounded-none sm:rounded-none p-4 sm:p-6 shadow-xl border border-gray-100">
+                        <div className="flex flex-col sm:flex-row gap-4 justify-end">
+                            <button
+                                type="button"
+                                onClick={handleBack}
+                                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors duration-200"
+                            >
+                                Batal
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleSubmit}
+                                disabled={isSubmitting}
+                                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-xl hover:from-blue-600 hover:to-cyan-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <Save className="w-5 h-5" />
+                                {isSubmitting ? 'Menyimpan...' : 'Simpan Data'}
+                            </button>
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
 
             {/* File Upload Modal */}

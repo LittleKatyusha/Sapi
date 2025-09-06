@@ -159,14 +159,15 @@ const usePembelianFeedmil = () => {
                     // Ensure numeric fields are properly formatted according to backend validation
                     formData.append(`details[${index}][harga]`, parseFloat(item.harga) || 0);
                     
-                    // Parse persentase with comma support - send as decimal for backend
-                    const persentaseValue = (() => {
-                        if (!item.persentase) return 0;
-                        const cleanValue = item.persentase.toString().replace(',', '.');
-                        const parsed = parseFloat(cleanValue);
-                        return isNaN(parsed) ? 0 : parsed; // Send as decimal (15.5% -> 15.5)
-                    })();
-                    formData.append(`details[${index}][persentase]`, persentaseValue);
+                     // Parse persentase with comma support - send as decimal for backend
+                     const persentaseValue = (() => {
+                         if (!item.persentase) return 0;
+                         const cleanValue = item.persentase.toString().replace(',', '.');
+                         const parsed = parseFloat(cleanValue);
+                         const result = isNaN(parsed) ? 0 : parsed; // Send as decimal (15.5% -> 15.5)
+                         return result;
+                     })();
+                     formData.append(`details[${index}][persentase]`, persentaseValue);
                     
                     formData.append(`details[${index}][berat]`, parseInt(item.berat) || 0);
                     formData.append(`details[${index}][hpp]`, parseFloat(item.hpp) || 0);
@@ -174,35 +175,13 @@ const usePembelianFeedmil = () => {
                 });
             }
             
-            console.log('📤 Sending create request to:', `${FEEDMIL_API_BASE}/store`);
-            console.log('📦 FormData contents:', {
-                hasFile: formData.has('file'),
-                keys: Array.from(formData.keys())
-            });
             
             // Debug: Log detail items data types
             if (pembelianData.detailItems && pembelianData.detailItems.length > 0) {
-                console.log('📋 Detail items validation:', pembelianData.detailItems.map((item, index) => ({
-                    index,
-                    item_name: item.item_name,
-                    id_klasifikasi_feedmil: {
-                        original: item.id_klasifikasi_feedmil,
-                        parsed: parseInt(item.id_klasifikasi_feedmil),
-                        isValid: parseInt(item.id_klasifikasi_feedmil) > 0
-                    },
-                    harga: parseFloat(item.harga) || 0,
-                    persentase: parseFloat(item.persentase) || 0,
-                    berat: parseInt(item.berat) || 0
-                })));
             }
             
             // Debug: Check if auth token exists
             const authToken = localStorage.getItem('authToken') || localStorage.getItem('token');
-            console.log('🔑 Auth token check:', {
-                hasToken: !!authToken,
-                tokenLength: authToken ? authToken.length : 0,
-                tokenStart: authToken ? authToken.substring(0, 20) + '...' : 'none'
-            });
             
             // Try with explicit options to handle 302 redirect issue
             const jsonData = await HttpClient.post(`${FEEDMIL_API_BASE}/store`, formData, {
@@ -212,7 +191,6 @@ const usePembelianFeedmil = () => {
                 redirect: 'error' // Throw error on redirect instead of following it
             });
             
-            console.log('📦 Backend response for create:', jsonData);
             
             // Backend uses sendResponse() which returns { status: 'ok', data: [...], message: '...' }
             if (jsonData && jsonData.status === 'ok') {
@@ -310,7 +288,6 @@ const usePembelianFeedmil = () => {
                 skipCsrf: true // Skip CSRF token for JWT-based API
             });
             
-            console.log('📦 Backend response for update:', jsonData);
             
             // Backend uses sendResponse() which returns { status: 'ok', data: [...], message: '...' }
             if (jsonData && jsonData.status === 'ok') {
@@ -354,7 +331,6 @@ const usePembelianFeedmil = () => {
                 skipCsrf: true // Skip CSRF token for JWT-based API
             });
             
-            console.log('📦 Backend response for delete:', jsonData);
             
             // Backend uses sendResponse() which returns { status: 'ok', data: [...], message: '...' }
             if (jsonData && jsonData.status === 'ok') {
@@ -413,7 +389,6 @@ const usePembelianFeedmil = () => {
                 skipCsrf: true // Skip CSRF token for JWT-based API
             });
             
-            console.log('📦 Backend response for detail:', jsonData);
             
             // Backend uses sendResponse() which returns { status: 'ok', data: [...], message: '...' }
             if (jsonData && jsonData.status === 'ok') {
@@ -465,12 +440,13 @@ const usePembelianFeedmil = () => {
                     return isNaN(parsed) ? null : parsed;
                 })(),
                 harga: parseFloat(detailData.harga || 0),
-                persentase: (() => {
-                    if (!detailData.persentase) return 0;
-                    const cleanValue = detailData.persentase.toString().replace(',', '.');
-                    const parsed = parseFloat(cleanValue);
-                    return isNaN(parsed) ? 0 : parsed; // Send as decimal (15.5% -> 15.5)
-                })(),
+                 persentase: (() => {
+                     if (!detailData.persentase) return 0;
+                     const cleanValue = detailData.persentase.toString().replace(',', '.');
+                     const parsed = parseFloat(cleanValue);
+                     const result = isNaN(parsed) ? 0 : parsed; // Send as decimal (15.5% -> 15.5)
+                     return result;
+                 })(),
                 berat: parseInt(detailData.berat || 0),
                 hpp: parseFloat(detailData.hpp || 0),
                 total_harga: parseFloat(detailData.total_harga || detailData.hpp || 0)
@@ -484,8 +460,6 @@ const usePembelianFeedmil = () => {
 
             
             const result = await HttpClient.post(`${FEEDMIL_API_BASE}/update`, requestData);
-            
-
             
             if (result && result.status === 'ok') {
                 return {
@@ -518,7 +492,6 @@ const usePembelianFeedmil = () => {
                 pid: encryptedPid
             });
             
-            console.log('📦 Backend response for detail delete:', result);
             
             if (result && result.status === 'ok') {
                 return {
