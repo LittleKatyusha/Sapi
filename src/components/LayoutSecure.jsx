@@ -53,7 +53,7 @@ const LayoutSecure = ({ children, title }) => {
       name: 'Head Office',
       icon: Building2,
       children: [
-        { name: 'Pembelian', path: '/ho/pembelian', icon: ShoppingCart },
+        { name: 'Pembelian Doka & Sapi', path: '/ho/pembelian', icon: ShoppingCart },
         { name: 'Pembelian Feedmil', path: '/ho/pembelian-feedmil', icon: Package },
         { name: 'Pembelian OVK', path: '/ho/pembelian-ovk', icon: Syringe },
         { name: 'Penjualan', path: '/ho/penjualan', icon: TrendingUp }
