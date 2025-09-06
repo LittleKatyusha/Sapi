@@ -52,7 +52,6 @@ const ParametersPage = lazy(() => import('./pages/system/ParametersPage'));
 const PembelianHOPage = lazy(() => import('./pages/ho/pembelian/PembelianHOPage'));
 const PembelianDetailPage = lazy(() => import('./pages/ho/pembelian/PembelianDetailPage'));
 const AddEditPembelianPage = lazy(() => import('./pages/ho/pembelian/AddEditPembelianPage'));
-const DistribusiPage = lazy(() => import('./pages/ho/pembelian/DistribusiPage'));
 const PenjualanHOPage = lazy(() => import('./pages/ho/penjualan/PenjualanHOPage'));
 const AddEditPenjualanPage = lazy(() => import('./pages/ho/penjualan/AddEditPenjualanPage'));
 const PenjualanDetailPage = lazy(() => import('./pages/ho/penjualan/PenjualanDetailPage'));
@@ -178,7 +177,6 @@ function AppSecure() {
               <Route path="/ho/pembelian/add" element={<AddEditPembelianPage />} />
               <Route path="/ho/pembelian/edit/:id" element={<AddEditPembelianPage />} />
               <Route path="/ho/pembelian/detail/:id" element={<PembelianDetailPage />} />
-              <Route path="/ho/distribusi/:id" element={<DistribusiPage />} />
               
               {/* HO Feedmil and OVK Routes */}
               <Route path="/ho/pembelian-feedmil" element={<PembelianFeedmilPage />} />

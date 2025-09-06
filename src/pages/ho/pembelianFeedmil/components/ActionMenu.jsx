@@ -1,10 +1,12 @@
 import React, { useRef, useEffect, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Edit, Trash2, Eye } from 'lucide-react';
+import { Edit, Trash2, Eye, File, Loader2 } from 'lucide-react';
+import { API_ENDPOINTS, API_BASE_URL } from '../../../../config/api';
 
 const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef }) => {
     const menuRef = useRef(null);
     const [menuStyle, setMenuStyle] = useState(null);
+    const [fileLoading, setFileLoading] = useState(false);
 
     useLayoutEffect(() => {
         function updatePosition() {
@@ -35,6 +37,76 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef }) => 
         };
     }, [onClose, buttonRef]);
 
+    // Handle view file functionality - SAME AS PEMBELIAN HO
+    const handleViewFile = async (row) => {
+        if (!row.file) {
+            alert('File tidak tersedia untuk pembelian ini');
+            return;
+        }
+
+        setFileLoading(true);
+        try {
+            // Get auth token
+            const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+            
+            if (!token) {
+                alert('Sesi login telah berakhir. Silakan login kembali.');
+                return;
+            }
+
+            // Clean file path
+            const cleanPath = row.file.replace(/\\/g, '/');
+            const fileUrl = `${API_BASE_URL}${API_ENDPOINTS.HO.FEEDMIL.PEMBELIAN}/file/${cleanPath}`;
+            
+            // Create new window
+            const newWindow = window.open('about:blank', '_blank');
+            
+            // Fetch file with authentication
+            const response = await fetch(fileUrl, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/pdf,image/*,*/*'
+                }
+            });
+
+            if (response.ok) {
+                const blob = await response.blob();
+                const blobUrl = URL.createObjectURL(blob);
+                
+                if (newWindow && !newWindow.closed) {
+                    newWindow.location.href = blobUrl;
+                } else {
+                    // Fallback: download file
+                    const link = document.createElement('a');
+                    link.href = blobUrl;
+                    link.download = cleanPath.split('/').pop();
+                    link.click();
+                    URL.revokeObjectURL(blobUrl);
+                }
+            } else if (response.status === 401) {
+                alert('Sesi login telah berakhir');
+                if (newWindow && !newWindow.closed) {
+                    newWindow.close();
+                }
+            } else {
+                alert(`File tidak dapat diakses (${response.status})`);
+                if (newWindow && !newWindow.closed) {
+                    newWindow.close();
+                }
+            }
+            
+            // Close menu after successful view
+            onClose();
+            
+        } catch (error) {
+            console.error('Error viewing file:', error);
+            alert('Gagal membuka file');
+        } finally {
+            setFileLoading(false);
+        }
+    };
+
     const actions = [
         {
             label: 'Detail Pembelian',
@@ -46,6 +118,19 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef }) => 
             hoverBg: 'group-hover:bg-blue-200',
             text: 'text-blue-600',
         },
+        // Only show "Lihat File" if file exists
+        ...(row.file ? [{
+            label: 'Lihat File',
+            icon: fileLoading ? Loader2 : File,
+            onClick: () => handleViewFile(row),
+            className: fileLoading ? 'text-gray-400' : 'text-gray-700',
+            description: fileLoading ? 'Membuka...' : 'Buka dokumen',
+            bg: 'bg-green-100',
+            hoverBg: 'group-hover:bg-green-200',
+            text: 'text-green-600',
+            disabled: fileLoading,
+            isLoading: fileLoading,
+        }] : []),
         {
             divider: true
         },
@@ -100,13 +185,22 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef }) => 
                     ) : (
                         <button
                             key={action.label}
-                            onClick={() => { action.onClick(); onClose(); }}
-                            className={`w-full text-left flex items-center px-3 py-2.5 text-sm hover:bg-gradient-to-r transition-all duration-150 rounded-lg group mt-1 ${action.className}`}
+                            onClick={() => { 
+                                if (!action.disabled) {
+                                    action.onClick(); 
+                                    // onClose is handled individually in each action
+                                    if (action.label === 'Detail Pembelian' || action.label === 'Edit Pembelian' || action.label === 'Hapus Pembelian') {
+                                        onClose(); 
+                                    }
+                                }
+                            }}
+                            disabled={action.disabled}
+                            className={`w-full text-left flex items-center px-3 py-2.5 text-sm hover:bg-gradient-to-r transition-all duration-150 rounded-lg group mt-1 ${action.className} ${action.disabled ? 'cursor-not-allowed opacity-50' : ''}`}
                             role="menuitem"
                             tabIndex={0}
                         >
                             <div className={`w-7 h-7 ${action.bg} rounded-lg flex items-center justify-center mr-3 ${action.hoverBg} group-hover:scale-105 transition-all duration-150`}>
-                                <action.icon size={14} className={action.text} />
+                                <action.icon size={14} className={`${action.text} ${action.isLoading ? 'animate-spin' : ''}`} />
                             </div>
                             <div className="flex-1">
                                 <span className="font-semibold block text-xs">{action.label}</span>

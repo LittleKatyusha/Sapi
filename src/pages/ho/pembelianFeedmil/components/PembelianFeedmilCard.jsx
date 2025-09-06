@@ -9,8 +9,11 @@ import {
   Edit, 
   Trash2, 
   Eye,
+  File,
+  Loader2,
   MoreVertical 
 } from 'lucide-react';
+import { API_ENDPOINTS, API_BASE_URL } from '../../../../config/api';
 
 const PembelianFeedmilCard = ({
     data,
@@ -20,6 +23,7 @@ const PembelianFeedmilCard = ({
     index
 }) => {
     const [showMenu, setShowMenu] = useState(false);
+    const [fileLoading, setFileLoading] = useState(false);
     const menuRef = useRef(null);
 
     // Menangani klik di luar menu untuk menutupnya
@@ -60,6 +64,76 @@ const PembelianFeedmilCard = ({
         setShowMenu(false);
     };
 
+    // Handle view file functionality - SAME AS ACTION MENU
+    const handleViewFile = async (data) => {
+        if (!data.file) {
+            alert('File tidak tersedia untuk pembelian ini');
+            return;
+        }
+
+        setFileLoading(true);
+        try {
+            // Get auth token
+            const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+            
+            if (!token) {
+                alert('Sesi login telah berakhir. Silakan login kembali.');
+                return;
+            }
+
+            // Clean file path
+            const cleanPath = data.file.replace(/\\/g, '/');
+            const fileUrl = `${API_BASE_URL}${API_ENDPOINTS.HO.FEEDMIL.PEMBELIAN}/file/${cleanPath}`;
+            
+            // Create new window
+            const newWindow = window.open('about:blank', '_blank');
+            
+            // Fetch file with authentication
+            const response = await fetch(fileUrl, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/pdf,image/*,*/*'
+                }
+            });
+
+            if (response.ok) {
+                const blob = await response.blob();
+                const blobUrl = URL.createObjectURL(blob);
+                
+                if (newWindow && !newWindow.closed) {
+                    newWindow.location.href = blobUrl;
+                } else {
+                    // Fallback: download file
+                    const link = document.createElement('a');
+                    link.href = blobUrl;
+                    link.download = cleanPath.split('/').pop();
+                    link.click();
+                    URL.revokeObjectURL(blobUrl);
+                }
+            } else if (response.status === 401) {
+                alert('Sesi login telah berakhir');
+                if (newWindow && !newWindow.closed) {
+                    newWindow.close();
+                }
+            } else {
+                alert(`File tidak dapat diakses (${response.status})`);
+                if (newWindow && !newWindow.closed) {
+                    newWindow.close();
+                }
+            }
+            
+            setShowMenu(false);
+            
+        } catch (error) {
+            console.error('Error viewing file:', error);
+            alert('Gagal membuka file');
+        } finally {
+            setFileLoading(false);
+        }
+    };
+
+
     return (
         <div className="bg-white rounded-2xl p-5 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 relative overflow-hidden">
              {/* Background Accent (Opsional untuk efek visual) */}
@@ -91,6 +165,24 @@ const PembelianFeedmilCard = ({
                                 <Eye className="w-4 h-4 text-blue-500" />
                                 Detail
                             </button>
+                            {data.file && (
+                                <button
+                                    onClick={() => handleViewFile(data)}
+                                    disabled={fileLoading}
+                                    className={`flex items-center gap-3 w-full px-4 py-2.5 text-sm transition-colors duration-150 ${
+                                        fileLoading 
+                                            ? 'text-gray-400 cursor-not-allowed' 
+                                            : 'text-gray-700 hover:bg-green-50'
+                                    }`}
+                                >
+                                    {fileLoading ? (
+                                        <Loader2 className="w-4 h-4 text-green-500 animate-spin" />
+                                    ) : (
+                                        <File className="w-4 h-4 text-green-500" />
+                                    )}
+                                    {fileLoading ? 'Membuka...' : 'Lihat File'}
+                                </button>
+                            )}
                             <button
                                 onClick={handleEdit}
                                 className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150"

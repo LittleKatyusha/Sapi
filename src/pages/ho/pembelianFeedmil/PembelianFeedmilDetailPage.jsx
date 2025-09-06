@@ -176,6 +176,7 @@ const PembelianFeedmilDetailPage = () => {
                             pubid: item.pubid || '',
                             item_name: item.item_name || '',
                             id_klasifikasi_feedmil: item.id_klasifikasi_feedmil || '',
+                            nama_klasifikasi_feedmil: item.nama_klasifikasi_feedmil || '',
                             harga: parseFloat(item.harga) || 0,
                             persentase: parseFloat(item.persentase) || 0,
                             berat: parseInt(item.berat) || 0,
@@ -309,13 +310,14 @@ const PembelianFeedmilDetailPage = () => {
         },
         {
             name: 'Klasifikasi Feedmil',
-            selector: row => row.id_klasifikasi_feedmil,
+            selector: row => row.nama_klasifikasi_feedmil,
             sortable: true,
             grow: 1.5,
             wrap: true,
             center: true,
             cell: row => {
-                const klasifikasiName = getKlasifikasiName(row.id_klasifikasi_feedmil);
+                // Use nama_klasifikasi_feedmil directly from API response
+                const klasifikasiName = row.nama_klasifikasi_feedmil;
                 return (
                     <div className="w-full flex items-center justify-center">
                         <span className="inline-flex px-3 py-1.5 text-xs font-medium rounded-lg bg-green-100 text-green-800">
