@@ -158,7 +158,16 @@ const usePembelianFeedmil = () => {
                     
                     // Ensure numeric fields are properly formatted according to backend validation
                     formData.append(`details[${index}][harga]`, parseFloat(item.harga) || 0);
-                    formData.append(`details[${index}][persentase]`, parseFloat(item.persentase) || 0); // Changed to parseFloat to support decimals
+                    
+                    // Parse persentase with comma support - send as decimal for backend
+                    const persentaseValue = (() => {
+                        if (!item.persentase) return 0;
+                        const cleanValue = item.persentase.toString().replace(',', '.');
+                        const parsed = parseFloat(cleanValue);
+                        return isNaN(parsed) ? 0 : parsed; // Send as decimal (15.5% -> 15.5)
+                    })();
+                    formData.append(`details[${index}][persentase]`, persentaseValue);
+                    
                     formData.append(`details[${index}][berat]`, parseInt(item.berat) || 0);
                     formData.append(`details[${index}][hpp]`, parseFloat(item.hpp) || 0);
                     formData.append(`details[${index}][total_harga]`, parseFloat(item.total_harga || item.hpp) || 0);
@@ -268,7 +277,7 @@ const usePembelianFeedmil = () => {
             formData.append('pid', data.id || data.encryptedPid);
             
             // Header data mapping to backend fields - aligned with backend validation rules
-            formData.append('id_office', 1); // Head Office ID (required integer)
+            formData.append('id_office', parseInt(data.idOffice) || 1); // Use selected office ID, fallback to Head Office
             formData.append('nota', data.nota || '');
             formData.append('id_supplier', data.idSupplier || data.id_supplier || '');
             formData.append('tgl_masuk', data.tgl_masuk || '');
@@ -456,7 +465,12 @@ const usePembelianFeedmil = () => {
                     return isNaN(parsed) ? null : parsed;
                 })(),
                 harga: parseFloat(detailData.harga || 0),
-                persentase: parseFloat(detailData.persentase || 0),
+                persentase: (() => {
+                    if (!detailData.persentase) return 0;
+                    const cleanValue = detailData.persentase.toString().replace(',', '.');
+                    const parsed = parseFloat(cleanValue);
+                    return isNaN(parsed) ? 0 : parsed; // Send as decimal (15.5% -> 15.5)
+                })(),
                 berat: parseInt(detailData.berat || 0),
                 hpp: parseFloat(detailData.hpp || 0),
                 total_harga: parseFloat(detailData.total_harga || detailData.hpp || 0)

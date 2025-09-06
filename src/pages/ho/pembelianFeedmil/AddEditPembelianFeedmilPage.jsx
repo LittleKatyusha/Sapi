@@ -119,6 +119,54 @@ const AddEditPembelianFeedmilPage = () => {
         return parseInt(value.toString().replace(/\./g, '')) || 0;
     };
 
+    // Helper functions for decimal formatting (for persentase field)
+    const formatDecimal = (value) => {
+        if (!value && value !== 0) return '';
+        const numValue = parseFloat(value);
+        if (isNaN(numValue)) return '';
+        // Format with comma as decimal separator (Indonesian style)
+        return numValue.toString().replace('.', ',');
+    };
+
+    const parseDecimal = (value) => {
+        if (!value) return 0;
+        // Replace comma with dot for parsing, then convert to float
+        const cleanValue = value.toString().replace(',', '.');
+        return parseFloat(cleanValue) || 0;
+    };
+
+    // Special handler for persentase input to allow comma typing
+    const handlePersentaseChange = (itemId, inputValue) => {
+        // Allow comma in input, don't convert immediately
+        setDetailItems(prev => prev.map(item => {
+            if (item.id === itemId) {
+                return { ...item, persentase: inputValue };
+            }
+            return item;
+        }));
+    };
+
+    // Parse persentase value when needed (for calculations)
+    const getParsedPersentase = (value) => {
+        if (!value) return 0;
+        const cleanValue = value.toString().replace(',', '.');
+        return parseFloat(cleanValue) || 0;
+    };
+
+    // Convert backend decimal persentase to display format with comma
+    const formatPersentaseFromBackend = (value) => {
+        if (!value && value !== 0) return '';
+        // If value is already a decimal string (like "12,5"), return as is
+        if (typeof value === 'string' && value.includes(',')) {
+            return value;
+        }
+        // If value is decimal from backend (like 12.5), convert to comma format
+        const numValue = parseFloat(value);
+        if (isNaN(numValue)) return '';
+        // Convert decimal to comma format (12.5 -> "12,5")
+        return numValue.toString().replace('.', ',');
+    };
+
     // Use Feedmil suppliers only (kategori_supplier = 2)
     const supplierOptionsToShow = supplierOptions;
 
@@ -227,13 +275,27 @@ const AddEditPembelianFeedmilPage = () => {
                     
                     // 3. Process the data for form population
                     if (result.success && result.data.length > 0) {
-                        // Handle supplier selection
+                        // Handle supplier selection - use nama_supplier from header data
                         let supplierName = headerDataFromList?.nama_supplier || firstDetail.nama_supplier;
                         let supplierIdFromName = '';
                         
                         // Find supplier ID from name if we have a valid supplier name
                         if (supplierName) {
                             supplierIdFromName = suppliers.find(s => s.name === supplierName)?.id || '';
+                        }
+                        
+                        // Also try to get supplier ID directly from backend data if name matching fails
+                        if (!supplierIdFromName && (headerDataFromList?.id_supplier || firstDetail.id_supplier)) {
+                            supplierIdFromName = parseInt(headerDataFromList?.id_supplier || firstDetail.id_supplier) || '';
+                        }
+                        
+                        // Handle office selection - use nama_office from header data
+                        let officeName = headerDataFromList?.nama_office || firstDetail.nama_office;
+                        let officeIdFromName = '';
+                        
+                        // Find office ID from name if we have a valid office name
+                        if (officeName && officeOptions.length > 0) {
+                            officeIdFromName = officeOptions.find(o => o.label === officeName)?.value || '';
                         }
                         
                         console.log('🏢 Supplier ID matching:', {
@@ -245,6 +307,15 @@ const AddEditPembelianFeedmilPage = () => {
                             availableSuppliers: suppliers.map(s => ({ id: s.id, name: s.name }))
                         });
                         
+                        console.log('🏢 Office ID matching:', {
+                            headerOfficeName: headerDataFromList?.nama_office,
+                            detailOfficeName: firstDetail.nama_office,
+                            finalOfficeName: officeName,
+                            foundId: officeIdFromName,
+                            isOfficeNull: officeName === null,
+                            availableOffices: officeOptions.map(o => ({ value: o.value, label: o.label }))
+                        });
+                        
                         // Use header data from list if available, fallback to detail data
                         const headerDataToUse = headerDataFromList || {};
                         const detailDataFallback = firstDetail || {};
@@ -252,7 +323,7 @@ const AddEditPembelianFeedmilPage = () => {
                         // Prepare final header data for form population
                         const finalHeaderData = {
                             nota: headerDataToUse.nota || detailDataFallback.nota || '',
-                            idOffice: headerDataToUse.id_office || detailDataFallback.id_office || '',
+                            idOffice: officeIdFromName || parseInt(headerDataToUse.id_office || detailDataFallback.id_office) || '',
                             // Map tipe_pembelian from backend data
                             tipePembelian: (function() {
                                 // Check if we already have integer value from tipe_pembelian field
@@ -315,10 +386,10 @@ const AddEditPembelianFeedmilPage = () => {
                             pubidDetail: item.pubid_detail, // Raw pubid if available
                             // Detail fields
                             item_name: item.item_name || `Feedmil Item ${index + 1}`,
-                            id_klasifikasi_feedmil: item.id_klasifikasi_feedmil || '',
+                            id_klasifikasi_feedmil: parseInt(item.id_klasifikasi_feedmil) || '',
                             berat: item.berat && parseInt(item.berat) > 0 ? parseInt(item.berat) : 0,
                             harga: parseFloat(item.harga) || 0,
-                            persentase: parseFloat(item.persentase) || 0,
+                            persentase: formatPersentaseFromBackend(item.persentase),
                             hpp: parseFloat(item.hpp) || 0,
                             total_harga: parseFloat(item.total_harga) || 0,
                             tgl_masuk_rph: item.tgl_masuk_rph || new Date().toISOString().split('T')[0]
@@ -466,7 +537,7 @@ const AddEditPembelianFeedmilPage = () => {
         if (!item.berat || parseInt(item.berat) <= 0) {
             itemErrors.push('Berat harus diisi dan > 0');
         }
-        if (!item.persentase || parseFloat(item.persentase) <= 0) {
+        if (!item.persentase || getParsedPersentase(item.persentase) <= 0) {
             itemErrors.push('Persentase harus diisi dan > 0');
         }
 
@@ -481,7 +552,7 @@ const AddEditPembelianFeedmilPage = () => {
         try {
             // Calculate HPP
             const harga = parseFloat(item.harga) || 0;
-            const persentase = parseFloat(item.persentase) || 0;
+            const persentase = getParsedPersentase(item.persentase);
             const hpp = harga + (harga * persentase / 100);
             const totalHarga = hpp * parseInt(item.berat);
 
@@ -508,7 +579,7 @@ const AddEditPembelianFeedmilPage = () => {
                 })(),
                 harga: parseFloat(item.harga) || 0,
                 berat: parseInt(item.berat) || 0,
-                persentase: parseFloat(item.persentase) || 0,
+                persentase: getParsedPersentase(item.persentase),
                 hpp: hpp,
                 total_harga: totalHarga
             };
@@ -739,7 +810,7 @@ const AddEditPembelianFeedmilPage = () => {
             if (isNaN(harga) || harga <= 0) {
                 errors.push(`Item ${index + 1}: Harga harus lebih dari 0`);
             }
-            const persentase = parseFloat(item.persentase);
+            const persentase = getParsedPersentase(item.persentase);
             if (isNaN(persentase) || persentase <= 0) {
                 errors.push(`Item ${index + 1}: Persentase harus lebih dari 0`);
             }
@@ -1269,13 +1340,11 @@ const AddEditPembelianFeedmilPage = () => {
                                 Persentase Default (%)
                             </label>
                             <input
-                                type="number"
-                                value={defaultData.persentase}
+                                type="text"
+                                value={defaultData.persentase || ''}
                                 onChange={(e) => handleDefaultDataChange('persentase', e.target.value)}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                                placeholder="15"
-                                min="0"
-                                step="0.1"
+                                placeholder="15,5"
                             />
                         </div>
                     </div>
@@ -1358,7 +1427,7 @@ const AddEditPembelianFeedmilPage = () => {
                                     {detailItems.map((item, index) => {
                                         // Calculate HPP: harga + markup persen
                                         const harga = parseFloat(item.harga) || 0;
-                                        const persentase = parseFloat(item.persentase) || 0; // Fix: correct spelling
+                                        const persentase = getParsedPersentase(item.persentase); // Use comma-aware parsing
                                         const hpp = harga && persentase ? harga + (harga * persentase / 100) : harga;
                                         
                                         // Update item dengan calculated HPP value
@@ -1423,13 +1492,11 @@ const AddEditPembelianFeedmilPage = () => {
                                                 {/* Persentase */}
                                                 <td className="p-2 sm:p-3">
                                                     <input
-                                                        type="number"
-                                                        value={item.persentase}
-                                                        onChange={(e) => handleDetailChange(item.id, 'persentase', e.target.value)}
+                                                        type="text"
+                                                        value={item.persentase || ''}
+                                                        onChange={(e) => handlePersentaseChange(item.id, e.target.value)}
                                                         className="w-full px-1 sm:px-2 py-1 border border-gray-300 rounded text-xs sm:text-sm"
-                                                        min="0"
-                                                        step="0.1"
-                                                        placeholder="%"
+                                                        placeholder="15,5%"
                                                     />
                                                 </td>
                                                 
