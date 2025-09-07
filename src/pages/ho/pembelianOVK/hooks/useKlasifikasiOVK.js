@@ -12,62 +12,70 @@ const useKlasifikasiOVK = () => {
         setError(null);
         
         try {
-            // Call backend API: GET /api/master/klasifikasiovk/data
-            const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.KLASIFIKASI_OVK}/data`);
+            // Use centralized parameter endpoint like feedmil (includes id field)
+            const jsonData = await HttpClient.get(`${API_ENDPOINTS.MASTER.PARAMETER}/data`);
             
-            console.log('📦 Fetching klasifikasi OVK:', result);
-            
-            if (result.status === 'ok' && result.data) {
-                setKlasifikasiOVK(result.data);
-                console.log('✅ Klasifikasi OVK loaded:', result.data.length, 'items');
+            // Handle ParameterSelectController response format
+            if (jsonData && jsonData.data && Array.isArray(jsonData.data) && jsonData.data.length > 0) {
+                const parameterData = jsonData.data[0];
+                
+                // Extract klasifikasi OVK data from ParameterSelectController
+                const klasifikasiData = parameterData.klasifikasiovk || [];
+                
+                console.log('📦 Fetching klasifikasi OVK from ParameterSelectController:', klasifikasiData);
+                
+                // Map the data to OVK format with proper ID field
+                const mappedData = klasifikasiData.map((item, index) => ({
+                    id: item.id, // ✅ Now we have the ID field from ParameterSelectController!
+                    pubid: item.pubid || `temp_pubid_${index}`,
+                    name: item.name,
+                    description: item.description || '', // Keep description separate
+                    pid: item.pid || `temp_pid_${index}`
+                }));
+                
+                setKlasifikasiOVK(mappedData);
+                console.log('✅ Klasifikasi OVK loaded from ParameterSelectController:', mappedData.length, 'items');
+                
             } else {
-                throw new Error(result.message || 'Failed to fetch klasifikasi OVK');
+                throw new Error('Failed to fetch parameter data');
             }
         } catch (err) {
             console.error('❌ Error fetching klasifikasi OVK:', err);
             setError(err.message);
+            setKlasifikasiOVK([]);
             
-            // Fallback data untuk development
+            // Fallback to mock data if API fails
+            console.log('🔄 Using fallback mock data for klasifikasi OVK');
             setKlasifikasiOVK([
                 {
                     id: 1,
-                    pubid: "ovk-001-fallback",
-                    pid: "ovk-001-fallback", 
-                    name: "Vitamin A",
-                    description: "Vitamin untuk pertumbuhan dan penglihatan",
-                    order_no: 1
+                    pid: 'encrypted_1',
+                    name: 'Vitamin A',
+                    description: 'Vitamin untuk pertumbuhan'
                 },
                 {
                     id: 2,
-                    pubid: "ovk-002-fallback",
-                    pid: "ovk-002-fallback",
-                    name: "Vitamin B Complex", 
-                    description: "Kompleks vitamin B untuk metabolisme",
-                    order_no: 2
+                    pid: 'encrypted_2',
+                    name: 'Vitamin B Complex',
+                    description: 'Vitamin untuk metabolisme'
                 },
                 {
                     id: 3,
-                    pubid: "ovk-003-fallback",
-                    pid: "ovk-003-fallback",
-                    name: "Antibiotik Amoxicillin",
-                    description: "Antibiotik untuk pengobatan infeksi bakteri",
-                    order_no: 3
+                    pid: 'encrypted_3',
+                    name: 'Antibiotik',
+                    description: 'Untuk pengobatan'
                 },
                 {
                     id: 4,
-                    pubid: "ovk-004-fallback", 
-                    pid: "ovk-004-fallback",
-                    name: "Vaksin Newcastle Disease",
-                    description: "Vaksin untuk mencegah penyakit Newcastle pada unggas",
-                    order_no: 4
+                    pid: 'encrypted_4',
+                    name: 'Vaksin',
+                    description: 'Untuk pencegahan penyakit'
                 },
                 {
                     id: 5,
-                    pubid: "ovk-005-fallback",
-                    pid: "ovk-005-fallback", 
-                    name: "Desinfektan Kandang",
-                    description: "Cairan desinfektan untuk kebersihan kandang",
-                    order_no: 5
+                    pid: 'encrypted_5',
+                    name: 'Desinfektan',
+                    description: 'Untuk kebersihan kandang'
                 }
             ]);
         } finally {
@@ -81,14 +89,29 @@ const useKlasifikasiOVK = () => {
 
     // Transform data untuk SearchableSelect options
     const klasifikasiOptions = useMemo(() => {
-        return klasifikasiOVK.map(item => ({
-            value: item.id, // Use the actual database ID for backend validation
-            label: `${item.name}${item.description ? ` - ${item.description}` : ''}`,
-            name: item.name,
-            description: item.description,
-            pubid: item.pubid,
-            pid: item.pid
-        }));
+        const options = klasifikasiOVK.map(item => {
+            // ParameterSelectController provides proper integer ID field
+            let rawId = item.id;
+            
+            // Validate that we have a proper integer ID
+            if (!rawId || typeof rawId !== 'number') {
+                rawId = klasifikasiOVK.indexOf(item) + 1;
+            }
+            
+            return {
+                value: rawId, // Use raw integer ID (required by backend validation)
+                label: item.name, // Show only name for cleaner display
+                id: rawId,
+                name: item.name,
+                description: item.description,
+                pid: item.pid,
+                rawData: item
+            };
+        });
+        
+        console.log('🔧 Klasifikasi OVK options processed:', options);
+        
+        return options;
     }, [klasifikasiOVK]);
 
     return {

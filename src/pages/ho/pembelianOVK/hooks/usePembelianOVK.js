@@ -22,6 +22,12 @@ const usePembelianOVK = () => {
         perPage: 10
     });
 
+    // API stats state
+    const [apiStats, setApiStats] = useState({
+        recordsTotal: 0,
+        recordsFiltered: 0
+    });
+
     // Mock data untuk sementara - nanti bisa diganti dengan API call
     const mockData = [
         {
@@ -118,6 +124,12 @@ const usePembelianOVK = () => {
                     totalPages: Math.ceil(responseData.recordsFiltered / currentPerPage),
                     totalItems: responseData.recordsFiltered,
                     perPage: currentPerPage
+                });
+
+                // Update API stats
+                setApiStats({
+                    recordsTotal: responseData.recordsTotal,
+                    recordsFiltered: responseData.recordsFiltered
                 });
                 
             } else {
@@ -484,31 +496,62 @@ const usePembelianOVK = () => {
 
     // Computed stats
     const stats = useMemo(() => {
-        const total = mockData.length;
-        const totalOVK = mockData.reduce((sum, item) => sum + (item.jumlah || 0), 0);
+        // Use API data if available, fallback to mock data
+        const useApiData = apiStats.recordsTotal > 0;
         
-        // Today's purchases
-        const today = new Date().toDateString();
-        const todayPurchases = mockData.filter(item => {
-            const itemDate = new Date(item.tgl_masuk).toDateString();
-            return itemDate === today;
-        }).length;
-        
-        // This month's purchases
-        const thisMonth = new Date().getMonth();
-        const thisYear = new Date().getFullYear();
-        const thisMonthPurchases = mockData.filter(item => {
-            const itemDate = new Date(item.tgl_masuk);
-            return itemDate.getMonth() === thisMonth && itemDate.getFullYear() === thisYear;
-        }).length;
-        
-        return {
-            total: total,
-            totalOVK: totalOVK,
-            today: todayPurchases,
-            thisMonth: thisMonthPurchases
-        };
-    }, []);
+        if (useApiData) {
+            // Calculate from current filtered data for other stats
+            const totalOVK = pembelian.reduce((sum, item) => sum + (item.jumlah || 0), 0);
+            
+            // Today's purchases from current data
+            const today = new Date().toDateString();
+            const todayPurchases = pembelian.filter(item => {
+                const itemDate = new Date(item.tgl_masuk).toDateString();
+                return itemDate === today;
+            }).length;
+            
+            // This month's purchases from current data
+            const thisMonth = new Date().getMonth();
+            const thisYear = new Date().getFullYear();
+            const thisMonthPurchases = pembelian.filter(item => {
+                const itemDate = new Date(item.tgl_masuk);
+                return itemDate.getMonth() === thisMonth && itemDate.getFullYear() === thisYear;
+            }).length;
+            
+            return {
+                total: apiStats.recordsTotal, // Use recordsTotal from API
+                totalOVK: totalOVK,
+                today: todayPurchases,
+                thisMonth: thisMonthPurchases
+            };
+        } else {
+            // Fallback to mock data calculations
+            const total = mockData.length;
+            const totalOVK = mockData.reduce((sum, item) => sum + (item.jumlah || 0), 0);
+            
+            // Today's purchases
+            const today = new Date().toDateString();
+            const todayPurchases = mockData.filter(item => {
+                const itemDate = new Date(item.tgl_masuk).toDateString();
+                return itemDate === today;
+            }).length;
+            
+            // This month's purchases
+            const thisMonth = new Date().getMonth();
+            const thisYear = new Date().getFullYear();
+            const thisMonthPurchases = mockData.filter(item => {
+                const itemDate = new Date(item.tgl_masuk);
+                return itemDate.getMonth() === thisMonth && itemDate.getFullYear() === thisYear;
+            }).length;
+            
+            return {
+                total: total,
+                totalOVK: totalOVK,
+                today: todayPurchases,
+                thisMonth: thisMonthPurchases
+            };
+        }
+    }, [apiStats.recordsTotal, pembelian]);
 
     // Enhanced debounced search handler
     const searchTimeoutRef = useRef(null);
@@ -580,6 +623,7 @@ const usePembelianOVK = () => {
         isSearching,
         searchError,
         stats,
+        apiStats,
         serverPagination,
         fetchPembelian,
         handleSearch,

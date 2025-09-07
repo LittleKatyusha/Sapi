@@ -68,6 +68,17 @@ const SearchableSelect = ({
 
     // Find the selected option object
     const selectedOption = options.find(option => option.value === value) || null;
+    
+    // Debug logging for klasifikasi OVK
+    if (placeholder && placeholder.includes('Klasifikasi')) {
+        console.log('🔍 SearchableSelect Debug:', {
+            value,
+            valueType: typeof value,
+            options: options,
+            selectedOption,
+            found: !!selectedOption
+        });
+    }
 
     return (
         <div className={className}>

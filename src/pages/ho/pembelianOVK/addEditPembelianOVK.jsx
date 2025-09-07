@@ -93,7 +93,7 @@ const AddEditPembelianOVKPage = () => {
     // Default data untuk batch operations
     const [defaultData, setDefaultData] = useState({
         item_name: '',
-        id_klasifikasi_ovk: '',
+        id_klasifikasi_ovk: null,
         berat: '',
         harga: '',
         persentase: ''
@@ -190,8 +190,6 @@ const AddEditPembelianOVKPage = () => {
                     let headerData = null;
                     
                     try {
-                        console.log('🔍 Fetching header data from DataPembelianOvk model...');
-                        console.log('🔍 Search parameters:', { id, decodedId });
                         
                         // Get all data and find the matching record by PID
                         const headerResponse = await HttpClient.get(`${API_ENDPOINTS.HO.OVK.PEMBELIAN}/data`, {
@@ -206,54 +204,38 @@ const AddEditPembelianOVKPage = () => {
                             }
                         });
                         
-                        console.log('📊 Total records from DataPembelianOvk:', headerResponse.data?.length || 0);
-                        console.log('📊 Sample records:', headerResponse.data?.slice(0, 3) || []);
                         
                         if (headerResponse.data && headerResponse.data.length > 0) {
-                            console.log('🔍 Searching in DataPembelianOvk records...');
-                            console.log('🔍 Search criteria:', { id, decodedId });
                             
                             // Try multiple search strategies
                             headerData = headerResponse.data.find(item => {
-                                console.log('🔍 Checking record:', {
-                                    itemPid: item.pid,
-                                    itemNota: item.nota,
-                                    searchId: id,
-                                    searchDecodedId: decodedId
-                                });
                                 
                                 // Strategy 1: Match by PID (encrypted pubid)
                                 if (item.pid === id) {
-                                    console.log('✅ Found by PID match');
                                     return true;
                                 }
                                 
                                 // Strategy 2: Match by decoded ID
                                 if (item.pid === decodedId) {
-                                    console.log('✅ Found by decoded ID match');
                                     return true;
                                 }
                                 
                                 // Strategy 3: Try to extract nota from URL and match
                                 const urlNota = decodedId || id;
                                 if (item.nota === urlNota) {
-                                    console.log('✅ Found by nota match');
                                     return true;
                                 }
                                 
                                 // Strategy 4: Try partial matches
                                 if (item.nota && urlNota && item.nota.includes(urlNota)) {
-                                    console.log('✅ Found by partial nota match (nota contains urlNota)');
                                     return true;
                                 }
                                 if (item.nota && urlNota && urlNota.includes(item.nota)) {
-                                    console.log('✅ Found by partial nota match (urlNota contains nota)');
                                     return true;
                                 }
                                 
                                 // Strategy 5: If we only have one record and it has the same nota, use it
                                 if (headerResponse.data.length === 1 && item.nota) {
-                                    console.log('✅ Found by single record match (only one record available)');
                                     return true;
                                 }
                                 
@@ -263,21 +245,12 @@ const AddEditPembelianOVKPage = () => {
                             if (headerData) {
                                 // Mark this as coming from header model
                                 headerData.source = 'header';
-                                console.log('✅ Header data found from DataPembelianOvk:', headerData);
                             } else {
-                                console.warn('⚠️ No matching record found in DataPembelianOvk');
-                                console.log('🔍 Available records:', headerResponse.data.map(item => ({
-                                    pid: item.pid,
-                                    nota: item.nota,
-                                    nama_supplier: item.nama_supplier
-                                })));
-                                console.log('🔍 Search criteria:', { id, decodedId });
                             }
                         }
                         
                         // If still not found, try using the detail endpoint as fallback
                         if (!headerData) {
-                            console.log('🔄 Falling back to detail endpoint for header data...');
                             try {
                                 const detailForHeaderResponse = await HttpClient.post(`${API_ENDPOINTS.HO.OVK.PEMBELIAN}/show`, {
                                     pid: id
@@ -296,26 +269,22 @@ const AddEditPembelianOVKPage = () => {
                                         jumlah: firstDetail.jumlah || 0,
                                         biaya_truk: firstDetail.biaya_truk || firstDetail.biaya_truck || 0,
                                         biaya_lain: firstDetail.biaya_lain || 0,
-                                        biaya_total: firstDetail.biaya_total || firstDetail.total_belanja || 0,
+                                        biaya_total: firstDetail.biaya_total || 0,
                                         berat_total: firstDetail.berat_total || 0,
                                         file: firstDetail.file || '',
                                         note: firstDetail.note || '',
                                         pid: id,
                                         source: 'detail' // Mark this as coming from detail model
                                     };
-                                    console.log('📋 Header data from detail fallback:', headerData);
                                 }
                             } catch (detailHeaderError) {
-                                console.error('❌ Error in detail fallback:', detailHeaderError);
                             }
                         }
                         
                         if (!headerData) {
-                            console.error('❌ Header data not found in both DataPembelianOvk and detail endpoint');
                             throw new Error('Header data not found in both DataPembelianOvk and detail endpoint');
                         }
                     } catch (headerError) {
-                        console.error('❌ Error fetching header data:', headerError);
                         throw headerError;
                     }
                     
@@ -325,10 +294,6 @@ const AddEditPembelianOVKPage = () => {
                     
                     if (headerData) {
                         // Debug: Log available options
-                        console.log('Available office options:', officeOptions);
-                        console.log('Available jenis pembelian options:', jenisPembelianOptions);
-                        console.log('Header data jenis_pembelian:', headerData.jenis_pembelian);
-                        console.log('Header data nama_office:', headerData.nama_office);
                         
                         // Find supplier ID by name if we have nama_supplier but not id_supplier
                         let supplierId = headerData.id_supplier || '';
@@ -349,39 +314,25 @@ const AddEditPembelianOVKPage = () => {
 
                         // Find office ID by name - using exact label matching like Feedmil
                         let officeId = headerData.id_office || '';
-                        console.log('🏢 Office mapping debug:', {
-                            hasIdOffice: !!headerData.id_office,
-                            nama_office: headerData.nama_office,
-                            officeOptionsCount: officeOptions.length,
-                            officeOptions: officeOptions
-                        });
                         
                         if (!officeId && headerData.nama_office && officeOptions.length > 0) {
                             // Use exact label matching like Feedmil page
                             officeId = officeOptions.find(o => o.label === headerData.nama_office)?.value || '';
-                            console.log('🔍 Office exact match result:', { nama_office: headerData.nama_office, officeId });
                             
                             // If no exact match, try case-insensitive match
                             if (!officeId) {
                                 officeId = officeOptions.find(o => o.label.toUpperCase() === headerData.nama_office.toUpperCase())?.value || '';
-                                console.log('🔍 Office case-insensitive match result:', { nama_office: headerData.nama_office, officeId });
                             }
                         }
                         
-                        console.log('🏢 Final office ID:', officeId);
 
                         // Find jenis pembelian ID - using direct mapping like Feedmil
                         let jenisPembelianId = headerData.jenis_pembelian || '';
-                        console.log('🔍 Purchase type mapping debug:', {
-                            jenis_pembelian: jenisPembelianId,
-                            jenisPembelianOptions: jenisPembelianOptions
-                        });
                         
                         if (jenisPembelianId && jenisPembelianOptions.length > 0) {
                             // Check if it's already an ID (numeric)
                             if (!isNaN(parseInt(jenisPembelianId))) {
                                 jenisPembelianId = parseInt(jenisPembelianId);
-                                console.log('✅ Purchase type is already numeric:', jenisPembelianId);
                             } else {
                                 // It's a text value, map directly like Feedmil
                                 switch (jenisPembelianId.toUpperCase()) {
@@ -399,54 +350,16 @@ const AddEditPembelianOVKPage = () => {
                                         jenisPembelianId = jenisPembelianOptions.find(j => j.label === jenisPembelianId)?.value || '';
                                         break;
                                 }
-                                console.log('✅ Purchase type mapped:', { original: headerData.jenis_pembelian, mapped: jenisPembelianId });
                             }
                         }
                         
-                        console.log('🏷️ Final purchase type ID:', jenisPembelianId);
 
                         // Determine data source and log accordingly
                         // If we found the data from the main search, it's from DataPembelianOvk
                         // If we fell back to detail endpoint, it's from DataPembelianOvkDetail
                         const dataSource = headerData.source === 'detail' ? 'DataPembelianOvkDetail (Detail Model)' : 'DataPembelianOvk (Header Model)';
-                        console.log(`📋 Setting header data from ${dataSource}:`, {
-                            original: headerData,
-                            mapped: {
-                                officeId,
-                                jenisPembelianId,
-                                supplierId
-                            },
-                            source: dataSource,
-                            fieldMapping: {
-                                nota: headerData.nota,
-                                idOffice: officeId,
-                                tipePembelian: jenisPembelianId,
-                                idSupplier: supplierId,
-                                tgl_masuk: headerData.tgl_masuk,
-                                nama_supir: headerData.nama_supir,
-                                plat_nomor: headerData.plat_nomor,
-                                jumlah: headerData.jumlah,
-                                biaya_truck: headerData.biaya_truk,
-                                biaya_lain: headerData.biaya_lain,
-                                biaya_total: headerData.total_belanja,
-                                berat_total: headerData.berat_total,
-                                file: headerData.file,
-                                note: headerData.note
-                            }
-                        });
                         
                         // Debug field values before setting
-                        console.log('🔍 Field values before setting:', {
-                            nota: headerData.nota,
-                            biaya_lain: headerData.biaya_lain,
-                            biaya_total: headerData.total_belanja,
-                            berat_total: headerData.berat_total,
-                            note: headerData.note,
-                            biaya_truk: headerData.biaya_truk,
-                            parsed_berat_total: parseFloat(headerData.berat_total),
-                            parsed_biaya_lain: parseFloat(headerData.biaya_lain),
-                            parsed_total_belanja: parseFloat(headerData.total_belanja)
-                        });
                         
                         setHeaderData({
                             nota: headerData.nota || '',
@@ -459,14 +372,13 @@ const AddEditPembelianOVKPage = () => {
                             jumlah: parseInt(headerData.jumlah) || 0,
                             biaya_truck: parseFloat(headerData.biaya_truk) || 0,
                             biaya_lain: parseFloat(headerData.biaya_lain) || 0,
-                            biaya_total: parseFloat(headerData.total_belanja) || 0,
+                            biaya_total: parseFloat(headerData.biaya_total) || 0,
                             berat_total: parseFloat(headerData.berat_total) || 0,
                             file: headerData.file || '',
                             fileName: headerData.file ? headerData.file.split('/').pop() : '',
                             note: headerData.note || ''
                         });
                         
-                        console.log('✅ Header data set successfully');
                     }
 
                     if (detailResult.success && detailResult.data.length > 0) {
@@ -481,7 +393,7 @@ const AddEditPembelianOVKPage = () => {
                             pubidDetail: item.pubid_detail, // Alternative pubid field
                             id_office: item.id_office || 'head-office',
                             item_name: item.item_name || '',
-                            id_klasifikasi_ovk: item.id_klasifikasi_ovk || '',
+                            id_klasifikasi_ovk: item.id_klasifikasi_ovk || null,
                             berat: parseFloat(item.berat) || 0,
                             harga: parseFloat(item.harga) || 0,
                             persentase: formatPersentaseFromBackend(item.persentase), // Format with comma for display
@@ -492,7 +404,6 @@ const AddEditPembelianOVKPage = () => {
                         setDetailItems(processedDetailItems);
                     }
                 } catch (error) {
-                    console.error('Error loading edit data:', error);
                     setNotification({
                         type: 'error',
                         message: 'Gagal memuat data untuk edit'
@@ -537,7 +448,7 @@ const AddEditPembelianOVKPage = () => {
             pubidDetail: '', // Alternative pubid field
             id_office: headerData.idOffice || 'head-office', // Use selected office or fallback
             item_name: defaultData.item_name || '',
-            id_klasifikasi_ovk: defaultData.id_klasifikasi_ovk || '',
+            id_klasifikasi_ovk: defaultData.id_klasifikasi_ovk || null,
             berat: defaultData.berat || '',
             harga: defaultData.harga || '',
             persentase: defaultData.persentase || '',
@@ -569,7 +480,7 @@ const AddEditPembelianOVKPage = () => {
                 pubidDetail: '', // Alternative pubid field
                 id_office: headerData.idOffice || 'head-office', // Use selected office or fallback
                 item_name: defaultData.item_name || '',
-                id_klasifikasi_ovk: defaultData.id_klasifikasi_ovk || '',
+                id_klasifikasi_ovk: defaultData.id_klasifikasi_ovk || null,
                 berat: defaultData.berat || '',
                 harga: defaultData.harga || '',
                 persentase: defaultData.persentase || '',
@@ -660,7 +571,6 @@ const AddEditPembelianOVKPage = () => {
                 });
             }
         } catch (err) {
-            console.error('Error deleting detail:', err);
             setNotification({
                 type: 'error',
                 message: err.message || 'Terjadi kesalahan saat menghapus detail'
@@ -763,9 +673,6 @@ const AddEditPembelianOVKPage = () => {
             }
 
             // Debug log
-            console.log('Saving item with data:', detailData);
-            console.log('Is existing item:', isExistingItem);
-            console.log('Item data:', item);
 
             // Call API to update individual item using the correct endpoint
             let result;
@@ -824,10 +731,6 @@ const AddEditPembelianOVKPage = () => {
             }
 
             // Debug API response
-            console.log('API Response:', result);
-            console.log('Response data:', result.data);
-            console.log('Response success:', result.data?.success);
-            console.log('Response status:', result.data?.status);
 
             // Check response success with multiple possible formats
             const isSuccess = (result.data && result.data.success) || 
@@ -859,14 +762,12 @@ const AddEditPembelianOVKPage = () => {
                     window.location.reload();
                 }, 1500); // Delay 1.5 detik untuk memberi waktu user melihat notification
             } else {
-                console.log('Response indicates failure:', result);
                 setNotification({
                     type: 'error',
                     message: result.data?.message || result.message || 'Gagal menyimpan detail item'
                 });
             }
         } catch (error) {
-            console.error('Error saving detail item:', error);
             setNotification({
                 type: 'error',
                 message: 'Terjadi kesalahan saat menyimpan item'
@@ -949,6 +850,16 @@ const AddEditPembelianOVKPage = () => {
         handleHeaderChange('fileName', '');
     };
 
+    // Open file upload modal
+    const openFileModal = () => {
+        setIsFileModalOpen(true);
+    };
+
+    // Close file upload modal
+    const closeFileModal = () => {
+        setIsFileModalOpen(false);
+    };
+
     // Calculate totals
     const totals = useMemo(() => {
         const totalJumlah = detailItems.length; // Count of items
@@ -1015,9 +926,8 @@ const AddEditPembelianOVKPage = () => {
             if (!item.item_name || item.item_name.trim() === '') {
                 errors.push(`Item ${index + 1}: Nama item harus diisi`);
             }
-            if (!item.id_klasifikasi_ovk || item.id_klasifikasi_ovk === '') {
-                errors.push(`Item ${index + 1}: Klasifikasi OVK harus dipilih`);
-            }
+            // id_klasifikasi_ovk is nullable according to backend rules - no validation needed (like Feedmil)
+            // Remove required validation for klasifikasi OVK to match Feedmil implementation
             const berat = parseFloat(item.berat);
             if (isNaN(berat) || berat <= 0) {
                 errors.push(`Item ${index + 1}: Berat harus lebih dari 0`);
@@ -1128,7 +1038,6 @@ const AddEditPembelianOVKPage = () => {
                 });
             }
         } catch (error) {
-            console.error('Submit error:', error);
             setNotification({
                 type: 'error',
                 message: 'Terjadi kesalahan tidak terduga'
@@ -1160,22 +1069,46 @@ const AddEditPembelianOVKPage = () => {
             <div className="w-full max-w-none mx-0 space-y-6 md:space-y-8">
                 {/* Header */}
                 <div className="bg-white rounded-none sm:rounded-none p-4 sm:p-6 shadow-xl border border-gray-100">
-                    <div className="flex items-center gap-4 mb-6">
-                        <button
-                            onClick={handleBack}
-                            className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors duration-200"
-                        >
-                            <ArrowLeft className="w-6 h-6 text-gray-600" />
-                        </button>
-                        <div>
-                            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 flex items-center gap-3">
-                                <Package className="w-8 h-8 text-blue-500" />
-                                {isEdit ? 'Edit Pembelian OVK' : 'Tambah Pembelian OVK'}
-                            </h1>
-                            <p className="text-gray-600 mt-1">
-                                {isEdit ? 'Perbarui data pembelian OVK' : 'Tambahkan data pembelian OVK baru'}
-                            </p>
+                    <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-4">
+                            <button
+                                onClick={handleBack}
+                                className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors duration-200"
+                            >
+                                <ArrowLeft className="w-6 h-6 text-gray-600" />
+                            </button>
+                            <div>
+                                <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 flex items-center gap-3">
+                                    <Package className="w-8 h-8 text-blue-500" />
+                                    {isEdit ? 'Edit Pembelian OVK' : 'Tambah Pembelian OVK'}
+                                </h1>
+                                <p className="text-gray-600 mt-1">
+                                    {isEdit ? 'Perbarui data pembelian OVK' : 'Tambahkan data pembelian OVK baru'}
+                                </p>
+                            </div>
                         </div>
+                        
+                        {/* Action Buttons - Show only in edit mode */}
+                        {isEdit && (
+                            <div className="flex flex-col sm:flex-row gap-3">
+                                <button
+                                    type="button"
+                                    onClick={handleBack}
+                                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200 text-sm"
+                                >
+                                    Batal
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleSubmit}
+                                    disabled={isSubmitting}
+                                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-lg hover:from-blue-600 hover:to-cyan-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                                >
+                                    <Save className="w-4 h-4" />
+                                    {isSubmitting ? 'Menyimpan...' : 'Perbarui Data'}
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -1447,7 +1380,7 @@ const AddEditPembelianOVKPage = () => {
                                 <div className="flex items-center gap-3">
                                     <button
                                         type="button"
-                                        onClick={() => setIsFileModalOpen(true)}
+                                        onClick={openFileModal}
                                         className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg"
                                     >
                                         <Upload className="w-5 h-5" />
@@ -1813,102 +1746,265 @@ const AddEditPembelianOVKPage = () => {
                     )}
                 </div>
 
-                {/* Submit Buttons */}
-                <div className="bg-white rounded-none sm:rounded-none p-4 sm:p-6 shadow-xl border border-gray-100">
-                    <div className="flex flex-col sm:flex-row gap-4 justify-end">
-                        <button
-                            type="button"
-                            onClick={handleBack}
-                            className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors duration-200"
-                        >
-                            Batal
-                        </button>
-                        <button
-                            type="button"
-                            onClick={handleSubmit}
-                            disabled={isSubmitting}
-                            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-xl hover:from-blue-600 hover:to-cyan-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            <Save className="w-5 h-5" />
-                            {isSubmitting ? 'Menyimpan...' : (isEdit ? 'Perbarui Data' : 'Simpan Data')}
-                        </button>
+                {/* Submit Buttons - Show only in add mode, hidden in edit mode */}
+                {!isEdit && (
+                    <div className="bg-white rounded-none sm:rounded-none p-4 sm:p-6 shadow-xl border border-gray-100">
+                        <div className="flex flex-col sm:flex-row gap-4 justify-end">
+                            <button
+                                type="button"
+                                onClick={handleBack}
+                                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors duration-200"
+                            >
+                                Batal
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleSubmit}
+                                disabled={isSubmitting}
+                                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-xl hover:from-blue-600 hover:to-cyan-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <Save className="w-5 h-5" />
+                                {isSubmitting ? 'Menyimpan...' : 'Simpan Data'}
+                            </button>
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
 
             {/* File Upload Modal */}
             {isFileModalOpen && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
-                    <div className="bg-white rounded-none sm:rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
-                        {/* Modal header */}
-                        <div className="flex items-center justify-between p-6 border-b">
-                            <h3 className="text-xl font-bold text-gray-900">Upload File Dokumen</h3>
-                            <button
-                                onClick={() => setIsFileModalOpen(false)}
-                                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                            >
-                                <X size={24} />
-                            </button>
-                        </div>
+                <div className="fixed inset-0 z-50 overflow-y-auto">
+                    <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                        {/* Background overlay */}
+                        <div 
+                            className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+                            onClick={closeFileModal}
+                        ></div>
 
-                        {/* Modal body */}
-                        <div className="p-6">
-                            <div
-                                className={`relative overflow-hidden rounded-xl transition-all duration-500 ${
-                                    isDragOver 
-                                        ? 'ring-4 ring-blue-400 ring-opacity-50 scale-105' 
-                                        : 'hover:scale-102'
-                                }`}
-                                onDragOver={handleDragOver}
-                                onDragLeave={handleDragLeave}
-                                onDrop={handleDrop}
-                            >
-                                <div className={`p-8 text-center border-2 border-dashed rounded-xl ${
-                                    isDragOver ? 'border-blue-400 bg-blue-50' : 'border-gray-300 bg-gray-50'
-                                }`}>
-                                    <input
-                                        type="file"
-                                        accept=".pdf, .jpg, .jpeg, .png"
-                                        onChange={(e) => handleFileUpload(e.target.files[0])}
-                                        className="hidden"
-                                        id="file-upload-modal"
-                                    />
-                                    <label htmlFor="file-upload-modal" className="cursor-pointer">
-                                        <Upload className={`w-12 h-12 mx-auto mb-4 ${isDragOver ? 'text-blue-500' : 'text-gray-400'}`} />
-                                        <h3 className={`text-lg font-semibold ${isDragOver ? 'text-blue-600' : 'text-gray-600'}`}>
-                                            {isDragOver ? 'Drop file di sini!' : 'Upload File Dokumen'}
-                                        </h3>
-                                        <p className="text-sm text-gray-500 mt-2">
-                                            Klik area ini atau drag & drop file
-                                        </p>
-                                        <div className="flex justify-center gap-2 mt-4">
-                                            {['PDF', 'JPG', 'JPEG', 'PNG'].map((type) => (
-                                                <span key={type} className="px-2 py-1 bg-white text-gray-600 rounded text-xs">
-                                                    {type}
-                                                </span>
-                                            ))}
+                        {/* Modal panel */}
+                        <div className="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+                            {/* Modal header */}
+                            <div className="bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-4">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                                            <Upload className="w-6 h-6 text-white" />
                                         </div>
-                                        <p className="text-xs text-gray-400 mt-2">Maksimal 2MB</p>
-                                    </label>
+                                        <div>
+                                            <h3 className="text-lg font-bold text-white">
+                                                Upload File Dokumen OVK (Opsional)
+                                            </h3>
+                                            <p className="text-green-100 text-sm">
+                                                Pilih file dokumen terkait pembelian OVK (tidak wajib)
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={closeFileModal}
+                                        className="text-white/80 hover:text-white hover:bg-white/10 rounded-lg p-2 transition-colors"
+                                    >
+                                        <X size={24} />
+                                    </button>
                                 </div>
                             </div>
 
-                            {selectedFile && (
-                                <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-xl">
-                                    <p className="text-green-800 font-medium">File berhasil dipilih:</p>
-                                    <p className="text-green-600 text-sm">{selectedFile.name}</p>
+                            {/* Modal body */}
+                            <div className="px-6 py-6">
+                                {/* File Upload Area */}
+                                <div
+                                    className={`relative overflow-hidden rounded-xl transition-all duration-500 ease-out ${
+                                        isDragOver 
+                                            ? 'ring-4 ring-green-400 ring-opacity-50 scale-105 shadow-2xl' 
+                                            : 'hover:scale-102 hover:shadow-xl'
+                                    }`}
+                                    onDragOver={handleDragOver}
+                                    onDragLeave={handleDragLeave}
+                                    onDrop={handleDrop}
+                                >
+                                    {/* Background with gradient and animated pattern */}
+                                    <div className={`absolute inset-0 bg-gradient-to-br ${
+                                        isDragOver 
+                                            ? 'from-green-400 via-green-500 to-emerald-600' 
+                                            : 'from-gray-50 via-green-50 to-emerald-100'
+                                    } transition-all duration-500`}>
+                                        {/* Animated background pattern */}
+                                        <div className="absolute inset-0 opacity-10">
+                                            <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_20%_80%,rgba(34,197,94,0.3),transparent_50%)]"></div>
+                                            <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(circle_at_80%_20%,rgba(16,185,129,0.3),transparent_50%)]"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Animated border with glow effect */}
+                                    <div className={`absolute inset-0 rounded-xl border-2 ${
+                                        isDragOver 
+                                            ? 'border-green-400 border-dashed shadow-[0_0_20px_rgba(34,197,94,0.5)]' 
+                                            : 'border-gray-200 border-dashed'
+                                    } transition-all duration-500`}></div>
+                                    
+                                    {/* Content */}
+                                    <div className="relative p-8 text-center">
+                                        <input
+                                            type="file"
+                                            accept=".pdf, .jpg, .jpeg, .png"
+                                            onChange={(e) => handleFileUpload(e.target.files[0])}
+                                            className="hidden"
+                                            id="file-upload-modal"
+                                        />
+                                        <label 
+                                            htmlFor="file-upload-modal"
+                                            className="cursor-pointer flex flex-col items-center gap-4 group"
+                                        >
+                                            {/* Animated icon container with floating effect */}
+                                            <div className={`relative w-20 h-20 rounded-2xl flex items-center justify-center transition-all duration-500 ease-out ${
+                                                isDragOver 
+                                                    ? 'bg-white shadow-2xl scale-110 animate-bounce' 
+                                                    : 'bg-white/80 backdrop-blur-sm shadow-lg group-hover:shadow-xl group-hover:scale-105 group-hover:-translate-y-1'
+                                            }`}>
+                                                {/* Icon with gradient background and pulse effect */}
+                                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                                                    isDragOver 
+                                                        ? 'bg-gradient-to-br from-green-500 to-emerald-600 animate-pulse' 
+                                                        : 'bg-gradient-to-br from-green-400 to-emerald-500'
+                                                } transition-all duration-500`}>
+                                                    <Upload className={`w-6 h-6 transition-all duration-500 ${
+                                                        isDragOver ? 'text-white scale-110 rotate-12' : 'text-white'
+                                                    }`} />
+                                                </div>
+                                                
+                                                {/* Floating particles effect with enhanced animation */}
+                                                {isDragOver && (
+                                                    <>
+                                                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full animate-ping"></div>
+                                                        <div className="absolute -bottom-1 -left-1 w-2 h-2 bg-pink-400 rounded-full animate-pulse"></div>
+                                                        <div className="absolute top-1/2 -right-2 w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                                                        <div className="absolute top-1/2 -left-2 w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" style={{animationDelay: '0.4s'}}></div>
+                                                    </>
+                                                )}
+                                            </div>
+                                            
+                                            {/* Text content with enhanced typography */}
+                                            <div className="space-y-2">
+                                                <h3 className={`text-xl font-bold transition-all duration-500 ${
+                                                    isDragOver ? 'text-white drop-shadow-lg' : 'text-gray-800'
+                                                }`}>
+                                                    {isDragOver ? '🎉 Drop file di sini!' : '📁 Upload File Dokumen OVK'}
+                                                </h3>
+                                                <p className={`text-sm transition-all duration-500 ${
+                                                    isDragOver ? 'text-green-100 drop-shadow-md' : 'text-gray-600'
+                                                }`}>
+                                                    {isDragOver ? 'Lepaskan file untuk upload' : 'Klik area ini atau drag & drop file'}
+                                                </p>
+                                            </div>
+                                            
+                                            {/* File type badges with enhanced styling - sesuai backend */}
+                                            <div className="flex flex-wrap justify-center gap-2">
+                                                {['PDF', 'JPG', 'JPEG', 'PNG'].map((type, index) => (
+                                                    <span key={type} className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-300 ${
+                                                        isDragOver 
+                                                            ? 'bg-white/20 text-white border border-white/30 shadow-lg' 
+                                                            : 'bg-white/60 text-gray-700 border border-gray-200 hover:bg-white/80 hover:scale-105'
+                                                    }`}>
+                                                        {type}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                            
+                                            {/* Size limit with enhanced styling */}
+                                            <div className={`px-4 py-2 rounded-full transition-all duration-500 ${
+                                                isDragOver 
+                                                    ? 'bg-white/20 text-white shadow-lg' 
+                                                    : 'bg-white/80 text-gray-600 hover:bg-white hover:shadow-md'
+                                            }`}>
+                                                <span className="text-xs font-medium">Maksimal 2MB</span>
+                                            </div>
+                                        </label>
+                                        
+                                        {/* Primary upload button with enhanced effects */}
+                                        <div className="mt-6">
+                                            <button
+                                                type="button"
+                                                onClick={() => document.getElementById('file-upload-modal').click()}
+                                                className={`px-8 py-3 rounded-xl font-semibold transition-all duration-500 transform ${
+                                                    isDragOver 
+                                                        ? 'bg-white text-green-600 shadow-2xl scale-105 animate-pulse' 
+                                                        : 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg hover:shadow-xl hover:scale-105 hover:from-green-600 hover:to-emerald-700 active:scale-95'
+                                                }`}
+                                            >
+                                                {isDragOver ? '🎯 Upload Sekarang!' : '🚀 Pilih File'}
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
-                            )}
-                        </div>
 
-                        {/* Modal footer */}
-                        <div className="p-6 border-t flex justify-end gap-3">
-                            <button
-                                onClick={() => setIsFileModalOpen(false)}
-                                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-                            >
-                                {selectedFile ? 'Selesai' : 'Batal'}
-                            </button>
+                                {/* File Info Display in Modal */}
+                                {selectedFile && (
+                                    <div className="mt-6 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 shadow-lg">
+                                        <div className="flex items-center gap-4">
+                                            <div className="flex-shrink-0">
+                                                {filePreview ? (
+                                                    <div className="relative">
+                                                        <img src={filePreview} alt="Preview" className="w-16 h-16 object-cover rounded-xl border-2 border-green-200 shadow-md" />
+                                                        <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                                                            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                            </svg>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="relative w-16 h-16 bg-gradient-to-br from-green-400 to-emerald-500 rounded-xl flex items-center justify-center border-2 border-green-200 shadow-md">
+                                                        <Upload className="w-8 h-8 text-white" />
+                                                        <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                                                            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                            </svg>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <h4 className="text-lg font-bold text-green-800 truncate">
+                                                    {selectedFile.name}
+                                                </h4>
+                                                <div className="flex items-center gap-4 mt-1">
+                                                    <span className="text-sm text-green-600">
+                                                        {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                                                    </span>
+                                                    <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+                                                        {selectedFile.type.split('/')[1]?.toUpperCase() || 'FILE'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={removeFile}
+                                                className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                                                title="Hapus file"
+                                            >
+                                                <X size={20} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Modal footer */}
+                            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
+                                <div className="flex justify-end gap-3">
+                                    <button
+                                        onClick={closeFileModal}
+                                        className="px-6 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                                    >
+                                        {selectedFile ? 'Selesai' : 'Batal'}
+                                    </button>
+                                    {selectedFile && (
+                                        <button
+                                            onClick={closeFileModal}
+                                            className="px-6 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-200 font-medium shadow-md hover:shadow-lg"
+                                        >
+                                            ✅ Simpan File
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Building2, User, Calendar, Truck, Hash, Package, Eye, Weight, DollarSign, Download, FileText } from 'lucide-react';
+import { ArrowLeft, Building2, User, Calendar, Truck, Hash, Package, Eye, Weight, DollarSign } from 'lucide-react';
 import usePembelianOVK from './hooks/usePembelianOVK';
 import { enhancedOVKTableStyles } from './constants/tableStyles';
 import DataTable from 'react-data-table-component';
@@ -10,7 +10,8 @@ const PembelianOVKDetailPage = () => {
     const navigate = useNavigate();
     const {
         getPembelianDetail,
-        downloadFile,
+        fetchPembelian,
+        pembelian: pembelianList,
         loading,
         error
     } = usePembelianOVK();
@@ -18,100 +19,239 @@ const PembelianOVKDetailPage = () => {
     const [pembelianData, setPembelianData] = useState(null);
     const [detailData, setDetailData] = useState([]);
     const [notification, setNotification] = useState(null);
+    const [scrollPosition, setScrollPosition] = useState({ canScrollLeft: false, canScrollRight: false });
+    
+    // Pagination state
+    const [pagination, setPagination] = useState({
+        currentPage: 1,
+        perPage: 10,
+        totalItems: 0,
+        totalPages: 0
+    });
+
+    // Update pagination when detail data changes
+    useEffect(() => {
+        if (detailData.length > 0) {
+            const totalPages = Math.ceil(detailData.length / pagination.perPage);
+            setPagination(prev => ({
+                ...prev,
+                totalItems: detailData.length,
+                totalPages: totalPages,
+                // Reset to page 1 if current page exceeds total pages
+                currentPage: prev.currentPage > totalPages ? 1 : prev.currentPage
+            }));
+        }
+    }, [detailData.length, pagination.perPage]);
+
+    // Pagination handlers
+    const handlePageChange = (page) => {
+        setPagination(prev => ({
+            ...prev,
+            currentPage: page
+        }));
+    };
+
+    const handlePerPageChange = (perPage) => {
+        const newTotalPages = Math.ceil(detailData.length / perPage);
+        setPagination(prev => ({
+            ...prev,
+            perPage: perPage,
+            totalPages: newTotalPages,
+            currentPage: 1 // Reset to first page when changing per page
+        }));
+    };
+
+    // Get paginated data
+    const getPaginatedData = () => {
+        const startIndex = (pagination.currentPage - 1) * pagination.perPage;
+        const endIndex = startIndex + pagination.perPage;
+        return detailData.slice(startIndex, endIndex);
+    };
+
+    // Helper function for currency formatting
+    const formatCurrency = (amount) => {
+        return amount ? new Intl.NumberFormat('id-ID', {
+            style: 'currency',
+            currency: 'IDR',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }).format(amount) : 'Rp 0';
+    };
+
+    // Helper function for row number calculation
+    const getRowNumber = (index) => {
+        return ((pagination.currentPage - 1) * pagination.perPage) + index + 1;
+    };
+
+    // Handle table scroll for visual feedback
+    const handleTableScroll = useCallback((e) => {
+        const { scrollLeft, scrollWidth, clientWidth } = e.target;
+        setScrollPosition({
+            canScrollLeft: scrollLeft > 0,
+            canScrollRight: scrollLeft < scrollWidth - clientWidth - 1
+        });
+    }, []);
+
+    // Check initial scroll state when data loads
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            const scrollContainer = document.querySelector('.table-scroll-container');
+            if (scrollContainer) {
+                const { scrollWidth, clientWidth } = scrollContainer;
+                setScrollPosition({
+                    canScrollLeft: false,
+                    canScrollRight: scrollWidth > clientWidth
+                });
+            }
+        }, 100);
+        return () => clearTimeout(timer);
+    }, [detailData]);
+
+    // Load pembelian list first (untuk ambil header seperti halaman utama)
+    useEffect(() => {
+        if (!pembelianList || pembelianList.length === 0) {
+            fetchPembelian(1, 1000, '', 'all', false);
+        }
+    }, []);
 
     useEffect(() => {
         const fetchDetail = async () => {
             if (id) {
                 try {
                     const result = await getPembelianDetail(id);
-                    if (result.success && result.data.length > 0) {
-                        // Backend returns detail items from DataPembelianOvkDetail view
+                    if (result.success && result.data && result.data.length > 0) {
+                        // Detail items dari view dt_pembelian_ho_ovk_detail
                         const detailItems = result.data;
-                        
-                        // Extract header information from the first detail item (all details have same header info)
-                        const firstItem = detailItems[0];
-                        
-                        // Set header data from first detail item
-                        setPembelianData({
-                            encryptedPid: id,
-                            nota: firstItem.nota || '',
-                            nama_supplier: firstItem.nama_supplier || '',
-                            nama_office: firstItem.nama_office || 'Head Office (HO)',
-                            tgl_masuk: firstItem.tgl_masuk || '',
-                            nama_supir: firstItem.nama_supir || '',
-                            plat_nomor: firstItem.plat_nomor || '',
-                            biaya_lain: firstItem.biaya_lain || 0,
-                            biaya_total: firstItem.biaya_total || 0,
-                            biaya_truk: firstItem.biaya_truk || 0,
-                            jumlah: detailItems.length, // Count of detail items
-                            satuan: 'item',
-                            berat_total: detailItems.reduce((sum, item) => sum + (parseFloat(item.berat) || 0), 0),
-                            jenis_pembelian: firstItem.jenis_pembelian || 'OVK',
-                            note: firstItem.note || '',
-                            file: firstItem.file || null // File path dari backend
-                        });
 
-                        // Set detail data - map backend fields to frontend structure
-                        const processedDetailItems = detailItems.map((item, index) => ({
-                            id: item.id || index + 1,
-                            pubid: item.pubid,
-                            id_pembelian: item.id_pembelian,
-                            id_office: item.id_office,
-                            item_name: item.item_name || '-',
-                            id_klasifikasi_ovk: item.id_klasifikasi_ovk || '-',
+                        // 1) Coba ambil header dari list pembelian (seperti halaman utama)
+                        let headerData = null;
+                        if (pembelianList && pembelianList.length > 0) {
+                            headerData = pembelianList.find(item => item.encryptedPid === id || item.id === id);
+                            if (!headerData) {
+                                const decodedId = decodeURIComponent(id);
+                                headerData = pembelianList.find(item => item.encryptedPid === decodedId || item.id === decodedId);
+                            }
+                        }
+
+                        if (headerData) {
+                            setPembelianData({
+                                encryptedPid: headerData.encryptedPid || id,
+                                nota: headerData.nota || '',
+                                nama_supplier: headerData.nama_supplier || '',
+                                nama_office: headerData.nama_office || 'Head Office (HO)',
+                                tgl_masuk: headerData.tgl_masuk || '',
+                                nama_supir: headerData.nama_supir || '',
+                                plat_nomor: headerData.plat_nomor || '',
+                                biaya_lain: headerData.biaya_lain || 0,
+                                biaya_truk: headerData.biaya_truk || 0,
+                                biaya_total: headerData.biaya_total || 0,
+                                jumlah: headerData.jumlah || 0,
+                                satuan: headerData.satuan || 'item',
+                                berat_total: headerData.berat_total || 0,
+                                jenis_pembelian: headerData.jenis_pembelian || 'OVK',
+                                file: headerData.file || null
+                            });
+                        } else {
+                            // 2) Fallback: cocokan berdasarkan nota dari detail pertama
+                            const firstDetail = detailItems[0];
+                            let headerByNota = null;
+                            if (firstDetail?.nota && pembelianList && pembelianList.length > 0) {
+                                headerByNota = pembelianList.find(item => item.nota === firstDetail.nota);
+                            }
+
+                            if (headerByNota) {
+                                setPembelianData({
+                                    encryptedPid: headerByNota.encryptedPid || id,
+                                    nota: headerByNota.nota || '',
+                                    nama_supplier: headerByNota.nama_supplier || '',
+                                    nama_office: headerByNota.nama_office || 'Head Office (HO)',
+                                    tgl_masuk: headerByNota.tgl_masuk || '',
+                                    nama_supir: headerByNota.nama_supir || '',
+                                    plat_nomor: headerByNota.plat_nomor || '',
+                                    biaya_lain: headerByNota.biaya_lain || 0,
+                                    biaya_truk: headerByNota.biaya_truk || 0,
+                                    biaya_total: headerByNota.biaya_total || 0,
+                                    jumlah: headerByNota.jumlah || 0,
+                                    satuan: headerByNota.satuan || 'item',
+                                    berat_total: headerByNota.berat_total || 0,
+                                    jenis_pembelian: headerByNota.jenis_pembelian || 'OVK',
+                                    file: headerByNota.file || null
+                                });
+                            } else {
+                                // 3) Fallback terakhir: gunakan informasi dari detail pertama
+                                const firstItem = detailItems[0];
+                                setPembelianData({
+                                    encryptedPid: firstItem.pubid || id,
+                                    nota: firstItem.nota || '',
+                                    nama_supplier: firstItem.nama_supplier || '',
+                                    nama_office: firstItem.nama_office || 'Head Office (HO)',
+                                    tgl_masuk: firstItem.tgl_masuk || '',
+                                    nama_supir: firstItem.nama_supir || '',
+                                    plat_nomor: firstItem.plat_nomor || '',
+                                    biaya_lain: firstItem.biaya_lain || 0,
+                                    biaya_truk: firstItem.biaya_truk || 0,
+                                    biaya_total: firstItem.biaya_total || 0,
+                                    jumlah: firstItem.jumlah || 0,
+                                    satuan: 'item',
+                                    berat_total: firstItem.berat_total || 0,
+                                    jenis_pembelian: 'OVK'
+                                });
+                            }
+                        }
+
+                        // Transform detail items untuk struktur frontend
+                        const transformedDetailItems = detailItems.map((item, index) => ({
+                            id: index + 1,
+                            pubid: item.pubid || '',
+                            item_name: item.item_name || '',
+                            id_klasifikasi_ovk: item.id_klasifikasi_ovk || '',
+                            nama_klasifikasi_ovk: item.nama_klasifikasi_ovk || '',
                             harga: parseFloat(item.harga) || 0,
-                            persentase: parseFloat(item.persentase) || 0, // Note: backend uses 'persentase' not 'presentase'
+                            persentase: parseFloat(item.persentase) || 0,
                             berat: parseFloat(item.berat) || 0,
                             hpp: parseFloat(item.hpp) || 0,
                             total_harga: parseFloat(item.total_harga) || 0,
                             status: item.status || 1,
-                            tgl_masuk_rph: item.tgl_masuk_rph || null,
-                            // Computed values for display
-                            pid: item.pid || null // Encrypted ID for operations
+                            tgl_masuk_rph: item.tgl_masuk_rph || null
                         }));
-                        
-                        setDetailData(processedDetailItems);
+
+                        setDetailData(transformedDetailItems);
                     } else {
-                        // No data found
-                        setPembelianData(null);
-                        setDetailData([]);
-                        setNotification({
-                            type: 'error',
-                            message: 'Data detail pembelian OVK tidak ditemukan'
+                        console.warn('No detail data found for pembelian OVK:', id);
+                        setPembelianData({
+                            encryptedPid: id,
+                            nota: '',
+                            nama_supplier: '',
+                            nama_office: 'Head Office (HO)',
+                            tgl_masuk: '',
+                            nama_supir: '',
+                            plat_nomor: '',
+                            biaya_lain: 0,
+                            biaya_total: 0,
+                            jumlah: 0,
+                            satuan: 'item',
+                            berat_total: 0,
+                            jenis_pembelian: 'OVK'
                         });
+                        setDetailData([]);
                     }
                 } catch (err) {
-                    console.error('Error fetching detail:', err);
+                    console.error('Error fetching pembelian OVK detail:', err);
                     setNotification({
                         type: 'error',
-                        message: 'Gagal memuat detail pembelian OVK: ' + (err.message || 'Terjadi kesalahan')
+                        message: err.message || 'Gagal memuat detail pembelian OVK'
                     });
+                    setPembelianData(null);
+                    setDetailData([]);
                 }
             }
         };
 
         fetchDetail();
-    }, [id, getPembelianDetail]);
+    }, [id, getPembelianDetail, pembelianList]);
 
     const handleBack = () => {
         navigate('/ho/pembelian-ovk');
-    };
-
-    // Handle file download
-    const handleDownloadFile = async (filePath) => {
-        if (!filePath) {
-            setNotification({
-                type: 'error',
-                message: 'Path file tidak tersedia'
-            });
-            return;
-        }
-
-        const result = await downloadFile(filePath);
-        setNotification({
-            type: result.success ? 'success' : 'error',
-            message: result.message
-        });
     };
 
     // Auto hide notification
@@ -128,13 +268,15 @@ const PembelianOVKDetailPage = () => {
     const detailColumns = [
         {
             name: 'No',
-            selector: (row, index) => index + 1,
+            selector: (row, index) => getRowNumber(index),
             sortable: false,
-            width: '60px',
+            minWidth: '60px',
+            maxWidth: '80px',
+            center: true,
             ignoreRowClick: true,
             cell: (row, index) => (
-                <div className="flex items-center justify-center w-full h-full font-semibold text-gray-600">
-                    {index + 1}
+                <div className="font-semibold text-gray-600 w-full flex items-center justify-center">
+                    {getRowNumber(index)}
                 </div>
             )
         },
@@ -142,7 +284,7 @@ const PembelianOVKDetailPage = () => {
             name: 'Nama Item',
             selector: row => row.item_name,
             sortable: true,
-            width: '220px',
+            width: '250px',
             wrap: true,
             cell: row => (
                 <div className="flex items-center justify-center w-full h-full min-h-[40px] px-2">
@@ -154,29 +296,33 @@ const PembelianOVKDetailPage = () => {
         },
         {
             name: 'Klasifikasi OVK',
-            selector: row => row.id_klasifikasi_ovk,
+            selector: row => row.nama_klasifikasi_ovk,
             sortable: true,
             width: '160px',
             wrap: true,
-            cell: row => (
-                <div className="flex items-center justify-center w-full h-full min-h-[40px] px-2">
-                    <div className="bg-green-50 text-green-700 px-3 py-2 rounded-lg font-medium text-center text-xs leading-tight force-wrap">
-                        {row.id_klasifikasi_ovk || '-'}
+            center: true,
+            cell: row => {
+                // Use nama_klasifikasi_ovk directly from API response
+                const klasifikasiName = row.nama_klasifikasi_ovk;
+                return (
+                    <div className="w-full flex items-center justify-center">
+                        <span className="inline-flex px-3 py-1.5 text-xs font-medium rounded-lg bg-green-100 text-green-800">
+                            {klasifikasiName || 'Tidak ada klasifikasi'}
+                        </span>
                     </div>
-                </div>
-            )
+                );
+            }
         },
         {
             name: 'Berat (kg)',
             selector: row => row.berat,
             sortable: true,
-            width: '120px',
+            width: '130px',
             wrap: true,
             cell: row => (
                 <div className="flex items-center justify-center w-full h-full min-h-[40px]">
                     <div className="bg-gray-50 text-gray-700 px-3 py-2 rounded-lg font-semibold text-center">
-                        {row.berat ? `${row.berat}` : '-'}<br/>
-                        <span className="text-xs text-gray-500">kg</span>
+                        {row.berat ? `${row.berat} kg` : '-'}
                     </div>
                 </div>
             )
@@ -185,23 +331,19 @@ const PembelianOVKDetailPage = () => {
             name: 'Harga',
             selector: row => row.harga,
             sortable: true,
-            width: '160px',
+            width: '170px',
             wrap: true,
+            center: true,
             cell: row => (
-                <div className="flex items-center justify-center w-full h-full min-h-[40px] px-1">
-                    <div className="bg-green-50 text-green-700 px-3 py-2 rounded-lg font-semibold text-center text-xs leading-tight">
-                        {row.harga ? new Intl.NumberFormat('id-ID', {
-                            style: 'currency',
-                            currency: 'IDR',
-                            minimumFractionDigits: 0,
-                            maximumFractionDigits: 0
-                        }).format(row.harga) : 'Rp 0'}
-                    </div>
+                <div className="w-full flex items-center justify-center">
+                    <span className="inline-flex px-3 py-2 text-sm font-semibold rounded-lg bg-green-100 text-green-800">
+                        {formatCurrency(row.harga)}
+                    </span>
                 </div>
             )
         },
         {
-            name: 'Persentase (%)',
+            name: 'Persentase',
             selector: row => row.persentase,
             sortable: true,
             width: '130px',
@@ -218,18 +360,14 @@ const PembelianOVKDetailPage = () => {
             name: 'HPP',
             selector: row => row.hpp,
             sortable: true,
-            width: '160px',
+            width: '170px',
             wrap: true,
+            center: true,
             cell: row => (
-                <div className="flex items-center justify-center w-full h-full min-h-[40px] px-1">
-                    <div className="bg-purple-50 text-purple-700 px-3 py-2 rounded-lg font-semibold text-center text-xs leading-tight">
-                        {row.hpp ? new Intl.NumberFormat('id-ID', {
-                            style: 'currency',
-                            currency: 'IDR',
-                            minimumFractionDigits: 0,
-                            maximumFractionDigits: 0
-                        }).format(row.hpp) : 'Rp 0'}
-                    </div>
+                <div className="w-full flex items-center justify-center">
+                    <span className="inline-flex px-3 py-2 text-sm font-semibold rounded-lg bg-purple-100 text-purple-800">
+                        {formatCurrency(row.hpp)}
+                    </span>
                 </div>
             )
         },
@@ -237,18 +375,14 @@ const PembelianOVKDetailPage = () => {
             name: 'Total Harga',
             selector: row => row.total_harga,
             sortable: true,
-            width: '180px',
+            width: '190px',
             wrap: true,
+            center: true,
             cell: row => (
-                <div className="flex items-center justify-center w-full h-full min-h-[40px] px-1">
-                    <div className="bg-red-50 text-red-700 px-3 py-2 rounded-lg font-semibold text-center text-xs leading-tight">
-                        {row.total_harga ? new Intl.NumberFormat('id-ID', {
-                            style: 'currency',
-                            currency: 'IDR',
-                            minimumFractionDigits: 0,
-                            maximumFractionDigits: 0
-                        }).format(row.total_harga) : 'Rp 0'}
-                    </div>
+                <div className="w-full flex items-center justify-center">
+                    <span className="inline-flex px-3 py-2 text-sm font-semibold rounded-lg bg-red-100 text-red-800">
+                        {formatCurrency(row.total_harga)}
+                    </span>
                 </div>
             )
         },
@@ -256,7 +390,7 @@ const PembelianOVKDetailPage = () => {
             name: 'Status',
             selector: row => row.status,
             sortable: true,
-            width: '100px',
+            width: '110px',
             wrap: true,
             cell: row => (
                 <div className="flex items-center justify-center w-full h-full min-h-[40px] px-2">
@@ -274,7 +408,7 @@ const PembelianOVKDetailPage = () => {
             name: 'Tgl Masuk RPH',
             selector: row => row.tgl_masuk_rph,
             sortable: true,
-            width: '150px',
+            width: '160px',
             wrap: true,
             cell: row => (
                 <div className="flex items-center justify-center w-full h-full min-h-[40px]">
@@ -561,87 +695,86 @@ const PembelianOVKDetailPage = () => {
                         </div>
                     </div>
 
-                    {/* File Section - jika ada file */}
-                    {pembelianData.file && (
-                        <div className="mt-6 p-4 bg-gradient-to-r from-slate-50 to-gray-50 rounded-lg border border-gray-200">
-                            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                                <FileText className="w-5 h-5 text-blue-600" />
-                                Dokumen Lampiran
-                            </h3>
-                            <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow">
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-blue-100 rounded-lg">
-                                        <FileText className="w-6 h-6 text-blue-600" />
-                                    </div>
-                                    <div>
-                                        <p className="font-medium text-gray-900">
-                                            {pembelianData.file.split('/').pop() || 'Dokumen Pembelian'}
-                                        </p>
-                                        <p className="text-sm text-gray-500">
-                                            File lampiran pembelian OVK
-                                        </p>
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={() => handleDownloadFile(pembelianData.file)}
-                                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
-                                >
-                                    <Download className="w-4 h-4" />
-                                    Download
-                                </button>
-                            </div>
-                        </div>
-                    )}
 
                 </div>
 
                 {/* Detail Table */}
-                <div className="bg-white rounded-xl shadow-lg border border-gray-100 relative w-full overflow-hidden">
-                    <div className="p-6 border-b border-gray-200">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="bg-white rounded-xl shadow-lg border border-gray-100 relative overflow-hidden">
+                    {/* Enhanced Scroll Indicator - Top */}
+                    <div className="px-6 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <Package className="w-5 h-5 text-green-600" />
                             <div>
-                                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                                    <Package className="w-6 h-6 text-green-600" />
-                                    Detail Item OVK
-                                </h2>
-                                <p className="text-gray-600 text-sm mt-1">
-                                    Rincian setiap item OVK dalam pembelian ini ({detailData.length} item{detailData.length !== 1 ? 's' : ''})
+                                <h2 className="text-lg font-bold text-gray-900">Detail Item OVK</h2>
+                                <p className="text-gray-500 text-xs mt-1">
+                                    Rincian setiap item OVK dalam pembelian ini
                                 </p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <div className="flex items-center text-sm text-gray-600">
+                                <svg className="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16l-4-4m0 0l4-4m-4 4h18"></path>
+                                </svg>
+                                Tabel responsif menggunakan ruang optimal
+                                <svg className="w-4 h-4 ml-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m0-4H3"></path>
+                                </svg>
+                            </div>
+                            <div className="text-xs text-gray-500">
+                                {detailData.length} item{detailData.length !== 1 ? 's' : ''}
                             </div>
                         </div>
                     </div>
                     
-                    {/* Scroll Indicator */}
-                    <div className="px-6 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-                        <div className="flex items-center text-sm text-gray-600">
-                            <svg className="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16l-4-4m0 0l4-4m-4 4h18"></path>
-                            </svg>
-                            Scroll horizontal untuk melihat semua kolom detail
-                            <svg className="w-4 h-4 ml-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m0-4H3"></path>
-                            </svg>
-                        </div>
-                        <div className="text-xs text-gray-500">
-                            {detailData.length} item{detailData.length !== 1 ? 's' : ''}
-                        </div>
-                    </div>
-                    
                     {/* Table Container with proper scroll */}
-                    <div className="w-full overflow-x-auto max-w-full table-scroll-container" style={{maxHeight: '60vh'}}>
+                    <div className="w-full overflow-x-auto max-w-full table-scroll-container" onScroll={handleTableScroll}>
                         <div className="min-w-full">
                             <DataTable
+                                title="Daftar Detail Item OVK"
                                 columns={detailColumns}
-                                data={detailData}
-                                pagination
-                                paginationPerPage={25}
-                                paginationRowsPerPageOptions={[10, 25, 50, 100]}
+                                data={getPaginatedData()}
+                                pagination={false}
                                 customStyles={{
                                     ...enhancedOVKTableStyles,
+                                    table: {
+                                        ...enhancedOVKTableStyles.table,
+                                        style: {
+                                            ...enhancedOVKTableStyles.table.style,
+                                            width: '100%',
+                                            minWidth: '100%',
+                                            tableLayout: 'auto',
+                                        }
+                                    },
+                                    tableWrapper: {
+                                        ...enhancedOVKTableStyles.tableWrapper,
+                                        style: {
+                                            ...enhancedOVKTableStyles.tableWrapper.style,
+                                            overflowX: 'visible',
+                                            overflowY: 'visible',
+                                            width: '100%',
+                                            border: 'none',
+                                            borderRadius: '0',
+                                            WebkitOverflowScrolling: 'touch',
+                                            position: 'relative',
+                                            scrollBehavior: 'smooth',
+                                        }
+                                    },
                                     headCells: {
+                                        ...enhancedOVKTableStyles.headCells,
                                         style: {
                                             ...enhancedOVKTableStyles.headCells.style,
-                                            // Override untuk menghapus sticky pada kolom kedua (Aksi) di detail page
+                                            textAlign: 'center !important',
+                                            // Only keep first column (No) sticky
+                                            '&:first-child': {
+                                                position: 'sticky',
+                                                left: 0,
+                                                zIndex: 1002,
+                                                backgroundColor: '#f8fafc',
+                                                borderRight: '2px solid #e5e7eb',
+                                                boxShadow: '1px 0 2px rgba(0, 0, 0, 0.05)',
+                                            },
+                                            // Override untuk menghapus sticky pada kolom kedua (Nama Item) di detail page
                                             '&:nth-child(2)': {
                                                 position: 'static',
                                                 left: 'auto',
@@ -658,12 +791,29 @@ const PembelianOVKDetailPage = () => {
                                                 justifyContent: 'center',
                                                 textAlign: 'center !important',
                                             },
-                                        }
+                                        },
                                     },
                                     cells: {
+                                        ...enhancedOVKTableStyles.cells,
                                         style: {
                                             ...enhancedOVKTableStyles.cells.style,
-                                            // Override untuk menghapus sticky pada kolom kedua (Aksi) di detail page
+                                            textAlign: 'center !important',
+                                            display: 'flex !important',
+                                            alignItems: 'center !important',
+                                            justifyContent: 'center !important',
+                                            // Only keep first column (No) sticky
+                                            '&:first-child': {
+                                                position: 'sticky',
+                                                left: 0,
+                                                zIndex: 999,
+                                                backgroundColor: '#ffffff !important',
+                                                borderRight: '2px solid #e5e7eb',
+                                                boxShadow: '1px 0 2px rgba(0, 0, 0, 0.05)',
+                                                display: 'flex !important',
+                                                alignItems: 'center !important',
+                                                justifyContent: 'center !important',
+                                            },
+                                            // Override untuk menghapus sticky pada kolom kedua (Nama Item) di detail page
                                             '&:nth-child(2)': {
                                                 position: 'static',
                                                 left: 'auto',
@@ -682,17 +832,122 @@ const PembelianOVKDetailPage = () => {
                                         }
                                     }
                                 }}
+                                wrapperStyle={{ 'data-detail-table-wrapper': 'true' }}
                                 noDataComponent={
                                     <div className="text-center py-12">
                                         <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                                         <p className="text-gray-500 text-lg">Tidak ada detail item OVK ditemukan</p>
-                                        <p className="text-gray-400 text-sm mt-2">Data detail akan muncul setelah item ditambahkan</p>
                                     </div>
                                 }
                                 responsive={false}
                                 highlightOnHover
                                 pointerOnHover
                             />
+                        </div>
+                    </div>
+                    
+                    {/* Enhanced Scroll Status Footer */}
+                    <div className="bg-gray-50 px-4 py-2 border-t border-gray-200">
+                        <div className="flex items-center justify-between text-xs text-gray-500">
+                            <span className="flex items-center gap-1">
+                                {scrollPosition.canScrollLeft && (
+                                    <span className="text-blue-600 font-medium">← Scroll kiri</span>
+                                )}
+                                {!scrollPosition.canScrollLeft && !scrollPosition.canScrollRight && (
+                                    <span className="text-green-600 font-medium">✓ Tampilan optimal</span>
+                                )}
+                                {scrollPosition.canScrollRight && (
+                                    <span className="text-blue-600 font-medium">Scroll kanan →</span>
+                                )}
+                            </span>
+                            <span className="text-gray-400">
+                                {detailData.length} item detail OVK
+                            </span>
+                        </div>
+                    </div>
+                    
+                    {/* Custom Pagination - Fixed outside scroll area */}
+                    <div className="border-t border-gray-200 bg-gray-50 px-6 py-4 flex items-center justify-between rounded-b-xl">
+                        <div className="flex items-center text-sm text-gray-700">
+                            <span>
+                                Menampilkan{' '}
+                                <span className="font-semibold">
+                                    {pagination.totalItems === 0 ? 0 : ((pagination.currentPage - 1) * pagination.perPage) + 1}
+                                </span>
+                                {' '}sampai{' '}
+                                <span className="font-semibold">
+                                    {Math.min(pagination.currentPage * pagination.perPage, pagination.totalItems)}
+                                </span>
+                                {' '}dari{' '}
+                                <span className="font-semibold">{pagination.totalItems}</span>
+                                {' '}hasil
+                            </span>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2">
+                            {/* Rows per page selector */}
+                            <div className="flex items-center space-x-2">
+                                <span className="text-sm text-gray-700">Rows per page:</span>
+                                <select
+                                    value={pagination.perPage}
+                                    onChange={(e) => handlePerPageChange(parseInt(e.target.value))}
+                                    className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                                >
+                                    <option value={10}>10</option>
+                                    <option value={25}>25</option>
+                                    <option value={50}>50</option>
+                                    <option value={100}>100</option>
+                                </select>
+                            </div>
+                            
+                            {/* Pagination buttons */}
+                            <div className="flex items-center space-x-1">
+                                <button
+                                    onClick={() => handlePageChange(1)}
+                                    disabled={pagination.currentPage === 1}
+                                    className="p-2 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    title="First page"
+                                >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                                    </svg>
+                                </button>
+                                <button
+                                    onClick={() => handlePageChange(pagination.currentPage - 1)}
+                                    disabled={pagination.currentPage === 1}
+                                    className="p-2 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    title="Previous page"
+                                >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                                    </svg>
+                                </button>
+                                
+                                <span className="px-3 py-1 text-sm font-medium">
+                                    {pagination.currentPage} of {pagination.totalPages}
+                                </span>
+                                
+                                <button
+                                    onClick={() => handlePageChange(pagination.currentPage + 1)}
+                                    disabled={pagination.currentPage === pagination.totalPages}
+                                    className="p-2 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    title="Next page"
+                                >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                                    </svg>
+                                </button>
+                                <button
+                                    onClick={() => handlePageChange(pagination.totalPages)}
+                                    disabled={pagination.currentPage === pagination.totalPages}
+                                    className="p-2 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    title="Last page"
+                                >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
