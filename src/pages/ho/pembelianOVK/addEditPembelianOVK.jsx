@@ -7,6 +7,8 @@ import useJenisPembelianOVK from './hooks/useJenisPembelianOVK';
 import useKlasifikasiOVK from './hooks/useKlasifikasiOVK';
 import useOfficesAPI from '../pembelian/hooks/useOfficesAPI';
 import SearchableSelect from '../../../components/shared/SearchableSelect';
+import HttpClient from '../../../services/httpClient';
+import { API_ENDPOINTS } from '../../../config/api';
 
 
 
@@ -80,6 +82,7 @@ const AddEditPembelianOVKPage = () => {
     const [detailItems, setDetailItems] = useState([]);
     const [notification, setNotification] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [deletingItemId, setDeletingItemId] = useState(null);
 
     // File upload state
     const [selectedFile, setSelectedFile] = useState(null);
@@ -110,71 +113,383 @@ const AddEditPembelianOVKPage = () => {
 
     // Helper functions for number formatting
     const formatNumber = (value) => {
-        if (!value) return '';
-        return parseInt(value).toLocaleString('id-ID');
+        if (!value && value !== 0) return '';
+        const numValue = parseFloat(value);
+        if (isNaN(numValue)) return '';
+        return numValue.toLocaleString('id-ID');
     };
 
     const parseNumber = (value) => {
         if (!value) return 0;
-        return parseInt(value.toString().replace(/\./g, '')) || 0;
+        // Remove dots and commas, then convert to number
+        const cleanValue = value.toString().replace(/[.,]/g, '');
+        return parseFloat(cleanValue) || 0;
     };
 
-    // Load data untuk edit mode
+    // Helper functions for decimal formatting (for persentase field) - like Feedmil
+    const formatDecimal = (value) => {
+        if (!value && value !== 0) return '';
+        const numValue = parseFloat(value);
+        if (isNaN(numValue)) return '';
+        // Format with comma as decimal separator (Indonesian style)
+        return numValue.toString().replace('.', ',');
+    };
+
+    const parseDecimal = (value) => {
+        if (!value) return 0;
+        // Replace comma with dot for parsing, then convert to float
+        const cleanValue = value.toString().replace(',', '.');
+        return parseFloat(cleanValue) || 0;
+    };
+
+    // Special handler for persentase input to allow comma typing - like Feedmil
+    const handlePersentaseChange = (itemId, inputValue) => {
+        // Allow comma in input, don't convert immediately
+        setDetailItems(prev => prev.map(item => {
+            if (item.id === itemId) {
+                return { ...item, persentase: inputValue };
+            }
+            return item;
+        }));
+    };
+
+    // Parse persentase value when needed (for calculations) - like Feedmil
+    const getParsedPersentase = (value) => {
+        if (!value) return 0;
+        const cleanValue = value.toString().replace(',', '.');
+        return parseFloat(cleanValue) || 0;
+    };
+
+    // Convert backend decimal persentase to display format with comma - like Feedmil
+    const formatPersentaseFromBackend = (value) => {
+        // If value is already a decimal string (like "12,5"), return as is
+        if (typeof value === 'string' && value.includes(',')) {
+            return value;
+        }
+        
+        // If value is decimal from backend (like 12.5), convert to comma format
+        const numValue = parseFloat(value);
+        if (isNaN(numValue)) {
+            return '';
+        }
+        
+        // Convert decimal to comma format (12.5 -> "12,5")
+        const result = numValue.toString().replace('.', ',');
+        
+        return result;
+    };
+
+    // Load data untuk edit mode with optimization
     useEffect(() => {
-        if (isEdit && id) {
+        if (isEdit && id && suppliers.length > 0 && officeOptions.length > 0 && jenisPembelianOptions.length > 0) { // Wait for all options to load first
             const loadEditData = async () => {
                 try {
                     const decodedId = decodeURIComponent(id);
-                    const result = await getPembelianDetail(decodedId);
                     
-                    if (result.success && result.data.length > 0) {
-                        const data = result.data[0];
+                    // Get header data directly from DataPembelianOvk model (main data endpoint)
+                    let headerData = null;
+                    
+                    try {
+                        console.log('🔍 Fetching header data from DataPembelianOvk model...');
+                        console.log('🔍 Search parameters:', { id, decodedId });
                         
-                        // Load header data
-                        setHeaderData({
-                            nota: data.nota || '',
-                            idOffice: 'head-office',
-                            tipePembelian: data.tipePembelian || data.jenis_pembelian || '',
-                            idSupplier: data.idSupplier || '',
-                            tgl_masuk: data.tgl_masuk || '',
-                            nama_supir: data.nama_supir || '',
-                            plat_nomor: data.plat_nomor || '',
-                            jumlah: data.jumlah || 0,
-                            biaya_truck: data.biaya_truck || data.biaya_truk || 0,
-                            biaya_lain: data.biaya_lain || 0,
-                            biaya_total: data.biaya_total || 0,
-                            berat_total: data.berat_total || 0,
-                            file: data.file || '',
-                            fileName: data.fileName || '',
-                            note: data.note || ''
+                        // Get all data and find the matching record by PID
+                        const headerResponse = await HttpClient.get(`${API_ENDPOINTS.HO.OVK.PEMBELIAN}/data`, {
+                            params: {
+                                draw: 1,
+                                start: 0,
+                                length: 1000, // Get more records to ensure we find the match
+                                'search[value]': '',
+                                'search[regex]': false,
+                                'order[0][column]': 0,
+                                'order[0][dir]': 'desc'
+                            }
                         });
-
-                        // Load detail items (mock detail items untuk OVK)
-                        const totalItems = data.jumlah || 1;
-                        const pricePerItem = (data.biaya_total || 0) / totalItems;
-                        const weightPerItem = (data.berat_total || 0) / totalItems;
                         
-                        const detailData = [];
-                        for (let i = 1; i <= totalItems; i++) {
-                            const harga = pricePerItem || 50000;
-                            const persentase = 10; // Default 10% markup
-                            const hpp = harga + (harga * persentase / 100); // HPP = harga + markup persen
+                        console.log('📊 Total records from DataPembelianOvk:', headerResponse.data?.length || 0);
+                        console.log('📊 Sample records:', headerResponse.data?.slice(0, 3) || []);
+                        
+                        if (headerResponse.data && headerResponse.data.length > 0) {
+                            console.log('🔍 Searching in DataPembelianOvk records...');
+                            console.log('🔍 Search criteria:', { id, decodedId });
                             
-                            detailData.push({
-                                id: i,
-                                id_office: headerData.idOffice || 'head-office', // Use selected office or fallback
-                                item_name: `OVK Item ${i}`,
-                                id_klasifikasi_ovk: `OVK-00${i}`,
-                                berat: Math.round(weightPerItem) || 5,
-                                harga: harga,
-                                persentase: persentase,
-                                hpp: hpp,
-                                total_harga: hpp, // Added: total_harga field
-                                tgl_masuk_rph: data.tgl_masuk || new Date().toISOString().split('T')[0]
+                            // Try multiple search strategies
+                            headerData = headerResponse.data.find(item => {
+                                console.log('🔍 Checking record:', {
+                                    itemPid: item.pid,
+                                    itemNota: item.nota,
+                                    searchId: id,
+                                    searchDecodedId: decodedId
+                                });
+                                
+                                // Strategy 1: Match by PID (encrypted pubid)
+                                if (item.pid === id) {
+                                    console.log('✅ Found by PID match');
+                                    return true;
+                                }
+                                
+                                // Strategy 2: Match by decoded ID
+                                if (item.pid === decodedId) {
+                                    console.log('✅ Found by decoded ID match');
+                                    return true;
+                                }
+                                
+                                // Strategy 3: Try to extract nota from URL and match
+                                const urlNota = decodedId || id;
+                                if (item.nota === urlNota) {
+                                    console.log('✅ Found by nota match');
+                                    return true;
+                                }
+                                
+                                // Strategy 4: Try partial matches
+                                if (item.nota && urlNota && item.nota.includes(urlNota)) {
+                                    console.log('✅ Found by partial nota match (nota contains urlNota)');
+                                    return true;
+                                }
+                                if (item.nota && urlNota && urlNota.includes(item.nota)) {
+                                    console.log('✅ Found by partial nota match (urlNota contains nota)');
+                                    return true;
+                                }
+                                
+                                // Strategy 5: If we only have one record and it has the same nota, use it
+                                if (headerResponse.data.length === 1 && item.nota) {
+                                    console.log('✅ Found by single record match (only one record available)');
+                                    return true;
+                                }
+                                
+                                return false;
                             });
+                            
+                            if (headerData) {
+                                // Mark this as coming from header model
+                                headerData.source = 'header';
+                                console.log('✅ Header data found from DataPembelianOvk:', headerData);
+                            } else {
+                                console.warn('⚠️ No matching record found in DataPembelianOvk');
+                                console.log('🔍 Available records:', headerResponse.data.map(item => ({
+                                    pid: item.pid,
+                                    nota: item.nota,
+                                    nama_supplier: item.nama_supplier
+                                })));
+                                console.log('🔍 Search criteria:', { id, decodedId });
+                            }
                         }
                         
-                        setDetailItems(detailData);
+                        // If still not found, try using the detail endpoint as fallback
+                        if (!headerData) {
+                            console.log('🔄 Falling back to detail endpoint for header data...');
+                            try {
+                                const detailForHeaderResponse = await HttpClient.post(`${API_ENDPOINTS.HO.OVK.PEMBELIAN}/show`, {
+                                    pid: id
+                                });
+                                
+                                if (detailForHeaderResponse.data && detailForHeaderResponse.data.length > 0) {
+                                    const firstDetail = detailForHeaderResponse.data[0];
+                                    headerData = {
+                                        nota: firstDetail.nota || '',
+                                        nama_office: firstDetail.nama_office || 'HEAD OFFICE',
+                                        jenis_pembelian: firstDetail.jenis_pembelian || '',
+                                        nama_supplier: firstDetail.nama_supplier || '',
+                                        tgl_masuk: firstDetail.tgl_masuk || '',
+                                        nama_supir: firstDetail.nama_supir || '',
+                                        plat_nomor: firstDetail.plat_nomor || '',
+                                        jumlah: firstDetail.jumlah || 0,
+                                        biaya_truk: firstDetail.biaya_truk || firstDetail.biaya_truck || 0,
+                                        biaya_lain: firstDetail.biaya_lain || 0,
+                                        biaya_total: firstDetail.biaya_total || firstDetail.total_belanja || 0,
+                                        berat_total: firstDetail.berat_total || 0,
+                                        file: firstDetail.file || '',
+                                        note: firstDetail.note || '',
+                                        pid: id,
+                                        source: 'detail' // Mark this as coming from detail model
+                                    };
+                                    console.log('📋 Header data from detail fallback:', headerData);
+                                }
+                            } catch (detailHeaderError) {
+                                console.error('❌ Error in detail fallback:', detailHeaderError);
+                            }
+                        }
+                        
+                        if (!headerData) {
+                            console.error('❌ Header data not found in both DataPembelianOvk and detail endpoint');
+                            throw new Error('Header data not found in both DataPembelianOvk and detail endpoint');
+                        }
+                    } catch (headerError) {
+                        console.error('❌ Error fetching header data:', headerError);
+                        throw headerError;
+                    }
+                    
+                    // Get detail data in parallel if we have header data
+                    const detailResultPromise = getPembelianDetail(decodedId);
+                    const detailResult = await detailResultPromise;
+                    
+                    if (headerData) {
+                        // Debug: Log available options
+                        console.log('Available office options:', officeOptions);
+                        console.log('Available jenis pembelian options:', jenisPembelianOptions);
+                        console.log('Header data jenis_pembelian:', headerData.jenis_pembelian);
+                        console.log('Header data nama_office:', headerData.nama_office);
+                        
+                        // Find supplier ID by name if we have nama_supplier but not id_supplier
+                        let supplierId = headerData.id_supplier || '';
+                        if (!supplierId && headerData.nama_supplier) {
+                            // Try exact match first
+                            let foundSupplier = suppliers.find(s => s.name === headerData.nama_supplier);
+                            // If no exact match, try partial match (case insensitive)
+                            if (!foundSupplier) {
+                                foundSupplier = suppliers.find(s => 
+                                    s.name.toLowerCase().includes(headerData.nama_supplier.toLowerCase()) ||
+                                    headerData.nama_supplier.toLowerCase().includes(s.name.toLowerCase())
+                                );
+                            }
+                            if (foundSupplier) {
+                                supplierId = foundSupplier.id;
+                            }
+                        }
+
+                        // Find office ID by name - using exact label matching like Feedmil
+                        let officeId = headerData.id_office || '';
+                        console.log('🏢 Office mapping debug:', {
+                            hasIdOffice: !!headerData.id_office,
+                            nama_office: headerData.nama_office,
+                            officeOptionsCount: officeOptions.length,
+                            officeOptions: officeOptions
+                        });
+                        
+                        if (!officeId && headerData.nama_office && officeOptions.length > 0) {
+                            // Use exact label matching like Feedmil page
+                            officeId = officeOptions.find(o => o.label === headerData.nama_office)?.value || '';
+                            console.log('🔍 Office exact match result:', { nama_office: headerData.nama_office, officeId });
+                            
+                            // If no exact match, try case-insensitive match
+                            if (!officeId) {
+                                officeId = officeOptions.find(o => o.label.toUpperCase() === headerData.nama_office.toUpperCase())?.value || '';
+                                console.log('🔍 Office case-insensitive match result:', { nama_office: headerData.nama_office, officeId });
+                            }
+                        }
+                        
+                        console.log('🏢 Final office ID:', officeId);
+
+                        // Find jenis pembelian ID - using direct mapping like Feedmil
+                        let jenisPembelianId = headerData.jenis_pembelian || '';
+                        console.log('🔍 Purchase type mapping debug:', {
+                            jenis_pembelian: jenisPembelianId,
+                            jenisPembelianOptions: jenisPembelianOptions
+                        });
+                        
+                        if (jenisPembelianId && jenisPembelianOptions.length > 0) {
+                            // Check if it's already an ID (numeric)
+                            if (!isNaN(parseInt(jenisPembelianId))) {
+                                jenisPembelianId = parseInt(jenisPembelianId);
+                                console.log('✅ Purchase type is already numeric:', jenisPembelianId);
+                            } else {
+                                // It's a text value, map directly like Feedmil
+                                switch (jenisPembelianId.toUpperCase()) {
+                                    case 'INTERNAL': 
+                                        jenisPembelianId = jenisPembelianOptions.find(j => j.label.toUpperCase().includes('INTERNAL'))?.value || 1;
+                                        break;
+                                    case 'EXTERNAL': 
+                                        jenisPembelianId = jenisPembelianOptions.find(j => j.label.toUpperCase().includes('EXTERNAL'))?.value || 2;
+                                        break;
+                                    case 'KONTRAK': 
+                                        jenisPembelianId = jenisPembelianOptions.find(j => j.label.toUpperCase().includes('KONTRAK'))?.value || 3;
+                                        break;
+                                    default: 
+                                        // Try to find by exact label match
+                                        jenisPembelianId = jenisPembelianOptions.find(j => j.label === jenisPembelianId)?.value || '';
+                                        break;
+                                }
+                                console.log('✅ Purchase type mapped:', { original: headerData.jenis_pembelian, mapped: jenisPembelianId });
+                            }
+                        }
+                        
+                        console.log('🏷️ Final purchase type ID:', jenisPembelianId);
+
+                        // Determine data source and log accordingly
+                        // If we found the data from the main search, it's from DataPembelianOvk
+                        // If we fell back to detail endpoint, it's from DataPembelianOvkDetail
+                        const dataSource = headerData.source === 'detail' ? 'DataPembelianOvkDetail (Detail Model)' : 'DataPembelianOvk (Header Model)';
+                        console.log(`📋 Setting header data from ${dataSource}:`, {
+                            original: headerData,
+                            mapped: {
+                                officeId,
+                                jenisPembelianId,
+                                supplierId
+                            },
+                            source: dataSource,
+                            fieldMapping: {
+                                nota: headerData.nota,
+                                idOffice: officeId,
+                                tipePembelian: jenisPembelianId,
+                                idSupplier: supplierId,
+                                tgl_masuk: headerData.tgl_masuk,
+                                nama_supir: headerData.nama_supir,
+                                plat_nomor: headerData.plat_nomor,
+                                jumlah: headerData.jumlah,
+                                biaya_truck: headerData.biaya_truk,
+                                biaya_lain: headerData.biaya_lain,
+                                biaya_total: headerData.total_belanja,
+                                berat_total: headerData.berat_total,
+                                file: headerData.file,
+                                note: headerData.note
+                            }
+                        });
+                        
+                        // Debug field values before setting
+                        console.log('🔍 Field values before setting:', {
+                            nota: headerData.nota,
+                            biaya_lain: headerData.biaya_lain,
+                            biaya_total: headerData.total_belanja,
+                            berat_total: headerData.berat_total,
+                            note: headerData.note,
+                            biaya_truk: headerData.biaya_truk,
+                            parsed_berat_total: parseFloat(headerData.berat_total),
+                            parsed_biaya_lain: parseFloat(headerData.biaya_lain),
+                            parsed_total_belanja: parseFloat(headerData.total_belanja)
+                        });
+                        
+                        setHeaderData({
+                            nota: headerData.nota || '',
+                            idOffice: officeId || officeOptions[0]?.value || '1',
+                            tipePembelian: jenisPembelianId || '',
+                            idSupplier: supplierId,
+                            tgl_masuk: headerData.tgl_masuk || '',
+                            nama_supir: headerData.nama_supir || '',
+                            plat_nomor: headerData.plat_nomor || '',
+                            jumlah: parseInt(headerData.jumlah) || 0,
+                            biaya_truck: parseFloat(headerData.biaya_truk) || 0,
+                            biaya_lain: parseFloat(headerData.biaya_lain) || 0,
+                            biaya_total: parseFloat(headerData.total_belanja) || 0,
+                            berat_total: parseFloat(headerData.berat_total) || 0,
+                            file: headerData.file || '',
+                            fileName: headerData.file ? headerData.file.split('/').pop() : '',
+                            note: headerData.note || ''
+                        });
+                        
+                        console.log('✅ Header data set successfully');
+                    }
+
+                    if (detailResult.success && detailResult.data.length > 0) {
+                        // Load detail items from detail API response
+                        const processedDetailItems = detailResult.data.map((item, index) => ({
+                            id: item.id || index + 1,
+                            // Include backend identifiers for update operations (like Feedmil)
+                            idPembelian: item.id_pembelian, // This is crucial for update operations
+                            id_pembelian: item.id_pembelian, // Keep both for compatibility
+                            encryptedPid: item.pid, // Encrypted PID for existing items
+                            pubid: item.pubid || '', // Raw pubid for API calls
+                            pubidDetail: item.pubid_detail, // Alternative pubid field
+                            id_office: item.id_office || 'head-office',
+                            item_name: item.item_name || '',
+                            id_klasifikasi_ovk: item.id_klasifikasi_ovk || '',
+                            berat: parseFloat(item.berat) || 0,
+                            harga: parseFloat(item.harga) || 0,
+                            persentase: formatPersentaseFromBackend(item.persentase), // Format with comma for display
+                            hpp: parseFloat(item.hpp) || 0,
+                            total_harga: parseFloat(item.total_harga) || 0,
+                        }));
+                        
+                        setDetailItems(processedDetailItems);
                     }
                 } catch (error) {
                     console.error('Error loading edit data:', error);
@@ -187,7 +502,7 @@ const AddEditPembelianOVKPage = () => {
             
             loadEditData();
         }
-    }, [isEdit, id, getPembelianDetail]);
+    }, [isEdit, id, getPembelianDetail, suppliers, officeOptions, jenisPembelianOptions]);
 
 
 
@@ -215,6 +530,11 @@ const AddEditPembelianOVKPage = () => {
     const addDetailItem = () => {
         const newItem = {
             id: Date.now(),
+            pubid: '', // Empty pubid for new items
+            id_pembelian: '', // Will be set when saving
+            idPembelian: '', // Will be set when saving (like Feedmil)
+            encryptedPid: '', // Will be set when saving
+            pubidDetail: '', // Alternative pubid field
             id_office: headerData.idOffice || 'head-office', // Use selected office or fallback
             item_name: defaultData.item_name || '',
             id_klasifikasi_ovk: defaultData.id_klasifikasi_ovk || '',
@@ -223,7 +543,6 @@ const AddEditPembelianOVKPage = () => {
             persentase: defaultData.persentase || '',
             hpp: '', // Will be calculated
             total_harga: '', // Added: total_harga field
-            tgl_masuk_rph: ''
         };
         
         setDetailItems(prev => [...prev, newItem]);
@@ -243,6 +562,11 @@ const AddEditPembelianOVKPage = () => {
         for (let i = 0; i < batchCount; i++) {
             newItems.push({
                 id: Date.now() + i,
+                pubid: '', // Empty pubid for new items
+                id_pembelian: '', // Will be set when saving
+                idPembelian: '', // Will be set when saving (like Feedmil)
+                encryptedPid: '', // Will be set when saving
+                pubidDetail: '', // Alternative pubid field
                 id_office: headerData.idOffice || 'head-office', // Use selected office or fallback
                 item_name: defaultData.item_name || '',
                 id_klasifikasi_ovk: defaultData.id_klasifikasi_ovk || '',
@@ -251,7 +575,6 @@ const AddEditPembelianOVKPage = () => {
                 persentase: defaultData.persentase || '',
                 hpp: '', // Will be calculated
                 total_harga: '', // Added: total_harga field
-                tgl_masuk_rph: ''
             });
         }
         setDetailItems(prev => [...prev, ...newItems]);
@@ -263,9 +586,294 @@ const AddEditPembelianOVKPage = () => {
         });
     };
 
-    // Remove detail item
-    const removeDetailItem = (itemId) => {
-        setDetailItems(prev => prev.filter(item => item.id !== itemId));
+    // Remove detail item - enhanced for edit mode (like Feedmil)
+    const removeDetailItem = async (itemId) => {
+        const item = detailItems.find(detail => detail.id === itemId);
+        if (!item) {
+            setNotification({
+                type: 'error',
+                message: 'Item detail tidak ditemukan'
+            });
+            return;
+        }
+
+        // Set loading state for this specific item
+        setDeletingItemId(itemId);
+
+        try {
+            // Check if this is an existing item from database (has encryptedPid)
+            const hasDetailIdentifier = !!(item.encryptedPid || item.pid || item.pubid || item.pubidDetail);
+            const isTimestampId = typeof item.id === 'number' && item.id > 1000000000; // Timestamp-based IDs are > 1B
+            const isSequentialId = typeof item.id === 'number' && item.id < 1000; // Sequential IDs from database are usually small
+            
+            // An item is existing if:
+            // 1. Has detail identifier (encrypted pid) AND is sequential ID (from backend mapping)
+            // 2. OR has detail identifier AND is not timestamp ID
+            const isExistingItem = hasDetailIdentifier && (isSequentialId || !isTimestampId);
+
+            if (isExistingItem && isEdit) {
+                // This is an existing database item - call backend delete API
+                const detailPid = item.encryptedPid || item.pid || item.pubid || item.pubidDetail;
+                
+                if (!detailPid) {
+                    throw new Error('ID detail tidak ditemukan untuk penghapusan');
+                }
+
+                setNotification({
+                    type: 'info',
+                    message: 'Menghapus detail dari database...'
+                });
+
+                // Call OVK delete API
+                const result = await HttpClient.post(`${API_ENDPOINTS.HO.OVK.PEMBELIAN}/hapus`, {
+                    pid: detailPid
+                });
+                
+                // Check response success with multiple possible formats
+                const isSuccess = (result.data && result.data.success) || 
+                                 (result.data && result.data.status === 'ok') || 
+                                 (result.data && result.data.status === 'success') ||
+                                 (result && result.status === 'ok') ||
+                                 (result && result.status === 'success');
+                
+                if (isSuccess) {
+                    // Remove from local state after successful backend deletion
+                    setDetailItems(prev => prev.filter(item => item.id !== itemId));
+                    
+                    setNotification({
+                        type: 'success',
+                        message: result.data?.message || result.message || 'Detail OVK berhasil dihapus dari database'
+                    });
+                } else {
+                    setNotification({
+                        type: 'error',
+                        message: result.data?.message || result.message || 'Gagal menghapus detail dari database'
+                    });
+                }
+            } else {
+                // This is a new item created in frontend - just remove from local state
+                setDetailItems(prev => prev.filter(item => item.id !== itemId));
+                
+                setNotification({
+                    type: 'success',
+                    message: 'Item detail berhasil dihapus'
+                });
+            }
+        } catch (err) {
+            console.error('Error deleting detail:', err);
+            setNotification({
+                type: 'error',
+                message: err.message || 'Terjadi kesalahan saat menghapus detail'
+            });
+        } finally {
+            // Clear loading state
+            setDeletingItemId(null);
+        }
+    };
+
+    // Save individual detail item
+    const saveDetailItem = async (itemId) => {
+        const item = detailItems.find(detail => detail.id === itemId);
+        if (!item) return;
+
+        // Validate item data
+        if (!item.item_name || !item.item_name.trim()) {
+            setNotification({
+                type: 'error',
+                message: 'Nama item harus diisi'
+            });
+            return;
+        }
+
+        if (!item.id_klasifikasi_ovk) {
+            setNotification({
+                type: 'error',
+                message: 'Klasifikasi OVK harus dipilih'
+            });
+            return;
+        }
+
+        const berat = parseFloat(item.berat);
+        if (isNaN(berat) || berat <= 0) {
+            setNotification({
+                type: 'error',
+                message: 'Berat harus lebih dari 0'
+            });
+            return;
+        }
+
+        const harga = parseFloat(item.harga);
+        if (isNaN(harga) || harga <= 0) {
+            setNotification({
+                type: 'error',
+                message: 'Harga harus lebih dari 0'
+            });
+            return;
+        }
+
+        try {
+            setIsSubmitting(true);
+            setNotification({
+                type: 'info',
+                message: 'Menyimpan perubahan item...'
+            });
+
+            // Check if this is an existing item from database or a new frontend-only item
+            const hasDetailIdentifier = !!(item.encryptedPid || item.pid || item.pubid || item.pubidDetail);
+            const isTimestampId = typeof item.id === 'number' && item.id > 1000000000; // Timestamp-based IDs are > 1B
+            const isSequentialId = typeof item.id === 'number' && item.id < 1000; // Sequential IDs from database are usually small
+            
+            // An item is existing if it has a detail identifier (encrypted pid, pid, pubid, or pubidDetail)
+            // This is the primary indicator that the item came from the database
+            const isExistingItem = hasDetailIdentifier;
+
+            // Prepare detail data for save - use structure like Feedmil
+            const detailData = {
+                idPembelian: item.idPembelian || null, // Use item's id_pembelian if available (for existing items)
+                idOffice: parseInt(headerData.idOffice) || 1, // Use selected office ID
+                item_name: String(item.item_name || ''),
+                id_klasifikasi_ovk: (() => {
+                    const rawValue = item.id_klasifikasi_ovk;
+                    
+                    if (rawValue === null || rawValue === undefined || rawValue === '') {
+                        return null;
+                    }
+                    
+                    const parsed = parseInt(rawValue);
+                    if (isNaN(parsed)) {
+                        return null;
+                    }
+                    
+                    return parsed;
+                })(),
+                harga: parseFloat(item.harga) || 0,
+                berat: parseInt(item.berat) || 0,
+                persentase: getParsedPersentase(item.persentase), // Use comma-aware parsing
+                hpp: parseFloat(item.hpp) || 0,
+                total_harga: parseFloat(item.total_harga) || 0
+            };
+
+            // Validate that we have a valid pembelian ID for existing items only
+            if (isExistingItem && !detailData.idPembelian) {
+                setNotification({
+                    type: 'error',
+                    message: 'ID Pembelian tidak ditemukan untuk detail existing. Data mungkin tidak lengkap.'
+                });
+                return;
+            }
+
+            // Debug log
+            console.log('Saving item with data:', detailData);
+            console.log('Is existing item:', isExistingItem);
+            console.log('Item data:', item);
+
+            // Call API to update individual item using the correct endpoint
+            let result;
+            if (isExistingItem) {
+                // This is an existing database item - use updateDetail with encrypted PID
+                const detailPid = item.encryptedPid || item.pid || item.pubid || item.pubidDetail;
+                
+                // Prepare request data for existing item update
+                const requestData = {
+                    pid: detailPid, // Backend expects encrypted PID for existing items
+                    id_pembelian: detailData.idPembelian, // Always required by backend validator
+                    item_name: detailData.item_name,
+                    id_klasifikasi_ovk: detailData.id_klasifikasi_ovk,
+                    harga: detailData.harga,
+                    persentase: detailData.persentase,
+                    berat: detailData.berat,
+                    hpp: detailData.hpp,
+                    total_harga: detailData.total_harga
+                };
+                
+                result = await HttpClient.post(`${API_ENDPOINTS.HO.OVK.PEMBELIAN}/update`, requestData);
+            } else {
+                // This is a new item created in frontend - use updateDetail with null pid to create new detail
+                // Get id_pembelian from existing detail items
+                let idPembelianValue = null;
+                
+                // Try to get id_pembelian from existing detail items
+                const existingDetailWithId = detailItems.find(item => item.idPembelian);
+                if (existingDetailWithId) {
+                    idPembelianValue = existingDetailWithId.idPembelian;
+                } else {
+                    setNotification({
+                        type: 'error',
+                        message: 'Tidak dapat menambah detail baru: ID pembelian tidak ditemukan. Pastikan header pembelian sudah disimpan dan detail lain sudah ada.'
+                    });
+                    return;
+                }
+                
+                detailData.idPembelian = idPembelianValue; // Use the resolved id_pembelian
+                
+                // Prepare request data for new item creation
+                const requestData = {
+                    pid: null, // null pid will trigger create in backend
+                    id_pembelian: detailData.idPembelian, // Always required by backend validator
+                    id_office: detailData.idOffice, // Required for new items
+                    item_name: detailData.item_name,
+                    id_klasifikasi_ovk: detailData.id_klasifikasi_ovk,
+                    harga: detailData.harga,
+                    persentase: detailData.persentase,
+                    berat: detailData.berat,
+                    hpp: detailData.hpp,
+                    total_harga: detailData.total_harga
+                };
+                
+                result = await HttpClient.post(`${API_ENDPOINTS.HO.OVK.PEMBELIAN}/update`, requestData);
+            }
+
+            // Debug API response
+            console.log('API Response:', result);
+            console.log('Response data:', result.data);
+            console.log('Response success:', result.data?.success);
+            console.log('Response status:', result.data?.status);
+
+            // Check response success with multiple possible formats
+            const isSuccess = (result.data && result.data.success) || 
+                             (result.data && result.data.status === 'ok') || 
+                             (result.data && result.data.status === 'success') ||
+                             (result && result.status === 'ok') ||
+                             (result && result.status === 'success');
+
+            if (isSuccess) {
+                setNotification({
+                    type: 'success',
+                    message: 'Detail item berhasil disimpan!'
+                });
+                
+                // Update the saved item with new encrypted PID if it was a new item
+                if (!isExistingItem && (result.data?.pid || result.data?.data?.pid)) {
+                    const newPid = result.data?.pid || result.data?.data?.pid;
+                    setDetailItems(prevItems => 
+                        prevItems.map(prevItem => 
+                            prevItem.id === item.id 
+                                ? { ...prevItem, encryptedPid: newPid, pubid: newPid }
+                                : prevItem
+                        )
+                    );
+                }
+                
+                // Auto hard refresh setelah save berhasil dalam mode edit (like Feedmil)
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500); // Delay 1.5 detik untuk memberi waktu user melihat notification
+            } else {
+                console.log('Response indicates failure:', result);
+                setNotification({
+                    type: 'error',
+                    message: result.data?.message || result.message || 'Gagal menyimpan detail item'
+                });
+            }
+        } catch (error) {
+            console.error('Error saving detail item:', error);
+            setNotification({
+                type: 'error',
+                message: 'Terjadi kesalahan saat menyimpan item'
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     // Handle default data changes
@@ -418,9 +1026,9 @@ const AddEditPembelianOVKPage = () => {
             if (isNaN(harga) || harga <= 0) {
                 errors.push(`Item ${index + 1}: Harga harus lebih dari 0`);
             }
-            const persentase = parseFloat(item.persentase);
-            if (isNaN(persentase) || persentase <= 0) {
-                errors.push(`Item ${index + 1}: Persentase harus lebih dari 0`);
+            const persentase = getParsedPersentase(item.persentase); // Use comma-aware parsing
+            if (isNaN(persentase) || persentase < 0) {
+                errors.push(`Item ${index + 1}: Persentase harus lebih dari atau sama dengan 0`);
             }
         });
 
@@ -477,7 +1085,7 @@ const AddEditPembelianOVKPage = () => {
                     item_name: item.item_name || null,
                     id_klasifikasi_ovk: item.id_klasifikasi_ovk ? parseInt(item.id_klasifikasi_ovk) || null : null, // Use selected ID directly from dropdown
                     harga: parseFloat(item.harga) || null,
-                    persentase: parseFloat(item.persentase) || null,
+                    persentase: getParsedPersentase(item.persentase) || null, // Use comma-aware parsing
                     berat: parseFloat(item.berat) || null,
                     hpp: parseFloat(item.hpp) || null,
                     total_harga: parseFloat(item.total_harga) || null
@@ -714,9 +1322,10 @@ const AddEditPembelianOVKPage = () => {
                             <input
                                 type="text"
                                 value={headerData.plat_nomor}
-                                onChange={(e) => handleHeaderChange('plat_nomor', e.target.value)}
+                                onChange={(e) => handleHeaderChange('plat_nomor', e.target.value.toUpperCase())}
                                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
                                 placeholder="B1234XX"
+                                style={{ textTransform: 'uppercase' }}
                             />
                         </div>
 
@@ -968,13 +1577,11 @@ const AddEditPembelianOVKPage = () => {
                                 Persentase Default (%)
                             </label>
                             <input
-                                type="number"
-                                value={defaultData.persentase}
+                                type="text"
+                                value={defaultData.persentase || ''}
                                 onChange={(e) => handleDefaultDataChange('persentase', e.target.value)}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                                placeholder="10"
-                                min="0"
-                                step="0.1"
+                                placeholder="15,5"
                             />
                         </div>
                     </div>
@@ -986,10 +1593,9 @@ const AddEditPembelianOVKPage = () => {
                                 Jumlah Batch:
                             </label>
                             <input
-                                type="number"
-                                min="1"
-                                value={batchCount}
-                                onChange={(e) => setBatchCount(parseInt(e.target.value) || 1)}
+                                type="text"
+                                value={formatNumber(batchCount)}
+                                onChange={(e) => setBatchCount(parseNumber(e.target.value) || 1)}
                                 className="w-20 px-2 py-1 border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                             />
                         </div>
@@ -1046,15 +1652,14 @@ const AddEditPembelianOVKPage = () => {
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 w-20">Persentase (%)</th>
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[120px]">HPP (Rp)</th>
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[120px]">Total Harga (Rp)</th>
-                                        <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[120px]">Tgl Masuk RPH</th>
-                                        <th className="p-2 sm:p-3 text-center text-xs sm:text-sm font-semibold text-blue-800 w-16">Aksi</th>
+                                        <th className="p-2 sm:p-3 text-center text-xs sm:text-sm font-semibold text-blue-800 w-20">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {detailItems.map((item, index) => {
-                                        // Calculate HPP: harga + markup persen
+                                        // Calculate HPP: harga + markup persen (using comma-aware parsing)
                                         const harga = parseFloat(item.harga) || 0;
-                                        const persentase = parseFloat(item.persentase) || 0;
+                                        const persentase = getParsedPersentase(item.persentase); // Use comma-aware parsing
                                         const berat = parseFloat(item.berat) || 0;
                                         const hpp = harga && persentase ? harga + (harga * persentase / 100) : harga;
                                         const totalHarga = hpp * berat; // Total harga = HPP * berat
@@ -1119,13 +1724,11 @@ const AddEditPembelianOVKPage = () => {
                                                 {/* Persentase */}
                                                 <td className="p-2 sm:p-3">
                                                     <input
-                                                        type="number"
-                                                        value={item.persentase}
-                                                        onChange={(e) => handleDetailChange(item.id, 'persentase', e.target.value)}
+                                                        type="text"
+                                                        value={item.persentase || ''}
+                                                        onChange={(e) => handlePersentaseChange(item.id, e.target.value)}
                                                         className="w-full px-1 sm:px-2 py-1 border border-gray-300 rounded text-xs sm:text-sm"
-                                                        min="0"
-                                                        step="0.1"
-                                                        placeholder="%"
+                                                        placeholder="15,5"
                                                     />
                                                 </td>
                                                 
@@ -1143,26 +1746,37 @@ const AddEditPembelianOVKPage = () => {
                                                     </div>
                                                 </td>
                                                 
-                                                {/* Tanggal Masuk RPH */}
-                                                <td className="p-2 sm:p-3">
-                                                    <input
-                                                        type="date"
-                                                        value={item.tgl_masuk_rph}
-                                                        onChange={(e) => handleDetailChange(item.id, 'tgl_masuk_rph', e.target.value)}
-                                                        className="w-full px-1 sm:px-2 py-1 border border-gray-300 rounded text-xs sm:text-sm"
-                                                    />
-                                                </td>
-                                                
                                                 {/* Aksi */}
                                                 <td className="p-2 sm:p-3 text-center">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => removeDetailItem(item.id)}
-                                                        className="p-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded"
-                                                        title="Hapus item"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </button>
+                                                    <div className="flex items-center justify-center gap-1">
+                                                        {isEdit && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => saveDetailItem(item.id)}
+                                                                className="p-1 text-green-600 hover:text-green-700 hover:bg-green-50 rounded"
+                                                                title="Simpan perubahan item"
+                                                            >
+                                                                <Save className="w-4 h-4" />
+                                                            </button>
+                                                        )}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeDetailItem(item.id)}
+                                                            disabled={deletingItemId === item.id}
+                                                            className={`p-1 rounded transition-colors ${
+                                                                deletingItemId === item.id 
+                                                                    ? 'text-gray-400 cursor-not-allowed' 
+                                                                    : 'text-red-600 hover:text-red-700 hover:bg-red-50'
+                                                            }`}
+                                                            title={deletingItemId === item.id ? "Menghapus..." : "Hapus item"}
+                                                        >
+                                                            {deletingItemId === item.id ? (
+                                                                <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                                                            ) : (
+                                                                <Trash2 className="w-4 h-4" />
+                                                            )}
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         );

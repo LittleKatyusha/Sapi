@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Building2, User, Calendar, Truck, Hash, Package, Eye, Weight, DollarSign, Download, FileText } from 'lucide-react';
 import usePembelianOVK from './hooks/usePembelianOVK';
-import customTableStyles from './constants/tableStyles';
+import { enhancedOVKTableStyles } from './constants/tableStyles';
 import DataTable from 'react-data-table-component';
 
 const PembelianOVKDetailPage = () => {
@@ -133,7 +133,7 @@ const PembelianOVKDetailPage = () => {
             width: '60px',
             ignoreRowClick: true,
             cell: (row, index) => (
-                <div className="font-semibold text-gray-700 text-center">
+                <div className="flex items-center justify-center w-full h-full font-semibold text-gray-600">
                     {index + 1}
                 </div>
             )
@@ -142,13 +142,13 @@ const PembelianOVKDetailPage = () => {
             name: 'Nama Item',
             selector: row => row.item_name,
             sortable: true,
-            width: '18%',
+            width: '220px',
             wrap: true,
             cell: row => (
-                <div className="text-center">
-                    <span className="font-medium text-gray-900 break-words" title={row.item_name}>
+                <div className="flex items-center justify-center w-full h-full min-h-[40px] px-2">
+                    <div className="text-center font-medium text-gray-800 leading-tight force-wrap">
                         {row.item_name || '-'}
-                    </span>
+                    </div>
                 </div>
             )
         },
@@ -156,13 +156,13 @@ const PembelianOVKDetailPage = () => {
             name: 'Klasifikasi OVK',
             selector: row => row.id_klasifikasi_ovk,
             sortable: true,
-            width: '15%',
+            width: '160px',
             wrap: true,
             cell: row => (
-                <div className="text-center">
-                    <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                <div className="flex items-center justify-center w-full h-full min-h-[40px] px-2">
+                    <div className="bg-green-50 text-green-700 px-3 py-2 rounded-lg font-medium text-center text-xs leading-tight force-wrap">
                         {row.id_klasifikasi_ovk || '-'}
-                    </span>
+                    </div>
                 </div>
             )
         },
@@ -170,13 +170,14 @@ const PembelianOVKDetailPage = () => {
             name: 'Berat (kg)',
             selector: row => row.berat,
             sortable: true,
-            width: '12%',
+            width: '120px',
             wrap: true,
             cell: row => (
-                <div className="text-center">
-                    <span className="text-gray-900 break-words">
-                        {row.berat ? `${row.berat} kg` : '-'}
-                    </span>
+                <div className="flex items-center justify-center w-full h-full min-h-[40px]">
+                    <div className="bg-gray-50 text-gray-700 px-3 py-2 rounded-lg font-semibold text-center">
+                        {row.berat ? `${row.berat}` : '-'}<br/>
+                        <span className="text-xs text-gray-500">kg</span>
+                    </div>
                 </div>
             )
         },
@@ -184,18 +185,18 @@ const PembelianOVKDetailPage = () => {
             name: 'Harga',
             selector: row => row.harga,
             sortable: true,
-            width: '15%',
+            width: '160px',
             wrap: true,
             cell: row => (
-                <div className="text-center">
-                    <span className="inline-flex px-3 py-1.5 text-sm font-semibold rounded-full bg-green-100 text-green-800 break-words">
+                <div className="flex items-center justify-center w-full h-full min-h-[40px] px-1">
+                    <div className="bg-green-50 text-green-700 px-3 py-2 rounded-lg font-semibold text-center text-xs leading-tight">
                         {row.harga ? new Intl.NumberFormat('id-ID', {
                             style: 'currency',
                             currency: 'IDR',
                             minimumFractionDigits: 0,
                             maximumFractionDigits: 0
                         }).format(row.harga) : 'Rp 0'}
-                    </span>
+                    </div>
                 </div>
             )
         },
@@ -203,13 +204,13 @@ const PembelianOVKDetailPage = () => {
             name: 'Persentase (%)',
             selector: row => row.persentase,
             sortable: true,
-            width: '12%',
+            width: '130px',
             wrap: true,
             cell: row => (
-                <div className="text-center">
-                    <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 break-words">
+                <div className="flex items-center justify-center w-full h-full min-h-[40px] px-2">
+                    <div className="bg-blue-50 text-blue-700 px-3 py-2 rounded-lg font-medium text-center text-xs leading-tight">
                         {row.persentase ? `${parseFloat(row.persentase).toFixed(1)}%` : '-'}
-                    </span>
+                    </div>
                 </div>
             )
         },
@@ -217,18 +218,18 @@ const PembelianOVKDetailPage = () => {
             name: 'HPP',
             selector: row => row.hpp,
             sortable: true,
-            width: '15%',
+            width: '160px',
             wrap: true,
             cell: row => (
-                <div className="text-center">
-                    <span className="inline-flex px-3 py-1.5 text-sm font-semibold rounded-full bg-purple-100 text-purple-800 break-words">
+                <div className="flex items-center justify-center w-full h-full min-h-[40px] px-1">
+                    <div className="bg-purple-50 text-purple-700 px-3 py-2 rounded-lg font-semibold text-center text-xs leading-tight">
                         {row.hpp ? new Intl.NumberFormat('id-ID', {
                             style: 'currency',
                             currency: 'IDR',
                             minimumFractionDigits: 0,
                             maximumFractionDigits: 0
                         }).format(row.hpp) : 'Rp 0'}
-                    </span>
+                    </div>
                 </div>
             )
         },
@@ -236,18 +237,18 @@ const PembelianOVKDetailPage = () => {
             name: 'Total Harga',
             selector: row => row.total_harga,
             sortable: true,
-            width: '15%',
+            width: '180px',
             wrap: true,
             cell: row => (
-                <div className="text-center">
-                    <span className="inline-flex px-3 py-1.5 text-sm font-semibold rounded-full bg-red-100 text-red-800 break-words">
+                <div className="flex items-center justify-center w-full h-full min-h-[40px] px-1">
+                    <div className="bg-red-50 text-red-700 px-3 py-2 rounded-lg font-semibold text-center text-xs leading-tight">
                         {row.total_harga ? new Intl.NumberFormat('id-ID', {
                             style: 'currency',
                             currency: 'IDR',
                             minimumFractionDigits: 0,
                             maximumFractionDigits: 0
                         }).format(row.total_harga) : 'Rp 0'}
-                    </span>
+                    </div>
                 </div>
             )
         },
@@ -255,17 +256,17 @@ const PembelianOVKDetailPage = () => {
             name: 'Status',
             selector: row => row.status,
             sortable: true,
-            width: '10%',
+            width: '100px',
             wrap: true,
             cell: row => (
-                <div className="text-center">
-                    <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full break-words ${
+                <div className="flex items-center justify-center w-full h-full min-h-[40px] px-2">
+                    <div className={`px-3 py-2 rounded-lg font-medium text-center text-xs leading-tight ${
                         row.status === 1 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-red-100 text-red-800'
+                            ? 'bg-green-50 text-green-700' 
+                            : 'bg-red-50 text-red-700'
                     }`}>
                         {row.status === 1 ? 'Aktif' : 'Tidak Aktif'}
-                    </span>
+                    </div>
                 </div>
             )
         },
@@ -273,13 +274,17 @@ const PembelianOVKDetailPage = () => {
             name: 'Tgl Masuk RPH',
             selector: row => row.tgl_masuk_rph,
             sortable: true,
-            width: '15%',
+            width: '150px',
             wrap: true,
             cell: row => (
-                <div className="text-center">
-                    <span className="text-gray-900 break-words">
-                        {row.tgl_masuk_rph ? new Date(row.tgl_masuk_rph).toLocaleDateString('id-ID') : '-'}
-                    </span>
+                <div className="flex items-center justify-center w-full h-full min-h-[40px]">
+                    <div className="text-center font-medium text-gray-800 no-wrap">
+                        {row.tgl_masuk_rph ? new Date(row.tgl_masuk_rph).toLocaleDateString('id-ID', {
+                            day: '2-digit',
+                            month: '2-digit', 
+                            year: 'numeric'
+                        }) : '-'}
+                    </div>
                 </div>
             )
         }
@@ -317,6 +322,81 @@ const PembelianOVKDetailPage = () => {
     }
 
     return (
+        <>
+            <style jsx>{`
+                .word-break-all {
+                    word-break: break-all;
+                    overflow-wrap: break-word;
+                    hyphens: auto;
+                }
+                
+                .no-wrap {
+                    white-space: nowrap;
+                    overflow: visible;
+                    text-overflow: clip;
+                }
+                
+                .force-wrap {
+                    white-space: normal;
+                    word-wrap: break-word;
+                    overflow-wrap: break-word;
+                }
+                
+                /* Custom scrollbar styling */
+                .table-scroll-container::-webkit-scrollbar {
+                    height: 8px;
+                }
+                
+                .table-scroll-container::-webkit-scrollbar-track {
+                    background: #f1f5f9;
+                    border-radius: 4px;
+                }
+                
+                .table-scroll-container::-webkit-scrollbar-thumb {
+                    background: #cbd5e1;
+                    border-radius: 4px;
+                    transition: background 0.2s ease;
+                }
+                
+                .table-scroll-container::-webkit-scrollbar-thumb:hover {
+                    background: #94a3b8;
+                }
+                
+                /* Hide scrollbar on Firefox while keeping functionality */
+                .table-scroll-container {
+                    scrollbar-width: thin;
+                    scrollbar-color: #cbd5e1 #f1f5f9;
+                }
+                
+                /* Force header center alignment override */
+                .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol {
+                    text-align: center !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                }
+                
+                .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol > div {
+                    text-align: center !important;
+                    width: 100% !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                }
+                
+                /* Override sort buttons and text alignment */
+                .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol .rdt_TableCol_Sortable {
+                    text-align: center !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    width: 100% !important;
+                }
+                
+                .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol span {
+                    text-align: center !important;
+                }
+            `}</style>
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-0">
             <div className="w-full space-y-6 sm:space-y-8">
                 {/* Header */}
@@ -516,7 +596,7 @@ const PembelianOVKDetailPage = () => {
                 </div>
 
                 {/* Detail Table */}
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 relative w-full">
+                <div className="bg-white rounded-xl shadow-lg border border-gray-100 relative w-full overflow-hidden">
                     <div className="p-6 border-b border-gray-200">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                             <div>
@@ -525,113 +605,95 @@ const PembelianOVKDetailPage = () => {
                                     Detail Item OVK
                                 </h2>
                                 <p className="text-gray-600 text-sm mt-1">
-                                    Rincian setiap item OVK dalam pembelian ini
+                                    Rincian setiap item OVK dalam pembelian ini ({detailData.length} item{detailData.length !== 1 ? 's' : ''})
                                 </p>
                             </div>
                         </div>
                     </div>
                     
-                    <div className="w-full">
-                        <DataTable
-                            title="Daftar Detail Item OVK"
-                            columns={detailColumns}
-                            data={detailData}
-                            pagination
-                            customStyles={{
-                                 // Mulai dengan gaya dasar yang ada
-                                 ...customTableStyles,
-                                 // Timpa atau tambahkan gaya spesifik untuk tabel ini
-                                 table: {
-                                     ...customTableStyles.table,
-                                     style: {
-                                         ...customTableStyles.table.style,
-                                         // Sesuaikan minWidth dengan jumlah dan lebar kolom OVK detail
-                                         minWidth: '1300px', // Lebar untuk 10 kolom dengan total width ~1100px
-                                         width: '100%',
-                                         tableLayout: 'fixed', // Kritis untuk kontrol lebar kolom
-                                         wordWrap: 'break-word',
-                                         overflowWrap: 'break-word',
-                                     }
-                                 },
-                                 tableWrapper: {
-                                     style: {
-                                         overflowX: 'auto', // Aktifkan scroll horizontal
-                                         overflowY: 'auto', // Aktifkan scroll vertikal jika perlu
-                                         maxHeight: '500px', // Sesuaikan tinggi maksimal
-                                         maxWidth: '100%',
-                                         width: '100%',
-                                         border: '1px solid #e2e8f0',
-                                         borderRadius: '8px', // Sesuaikan border radius
-                                         WebkitOverflowScrolling: 'touch',
-                                     }
-                                 },
-                                 headRow: {
-                                     style: {
-                                         position: 'sticky',
-                                         top: 0,
-                                         // Pastikan z-index headRow lebih tinggi dari sel data sticky
-                                         zIndex: 1000,
-                                         backgroundColor: '#ffffff',
-                                         fontWeight: 'bold',
-                                         // Sesuaikan boxShadow untuk konsistensi
-                                         boxShadow: '0 2px 4px rgba(0,0,0,0.08)', // Bayangan lebih halus
-                                     }
-                                 },
-                                 // Tambahkan headCells untuk styling header sticky
-                                 headCells: {
-                                     style: {
-                                         fontSize: '12px',
-                                         fontWeight: 'bold',
-                                         color: 'inherit',
-                                         padding: '8px 12px', // Sesuaikan padding
-                                         // Perbaikan/pastikan styling kolom "No" di header
-                                         '&:first-child': { // Target header kolom pertama ("No")
-                                             position: 'sticky',
-                                             left: 0,
-                                             // z-index header kolom "No" harus > headRow dan > sel data sticky
-                                             zIndex: 1002,
-                                             backgroundColor: '#ffffff', // Latar belakang header
-                                             borderRight: '2px solid #e2e8f0', // Border kanan
-                                             // Tambahkan bayangan vertikal untuk efek pemisahan
-                                             boxShadow: 'inset -3px 0 4px -1px rgba(0, 0, 0, 0.1)',
-                                         },
-                                     },
-                                 },
-                                 cells: {
-                                     style: {
-                                         wordWrap: 'break-word',
-                                         wordBreak: 'break-word',
-                                         whiteSpace: 'normal',
-                                         overflow: 'hidden',
-                                         textOverflow: 'ellipsis',
-                                         // Sesuaikan padding untuk konsistensi
-                                         padding: '8px 12px',
-                                         fontSize: '12px',
-                                         lineHeight: '1.4',
-                                         // Perbaikan/pastikan styling kolom "No" di data
-                                         '&:first-child': { // Target sel data kolom pertama ("No")
-                                             position: 'sticky',
-                                             left: 0,
-                                             // z-index sel data kolom "No" harus < headRow
-                                             zIndex: 999,
-                                             backgroundColor: '#fff', // Latar belakang sel
-                                             borderRight: '2px solid #e2e8f0', // Border kanan
-                                             // Tambahkan bayangan vertikal untuk efek pemisahan
-                                             boxShadow: 'inset -3px 0 4px -1px rgba(0, 0, 0, 0.1)',
-                                         },
-                                     }
-                                 }
-                             }}
-                            noDataComponent={
-                                <div className="text-center py-12">
-                                    <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                                    <p className="text-gray-500 text-lg">Tidak ada detail item OVK ditemukan</p>
-                                </div>
-                            }
-                            responsive={false} // Konsisten dengan halaman utama untuk kontrol penuh scrolling
-                            highlightOnHover
-                            pointerOnHover
-                        />
+                    {/* Scroll Indicator */}
+                    <div className="px-6 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                        <div className="flex items-center text-sm text-gray-600">
+                            <svg className="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16l-4-4m0 0l4-4m-4 4h18"></path>
+                            </svg>
+                            Scroll horizontal untuk melihat semua kolom detail
+                            <svg className="w-4 h-4 ml-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m0-4H3"></path>
+                            </svg>
+                        </div>
+                        <div className="text-xs text-gray-500">
+                            {detailData.length} item{detailData.length !== 1 ? 's' : ''}
+                        </div>
+                    </div>
+                    
+                    {/* Table Container with proper scroll */}
+                    <div className="w-full overflow-x-auto max-w-full table-scroll-container" style={{maxHeight: '60vh'}}>
+                        <div className="min-w-full">
+                            <DataTable
+                                columns={detailColumns}
+                                data={detailData}
+                                pagination
+                                paginationPerPage={25}
+                                paginationRowsPerPageOptions={[10, 25, 50, 100]}
+                                customStyles={{
+                                    ...enhancedOVKTableStyles,
+                                    headCells: {
+                                        style: {
+                                            ...enhancedOVKTableStyles.headCells.style,
+                                            // Override untuk menghapus sticky pada kolom kedua (Aksi) di detail page
+                                            '&:nth-child(2)': {
+                                                position: 'static',
+                                                left: 'auto',
+                                                zIndex: 'auto',
+                                                backgroundColor: '#f8fafc',
+                                                borderLeft: 'none',
+                                                borderRight: '1px solid #e5e7eb',
+                                                boxShadow: 'none',
+                                                willChange: 'auto',
+                                                minWidth: 'auto',
+                                                maxWidth: 'auto',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                textAlign: 'center !important',
+                                            },
+                                        }
+                                    },
+                                    cells: {
+                                        style: {
+                                            ...enhancedOVKTableStyles.cells.style,
+                                            // Override untuk menghapus sticky pada kolom kedua (Aksi) di detail page
+                                            '&:nth-child(2)': {
+                                                position: 'static',
+                                                left: 'auto',
+                                                zIndex: 'auto',
+                                                backgroundColor: '#ffffff !important',
+                                                borderLeft: 'none',
+                                                borderRight: '1px solid #f3f4f6',
+                                                boxShadow: 'none',
+                                                willChange: 'auto',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                minWidth: 'auto',
+                                                maxWidth: 'auto',
+                                            },
+                                        }
+                                    }
+                                }}
+                                noDataComponent={
+                                    <div className="text-center py-12">
+                                        <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                                        <p className="text-gray-500 text-lg">Tidak ada detail item OVK ditemukan</p>
+                                        <p className="text-gray-400 text-sm mt-2">Data detail akan muncul setelah item ditambahkan</p>
+                                    </div>
+                                }
+                                responsive={false}
+                                highlightOnHover
+                                pointerOnHover
+                            />
+                        </div>
                     </div>
                 </div>
 
@@ -647,6 +709,7 @@ const PembelianOVKDetailPage = () => {
                 )}
             </div>
         </div>
+        </>
     );
 };
 

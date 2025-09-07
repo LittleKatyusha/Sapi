@@ -61,17 +61,13 @@ const SearchableSelect = ({
 
     // Handle change to ensure we pass the value correctly
     const handleChange = (selectedOption) => {
-        console.log('🔄 SearchableSelect change:', selectedOption);
         if (onChange) {
-            const valueToPass = selectedOption ? selectedOption.value : '';
-            console.log('🔄 Value being passed to onChange:', valueToPass);
-            onChange(valueToPass);
+            onChange(selectedOption ? selectedOption.value : null);
         }
     };
 
     // Find the selected option object
     const selectedOption = options.find(option => option.value === value) || null;
-    console.log('🔍 SearchableSelect render - value:', value, 'selectedOption:', selectedOption, 'options:', options);
 
     return (
         <div className={className}>

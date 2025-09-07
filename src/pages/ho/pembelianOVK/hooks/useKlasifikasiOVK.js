@@ -30,6 +30,7 @@ const useKlasifikasiOVK = () => {
             // Fallback data untuk development
             setKlasifikasiOVK([
                 {
+                    id: 1,
                     pubid: "ovk-001-fallback",
                     pid: "ovk-001-fallback", 
                     name: "Vitamin A",
@@ -37,6 +38,7 @@ const useKlasifikasiOVK = () => {
                     order_no: 1
                 },
                 {
+                    id: 2,
                     pubid: "ovk-002-fallback",
                     pid: "ovk-002-fallback",
                     name: "Vitamin B Complex", 
@@ -44,6 +46,7 @@ const useKlasifikasiOVK = () => {
                     order_no: 2
                 },
                 {
+                    id: 3,
                     pubid: "ovk-003-fallback",
                     pid: "ovk-003-fallback",
                     name: "Antibiotik Amoxicillin",
@@ -51,6 +54,7 @@ const useKlasifikasiOVK = () => {
                     order_no: 3
                 },
                 {
+                    id: 4,
                     pubid: "ovk-004-fallback", 
                     pid: "ovk-004-fallback",
                     name: "Vaksin Newcastle Disease",
@@ -58,6 +62,7 @@ const useKlasifikasiOVK = () => {
                     order_no: 4
                 },
                 {
+                    id: 5,
                     pubid: "ovk-005-fallback",
                     pid: "ovk-005-fallback", 
                     name: "Desinfektan Kandang",
@@ -77,7 +82,7 @@ const useKlasifikasiOVK = () => {
     // Transform data untuk SearchableSelect options
     const klasifikasiOptions = useMemo(() => {
         return klasifikasiOVK.map(item => ({
-            value: item.id || item.pubid, // Use ID if available, fallback to pubid
+            value: item.id, // Use the actual database ID for backend validation
             label: `${item.name}${item.description ? ` - ${item.description}` : ''}`,
             name: item.name,
             description: item.description,
