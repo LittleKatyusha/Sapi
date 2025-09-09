@@ -1035,21 +1035,11 @@ const AddEditPembelianOVKPage = () => {
             errors.push('Tanggal masuk harus diisi');
         }
 
-        if (!headerData.nama_supir.trim()) {
-            errors.push('Nama supir harus diisi');
-        }
-
-        if (!headerData.plat_nomor.trim()) {
-            errors.push('Plat nomor harus diisi');
-        }
+        // nama_supir, plat_nomor, dan biaya_truck sekarang opsional (nullable)
+        // Validasi dihapus sesuai permintaan client
 
         if (!headerData.note.trim()) {
             errors.push('Catatan pembelian harus diisi');
-        }
-
-        const biayaTruck = parseFloat(headerData.biaya_truck);
-        if (isNaN(biayaTruck) || biayaTruck <= 0) {
-            errors.push('Biaya Truck harus diisi dan lebih dari 0');
         }
 
         if (detailItems.length === 0) {
@@ -1369,7 +1359,7 @@ const AddEditPembelianOVKPage = () => {
                         <div>
                             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                                 <User className="w-4 h-4" />
-                                Nama Supir *
+                                Nama Supir
                             </label>
                             <input
                                 type="text"
@@ -1384,7 +1374,7 @@ const AddEditPembelianOVKPage = () => {
                         <div>
                             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                                 <Truck className="w-4 h-4" />
-                                Plat Nomor *
+                                Plat Nomor
                             </label>
                             <input
                                 type="text"
@@ -1400,7 +1390,7 @@ const AddEditPembelianOVKPage = () => {
                         <div>
                             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                                 <DollarSign className="w-4 h-4" />
-                                Biaya Truck (Rp) *
+                                Biaya Truck (Rp)
                             </label>
                             <input
                                 type="text"
@@ -1409,8 +1399,8 @@ const AddEditPembelianOVKPage = () => {
                                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
                                 placeholder="1.000.000"
                             />
-                            <p className="text-xs text-blue-600 mt-1">
-                                💡 Biaya transportasi truck untuk pengiriman
+                            <p className="text-xs text-gray-500 mt-1">
+                                💡 Biaya transportasi truck untuk pengiriman (opsional)
                             </p>
                         </div>
 
