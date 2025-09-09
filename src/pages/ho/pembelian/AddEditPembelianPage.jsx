@@ -736,13 +736,33 @@ const AddEditPembelianPage = () => {
         handleHeaderChange('fileName', '');
     };
 
-    // View uploaded file from backend
+    // View uploaded file from backend - Updated for new Minio storage
     const viewUploadedFile = (filePath) => {
         if (filePath) {
             try {
-                // Clean file path - remove extra slashes and decode
-                const cleanPath = filePath.replace(/\\/g, '/');
+                // Debug: Log the original path
+                console.log('Original file path:', filePath);
+                
+                let cleanPath;
+                
+                // Check if it's a full Minio URL or relative path
+                if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
+                    const url = new URL(filePath);
+                    const pathParts = url.pathname.split('/');
+                    // Remove empty parts and 'ternasys' prefix
+                    const filteredParts = pathParts.filter(part => part && part !== 'ternasys');
+                    cleanPath = filteredParts.join('/');
+                    console.log('Extracted relative path from Minio URL:', cleanPath);
+                } else {
+                    // It's already a relative path
+                    cleanPath = filePath.replace(/\\/g, '/');
+                    console.log('Using relative path as is:', cleanPath);
+                }
+                
+                // Create the API endpoint URL
                 const fileUrl = `${API_BASE_URL}${API_ENDPOINTS.HO.PEMBELIAN}/file/${cleanPath}`;
+                
+                console.log('Final file URL:', fileUrl);
                 
                 // Get auth token for authenticated request
                 const token = localStorage.getItem('token') || sessionStorage.getItem('token');
@@ -763,28 +783,66 @@ const AddEditPembelianPage = () => {
                     method: 'GET',
                     headers: {
                         'Authorization': `Bearer ${token}`,
-                        'Accept': 'application/pdf,image/*,*/*'
+                        'Accept': 'application/pdf,image/*,*/*',
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache'
                     }
                 })
                 .then(response => {
+                    console.log('Response status:', response.status);
+                    console.log('Response headers:', response.headers);
+                    
                     if (response.ok) {
-                        return response.blob();
+                        // Check if response is a streamed response from backend
+                        const contentType = response.headers.get('content-type');
+                        const contentDisposition = response.headers.get('content-disposition');
+                        
+                        console.log('Content-Type:', contentType);
+                        console.log('Content-Disposition:', contentDisposition);
+                        
+                        // If it's a streamed response, handle it properly
+                        if (contentType && (contentType.includes('application/pdf') || contentType.includes('image/'))) {
+                            return response.blob();
+                        } else {
+                            // Fallback for other content types
+                            return response.blob();
+                        }
                     } else if (response.status === 401) {
                         throw new Error('Sesi login telah berakhir');
+                    } else if (response.status === 404) {
+                        throw new Error('File tidak ditemukan di server');
+                    } else if (response.status === 403) {
+                        throw new Error('Tidak memiliki izin untuk mengakses file ini');
                     } else {
                         throw new Error(`File tidak dapat diakses (${response.status})`);
                     }
                 })
                 .then(blob => {
+                    console.log('Blob received:', blob);
+                    console.log('Blob size:', blob.size);
+                    console.log('Blob type:', blob.type);
+                    
+                    if (blob.size === 0) {
+                        throw new Error('File kosong atau tidak valid');
+                    }
+                    
                     const blobUrl = URL.createObjectURL(blob);
+                    console.log('Blob URL created:', blobUrl);
+                    
                     if (newWindow && !newWindow.closed) {
                         newWindow.location.href = blobUrl;
+                        // Clean up blob URL after a delay to allow the window to load
+                        setTimeout(() => {
+                            URL.revokeObjectURL(blobUrl);
+                        }, 1000);
                     } else {
                         // Fallback: download file
                         const link = document.createElement('a');
                         link.href = blobUrl;
-                        link.download = cleanPath.split('/').pop();
+                        link.download = cleanPath.split('/').pop() || 'document';
+                        document.body.appendChild(link);
                         link.click();
+                        document.body.removeChild(link);
                         URL.revokeObjectURL(blobUrl);
                     }
                 })
@@ -792,6 +850,7 @@ const AddEditPembelianPage = () => {
                     if (newWindow && !newWindow.closed) {
                         newWindow.close();
                     }
+                    console.error('File access error:', error);
                     setNotification({
                         type: 'error',
                         message: error.message || 'Gagal membuka file'
@@ -800,6 +859,7 @@ const AddEditPembelianPage = () => {
                 
 
             } catch (error) {
+                console.error('File access error:', error);
                 setNotification({
                     type: 'error',
                     message: 'Gagal membuka file. Silakan coba lagi.'
