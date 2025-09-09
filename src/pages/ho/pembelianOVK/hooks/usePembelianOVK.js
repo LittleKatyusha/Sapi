@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import HttpClient from '../../../../services/httpClient';
-import { API_ENDPOINTS } from '../../../../config/api';
+import { API_ENDPOINTS, API_BASE_URL } from '../../../../config/api';
 
 
 
@@ -457,7 +457,150 @@ const usePembelianOVK = () => {
         }
     }, []);
 
-    // Download file from pembelian OVK
+    // View uploaded file from pembelian OVK - Updated with new file access pattern
+    const viewUploadedFile = useCallback(async (filePath) => {
+        if (filePath) {
+            try {
+                // Debug: Log the original path
+                console.log('usePembelianOVK - Original file path:', filePath);
+                
+                let cleanPath;
+                
+                // Check if it's a full Minio URL or relative path
+                if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
+                    // It's a full Minio URL, extract the relative path
+                    // Example: http://31.97.110.74:9000/ternasys/ho/ovk/pembelian/2025/9/224/filename.pdf
+                    // Extract: ho/ovk/pembelian/2025/9/224/filename.pdf
+                    const url = new URL(filePath);
+                    const pathParts = url.pathname.split('/');
+                    // Remove empty parts and 'ternasys' prefix
+                    const filteredParts = pathParts.filter(part => part && part !== 'ternasys');
+                    cleanPath = filteredParts.join('/');
+                    console.log('usePembelianOVK - Extracted relative path from Minio URL:', cleanPath);
+                } else {
+                    // It's already a relative path
+                    cleanPath = filePath.replace(/\\/g, '/');
+                    console.log('usePembelianOVK - Using relative path as is:', cleanPath);
+                }
+                
+                // Create the API endpoint URL
+                const fileUrl = `${API_BASE_URL}${API_ENDPOINTS.HO.OVK.PEMBELIAN}/file/${cleanPath}`;
+                
+                console.log('usePembelianOVK - Final file URL:', fileUrl);
+                
+                // Get auth token for authenticated request
+                const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+                
+                if (!token) {
+                    return {
+                        success: false,
+                        message: 'Sesi login telah berakhir. Silakan login kembali.'
+                    };
+                }
+                
+                // Try to open in new tab with authentication
+                const newWindow = window.open('about:blank', '_blank');
+                
+                // Create authenticated request and open in new window
+                const response = await fetch(fileUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/pdf,image/*,*/*',
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache'
+                    }
+                });
+                
+                console.log('usePembelianOVK - Response status:', response.status);
+                console.log('usePembelianOVK - Response headers:', response.headers);
+                
+                if (response.ok) {
+                    // Check if response is a streamed response from backend
+                    const contentType = response.headers.get('content-type');
+                    const contentDisposition = response.headers.get('content-disposition');
+                    
+                    console.log('usePembelianOVK - Content-Type:', contentType);
+                    console.log('usePembelianOVK - Content-Disposition:', contentDisposition);
+                    
+                    // If it's a streamed response, handle it properly
+                    if (contentType && (contentType.includes('application/pdf') || contentType.includes('image/'))) {
+                        const blob = await response.blob();
+                        console.log('usePembelianOVK - Blob received:', blob);
+                        console.log('usePembelianOVK - Blob size:', blob.size);
+                        console.log('usePembelianOVK - Blob type:', blob.type);
+                        
+                        if (blob.size === 0) {
+                            throw new Error('File kosong atau tidak valid');
+                        }
+                        
+                        const blobUrl = URL.createObjectURL(blob);
+                        console.log('usePembelianOVK - Blob URL created:', blobUrl);
+                        
+                        if (newWindow && !newWindow.closed) {
+                            newWindow.location.href = blobUrl;
+                            // Clean up blob URL after a delay to allow the window to load
+                            setTimeout(() => {
+                                URL.revokeObjectURL(blobUrl);
+                            }, 1000);
+                        } else {
+                            // Fallback: download file
+                            const link = document.createElement('a');
+                            link.href = blobUrl;
+                            link.download = cleanPath.split('/').pop() || 'document';
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            URL.revokeObjectURL(blobUrl);
+                        }
+                        
+                        return {
+                            success: true,
+                            message: 'File berhasil dibuka'
+                        };
+                    } else {
+                        // Fallback for other content types
+                        const blob = await response.blob();
+                        const blobUrl = URL.createObjectURL(blob);
+                        
+                        if (newWindow && !newWindow.closed) {
+                            newWindow.location.href = blobUrl;
+                            setTimeout(() => {
+                                URL.revokeObjectURL(blobUrl);
+                            }, 1000);
+                        }
+                        
+                        return {
+                            success: true,
+                            message: 'File berhasil dibuka'
+                        };
+                    }
+                } else if (response.status === 401) {
+                    throw new Error('Sesi login telah berakhir');
+                } else if (response.status === 404) {
+                    throw new Error('File tidak ditemukan di server');
+                } else if (response.status === 403) {
+                    throw new Error('Tidak memiliki izin untuk mengakses file ini');
+                } else {
+                    throw new Error(`File tidak dapat diakses (${response.status})`);
+                }
+                
+            } catch (error) {
+                console.error('usePembelianOVK - File access error:', error);
+                return {
+                    success: false,
+                    message: error.message || 'Gagal membuka file. Silakan coba lagi.'
+                };
+            }
+        } else {
+            return {
+                success: false,
+                message: 'Path file tidak valid'
+            };
+        }
+    }, []);
+
+    // Download file from pembelian OVK - Legacy method for backward compatibility
     const downloadFile = useCallback(async (filePath) => {
         try {
             // Call API endpoint for file download
@@ -636,7 +779,8 @@ const usePembelianOVK = () => {
         deletePembelian,
         deleteLoading,
         getPembelianDetail,
-        downloadFile
+        downloadFile,
+        viewUploadedFile
     };
 };
 

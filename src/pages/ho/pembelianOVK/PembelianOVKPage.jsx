@@ -698,7 +698,6 @@ const PembelianOVKPage = () => {
                                         onEdit={handleEdit}
                                         onDelete={handleDelete}
                                         onDetail={handleDetail}
-                                        apiEndpoint={API_ENDPOINTS.HO.OVK.PEMBELIAN}
                                     />
                                 ))}
                             </div>
