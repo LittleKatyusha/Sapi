@@ -387,24 +387,6 @@ const PembelianOVKDetailPage = () => {
             )
         },
         {
-            name: 'Status',
-            selector: row => row.status,
-            sortable: true,
-            width: '110px',
-            wrap: true,
-            cell: row => (
-                <div className="flex items-center justify-center w-full h-full min-h-[40px] px-2">
-                    <div className={`px-3 py-2 rounded-lg font-medium text-center text-xs leading-tight ${
-                        row.status === 1 
-                            ? 'bg-green-50 text-green-700' 
-                            : 'bg-red-50 text-red-700'
-                    }`}>
-                        {row.status === 1 ? 'Aktif' : 'Tidak Aktif'}
-                    </div>
-                </div>
-            )
-        },
-        {
             name: 'Tgl Masuk RPH',
             selector: row => row.tgl_masuk_rph,
             sortable: true,

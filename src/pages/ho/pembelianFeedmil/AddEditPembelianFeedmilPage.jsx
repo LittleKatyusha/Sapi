@@ -7,6 +7,8 @@ import useKlasifikasiFeedmil from './hooks/useKlasifikasiFeedmil';
 import useJenisPembelianFeedmil from './hooks/useJenisPembelianFeedmil';
 import useOfficesAPI from '../pembelian/hooks/useOfficesAPI';
 import SearchableSelect from '../../../components/shared/SearchableSelect';
+import HttpClient from '../../../services/httpClient';
+import { API_ENDPOINTS } from '../../../config/api';
 
 
 
@@ -87,8 +89,6 @@ const AddEditPembelianFeedmilPage = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [deletingItemId, setDeletingItemId] = useState(null);
     
-    // Flag to prevent unnecessary data reloading
-    const [isDataLoaded, setIsDataLoaded] = useState(false);
 
     // File upload state
     const [selectedFile, setSelectedFile] = useState(null);
@@ -118,6 +118,22 @@ const AddEditPembelianFeedmilPage = () => {
     const parseNumber = (value) => {
         if (!value) return 0;
         return parseInt(value.toString().replace(/\./g, '')) || 0;
+    };
+
+    // Helper functions for safe value handling (like OVK pattern)
+    const safeGetNumber = (value, fallback = '') => {
+        if (value === null || value === undefined || value === '') {
+            return fallback;
+        }
+        const numValue = parseFloat(value);
+        return isNaN(numValue) ? fallback : numValue;
+    };
+
+    const safeGetString = (value, fallback = '') => {
+        if (value === null || value === undefined) {
+            return fallback;
+        }
+        return value.toString();
     };
 
     // Helper functions for decimal formatting (for persentase field)
@@ -195,158 +211,244 @@ const AddEditPembelianFeedmilPage = () => {
 
 
 
-    // Load data untuk edit mode - fetch header from list first, then details
+    // Load data untuk edit mode - using OVK pattern with /data and /show endpoints
     useEffect(() => {
-        // Check if we have the required data for edit mode - simplified conditions
-        const isDataReady = pembelianList && suppliers;
-        const hasRequiredData = isDataReady; // Simplified - just need the arrays to exist
-        
-        
-        // Try to load data if we're in edit mode and have an ID, even with partial data
-        // But only if data hasn't been loaded yet
-        if (isEdit && id && (isDataReady || suppliers) && !isDataLoaded) {
+        // Wait for all required options to load first (like OVK pattern)
+        if (isEdit && id && suppliers.length > 0 && officeOptions.length > 0 && jenisPembelianOptions.length > 0) {
             const loadEditData = async () => {
                 try {
                     const decodedId = decodeURIComponent(id);
                     
+                    // Get header data directly from data endpoint (main data endpoint like OVK)
+                    let headerData = null;
                     
-                    // 1. First get detail data from show endpoint to get the nota
-                    const result = await getPembelianDetail(decodedId);
-                        
-                        if (!result.success || !result.data || result.data.length === 0) {
-                            throw new Error('Tidak dapat mengambil detail data pembelian');
-                        }
-                        
-                        const firstDetail = result.data[0];
+                    // Declare variables at proper scope level (outside try-catch)
+                    let targetNota = null;
+                    let showResponseData = null;
                     
-                    // 2. Find header data from pembelian list - try multiple methods
-                    let headerDataFromList = null;
-                    
-                    // Method 1: Try PID matching
-                    if (!headerDataFromList) {
-                        headerDataFromList = pembelianList.find(item => item.encryptedPid === id);
-                        if (headerDataFromList) {
-                        }
-                    }
-                    
-                    // Method 2: Try decoded PID matching  
-                    if (!headerDataFromList) {
-                        headerDataFromList = pembelianList.find(item => item.encryptedPid === decodedId);
-                        if (headerDataFromList) {
-                        }
-                    }
-                    
-                    // Method 3: PRIMARY - Try nota matching (most reliable)
-                    if (!headerDataFromList && firstDetail.nota && pembelianList && pembelianList.length > 0) {
-                        headerDataFromList = pembelianList.find(item => item.nota === firstDetail.nota);
-                        if (headerDataFromList) {
-                        }
-                    }
-                    
-                    // If still no header data found and pembelianList is empty, we'll use only detail data
-                    if (!headerDataFromList) {
-                    }
-                    
-                    
-                    // 3. Process the data for form population
-                    if (result.success && result.data.length > 0) {
-                        // Handle supplier selection - use nama_supplier from header data
-                        let supplierName = headerDataFromList?.nama_supplier || firstDetail.nama_supplier;
-                        let supplierIdFromName = '';
+                    try {
+                        // Get all data and find the matching record by PID
+                        const headerResponse = await HttpClient.get(`${API_ENDPOINTS.HO.FEEDMIL.PEMBELIAN}/data`, {
+                            params: {
+                                draw: 1,
+                                start: 0,
+                                length: 1000, // Get more records to ensure we find the match
+                                'search[value]': '',
+                                'search[regex]': false,
+                                'order[0][column]': 0,
+                                'order[0][dir]': 'desc'
+                            }
+                        });
                         
-                        // Find supplier ID from name if we have a valid supplier name
-                        if (supplierName) {
-                            supplierIdFromName = suppliers.find(s => s.name === supplierName)?.id || '';
-                        }
-                        
-                        // Also try to get supplier ID directly from backend data if name matching fails
-                        if (!supplierIdFromName && (headerDataFromList?.id_supplier || firstDetail.id_supplier)) {
-                            supplierIdFromName = parseInt(headerDataFromList?.id_supplier || firstDetail.id_supplier) || '';
-                        }
-                        
-                        // Handle office selection - use nama_office from header data
-                        let officeName = headerDataFromList?.nama_office || firstDetail.nama_office;
-                        let officeIdFromName = '';
-                        
-                        // Find office ID from name if we have a valid office name
-                        if (officeName && officeOptions.length > 0) {
-                            officeIdFromName = officeOptions.find(o => o.label === officeName)?.value || '';
-                        }
-                        
-                        
-                        
-                        // Use header data from list if available, fallback to detail data
-                        const headerDataToUse = headerDataFromList || {};
-                        const detailDataFallback = firstDetail || {};
-                        
-                        // Prepare final header data for form population
-                        const finalHeaderData = {
-                            nota: headerDataToUse.nota || detailDataFallback.nota || '',
-                            idOffice: officeIdFromName || parseInt(headerDataToUse.id_office || detailDataFallback.id_office) || '',
-                            // Map tipe_pembelian from backend data
-                            tipePembelian: (function() {
-                                // Check if we already have integer value from tipe_pembelian field
-                                const tipeFromBackend = headerDataToUse.tipe_pembelian || detailDataFallback.tipe_pembelian;
+                        if (headerResponse.data && headerResponse.data.length > 0) {
+                            // Debug: Log the first few items to see structure
+                            console.log('🔍 Raw data from /data endpoint:', headerResponse.data.slice(0, 2));
+                            
+                            // Try multiple search strategies
+                            console.log('🔍 Searching for record with ID:', { id, decodedId, availableRecords: headerResponse.data.length });
+                            
+                            // Strategy: Match directly from /data endpoint using available notas
+                            const availableNotas = headerResponse.data.map(r => r.nota);
+                            console.log('🔍 Available notas in /data endpoint:', availableNotas);
+                            
+                            // Get target nota and detail data from /show endpoint (single call)
+                            try {
+                                console.log('🔍 Getting target nota and detail data from /show endpoint...');
+                                const showResponse = await HttpClient.post(`${API_ENDPOINTS.HO.FEEDMIL.PEMBELIAN}/show`, {
+                                    pid: id
+                                });
                                 
-                                if (tipeFromBackend && !isNaN(parseInt(tipeFromBackend))) {
-                                    return parseInt(tipeFromBackend);
+                                if (showResponse.data && showResponse.data.length > 0) {
+                                    targetNota = showResponse.data[0].nota;
+                                    showResponseData = showResponse.data; // Save for later use
+                                    console.log('🎯 Target nota determined from /show:', targetNota);
+                                } else {
+                                    console.log('❌ No data from /show endpoint');
                                 }
-                                
-                                // Fallback to jenis_pembelian string if tipe_pembelian is not available
-                                const jenisPembelianStr = headerDataToUse.jenis_pembelian || detailDataFallback.jenis_pembelian;
-                                // Map string values to parameter values as per sys_ms_parameter table
-                                // Based on database screenshot: INTERNAL=1, EXTERNAL=2
-                                switch (jenisPembelianStr) {
-                                    case 'INTERNAL': return 1; // Parameter value from database
-                                    case 'EXTERNAL': return 2; // Parameter value from database
-                                    case 'KONTRAK': return 3;  // Potential third option
-                                    default: return '';
+                            } catch (error) {
+                                console.log('❌ Error getting target nota:', error);
+                            }
+
+                            headerData = headerResponse.data.find(item => {
+                                console.log('🔍 Checking record:', { 
+                                    itemPid: item.pid, 
+                                    itemNota: item.nota, 
+                                    searchId: id, 
+                                    decodedId 
+                                });
+
+                                // Strategy 1: PRIORITY - Match by target nota from /show endpoint
+                                const currentIndex = headerResponse.data.indexOf(item);
+                                console.log('🔍 Evaluating record:', {
+                                    nota: item.nota,
+                                    index: currentIndex,
+                                    targetNota: targetNota,
+                                    notaMatch: targetNota && item.nota === targetNota,
+                                    totalRecords: headerResponse.data.length
+                                });
+
+                                // Match by target nota (most reliable)
+                                if (targetNota && item.nota === targetNota) {
+                                    console.log('✅ Found by target nota match:', { nota: item.nota, targetNota });
+                                    return true;
                                 }
-                            })(),
-                            idSupplier: supplierIdFromName || '', // Use matched supplier ID from name (handle null case)
-                            tgl_masuk: headerDataToUse.tgl_masuk || detailDataFallback.tgl_masuk || '',
-                            nama_supir: headerDataToUse.nama_supir || detailDataFallback.nama_supir || '',
-                            plat_nomor: headerDataToUse.plat_nomor || detailDataFallback.plat_nomor || '',
-                            biaya_truck: parseFloat(headerDataToUse.biaya_truk) || parseFloat(detailDataFallback.biaya_truk) || 0,
-                            biaya_lain: parseFloat(headerDataToUse.biaya_lain) || parseFloat(detailDataFallback.biaya_lain) || 0,
-                            berat_total: parseFloat(headerDataToUse.berat_total) || parseFloat(detailDataFallback.berat_total) || 0,
-                            harga_total: parseFloat(headerDataToUse.biaya_total) || parseFloat(detailDataFallback.biaya_total) || 0, // Backend uses biaya_total
-                            total_feedmil: parseInt(headerDataToUse.jumlah) || parseInt(detailDataFallback.jumlah) || result.data.length,
-                            file: headerDataToUse.file || detailDataFallback.file || '',
-                            fileName: headerDataToUse.file_name || detailDataFallback.file_name || '',
-                            note: headerDataToUse.note || detailDataFallback.note || ''
+
+                                // Fallback: use first record only if no target nota available
+                                if (!targetNota && item.nota && currentIndex === 0) {
+                                    console.log('⚠️ Using first record fallback (no target nota):', item.nota);
+                                    return true;
+                                }
+
+                                // Strategy 2: If only one record, use it
+                                if (headerResponse.data.length === 1 && item.nota) {
+                                    console.log('✅ Using single available record:', item.nota);
+                                    return true;
+                                }
+
+                                return false;
+                            });
+                            
+                            if (headerData) {
+                                console.log('✅ Header data found from /data endpoint');
+                            } else {
+                                console.log('❌ Header data NOT found from /data endpoint, will try /show endpoint');
+                            }
+                            
+                            if (headerData) {
+                                // Mark this as coming from header model
+                                headerData.source = 'header';
+                            } else {
+                            }
+                        }
+                        
+                        // If still not found, use data from the first /show call (targetNota call)
+                        if (!headerData && targetNota) {
+                            console.log('⚠️ Using data from /show endpoint as fallback');
+                            // We already have the data from the /show call above, no need to call again
+                            // This fallback should rarely be needed since /data endpoint should work
+                        }
+                        
+                        if (!headerData) {
+                            throw new Error('Header data not found in both DataPembelianFeedmil and detail endpoint');
+                        }
+                    } catch (headerError) {
+                        throw headerError;
+                    }
+                    
+                    // Use detail data from the /show call we already made (avoid duplicate call)
+                    let detailResult = { success: false, data: [] };
+                    if (showResponseData) {
+                        console.log('✅ Using detail data from existing /show call (no duplicate call)');
+                        detailResult = {
+                            success: true,
+                            data: showResponseData,
+                            message: 'Detail data from existing /show call'
                         };
+                    } else {
+                        console.log('⚠️ No existing /show data, calling getPembelianDetail...');
+                        const detailResultPromise = getPembelianDetail(decodedId);
+                        detailResult = await detailResultPromise;
+                    }
+                    
+                    if (headerData) {
+                        // Debug: Log available options
                         
+                        // Find supplier ID by name if we have nama_supplier but not id_supplier
+                        let supplierId = headerData.id_supplier || '';
+                        if (!supplierId && headerData.nama_supplier) {
+                            // Try exact match first
+                            let foundSupplier = suppliers.find(s => s.name === headerData.nama_supplier);
+                            // If no exact match, try partial match (case insensitive)
+                            if (!foundSupplier) {
+                                foundSupplier = suppliers.find(s => 
+                                    s.name.toLowerCase().includes(headerData.nama_supplier.toLowerCase()) ||
+                                    headerData.nama_supplier.toLowerCase().includes(s.name.toLowerCase())
+                                );
+                            }
+                            if (foundSupplier) {
+                                supplierId = foundSupplier.id;
+                            }
+                        }
 
+                        // Find office ID by name - using flexible matching
+                        let officeId = headerData.id_office || '';
                         
-                        // Load header data - matching exact backend response structure
-                        setHeaderData(finalHeaderData);
+                        if (!officeId && headerData.nama_office) {
+                            // Try exact match first
+                            let foundOffice = officeOptions.find(o => o.label === headerData.nama_office);
+                            // If no exact match, try partial match (case insensitive)
+                            if (!foundOffice) {
+                                foundOffice = officeOptions.find(o => 
+                                    o.label.toLowerCase().includes(headerData.nama_office.toLowerCase()) ||
+                                    headerData.nama_office.toLowerCase().includes(o.label.toLowerCase())
+                                );
+                            }
+                            if (foundOffice) {
+                                officeId = foundOffice.value;
+                            }
+                        }
 
-                        // Transform detail items from backend data
-                        const transformedDetailItems = result.data.map((item, index) => ({
+                        // Find tipe pembelian ID by name - using flexible matching
+                        let tipePembelianId = headerData.tipe_pembelian || '';
+                        
+                        if (!tipePembelianId && headerData.jenis_pembelian) {
+                            // Try exact match first
+                            let foundTipePembelian = jenisPembelianOptions.find(t => t.label === headerData.jenis_pembelian);
+                            // If no exact match, try partial match (case insensitive)
+                            if (!foundTipePembelian) {
+                                foundTipePembelian = jenisPembelianOptions.find(t => 
+                                    t.label.toLowerCase().includes(headerData.jenis_pembelian.toLowerCase()) ||
+                                    headerData.jenis_pembelian.toLowerCase().includes(t.label.toLowerCase())
+                                );
+                            }
+                            if (foundTipePembelian) {
+                                tipePembelianId = foundTipePembelian.value;
+                            }
+                        }
+
+                        // Set header data using safe helper functions (like OVK pattern)
+                        setHeaderData({
+                            nota: safeGetString(headerData.nota),
+                            idOffice: officeId || safeGetString(headerData.id_office),
+                            tipePembelian: tipePembelianId || safeGetString(headerData.tipe_pembelian),
+                            idSupplier: supplierId || safeGetString(headerData.id_supplier),
+                            tgl_masuk: safeGetString(headerData.tgl_masuk),
+                            nama_supir: safeGetString(headerData.nama_supir),
+                            plat_nomor: safeGetString(headerData.plat_nomor),
+                            biaya_truck: safeGetNumber(headerData.biaya_truk) || safeGetNumber(headerData.biaya_truck),
+                            biaya_lain: safeGetNumber(headerData.biaya_lain),
+                            berat_total: safeGetNumber(headerData.berat_total),
+                            harga_total: safeGetNumber(headerData.biaya_total) || safeGetNumber(headerData.total_belanja),
+                            total_feedmil: safeGetNumber(headerData.jumlah),
+                            file: safeGetString(headerData.file),
+                            fileName: safeGetString(headerData.file_name) || safeGetString(headerData.fileName),
+                            note: safeGetString(headerData.note) || safeGetString(headerData.catatan)
+                        });
+
+                        // Transform detail items from backend data (using optimized data)
+                        if (detailResult.success && detailResult.data.length > 0) {
+                            const transformedDetailItems = detailResult.data.map((item, index) => ({
                             id: index + 1,
                             // Include backend identifiers for update operations
                             idPembelian: item.id_pembelian, // This is crucial for update operations
                             id_pembelian: item.id_pembelian, // Keep both for compatibility
                             encryptedPid: item.pid, // Encrypted PID for existing items
                             pubidDetail: item.pubid_detail, // Raw pubid if available
-                            // Detail fields
-                            item_name: item.item_name || `Feedmil Item ${index + 1}`,
-                            id_klasifikasi_feedmil: parseInt(item.id_klasifikasi_feedmil) || '',
-                            berat: item.berat && parseInt(item.berat) > 0 ? parseInt(item.berat) : 0,
-                            harga: parseFloat(item.harga) || 0,
+                                // Detail fields using safe helper functions
+                                item_name: safeGetString(item.item_name) || `Feedmil Item ${index + 1}`,
+                                id_klasifikasi_feedmil: safeGetNumber(item.id_klasifikasi_feedmil, ''),
+                                berat: safeGetNumber(item.berat, 0),
+                                harga: safeGetNumber(item.harga, 0),
                             persentase: (() => {
                                 return formatPersentaseFromBackend(item.persentase);
                             })(),
-                            hpp: parseFloat(item.hpp) || 0,
-                            total_harga: parseFloat(item.total_harga) || 0,
-                            tgl_masuk_rph: item.tgl_masuk_rph || new Date().toISOString().split('T')[0]
+                                hpp: safeGetNumber(item.hpp, 0),
+                                total_harga: safeGetNumber(item.total_harga, 0),
+                                tgl_masuk_rph: safeGetString(item.tgl_masuk_rph) || new Date().toISOString().split('T')[0]
                         }));
                         
                         setDetailItems(transformedDetailItems);
-                        
-                        // Mark data as loaded to prevent unnecessary reloading
-                        setIsDataLoaded(true);
+                        }
                         
                     }
                 } catch (error) {
@@ -360,7 +462,7 @@ const AddEditPembelianFeedmilPage = () => {
             
             loadEditData();
         }
-    }, [isEdit, id, getPembelianDetail, pembelianList, suppliers, isDataLoaded]);
+    }, [isEdit, id, suppliers, officeOptions, jenisPembelianOptions]);
 
 
 

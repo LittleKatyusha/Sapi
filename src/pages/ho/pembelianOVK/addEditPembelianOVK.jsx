@@ -179,6 +179,23 @@ const AddEditPembelianOVKPage = () => {
         return result;
     };
 
+    // Helper function to safely get numeric values (including 0) but exclude null/undefined/empty string
+    const safeGetNumber = (value, fallback = '') => {
+        if (value === null || value === undefined || value === '') {
+            return fallback;
+        }
+        const numValue = parseFloat(value);
+        return isNaN(numValue) ? fallback : numValue;
+    };
+
+    // Helper function to safely get string values
+    const safeGetString = (value, fallback = '') => {
+        if (value === null || value === undefined) {
+            return fallback;
+        }
+        return value.toString();
+    };
+
     // Load data untuk edit mode with optimization
     useEffect(() => {
         if (isEdit && id && suppliers.length > 0 && officeOptions.length > 0 && jenisPembelianOptions.length > 0) { // Wait for all options to load first
@@ -188,6 +205,10 @@ const AddEditPembelianOVKPage = () => {
                     
                     // Get header data directly from DataPembelianOvk model (main data endpoint)
                     let headerData = null;
+                    
+                    // Declare variables at proper scope level (outside try-catch)
+                    let targetNota = null;
+                    let showResponseData = null;
                     
                     try {
                         
@@ -204,43 +225,80 @@ const AddEditPembelianOVKPage = () => {
                             }
                         });
                         
-                        
                         if (headerResponse.data && headerResponse.data.length > 0) {
                             
+                            // Debug: Log the first few items to see structure
+                            console.log('🔍 Raw data from /data endpoint:', headerResponse.data.slice(0, 2));
+                            
                             // Try multiple search strategies
+                            console.log('🔍 Searching for record with ID:', { id, decodedId, availableRecords: headerResponse.data.length });
+                            
+                            // Strategy: Match directly from /data endpoint using available notas
+                            const availableNotas = headerResponse.data.map(r => r.nota);
+                            console.log('🔍 Available notas in /data endpoint:', availableNotas);
+                            
+                            // Get target nota and detail data from /show endpoint (single call)
+                            try {
+                                console.log('🔍 Getting target nota and detail data from /show endpoint...');
+                                const showResponse = await HttpClient.post(`${API_ENDPOINTS.HO.OVK.PEMBELIAN}/show`, {
+                                    pid: id
+                                });
+                                
+                                if (showResponse.data && showResponse.data.length > 0) {
+                                    targetNota = showResponse.data[0].nota;
+                                    showResponseData = showResponse.data; // Save for later use
+                                    console.log('🎯 Target nota determined from /show:', targetNota);
+                                } else {
+                                    console.log('❌ No data from /show endpoint');
+                                }
+                            } catch (error) {
+                                console.log('❌ Error getting target nota:', error);
+                            }
+
                             headerData = headerResponse.data.find(item => {
+                                console.log('🔍 Checking record:', { 
+                                    itemPid: item.pid, 
+                                    itemNota: item.nota, 
+                                    searchId: id, 
+                                    decodedId 
+                                });
                                 
-                                // Strategy 1: Match by PID (encrypted pubid)
-                                if (item.pid === id) {
+                                // Strategy 1: PRIORITY - Match by target nota from /show endpoint
+                                const currentIndex = headerResponse.data.indexOf(item);
+                                console.log('🔍 Evaluating record:', { 
+                                    nota: item.nota, 
+                                    index: currentIndex,
+                                    targetNota: targetNota,
+                                    notaMatch: targetNota && item.nota === targetNota,
+                                    totalRecords: headerResponse.data.length
+                                });
+                                
+                                // Match by target nota (most reliable)
+                                if (targetNota && item.nota === targetNota) {
+                                    console.log('✅ Found by target nota match:', { nota: item.nota, targetNota });
                                     return true;
                                 }
                                 
-                                // Strategy 2: Match by decoded ID
-                                if (item.pid === decodedId) {
+                                // Fallback: use first record only if no target nota available
+                                if (!targetNota && item.nota && currentIndex === 0) {
+                                    console.log('⚠️ Using first record fallback (no target nota):', item.nota);
                                     return true;
                                 }
                                 
-                                // Strategy 3: Try to extract nota from URL and match
-                                const urlNota = decodedId || id;
-                                if (item.nota === urlNota) {
-                                    return true;
-                                }
-                                
-                                // Strategy 4: Try partial matches
-                                if (item.nota && urlNota && item.nota.includes(urlNota)) {
-                                    return true;
-                                }
-                                if (item.nota && urlNota && urlNota.includes(item.nota)) {
-                                    return true;
-                                }
-                                
-                                // Strategy 5: If we only have one record and it has the same nota, use it
+                                // Strategy 2: If only one record, use it
                                 if (headerResponse.data.length === 1 && item.nota) {
+                                    console.log('✅ Using single available record:', item.nota);
                                     return true;
                                 }
                                 
                                 return false;
                             });
+                            
+                            if (headerData) {
+                                console.log('✅ Header data found from /data endpoint');
+                            } else {
+                                console.log('❌ Header data NOT found from /data endpoint, will try /show endpoint');
+                            }
                             
                             if (headerData) {
                                 // Mark this as coming from header model
@@ -249,36 +307,11 @@ const AddEditPembelianOVKPage = () => {
                             }
                         }
                         
-                        // If still not found, try using the detail endpoint as fallback
-                        if (!headerData) {
-                            try {
-                                const detailForHeaderResponse = await HttpClient.post(`${API_ENDPOINTS.HO.OVK.PEMBELIAN}/show`, {
-                                    pid: id
-                                });
-                                
-                                if (detailForHeaderResponse.data && detailForHeaderResponse.data.length > 0) {
-                                    const firstDetail = detailForHeaderResponse.data[0];
-                                    headerData = {
-                                        nota: firstDetail.nota || '',
-                                        nama_office: firstDetail.nama_office || 'HEAD OFFICE',
-                                        jenis_pembelian: firstDetail.jenis_pembelian || '',
-                                        nama_supplier: firstDetail.nama_supplier || '',
-                                        tgl_masuk: firstDetail.tgl_masuk || '',
-                                        nama_supir: firstDetail.nama_supir || '',
-                                        plat_nomor: firstDetail.plat_nomor || '',
-                                        jumlah: firstDetail.jumlah || 0,
-                                        biaya_truk: firstDetail.biaya_truk || firstDetail.biaya_truck || 0,
-                                        biaya_lain: firstDetail.biaya_lain || 0,
-                                        biaya_total: firstDetail.biaya_total || 0,
-                                        berat_total: firstDetail.berat_total || 0,
-                                        file: firstDetail.file || '',
-                                        note: firstDetail.note || '',
-                                        pid: id,
-                                        source: 'detail' // Mark this as coming from detail model
-                                    };
-                                }
-                            } catch (detailHeaderError) {
-                            }
+                        // If still not found, use data from the first /show call (targetNota call)
+                        if (!headerData && targetNota) {
+                            console.log('⚠️ Using data from /show endpoint as fallback');
+                            // We already have the data from the /show call above, no need to call again
+                            // This fallback should rarely be needed since /data endpoint should work
                         }
                         
                         if (!headerData) {
@@ -288,9 +321,20 @@ const AddEditPembelianOVKPage = () => {
                         throw headerError;
                     }
                     
-                    // Get detail data in parallel if we have header data
-                    const detailResultPromise = getPembelianDetail(decodedId);
-                    const detailResult = await detailResultPromise;
+                    // Use detail data from the /show call we already made (avoid duplicate call)
+                    let detailResult = { success: false, data: [] };
+                    if (showResponseData) {
+                        console.log('✅ Using detail data from existing /show call (no duplicate call)');
+                        detailResult = {
+                            success: true,
+                            data: showResponseData,
+                            message: 'Detail data from existing /show call'
+                        };
+                    } else {
+                        console.log('⚠️ No existing /show data, calling getPembelianDetail...');
+                        const detailResultPromise = getPembelianDetail(decodedId);
+                        detailResult = await detailResultPromise;
+                    }
                     
                     if (headerData) {
                         // Debug: Log available options
@@ -312,44 +356,89 @@ const AddEditPembelianOVKPage = () => {
                             }
                         }
 
-                        // Find office ID by name - using exact label matching like Feedmil
+                        // Find office ID by name - using flexible matching
                         let officeId = headerData.id_office || '';
                         
                         if (!officeId && headerData.nama_office && officeOptions.length > 0) {
-                            // Use exact label matching like Feedmil page
-                            officeId = officeOptions.find(o => o.label === headerData.nama_office)?.value || '';
+                            const namaOffice = headerData.nama_office;
                             
-                            // If no exact match, try case-insensitive match
+                            // Strategy 1: Exact label matching
+                            officeId = officeOptions.find(o => o.label === namaOffice)?.value || '';
+                            
+                            // Strategy 2: Case-insensitive match
                             if (!officeId) {
-                                officeId = officeOptions.find(o => o.label.toUpperCase() === headerData.nama_office.toUpperCase())?.value || '';
+                                officeId = officeOptions.find(o => o.label.toUpperCase() === namaOffice.toUpperCase())?.value || '';
+                            }
+                            
+                            // Strategy 3: Partial match (contains)
+                            if (!officeId) {
+                                officeId = officeOptions.find(o => 
+                                    o.label.toUpperCase().includes(namaOffice.toUpperCase()) ||
+                                    namaOffice.toUpperCase().includes(o.label.toUpperCase())
+                                )?.value || '';
+                            }
+                            
+                            // Strategy 4: Special cases for common office names
+                            if (!officeId) {
+                                if (namaOffice.toUpperCase().includes('HEAD') || namaOffice.toUpperCase().includes('PUSAT')) {
+                                    officeId = officeOptions.find(o => o.label.toUpperCase().includes('HEAD'))?.value || '';
+                                } else if (namaOffice.toUpperCase().includes('TAPOS')) {
+                                    officeId = officeOptions.find(o => o.label.toUpperCase().includes('TAPOS'))?.value || '';
+                                }
                             }
                         }
                         
 
-                        // Find jenis pembelian ID - using direct mapping like Feedmil
-                        let jenisPembelianId = headerData.jenis_pembelian || '';
+                        // Find jenis pembelian ID - using direct mapping
+                        let jenisPembelianId = headerData.jenis_pembelian || headerData.tipe_pembelian || '';
+                        
+                        console.log('🔍 Jenis Pembelian Debug:', {
+                            original: headerData.jenis_pembelian,
+                            tipe_pembelian: headerData.tipe_pembelian,
+                            jenisPembelianId,
+                            availableOptions: jenisPembelianOptions
+                        });
                         
                         if (jenisPembelianId && jenisPembelianOptions.length > 0) {
                             // Check if it's already an ID (numeric)
                             if (!isNaN(parseInt(jenisPembelianId))) {
                                 jenisPembelianId = parseInt(jenisPembelianId);
                             } else {
-                                // It's a text value, map directly like Feedmil
-                                switch (jenisPembelianId.toUpperCase()) {
-                                    case 'INTERNAL': 
-                                        jenisPembelianId = jenisPembelianOptions.find(j => j.label.toUpperCase().includes('INTERNAL'))?.value || 1;
-                                        break;
-                                    case 'EXTERNAL': 
-                                        jenisPembelianId = jenisPembelianOptions.find(j => j.label.toUpperCase().includes('EXTERNAL'))?.value || 2;
-                                        break;
-                                    case 'KONTRAK': 
-                                        jenisPembelianId = jenisPembelianOptions.find(j => j.label.toUpperCase().includes('KONTRAK'))?.value || 3;
-                                        break;
-                                    default: 
-                                        // Try to find by exact label match
-                                        jenisPembelianId = jenisPembelianOptions.find(j => j.label === jenisPembelianId)?.value || '';
-                                        break;
+                                // It's a text value, map directly
+                                const jenisPembelianText = jenisPembelianId.toString().toUpperCase();
+                                
+                                // Try exact match first
+                                let foundOption = jenisPembelianOptions.find(j => j.label.toUpperCase() === jenisPembelianText);
+                                
+                                // If no exact match, try contains match
+                                if (!foundOption) {
+                                    switch (jenisPembelianText) {
+                                        case 'INTERNAL': 
+                                            foundOption = jenisPembelianOptions.find(j => j.label.toUpperCase().includes('INTERNAL'));
+                                            break;
+                                        case 'EXTERNAL': 
+                                            foundOption = jenisPembelianOptions.find(j => j.label.toUpperCase().includes('EXTERNAL'));
+                                            break;
+                                        case 'KONTRAK': 
+                                            foundOption = jenisPembelianOptions.find(j => j.label.toUpperCase().includes('KONTRAK'));
+                                            break;
+                                        default: 
+                                            // Try partial match
+                                            foundOption = jenisPembelianOptions.find(j => 
+                                                j.label.toUpperCase().includes(jenisPembelianText) ||
+                                                jenisPembelianText.includes(j.label.toUpperCase())
+                                            );
+                                            break;
+                                    }
                                 }
+                                
+                                jenisPembelianId = foundOption?.value || '';
+                                
+                                console.log('🔍 Jenis Pembelian Mapping Result:', {
+                                    input: jenisPembelianText,
+                                    foundOption,
+                                    finalId: jenisPembelianId
+                                });
                             }
                         }
                         
@@ -360,23 +449,68 @@ const AddEditPembelianOVKPage = () => {
                         const dataSource = headerData.source === 'detail' ? 'DataPembelianOvkDetail (Detail Model)' : 'DataPembelianOvk (Header Model)';
                         
                         // Debug field values before setting
+                        console.log('🔍 OVK Edit Data Loading Debug:', {
+                            dataSource,
+                            rawHeaderData: headerData,
+                            rawHeaderDataStringified: JSON.stringify(headerData, null, 2),
+                            allFieldsRaw: {
+                                nota: headerData.nota,
+                                nama_office: headerData.nama_office,
+                                jenis_pembelian: headerData.jenis_pembelian,
+                                nama_supplier: headerData.nama_supplier,
+                                tgl_masuk: headerData.tgl_masuk,
+                                nama_supir: headerData.nama_supir,
+                                plat_nomor: headerData.plat_nomor,
+                                jumlah: headerData.jumlah,
+                                biaya_truk: headerData.biaya_truk,
+                                biaya_lain: headerData.biaya_lain,
+                                biaya_total: headerData.biaya_total,
+                                total_belanja: headerData.total_belanja,
+                                berat_total: headerData.berat_total,
+                                file: headerData.file,
+                                note: headerData.note,
+                                // Check for alternative field names
+                                catatan: headerData.catatan
+                            },
+                            mappedValues: {
+                                nota: safeGetString(headerData.nota),
+                                officeId,
+                                jenisPembelianId,
+                                supplierId,
+                                tgl_masuk: safeGetString(headerData.tgl_masuk),
+                                nama_supir: safeGetString(headerData.nama_supir),
+                                plat_nomor: safeGetString(headerData.plat_nomor),
+                                jumlah: safeGetNumber(headerData.jumlah),
+                                biaya_truck: safeGetNumber(headerData.biaya_truk) || safeGetNumber(headerData.biaya_truck),
+                                biaya_lain: safeGetNumber(headerData.biaya_lain),
+                                biaya_total: safeGetNumber(headerData.biaya_total) || safeGetNumber(headerData.total_belanja),
+                                berat_total: safeGetNumber(headerData.berat_total),
+                                file: safeGetString(headerData.file),
+                                note: safeGetString(headerData.note) || safeGetString(headerData.catatan)
+                            },
+                            availableOptions: {
+                                officeOptions: officeOptions.length,
+                                jenisPembelianOptions: jenisPembelianOptions.length,
+                                suppliers: suppliers.length
+                            }
+                        });
                         
                         setHeaderData({
-                            nota: headerData.nota || '',
+                            nota: safeGetString(headerData.nota),
                             idOffice: officeId || officeOptions[0]?.value || '1',
                             tipePembelian: jenisPembelianId || '',
                             idSupplier: supplierId,
-                            tgl_masuk: headerData.tgl_masuk || '',
-                            nama_supir: headerData.nama_supir || '',
-                            plat_nomor: headerData.plat_nomor || '',
-                            jumlah: parseInt(headerData.jumlah) || 0,
-                            biaya_truck: parseFloat(headerData.biaya_truk) || 0,
-                            biaya_lain: parseFloat(headerData.biaya_lain) || 0,
-                            biaya_total: parseFloat(headerData.biaya_total) || 0,
-                            berat_total: parseFloat(headerData.berat_total) || 0,
-                            file: headerData.file || '',
+                            tgl_masuk: safeGetString(headerData.tgl_masuk),
+                            nama_supir: safeGetString(headerData.nama_supir),
+                            plat_nomor: safeGetString(headerData.plat_nomor),
+                            jumlah: safeGetNumber(headerData.jumlah),
+                            biaya_truck: safeGetNumber(headerData.biaya_truk) || safeGetNumber(headerData.biaya_truck),
+                            biaya_lain: safeGetNumber(headerData.biaya_lain),
+                            biaya_total: safeGetNumber(headerData.biaya_total) || safeGetNumber(headerData.total_belanja),
+                            berat_total: safeGetNumber(headerData.berat_total),
+                            file: safeGetString(headerData.file),
                             fileName: headerData.file ? headerData.file.split('/').pop() : '',
-                            note: headerData.note || ''
+                            note: safeGetString(headerData.note) || safeGetString(headerData.catatan)
                         });
                         
                     }
