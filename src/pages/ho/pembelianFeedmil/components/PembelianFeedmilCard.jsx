@@ -20,7 +20,8 @@ const PembelianFeedmilCard = ({
     onEdit,
     onDelete,
     onDetail,
-    index
+    index,
+    apiEndpoint = API_ENDPOINTS.HO.FEEDMIL.PEMBELIAN
 }) => {
     const [showMenu, setShowMenu] = useState(false);
     const [fileLoading, setFileLoading] = useState(false);
@@ -101,8 +102,8 @@ const PembelianFeedmilCard = ({
                 console.log('PembelianFeedmilCard - Using relative path as is:', cleanPath);
             }
             
-            // Create the API endpoint URL
-            const fileUrl = `${API_BASE_URL}${API_ENDPOINTS.HO.FEEDMIL.PEMBELIAN}/file/${cleanPath}`;
+            // Create the API endpoint URL using the provided endpoint
+            const fileUrl = `${API_BASE_URL}${apiEndpoint}/file/${cleanPath}`;
             
             console.log('PembelianFeedmilCard - Final file URL:', fileUrl);
             

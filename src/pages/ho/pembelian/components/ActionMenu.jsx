@@ -4,7 +4,7 @@ import { Eye, Edit, Copy, Trash2, Download, Loader2, FileText } from 'lucide-rea
 import LaporanPembelianService from '../../../../services/laporanPembelianService';
 import { API_ENDPOINTS, API_BASE_URL } from '../../../../config/api';
 
-const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef }) => {
+const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef, apiEndpoint = API_ENDPOINTS.HO.PEMBELIAN }) => {
     const menuRef = useRef(null);
     const [menuStyle, setMenuStyle] = useState(null);
     const [downloadLoading, setDownloadLoading] = useState(false);
@@ -78,8 +78,8 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef }) => 
                 console.log('ActionMenu - Using relative path as is:', cleanPath);
             }
             
-            // Create the API endpoint URL
-            const fileUrl = `${API_BASE_URL}${API_ENDPOINTS.HO.PEMBELIAN}/file/${cleanPath}`;
+            // Create the API endpoint URL using the provided endpoint
+            const fileUrl = `${API_BASE_URL}${apiEndpoint}/file/${cleanPath}`;
             
             console.log('ActionMenu - Final file URL:', fileUrl);
             

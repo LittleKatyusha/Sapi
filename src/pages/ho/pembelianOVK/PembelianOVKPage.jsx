@@ -8,6 +8,7 @@ import ActionButton from '../pembelian/components/ActionButton';
 import PembelianFeedmilCard from '../pembelianFeedmil/components/PembelianFeedmilCard';
 import CustomPagination from '../pembelianFeedmil/components/CustomPagination';
 import { enhancedOVKTableStyles } from './constants/tableStyles';
+import { API_ENDPOINTS } from '../../../config/api';
 
 // Import modals
 import DeleteConfirmationModal from '../pembelianFeedmil/modals/DeleteConfirmationModal';
@@ -165,6 +166,7 @@ const PembelianOVKPage = () => {
                     onDelete={handleDelete}
                     onDetail={handleDetail}
                     isActive={openMenuId === (row.id || row.encryptedPid)}
+                    apiEndpoint={API_ENDPOINTS.HO.OVK.PEMBELIAN}
                 />
             ),
             ignoreRowClick: true,
@@ -696,6 +698,7 @@ const PembelianOVKPage = () => {
                                         onEdit={handleEdit}
                                         onDelete={handleDelete}
                                         onDetail={handleDetail}
+                                        apiEndpoint={API_ENDPOINTS.HO.OVK.PEMBELIAN}
                                     />
                                 ))}
                             </div>
