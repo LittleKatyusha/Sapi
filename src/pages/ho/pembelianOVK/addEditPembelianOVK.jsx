@@ -98,7 +98,7 @@ const AddEditPembelianOVKPage = () => {
         harga: '',
         persentase: ''
     });
-    const [batchCount, setBatchCount] = useState(1);
+    const [batchCount, setBatchCount] = useState('');
 
     // Use OVK suppliers only (kategori_supplier = 3)
     const supplierOptionsToShow = supplierOptions;
@@ -113,7 +113,7 @@ const AddEditPembelianOVKPage = () => {
 
     // Helper functions for number formatting
     const formatNumber = (value) => {
-        if (!value && value !== 0) return '';
+        if (value === null || value === undefined || value === '') return '';
         const numValue = parseFloat(value);
         if (isNaN(numValue)) return '';
         return numValue.toLocaleString('id-ID');
@@ -180,7 +180,7 @@ const AddEditPembelianOVKPage = () => {
     };
 
     // Helper function to safely get numeric values (including 0) but exclude null/undefined/empty string
-    const safeGetNumber = (value, fallback = '') => {
+    const safeGetNumber = (value, fallback = 0) => {
         if (value === null || value === undefined || value === '') {
             return fallback;
         }
@@ -481,9 +481,9 @@ const AddEditPembelianOVKPage = () => {
                                 nama_supir: safeGetString(headerData.nama_supir),
                                 plat_nomor: safeGetString(headerData.plat_nomor),
                                 jumlah: safeGetNumber(headerData.jumlah),
-                                biaya_truck: safeGetNumber(headerData.biaya_truk) || safeGetNumber(headerData.biaya_truck),
+                                biaya_truck: safeGetNumber(headerData.biaya_truk) ?? safeGetNumber(headerData.biaya_truck),
                                 biaya_lain: safeGetNumber(headerData.biaya_lain),
-                                biaya_total: safeGetNumber(headerData.biaya_total) || safeGetNumber(headerData.total_belanja),
+                                biaya_total: safeGetNumber(headerData.biaya_total) ?? safeGetNumber(headerData.total_belanja),
                                 berat_total: safeGetNumber(headerData.berat_total),
                                 file: safeGetString(headerData.file),
                                 note: safeGetString(headerData.note) || safeGetString(headerData.catatan)
@@ -504,9 +504,9 @@ const AddEditPembelianOVKPage = () => {
                             nama_supir: safeGetString(headerData.nama_supir),
                             plat_nomor: safeGetString(headerData.plat_nomor),
                             jumlah: safeGetNumber(headerData.jumlah),
-                            biaya_truck: safeGetNumber(headerData.biaya_truk) || safeGetNumber(headerData.biaya_truck),
+                            biaya_truck: safeGetNumber(headerData.biaya_truk) ?? safeGetNumber(headerData.biaya_truck),
                             biaya_lain: safeGetNumber(headerData.biaya_lain),
-                            biaya_total: safeGetNumber(headerData.biaya_total) || safeGetNumber(headerData.total_belanja),
+                            biaya_total: safeGetNumber(headerData.biaya_total) ?? safeGetNumber(headerData.total_belanja),
                             berat_total: safeGetNumber(headerData.berat_total),
                             file: safeGetString(headerData.file),
                             fileName: headerData.file ? headerData.file.split('/').pop() : '',
@@ -595,7 +595,7 @@ const AddEditPembelianOVKPage = () => {
 
     // Add multiple detail items (batch)
     const addBatchDetailItems = () => {
-        if (batchCount < 1) {
+        if (!batchCount || batchCount < 1) {
             setNotification({
                 type: 'error',
                 message: 'Jumlah batch minimal 1 item'
@@ -604,7 +604,7 @@ const AddEditPembelianOVKPage = () => {
         }
 
         const newItems = [];
-        for (let i = 0; i < batchCount; i++) {
+        for (let i = 0; i < (batchCount || 0); i++) {
             newItems.push({
                 id: Date.now() + i,
                 pubid: '', // Empty pubid for new items
@@ -627,7 +627,7 @@ const AddEditPembelianOVKPage = () => {
         // Show success notification
         setNotification({
             type: 'success',
-            message: `Berhasil menambahkan ${batchCount} item dengan data default`
+            message: `Berhasil menambahkan ${batchCount || 0} item dengan data default`
         });
     };
 
@@ -1102,11 +1102,11 @@ const AddEditPembelianOVKPage = () => {
                 nota: headerData.nota,
                 id_supplier: parseInt(headerData.idSupplier),
                 tgl_masuk: headerData.tgl_masuk,
-                nama_supir: headerData.nama_supir,
-                plat_nomor: headerData.plat_nomor,
+                nama_supir: headerData.nama_supir || '-',
+                plat_nomor: headerData.plat_nomor || '-',
                 jumlah: parseInt(headerData.jumlah) || null,
-                biaya_truk: parseFloat(headerData.biaya_truck) || 0,
-                biaya_lain: parseFloat(headerData.biaya_lain) || 0,
+                biaya_truk: headerData.biaya_truck ? parseFloat(headerData.biaya_truck) : 0,
+                biaya_lain: headerData.biaya_lain ? parseFloat(headerData.biaya_lain) : 0,
                 biaya_total: parseFloat(headerData.biaya_total) || null,
                 berat_total: parseFloat(headerData.berat_total) || null,
                 tipe_pembelian: parseInt(headerData.tipePembelian),
@@ -1390,7 +1390,7 @@ const AddEditPembelianOVKPage = () => {
                         <div>
                             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                                 <DollarSign className="w-4 h-4" />
-                                Biaya Truck (Rp)
+                                Biaya Ongkos Kirim (Rp)
                             </label>
                             <input
                                 type="text"
@@ -1408,7 +1408,7 @@ const AddEditPembelianOVKPage = () => {
                         <div>
                             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                                 <DollarSign className="w-4 h-4" />
-                                Biaya Lain (Rp)
+                                Biaya Lain - Lain (RP)
                             </label>
                             <input
                                 type="text"
@@ -1426,7 +1426,7 @@ const AddEditPembelianOVKPage = () => {
                         <div>
                             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                                 <Weight className="w-4 h-4" />
-                                Berat Total (kg)
+                                Berat Total (Kg)
                             </label>
                             <input
                                 type="number"
@@ -1652,7 +1652,7 @@ const AddEditPembelianOVKPage = () => {
                             <input
                                 type="text"
                                 value={formatNumber(batchCount)}
-                                onChange={(e) => setBatchCount(parseNumber(e.target.value) || 1)}
+                                onChange={(e) => setBatchCount(parseNumber(e.target.value) || '')}
                                 className="w-20 px-2 py-1 border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                             />
                         </div>
@@ -1662,7 +1662,7 @@ const AddEditPembelianOVKPage = () => {
                             className="bg-gradient-to-r from-orange-500 to-amber-600 text-white px-4 py-2 rounded-lg hover:from-orange-600 hover:to-amber-700 transition-all duration-300 flex items-center gap-2 text-sm font-medium shadow-md hover:shadow-lg"
                         >
                             <Plus className="w-4 h-4" />
-                            Tambah {batchCount} Item Batch
+                            Tambah {batchCount || 0} Item Batch
                         </button>
 
                         {/* Info Text */}

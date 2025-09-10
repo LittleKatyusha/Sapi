@@ -111,7 +111,7 @@ const AddEditPembelianFeedmilPage = () => {
     
     // Helper functions for number formatting (same as pembelian)
     const formatNumber = (value) => {
-        if (!value) return '';
+        if (value === null || value === undefined || value === '') return '';
         return parseInt(value).toLocaleString('id-ID');
     };
 
@@ -121,7 +121,7 @@ const AddEditPembelianFeedmilPage = () => {
     };
 
     // Helper functions for safe value handling (like OVK pattern)
-    const safeGetNumber = (value, fallback = '') => {
+    const safeGetNumber = (value, fallback = 0) => {
         if (value === null || value === undefined || value === '') {
             return fallback;
         }
@@ -415,7 +415,7 @@ const AddEditPembelianFeedmilPage = () => {
                             tgl_masuk: safeGetString(headerData.tgl_masuk),
                             nama_supir: safeGetString(headerData.nama_supir),
                             plat_nomor: safeGetString(headerData.plat_nomor),
-                            biaya_truck: safeGetNumber(headerData.biaya_truk) || safeGetNumber(headerData.biaya_truck),
+                            biaya_truck: safeGetNumber(headerData.biaya_truk) ?? safeGetNumber(headerData.biaya_truck),
                             biaya_lain: safeGetNumber(headerData.biaya_lain),
                             berat_total: safeGetNumber(headerData.berat_total),
                             harga_total: safeGetNumber(headerData.biaya_total) || safeGetNumber(headerData.total_belanja),
@@ -436,7 +436,7 @@ const AddEditPembelianFeedmilPage = () => {
                             pubidDetail: item.pubid_detail, // Raw pubid if available
                                 // Detail fields using safe helper functions
                                 item_name: safeGetString(item.item_name) || `Feedmil Item ${index + 1}`,
-                                id_klasifikasi_feedmil: safeGetNumber(item.id_klasifikasi_feedmil, ''),
+                                id_klasifikasi_feedmil: safeGetNumber(item.id_klasifikasi_feedmil, 0),
                                 berat: safeGetNumber(item.berat, 0),
                                 harga: safeGetNumber(item.harga, 0),
                             persentase: (() => {
@@ -976,6 +976,11 @@ const AddEditPembelianFeedmilPage = () => {
                 nama_supplier: selectedSupplier ? selectedSupplier.name : '',
                 id_supplier: headerData.idSupplier,
                 jenis_supplier: selectedSupplier ? selectedSupplier.jenis_supplier : '',
+                // Transform nullable fields
+                nama_supir: headerData.nama_supir || '-',
+                plat_nomor: headerData.plat_nomor || '-',
+                biaya_truck: headerData.biaya_truck ? parseFloat(headerData.biaya_truck) : 0,
+                biaya_lain: headerData.biaya_lain ? parseFloat(headerData.biaya_lain) : 0,
                 // Ensure file is properly passed if selected
                 file: selectedFile || null
             };
@@ -1250,7 +1255,7 @@ const AddEditPembelianFeedmilPage = () => {
                         <div>
                             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                                 <DollarSign className="w-4 h-4" />
-                                Biaya Lain (Rp)
+                                Biaya Lain - Lain (RP)
                             </label>
                             <input
                                 type="text"
@@ -1268,7 +1273,7 @@ const AddEditPembelianFeedmilPage = () => {
                         <div>
                             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                                 <Weight className="w-4 h-4" />
-                                Berat Total (kg)
+                                Berat Total (Kg)
                             </label>
                             <input
                                 type="number"
