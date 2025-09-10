@@ -67,6 +67,9 @@ const AddEditPembelianFeedmilPage = () => {
     // Header form state - aligned with backend validation requirements
     const [headerData, setHeaderData] = useState({
         nota: '',
+        nota_cv: '', // Nomor Nota CV. Puput Bersaudara
+        farm: '', // Farm
+        syarat_pembelian: '', // Syarat Pembelian
         idOffice: '', // Office now selectable
         tipePembelian: '',
         idSupplier: '',
@@ -409,6 +412,9 @@ const AddEditPembelianFeedmilPage = () => {
                         // Set header data using safe helper functions (like OVK pattern)
                         setHeaderData({
                             nota: safeGetString(headerData.nota),
+                            nota_cv: safeGetString(headerData.nota_cv),
+                            farm: safeGetString(headerData.farm),
+                            syarat_pembelian: safeGetString(headerData.syarat_pembelian),
                             idOffice: officeId || safeGetString(headerData.id_office),
                             tipePembelian: tipePembelianId || safeGetString(headerData.tipe_pembelian),
                             idSupplier: supplierId || safeGetString(headerData.id_supplier),
@@ -887,7 +893,15 @@ const AddEditPembelianFeedmilPage = () => {
         const errors = [];
 
         if (!headerData.nota.trim()) {
-            errors.push('Nomor Nota harus diisi');
+            errors.push('Nomor Nota Supplier harus diisi');
+        }
+
+        if (!headerData.farm.trim()) {
+            errors.push('Farm harus diisi');
+        }
+
+        if (!headerData.syarat_pembelian.trim()) {
+            errors.push('Syarat Pembelian harus diisi');
         }
 
         if (!headerData.tipePembelian) {
@@ -981,6 +995,10 @@ const AddEditPembelianFeedmilPage = () => {
                 plat_nomor: headerData.plat_nomor || '-',
                 biaya_truck: headerData.biaya_truck ? parseFloat(headerData.biaya_truck) : 0,
                 biaya_lain: headerData.biaya_lain ? parseFloat(headerData.biaya_lain) : 0,
+                // New fields
+                nota_cv: headerData.nota_cv || null,
+                farm: headerData.farm || null,
+                syarat_pembelian: headerData.syarat_pembelian || null,
                 // Ensure file is properly passed if selected
                 file: selectedFile || null
             };
@@ -1094,20 +1112,36 @@ const AddEditPembelianFeedmilPage = () => {
                     </h2>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-                        {/* Nomor Nota */}
+                        {/* Nomor Nota Supplier */}
                         <div>
                             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                                 <Hash className="w-4 h-4" />
-                                Nomor Nota *
+                                Nomor Nota Supplier *
                             </label>
                             <input
                                 type="text"
                                 value={headerData.nota}
                                 onChange={(e) => handleHeaderChange('nota', e.target.value)}
                                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                placeholder="Masukkan nomor nota"
+                                placeholder="Masukkan nomor nota supplier"
                             />
                         </div>
+
+                        {/* Nomor Nota CV. Puput Bersaudara */}
+                        <div>
+                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <Hash className="w-4 h-4" />
+                                Nomor Nota CV. Puput Bersaudara
+                            </label>
+                            <input
+                                type="text"
+                                value={headerData.nota_cv}
+                                onChange={(e) => handleHeaderChange('nota_cv', e.target.value)}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                                placeholder="Masukkan nomor nota CV"
+                            />
+                        </div>
+
 
                         {/* Office */}
                         <div>
@@ -1324,6 +1358,36 @@ const AddEditPembelianFeedmilPage = () => {
                             <p className="text-xs text-blue-600 mt-1">
                                 💡 Total jumlah feedmil dalam pembelian ini
                             </p>
+                        </div>
+
+                        {/* Farm */}
+                        <div>
+                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <Hash className="w-4 h-4" />
+                                Farm *
+                            </label>
+                            <input
+                                type="text"
+                                value={headerData.farm}
+                                onChange={(e) => handleHeaderChange('farm', e.target.value)}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                                placeholder="Masukkan nama farm"
+                            />
+                        </div>
+
+                        {/* Syarat Pembelian */}
+                        <div>
+                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <Hash className="w-4 h-4" />
+                                Syarat Pembelian *
+                            </label>
+                            <input
+                                type="text"
+                                value={headerData.syarat_pembelian}
+                                onChange={(e) => handleHeaderChange('syarat_pembelian', e.target.value)}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                                placeholder="Masukkan syarat pembelian"
+                            />
                         </div>
 
                         {/* Note Field - Required by Backend */}
