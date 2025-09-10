@@ -12,32 +12,29 @@ const useKlasifikasiFeedmil = () => {
         setError(null);
         
         try {
-            // Use centralized parameter endpoint like pembelian HO (includes id field)
-            const jsonData = await HttpClient.get(`${API_ENDPOINTS.MASTER.PARAMETER}/data`);
+            // Use dedicated klasifikasi feedmil endpoint to avoid loading unnecessary eartag data
+            const jsonData = await HttpClient.get(`${API_ENDPOINTS.MASTER.KLASIFIKASI_FEEDMIL}/data`);
             
-            // Handle ParameterSelectController response format
-            if (jsonData && jsonData.data && Array.isArray(jsonData.data) && jsonData.data.length > 0) {
-                const parameterData = jsonData.data[0];
+            // Handle direct klasifikasi feedmil response format
+            if (jsonData && jsonData.data && Array.isArray(jsonData.data)) {
+                const klasifikasiData = jsonData.data;
                 
-                // Extract klasifikasi feedmil data from ParameterSelectController
-                const klasifikasiData = parameterData.klasifikasifeedmil || [];
-                
-
+                console.log('📦 Fetching klasifikasi feedmil from dedicated endpoint:', klasifikasiData.length, 'items');
                 
                 // Map the data to feedmil format with proper ID field
                 const mappedData = klasifikasiData.map((item, index) => ({
-                    id: item.id, // ✅ Now we have the ID field from ParameterSelectController!
+                    id: item.id || item.pid, // Use id or pid as fallback
                     pubid: item.pubid || `temp_pubid_${index}`,
-                    name: item.name,
-                    description: item.description || item.name, // Use description or fallback to name
+                    name: item.name || item.nama,
+                    description: item.description || item.name || item.nama,
                     pid: item.pid || `temp_pid_${index}`
                 }));
                 
                 setKlasifikasiFeedmil(mappedData);
+                console.log('✅ Klasifikasi feedmil loaded from dedicated endpoint:', mappedData.length, 'items');
                 
             } else {
-
-                throw new Error('Failed to fetch parameter data');
+                throw new Error('Failed to fetch klasifikasi feedmil data');
             }
         } catch (err) {
             console.error('❌ Error fetching klasifikasi feedmil:', err);

@@ -204,12 +204,14 @@ const AddEditPembelianFeedmilPage = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []); // Intentionally empty - we only want to fetch once on mount
 
-    // Load pembelian list first for header data (similar to regular pembelian page)
+    // Load pembelian list ONLY for edit mode - not needed for add mode
     useEffect(() => {
-        if (!pembelianList || pembelianList.length === 0) {
-            fetchPembelian(1, 1000, '', '', false); // Fetch large list to get all header data
+        // Only fetch pembelian list in edit mode when we need to load existing data
+        if (isEdit && (!pembelianList || pembelianList.length === 0)) {
+            fetchPembelian(1, 1000, '', '', false); // Fetch large list to get all header data for edit mode
         }
-    }, [fetchPembelian, pembelianList]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isEdit]); // Only depend on isEdit to prevent unnecessary calls in add mode
 
 
 
@@ -1239,7 +1241,7 @@ const AddEditPembelianFeedmilPage = () => {
                         <div>
                             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                                 <User className="w-4 h-4" />
-                                Nama Supir
+                                Nama Sopir
                             </label>
                             <input
                                 type="text"

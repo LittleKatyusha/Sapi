@@ -45,7 +45,8 @@ const PembelianFeedmilPage = () => {
 
     useEffect(() => {
         fetchPembelian();
-    }, []);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Remove fetchPembelian dependency to prevent infinite loop
 
     const handleEdit = (pembelian) => {
         const id = pembelian.encryptedPid || pembelian.id;

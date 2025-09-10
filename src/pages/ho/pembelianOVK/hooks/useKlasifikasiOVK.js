@@ -12,29 +12,26 @@ const useKlasifikasiOVK = () => {
         setError(null);
         
         try {
-            // Use centralized parameter endpoint like feedmil (includes id field)
-            const jsonData = await HttpClient.get(`${API_ENDPOINTS.MASTER.PARAMETER}/data`);
+            // Use dedicated klasifikasi OVK endpoint to avoid loading unnecessary eartag data
+            const jsonData = await HttpClient.get(`${API_ENDPOINTS.MASTER.KLASIFIKASI_OVK}/data`);
             
-            // Handle ParameterSelectController response format
-            if (jsonData && jsonData.data && Array.isArray(jsonData.data) && jsonData.data.length > 0) {
-                const parameterData = jsonData.data[0];
+            // Handle direct klasifikasi OVK response format
+            if (jsonData && jsonData.data && Array.isArray(jsonData.data)) {
+                const klasifikasiData = jsonData.data;
                 
-                // Extract klasifikasi OVK data from ParameterSelectController
-                const klasifikasiData = parameterData.klasifikasiovk || [];
-                
-                console.log('📦 Fetching klasifikasi OVK from ParameterSelectController:', klasifikasiData);
+                console.log('📦 Fetching klasifikasi OVK from dedicated endpoint:', klasifikasiData.length, 'items');
                 
                 // Map the data to OVK format with proper ID field
                 const mappedData = klasifikasiData.map((item, index) => ({
-                    id: item.id, // ✅ Now we have the ID field from ParameterSelectController!
+                    id: item.id || item.pid, // Use id or pid as fallback
                     pubid: item.pubid || `temp_pubid_${index}`,
-                    name: item.name,
-                    description: item.description || '', // Keep description separate
+                    name: item.name || item.nama,
+                    description: item.description || item.name || item.nama,
                     pid: item.pid || `temp_pid_${index}`
                 }));
                 
                 setKlasifikasiOVK(mappedData);
-                console.log('✅ Klasifikasi OVK loaded from ParameterSelectController:', mappedData.length, 'items');
+                console.log('✅ Klasifikasi OVK loaded from dedicated endpoint:', mappedData.length, 'items');
                 
             } else {
                 throw new Error('Failed to fetch parameter data');

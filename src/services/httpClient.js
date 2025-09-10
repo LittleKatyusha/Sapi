@@ -8,6 +8,63 @@ import { API_BASE_URL } from '../config/api.js';
 import performanceMonitor from '../utils/performanceMonitor';
 import { CORS_CONFIG, generateCorsHeaders } from '../config/cors.js';
 
+// Track failed requests to prevent infinite retry loops
+const failedRequests = new Map();
+const MAX_RETRY_ATTEMPTS = 3;
+const RETRY_DELAY = 5000; // 5 seconds
+
+/**
+ * Check if a request should be blocked due to recent failures
+ */
+const shouldBlockRequest = (url) => {
+  const now = Date.now();
+  const requestKey = url;
+  
+  if (failedRequests.has(requestKey)) {
+    const { attempts, lastAttempt } = failedRequests.get(requestKey);
+    
+    // If we've exceeded max attempts and it's been less than RETRY_DELAY since last attempt
+    if (attempts >= MAX_RETRY_ATTEMPTS && (now - lastAttempt) < RETRY_DELAY) {
+      console.warn(`🚫 Blocking request to ${url} - too many recent failures (${attempts} attempts)`);
+      return true;
+    }
+    
+    // Reset counter if enough time has passed
+    if ((now - lastAttempt) >= RETRY_DELAY) {
+      failedRequests.delete(requestKey);
+    }
+  }
+  
+  return false;
+};
+
+/**
+ * Record a failed request
+ */
+const recordFailedRequest = (url) => {
+  const requestKey = url;
+  const now = Date.now();
+  
+  if (failedRequests.has(requestKey)) {
+    const existing = failedRequests.get(requestKey);
+    failedRequests.set(requestKey, {
+      attempts: existing.attempts + 1,
+      lastAttempt: now
+    });
+  } else {
+    failedRequests.set(requestKey, {
+      attempts: 1,
+      lastAttempt: now
+    });
+  }
+};
+
+/**
+ * Clear failed request record (on successful request)
+ */
+const clearFailedRequest = (url) => {
+  failedRequests.delete(url);
+};
 
 /**
  * Default headers for all requests (includes CORS headers)
@@ -120,6 +177,12 @@ const handleResponseError = async (response) => {
           errorMessage = 'Server mengalami kesalahan internal. Silakan coba lagi dalam beberapa saat.';
         } else if (response.status === 503) {
           errorMessage = 'Layanan sementara tidak tersedia. Silakan coba lagi nanti.';
+          // Log 503 errors to prevent retry loops
+          console.error('🚨 Service Unavailable (503):', {
+            status: response.status,
+            url: response.url,
+            message: 'Server is temporarily unavailable - preventing retry loops'
+          });
         } else if (response.status === 404) {
           errorMessage = 'Endpoint atau data yang diminta tidak ditemukan.';
         } else if (response.status === 403) {
@@ -190,18 +253,33 @@ class HttpClient {
         }
       }
       
+      // Check if request should be blocked due to recent failures
+      if (shouldBlockRequest(url)) {
+        throw new Error('Request blocked due to recent failures. Please wait before retrying.');
+      }
+      
       // Remove params from options before passing to fetch
       const { params, ...fetchOptions } = options;
       
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: await buildHeaders(options.headers),
-        credentials: 'include',
-        ...fetchOptions
-      });
-      
-      await handleResponseError(response);
-      return response.json();
+      try {
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: await buildHeaders(options.headers),
+          credentials: 'include',
+          ...fetchOptions
+        });
+        
+        await handleResponseError(response);
+        
+        // Clear failed request record on success
+        clearFailedRequest(url);
+        
+        return response.json();
+      } catch (error) {
+        // Record failed request for retry prevention
+        recordFailedRequest(url);
+        throw error;
+      }
     });
   }
 

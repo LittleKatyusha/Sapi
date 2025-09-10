@@ -128,7 +128,7 @@ const usePembelianFeedmil = () => {
             setLoading(false);
             setIsSearching(false);
         }
-    }, [searchTerm, filterJenisPembelian, serverPagination.currentPage, serverPagination.perPage]);
+    }, [searchTerm, filterJenisPembelian]); // Remove serverPagination dependencies to prevent infinite loops
 
     // Create pembelian feedmil
     const createPembelian = useCallback(async (pembelianData) => {

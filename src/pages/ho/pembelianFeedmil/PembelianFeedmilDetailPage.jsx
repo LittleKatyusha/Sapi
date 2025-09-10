@@ -76,14 +76,16 @@ const PembelianFeedmilDetailPage = () => {
         if (!pembelianList || pembelianList.length === 0) {
             fetchPembelian(1, 1000, '', 'all', false);
         }
-    }, []);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Remove dependencies to prevent infinite loop
 
     // Load klasifikasi feedmil data
     useEffect(() => {
         if (!klasifikasiFeedmil || klasifikasiFeedmil.length === 0) {
             fetchKlasifikasiFeedmil();
         }
-    }, []);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Remove dependencies to prevent infinite loop
 
     useEffect(() => {
         const fetchDetail = async () => {
