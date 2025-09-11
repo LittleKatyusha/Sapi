@@ -4,6 +4,7 @@ import DataTable from 'react-data-table-component';
 import { PlusCircle, Search, ShoppingCart, X, Loader2, Calendar } from 'lucide-react';
 
 import usePembelianHO from './hooks/usePembelianHO';
+import useTipePembelian from './hooks/useTipePembelian';
 import ActionButton from './components/ActionButton';
 import PembelianCard from './components/PembelianCard';
 import CustomPagination from './components/CustomPagination';
@@ -203,6 +204,19 @@ const PembelianHOPage = () => {
         updatePembelian,
         deletePembelian,
     } = usePembelianHO();
+
+    // Get tipe pembelian options for mapping jenis_pembelian
+    const { tipePembelianOptions } = useTipePembelian();
+
+    // Function to get jenis_pembelian label from ID
+    const getJenisPembelianLabel = (jenisPembelianId) => {
+        if (!jenisPembelianId || !tipePembelianOptions.length) return jenisPembelianId || '-';
+        
+        // Convert both values to strings for comparison to handle type mismatches
+        const option = tipePembelianOptions.find(opt => String(opt.value) === String(jenisPembelianId));
+        
+        return option ? option.label : jenisPembelianId;
+    };
 
     useEffect(() => {
         fetchPembelian();
@@ -527,7 +541,7 @@ const PembelianHOPage = () => {
             cell: row => (
                 <div className="flex items-center justify-center w-full h-full min-h-[40px] px-2">
                     <div className="bg-purple-50 text-purple-700 px-3 py-2 rounded-lg font-medium text-center text-xs leading-tight force-wrap">
-                        {row.jenis_pembelian || '-'}
+                        {getJenisPembelianLabel(row.jenis_pembelian)}
                     </div>
                 </div>
             )
@@ -536,7 +550,7 @@ const PembelianHOPage = () => {
 
     return (
         <>
-            <style jsx>{`
+            <style>{`
                 .word-break-all {
                     word-break: break-all;
                     overflow-wrap: break-word;
@@ -874,6 +888,7 @@ const PembelianHOPage = () => {
                                         index={(serverPagination.currentPage - 1) * serverPagination.perPage + index}
                                         onEdit={handleEdit}
                                         onDelete={handleDelete}
+                                        getJenisPembelianLabel={getJenisPembelianLabel}
                                         onDetail={handleDetail}
                                     />
                                 ))}

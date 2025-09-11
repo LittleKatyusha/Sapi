@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import HttpClient from '../../../../services/httpClient';
 import { API_ENDPOINTS, API_BASE_URL } from '../../../../config/api';
+import useJenisPembelianOVK from './useJenisPembelianOVK';
 
 
 
@@ -13,6 +14,21 @@ const usePembelianOVK = () => {
     const [isSearching, setIsSearching] = useState(false);
     const [searchError, setSearchError] = useState(null);
     const [deleteLoading, setDeleteLoading] = useState(null);
+
+    // Get jenis pembelian options for mapping
+    const { jenisPembelianOptions } = useJenisPembelianOVK();
+
+    // Mapping function to convert tipe_pembelian to jenis_pembelian
+    const mapTipePembelianToJenis = useCallback((tipePembelian) => {
+        if (!tipePembelian || !jenisPembelianOptions.length) {
+            return 'INTERNAL'; // Default fallback based on actual API response
+        }
+        
+        // Convert tipePembelian to string for comparison since API returns string values
+        const tipePembelianStr = String(tipePembelian);
+        const found = jenisPembelianOptions.find(option => String(option.value) === tipePembelianStr);
+        return found ? found.label : 'INTERNAL';
+    }, [jenisPembelianOptions]);
 
     // Server-side pagination state
     const [serverPagination, setServerPagination] = useState({
@@ -43,7 +59,8 @@ const usePembelianOVK = () => {
             berat_total: 100,
             biaya_total: 2000000,
             biaya_lain: 100000,
-            jenis_pembelian: 'OVK'
+            tipe_pembelian: 1, // Will be mapped to jenis_pembelian
+            jenis_pembelian: 'INTERNAL'
         },
         {
             id: 2,
@@ -58,7 +75,8 @@ const usePembelianOVK = () => {
             berat_total: 75,
             biaya_total: 1500000,
             biaya_lain: 75000,
-            jenis_pembelian: 'Supplier'
+            tipe_pembelian: 2, // Will be mapped to jenis_pembelian
+            jenis_pembelian: 'INTERNAL'
         },
         {
             id: 3,
@@ -73,7 +91,8 @@ const usePembelianOVK = () => {
             berat_total: 150,
             biaya_total: 3000000,
             biaya_lain: 150000,
-            jenis_pembelian: 'Kontrak'
+            tipe_pembelian: 3, // Will be mapped to jenis_pembelian
+            jenis_pembelian: 'INTERNAL'
         }
     ];
 
@@ -432,9 +451,19 @@ const usePembelianOVK = () => {
             });
             
             if (responseData.status === 'ok') {
+                // Map tipe_pembelian to jenis_pembelian in header data
+                let headerData = responseData.header;
+                if (headerData && headerData.tipe_pembelian) {
+                    headerData = {
+                        ...headerData,
+                        jenis_pembelian: mapTipePembelianToJenis(headerData.tipe_pembelian)
+                    };
+                }
+
                 return {
                     success: true,
                     data: responseData.data || [],
+                    header: headerData || null, // Include header data from /show endpoint with mapped jenis_pembelian
                     message: responseData.message || 'Detail pembelian berhasil diambil'
                 };
             } else {
@@ -447,15 +476,25 @@ const usePembelianOVK = () => {
             
             const item = mockData.find(item => item.encryptedPid === encryptedPid);
             
+            // Map tipe_pembelian to jenis_pembelian in mock data if needed
+            let headerData = item;
+            if (item && item.tipe_pembelian) {
+                headerData = {
+                    ...item,
+                    jenis_pembelian: mapTipePembelianToJenis(item.tipe_pembelian)
+                };
+            }
+            
             return {
                 success: true,
                 data: item ? [item] : [],
+                header: headerData || null, // Use item as header for mock data with mapped jenis_pembelian
                 message: 'Detail pembelian berhasil diambil (mock data)'
             };
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [mapTipePembelianToJenis]);
 
     // View uploaded file from pembelian OVK - Updated with new file access pattern
     const viewUploadedFile = useCallback(async (filePath) => {

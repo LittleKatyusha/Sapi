@@ -4,14 +4,20 @@ import { ArrowLeft, Building2, User, Calendar, Truck, Hash, Package, Eye, Weight
 import usePembelianFeedmil from './hooks/usePembelianFeedmil';
 import customTableStyles from './constants/tableStyles';
 import DataTable from 'react-data-table-component';
+import { StyleSheetManager } from 'styled-components';
+
+// Custom function to filter out invalid props that shouldn't be passed to DOM
+const shouldForwardProp = (prop) => {
+  // Filter out column-specific props that shouldn't be passed to DOM
+  const invalidProps = ['grow', 'center', 'minWidth', 'maxWidth', 'wrap', 'sortable', 'ignoreRowClick'];
+  return !invalidProps.includes(prop);
+};
 
 const PembelianFeedmilDetailPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const {
         getPembelianDetail,
-        fetchPembelian,
-        pembelian: pembelianList,
         loading,
         error,
         klasifikasiFeedmil,
@@ -71,13 +77,7 @@ const PembelianFeedmilDetailPage = () => {
         return detailData.slice(startIndex, endIndex);
     };
 
-    // Load pembelian list first (untuk ambil header seperti halaman utama)
-    useEffect(() => {
-        if (!pembelianList || pembelianList.length === 0) {
-            fetchPembelian(1, 1000, '', 'all', false);
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []); // Remove dependencies to prevent infinite loop
+    // No longer need to load pembelian list for header data - will get from /show endpoint
 
     // Load klasifikasi feedmil data
     useEffect(() => {
@@ -96,86 +96,54 @@ const PembelianFeedmilDetailPage = () => {
                         // Detail items dari view dt_pembelian_ho_feedmil_detail
                         const detailItems = result.data;
 
-                        // 1) Coba ambil header dari list pembelian (seperti halaman utama)
-                        let headerData = null;
-                        if (pembelianList && pembelianList.length > 0) {
-                            headerData = pembelianList.find(item => item.encryptedPid === id || item.id === id);
-                            if (!headerData) {
-                                const decodedId = decodeURIComponent(id);
-                                headerData = pembelianList.find(item => item.encryptedPid === decodedId || item.id === decodedId);
-                            }
-                        }
-
+                        // Get header data directly from /show endpoint
+                        let headerData = result.header;
+                        
                         if (headerData) {
+                            // Use header data from /show endpoint
                             setPembelianData({
-                                encryptedPid: headerData.encryptedPid || id,
+                                encryptedPid: headerData.encryptedPid || headerData.pid || id,
                                 nota: headerData.nota || '',
                                 nama_supplier: headerData.nama_supplier || '',
                                 nama_office: headerData.nama_office || 'Head Office (HO)',
                                 tgl_masuk: headerData.tgl_masuk || '',
                                 nama_supir: headerData.nama_supir || '',
                                 plat_nomor: headerData.plat_nomor || '',
-                                biaya_lain: headerData.biaya_lain || 0,
-                                biaya_truk: headerData.biaya_truk || 0,
-                                biaya_total: headerData.biaya_total || 0,
-                                jumlah: headerData.jumlah || 0,
+                                biaya_lain: parseFloat(headerData.biaya_lain) || 0,
+                                biaya_truk: parseFloat(headerData.biaya_truk) || 0,
+                                biaya_total: parseFloat(headerData.biaya_total) || 0,
+                                jumlah: parseInt(headerData.jumlah) || 0,
                                 satuan: headerData.satuan || 'sak',
-                                berat_total: headerData.berat_total || 0,
-                                jenis_pembelian: headerData.jenis_pembelian || 'Feedmil',
+                                berat_total: parseFloat(headerData.berat_total) || 0,
+                                jenis_pembelian: headerData.jenis_pembelian || 'INTERNAL',
                                 file: headerData.file || null
                             });
                         } else {
-                            // 2) Fallback: cocokan berdasarkan nota dari detail pertama
-                            const firstDetail = detailItems[0];
-                            let headerByNota = null;
-                            if (firstDetail?.nota && pembelianList && pembelianList.length > 0) {
-                                headerByNota = pembelianList.find(item => item.nota === firstDetail.nota);
-                            }
-
-                            if (headerByNota) {
-                                setPembelianData({
-                                    encryptedPid: headerByNota.encryptedPid || id,
-                                    nota: headerByNota.nota || '',
-                                    nama_supplier: headerByNota.nama_supplier || '',
-                                    nama_office: headerByNota.nama_office || 'Head Office (HO)',
-                                    tgl_masuk: headerByNota.tgl_masuk || '',
-                                    nama_supir: headerByNota.nama_supir || '',
-                                    plat_nomor: headerByNota.plat_nomor || '',
-                                    biaya_lain: headerByNota.biaya_lain || 0,
-                                    biaya_truk: headerByNota.biaya_truk || 0,
-                                    biaya_total: headerByNota.biaya_total || 0,
-                                    jumlah: headerByNota.jumlah || 0,
-                                    satuan: headerByNota.satuan || 'sak',
-                                    berat_total: headerByNota.berat_total || 0,
-                                    jenis_pembelian: headerByNota.jenis_pembelian || 'Feedmil',
-                                    file: headerByNota.file || null
-                                });
-                            } else {
-                                // 3) Fallback terakhir: gunakan informasi dari detail pertama
-                                const firstItem = detailItems[0];
-                                setPembelianData({
-                                    encryptedPid: firstItem.pubid || id,
-                                    nota: firstItem.nota || '',
-                                    nama_supplier: firstItem.nama_supplier || '',
-                                    nama_office: firstItem.nama_office || 'Head Office (HO)',
-                                    tgl_masuk: firstItem.tgl_masuk || '',
-                                    nama_supir: firstItem.nama_supir || '',
-                                    plat_nomor: firstItem.plat_nomor || '',
-                                    biaya_lain: firstItem.biaya_lain || 0,
-                                    biaya_truk: firstItem.biaya_truk || 0,
-                                    biaya_total: firstItem.biaya_total || 0,
-                                    jumlah: firstItem.jumlah || 0,
-                                    satuan: 'sak',
-                                    berat_total: firstItem.berat_total || 0,
-                                    jenis_pembelian: 'Feedmil'
-                                });
-                            }
+                            // Fallback: gunakan informasi dari detail pertama jika header tidak tersedia
+                            const firstItem = detailItems[0];
+                            setPembelianData({
+                                encryptedPid: firstItem.pid || id,
+                                nota: firstItem.nota || '',
+                                nama_supplier: firstItem.nama_supplier || '',
+                                nama_office: 'Head Office (HO)', // Default since not in detail view
+                                tgl_masuk: firstItem.tgl_masuk || '',
+                                nama_supir: firstItem.nama_supir || '',
+                                plat_nomor: firstItem.plat_nomor || '',
+                                biaya_lain: parseFloat(firstItem.biaya_lain) || 0,
+                                biaya_truk: parseFloat(firstItem.biaya_truk) || 0,
+                                biaya_total: parseFloat(firstItem.biaya_total) || 0,
+                                jumlah: parseInt(firstItem.jumlah) || 0,
+                                satuan: 'sak',
+                                berat_total: parseFloat(firstItem.berat_total) || 0,
+                                jenis_pembelian: firstItem.jenis_pembelian || 'INTERNAL',
+                                file: firstItem.file || null
+                            });
                         }
 
                         // Transform detail items untuk struktur frontend
                         const transformedDetailItems = detailItems.map((item, index) => ({
                             id: index + 1,
-                            pubid: item.pubid || '',
+                            pubid: item.pid || '',
                             item_name: item.item_name || '',
                             id_klasifikasi_feedmil: item.id_klasifikasi_feedmil || '',
                             nama_klasifikasi_feedmil: item.nama_klasifikasi_feedmil || '',
@@ -204,7 +172,7 @@ const PembelianFeedmilDetailPage = () => {
                             jumlah: 0,
                             satuan: 'sak',
                             berat_total: 0,
-                            jenis_pembelian: 'Feedmil'
+                            jenis_pembelian: 'INTERNAL' // Default to first option
                         });
                         setDetailData([]);
                     }
@@ -220,8 +188,11 @@ const PembelianFeedmilDetailPage = () => {
             }
         };
 
-        fetchDetail();
-    }, [id, getPembelianDetail, pembelianList]);
+        // Only fetch detail if we have an id and haven't already loaded the data
+        if (id && !pembelianData) {
+            fetchDetail();
+        }
+    }, [id]); // Remove getPembelianDetail dependency to prevent duplicate calls
 
     const handleBack = () => {
         navigate('/ho/pembelian-feedmil');
@@ -593,7 +564,7 @@ const PembelianFeedmilDetailPage = () => {
 
                 {/* Detail Table */}
                 <>
-                    <style jsx>{`
+                    <style>{`
                         /* Custom scrollbar styling for table container */
                         .table-scroll-container::-webkit-scrollbar {
                             height: 8px;
@@ -652,7 +623,8 @@ const PembelianFeedmilDetailPage = () => {
                         {/* Table Container with proper scroll */}
                         <div className="w-full overflow-x-auto max-w-full table-scroll-container" onScroll={handleTableScroll}>
                             <div className="min-w-full">
-                                <DataTable
+                                <StyleSheetManager shouldForwardProp={shouldForwardProp}>
+                                    <DataTable
                                     title="Daftar Detail Item Feedmil"
                                     columns={detailColumns}
                                     data={getPaginatedData()}
@@ -732,6 +704,7 @@ const PembelianFeedmilDetailPage = () => {
                                     highlightOnHover
                                     pointerOnHover
                                 />
+                                </StyleSheetManager>
                             </div>
                         </div>
                         

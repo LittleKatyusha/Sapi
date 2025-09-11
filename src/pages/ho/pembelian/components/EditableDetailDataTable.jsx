@@ -2,6 +2,14 @@ import React from 'react';
 import DataTable from 'react-data-table-component';
 import { Trash2, Save } from 'lucide-react';
 import Select from 'react-select';
+import { StyleSheetManager } from 'styled-components';
+
+// Custom function to filter out invalid props that shouldn't be passed to DOM
+const shouldForwardProp = (prop) => {
+  // Filter out column-specific props that shouldn't be passed to DOM
+  const invalidProps = ['grow', 'center', 'minWidth', 'maxWidth', 'wrap', 'sortable', 'ignoreRowClick'];
+  return !invalidProps.includes(prop);
+};
 
 const customStyles = {
   table: {
@@ -77,7 +85,7 @@ const EditableDetailDataTable = ({
       selector: (row, i) => i + 1,
       width: '60px',
       center: true,
-      grow: false,
+      grow: 0,
       sortable: false,
     },
     {
@@ -223,7 +231,7 @@ const EditableDetailDataTable = ({
       ),
       center: true,
       width: '120px',
-      grow: false,
+      grow: 0,
       sortable: false,
     },
     {
@@ -277,7 +285,7 @@ const EditableDetailDataTable = ({
       ),
       center: true,
       width: '120px',
-      grow: false,
+      grow: 0,
       sortable: false,
     },
     {
@@ -334,7 +342,7 @@ const EditableDetailDataTable = ({
       center: true,
       ignoreRowClick: true,
       width: '100px',
-      grow: false,
+      grow: 0,
       sortable: false,
     },
   ];
@@ -342,27 +350,29 @@ const EditableDetailDataTable = ({
   return (
     <div className="w-full min-w-0">
       <div className="rounded-none overflow-hidden border-0 border-t border-gray-200 shadow-none w-full">
-        <DataTable
-          columns={columns}
-          data={data}
-          dense
-          highlightOnHover
-          striped
-          noHeader
-          pagination={false}
-          fixedHeader
-          fixedHeaderScrollHeight="400px"
-          className="w-full"
-          customStyles={customStyles}
-          responsive={true}
-          noDataComponent={
-            <div className="p-8 text-center text-gray-400 text-base">
-              <span className="block mb-2">📦</span>
-              Belum ada detail ternak. Klik <b>Tambah Detail</b> atau gunakan{' '}
-              <b>Batch Add</b> untuk menambah data.
-            </div>
-          }
-        />
+        <StyleSheetManager shouldForwardProp={shouldForwardProp}>
+          <DataTable
+            columns={columns}
+            data={data}
+            dense
+            highlightOnHover
+            striped
+            noHeader
+            pagination={false}
+            fixedHeader
+            fixedHeaderScrollHeight="400px"
+            className="w-full"
+            customStyles={customStyles}
+            responsive={true}
+            noDataComponent={
+              <div className="p-8 text-center text-gray-400 text-base">
+                <span className="block mb-2">📦</span>
+                Belum ada detail ternak. Klik <b>Tambah Detail</b> atau gunakan{' '}
+                <b>Batch Add</b> untuk menambah data.
+              </div>
+            }
+          />
+        </StyleSheetManager>
       </div>
     </div>
   );

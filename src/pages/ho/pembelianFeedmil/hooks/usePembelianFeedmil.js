@@ -15,6 +15,19 @@ const usePembelianFeedmil = () => {
     const [deleteLoading, setDeleteLoading] = useState(null);
     const [klasifikasiFeedmil, setKlasifikasiFeedmil] = useState([]);
 
+    // Mapping function to convert tipe_pembelian to jenis_pembelian
+    // This will be passed from the main component to avoid duplicate fetching
+    const mapTipePembelianToJenis = useCallback((tipePembelian, jenisPembelianOptions = []) => {
+        if (!tipePembelian || !jenisPembelianOptions.length) {
+            return 'INTERNAL'; // Default fallback based on actual API response
+        }
+        
+        // Convert tipePembelian to string for comparison since API returns string values
+        const tipePembelianStr = String(tipePembelian);
+        const found = jenisPembelianOptions.find(option => String(option.value) === tipePembelianStr);
+        return found ? found.label : 'INTERNAL';
+    }, []);
+
     // Server-side pagination state
     const [serverPagination, setServerPagination] = useState({
         currentPage: 1,
@@ -400,7 +413,7 @@ const usePembelianFeedmil = () => {
     }, [fetchPembelian, serverPagination.currentPage, serverPagination.perPage]);
 
     // Get pembelian detail
-    const getPembelianDetail = useCallback(async (encryptedPid) => {
+    const getPembelianDetail = useCallback(async (encryptedPid, jenisPembelianOptions = []) => {
         setLoading(true);
         setError(null);
         
@@ -414,9 +427,19 @@ const usePembelianFeedmil = () => {
             
             // Backend uses sendResponse() which returns { status: 'ok', data: [...], message: '...' }
             if (jsonData && jsonData.status === 'ok') {
+                // Map tipe_pembelian to jenis_pembelian in header data
+                let headerData = jsonData.header;
+                if (headerData && headerData.tipe_pembelian) {
+                    headerData = {
+                        ...headerData,
+                        jenis_pembelian: mapTipePembelianToJenis(headerData.tipe_pembelian, jenisPembelianOptions)
+                    };
+                }
+
                 return {
                     success: true,
                     data: jsonData.data || [],
+                    header: headerData || null, // Include header data from /show endpoint with mapped jenis_pembelian
                     message: jsonData.message || 'Detail pembelian berhasil diambil'
                 };
             } else {
@@ -434,7 +457,7 @@ const usePembelianFeedmil = () => {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [mapTipePembelianToJenis]);
 
     // Update individual detail item (feedmil specific)
     const updateDetail = useCallback(async (encryptedPid, detailData) => {

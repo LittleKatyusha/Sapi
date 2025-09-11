@@ -227,26 +227,18 @@ const AddEditPembelianFeedmilPage = () => {
                     const decodedId = decodeURIComponent(id);
                     
                     // Get both header and detail data from /show endpoint only
-                    console.log('🔍 Getting header and detail data from /show endpoint for PID:', id);
                     
                     const showResponse = await HttpClient.post(`${API_ENDPOINTS.HO.FEEDMIL.PEMBELIAN}/show`, {
                         pid: id
                     });
                     
                     if (!showResponse.data || showResponse.data.length === 0) {
-                        console.log('❌ No data from /show endpoint');
                         throw new Error('Data tidak ditemukan untuk pubid yang dipilih');
                     }
                     
                     const headerData = showResponse.data[0];
                     const showResponseData = showResponse.data;
                     
-                    console.log('✅ Header and detail data found from /show endpoint:', {
-                        nota: headerData.nota,
-                        pid: headerData.pid,
-                        nama_supplier: headerData.nama_supplier,
-                        detailRecords: showResponseData.length
-                    });
                     
                     // Mark this as coming from show endpoint
                     headerData.source = 'show';
@@ -259,8 +251,6 @@ const AddEditPembelianFeedmilPage = () => {
                     };
                     
                     if (headerData) {
-                        // Debug: Log available options
-                        
                         // Find supplier ID by name if we have nama_supplier but not id_supplier
                         let supplierId = headerData.id_supplier || '';
                         if (!supplierId && headerData.nama_supplier) {
@@ -278,11 +268,15 @@ const AddEditPembelianFeedmilPage = () => {
                             }
                         }
 
-                        // Find office ID by name - using flexible matching
+                        // Find office ID - handle both id_office (direct) and nama_office (by name matching)
                         let officeId = headerData.id_office || '';
                         
-                        if (!officeId && headerData.nama_office) {
-                            // Try exact match first
+                        
+                        // If we have id_office directly, use it (convert to string to match form field format)
+                        if (officeId) {
+                            officeId = String(officeId);
+                        } else if (headerData.nama_office) {
+                            // Fallback: Try to find office by name if id_office is not available
                             let foundOffice = officeOptions.find(o => o.label === headerData.nama_office);
                             // If no exact match, try partial match (case insensitive)
                             if (!foundOffice) {
@@ -295,14 +289,22 @@ const AddEditPembelianFeedmilPage = () => {
                                 officeId = foundOffice.value;
                             }
                         }
-
-                        // Find tipe pembelian ID by name - using flexible matching
-                        let tipePembelianId = headerData.tipe_pembelian || '';
                         
-                        if (!tipePembelianId && headerData.jenis_pembelian) {
-                            // Try exact match first
+
+                        // Find tipe pembelian ID - backend sends tipe_pembelian as integer (1 or 2)
+                        let tipePembelianId = '';
+                        
+                        if (headerData.tipe_pembelian !== undefined && headerData.tipe_pembelian !== null) {
+                            // Backend sends tipe_pembelian as integer, convert to string for matching
+                            const tipePembelianValue = String(headerData.tipe_pembelian);
+                            const foundTipePembelian = jenisPembelianOptions.find(t => t.value === tipePembelianValue);
+                            
+                            if (foundTipePembelian) {
+                                tipePembelianId = foundTipePembelian.value;
+                            }
+                        } else if (headerData.jenis_pembelian) {
+                            // Fallback: try to match by jenis_pembelian name (for backward compatibility)
                             let foundTipePembelian = jenisPembelianOptions.find(t => t.label === headerData.jenis_pembelian);
-                            // If no exact match, try partial match (case insensitive)
                             if (!foundTipePembelian) {
                                 foundTipePembelian = jenisPembelianOptions.find(t => 
                                     t.label.toLowerCase().includes(headerData.jenis_pembelian.toLowerCase()) ||
@@ -639,7 +641,6 @@ const AddEditPembelianFeedmilPage = () => {
                     idPembelianValue = existingDetailWithId.idPembelian;
                 } else {
                     // Fallback: For new pembelian without existing details, use header ID from backend response
-                    console.warn('⚠️ No existing detail with id_pembelian found. Cannot create new detail without valid id_pembelian.');
                     throw new Error('Tidak dapat menambah detail baru: ID pembelian tidak ditemukan. Pastikan header pembelian sudah disimpan dan detail lain sudah ada.');
                 }
                 
@@ -2066,7 +2067,7 @@ const AddEditPembelianFeedmilPage = () => {
                         </div>
                     </div>
                     
-                    <style jsx>{`
+                    <style>{`
                         @keyframes progress {
                             from { width: 100%; }
                             to { width: 0%; }

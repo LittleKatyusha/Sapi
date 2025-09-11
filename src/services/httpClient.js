@@ -25,7 +25,6 @@ const shouldBlockRequest = (url) => {
     
     // If we've exceeded max attempts and it's been less than RETRY_DELAY since last attempt
     if (attempts >= MAX_RETRY_ATTEMPTS && (now - lastAttempt) < RETRY_DELAY) {
-      console.warn(`🚫 Blocking request to ${url} - too many recent failures (${attempts} attempts)`);
       return true;
     }
     
@@ -105,11 +104,6 @@ const buildHeaders = async (customHeaders = {}) => {
   const token = getAuthToken();
   if (token) {
     headers.Authorization = `Bearer ${token}`;
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔑 JWT token added to headers');
-    }
-  } else if (process.env.NODE_ENV === 'development') {
-    console.warn('⚠️ No JWT token found in localStorage');
   }
   
   // Add CORS headers for preflight requests
@@ -139,11 +133,6 @@ const handleResponseError = async (response) => {
     // Handle CORS errors specifically
     if (response.status === 0 || response.type === 'opaque') {
       errorMessage = 'CORS error: Tidak dapat mengakses server. Periksa konfigurasi CORS.';
-      console.error('🚨 CORS Error:', {
-        status: response.status,
-        type: response.type,
-        url: response.url
-      });
       throw new Error(errorMessage);
     }
     
@@ -154,35 +143,15 @@ const handleResponseError = async (response) => {
         const errorData = await response.json();
         errorMessage = errorData.message || errorData.error || errorMessage;
         errorDetails = errorData;
-        
-        console.error('🚨 API Error Response:', {
-          status: response.status,
-          statusText: response.statusText,
-          url: response.url,
-          errorData: errorData
-        });
       } else {
         // For non-JSON responses (like HTML error pages)
         const responseText = await response.text();
-        console.error('🚨 Non-JSON Error Response:', {
-          status: response.status,
-          statusText: response.statusText,
-          url: response.url,
-          contentType: contentType,
-          responseText: responseText.substring(0, 500) + (responseText.length > 500 ? '...' : '')
-        });
         
         // Provide more user-friendly error messages for common HTTP errors
         if (response.status === 500) {
           errorMessage = 'Server mengalami kesalahan internal. Silakan coba lagi dalam beberapa saat.';
         } else if (response.status === 503) {
           errorMessage = 'Layanan sementara tidak tersedia. Silakan coba lagi nanti.';
-          // Log 503 errors to prevent retry loops
-          console.error('🚨 Service Unavailable (503):', {
-            status: response.status,
-            url: response.url,
-            message: 'Server is temporarily unavailable - preventing retry loops'
-          });
         } else if (response.status === 404) {
           errorMessage = 'Endpoint atau data yang diminta tidak ditemukan.';
         } else if (response.status === 403) {
@@ -190,7 +159,6 @@ const handleResponseError = async (response) => {
         }
       }
     } catch (parseError) {
-      console.error('🚨 Error parsing response:', parseError);
       // If response parsing fails, use default error message
     }
     
@@ -210,12 +178,6 @@ const handleResponseError = async (response) => {
     
     // Handle 500 Internal Server Error with more specific messaging
     if (response.status === 500) {
-      console.error('🚨 500 Internal Server Error:', {
-        url: response.url,
-        method: 'Unknown', // We don't have access to method here
-        errorDetails: errorDetails
-      });
-      
       if (!errorMessage.includes('Server mengalami kesalahan')) {
         errorMessage = 'Server mengalami kesalahan internal. Silakan coba lagi atau hubungi administrator.';
       }
@@ -288,17 +250,7 @@ class HttpClient {
    */
   static async post(endpoint, data = null, options = {}) {
     return performanceMonitor.measureApiCall(endpoint, async () => {
-      console.log('🚀 POST METHOD CALLED - Entry point');
       const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
-      
-      // Debug logging
-      console.log('📡 POST Request Debug:', {
-        endpoint,
-        fullUrl: url,
-        dataType: data instanceof FormData ? 'FormData' : typeof data,
-        apiBaseUrl: API_BASE_URL,
-        API_BASE_URL_Value: API_BASE_URL
-      });
       
       // Skip CSRF completely for JWT authentication
       let body = null;

@@ -270,7 +270,6 @@ const AddEditPembelianPage = () => {
                     const decodedId = decodeURIComponent(id);
                     
                     // Get both header and detail data from /show endpoint only
-                    console.log('🔍 Getting header and detail data from /show endpoint for PID:', id);
                     
                     const result = await getPembelianDetail(decodedId);
                     
@@ -284,12 +283,7 @@ const AddEditPembelianPage = () => {
                     // So we only need the first record for header information
                     const firstDetail = result.data[0];
                     
-                    console.log('✅ Header and detail data found from /show endpoint:', {
-                        nota: firstDetail.nota,
-                        pid: firstDetail.pid,
-                        nama_supplier: firstDetail.nama_supplier,
-                        detailRecords: result.data.length
-                    });
+                    // Header and detail data found successfully
                     
                     // Find supplier ID from detail data
                     let supplierIdFromName = '';
@@ -324,9 +318,6 @@ const AddEditPembelianPage = () => {
                     // First try to use id_office directly from backend
                     if (firstDetail.id_office) {
                         officeIdFromBackend = String(firstDetail.id_office);
-                        console.log('✅ Using id_office directly from backend:', officeIdFromBackend);
-                        console.log('📊 Available office options:', officeAPIOptions);
-                        console.log('📊 Office loading state:', officeLoading);
                     } else {
                         // Fallback: try to find by nama_office if id_office is not available
                         const officeNameToMatch = (firstDetail.nama_office || '').trim();

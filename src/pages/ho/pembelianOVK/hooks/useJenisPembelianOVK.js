@@ -36,25 +36,31 @@ const useJenisPembelianOVK = () => {
             console.log('🔄 Using fallback mock data for jenis pembelian OVK');
             setJenisPembelianOVK([
                 {
-                    id: 1,
-                    name: 'OVK - SUPPLIER',
-                    value: 1,
-                    description: 'OVK - SUPPLIER',
-                    group: 'jenis_pembelian_ovk'
+                    pubid: 'mock-1',
+                    name: 'INTERNAL',
+                    value: '1',
+                    group: 'jenis_pembelian_ovk',
+                    description: null,
+                    order_no: 1,
+                    pid: 'mock-pid-1'
                 },
                 {
-                    id: 2,
-                    name: 'OVK - LANGSUNG', 
-                    value: 2,
-                    description: 'OVK - LANGSUNG',
-                    group: 'jenis_pembelian_ovk'
+                    pubid: 'mock-2',
+                    name: 'EXTERNAL',
+                    value: '2',
+                    group: 'jenis_pembelian_ovk',
+                    description: null,
+                    order_no: 2,
+                    pid: 'mock-pid-2'
                 },
                 {
-                    id: 3,
-                    name: 'OVK - KONTRAK',
-                    value: 3,
-                    description: 'OVK - KONTRAK',
-                    group: 'jenis_pembelian_ovk'
+                    pubid: 'mock-3',
+                    name: 'CONTRACT',
+                    value: '3',
+                    group: 'jenis_pembelian_ovk',
+                    description: null,
+                    order_no: 3,
+                    pid: 'mock-pid-3'
                 }
             ]);
         } finally {
@@ -69,12 +75,13 @@ const useJenisPembelianOVK = () => {
     // Transform data to select options
     const jenisPembelianOptions = useMemo(() => {
         return jenisPembelianOVK.map(item => ({
-            value: parseInt(item.value) || item.id, // Use value field from parameter table
+            value: item.value, // Keep as string since API returns string values
             label: item.name || item.description,
-            rawId: item.id,
+            rawId: item.pubid || item.id,
             description: item.description,
             group: item.group,
-            order_no: item.order_no
+            order_no: item.order_no,
+            pid: item.pid
         }));
     }, [jenisPembelianOVK]);
 

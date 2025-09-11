@@ -121,9 +121,7 @@ const useParameterSelect = (isEditMode = false) => {
                     jenishewan: data.jenishewan || []
                     // supplier: intentionally omitted for lazy loading
                 }));
-                console.log('✅ Non-supplier parameter data loaded:', Object.keys(data)
-                    .filter(key => key !== 'supplier')
-                    .map(key => `${key}: ${data[key]?.length || 0} items`).join(', '));
+                // Parameter data loaded successfully
             } else {
                 throw new Error('Invalid response format from parameter endpoint');
             }

@@ -19,7 +19,8 @@ const PembelianCard = ({
     onEdit,
     onDelete,
     onDetail,
-    index
+    index,
+    getJenisPembelianLabel
 }) => {
     const [showMenu, setShowMenu] = useState(false);
     const menuRef = useRef(null);
@@ -279,7 +280,7 @@ const PembelianCard = ({
                         <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Jenis Pembelian</span>
                     </div>
                     <span className="inline-flex px-3 py-1.5 text-sm font-semibold rounded-full bg-purple-100 text-purple-800">
-                        {data.jenis_pembelian || '-'}
+                        {getJenisPembelianLabel ? getJenisPembelianLabel(data.jenis_pembelian) : (data.jenis_pembelian || '-')}
                     </span>
                 </div>
             </div>

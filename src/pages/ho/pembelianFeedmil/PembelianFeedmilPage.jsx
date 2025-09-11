@@ -331,7 +331,7 @@ const PembelianFeedmilPage = () => {
     return (
         <>
             {/* Custom CSS for horizontal scrollbar styling and sticky action column */}
-            <style jsx>{`
+            <style>{`
                 .horizontal-scroll-container::-webkit-scrollbar {
                     height: 12px;
                 }

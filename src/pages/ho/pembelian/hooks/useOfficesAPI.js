@@ -18,7 +18,6 @@ const useOfficesAPI = () => {
             
             
             if (result.status === 'ok' && result.data) {
-                console.log('✅ Office data fetched:', result.data);
                 setOffices(result.data);
                 
             } else {
@@ -42,7 +41,6 @@ const useOfficesAPI = () => {
             value: String(office.id), // Convert to string to match form field format
             label: office.name
         }));
-        console.log('✅ Office options created:', options);
         return options;
     }, [offices]);
 

@@ -3,170 +3,84 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Building2, User, Calendar, Truck, Hash, Package, Eye, Plus } from 'lucide-react';
 import usePembelianHO from './hooks/usePembelianHO';
 import useParameterSelect from './hooks/useParameterSelect';
+import useTipePembelian from './hooks/useTipePembelian';
 
 import customTableStyles, { detailPageTableStyles } from './constants/tableStyles';
 import DataTable from 'react-data-table-component';
-import DetailActionButton from './components/DetailActionButton';
-import DetailActionMenu from './components/DetailActionMenu';
-import AddEditDetailModal from './modals/AddEditDetailModal';
-import DeleteDetailModal from './modals/DeleteDetailModal';
 
 const PembelianDetailPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const {
         getPembelianDetail,
-        fetchPembelian,
-        pembelian: pembelianList,
-        createDetail,
-        updateDetail,
-        deleteDetail,
         loading,
         error
     } = usePembelianHO();
     
-    // Get classification data for fallback lookup
-    const { klasifikasiHewanOptions, parameterData } = useParameterSelect();
+    // Get parameter data for eartag mapping
+    const { parameterData } = useParameterSelect();
+    
+    // Get tipe pembelian options for mapping jenis_pembelian
+    const { tipePembelianOptions } = useTipePembelian();
+    
     
 
     
     const [pembelianData, setPembelianData] = useState(null);
     const [detailData, setDetailData] = useState([]);
     const [mappedDetailData, setMappedDetailData] = useState([]);
-    
-    // Detail CRUD states
-    const [openDetailMenuIndex, setOpenDetailMenuIndex] = useState(null);
-    const [activeButtonRef, setActiveButtonRef] = useState(null);
-    const [activeRowData, setActiveRowData] = useState(null);
-    const [isAddDetailModalOpen, setIsAddDetailModalOpen] = useState(false);
-    const [isEditDetailModalOpen, setIsEditDetailModalOpen] = useState(false);
-    const [isDeleteDetailModalOpen, setIsDeleteDetailModalOpen] = useState(false);
-    const [selectedDetail, setSelectedDetail] = useState(null);
-    const [notification, setNotification] = useState(null);
 
-    // Load pembelian list first
-    useEffect(() => {
-        if (!pembelianList || pembelianList.length === 0) {
-            console.log('🔄 Loading pembelian list...');
-            fetchPembelian(1, 1000, '', '', null, false);
-        }
-    }, []);
+    // Function to get jenis_pembelian label from ID
+    const getJenisPembelianLabel = (jenisPembelianId) => {
+        if (!jenisPembelianId || !tipePembelianOptions.length) return jenisPembelianId || '-';
+        
+        // Convert both values to strings for comparison to handle type mismatches
+        const option = tipePembelianOptions.find(opt => String(opt.value) === String(jenisPembelianId));
+        
+        return option ? option.label : jenisPembelianId;
+    };
 
-    // Then fetch detail when both ID and pembelian list are available
+    // Fetch detail data from /show endpoint (contains both header and detail data)
     useEffect(() => {
         const fetchDetail = async () => {
-            if (id && pembelianList && pembelianList.length > 0) {
+            if (id) {
                 try {
                     console.log('🚀 Fetching detail for ID:', id);
-                    console.log('📊 Pembelian list:', pembelianList);
-                    console.log('🔍 Looking for encryptedPid:', id);
-                    console.log('🔍 Available encryptedPids in list:', pembelianList.map(item => item.encryptedPid));
                     
-                    // 1. Find header data dari pembelian list (dt_pembelian_ho data)
-                    let headerData = pembelianList.find(item => item.encryptedPid === id);
-                    
-                    // Try alternative matching jika tidak ketemu
-                    if (!headerData) {
-                        console.log('🔄 Trying alternative matching methods...');
-                        // Try dengan decodeURIComponent jika ada URL encoding
-                        const decodedId = decodeURIComponent(id);
-                        headerData = pembelianList.find(item => item.encryptedPid === decodedId);
-                        
-                        if (headerData) {
-                            console.log('✅ Found with decoded ID:', decodedId);
-                        }
-                    }
-                    
-                    console.log('🎯 Found header data:', headerData);
-                    
-                    // 2. Ambil detail data dari show endpoint
+                    // Get both header and detail data from /show endpoint
                     const detailResult = await getPembelianDetail(id);
                     console.log('📋 Detail result:', detailResult);
                     
                     if (detailResult.success && Array.isArray(detailResult.data) && detailResult.data.length > 0) {
-                        // Set header data dari dt_pembelian_ho (dari pembelian list)
-                        if (headerData) {
-                            console.log('✅ Using header data from pembelian list');
-                            setPembelianData({
-                                pubid: headerData.pubid || id,
-                                encryptedPid: headerData.encryptedPid || id,
-                                nota: headerData.nota || '',
-                                nama_supplier: headerData.nama_supplier || '',
-                                nama_office: headerData.nama_office || '',
-                                tgl_masuk: headerData.tgl_masuk || '',
-                                nama_supir: headerData.nama_supir || '',
-                                plat_nomor: headerData.plat_nomor || '',
-                                biaya_lain: headerData.biaya_lain || 0,
-                                biaya_truk: headerData.biaya_truk || 0,
-                                biaya_total: headerData.biaya_total || 0,
-                                //total_belanja: headerData.total_belanja || 0,
-                                berat_total: parseFloat(headerData.berat_total) || 0,
-                                jumlah: headerData.jumlah || 0,
-                                jenis_pembelian: headerData.jenis_pembelian || '',
-                                file: headerData.file || null
-                            });
-                        } else {
-                            console.log('⚠️ Header not found in list, trying nota matching...');
-                            const firstDetail = detailResult.data[0];
-                            
-                            // Try to find by nota (nomor nota) sebagai backup
-                            let headerDataByNota = null;
-                            if (firstDetail.nota) {
-                                headerDataByNota = pembelianList.find(item => item.nota === firstDetail.nota);
-                                if (headerDataByNota) {
-                                    console.log('✅ Found header data by nota:', firstDetail.nota);
-                                }
-                            }
-                            
-                            if (headerDataByNota) {
-                                // Gunakan data yang ditemukan berdasarkan nota
-                                console.log('📊 Header data found by nota:', headerDataByNota);
-                                console.log('🔍 Field debugging:');
-                                console.log('- biaya_total:', headerDataByNota.biaya_total, typeof headerDataByNota.biaya_total);
-                                console.log('- berat_total:', headerDataByNota.berat_total, typeof headerDataByNota.berat_total);
-                                console.log('- jenis_pembelian:', headerDataByNota.jenis_pembelian, typeof headerDataByNota.jenis_pembelian);
-                                
-                                setPembelianData({
-                                    pubid: headerDataByNota.pubid || id,
-                                    encryptedPid: headerDataByNota.pid || id,
-                                    nota: headerDataByNota.nota || '',
-                                    nama_supplier: headerDataByNota.nama_supplier || '',
-                                    nama_office: headerDataByNota.nama_office || '',
-                                    tgl_masuk: headerDataByNota.tgl_masuk || '',
-                                    nama_supir: headerDataByNota.nama_supir || '',
-                                    plat_nomor: headerDataByNota.plat_nomor || '',
-                                    biaya_lain: headerDataByNota.biaya_lain || 0,
-                                    biaya_truk: headerDataByNota.biaya_truk || 0,
-                                    biaya_total: headerDataByNota.biaya_total || 0,
-                                    total_belanja: headerDataByNota.total_belanja || 0,
-                                    berat_total: parseFloat(headerDataByNota.berat_total) || 0,
-                                    jumlah: headerDataByNota.jumlah || 0,
-                                    jenis_pembelian: headerDataByNota.jenis_pembelian || '',
-                                    file: headerDataByNota.file || null
-                                });
-                            } else {
-                                console.log('⚠️ Header not found by nota either, using detail data only');
-                                // Fallback terakhir: gunakan data dari detail response saja
-                                setPembelianData({
-                                    pubid: firstDetail.pubid || id,
-                                    nota: firstDetail.nota || '',
-                                    nama_supplier: firstDetail.nama_supplier || '',
-                                    nama_office: firstDetail.nama_office || '',
-                                    tgl_masuk: firstDetail.tgl_masuk || '',
-                                    nama_supir: firstDetail.nama_supir || '',
-                                    plat_nomor: firstDetail.plat_nomor || '',
-                                    // Set default values karena tidak ada di detail response
-                                    biaya_lain: 0,
-                                    biaya_truk: firstDetail.biaya_truk || 0,
-                                    biaya_total: 0,
-                                    total_belanja: 0,
-                                    berat_total: 0,
-                                    jumlah: 1,
-                                    jenis_pembelian: '',
-                                    file: null
-                                });
-                            }
-                        }
+                        // Use the first record as header data (since /show returns detail records with header info)
+                        // All records have the same header data (nota, tgl_masuk, nama_supir, etc.)
+                        const headerData = detailResult.data[0];
+                        
+                        console.log('✅ Header and detail data found from /show endpoint:', {
+                            nota: headerData.nota,
+                            pid: headerData.pid,
+                            nama_supplier: headerData.nama_supplier,
+                            detailRecords: detailResult.data.length
+                        });
+                        
+                        // Set header data from the first detail record
+                        setPembelianData({
+                            pubid: headerData.pubid || id,
+                            encryptedPid: headerData.pid || id,
+                            nota: headerData.nota || '',
+                            nama_supplier: headerData.nama_supplier || '',
+                            nama_office: headerData.nama_office || '',
+                            tgl_masuk: headerData.tgl_masuk || '',
+                            nama_supir: headerData.nama_supir || '',
+                            plat_nomor: headerData.plat_nomor || '',
+                            biaya_lain: headerData.biaya_lain || 0,
+                            biaya_truk: headerData.biaya_truk || 0,
+                            biaya_total: headerData.biaya_total || 0,
+                            berat_total: parseFloat(headerData.berat_total) || 0,
+                            jumlah: headerData.jumlah || 0,
+                            jenis_pembelian: headerData.jenis_pembelian !== null && headerData.jenis_pembelian !== undefined ? headerData.jenis_pembelian : (headerData.tipe_pembelian !== null && headerData.tipe_pembelian !== undefined ? headerData.tipe_pembelian : ''),
+                            file: headerData.file || null
+                        });
                         
                         setDetailData(detailResult.data);
                     }
@@ -177,17 +91,16 @@ const PembelianDetailPage = () => {
         };
 
         fetchDetail();
-    }, [id, pembelianList]);
+    }, [id]);
 
     // Map detail data with eartag names whenever data changes
     useEffect(() => {
         if (detailData.length > 0) {
-            // Create a simple mapping using parameter data if available
+            // Create eartag mapping from parameter data
             const eartagMap = new Map();
             if (parameterData.eartag && Array.isArray(parameterData.eartag)) {
                 parameterData.eartag.forEach(eartag => {
-                    if (eartag.id) eartagMap.set(String(eartag.id), eartag);
-                    if (eartag.pubid) eartagMap.set(String(eartag.pubid), eartag);
+                    if (eartag.id) eartagMap.set(String(eartag.id), eartag.name);
                 });
             }
             
@@ -195,19 +108,17 @@ const PembelianDetailPage = () => {
             console.log('🔍 Eartag map keys:', Array.from(eartagMap.keys()));
             
             const mapped = detailData.map(detail => {
-                const eartagInfo = eartagMap.get(String(detail.eartag));
-                const eartagName = eartagInfo ? (eartagInfo.name || eartagInfo.nama || eartagInfo.kode) : null;
+                // Get eartag name from parameter mapping
+                const eartagName = eartagMap.get(String(detail.eartag)) || `ET-${String(detail.eartag).padStart(6, '0')}`;
                 
                 console.log(`📋 Mapping eartag ${detail.eartag}:`, {
-                    found: !!eartagInfo,
-                    name: eartagName,
-                    info: eartagInfo
+                    found: eartagMap.has(String(detail.eartag)),
+                    name: eartagName
                 });
                 
                 return {
                     ...detail,
-                    eartagInfo,
-                    eartagName: eartagName || `Eartag ${detail.eartag}`,
+                    eartagName: eartagName,
                     eartagId: detail.eartag
                 };
             });
@@ -218,161 +129,11 @@ const PembelianDetailPage = () => {
         }
     }, [detailData, parameterData.eartag]);
 
+
     const handleBack = () => {
         navigate('/ho/pembelian');
     };
 
-    // Detail CRUD handlers
-    const handleOpenMenu = (rowIndex, buttonRef, rowData) => {
-        setOpenDetailMenuIndex(rowIndex);
-        setActiveButtonRef(buttonRef);
-        setActiveRowData(rowData);
-    };
-
-    const handleCloseMenu = () => {
-        setOpenDetailMenuIndex(null);
-        setActiveButtonRef(null);
-        setActiveRowData(null);
-    };
-
-    const handleAddDetail = () => {
-        setIsAddDetailModalOpen(true);
-        handleCloseMenu();
-    };
-
-    const handleEditDetail = (detail) => {
-        setSelectedDetail(detail);
-        setIsEditDetailModalOpen(true);
-        handleCloseMenu();
-    };
-
-    const handleDeleteDetail = (detail) => {
-        setSelectedDetail(detail);
-        setIsDeleteDetailModalOpen(true);
-        handleCloseMenu();
-    };
-
-    const handleCloneDetail = (detail) => {
-        // Create cloned data with modified fields
-        const clonedData = {
-            ...detail,
-            eartag: `${detail.eartag}_COPY`,
-            eartag_supplier: `${detail.eartag_supplier || ''}_COPY`,
-            // Remove ID fields so it will be treated as new record
-            pubid: undefined,
-            id: undefined
-        };
-        setSelectedDetail(clonedData);
-        setIsAddDetailModalOpen(true);
-        handleCloseMenu();
-    };
-
-    const handleSaveDetail = async (detailFormData, isEdit) => {
-        try {
-            let result;
-            
-            if (isEdit) {
-                // For edit mode, we need to pass the encrypted PID and detail data
-                const editData = {
-                    pid: selectedDetail.pubid, // This should be the encrypted PID
-                    ...detailFormData
-                };
-                result = await updateDetail(selectedDetail.pubid, detailFormData);
-            } else {
-                // For add mode, we need to include the pembelian ID
-                const addData = {
-                    ...detailFormData,
-                    id_pembelian: pembelianData?.pubid || id // Use the pembelian ID
-                };
-                result = await createDetail(addData);
-            }
-
-            if (result.success) {
-                setNotification({
-                    type: 'success',
-                    message: result.message
-                });
-                
-                // Refresh detail data
-                const refreshResult = await getPembelianDetail(id);
-                if (refreshResult.success) {
-                    setDetailData(refreshResult.data);
-                }
-                
-                // Close modals
-                setIsAddDetailModalOpen(false);
-                setIsEditDetailModalOpen(false);
-                setSelectedDetail(null);
-            } else {
-                setNotification({
-                    type: 'error',
-                    message: result.message
-                });
-            }
-        } catch (err) {
-            setNotification({
-                type: 'error',
-                message: err.message || 'Terjadi kesalahan saat menyimpan data'
-            });
-        }
-    };
-
-    const handleConfirmDeleteDetail = async (detail) => {
-        try {
-            const result = await deleteDetail(detail.pubid);
-            
-            if (result.success) {
-                setNotification({
-                    type: 'success',
-                    message: result.message
-                });
-                
-                // Refresh detail data
-                const refreshResult = await getPembelianDetail(id);
-                if (refreshResult.success) {
-                    setDetailData(refreshResult.data);
-                }
-                
-                setIsDeleteDetailModalOpen(false);
-                setSelectedDetail(null);
-            } else {
-                setNotification({
-                    type: 'error',
-                    message: result.message
-                });
-            }
-        } catch (err) {
-            setNotification({
-                type: 'error',
-                message: err.message || 'Terjadi kesalahan saat menghapus data'
-            });
-        }
-    };
-
-    const handleCloseAddDetailModal = () => {
-        setIsAddDetailModalOpen(false);
-        setSelectedDetail(null);
-    };
-
-    const handleCloseEditDetailModal = () => {
-        setIsEditDetailModalOpen(false);
-        setSelectedDetail(null);
-    };
-
-    const handleCloseDeleteDetailModal = () => {
-        setIsDeleteDetailModalOpen(false);
-        setSelectedDetail(null);
-    };
-
-    // Auto hide notification
-    useEffect(() => {
-        if (notification) {
-            const timer = setTimeout(() => {
-                setNotification(null);
-            }, 5000);
-            return () => clearTimeout(timer);
-        }
-    }, [notification]);
 
     // Optimized columns for detail table with perfect UX
     const detailColumns = [
@@ -662,7 +423,7 @@ const PembelianDetailPage = () => {
                                 Jenis Pembelian
                             </label>
                             <p className="text-lg font-bold text-gray-900">
-                                {pembelianData.jenis_pembelian || '-'}
+                                {getJenisPembelianLabel(pembelianData.jenis_pembelian)}
                             </p>
                         </div>
 
@@ -769,50 +530,6 @@ const PembelianDetailPage = () => {
                     </div>
                 </div>
 
-                {/* Notification */}
-                {notification && (
-                    <div className={`fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 ${
-                        notification.type === 'success'
-                            ? 'bg-green-500 text-white'
-                            : 'bg-red-500 text-white'
-                    }`}>
-                        <p className="text-sm font-medium">{notification.message}</p>
-                    </div>
-                )}
-
-
-
-                {/* Modals */}
-                <AddEditDetailModal
-                    isOpen={isAddDetailModalOpen || isEditDetailModalOpen}
-                    onClose={isAddDetailModalOpen ? handleCloseAddDetailModal : handleCloseEditDetailModal}
-                    onSave={handleSaveDetail}
-                    editData={isEditDetailModalOpen ? selectedDetail : (isAddDetailModalOpen ? selectedDetail : null)}
-                    loading={loading}
-                    pembelianHeaderId={pembelianData?.pubid}
-                    officeId={pembelianData?.id_office}
-                />
-
-                <DeleteDetailModal
-                    isOpen={isDeleteDetailModalOpen}
-                    onClose={handleCloseDeleteDetailModal}
-                    onConfirm={handleConfirmDeleteDetail}
-                    data={selectedDetail}
-                    loading={loading}
-                />
-
-                {/* Single Action Menu */}
-                {openDetailMenuIndex !== null && activeButtonRef && activeRowData && (
-                    <DetailActionMenu
-                        row={activeRowData}
-                        onEdit={null} // Edit disabled - detail page is read-only for editing
-                        onDelete={handleDeleteDetail}
-                        onClone={handleCloneDetail}
-                        onClose={handleCloseMenu}
-                        buttonRef={activeButtonRef}
-                        openMenuIndex={openDetailMenuIndex}
-                    />
-                )}
             </div>
         </div>
     );

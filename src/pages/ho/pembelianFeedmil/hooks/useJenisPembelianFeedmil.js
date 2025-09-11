@@ -31,22 +31,26 @@ const useJenisPembelianFeedmil = () => {
             console.error('❌ Error fetching jenis pembelian Feedmil from database:', err);
             setError(err.message);
             
-            // Fallback to data based on database structure seen in screenshot
-            console.log('🔄 Using fallback data based on database structure');
+            // Fallback to mock data if API fails
+            console.log('🔄 Using fallback mock data for jenis pembelian Feedmil');
             setJenisPembelianFeedmil([
                 {
-                    id: 22,
+                    pubid: 'mock-1',
                     name: 'INTERNAL',
-                    value: 1, // From database screenshot
-                    description: 'INTERNAL',
-                    group: 'jenis_pembelian_feedmil'
+                    value: '1',
+                    group: 'jenis_pembelian_feedmil',
+                    description: null,
+                    order_no: 1,
+                    pid: 'mock-pid-1'
                 },
                 {
-                    id: 23,
-                    name: 'EXTERNAL', 
-                    value: 2, // From database screenshot
-                    description: 'EXTERNAL',
-                    group: 'jenis_pembelian_feedmil'
+                    pubid: 'mock-2',
+                    name: 'EXTERNAL',
+                    value: '2',
+                    group: 'jenis_pembelian_feedmil',
+                    description: null,
+                    order_no: 2,
+                    pid: 'mock-pid-2'
                 }
             ]);
         } finally {
@@ -61,18 +65,19 @@ const useJenisPembelianFeedmil = () => {
     // Transform data to select options
     const jenisPembelianOptions = useMemo(() => {
         return jenisPembelianFeedmil.map(item => ({
-            value: parseInt(item.value) || item.id, // Use integer value as backend expects
+            value: item.value, // Keep as string since API returns string values
             label: item.name || item.description,
-            rawId: item.id,
+            rawId: item.pubid || item.id,
             description: item.description,
             group: item.group,
-            order_no: item.order_no
+            order_no: item.order_no,
+            pid: item.pid
         }));
     }, [jenisPembelianFeedmil]);
 
     // Helper function to get label by value
     const getLabelByValue = (value) => {
-        const option = jenisPembelianOptions.find(opt => opt.value === parseInt(value));
+        const option = jenisPembelianOptions.find(opt => String(opt.value) === String(value));
         return option ? option.label : '';
     };
 

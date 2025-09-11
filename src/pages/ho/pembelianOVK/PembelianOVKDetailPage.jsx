@@ -4,14 +4,20 @@ import { ArrowLeft, Building2, User, Calendar, Truck, Hash, Package, Eye, Weight
 import usePembelianOVK from './hooks/usePembelianOVK';
 import { enhancedOVKTableStyles } from './constants/tableStyles';
 import DataTable from 'react-data-table-component';
+import { StyleSheetManager } from 'styled-components';
+
+// Custom function to filter out invalid props that shouldn't be passed to DOM
+const shouldForwardProp = (prop) => {
+  // Filter out column-specific props that shouldn't be passed to DOM
+  const invalidProps = ['grow', 'center', 'minWidth', 'maxWidth', 'wrap', 'sortable', 'ignoreRowClick'];
+  return !invalidProps.includes(prop);
+};
 
 const PembelianOVKDetailPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const {
         getPembelianDetail,
-        fetchPembelian,
-        pembelian: pembelianList,
         loading,
         error
     } = usePembelianOVK();
@@ -107,13 +113,6 @@ const PembelianOVKDetailPage = () => {
         return () => clearTimeout(timer);
     }, [detailData]);
 
-    // Load pembelian list first (untuk ambil header seperti halaman utama)
-    useEffect(() => {
-        if (!pembelianList || pembelianList.length === 0) {
-            fetchPembelian(1, 1000, '', 'all', false);
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []); // Remove dependencies to prevent infinite loop
 
     useEffect(() => {
         const fetchDetail = async () => {
@@ -124,19 +123,13 @@ const PembelianOVKDetailPage = () => {
                         // Detail items dari view dt_pembelian_ho_ovk_detail
                         const detailItems = result.data;
 
-                        // 1) Coba ambil header dari list pembelian (seperti halaman utama)
-                        let headerData = null;
-                        if (pembelianList && pembelianList.length > 0) {
-                            headerData = pembelianList.find(item => item.encryptedPid === id || item.id === id);
-                            if (!headerData) {
-                                const decodedId = decodeURIComponent(id);
-                                headerData = pembelianList.find(item => item.encryptedPid === decodedId || item.id === decodedId);
-                            }
-                        }
-
+                        // Get header data directly from /show endpoint
+                        let headerData = result.header;
+                        
                         if (headerData) {
+                            // Use header data from /show endpoint
                             setPembelianData({
-                                encryptedPid: headerData.encryptedPid || id,
+                                encryptedPid: headerData.encryptedPid || headerData.pid || id,
                                 nota: headerData.nota || '',
                                 nama_supplier: headerData.nama_supplier || '',
                                 nama_office: headerData.nama_office || 'Head Office (HO)',
@@ -149,55 +142,28 @@ const PembelianOVKDetailPage = () => {
                                 jumlah: headerData.jumlah || 0,
                                 satuan: headerData.satuan || 'item',
                                 berat_total: headerData.berat_total || 0,
-                                jenis_pembelian: headerData.jenis_pembelian || 'OVK',
+                                jenis_pembelian: headerData.jenis_pembelian || 'INTERNAL',
                                 file: headerData.file || null
                             });
                         } else {
-                            // 2) Fallback: cocokan berdasarkan nota dari detail pertama
-                            const firstDetail = detailItems[0];
-                            let headerByNota = null;
-                            if (firstDetail?.nota && pembelianList && pembelianList.length > 0) {
-                                headerByNota = pembelianList.find(item => item.nota === firstDetail.nota);
-                            }
-
-                            if (headerByNota) {
-                                setPembelianData({
-                                    encryptedPid: headerByNota.encryptedPid || id,
-                                    nota: headerByNota.nota || '',
-                                    nama_supplier: headerByNota.nama_supplier || '',
-                                    nama_office: headerByNota.nama_office || 'Head Office (HO)',
-                                    tgl_masuk: headerByNota.tgl_masuk || '',
-                                    nama_supir: headerByNota.nama_supir || '',
-                                    plat_nomor: headerByNota.plat_nomor || '',
-                                    biaya_lain: headerByNota.biaya_lain || 0,
-                                    biaya_truk: headerByNota.biaya_truk || 0,
-                                    biaya_total: headerByNota.biaya_total || 0,
-                                    jumlah: headerByNota.jumlah || 0,
-                                    satuan: headerByNota.satuan || 'item',
-                                    berat_total: headerByNota.berat_total || 0,
-                                    jenis_pembelian: headerByNota.jenis_pembelian || 'OVK',
-                                    file: headerByNota.file || null
-                                });
-                            } else {
-                                // 3) Fallback terakhir: gunakan informasi dari detail pertama
-                                const firstItem = detailItems[0];
-                                setPembelianData({
-                                    encryptedPid: firstItem.pubid || id,
-                                    nota: firstItem.nota || '',
-                                    nama_supplier: firstItem.nama_supplier || '',
-                                    nama_office: firstItem.nama_office || 'Head Office (HO)',
-                                    tgl_masuk: firstItem.tgl_masuk || '',
-                                    nama_supir: firstItem.nama_supir || '',
-                                    plat_nomor: firstItem.plat_nomor || '',
-                                    biaya_lain: firstItem.biaya_lain || 0,
-                                    biaya_truk: firstItem.biaya_truk || 0,
-                                    biaya_total: firstItem.biaya_total || 0,
-                                    jumlah: firstItem.jumlah || 0,
-                                    satuan: 'item',
-                                    berat_total: firstItem.berat_total || 0,
-                                    jenis_pembelian: 'OVK'
-                                });
-                            }
+                            // Fallback: gunakan informasi dari detail pertama jika header tidak tersedia
+                            const firstItem = detailItems[0];
+                            setPembelianData({
+                                encryptedPid: firstItem.pubid || id,
+                                nota: firstItem.nota || '',
+                                nama_supplier: firstItem.nama_supplier || '',
+                                nama_office: firstItem.nama_office || 'Head Office (HO)',
+                                tgl_masuk: firstItem.tgl_masuk || '',
+                                nama_supir: firstItem.nama_supir || '',
+                                plat_nomor: firstItem.plat_nomor || '',
+                                biaya_lain: firstItem.biaya_lain || 0,
+                                biaya_truk: firstItem.biaya_truk || 0,
+                                biaya_total: firstItem.biaya_total || 0,
+                                jumlah: firstItem.jumlah || 0,
+                                satuan: 'item',
+                                berat_total: firstItem.berat_total || 0,
+                                jenis_pembelian: firstItem.jenis_pembelian || 'INTERNAL'
+                            });
                         }
 
                         // Transform detail items untuk struktur frontend
@@ -232,7 +198,7 @@ const PembelianOVKDetailPage = () => {
                             jumlah: 0,
                             satuan: 'item',
                             berat_total: 0,
-                            jenis_pembelian: 'OVK'
+                            jenis_pembelian: 'INTERNAL' // Default to first option
                         });
                         setDetailData([]);
                     }
@@ -248,8 +214,12 @@ const PembelianOVKDetailPage = () => {
             }
         };
 
-        fetchDetail();
-    }, [id, getPembelianDetail, pembelianList]);
+        // Only fetch detail if we have an id and haven't already loaded the data
+        if (id && !pembelianData) {
+            fetchDetail();
+        }
+    }, [id, getPembelianDetail]); // Removed pembelianList dependency to prevent duplicate calls
+
 
     const handleBack = () => {
         navigate('/ho/pembelian-ovk');
@@ -440,7 +410,7 @@ const PembelianOVKDetailPage = () => {
 
     return (
         <>
-            <style jsx>{`
+            <style>{`
                 .word-break-all {
                     word-break: break-all;
                     overflow-wrap: break-word;
@@ -713,7 +683,8 @@ const PembelianOVKDetailPage = () => {
                     {/* Table Container with proper scroll */}
                     <div className="w-full overflow-x-auto max-w-full table-scroll-container" onScroll={handleTableScroll}>
                         <div className="min-w-full">
-                            <DataTable
+                            <StyleSheetManager shouldForwardProp={shouldForwardProp}>
+                                <DataTable
                                 title="Daftar Detail Item OVK"
                                 columns={detailColumns}
                                 data={getPaginatedData()}
@@ -826,6 +797,7 @@ const PembelianOVKDetailPage = () => {
                                 highlightOnHover
                                 pointerOnHover
                             />
+                            </StyleSheetManager>
                         </div>
                     </div>
                     

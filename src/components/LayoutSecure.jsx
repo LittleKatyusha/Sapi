@@ -423,7 +423,7 @@ const LayoutSecure = ({ children, title }) => {
       )}
 
       {/* Enhanced Sidebar Styles */}
-      <style jsx="true">{`
+      <style>{`
         /* Ensure sidebar always stays full viewport height and fixed */
         .sidebar-container {
           position: fixed !important;

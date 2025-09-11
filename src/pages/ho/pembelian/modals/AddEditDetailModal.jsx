@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, Package, Hash, Weight, DollarSign, Truck, AlertCircle } from 'lucide-react';
-import useParameterSelect from '../hooks/useParameterSelect';
 import SearchableSelect from '../../../../components/shared/SearchableSelect';
 
 const AddEditDetailModal = ({
@@ -10,15 +9,10 @@ const AddEditDetailModal = ({
     editData = null,
     loading = false,
     pembelianHeaderId,
-    officeId
+    officeId,
+    eartagOptions = [],
+    klasifikasiHewanOptions = []
 }) => {
-    // Use centralized parameter hook
-    const {
-        eartagOptions,
-        klasifikasiHewanOptions,
-        loading: parameterLoading,
-        error: parameterError
-    } = useParameterSelect();
     const [formData, setFormData] = useState({
         eartag: '',
         idKlasifikasiHewan: '',
@@ -182,19 +176,6 @@ const AddEditDetailModal = ({
                 {/* Form */}
                 <form onSubmit={handleSubmit} className="p-6 space-y-6">
                     {/* Parameter Loading/Error State */}
-                    {parameterLoading && (
-                        <div className="bg-blue-50 p-4 rounded-lg flex items-center gap-2">
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                            <span className="text-blue-700 text-sm">Memuat data parameter...</span>
-                        </div>
-                    )}
-                    
-                    {parameterError && (
-                        <div className="bg-red-50 p-4 rounded-lg flex items-center gap-2">
-                            <AlertCircle className="w-4 h-4 text-red-600" />
-                            <span className="text-red-700 text-sm">Error: {parameterError}</span>
-                        </div>
-                    )}
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Eartag */}
@@ -208,8 +189,7 @@ const AddEditDetailModal = ({
                                 value={formData.eartag}
                                 onChange={(value) => setFormData(prev => ({ ...prev, eartag: value }))}
                                 placeholder="Pilih Eartag"
-                                isLoading={parameterLoading}
-                                isDisabled={loading || parameterLoading}
+                                isDisabled={loading}
                                 isClearable={true}
                                 className={errors.eartag ? 'border-red-500' : ''}
                             />
@@ -247,8 +227,7 @@ const AddEditDetailModal = ({
                                 value={formData.idKlasifikasiHewan}
                                 onChange={(value) => setFormData(prev => ({ ...prev, idKlasifikasiHewan: value }))}
                                 placeholder="Pilih Klasifikasi"
-                                isLoading={parameterLoading}
-                                isDisabled={loading || parameterLoading}
+                                isDisabled={loading}
                                 isClearable={true}
                                 className={errors.idKlasifikasiHewan ? 'border-red-500' : ''}
                             />

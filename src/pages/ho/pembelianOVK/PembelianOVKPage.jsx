@@ -331,7 +331,7 @@ const PembelianOVKPage = () => {
 
     return (
         <>
-            <style jsx>{`
+            <style>{`
                 .word-break-all {
                     word-break: break-all;
                     overflow-wrap: break-word;
