@@ -11,6 +11,7 @@ const useSuppliersAPI = (jenisSupplier = null, kategoriSupplier = null) => {
     const fetchSuppliers = useCallback(async (filterJenisSupplier = jenisSupplier, filterKategoriSupplier = kategoriSupplier) => {
         // Avoid duplicate calls with same filter
         if (loading) {
+            console.log('📊 Supplier API: Already loading, skipping duplicate call');
             return;
         }
         
@@ -19,8 +20,11 @@ const useSuppliersAPI = (jenisSupplier = null, kategoriSupplier = null) => {
         
         // Only skip if we have data and same filter
         if (lastFilter === currentFilterKey && suppliers.length > 0) {
+            console.log('📊 Supplier API: Using cached data for filter:', currentFilterKey);
             return;
         }
+        
+        console.log('📊 Supplier API: Fetching data for filter:', currentFilterKey);
         
         setLoading(true);
         setError(null);

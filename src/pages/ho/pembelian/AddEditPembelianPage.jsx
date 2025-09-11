@@ -24,8 +24,7 @@ const AddEditPembelianPage = () => {
         deleteDetail,
         saveHeaderOnly,
         saveDetailsOnly,
-        fetchPembelian,
-        pembelian: pembelianList,
+        // fetchPembelian and pembelianList no longer needed for edit mode
         loading,
         error
     } = usePembelianHO();
@@ -143,8 +142,7 @@ const AddEditPembelianPage = () => {
     // Supplier options are now filtered server-side, no need for client-side filtering
     const filteredSupplierOptions = supplierOptions;
     
-    // Memoize pembelianList to prevent unnecessary re-renders
-    const stablePembelianList = useMemo(() => pembelianList, [pembelianList?.length]);
+    // No longer need stablePembelianList - using /show endpoint only
 
     // Helper functions for number formatting
     const formatNumber = (value) => {
@@ -157,15 +155,15 @@ const AddEditPembelianPage = () => {
         return parseInt(value.toString().replace(/\./g, '')) || 0;
     };
 
-    // Auto-fetch supplier data when tipe pembelian is selected (with optimization)
+    // Optimized supplier data fetching with proper caching
     useEffect(() => {
-        // Skip if we're in edit mode and initial data is loading
-        if (isEdit && id && (!supplierOptions.length || !tipePembelianOptions.length)) {
-            return; // Let edit mode useEffect handle the initial data loading
+        // Skip if we're in edit mode - useParameterSelect already handles supplier loading
+        if (isEdit) {
+            return;
         }
 
+        // Only fetch supplier data for add mode when tipe pembelian is selected
         if (headerData.tipePembelian && tipePembelianOptions.length > 0) {
-            // Find selected tipe pembelian to determine jenis_supplier filter
             const selectedTipe = tipePembelianOptions.find(tipe => tipe.value === headerData.tipePembelian);
             if (selectedTipe) {
                 const tipeLabel = selectedTipe.label.toUpperCase();
@@ -177,74 +175,81 @@ const AddEditPembelianPage = () => {
                     jenisSupplierFilter = 2; // PERORANGAN
                 }
                 
+                // Check cache to avoid redundant calls
+                const cacheKey = `supplier_${jenisSupplierFilter}`;
+                const now = Date.now();
+                const cache = supplierDataCacheRef.current;
                 
+                // Skip if we have cached data and it's less than 30 seconds old
+                if (cache[cacheKey] && (now - cache.lastFetch) < 30000) {
+                    console.log('📊 Using cached supplier data for filter:', jenisSupplierFilter);
+                    return;
+                }
                 
                 // Use a timeout to debounce rapid changes
                 const timeoutId = setTimeout(() => {
+                    console.log('📊 Fetching supplier data for filter:', jenisSupplierFilter);
                     fetchSupplierData(jenisSupplierFilter);
+                    // Update cache
+                    cache[cacheKey] = true;
+                    cache.lastFetch = now;
                 }, 300);
                 
                 return () => clearTimeout(timeoutId);
             }
         }
-    }, [headerData.tipePembelian, tipePembelianOptions, isEdit, id, supplierOptions.length]);
+    }, [headerData.tipePembelian, tipePembelianOptions, isEdit, fetchSupplierData]);
 
-    // Reset supplier selection when tipe pembelian changes (with stability check)
+    // Optimized supplier validation - only when needed
     useEffect(() => {
         // Skip if we're in edit mode and initial data is still loading
         if (isEdit && id && (!supplierOptions.length || !tipePembelianOptions.length)) {
             return;
         }
 
-        if (headerData.tipePembelian && headerData.idSupplier && filteredSupplierOptions.length > 0) {
+        // Only validate supplier selection for add mode when tipe pembelian changes
+        if (!isEdit && headerData.tipePembelian && headerData.idSupplier && filteredSupplierOptions.length > 0) {
             // Check if current supplier is still in filtered list
             const currentSupplierExists = filteredSupplierOptions.find(
                 supplier => supplier.value === headerData.idSupplier
             );
             
-            
-            
-            if (!currentSupplierExists) {;
-                
-                // Only reset supplier if we're not in edit mode or if we've finished loading edit data
-                if (!isEdit) {
-                    setHeaderData(prev => ({
-                        ...prev,
-                        idSupplier: ''
-                    }));
-                } else {
-                    
-                }
-            } else {
-                
+            if (!currentSupplierExists) {
+                console.log('🔄 Resetting supplier selection due to tipe pembelian change');
+                setHeaderData(prev => ({
+                    ...prev,
+                    idSupplier: ''
+                }));
             }
         }
-    }, [headerData.tipePembelian, filteredSupplierOptions, headerData.idSupplier, isEdit, id, supplierOptions.length, tipePembelianOptions.length]);
+    }, [headerData.tipePembelian, headerData.idSupplier, filteredSupplierOptions, isEdit, id, supplierOptions.length]);
 
-    // Preload data for edit mode - trigger early data loading
-    useEffect(() => {
-        if (isEdit && id) {
-            
-            // Force fetch supplier data if not already fetched
-            if (!isSupplierDataFetched && fetchSupplierData) {
-                fetchSupplierData(null, true); // Force load
-            }
-        }
-    }, [isEdit, id, isSupplierDataFetched, fetchSupplierData]);
+    // Removed redundant supplier preloading - useParameterSelect already handles this
 
     // Load data for edit mode - wait for parameter data to be loaded first
     // Add ref to track if edit data has been loaded to prevent re-loading
     const editDataLoadedRef = useRef(false);
     
-    // Load pembelian list first for edit mode
-    useEffect(() => {
-        if (isEdit && id && (!pembelianList || pembelianList.length === 0)) {
-            fetchPembelian(1, 1000, '', '', null, false)
-                .catch((error) => {
-                    console.error('Error loading pembelian list for edit mode:', error);
-                });
-        }
-    }, [isEdit, id, fetchPembelian]);
+    // Cache for supplier data to prevent redundant API calls
+    const supplierDataCacheRef = useRef({
+        supplier_1: null, // PERUSAHAAN
+        supplier_2: null, // PERORANGAN
+        supplier_null: null, // ALL
+        lastFetch: null
+    });
+    
+    // Memoize computed values to prevent unnecessary re-renders
+    const hasRequiredData = useMemo(() => {
+        return parameterData.eartag?.length > 0 &&
+               parameterData.klasifikasihewan?.length > 0 &&
+               tipePembelianOptions?.length > 0;
+    }, [parameterData.eartag, parameterData.klasifikasihewan, tipePembelianOptions]);
+    
+    const isDataReady = useMemo(() => {
+        return !parameterLoading && !tipePembelianLoading;
+    }, [parameterLoading, tipePembelianLoading]);
+    
+    // No longer need to load pembelian list for edit mode - using /show endpoint only
 
     useEffect(() => {
         
@@ -258,242 +263,196 @@ const AddEditPembelianPage = () => {
             return;
         }
 
-        // Revisi kondisi - gunakan supplierOptions langsung dan tambahkan tipePembelianOptions
-        // Untuk edit mode, kita tidak perlu menunggu stablePembelianList karena kita bisa menggunakan getPembelianDetail
-        const hasRequiredData = (supplierOptions?.length > 0 || parameterData.supplier?.length > 0) &&
-                               parameterData.eartag?.length > 0 &&
-                               parameterData.klasifikasihewan?.length > 0 &&
-                               tipePembelianOptions?.length > 0;
-        
-        // Tambahkan kondisi untuk memastikan data tidak sedang loading
-        const isDataReady = !parameterLoading && !tipePembelianLoading && !supplierLoading;
+        // Use memoized values to prevent redundant calculations
         if (isEdit && id && isDataReady && hasRequiredData) {
             const loadEditData = async () => {
                 try {
                     const decodedId = decodeURIComponent(id);
                     
-                    // 1. Find header data dari pembelian list (dt_pembelian_HO data)
-                    let headerDataFromList = null;
-                    if (stablePembelianList && stablePembelianList.length > 0) {
-                        headerDataFromList = stablePembelianList.find(item => item.encryptedPid === id);
-                        
-                        // Try alternative matching jika tidak ketemu
-                        if (!headerDataFromList) {
-                            headerDataFromList = stablePembelianList.find(item => item.encryptedPid === decodedId);
-                        }
-                    }
+                    // Get both header and detail data from /show endpoint only
+                    console.log('🔍 Getting header and detail data from /show endpoint for PID:', id);
                     
-                    // 2. Get detail data from show endpoint
                     const result = await getPembelianDetail(decodedId);
                     
-                    // If still not found header data, try to match by nota (fallback method)
-                    if (!headerDataFromList && result.success && result.data.length > 0) {
-                        const firstDetail = result.data[0];
-                        if (firstDetail.nota && stablePembelianList && stablePembelianList.length > 0) {
-                            headerDataFromList = stablePembelianList.find(item => item.nota === firstDetail.nota);
+                    if (!result.success || !result.data || result.data.length === 0) {
+                        console.log('❌ No data from /show endpoint');
+                        throw new Error('Data tidak ditemukan untuk pubid yang dipilih');
+                    }
+                    
+                    // Use the first record as header data (since /show returns detail records with header info)
+                    // All records have the same header data (nota, tgl_masuk, nama_supir, etc.)
+                    // So we only need the first record for header information
+                    const firstDetail = result.data[0];
+                    
+                    console.log('✅ Header and detail data found from /show endpoint:', {
+                        nota: firstDetail.nota,
+                        pid: firstDetail.pid,
+                        nama_supplier: firstDetail.nama_supplier,
+                        detailRecords: result.data.length
+                    });
+                    
+                    // Find supplier ID from detail data
+                    let supplierIdFromName = '';
+                    const supplierNameToMatch = firstDetail.nama_supplier;
+                    if (supplierNameToMatch && supplierOptions.length > 0) {
+                        const matchedSupplier = supplierOptions.find(supplier =>
+                            supplier.label === supplierNameToMatch
+                        );
+                        if (matchedSupplier) {
+                            supplierIdFromName = matchedSupplier.value;
                         }
                     }
                     
-                    if (result.success && result.data.length > 0) {
-                        const firstDetail = result.data[0];
-                        
-                        // Find supplier ID - prefer from dt_pembelian_HO, fallback to detail data
-                        let supplierIdFromName = '';
-                        const supplierNameToMatch = headerDataFromList?.nama_supplier || firstDetail.nama_supplier;
-                        if (supplierNameToMatch && supplierOptions.length > 0) {
-                            const matchedSupplier = supplierOptions.find(supplier =>
-                                supplier.label === supplierNameToMatch
-                            );
-                            if (matchedSupplier) {
-                                supplierIdFromName = matchedSupplier.value;
-                            }
-                        }
-                        
-                        // Determine tipe pembelian - prefer from dt_pembelian_HO, fallback to detail data
-                        let tipePembelianIdFromBackend = '';
-                        
-                        // Try to get from header data first (dt_pembelian_HO)
-                        if (headerDataFromList?.jenis_pembelian_id !== null && headerDataFromList?.jenis_pembelian_id !== undefined) {
-                            tipePembelianIdFromBackend = String(headerDataFromList.jenis_pembelian_id);
-                        } 
-                        // Try to match jenis_pembelian label with tipePembelianOptions
-                        else if (headerDataFromList?.jenis_pembelian && tipePembelianOptions.length > 0) {
-                            const matchedTipe = tipePembelianOptions.find(tipe => 
-                                tipe.label === headerDataFromList.jenis_pembelian
-                            );
-                            if (matchedTipe) {
-                                tipePembelianIdFromBackend = String(matchedTipe.value);
-                            }
-                        }
-                        // Fallback to detail data
-                        else if (firstDetail.tipe_pembelian !== null && firstDetail.tipe_pembelian !== undefined) {
-                            tipePembelianIdFromBackend = String(firstDetail.tipe_pembelian);
-                        } else if (firstDetail.jenis_pembelian_id !== null && firstDetail.jenis_pembelian_id !== undefined) {
-                            tipePembelianIdFromBackend = String(firstDetail.jenis_pembelian_id);
-                        }
+                    // Determine tipe pembelian from detail data
+                    let tipePembelianIdFromBackend = '';
+                    if (firstDetail.tipe_pembelian !== null && firstDetail.tipe_pembelian !== undefined) {
+                        tipePembelianIdFromBackend = String(firstDetail.tipe_pembelian);
+                    } else if (firstDetail.jenis_pembelian_id !== null && firstDetail.jenis_pembelian_id !== undefined) {
+                        tipePembelianIdFromBackend = String(firstDetail.jenis_pembelian_id);
+                    }
 
 
+                    
+                    // Calculate totals from detail items
+                    const calculatedBeratTotal = result.data.reduce((sum, item) => sum + (parseInt(item.berat) || 0), 0);
+                    const calculatedHargaTotal = result.data.reduce((sum, item) => sum + (parseFloat(item.harga) || 0), 0);
+                    const totalSapiCount = result.data.length;
+                    
+                    // Use id_office directly from backend data (more reliable than name matching)
+                    let officeIdFromBackend = '';
+                    
+                    // First try to use id_office directly from backend
+                    if (firstDetail.id_office) {
+                        officeIdFromBackend = String(firstDetail.id_office);
+                        console.log('✅ Using id_office directly from backend:', officeIdFromBackend);
+                        console.log('📊 Available office options:', officeAPIOptions);
+                        console.log('📊 Office loading state:', officeLoading);
+                    } else {
+                        // Fallback: try to find by nama_office if id_office is not available
+                        const officeNameToMatch = (firstDetail.nama_office || '').trim();
                         
-                        // Calculate totals from detail items if not available in header
-                        const calculatedBeratTotal = result.data.reduce((sum, item) => sum + (parseInt(item.berat) || 0), 0);
-                        const calculatedHargaTotal = result.data.reduce((sum, item) => sum + (parseFloat(item.harga) || 0), 0);
-                        const totalSapiCount = result.data.length;
-                        
-                        // Load header data - prefer from dt_pembelian_HO, fallback to detail data
-                        const headerDataToUse = headerDataFromList || {};
-                        const detailDataFallback = firstDetail || {};
-                        
-                        // Find office ID from nama_office - ONLY from header data (dt_pembelian_ho)
-                        // Detail data (dt_pembelian_ho_detail) does NOT have nama_office field
-                        let officeIdFromName = '';
-                        const officeNameToMatch = (headerDataToUse.nama_office || '').trim(); // Only use header data
-                        
-                        // Helper function to find office match
-                        const findOfficeMatch = (nameToMatch, options) => {
-                            if (!nameToMatch || !options.length) return null;
-                            
-                            // Normalize the name to match (trim and lowercase)
-                            const normalizedName = nameToMatch.trim().toLowerCase();
-                            
-                            return options.find(office => {
-                                const labelMatch = office.label && office.label.trim().toLowerCase() === normalizedName;
-                                const nameMatch = office.name && office.name.trim().toLowerCase() === normalizedName;
-                                
-                                if (labelMatch || nameMatch) {
-                                    return true;
-                                }
-                                return false;
+                        if (officeNameToMatch && officeAPIOptions.length > 0) {
+                            const matchedOffice = officeAPIOptions.find(office => {
+                                const labelMatch = office.label && office.label.trim().toLowerCase() === officeNameToMatch.toLowerCase();
+                                const nameMatch = office.name && office.name.trim().toLowerCase() === officeNameToMatch.toLowerCase();
+                                return labelMatch || nameMatch;
                             });
-                        };
-                        
-                        if (!officeNameToMatch) {
-                            // No office name from header data
-                        } else if (officeLoading || officeAPIOptions.length === 0) {
-                            // Store the office name temporarily for delayed mapping
-                            window.tempOfficeNameToMatch = officeNameToMatch;
-                        } else {
-                            const matchedOffice = findOfficeMatch(officeNameToMatch, officeAPIOptions);
                             
                             if (matchedOffice) {
-                                officeIdFromName = matchedOffice.value;
+                                officeIdFromBackend = matchedOffice.value;
+                                console.log('✅ Found office by name fallback:', officeIdFromBackend);
                             }
                         }
-
-                        
-                        const finalHeaderData = {
-                            idOffice: officeIdFromName || '', // Use matched office ID from name
-                            nota: headerDataToUse.nota || detailDataFallback.nota || '',
-                            idSupplier: supplierIdFromName || '', // Use matched supplier ID from name
-                            tglMasuk: headerDataToUse.tgl_masuk || detailDataFallback.tgl_masuk || '',
-                            namaSupir: headerDataToUse.nama_supir || detailDataFallback.nama_supir || '',
-                            platNomor: headerDataToUse.plat_nomor || detailDataFallback.plat_nomor || '',
-                            biayaTruck: parseFloat(headerDataToUse.biaya_truk) || parseFloat(detailDataFallback.biaya_truck) || parseFloat(detailDataFallback.biaya_truk) || 0,
-                            biayaLain: parseFloat(headerDataToUse.biaya_lain) || parseFloat(detailDataFallback.biaya_lain) || 0,
-                            jumlah: parseInt(headerDataToUse.jumlah) || parseInt(detailDataFallback.jumlah_total) || result.data.length,
-                            beratTotal: parseFloat(headerDataToUse.berat_total) || calculatedBeratTotal || 0, // Prefer from dt_pembelian_HO, backend returns string format like "100.00"
-                            tipePembelian: tipePembelianIdFromBackend || '', // Use ID from backend
-                            file: headerDataToUse.file || detailDataFallback.file || null, // Backend returns null for file
-                            fileName: headerDataToUse.file_name || detailDataFallback.file_name || detailDataFallback.filename || '', // File name if available
-                            hargaTotal: parseFloat(headerDataToUse.biaya_total) || parseFloat(detailDataFallback.biaya_total) || calculatedHargaTotal || 0, // Prefer biaya_total from backend
-                            totalSapi: totalSapiCount, // Always use calculated count
-                            note: headerDataToUse.note || detailDataFallback.note || '', // Note field from backend
-                        };
-                        
-                        setHeaderData(finalHeaderData);
-
-
-                        
-                        
-
-                        // Mark edit data as loaded to prevent re-loading
-                        editDataLoadedRef.current = true;
-
-                        // Load markup percentage if available, otherwise use default 12%
-                        if (firstDetail.markup_percentage !== undefined) {
-                            setMarkupPercentage(parseFloat(firstDetail.markup_percentage) || 12);
-                        }
-
-                        // Load detail data - calculate persentase from harga and hpp if not available
-                        
-                        setDetailItems(result.data.map((item, index) => {
-                            // Calculate markup percentage if not provided by backend
-                            let calculatedPersentase = markupPercentage; // default
-                            const harga = parseFloat(item.harga) || 0;
-                            const hpp = parseFloat(item.hpp) || 0;
-                            
-                            if (harga > 0 && hpp > harga) {
-                                calculatedPersentase = ((hpp - harga) / harga * 100);
-                            }
-                            
-                            // Find klasifikasi ID - try multiple matching strategies
-                            let klasifikasiIdFromId = '';
-                            if ((item.id_klasifikasi_hewan || item.klasifikasi_id || item.klasifikasi_hewan_pubid || item.klasifikasihewan_id || item.pubid_klasifikasi || item.klasifikasi_name || item.klasifikasi || item.nama_klasifikasi) && klasifikasiHewanOptions.length > 0) {
-                                const idToFind = item.id_klasifikasi_hewan || item.klasifikasi_id || item.klasifikasi_hewan_pubid || item.klasifikasihewan_id || item.pubid_klasifikasi;
-                                const matchedById = klasifikasiHewanOptions.find(klasifikasi =>
-                                    klasifikasi.value === idToFind ||
-                                    String(klasifikasi.value) === String(idToFind) ||
-                                    klasifikasi.id === idToFind ||
-                                    String(klasifikasi.id) === String(idToFind)
-                                );
-                                
-                                // If no match found by ID, try matching by name/label
-                                let matchedByName = null;
-                                if (!matchedById && (item.klasifikasi_name || item.klasifikasi || item.nama_klasifikasi)) {
-                                    const nameToFind = item.klasifikasi_name || item.klasifikasi || item.nama_klasifikasi;
-                                    matchedByName = klasifikasiHewanOptions.find(klasifikasi =>
-                                        klasifikasi.label === nameToFind ||
-                                        String(klasifikasi.label).toLowerCase() === String(nameToFind).toLowerCase()
-                                    );
-                                }
-                                const finalMatch = matchedById || matchedByName;
-
-                                if (finalMatch) {
-                                    klasifikasiIdFromId = finalMatch.value;
-                                }
-                            }
-                            
-                            // Find eartag value - try to match with available options or use the raw value
-                            let eartagValue = item.eartag || 'AUTO';
-                            if (item.eartag && eartagOptions.length > 0) {
-                                const matchedEartag = eartagOptions.find(eartag =>
-                                    eartag.value === item.eartag ||
-                                    String(eartag.value) === String(item.eartag) ||
-                                    eartag.label === item.eartag ||
-                                    eartag.id === item.eartag
-                                );
-                                
-                                if (matchedEartag) {
-                                    eartagValue = matchedEartag.value;
-                                }
-                            }
-
-                            // Debug eartag supplier
-                            const eartagSupplierValue = item.eartag_supplier || item.eartagSupplier || item.supplier_eartag || '';
-                            
-
-                            return {
-                                id: index + 1,
-                                pubid: item.pubid, // Header pubid
-                                pubidDetail: item.pubid_detail || item.pid, // Detail pubid/encrypted PID for updates
-                                encryptedPid: item.pid || item.pubid_detail, // Use pid first (from DataPembelianDetail), then fallback
-                                pid: item.pid, // Store original pid from backend
-                                idPembelian: item.id_pembelian || null, // Store id_pembelian if available from backend
-                                eartag: eartagValue,
-                                eartagSupplier: eartagSupplierValue, // Use the debugged value
-                                idKlasifikasiHewan: klasifikasiIdFromId || item.id_klasifikasi_hewan || item.klasifikasi_id || item.klasifikasi_hewan_pubid || item.klasifikasihewan_id || item.pubid_klasifikasi || '', // Try multiple sources, prioritize ID match
-                                harga: harga,
-                                berat: item.berat && parseInt(item.berat) > 0 ? parseInt(item.berat) : '',
-                                persentase: item.persentase || calculatedPersentase, // Use backend persentase or calculate from harga/hpp
-                                hpp: hpp,
-                            };
-                                                 }));
-                        
-
-                    } else {
-                        
-                        throw new Error(result.message || 'Data tidak ditemukan atau kosong');
                     }
+
+                    
+                    const finalHeaderData = {
+                        idOffice: officeIdFromBackend || '', // Use office ID from backend
+                        nota: firstDetail.nota || '',
+                        idSupplier: supplierIdFromName || '', // Use matched supplier ID from name
+                        tglMasuk: firstDetail.tgl_masuk || '',
+                        namaSupir: firstDetail.nama_supir || '',
+                        platNomor: firstDetail.plat_nomor || '',
+                        biayaTruck: parseFloat(firstDetail.biaya_truck) || parseFloat(firstDetail.biaya_truk) || 0,
+                        biayaLain: parseFloat(firstDetail.biaya_lain) || 0,
+                        jumlah: parseInt(firstDetail.jumlah_total) || result.data.length,
+                        beratTotal: parseFloat(firstDetail.berat_total) || calculatedBeratTotal || 0,
+                        tipePembelian: tipePembelianIdFromBackend || '', // Use ID from backend
+                        file: firstDetail.file || null, // Backend returns null for file
+                        fileName: firstDetail.file_name || firstDetail.filename || '', // File name if available
+                        hargaTotal: parseFloat(firstDetail.biaya_total) || calculatedHargaTotal || 0,
+                        totalSapi: totalSapiCount, // Always use calculated count
+                        note: firstDetail.note || '', // Note field from backend
+                    };
+                        
+                    setHeaderData(finalHeaderData);
+
+
+                        
+                        
+
+                    // Mark edit data as loaded to prevent re-loading
+                    editDataLoadedRef.current = true;
+
+                    // Load markup percentage if available, otherwise use default 12%
+                    if (firstDetail.markup_percentage !== undefined) {
+                        setMarkupPercentage(parseFloat(firstDetail.markup_percentage) || 12);
+                    }
+
+                    // Load detail data - calculate persentase from harga and hpp if not available
+                    setDetailItems(result.data.map((item, index) => {
+                        // Calculate markup percentage if not provided by backend
+                        let calculatedPersentase = markupPercentage; // default
+                        const harga = parseFloat(item.harga) || 0;
+                        const hpp = parseFloat(item.hpp) || 0;
+                        
+                        if (harga > 0 && hpp > harga) {
+                            calculatedPersentase = ((hpp - harga) / harga * 100);
+                        }
+                        
+                        // Find klasifikasi ID - try multiple matching strategies
+                        let klasifikasiIdFromId = '';
+                        if ((item.id_klasifikasi_hewan || item.klasifikasi_id || item.klasifikasi_hewan_pubid || item.klasifikasihewan_id || item.pubid_klasifikasi || item.klasifikasi_name || item.klasifikasi || item.nama_klasifikasi) && klasifikasiHewanOptions.length > 0) {
+                            const idToFind = item.id_klasifikasi_hewan || item.klasifikasi_id || item.klasifikasi_hewan_pubid || item.klasifikasihewan_id || item.pubid_klasifikasi;
+                            const matchedById = klasifikasiHewanOptions.find(klasifikasi =>
+                                klasifikasi.value === idToFind ||
+                                String(klasifikasi.value) === String(idToFind) ||
+                                klasifikasi.id === idToFind ||
+                                String(klasifikasi.id) === String(idToFind)
+                            );
+                            
+                            // If no match found by ID, try matching by name/label
+                            let matchedByName = null;
+                            if (!matchedById && (item.klasifikasi_name || item.klasifikasi || item.nama_klasifikasi)) {
+                                const nameToFind = item.klasifikasi_name || item.klasifikasi || item.nama_klasifikasi;
+                                matchedByName = klasifikasiHewanOptions.find(klasifikasi =>
+                                    klasifikasi.label === nameToFind ||
+                                    String(klasifikasi.label).toLowerCase() === String(nameToFind).toLowerCase()
+                                );
+                            }
+                            const finalMatch = matchedById || matchedByName;
+
+                            if (finalMatch) {
+                                klasifikasiIdFromId = finalMatch.value;
+                            }
+                        }
+                        
+                        // Find eartag value - try to match with available options or use the raw value
+                        let eartagValue = item.eartag || 'AUTO';
+                        if (item.eartag && eartagOptions.length > 0) {
+                            const matchedEartag = eartagOptions.find(eartag =>
+                                eartag.value === item.eartag ||
+                                String(eartag.value) === String(item.eartag) ||
+                                eartag.label === item.eartag ||
+                                eartag.id === item.eartag
+                            );
+                            
+                            if (matchedEartag) {
+                                eartagValue = matchedEartag.value;
+                            }
+                        }
+
+                        // Debug eartag supplier
+                        const eartagSupplierValue = item.eartag_supplier || item.eartagSupplier || item.supplier_eartag || '';
+                        
+                        return {
+                            id: index + 1,
+                            pubid: item.pubid, // Header pubid
+                            pubidDetail: item.pubid_detail || item.pid, // Detail pubid/encrypted PID for updates
+                            encryptedPid: item.pid || item.pubid_detail, // Use pid first (from DataPembelianDetail), then fallback
+                            pid: item.pid, // Store original pid from backend
+                            idPembelian: item.id_pembelian || null, // Store id_pembelian if available from backend
+                            eartag: eartagValue,
+                            eartagSupplier: eartagSupplierValue, // Use the debugged value
+                            idKlasifikasiHewan: klasifikasiIdFromId || item.id_klasifikasi_hewan || item.klasifikasi_id || item.klasifikasi_hewan_pubid || item.klasifikasihewan_id || item.pubid_klasifikasi || '', // Try multiple sources, prioritize ID match
+                            harga: harga,
+                            berat: item.berat && parseInt(item.berat) > 0 ? parseInt(item.berat) : '',
+                            persentase: item.persentase || calculatedPersentase, // Use backend persentase or calculate from harga/hpp
+                            hpp: hpp,
+                        };
+                    }));
                 } catch (err) {
+                    console.error('Error loading edit data:', err);
                     setNotification({
                         type: 'error',
                         message: `Gagal memuat data untuk edit: ${err.message}`
@@ -540,31 +499,9 @@ const AddEditPembelianPage = () => {
         }
         // Remove automatic detail item creation for new records
         // Users will add details manually using the "Tambah Detail" button
-    }, [isEdit, id, cloneData, parameterLoading, tipePembelianLoading, supplierLoading, officeLoading, tipePembelianOptions, parameterData.eartag, parameterData.klasifikasihewan, officeAPIOptions.length, pembelianList.length]);
-    // Added officeAPIOptions.length, officeLoading, and pembelianList.length to dependency array
+    }, [isEdit, id, cloneData, isDataReady, hasRequiredData]);
 
-    // Separate useEffect to handle office mapping when office options become available
-    useEffect(() => {
-        // Only run in edit mode and when office options are loaded but office field is empty
-        if (!isEdit || !id || !officeAPIOptions.length || headerData.idOffice || officeLoading) return;
-
-        // Check if we have a stored office name to map
-        if (window.tempOfficeNameToMatch) {
-            const officeNameToMatch = window.tempOfficeNameToMatch.trim();
-            
-            const matchedOffice = officeAPIOptions.find(office => {
-                const labelMatch = office.label && office.label.trim().toLowerCase() === officeNameToMatch.toLowerCase();
-                const nameMatch = office.name && office.name.trim().toLowerCase() === officeNameToMatch.toLowerCase();
-                return labelMatch || nameMatch;
-            });
-            
-            if (matchedOffice) {
-                setHeaderData(prev => ({ ...prev, idOffice: matchedOffice.value }));
-                // Clear the temp storage
-                delete window.tempOfficeNameToMatch;
-            }
-        }
-    }, [isEdit, id, officeAPIOptions, headerData.idOffice, officeLoading]);
+    // Removed office mapping useEffect - now using id_office directly from backend
 
     // Check if current purchase type is SUPPLIER (PERORANGAN)
     const isSupplierPerorangan = useMemo(() => {
@@ -951,6 +888,27 @@ const AddEditPembelianPage = () => {
                     // 
                 }
                 
+                // Check for duplicate eartag supplier when eartagSupplier field is changed
+                if (field === 'eartagSupplier' && value && value.trim() !== '') {
+                    const duplicateCount = prev.filter(otherItem => 
+                        otherItem.id !== itemId && 
+                        otherItem.eartagSupplier && 
+                        otherItem.eartagSupplier.trim().toLowerCase() === value.trim().toLowerCase()
+                    ).length;
+                    
+                    if (duplicateCount > 0) {
+                        updatedItem.duplicateEartagSupplier = true;
+                        updatedItem.duplicateWarning = `Kode eartag supplier "${value}" sudah digunakan pada baris lain`;
+                    } else {
+                        updatedItem.duplicateEartagSupplier = false;
+                        updatedItem.duplicateWarning = null;
+                    }
+                } else if (field === 'eartagSupplier' && (!value || value.trim() === '')) {
+                    // Clear duplicate warning if field is empty
+                    updatedItem.duplicateEartagSupplier = false;
+                    updatedItem.duplicateWarning = null;
+                }
+                
                 // 
                 return updatedItem;
             }
@@ -1149,6 +1107,19 @@ const AddEditPembelianPage = () => {
         if (!item.idKlasifikasiHewan) itemErrors.push('Klasifikasi hewan harus dipilih');
         if (!item.harga || item.harga <= 0) itemErrors.push('Harga harus diisi dan > 0');
         if (!item.berat || item.berat <= 0) itemErrors.push('Berat harus diisi dan > 0');
+        
+        // Check for duplicate eartag supplier
+        if (item.eartagSupplier && item.eartagSupplier.trim() !== '') {
+            const duplicateCount = detailItems.filter(otherItem => 
+                otherItem.id !== itemId && 
+                otherItem.eartagSupplier && 
+                otherItem.eartagSupplier.trim().toLowerCase() === item.eartagSupplier.trim().toLowerCase()
+            ).length;
+            
+            if (duplicateCount > 0) {
+                itemErrors.push(`Kode eartag supplier "${item.eartagSupplier}" sudah digunakan pada baris lain`);
+            }
+        }
 
         if (itemErrors.length > 0) {
             setNotification({
@@ -1328,6 +1299,22 @@ const AddEditPembelianPage = () => {
                 if (!item.harga || item.harga <= 0) errors.push(`Detail ${index + 1}: Harga harus diisi dan > 0`);
                 if (!item.berat || item.berat <= 0) errors.push(`Detail ${index + 1}: Berat harus diisi dan > 0`);
             });
+            
+            // Check for duplicate eartag supplier codes
+            const eartagSupplierCodes = detailItems
+                .filter(item => item.eartagSupplier && item.eartagSupplier.trim() !== '')
+                .map(item => item.eartagSupplier.trim().toLowerCase());
+            
+            const duplicateCodes = eartagSupplierCodes.filter((code, index) => 
+                eartagSupplierCodes.indexOf(code) !== index
+            );
+            
+            if (duplicateCodes.length > 0) {
+                const uniqueDuplicates = [...new Set(duplicateCodes)];
+                uniqueDuplicates.forEach(duplicateCode => {
+                    errors.push(`Kode eartag supplier "${duplicateCode}" digunakan lebih dari sekali`);
+                });
+            }
         }
 
         

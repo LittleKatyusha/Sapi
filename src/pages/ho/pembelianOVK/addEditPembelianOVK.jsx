@@ -6,6 +6,7 @@ import useSuppliersAPI from '../pembelian/hooks/useSuppliersAPI';
 import useJenisPembelianOVK from './hooks/useJenisPembelianOVK';
 import useKlasifikasiOVK from './hooks/useKlasifikasiOVK';
 import useOfficesAPI from '../pembelian/hooks/useOfficesAPI';
+import useBanksAPI from '../pembelianFeedmil/hooks/useBanksAPI';
 import SearchableSelect from '../../../components/shared/SearchableSelect';
 import HttpClient from '../../../services/httpClient';
 import { API_ENDPOINTS } from '../../../config/api';
@@ -59,6 +60,13 @@ const AddEditPembelianOVKPage = () => {
         error: officeError
     } = useOfficesAPI();
 
+    // Bank API integration for Syarat Pembelian
+    const {
+        bankOptions,
+        loading: bankLoading,
+        error: bankError
+    } = useBanksAPI();
+
     // Header form state
     const [headerData, setHeaderData] = useState({
         nota: '',
@@ -73,6 +81,8 @@ const AddEditPembelianOVKPage = () => {
         biaya_lain: '',
         biaya_total: '', // Added: Total biaya keseluruhan
         berat_total: '',
+        farm: '', // Farm
+        syarat_pembelian: '', // Syarat Pembelian
         file: '',
         fileName: '',
         note: '' // Added: Required note field
@@ -196,145 +206,47 @@ const AddEditPembelianOVKPage = () => {
         return value.toString();
     };
 
-    // Load data untuk edit mode with optimization
+    // Load data untuk edit mode - using /show endpoint for both header and detail data
     useEffect(() => {
         if (isEdit && id && suppliers.length > 0 && officeOptions.length > 0 && jenisPembelianOptions.length > 0) { // Wait for all options to load first
             const loadEditData = async () => {
                 try {
                     const decodedId = decodeURIComponent(id);
                     
-                    // Get header data directly from DataPembelianOvk model (main data endpoint)
-                    let headerData = null;
+                    // Get both header and detail data from /show endpoint only
+                    console.log('🔍 Getting header and detail data from /show endpoint for PID:', id);
                     
-                    // Declare variables at proper scope level (outside try-catch)
-                    let targetNota = null;
-                    let showResponseData = null;
+                    const showResponse = await HttpClient.post(`${API_ENDPOINTS.HO.OVK.PEMBELIAN}/show`, {
+                        pid: id
+                    });
                     
-                    try {
-                        
-                        // Get all data and find the matching record by PID
-                        const headerResponse = await HttpClient.get(`${API_ENDPOINTS.HO.OVK.PEMBELIAN}/data`, {
-                            params: {
-                                draw: 1,
-                                start: 0,
-                                length: 1000, // Get more records to ensure we find the match
-                                'search[value]': '',
-                                'search[regex]': false,
-                                'order[0][column]': 0,
-                                'order[0][dir]': 'desc'
-                            }
-                        });
-                        
-                        if (headerResponse.data && headerResponse.data.length > 0) {
-                            
-                            // Debug: Log the first few items to see structure
-                            console.log('🔍 Raw data from /data endpoint:', headerResponse.data.slice(0, 2));
-                            
-                            // Try multiple search strategies
-                            console.log('🔍 Searching for record with ID:', { id, decodedId, availableRecords: headerResponse.data.length });
-                            
-                            // Strategy: Match directly from /data endpoint using available notas
-                            const availableNotas = headerResponse.data.map(r => r.nota);
-                            console.log('🔍 Available notas in /data endpoint:', availableNotas);
-                            
-                            // Get target nota and detail data from /show endpoint (single call)
-                            try {
-                                console.log('🔍 Getting target nota and detail data from /show endpoint...');
-                                const showResponse = await HttpClient.post(`${API_ENDPOINTS.HO.OVK.PEMBELIAN}/show`, {
-                                    pid: id
-                                });
-                                
-                                if (showResponse.data && showResponse.data.length > 0) {
-                                    targetNota = showResponse.data[0].nota;
-                                    showResponseData = showResponse.data; // Save for later use
-                                    console.log('🎯 Target nota determined from /show:', targetNota);
-                                } else {
-                                    console.log('❌ No data from /show endpoint');
-                                }
-                            } catch (error) {
-                                console.log('❌ Error getting target nota:', error);
-                            }
-
-                            headerData = headerResponse.data.find(item => {
-                                console.log('🔍 Checking record:', { 
-                                    itemPid: item.pid, 
-                                    itemNota: item.nota, 
-                                    searchId: id, 
-                                    decodedId 
-                                });
-                                
-                                // Strategy 1: PRIORITY - Match by target nota from /show endpoint
-                                const currentIndex = headerResponse.data.indexOf(item);
-                                console.log('🔍 Evaluating record:', { 
-                                    nota: item.nota, 
-                                    index: currentIndex,
-                                    targetNota: targetNota,
-                                    notaMatch: targetNota && item.nota === targetNota,
-                                    totalRecords: headerResponse.data.length
-                                });
-                                
-                                // Match by target nota (most reliable)
-                                if (targetNota && item.nota === targetNota) {
-                                    console.log('✅ Found by target nota match:', { nota: item.nota, targetNota });
-                                    return true;
-                                }
-                                
-                                // Fallback: use first record only if no target nota available
-                                if (!targetNota && item.nota && currentIndex === 0) {
-                                    console.log('⚠️ Using first record fallback (no target nota):', item.nota);
-                                    return true;
-                                }
-                                
-                                // Strategy 2: If only one record, use it
-                                if (headerResponse.data.length === 1 && item.nota) {
-                                    console.log('✅ Using single available record:', item.nota);
-                                    return true;
-                                }
-                                
-                                return false;
-                            });
-                            
-                            if (headerData) {
-                                console.log('✅ Header data found from /data endpoint');
-                            } else {
-                                console.log('❌ Header data NOT found from /data endpoint, will try /show endpoint');
-                            }
-                            
-                            if (headerData) {
-                                // Mark this as coming from header model
-                                headerData.source = 'header';
-                            } else {
-                            }
-                        }
-                        
-                        // If still not found, use data from the first /show call (targetNota call)
-                        if (!headerData && targetNota) {
-                            console.log('⚠️ Using data from /show endpoint as fallback');
-                            // We already have the data from the /show call above, no need to call again
-                            // This fallback should rarely be needed since /data endpoint should work
-                        }
-                        
-                        if (!headerData) {
-                            throw new Error('Header data not found in both DataPembelianOvk and detail endpoint');
-                        }
-                    } catch (headerError) {
-                        throw headerError;
+                    if (!showResponse.data || showResponse.data.length === 0) {
+                        console.log('❌ No data from /show endpoint');
+                        throw new Error('Data tidak ditemukan untuk pubid yang dipilih');
                     }
                     
-                    // Use detail data from the /show call we already made (avoid duplicate call)
-                    let detailResult = { success: false, data: [] };
-                    if (showResponseData) {
-                        console.log('✅ Using detail data from existing /show call (no duplicate call)');
-                        detailResult = {
-                            success: true,
-                            data: showResponseData,
-                            message: 'Detail data from existing /show call'
-                        };
-                    } else {
-                        console.log('⚠️ No existing /show data, calling getPembelianDetail...');
-                        const detailResultPromise = getPembelianDetail(decodedId);
-                        detailResult = await detailResultPromise;
-                    }
+                    // Use the first record as header data (since /show returns detail records with header info)
+                    // All records have the same header data (nota, tgl_masuk, nama_supir, etc.)
+                    // So we only need the first record for header information
+                    const headerData = showResponse.data[0];
+                    const showResponseData = showResponse.data;
+                    
+                    console.log('✅ Header and detail data found from /show endpoint:', {
+                        nota: headerData.nota,
+                        pid: headerData.pid,
+                        nama_supplier: headerData.nama_supplier,
+                        detailRecords: showResponseData.length
+                    });
+                    
+                    // Mark this as coming from show endpoint
+                    headerData.source = 'show';
+                    
+                    // Use detail data from the /show call
+                    const detailResult = {
+                        success: true,
+                        data: showResponseData,
+                        message: 'Detail data from /show endpoint'
+                    };
                     
                     if (headerData) {
                         // Debug: Log available options
@@ -444,9 +356,8 @@ const AddEditPembelianOVKPage = () => {
                         
 
                         // Determine data source and log accordingly
-                        // If we found the data from the main search, it's from DataPembelianOvk
-                        // If we fell back to detail endpoint, it's from DataPembelianOvkDetail
-                        const dataSource = headerData.source === 'detail' ? 'DataPembelianOvkDetail (Detail Model)' : 'DataPembelianOvk (Header Model)';
+                        // Data now comes from /show endpoint only
+                        const dataSource = 'Show Endpoint (Detail Model with Header Info)';
                         
                         // Debug field values before setting
                         console.log('🔍 OVK Edit Data Loading Debug:', {
@@ -508,6 +419,8 @@ const AddEditPembelianOVKPage = () => {
                             biaya_lain: safeGetNumber(headerData.biaya_lain),
                             biaya_total: safeGetNumber(headerData.biaya_total) ?? safeGetNumber(headerData.total_belanja),
                             berat_total: safeGetNumber(headerData.berat_total),
+                            farm: safeGetString(headerData.farm),
+                            syarat_pembelian: safeGetString(headerData.syarat_pembelian),
                             file: safeGetString(headerData.file),
                             fileName: headerData.file ? headerData.file.split('/').pop() : '',
                             note: safeGetString(headerData.note) || safeGetString(headerData.catatan)
@@ -538,6 +451,7 @@ const AddEditPembelianOVKPage = () => {
                         setDetailItems(processedDetailItems);
                     }
                 } catch (error) {
+                    console.error('Error loading edit data:', error);
                     setNotification({
                         type: 'error',
                         message: 'Gagal memuat data untuk edit'
@@ -547,7 +461,7 @@ const AddEditPembelianOVKPage = () => {
             
             loadEditData();
         }
-    }, [isEdit, id, getPembelianDetail, suppliers, officeOptions, jenisPembelianOptions]);
+    }, [isEdit, id, suppliers, officeOptions, jenisPembelianOptions]);
 
 
 
@@ -1029,7 +943,13 @@ const AddEditPembelianOVKPage = () => {
             errors.push('Supplier harus dipilih');
         }
 
+        if (!headerData.farm) {
+            errors.push('Farm harus dipilih');
+        }
 
+        if (!headerData.syarat_pembelian) {
+            errors.push('Syarat Pembelian harus dipilih');
+        }
 
         if (!headerData.tgl_masuk) {
             errors.push('Tanggal masuk harus diisi');
@@ -1107,6 +1027,8 @@ const AddEditPembelianOVKPage = () => {
                 jumlah: parseInt(headerData.jumlah) || null,
                 biaya_truk: headerData.biaya_truck ? parseFloat(headerData.biaya_truck) : 0,
                 biaya_lain: headerData.biaya_lain ? parseFloat(headerData.biaya_lain) : 0,
+                farm: headerData.farm || null,
+                syarat_pembelian: headerData.syarat_pembelian || null,
                 biaya_total: parseFloat(headerData.biaya_total) || null,
                 berat_total: parseFloat(headerData.berat_total) || null,
                 tipe_pembelian: parseInt(headerData.tipePembelian),
@@ -1477,6 +1399,52 @@ const AddEditPembelianOVKPage = () => {
                             <p className="text-xs text-blue-600 mt-1">
                                 💡 Total seluruh biaya (truck + lain-lain + pembelian)
                             </p>
+                        </div>
+
+                        {/* Farm */}
+                        <div>
+                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <Hash className="w-4 h-4" />
+                                Farm *
+                            </label>
+                            <SearchableSelect
+                                options={officeOptions}
+                                value={headerData.farm}
+                                onChange={(value) => handleHeaderChange('farm', value)}
+                                placeholder={officeLoading ? 'Loading offices...' : officeError ? 'Error loading offices' : 'Pilih farm'}
+                                isLoading={officeLoading}
+                                isDisabled={officeLoading || officeError}
+                                required={true}
+                                className="w-full"
+                            />
+                            {officeError && (
+                                <p className="text-xs text-red-500 mt-1">
+                                    ⚠️ Error loading offices: {officeError}
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Syarat Pembelian */}
+                        <div>
+                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <Hash className="w-4 h-4" />
+                                Syarat Pembelian *
+                            </label>
+                            <SearchableSelect
+                                options={bankOptions}
+                                value={headerData.syarat_pembelian}
+                                onChange={(value) => handleHeaderChange('syarat_pembelian', value)}
+                                placeholder={bankLoading ? 'Loading banks...' : bankError ? 'Error loading banks' : 'Pilih syarat pembelian'}
+                                isLoading={bankLoading}
+                                isDisabled={bankLoading || bankError}
+                                required={true}
+                                className="w-full"
+                            />
+                            {bankError && (
+                                <p className="text-xs text-red-500 mt-1">
+                                    ⚠️ Error loading banks: {bankError}
+                                </p>
+                            )}
                         </div>
 
                         {/* Note - Catatan */}

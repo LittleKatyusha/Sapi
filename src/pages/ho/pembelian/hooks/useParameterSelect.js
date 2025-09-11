@@ -153,15 +153,14 @@ const useParameterSelect = (isEditMode = false) => {
     useEffect(() => {
         fetchNonSupplierData();
         
-        // For edit mode, load supplier data immediately (no lazy loading)
-        // For add mode, still use lazy loading
+        // Only load supplier data once when component mounts
+        // For edit mode, load all suppliers immediately
+        // For add mode, use lazy loading when tipe pembelian is selected
         if (isEditMode) {
-            console.log('📊 Edit mode detected: Loading supplier data immediately (no lazy loading)');
-            fetchSupplierData(null, true); // Force load
-        } else {
-            // Load supplier data immediately for better UX in all cases
-            fetchSupplierData();
+            console.log('📊 Edit mode detected: Loading all supplier data once');
+            fetchSupplierData(null, true); // Force load all suppliers
         }
+        // Remove automatic loading for add mode - let AddEditPembelianPage handle it
     }, [isEditMode]);
 
     // Create select options for each parameter type

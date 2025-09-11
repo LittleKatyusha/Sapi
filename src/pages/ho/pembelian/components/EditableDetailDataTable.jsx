@@ -122,22 +122,32 @@ const EditableDetailDataTable = ({
     {
       name: 'Eartag Supplier *',
       cell: (row) => (
-        <input
-          type="text"
-          value={row.eartagSupplier}
-          onChange={(e) =>
-            onDetailChange(row.id, 'eartagSupplier', e.target.value)
-          }
-          className={inputClass}
-          placeholder="Input supplier"
-          required
-          style={{
-            minHeight: 32,
-            height: 32,
-            fontSize: 13,
-            borderRadius: 8,
-          }}
-        />
+        <div className="w-full">
+          <input
+            type="text"
+            value={row.eartagSupplier}
+            onChange={(e) =>
+              onDetailChange(row.id, 'eartagSupplier', e.target.value)
+            }
+            className={`${inputClass} ${
+              row.duplicateEartagSupplier ? 'border-red-500 bg-red-50' : ''
+            }`}
+            placeholder="Input supplier"
+            required
+            style={{
+              minHeight: 32,
+              height: 32,
+              fontSize: 13,
+              borderRadius: 8,
+            }}
+          />
+          {row.duplicateWarning && (
+            <div className="text-red-500 text-xs mt-1 flex items-center gap-1">
+              <span>⚠️</span>
+              <span>{row.duplicateWarning}</span>
+            </div>
+          )}
+        </div>
       ),
       center: true,
       grow: 1,

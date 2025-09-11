@@ -39,7 +39,7 @@ const useOfficesAPI = () => {
 
     const officeOptions = useMemo(() => {
         const options = offices.map(office => ({
-            value: office.id, // Use id (integer) for backend validation
+            value: String(office.id), // Convert to string to match form field format
             label: office.name
         }));
         console.log('✅ Office options created:', options);
