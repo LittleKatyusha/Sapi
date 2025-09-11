@@ -6,6 +6,7 @@ import useSuppliersAPI from '../pembelian/hooks/useSuppliersAPI';
 import useJenisPembelianOVK from './hooks/useJenisPembelianOVK';
 import useKlasifikasiOVK from './hooks/useKlasifikasiOVK';
 import useOfficesAPI from '../pembelian/hooks/useOfficesAPI';
+import useFarmAPI from './hooks/useFarmAPI';
 import useBanksAPI from '../pembelianFeedmil/hooks/useBanksAPI';
 import SearchableSelect from '../../../components/shared/SearchableSelect';
 import HttpClient from '../../../services/httpClient';
@@ -60,6 +61,13 @@ const AddEditPembelianOVKPage = () => {
         error: officeError
     } = useOfficesAPI();
 
+    // Farm API integration
+    const {
+        farmOptions,
+        loading: farmLoading,
+        error: farmError
+    } = useFarmAPI();
+
     // Bank API integration for Syarat Pembelian
     const {
         bankOptions,
@@ -83,6 +91,7 @@ const AddEditPembelianOVKPage = () => {
         berat_total: '',
         farm: '', // Farm
         syarat_pembelian: '', // Syarat Pembelian
+        nota_ho: '', // Nomor Nota HO
         file: '',
         fileName: '',
         note: '' // Added: Required note field
@@ -208,7 +217,7 @@ const AddEditPembelianOVKPage = () => {
 
     // Load data untuk edit mode - using /show endpoint for both header and detail data
     useEffect(() => {
-        if (isEdit && id && suppliers.length > 0 && officeOptions.length > 0 && jenisPembelianOptions.length > 0) { // Wait for all options to load first
+        if (isEdit && id && suppliers.length > 0 && officeOptions.length > 0 && farmOptions.length > 0 && jenisPembelianOptions.length > 0) { // Wait for all options to load first
             const loadEditData = async () => {
                 try {
                     const decodedId = decodeURIComponent(id);
@@ -419,8 +428,9 @@ const AddEditPembelianOVKPage = () => {
                             biaya_lain: safeGetNumber(headerData.biaya_lain),
                             biaya_total: safeGetNumber(headerData.biaya_total) ?? safeGetNumber(headerData.total_belanja),
                             berat_total: safeGetNumber(headerData.berat_total),
-                            farm: safeGetString(headerData.farm),
-                            syarat_pembelian: safeGetString(headerData.syarat_pembelian),
+                            farm: safeGetString(headerData.farm) || safeGetString(headerData.id_farm),
+                            syarat_pembelian: safeGetString(headerData.syarat_pembelian) || safeGetString(headerData.id_syarat_pembelian),
+                            nota_ho: safeGetString(headerData.nota_ho),
                             file: safeGetString(headerData.file),
                             fileName: headerData.file ? headerData.file.split('/').pop() : '',
                             note: safeGetString(headerData.note) || safeGetString(headerData.catatan)
@@ -461,7 +471,7 @@ const AddEditPembelianOVKPage = () => {
             
             loadEditData();
         }
-    }, [isEdit, id, suppliers, officeOptions, jenisPembelianOptions]);
+    }, [isEdit, id, suppliers, officeOptions, farmOptions, jenisPembelianOptions]);
 
 
 
@@ -951,6 +961,10 @@ const AddEditPembelianOVKPage = () => {
             errors.push('Syarat Pembelian harus dipilih');
         }
 
+        if (!headerData.nota_ho) {
+            errors.push('Nomor Nota HO harus diisi');
+        }
+
         if (!headerData.tgl_masuk) {
             errors.push('Tanggal masuk harus diisi');
         }
@@ -1027,8 +1041,9 @@ const AddEditPembelianOVKPage = () => {
                 jumlah: parseInt(headerData.jumlah) || null,
                 biaya_truk: headerData.biaya_truck ? parseFloat(headerData.biaya_truck) : 0,
                 biaya_lain: headerData.biaya_lain ? parseFloat(headerData.biaya_lain) : 0,
-                farm: headerData.farm || null,
-                syarat_pembelian: headerData.syarat_pembelian || null,
+                id_farm: headerData.farm ? parseInt(headerData.farm) : null,
+                id_syarat_pembelian: headerData.syarat_pembelian ? parseInt(headerData.syarat_pembelian) : null,
+                nota_ho: headerData.nota_ho || '',
                 biaya_total: parseFloat(headerData.biaya_total) || null,
                 berat_total: parseFloat(headerData.berat_total) || null,
                 tipe_pembelian: parseInt(headerData.tipePembelian),
@@ -1057,6 +1072,7 @@ const AddEditPembelianOVKPage = () => {
                 nama_supplier: selectedSupplier ? selectedSupplier.name : '',
                 jenis_supplier: selectedSupplier ? selectedSupplier.jenis_supplier : ''
             };
+
 
             let result;
             if (isEdit) {
@@ -1408,12 +1424,12 @@ const AddEditPembelianOVKPage = () => {
                                 Farm *
                             </label>
                             <SearchableSelect
-                                options={officeOptions}
+                                options={farmOptions}
                                 value={headerData.farm}
                                 onChange={(value) => handleHeaderChange('farm', value)}
-                                placeholder={officeLoading ? 'Loading offices...' : officeError ? 'Error loading offices' : 'Pilih farm'}
-                                isLoading={officeLoading}
-                                isDisabled={officeLoading || officeError}
+                                placeholder={farmLoading ? 'Loading farms...' : farmError ? 'Error loading farms' : 'Pilih farm'}
+                                isLoading={farmLoading}
+                                isDisabled={farmLoading || farmError}
                                 required={true}
                                 className="w-full"
                             />
@@ -1422,6 +1438,22 @@ const AddEditPembelianOVKPage = () => {
                                     ⚠️ Error loading offices: {officeError}
                                 </p>
                             )}
+                        </div>
+
+                        {/* Nomor Nota HO */}
+                        <div>
+                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <Hash className="w-4 h-4" />
+                                Nomor Nota HO *
+                            </label>
+                            <input
+                                type="text"
+                                value={headerData.nota_ho}
+                                onChange={(e) => handleHeaderChange('nota_ho', e.target.value)}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                                placeholder="Masukkan nomor nota HO"
+                                required
+                            />
                         </div>
 
                         {/* Syarat Pembelian */}

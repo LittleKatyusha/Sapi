@@ -2,6 +2,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Building2, User, Calendar, Truck, Hash, Package, Eye, Weight, DollarSign } from 'lucide-react';
 import usePembelianFeedmil from './hooks/usePembelianFeedmil';
+import useKlasifikasiFeedmil from './hooks/useKlasifikasiFeedmil';
+import useFarmAPI from './hooks/useFarmAPI';
+import useBanksAPI from './hooks/useBanksAPI';
 import customTableStyles from './constants/tableStyles';
 import DataTable from 'react-data-table-component';
 import { StyleSheetManager } from 'styled-components';
@@ -19,11 +22,48 @@ const PembelianFeedmilDetailPage = () => {
     const {
         getPembelianDetail,
         loading,
-        error,
-        klasifikasiFeedmil,
-        fetchKlasifikasiFeedmil,
-        getKlasifikasiName
+        error
     } = usePembelianFeedmil();
+
+    // Klasifikasi Feedmil hook
+    const { klasifikasiFeedmil, klasifikasiFeedmilOptions } = useKlasifikasiFeedmil();
+
+    // Farm and Bank API hooks for ID to name conversion
+    const { farmData } = useFarmAPI();
+    const { banks } = useBanksAPI();
+
+    // Helper functions to convert ID to name
+    const getFarmName = useCallback((id) => {
+        if (!id || !farmData.length) {
+            return '';
+        }
+        // Convert ID to number for comparison
+        const numericId = parseInt(id);
+        const farm = farmData.find(f => f.id === numericId || f.id === id);
+        return farm ? farm.name : '';
+    }, [farmData]);
+
+    const getBankName = useCallback((id) => {
+        if (!id || !banks.length) {
+            return '';
+        }
+        // Convert ID to number for comparison
+        const numericId = parseInt(id);
+        const bank = banks.find(b => b.id === numericId || b.id === id);
+        return bank ? bank.nama : '';
+    }, [banks]);
+
+    // Helper function to get klasifikasi name by ID
+    const getKlasifikasiName = useCallback((id) => {
+        if (!id || !klasifikasiFeedmil.length) {
+            return null;
+        }
+        
+        // Convert ID to number for comparison
+        const numericId = parseInt(id);
+        const klasifikasi = klasifikasiFeedmil.find(k => k.id === numericId);
+        return klasifikasi ? klasifikasi.name : null;
+    }, [klasifikasiFeedmil]);
     
     const [pembelianData, setPembelianData] = useState(null);
     const [detailData, setDetailData] = useState([]);
@@ -79,13 +119,7 @@ const PembelianFeedmilDetailPage = () => {
 
     // No longer need to load pembelian list for header data - will get from /show endpoint
 
-    // Load klasifikasi feedmil data
-    useEffect(() => {
-        if (!klasifikasiFeedmil || klasifikasiFeedmil.length === 0) {
-            fetchKlasifikasiFeedmil();
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []); // Remove dependencies to prevent infinite loop
+    // Klasifikasi feedmil data is now loaded automatically by useKlasifikasiFeedmil hook
 
     useEffect(() => {
         const fetchDetail = async () => {
@@ -104,6 +138,11 @@ const PembelianFeedmilDetailPage = () => {
                             setPembelianData({
                                 encryptedPid: headerData.encryptedPid || headerData.pid || id,
                                 nota: headerData.nota || '',
+                                nota_ho: headerData.nota_ho || '',
+                                farm: headerData.farm || '', // Will be updated by useEffect when farmData is available
+                                syarat_pembelian: headerData.syarat_pembelian || '', // Will be updated by useEffect when banks is available
+                                id_farm: headerData.id_farm,
+                                id_syarat_pembelian: headerData.id_syarat_pembelian,
                                 nama_supplier: headerData.nama_supplier || '',
                                 nama_office: headerData.nama_office || 'Head Office (HO)',
                                 tgl_masuk: headerData.tgl_masuk || '',
@@ -124,6 +163,11 @@ const PembelianFeedmilDetailPage = () => {
                             setPembelianData({
                                 encryptedPid: firstItem.pid || id,
                                 nota: firstItem.nota || '',
+                                nota_ho: firstItem.nota_ho || '',
+                                farm: firstItem.farm || '', // Will be updated by useEffect when farmData is available
+                                syarat_pembelian: firstItem.syarat_pembelian || '', // Will be updated by useEffect when banks is available
+                                id_farm: firstItem.id_farm,
+                                id_syarat_pembelian: firstItem.id_syarat_pembelian,
                                 nama_supplier: firstItem.nama_supplier || '',
                                 nama_office: 'Head Office (HO)', // Default since not in detail view
                                 tgl_masuk: firstItem.tgl_masuk || '',
@@ -193,6 +237,28 @@ const PembelianFeedmilDetailPage = () => {
             fetchDetail();
         }
     }, [id]); // Remove getPembelianDetail dependency to prevent duplicate calls
+
+    // Update farm and syarat_pembelian when farm/bank data becomes available
+    useEffect(() => {
+        if (pembelianData && (farmData.length > 0 || banks.length > 0)) {
+            setPembelianData(prev => {
+                if (!prev) return prev;
+                
+                const updatedFarm = prev.farm || getFarmName(prev.id_farm);
+                const updatedSyarat = prev.syarat_pembelian || getBankName(prev.id_syarat_pembelian);
+                
+                // Only update if values actually changed to prevent infinite loop
+                if (updatedFarm !== prev.farm || updatedSyarat !== prev.syarat_pembelian) {
+                    return {
+                        ...prev,
+                        farm: updatedFarm,
+                        syarat_pembelian: updatedSyarat
+                    };
+                }
+                return prev;
+            });
+        }
+    }, [pembelianData?.id_farm, pembelianData?.id_syarat_pembelian, farmData, banks, getFarmName, getBankName]);
 
     const handleBack = () => {
         navigate('/ho/pembelian-feedmil');
@@ -289,12 +355,20 @@ const PembelianFeedmilDetailPage = () => {
             wrap: true,
             center: true,
             cell: row => {
-                // Use nama_klasifikasi_feedmil directly from API response
-                const klasifikasiName = row.nama_klasifikasi_feedmil;
+                // Debug: Log the data to understand the issue
+                console.log('🔍 Row data:', row);
+                console.log('🔍 id_klasifikasi_feedmil:', row.id_klasifikasi_feedmil, 'type:', typeof row.id_klasifikasi_feedmil);
+                console.log('🔍 klasifikasiFeedmil data:', klasifikasiFeedmil);
+                console.log('🔍 klasifikasiFeedmil length:', klasifikasiFeedmil.length);
+                
+                // Get klasifikasi name using the new function
+                const klasifikasiName = getKlasifikasiName(row.id_klasifikasi_feedmil);
+                console.log('🔍 klasifikasiName result:', klasifikasiName);
+                
                 return (
                     <div className="w-full flex items-center justify-center">
                         <span className="inline-flex px-3 py-1.5 text-xs font-medium rounded-lg bg-green-100 text-green-800">
-                            {klasifikasiName || 'Tidak ada klasifikasi'}
+                            {klasifikasiName || `ID: ${row.id_klasifikasi_feedmil}`}
                         </span>
                     </div>
                 );
@@ -465,6 +539,36 @@ const PembelianFeedmilDetailPage = () => {
                             </label>
                             <p className="text-lg font-bold text-gray-900">
                                 {pembelianData.nota || '-'}
+                            </p>
+                        </div>
+
+                        <div className="bg-gradient-to-r from-cyan-50 to-blue-50 p-4 rounded-lg">
+                            <label className="block text-sm font-medium text-gray-600 mb-2">
+                                <Hash className="w-4 h-4 inline mr-1" />
+                                Nota HO
+                            </label>
+                            <p className="text-lg font-bold text-gray-900">
+                                {pembelianData.nota_ho || '-'}
+                            </p>
+                        </div>
+
+                        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-lg">
+                            <label className="block text-sm font-medium text-gray-600 mb-2">
+                                <Building2 className="w-4 h-4 inline mr-1" />
+                                Farm
+                            </label>
+                            <p className="text-lg font-bold text-gray-900">
+                                {pembelianData.farm || '-'}
+                            </p>
+                        </div>
+
+                        <div className="bg-gradient-to-r from-emerald-50 to-green-50 p-4 rounded-lg">
+                            <label className="block text-sm font-medium text-gray-600 mb-2">
+                                <Package className="w-4 h-4 inline mr-1" />
+                                Syarat Pembelian
+                            </label>
+                            <p className="text-lg font-bold text-gray-900">
+                                {pembelianData.syarat_pembelian || '-'}
                             </p>
                         </div>
 

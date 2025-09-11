@@ -58,6 +58,7 @@ export const API_ENDPOINTS = {
     KLASIFIKASI_FEEDMIL: '/api/master/klasifikasifeedmil',
     KLASIFIKASI_OVK: '/api/master/klasifikasiovk',
     PARAMETER: '/api/master/parameter',
+    PARAMETER_SELECT: '/api/master/parameter',
     BANK: '/api/master/bank'
   },
 

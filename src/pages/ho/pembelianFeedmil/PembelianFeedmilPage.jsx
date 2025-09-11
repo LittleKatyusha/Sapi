@@ -4,6 +4,8 @@ import DataTable from 'react-data-table-component';
 import { PlusCircle, Search, Filter, Package, Building2, Truck, User, X, Loader2 } from 'lucide-react';
 
 import usePembelianFeedmil from './hooks/usePembelianFeedmil';
+import useFarmAPI from './hooks/useFarmAPI';
+import useBanksAPI from './hooks/useBanksAPI';
 import ActionButton from './components/ActionButton';
 import PembelianFeedmilCard from './components/PembelianFeedmilCard';
 import CustomPagination from './components/CustomPagination';
@@ -43,13 +45,34 @@ const PembelianFeedmilPage = () => {
         deletePembelian,
     } = usePembelianFeedmil();
 
+    // Farm and Bank API hooks for ID to name conversion
+    const { farmData } = useFarmAPI();
+    const { banks } = useBanksAPI();
+
+    // Helper functions to convert ID to name
+    const getFarmName = useCallback((id) => {
+        if (!id || !farmData.length) return '';
+        // Convert ID to number for comparison
+        const numericId = parseInt(id);
+        const farm = farmData.find(f => f.id === numericId || f.id === id);
+        return farm ? farm.name : '';
+    }, [farmData]);
+
+    const getBankName = useCallback((id) => {
+        if (!id || !banks.length) return '';
+        // Convert ID to number for comparison
+        const numericId = parseInt(id);
+        const bank = banks.find(b => b.id === numericId || b.id === id);
+        return bank ? bank.nama : '';
+    }, [banks]);
+
     useEffect(() => {
         fetchPembelian();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []); // Remove fetchPembelian dependency to prevent infinite loop
 
-    const handleEdit = (pembelian) => {
-        const id = pembelian.encryptedPid || pembelian.id;
+    const handleEdit = (pembelianItem) => {
+        const id = pembelianItem.encryptedPid || pembelianItem.id;
         if (!id || id.toString().startsWith('TEMP-')) {
             setNotification({
                 type: 'error',
@@ -61,8 +84,8 @@ const PembelianFeedmilPage = () => {
         setOpenMenuId(null);
     };
 
-    const handleDetail = (pembelian) => {
-        const id = pembelian.encryptedPid || pembelian.id;
+    const handleDetail = (pembelianItem) => {
+        const id = pembelianItem.encryptedPid || pembelianItem.id;
         if (!id || id.toString().startsWith('TEMP-')) {
             setNotification({
                 type: 'error',
@@ -74,8 +97,8 @@ const PembelianFeedmilPage = () => {
         setOpenMenuId(null);
     };
 
-    const handleDelete = (pembelian) => {
-        setSelectedPembelian(pembelian);
+    const handleDelete = (pembelianItem) => {
+        setSelectedPembelian(pembelianItem);
         setIsDeleteModalOpen(true);
         setOpenMenuId(null);
     };
@@ -209,6 +232,18 @@ const PembelianFeedmilPage = () => {
             )
         },
         {
+            name: 'Nota HO',
+            selector: row => row.nota_ho,
+            sortable: true,
+            width: '150px',
+            wrap: true,
+            cell: row => (
+                <span className="font-mono text-sm bg-gray-100 px-3 py-1.5 rounded-lg" title={row.nota_ho}>
+                    {row.nota_ho || '-'}
+                </span>
+            )
+        },
+        {
             name: 'Tanggal Masuk',
             selector: row => row.tgl_masuk,
             sortable: true,
@@ -281,6 +316,30 @@ const PembelianFeedmilPage = () => {
             )
         },
         {
+            name: 'Farm',
+            selector: row => row.farm,
+            sortable: true,
+            width: '150px',
+            wrap: true,
+            cell: row => (
+                <span className="inline-flex px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-100 text-blue-800">
+                    {row.farm || getFarmName(row.id_farm) || '-'}
+                </span>
+            )
+        },
+        {
+            name: 'Syarat Pembelian',
+            selector: row => row.syarat_pembelian,
+            sortable: true,
+            width: '160px',
+            wrap: true,
+            cell: row => (
+                <span className="inline-flex px-3 py-1.5 text-xs font-medium rounded-lg bg-green-100 text-green-800">
+                    {row.syarat_pembelian || getBankName(row.id_syarat_pembelian) || '-'}
+                </span>
+            )
+        },
+        {
             name: 'Berat Total',
             selector: row => row.berat_total,
             sortable: true,
@@ -326,7 +385,7 @@ const PembelianFeedmilPage = () => {
                 </span>
             )
         },
-    ], [openMenuId, filteredData]);
+    ], [openMenuId, filteredData, getFarmName, getBankName]);
 
     return (
         <>
@@ -543,7 +602,7 @@ const PembelianFeedmilPage = () => {
                             scrollbarColor: '#94a3b8 #e2e8f0',
                         }}
                     >
-                        <div style={{ minWidth: '1400px' }}>
+                        <div style={{ minWidth: '1850px' }}>
                             <DataTable
                             key={`datatable-${serverPagination.currentPage}-${filteredData.length}`}
                             columns={columns}
@@ -562,7 +621,7 @@ const PembelianFeedmilPage = () => {
                                 },
                                 table: {
                                     style: {
-                                        minWidth: '1400px',
+                                        minWidth: '1850px',
                                     }
                                 },
                                 headCells: {

@@ -141,6 +141,7 @@ const handleResponseError = async (response) => {
       
       if (contentType && contentType.includes('application/json')) {
         const errorData = await response.json();
+        console.error('🔍 Error response details:', errorData);
         errorMessage = errorData.message || errorData.error || errorMessage;
         errorDetails = errorData;
       } else {

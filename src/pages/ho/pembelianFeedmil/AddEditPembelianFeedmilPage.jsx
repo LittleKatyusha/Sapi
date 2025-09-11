@@ -6,6 +6,7 @@ import useSuppliersAPI from '../pembelian/hooks/useSuppliersAPI';
 import useKlasifikasiFeedmil from './hooks/useKlasifikasiFeedmil';
 import useJenisPembelianFeedmil from './hooks/useJenisPembelianFeedmil';
 import useOfficesAPI from '../pembelian/hooks/useOfficesAPI';
+import useFarmAPI from './hooks/useFarmAPI';
 import useBanksAPI from './hooks/useBanksAPI';
 import SearchableSelect from '../../../components/shared/SearchableSelect';
 import HttpClient from '../../../services/httpClient';
@@ -65,6 +66,13 @@ const AddEditPembelianFeedmilPage = () => {
         error: officeError
     } = useOfficesAPI();
 
+    // Farm API integration
+    const {
+        farmOptions,
+        loading: farmLoading,
+        error: farmError
+    } = useFarmAPI();
+
     // Bank API integration for Syarat Pembelian
     const {
         bankOptions,
@@ -75,7 +83,7 @@ const AddEditPembelianFeedmilPage = () => {
     // Header form state - aligned with backend validation requirements
     const [headerData, setHeaderData] = useState({
         nota: '',
-        nota_cv: '', // Nomor Nota CV. Puput Bersaudara
+        nota_ho: '', // Nomor Nota HO
         farm: '', // Farm
         syarat_pembelian: '', // Syarat Pembelian
         idOffice: '', // Office now selectable
@@ -221,7 +229,7 @@ const AddEditPembelianFeedmilPage = () => {
     // Load data untuk edit mode - using /show endpoint for both header and detail data
     useEffect(() => {
         // Wait for all required options to load first (like OVK pattern)
-        if (isEdit && id && suppliers.length > 0 && officeOptions.length > 0 && jenisPembelianOptions.length > 0) {
+        if (isEdit && id && suppliers.length > 0 && officeOptions.length > 0 && farmOptions.length > 0 && jenisPembelianOptions.length > 0) {
             const loadEditData = async () => {
                 try {
                     const decodedId = decodeURIComponent(id);
@@ -319,9 +327,9 @@ const AddEditPembelianFeedmilPage = () => {
                         // Set header data using safe helper functions (like OVK pattern)
                         setHeaderData({
                             nota: safeGetString(headerData.nota),
-                            nota_cv: safeGetString(headerData.nota_cv),
-                            farm: safeGetString(headerData.farm),
-                            syarat_pembelian: safeGetString(headerData.syarat_pembelian),
+                            nota_ho: safeGetString(headerData.nota_ho),
+                            farm: safeGetString(headerData.farm) || safeGetString(headerData.id_farm),
+                            syarat_pembelian: safeGetString(headerData.syarat_pembelian) || safeGetString(headerData.id_syarat_pembelian),
                             idOffice: officeId || safeGetString(headerData.id_office),
                             tipePembelian: tipePembelianId || safeGetString(headerData.tipe_pembelian),
                             idSupplier: supplierId || safeGetString(headerData.id_supplier),
@@ -375,7 +383,7 @@ const AddEditPembelianFeedmilPage = () => {
             
             loadEditData();
         }
-    }, [isEdit, id, suppliers, officeOptions, jenisPembelianOptions]);
+    }, [isEdit, id, suppliers, officeOptions, farmOptions, jenisPembelianOptions]);
 
 
 
@@ -810,6 +818,10 @@ const AddEditPembelianFeedmilPage = () => {
             errors.push('Syarat Pembelian harus dipilih');
         }
 
+        if (!headerData.nota_ho) {
+            errors.push('Nomor Nota HO harus diisi');
+        }
+
         if (!headerData.tipePembelian) {
             errors.push('Tipe Pembelian harus dipilih');
         }
@@ -902,12 +914,13 @@ const AddEditPembelianFeedmilPage = () => {
                 biaya_truck: headerData.biaya_truck ? parseFloat(headerData.biaya_truck) : 0,
                 biaya_lain: headerData.biaya_lain ? parseFloat(headerData.biaya_lain) : 0,
                 // New fields
-                nota_cv: headerData.nota_cv || null,
-                farm: headerData.farm || null,
-                syarat_pembelian: headerData.syarat_pembelian || null,
+                nota_ho: headerData.nota_ho || '',
+                id_farm: headerData.farm ? parseInt(headerData.farm) : null,
+                id_syarat_pembelian: headerData.syarat_pembelian ? parseInt(headerData.syarat_pembelian) : null,
                 // Ensure file is properly passed if selected
                 file: selectedFile || null
             };
+
 
             let result;
             if (isEdit) {
@@ -1041,8 +1054,8 @@ const AddEditPembelianFeedmilPage = () => {
                             </label>
                             <input
                                 type="text"
-                                value={headerData.nota_cv}
-                                onChange={(e) => handleHeaderChange('nota_cv', e.target.value)}
+                                value={headerData.nota_ho}
+                                onChange={(e) => handleHeaderChange('nota_ho', e.target.value)}
                                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
                                 placeholder="Masukkan nomor nota CV"
                             />
@@ -1273,12 +1286,12 @@ const AddEditPembelianFeedmilPage = () => {
                                 Farm *
                             </label>
                             <SearchableSelect
-                                options={officeOptions}
+                                options={farmOptions}
                                 value={headerData.farm}
                                 onChange={(value) => handleHeaderChange('farm', value)}
-                                placeholder={officeLoading ? 'Loading offices...' : officeError ? 'Error loading offices' : 'Pilih farm'}
-                                isLoading={officeLoading}
-                                isDisabled={officeLoading || officeError}
+                                placeholder={farmLoading ? 'Loading farms...' : farmError ? 'Error loading farms' : 'Pilih farm'}
+                                isLoading={farmLoading}
+                                isDisabled={farmLoading || farmError}
                                 required={true}
                                 className="w-full"
                             />

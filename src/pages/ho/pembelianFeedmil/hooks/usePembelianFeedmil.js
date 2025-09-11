@@ -54,9 +54,36 @@ const usePembelianFeedmil = () => {
 
     // Get klasifikasi name by ID
     const getKlasifikasiName = useCallback((id) => {
-        if (!id || !klasifikasiFeedmil.length) return null;
-        const klasifikasi = klasifikasiFeedmil.find(k => k.id === parseInt(id));
-        return klasifikasi ? klasifikasi.name : null;
+        console.log('getKlasifikasiName called with id:', id, 'type:', typeof id);
+        console.log('klasifikasiFeedmil data:', klasifikasiFeedmil);
+        
+        if (!id || !klasifikasiFeedmil.length) {
+            console.log('No id or no klasifikasiFeedmil data');
+            return null;
+        }
+        
+        // Try different possible field names and types
+        const numId = parseInt(id);
+        const strId = String(id);
+        
+        let klasifikasi = klasifikasiFeedmil.find(k => {
+            // Try multiple matching strategies
+            return (k.id === numId) || 
+                   (k.id === strId) || 
+                   (parseInt(k.id) === numId) ||
+                   (String(k.id) === strId);
+        });
+        
+        console.log('Found klasifikasi:', klasifikasi);
+        
+        if (klasifikasi) {
+            const name = klasifikasi.name || klasifikasi.nama;
+            console.log('Returning name:', name);
+            return name;
+        }
+        
+        console.log('No klasifikasi found for id:', id);
+        return null;
     }, [klasifikasiFeedmil]);
 
     // Fetch pembelian feedmil data from API
@@ -108,7 +135,14 @@ const usePembelianFeedmil = () => {
                     tipe_pembelian: item.tipe_pembelian, // This should be external/internal classification
                     tipe_pembelian_id: item.tipe_pembelian_id || item.tipe_pembelian, // ID for external/internal
                     file: item.file,
-                    note: item.note
+                    note: item.note,
+                    // Add the missing fields for the new columns
+                    farm: item.farm,
+                    syarat_pembelian: item.syarat_pembelian,
+                    nota_ho: item.nota_ho,
+                    // Also include the ID fields for potential conversion
+                    id_farm: item.id_farm,
+                    id_syarat_pembelian: item.id_syarat_pembelian
                 }));
                 
                 // Update pagination state from server response
@@ -175,6 +209,9 @@ const usePembelianFeedmil = () => {
             };
             formData.append('tipe_pembelian', mapTipePembelian(pembelianData.tipePembelian));
             formData.append('note', pembelianData.note || 'Pembelian Feedmil dari Head Office'); // Required field
+            formData.append('nota_ho', pembelianData.nota_ho || ''); // Required field
+            formData.append('id_farm', pembelianData.id_farm || ''); // Required field
+            formData.append('id_syarat_pembelian', pembelianData.id_syarat_pembelian || ''); // Required field
             
             // Add file if exists
             if (pembelianData.file && pembelianData.file instanceof File) {
@@ -312,6 +349,9 @@ const usePembelianFeedmil = () => {
             };
             formData.append('tipe_pembelian', mapTipePembelian(data.tipePembelian));
             formData.append('note', data.note || 'Pembelian Feedmil dari Head Office'); // Required field
+            formData.append('nota_ho', data.nota_ho || ''); // Required field
+            formData.append('id_farm', data.id_farm || ''); // Required field
+            formData.append('id_syarat_pembelian', data.id_syarat_pembelian || ''); // Required field
             
             // Add file if exists
             if (data.file && data.file instanceof File) {
