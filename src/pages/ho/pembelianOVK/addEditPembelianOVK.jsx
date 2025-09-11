@@ -277,89 +277,50 @@ const AddEditPembelianOVKPage = () => {
                             }
                         }
 
-                        // Find office ID by name - using flexible matching
+                        // Find office ID - handle both direct ID and name matching (like Feedmil pattern)
                         let officeId = headerData.id_office || '';
                         
-                        if (!officeId && headerData.nama_office && officeOptions.length > 0) {
-                            const namaOffice = headerData.nama_office;
-                            
-                            // Strategy 1: Exact label matching
-                            officeId = officeOptions.find(o => o.label === namaOffice)?.value || '';
-                            
-                            // Strategy 2: Case-insensitive match
-                            if (!officeId) {
-                                officeId = officeOptions.find(o => o.label.toUpperCase() === namaOffice.toUpperCase())?.value || '';
+                        // If we have id_office directly, use it (convert to string to match form field format)
+                        if (officeId) {
+                            officeId = String(officeId);
+                        } else if (headerData.nama_office) {
+                            // Fallback: Try to find office by name if id_office is not available
+                            let foundOffice = officeOptions.find(o => o.label === headerData.nama_office);
+                            // If no exact match, try partial match (case insensitive)
+                            if (!foundOffice) {
+                                foundOffice = officeOptions.find(o => 
+                                    o.label.toLowerCase().includes(headerData.nama_office.toLowerCase()) ||
+                                    headerData.nama_office.toLowerCase().includes(o.label.toLowerCase())
+                                );
                             }
-                            
-                            // Strategy 3: Partial match (contains)
-                            if (!officeId) {
-                                officeId = officeOptions.find(o => 
-                                    o.label.toUpperCase().includes(namaOffice.toUpperCase()) ||
-                                    namaOffice.toUpperCase().includes(o.label.toUpperCase())
-                                )?.value || '';
-                            }
-                            
-                            // Strategy 4: Special cases for common office names
-                            if (!officeId) {
-                                if (namaOffice.toUpperCase().includes('HEAD') || namaOffice.toUpperCase().includes('PUSAT')) {
-                                    officeId = officeOptions.find(o => o.label.toUpperCase().includes('HEAD'))?.value || '';
-                                } else if (namaOffice.toUpperCase().includes('TAPOS')) {
-                                    officeId = officeOptions.find(o => o.label.toUpperCase().includes('TAPOS'))?.value || '';
-                                }
+                            if (foundOffice) {
+                                officeId = foundOffice.value;
                             }
                         }
                         
 
-                        // Find jenis pembelian ID - using direct mapping
-                        let jenisPembelianId = headerData.jenis_pembelian || headerData.tipe_pembelian || '';
+                        // Find tipe pembelian ID - backend sends tipe_pembelian as integer (1 or 2) - like Feedmil pattern
+                        let tipePembelianId = '';
                         
-                        console.log('🔍 Jenis Pembelian Debug:', {
-                            original: headerData.jenis_pembelian,
-                            tipe_pembelian: headerData.tipe_pembelian,
-                            jenisPembelianId,
-                            availableOptions: jenisPembelianOptions
-                        });
-                        
-                        if (jenisPembelianId && jenisPembelianOptions.length > 0) {
-                            // Check if it's already an ID (numeric)
-                            if (!isNaN(parseInt(jenisPembelianId))) {
-                                jenisPembelianId = parseInt(jenisPembelianId);
-                            } else {
-                                // It's a text value, map directly
-                                const jenisPembelianText = jenisPembelianId.toString().toUpperCase();
-                                
-                                // Try exact match first
-                                let foundOption = jenisPembelianOptions.find(j => j.label.toUpperCase() === jenisPembelianText);
-                                
-                                // If no exact match, try contains match
-                                if (!foundOption) {
-                                    switch (jenisPembelianText) {
-                                        case 'INTERNAL': 
-                                            foundOption = jenisPembelianOptions.find(j => j.label.toUpperCase().includes('INTERNAL'));
-                                            break;
-                                        case 'EXTERNAL': 
-                                            foundOption = jenisPembelianOptions.find(j => j.label.toUpperCase().includes('EXTERNAL'));
-                                            break;
-                                        case 'KONTRAK': 
-                                            foundOption = jenisPembelianOptions.find(j => j.label.toUpperCase().includes('KONTRAK'));
-                                            break;
-                                        default: 
-                                            // Try partial match
-                                            foundOption = jenisPembelianOptions.find(j => 
-                                                j.label.toUpperCase().includes(jenisPembelianText) ||
-                                                jenisPembelianText.includes(j.label.toUpperCase())
-                                            );
-                                            break;
-                                    }
-                                }
-                                
-                                jenisPembelianId = foundOption?.value || '';
-                                
-                                console.log('🔍 Jenis Pembelian Mapping Result:', {
-                                    input: jenisPembelianText,
-                                    foundOption,
-                                    finalId: jenisPembelianId
-                                });
+                        if (headerData.tipe_pembelian !== undefined && headerData.tipe_pembelian !== null) {
+                            // Backend sends tipe_pembelian as integer, convert to string for matching
+                            const tipePembelianValue = String(headerData.tipe_pembelian);
+                            const foundTipePembelian = jenisPembelianOptions.find(t => t.value === tipePembelianValue);
+                            
+                            if (foundTipePembelian) {
+                                tipePembelianId = foundTipePembelian.value;
+                            }
+                        } else if (headerData.jenis_pembelian) {
+                            // Fallback: try to match by jenis_pembelian name (for backward compatibility)
+                            let foundTipePembelian = jenisPembelianOptions.find(t => t.label === headerData.jenis_pembelian);
+                            if (!foundTipePembelian) {
+                                foundTipePembelian = jenisPembelianOptions.find(t => 
+                                    t.label.toLowerCase().includes(headerData.jenis_pembelian.toLowerCase()) ||
+                                    headerData.jenis_pembelian.toLowerCase().includes(t.label.toLowerCase())
+                                );
+                            }
+                            if (foundTipePembelian) {
+                                tipePembelianId = foundTipePembelian.value;
                             }
                         }
                         
@@ -395,7 +356,7 @@ const AddEditPembelianOVKPage = () => {
                             mappedValues: {
                                 nota: safeGetString(headerData.nota),
                                 officeId,
-                                jenisPembelianId,
+                                tipePembelianId,
                                 supplierId,
                                 tgl_masuk: safeGetString(headerData.tgl_masuk),
                                 nama_supir: safeGetString(headerData.nama_supir),
@@ -417,9 +378,12 @@ const AddEditPembelianOVKPage = () => {
                         
                         setHeaderData({
                             nota: safeGetString(headerData.nota),
-                            idOffice: officeId || officeOptions[0]?.value || '1',
-                            tipePembelian: jenisPembelianId || '',
-                            idSupplier: supplierId,
+                            nota_ho: safeGetString(headerData.nota_ho),
+                            farm: safeGetString(headerData.farm) || safeGetString(headerData.id_farm),
+                            syarat_pembelian: safeGetString(headerData.syarat_pembelian) || safeGetString(headerData.id_syarat_pembelian),
+                            idOffice: officeId || safeGetString(headerData.id_office),
+                            tipePembelian: tipePembelianId || safeGetString(headerData.tipe_pembelian),
+                            idSupplier: supplierId || safeGetString(headerData.id_supplier),
                             tgl_masuk: safeGetString(headerData.tgl_masuk),
                             nama_supir: safeGetString(headerData.nama_supir),
                             plat_nomor: safeGetString(headerData.plat_nomor),
@@ -942,7 +906,7 @@ const AddEditPembelianOVKPage = () => {
         const errors = [];
 
         if (!headerData.nota.trim()) {
-            errors.push('Nomor Nota harus diisi');
+            errors.push('Nomor Nota Supplier harus diisi');
         }
 
         if (!headerData.tipePembelian) {
@@ -1182,18 +1146,33 @@ const AddEditPembelianOVKPage = () => {
                     </h2>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-                        {/* Nomor Nota */}
+                        {/* Nomor Nota Supplier */}
                         <div>
                             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                                 <Hash className="w-4 h-4" />
-                                Nomor Nota *
+                                Nomor Nota Supplier *
                             </label>
                             <input
                                 type="text"
                                 value={headerData.nota}
                                 onChange={(e) => handleHeaderChange('nota', e.target.value)}
                                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                placeholder="Masukkan nomor nota"
+                                placeholder="Masukkan nomor nota supplier"
+                            />
+                        </div>
+
+                        {/* Nomor Nota CV. Puput Bersaudara */}
+                        <div>
+                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <Hash className="w-4 h-4" />
+                                Nomor Nota CV. Puput Bersaudara
+                            </label>
+                            <input
+                                type="text"
+                                value={headerData.nota_ho}
+                                onChange={(e) => handleHeaderChange('nota_ho', e.target.value)}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                                placeholder="Masukkan nomor nota CV"
                             />
                         </div>
 
@@ -1440,21 +1419,6 @@ const AddEditPembelianOVKPage = () => {
                             )}
                         </div>
 
-                        {/* Nomor Nota HO */}
-                        <div>
-                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <Hash className="w-4 h-4" />
-                                Nomor Nota HO *
-                            </label>
-                            <input
-                                type="text"
-                                value={headerData.nota_ho}
-                                onChange={(e) => handleHeaderChange('nota_ho', e.target.value)}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                placeholder="Masukkan nomor nota HO"
-                                required
-                            />
-                        </div>
 
                         {/* Syarat Pembelian */}
                         <div>

@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Building2, User, Calendar, Truck, Hash, Package, Eye, Weight, DollarSign } from 'lucide-react';
 import usePembelianOVK from './hooks/usePembelianOVK';
+import useFarmAPI from './hooks/useFarmAPI';
+import useBanksAPI from '../pembelianFeedmil/hooks/useBanksAPI';
 import { enhancedOVKTableStyles } from './constants/tableStyles';
 import DataTable from 'react-data-table-component';
 import { StyleSheetManager } from 'styled-components';
@@ -21,6 +23,31 @@ const PembelianOVKDetailPage = () => {
         loading,
         error
     } = usePembelianOVK();
+
+    // Farm and Bank API hooks for ID to name conversion
+    const { farmData } = useFarmAPI();
+    const { banks } = useBanksAPI();
+
+    // Helper functions to convert ID to name
+    const getFarmName = useCallback((id) => {
+        if (!id || !farmData.length) {
+            return '';
+        }
+        // Convert ID to number for comparison
+        const numericId = parseInt(id);
+        const farm = farmData.find(f => f.id === numericId || f.id === id);
+        return farm ? farm.name : '';
+    }, [farmData]);
+
+    const getBankName = useCallback((id) => {
+        if (!id || !banks.length) {
+            return '';
+        }
+        // Convert ID to number for comparison
+        const numericId = parseInt(id);
+        const bank = banks.find(b => b.id === numericId || b.id === id);
+        return bank ? bank.nama : '';
+    }, [banks]);
     
     const [pembelianData, setPembelianData] = useState(null);
     const [detailData, setDetailData] = useState([]);
@@ -131,6 +158,11 @@ const PembelianOVKDetailPage = () => {
                             setPembelianData({
                                 encryptedPid: headerData.encryptedPid || headerData.pid || id,
                                 nota: headerData.nota || '',
+                                nota_ho: headerData.nota_ho || '',
+                                farm: headerData.farm || '', // Will be updated by useEffect when farmData is available
+                                syarat_pembelian: headerData.syarat_pembelian || '', // Will be updated by useEffect when banks is available
+                                id_farm: headerData.id_farm,
+                                id_syarat_pembelian: headerData.id_syarat_pembelian,
                                 nama_supplier: headerData.nama_supplier || '',
                                 nama_office: headerData.nama_office || 'Head Office (HO)',
                                 tgl_masuk: headerData.tgl_masuk || '',
@@ -151,6 +183,11 @@ const PembelianOVKDetailPage = () => {
                             setPembelianData({
                                 encryptedPid: firstItem.pubid || id,
                                 nota: firstItem.nota || '',
+                                nota_ho: firstItem.nota_ho || '',
+                                farm: firstItem.farm || '', // Will be updated by useEffect when farmData is available
+                                syarat_pembelian: firstItem.syarat_pembelian || '', // Will be updated by useEffect when banks is available
+                                id_farm: firstItem.id_farm,
+                                id_syarat_pembelian: firstItem.id_syarat_pembelian,
                                 nama_supplier: firstItem.nama_supplier || '',
                                 nama_office: firstItem.nama_office || 'Head Office (HO)',
                                 tgl_masuk: firstItem.tgl_masuk || '',
@@ -220,6 +257,27 @@ const PembelianOVKDetailPage = () => {
         }
     }, [id, getPembelianDetail]); // Removed pembelianList dependency to prevent duplicate calls
 
+    // Update farm and syarat_pembelian when farm/bank data becomes available
+    useEffect(() => {
+        if (pembelianData && (farmData.length > 0 || banks.length > 0)) {
+            setPembelianData(prev => {
+                if (!prev) return prev;
+                
+                const updatedFarm = prev.farm || getFarmName(prev.id_farm);
+                const updatedSyarat = prev.syarat_pembelian || getBankName(prev.id_syarat_pembelian);
+                
+                // Only update if values actually changed to prevent infinite loop
+                if (updatedFarm !== prev.farm || updatedSyarat !== prev.syarat_pembelian) {
+                    return {
+                        ...prev,
+                        farm: updatedFarm,
+                        syarat_pembelian: updatedSyarat
+                    };
+                }
+                return prev;
+            });
+        }
+    }, [pembelianData?.id_farm, pembelianData?.id_syarat_pembelian, farmData, banks, getFarmName, getBankName]);
 
     const handleBack = () => {
         navigate('/ho/pembelian-ovk');
@@ -524,6 +582,36 @@ const PembelianOVKDetailPage = () => {
                             </label>
                             <p className="text-lg font-bold text-gray-900">
                                 {pembelianData.nota || '-'}
+                            </p>
+                        </div>
+
+                        <div className="bg-gradient-to-r from-cyan-50 to-blue-50 p-4 rounded-lg">
+                            <label className="block text-sm font-medium text-gray-600 mb-2">
+                                <Hash className="w-4 h-4 inline mr-1" />
+                                Nota HO
+                            </label>
+                            <p className="text-lg font-bold text-gray-900">
+                                {pembelianData.nota_ho || '-'}
+                            </p>
+                        </div>
+
+                        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-lg">
+                            <label className="block text-sm font-medium text-gray-600 mb-2">
+                                <Building2 className="w-4 h-4 inline mr-1" />
+                                Farm
+                            </label>
+                            <p className="text-lg font-bold text-gray-900">
+                                {pembelianData.farm || '-'}
+                            </p>
+                        </div>
+
+                        <div className="bg-gradient-to-r from-emerald-50 to-green-50 p-4 rounded-lg">
+                            <label className="block text-sm font-medium text-gray-600 mb-2">
+                                <Package className="w-4 h-4 inline mr-1" />
+                                Syarat Pembelian
+                            </label>
+                            <p className="text-lg font-bold text-gray-900">
+                                {pembelianData.syarat_pembelian || '-'}
                             </p>
                         </div>
 
