@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Building2, User, Calendar, Truck, Hash, Package, Eye, Weight, DollarSign } from 'lucide-react';
 import usePembelianFeedmil from './hooks/usePembelianFeedmil';
-import useKlasifikasiFeedmil from './hooks/useKlasifikasiFeedmil';
 import useFarmAPI from './hooks/useFarmAPI';
 import useBanksAPI from './hooks/useBanksAPI';
 import customTableStyles from './constants/tableStyles';
@@ -25,8 +24,6 @@ const PembelianFeedmilDetailPage = () => {
         error
     } = usePembelianFeedmil();
 
-    // Klasifikasi Feedmil hook
-    const { klasifikasiFeedmil, klasifikasiFeedmilOptions } = useKlasifikasiFeedmil();
 
     // Farm and Bank API hooks for ID to name conversion
     const { farmData } = useFarmAPI();
@@ -53,17 +50,6 @@ const PembelianFeedmilDetailPage = () => {
         return bank ? bank.nama : '';
     }, [banks]);
 
-    // Helper function to get klasifikasi name by ID
-    const getKlasifikasiName = useCallback((id) => {
-        if (!id || !klasifikasiFeedmil.length) {
-            return null;
-        }
-        
-        // Convert ID to number for comparison
-        const numericId = parseInt(id);
-        const klasifikasi = klasifikasiFeedmil.find(k => k.id === numericId);
-        return klasifikasi ? klasifikasi.name : null;
-    }, [klasifikasiFeedmil]);
     
     const [pembelianData, setPembelianData] = useState(null);
     const [detailData, setDetailData] = useState([]);
@@ -118,8 +104,6 @@ const PembelianFeedmilDetailPage = () => {
     };
 
     // No longer need to load pembelian list for header data - will get from /show endpoint
-
-    // Klasifikasi feedmil data is now loaded automatically by useKlasifikasiFeedmil hook
 
     useEffect(() => {
         const fetchDetail = async () => {
@@ -354,25 +338,13 @@ const PembelianFeedmilDetailPage = () => {
             grow: 1.5,
             wrap: true,
             center: true,
-            cell: row => {
-                // Debug: Log the data to understand the issue
-                console.log('🔍 Row data:', row);
-                console.log('🔍 id_klasifikasi_feedmil:', row.id_klasifikasi_feedmil, 'type:', typeof row.id_klasifikasi_feedmil);
-                console.log('🔍 klasifikasiFeedmil data:', klasifikasiFeedmil);
-                console.log('🔍 klasifikasiFeedmil length:', klasifikasiFeedmil.length);
-                
-                // Get klasifikasi name using the new function
-                const klasifikasiName = getKlasifikasiName(row.id_klasifikasi_feedmil);
-                console.log('🔍 klasifikasiName result:', klasifikasiName);
-                
-                return (
-                    <div className="w-full flex items-center justify-center">
-                        <span className="inline-flex px-3 py-1.5 text-xs font-medium rounded-lg bg-green-100 text-green-800">
-                            {klasifikasiName || `ID: ${row.id_klasifikasi_feedmil}`}
-                        </span>
-                    </div>
-                );
-            }
+            cell: row => (
+                <div className="w-full flex items-center justify-center">
+                    <span className="inline-flex px-3 py-1.5 text-xs font-medium rounded-lg bg-green-100 text-green-800">
+                        {row.nama_klasifikasi_feedmil || '-'}
+                    </span>
+                </div>
+            )
         },
         {
             name: 'Berat (kg)',
