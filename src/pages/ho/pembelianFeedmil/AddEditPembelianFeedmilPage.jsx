@@ -114,6 +114,7 @@ const AddEditPembelianFeedmilPage = () => {
     const [filePreview, setFilePreview] = useState(null);
     const [isDragOver, setIsDragOver] = useState(false);
     const [isFileModalOpen, setIsFileModalOpen] = useState(false);
+    const [existingFileName, setExistingFileName] = useState(null); // Track existing file name
 
     // Default data untuk batch operations - aligned with backend validation
     const [defaultData, setDefaultData] = useState({
@@ -341,10 +342,16 @@ const AddEditPembelianFeedmilPage = () => {
                             berat_total: safeGetNumber(headerData.berat_total),
                             harga_total: safeGetNumber(headerData.biaya_total) || safeGetNumber(headerData.total_belanja),
                             total_feedmil: safeGetNumber(headerData.jumlah),
-                            file: safeGetString(headerData.file),
+                            file: safeGetString(headerData.file), // Keep as string for display purposes
                             fileName: safeGetString(headerData.file_name) || safeGetString(headerData.fileName),
                             note: safeGetString(headerData.note) || safeGetString(headerData.catatan)
                         });
+
+                        // Set existing file name if available
+                        const existingFile = safeGetString(headerData.file_name) || safeGetString(headerData.fileName);
+                        if (existingFile) {
+                            setExistingFileName(existingFile);
+                        }
 
                         // Transform detail items from backend data (using optimized data)
                         if (detailResult.success && detailResult.data.length > 0) {
@@ -763,6 +770,7 @@ const AddEditPembelianFeedmilPage = () => {
     const removeFile = () => {
         setSelectedFile(null);
         setFilePreview(null);
+        setExistingFileName(null); // Clear existing file name
         handleHeaderChange('file', '');
         handleHeaderChange('fileName', '');
     };
@@ -897,6 +905,13 @@ const AddEditPembelianFeedmilPage = () => {
             // Get selected supplier details
             const selectedSupplier = suppliers.find(s => s.id === headerData.idSupplier);
             
+            // Debug file state
+            console.log('🔍 File Debug Info:');
+            console.log('selectedFile:', selectedFile);
+            console.log('headerData.file:', headerData.file);
+            console.log('selectedFile instanceof File:', selectedFile instanceof File);
+            console.log('headerData.file instanceof File:', headerData.file instanceof File);
+
             const submissionData = {
                 ...headerData,
                 totalJumlah: totals.totalJumlah,
@@ -917,9 +932,14 @@ const AddEditPembelianFeedmilPage = () => {
                 nota_ho: headerData.nota_ho || '',
                 id_farm: headerData.farm ? parseInt(headerData.farm) : null,
                 id_syarat_pembelian: headerData.syarat_pembelian ? parseInt(headerData.syarat_pembelian) : null,
-                // Ensure file is properly passed if selected
-                file: selectedFile || null
+                // Ensure file is properly passed - prioritize selectedFile over headerData.file
+                // Only pass file if it's a File object (new upload) or if we have existing file name but no new file
+                file: selectedFile || (headerData.file && headerData.file instanceof File ? headerData.file : null),
+                // Pass existing file name for backend to know if file should be kept
+                existingFileName: existingFileName
             };
+
+            console.log('🔍 Final submissionData.file:', submissionData.file);
 
 
             let result;
@@ -1360,7 +1380,7 @@ const AddEditPembelianFeedmilPage = () => {
                                         Upload File Dokumen
                                     </button>
                                     
-                                    {selectedFile && (
+                                    {(selectedFile || existingFileName) && (
                                         <button
                                             onClick={removeFile}
                                             className="px-3 py-3 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors border border-red-200 hover:border-red-300"
@@ -1371,7 +1391,7 @@ const AddEditPembelianFeedmilPage = () => {
                                     )}
                                 </div>
 
-                                {selectedFile && (
+                                {(selectedFile || existingFileName) && (
                                     <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 shadow-lg">
                                         <div className="flex items-center gap-4">
                                             <div className="flex-shrink-0">
@@ -1385,15 +1405,23 @@ const AddEditPembelianFeedmilPage = () => {
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <h4 className="text-lg font-bold text-green-800 truncate">
-                                                    {selectedFile.name}
+                                                    {selectedFile ? selectedFile.name : existingFileName}
                                                 </h4>
                                                 <div className="flex items-center gap-4 mt-1">
-                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                        📄 {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                                                    </span>
-                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                        🏷️ {selectedFile.type.split('/')[1]?.toUpperCase() || 'FILE'}
-                                                    </span>
+                                                    {selectedFile ? (
+                                                        <>
+                                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                                📄 {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                                                            </span>
+                                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                                🏷️ {selectedFile.type.split('/')[1]?.toUpperCase() || 'FILE'}
+                                                            </span>
+                                                        </>
+                                                    ) : (
+                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                            📁 File Existing
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -1914,7 +1942,7 @@ const AddEditPembelianFeedmilPage = () => {
                                 </div>
 
                                 {/* File Info Display in Modal */}
-                                {selectedFile && (
+                                {(selectedFile || existingFileName) && (
                                     <div className="mt-6 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 shadow-lg">
                                         <div className="flex items-center gap-4">
                                             <div className="flex-shrink-0">
@@ -1940,18 +1968,26 @@ const AddEditPembelianFeedmilPage = () => {
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <h4 className="text-lg font-bold text-green-800 truncate">
-                                                    {selectedFile.name}
+                                                    {selectedFile ? selectedFile.name : existingFileName}
                                                 </h4>
                                                 <div className="flex items-center gap-4 mt-1">
-                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                        📄 {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                                                    </span>
-                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                        🏷️ {selectedFile.type.split('/')[1]?.toUpperCase() || 'FILE'}
-                                                    </span>
+                                                    {selectedFile ? (
+                                                        <>
+                                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                                📄 {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                                                            </span>
+                                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                                🏷️ {selectedFile.type.split('/')[1]?.toUpperCase() || 'FILE'}
+                                                            </span>
+                                                        </>
+                                                    ) : (
+                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                            📁 File Existing
+                                                        </span>
+                                                    )}
                                                 </div>
                                                 <p className="text-sm text-green-600 mt-2">
-                                                    ✅ File berhasil dipilih dan siap diupload
+                                                    {selectedFile ? '✅ File berhasil dipilih dan siap diupload' : '📁 File existing akan dipertahankan'}
                                                 </p>
                                             </div>
                                         </div>
@@ -1988,7 +2024,7 @@ const AddEditPembelianFeedmilPage = () => {
                                 >
                                     Batal
                                 </button>
-                                {selectedFile && (
+                                {(selectedFile || existingFileName) && (
                                     <button
                                         onClick={() => {
                                             closeFileModal();

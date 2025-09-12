@@ -108,6 +108,7 @@ const AddEditPembelianOVKPage = () => {
     const [filePreview, setFilePreview] = useState(null);
     const [isDragOver, setIsDragOver] = useState(false);
     const [isFileModalOpen, setIsFileModalOpen] = useState(false);
+    const [existingFileName, setExistingFileName] = useState(null); // Track existing file name
 
     // Default data untuk batch operations
     const [defaultData, setDefaultData] = useState({
@@ -395,10 +396,16 @@ const AddEditPembelianOVKPage = () => {
                             farm: safeGetString(headerData.farm) || safeGetString(headerData.id_farm),
                             syarat_pembelian: safeGetString(headerData.syarat_pembelian) || safeGetString(headerData.id_syarat_pembelian),
                             nota_ho: safeGetString(headerData.nota_ho),
-                            file: safeGetString(headerData.file),
+                            file: safeGetString(headerData.file), // Keep as string for display purposes
                             fileName: headerData.file ? headerData.file.split('/').pop() : '',
                             note: safeGetString(headerData.note) || safeGetString(headerData.catatan)
                         });
+
+                        // Set existing file name if available
+                        const existingFile = headerData.file ? headerData.file.split('/').pop() : '';
+                        if (existingFile) {
+                            setExistingFileName(existingFile);
+                        }
                         
                     }
 
@@ -868,6 +875,7 @@ const AddEditPembelianOVKPage = () => {
     const removeFile = () => {
         setSelectedFile(null);
         setFilePreview(null);
+        setExistingFileName(null); // Clear existing file name
         handleHeaderChange('file', null);  // Reset to null instead of empty string
         handleHeaderChange('fileName', '');
     };
@@ -1012,7 +1020,11 @@ const AddEditPembelianOVKPage = () => {
                 berat_total: parseFloat(headerData.berat_total) || null,
                 tipe_pembelian: parseInt(headerData.tipePembelian),
                 note: headerData.note,
-                file: selectedFile, // File will be handled by backend
+                // Ensure file is properly passed - prioritize selectedFile over headerData.file
+                // Only pass file if it's a File object (new upload) or if we have existing file name but no new file
+                file: selectedFile || (headerData.file && headerData.file instanceof File ? headerData.file : null),
+                // Pass existing file name for backend to know if file should be kept
+                existingFileName: existingFileName,
 
                 // Detail items mapping
                 details: detailItems.map(item => ({
@@ -1475,7 +1487,7 @@ const AddEditPembelianOVKPage = () => {
                                         Upload File Dokumen
                                     </button>
                                     
-                                    {selectedFile && (
+                                    {(selectedFile || existingFileName) && (
                                         <button
                                             onClick={removeFile}
                                             className="px-3 py-3 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors border border-red-200 hover:border-red-300"
@@ -1486,7 +1498,7 @@ const AddEditPembelianOVKPage = () => {
                                     )}
                                 </div>
 
-                                {selectedFile && (
+                                {(selectedFile || existingFileName) && (
                                     <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 shadow-lg">
                                         <div className="flex items-center gap-4">
                                             <div className="flex-shrink-0">
@@ -1500,15 +1512,23 @@ const AddEditPembelianOVKPage = () => {
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <h4 className="text-lg font-bold text-green-800 truncate">
-                                                    {selectedFile.name}
+                                                    {selectedFile ? selectedFile.name : existingFileName}
                                                 </h4>
                                                 <div className="flex items-center gap-4 mt-1">
-                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                        📄 {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                                                    </span>
-                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                        🏷️ {selectedFile.type.split('/')[1]?.toUpperCase() || 'FILE'}
-                                                    </span>
+                                                    {selectedFile ? (
+                                                        <>
+                                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                                📄 {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                                                            </span>
+                                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                                🏷️ {selectedFile.type.split('/')[1]?.toUpperCase() || 'FILE'}
+                                                            </span>
+                                                        </>
+                                                    ) : (
+                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                            📁 File Existing
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -2025,7 +2045,7 @@ const AddEditPembelianOVKPage = () => {
                                 </div>
 
                                 {/* File Info Display in Modal */}
-                                {selectedFile && (
+                                {(selectedFile || existingFileName) && (
                                     <div className="mt-6 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 shadow-lg">
                                         <div className="flex items-center gap-4">
                                             <div className="flex-shrink-0">
@@ -2051,15 +2071,23 @@ const AddEditPembelianOVKPage = () => {
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <h4 className="text-lg font-bold text-green-800 truncate">
-                                                    {selectedFile.name}
+                                                    {selectedFile ? selectedFile.name : existingFileName}
                                                 </h4>
                                                 <div className="flex items-center gap-4 mt-1">
-                                                    <span className="text-sm text-green-600">
-                                                        {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                                                    </span>
-                                                    <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
-                                                        {selectedFile.type.split('/')[1]?.toUpperCase() || 'FILE'}
-                                                    </span>
+                                                    {selectedFile ? (
+                                                        <>
+                                                            <span className="text-sm text-green-600">
+                                                                {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                                                            </span>
+                                                            <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+                                                                {selectedFile.type.split('/')[1]?.toUpperCase() || 'FILE'}
+                                                            </span>
+                                                        </>
+                                                    ) : (
+                                                        <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                                                            📁 File Existing
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </div>
                                             <button
@@ -2081,9 +2109,9 @@ const AddEditPembelianOVKPage = () => {
                                         onClick={closeFileModal}
                                         className="px-6 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
                                     >
-                                        {selectedFile ? 'Selesai' : 'Batal'}
+                                        {(selectedFile || existingFileName) ? 'Selesai' : 'Batal'}
                                     </button>
-                                    {selectedFile && (
+                                    {(selectedFile || existingFileName) && (
                                         <button
                                             onClick={closeFileModal}
                                             className="px-6 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-200 font-medium shadow-md hover:shadow-lg"
@@ -2098,51 +2126,87 @@ const AddEditPembelianOVKPage = () => {
                 </div>
             )}
 
-            {/* Notification */}
+            {/* Enhanced Notification */}
             {notification && (
-                <div className="fixed top-4 right-4 z-50">
-                    <div className={`max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden ${
-                        notification.type === 'success' ? 'border-l-4 border-green-400' :
-                        notification.type === 'info' ? 'border-l-4 border-blue-400' :
-                        'border-l-4 border-red-400'
+                <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-right duration-300">
+                    <div className={`max-w-md w-full bg-white shadow-2xl rounded-xl pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden border-l-4 ${
+                        notification.type === 'success' ? 'border-green-500 bg-gradient-to-r from-green-50 to-white' :
+                        notification.type === 'info' ? 'border-blue-500 bg-gradient-to-r from-blue-50 to-white' :
+                        'border-red-500 bg-gradient-to-r from-red-50 to-white'
                     }`}>
-                        <div className="p-4">
+                        <div className="p-5">
                             <div className="flex items-start">
                                 <div className="flex-shrink-0">
                                     {notification.type === 'success' ? (
-                                        <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
-                                            <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center ring-2 ring-green-200">
+                                            <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
                                                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                             </svg>
                                         </div>
                                     ) : notification.type === 'info' ? (
-                                        <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
-                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center ring-2 ring-blue-200">
+                                            <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-600 border-t-transparent"></div>
                                         </div>
                                     ) : (
-                                        <div className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center">
-                                            <AlertCircle className="w-4 h-4 text-red-600" />
+                                        <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center ring-2 ring-red-200">
+                                            <AlertCircle className="w-5 h-5 text-red-600" />
                                         </div>
                                     )}
                                 </div>
-                                <div className="ml-3 w-0 flex-1 pt-0.5">
-                                    <p className="text-sm font-medium text-gray-900">
-                                        {notification.type === 'success' ? 'Berhasil!' :
-                                         notification.type === 'info' ? 'Memproses...' : 'Error!'}
+                                <div className="ml-4 flex-1 min-w-0">
+                                    <div className="flex items-center justify-between">
+                                        <p className={`text-sm font-semibold ${
+                                            notification.type === 'success' ? 'text-green-800' :
+                                            notification.type === 'info' ? 'text-blue-800' :
+                                            'text-red-800'
+                                        }`}>
+                                            {notification.type === 'success' ? 'Berhasil!' :
+                                             notification.type === 'info' ? 'Memproses...' : 'Error!'}
+                                        </p>
+                                        <button
+                                            onClick={() => setNotification(null)}
+                                            className={`ml-4 flex-shrink-0 rounded-full p-1.5 hover:bg-opacity-20 transition-colors ${
+                                                notification.type === 'success' ? 'text-green-600 hover:bg-green-200' :
+                                                notification.type === 'info' ? 'text-blue-600 hover:bg-blue-200' :
+                                                'text-red-600 hover:bg-red-200'
+                                            }`}
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                    <p className={`mt-1 text-sm ${
+                                        notification.type === 'success' ? 'text-green-700' :
+                                        notification.type === 'info' ? 'text-blue-700' :
+                                        'text-red-700'
+                                    }`}>
+                                        {notification.message}
                                     </p>
-                                    <p className="mt-1 text-sm text-gray-500">{notification.message}</p>
-                                </div>
-                                <div className="ml-4 flex-shrink-0 flex">
-                                    <button
-                                        onClick={() => setNotification(null)}
-                                        className="bg-white rounded-md inline-flex text-gray-400 hover:text-gray-500"
-                                    >
-                                        <X className="h-5 w-5" />
-                                    </button>
                                 </div>
                             </div>
                         </div>
+                        
+                        {/* Progress bar for auto-hide */}
+                        <div className={`h-1 w-full ${
+                            notification.type === 'success' ? 'bg-green-200' :
+                            notification.type === 'info' ? 'bg-blue-200' :
+                            'bg-red-200'
+                        }`}>
+                            <div className={`h-full animate-pulse ${
+                                notification.type === 'success' ? 'bg-green-500' :
+                                notification.type === 'info' ? 'bg-blue-500' :
+                                'bg-red-500'
+                            }`} style={{
+                                animation: 'progress 5s linear forwards'
+                            }}></div>
+                        </div>
                     </div>
+                    
+                    <style>{`
+                        @keyframes progress {
+                            from { width: 100%; }
+                            to { width: 0%; }
+                        }
+                    `}</style>
                 </div>
             )}
         </div>
