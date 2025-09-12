@@ -1288,7 +1288,7 @@ const AddEditPembelianOVKPage = () => {
                         <div>
                             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                                 <User className="w-4 h-4" />
-                                Nama Supir
+                                Nama Sopir
                             </label>
                             <input
                                 type="text"

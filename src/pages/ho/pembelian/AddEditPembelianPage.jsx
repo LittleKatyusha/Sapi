@@ -1833,7 +1833,7 @@ const AddEditPembelianPage = () => {
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 <User className="w-4 h-4 inline mr-1" />
-                                Nama Supir *
+                                Nama Sopir *
                             </label>
                             <input
                                 type="text"

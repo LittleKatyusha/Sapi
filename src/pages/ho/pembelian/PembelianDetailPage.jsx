@@ -368,7 +368,7 @@ const PembelianDetailPage = () => {
                         <div className="bg-gradient-to-r from-teal-50 to-cyan-50 p-4 rounded-lg">
                             <label className="block text-sm font-medium text-gray-600 mb-2">
                                 <User className="w-4 h-4 inline mr-1" />
-                                Nama Supir
+                                Nama Sopir
                             </label>
                             <p className="text-lg font-bold text-gray-900">
                                 {pembelianData.nama_supir || '-'}

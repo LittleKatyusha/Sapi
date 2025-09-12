@@ -256,7 +256,7 @@ const PembelianFeedmilPage = () => {
             )
         },
         {
-            name: 'Nama Supir',
+            name: 'Nama Sopir',
             selector: row => row.nama_supir,
             sortable: true,
             width: '180px',

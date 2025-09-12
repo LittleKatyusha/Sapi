@@ -390,7 +390,7 @@ const PembelianHOPage = () => {
             )
         },
         {
-            name: 'Nama Supir',
+            name: 'Nama Sopir',
             selector: row => row.nama_supir,
             sortable: true,
             width: '200px', // Increased for longer names
