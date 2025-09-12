@@ -141,10 +141,20 @@ const LayoutSecure = ({ children, title }) => {
   ];
 
   const toggleMenu = (menuName) => {
-    setExpandedMenus(prev => ({
-      ...prev,
-      [menuName]: !prev[menuName]
-    }));
+    setExpandedMenus(prev => {
+      // If the clicked menu is already open, close it
+      if (prev[menuName]) {
+        return {
+          ...prev,
+          [menuName]: false
+        };
+      } else {
+        // If the clicked menu is closed, open it and close all others
+        const newExpandedMenus = {};
+        newExpandedMenus[menuName] = true;
+        return newExpandedMenus;
+      }
+    });
   };
 
   const handleLogout = async () => {

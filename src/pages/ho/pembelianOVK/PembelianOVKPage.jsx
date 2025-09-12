@@ -201,8 +201,8 @@ const PembelianOVKPage = () => {
             width: '150px',
             wrap: true,
             cell: row => (
-                <div className="w-full px-2 flex items-center justify-center">
-                    <div className="font-mono text-sm bg-gray-50 px-3 py-2 rounded-lg inline-block whitespace-nowrap">
+                <div className="w-full px-2 flex items-center justify-center min-h-[40px]">
+                    <div className="font-mono text-sm bg-gray-50 px-3 py-2 rounded-lg text-center break-all whitespace-normal leading-tight">
                         {row.nota || '-'}
                     </div>
                 </div>
@@ -368,6 +368,25 @@ const PembelianOVKPage = () => {
                             minimumFractionDigits: 0,
                             maximumFractionDigits: 0
                         }).format(row.biaya_lain) : 'Rp 0'}
+                    </div>
+                </div>
+            )
+        },
+        {
+            name: 'Biaya Ongkir',
+            selector: row => row.biaya_truk,
+            sortable: true,
+            width: '180px',
+            wrap: true,
+            cell: row => (
+                <div className="flex items-center justify-center w-full h-full min-h-[40px] px-1">
+                    <div className="bg-cyan-50 text-cyan-700 px-3 py-2 rounded-lg font-semibold text-center text-xs leading-tight">
+                        {row.biaya_truk ? new Intl.NumberFormat('id-ID', {
+                            style: 'currency',
+                            currency: 'IDR',
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 0
+                        }).format(row.biaya_truk) : 'Rp 0'}
                     </div>
                 </div>
             )

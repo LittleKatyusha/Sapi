@@ -385,6 +385,23 @@ const PembelianFeedmilPage = () => {
                 </span>
             )
         },
+        {
+            name: 'Biaya Truk',
+            selector: row => row.biaya_truk,
+            sortable: true,
+            width: '150px',
+            wrap: true,
+            cell: row => (
+                <span className="inline-flex px-3 py-2 text-sm font-semibold rounded-lg bg-cyan-100 text-cyan-800">
+                    {row.biaya_truk ? new Intl.NumberFormat('id-ID', {
+                        style: 'currency',
+                        currency: 'IDR',
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0
+                    }).format(row.biaya_truk) : 'Rp 0'}
+                </span>
+            )
+        },
     ], [openMenuId, filteredData, getFarmName, getBankName]);
 
     return (

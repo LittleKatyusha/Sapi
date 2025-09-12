@@ -215,8 +215,8 @@ const usePembelianOVK = () => {
                 throw new Error('Supplier harus dipilih sebelum menyimpan data');
             }
             
-            if (!pembelianData.biaya_truk || pembelianData.biaya_truk <= 0) {
-                throw new Error('Biaya truck harus diisi dengan nilai numerik > 0');
+            if (pembelianData.biaya_truk === null || pembelianData.biaya_truk === undefined || isNaN(pembelianData.biaya_truk) || pembelianData.biaya_truk < 0) {
+                throw new Error('Biaya truck harus diisi dengan nilai numerik >= 0');
             }
 
             // Prepare request data - handle file upload with FormData
