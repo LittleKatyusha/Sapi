@@ -1198,9 +1198,10 @@ const AddEditPembelianFeedmilPage = () => {
                             <input
                                 type="text"
                                 value={headerData.plat_nomor}
-                                onChange={(e) => handleHeaderChange('plat_nomor', e.target.value)}
+                                onChange={(e) => handleHeaderChange('plat_nomor', e.target.value.toUpperCase())}
                                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
                                 placeholder="B1234XX"
+                                style={{ textTransform: 'uppercase' }}
                             />
                         </div>
 

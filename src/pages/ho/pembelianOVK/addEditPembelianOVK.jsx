@@ -1371,6 +1371,24 @@ const AddEditPembelianOVKPage = () => {
                             </p>
                         </div>
 
+                        {/* Biaya Total */}
+                        <div>
+                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <DollarSign className="w-4 h-4" />
+                                Biaya Total (Rp)
+                            </label>
+                            <input
+                                type="text"
+                                value={formatNumber(headerData.biaya_total)}
+                                onChange={(e) => handleHeaderChange('biaya_total', parseNumber(e.target.value))}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                                placeholder=""
+                            />
+                            <p className="text-xs text-blue-600 mt-1">
+                                💡 Total seluruh biaya (truck + lain-lain + pembelian)
+                            </p>
+                        </div>
+
                         {/* Jumlah Item */}
                         <div>
                             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
@@ -1387,24 +1405,6 @@ const AddEditPembelianOVKPage = () => {
                             />
                             <p className="text-xs text-gray-500 mt-1">
                                 💡 Jumlah item dalam pembelian
-                            </p>
-                        </div>
-
-                        {/* Biaya Total */}
-                        <div>
-                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <DollarSign className="w-4 h-4" />
-                                Biaya Total (Rp)
-                            </label>
-                            <input
-                                type="text"
-                                value={formatNumber(headerData.biaya_total)}
-                                onChange={(e) => handleHeaderChange('biaya_total', parseNumber(e.target.value))}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                placeholder=""
-                            />
-                            <p className="text-xs text-blue-600 mt-1">
-                                💡 Total seluruh biaya (truck + lain-lain + pembelian)
                             </p>
                         </div>
 

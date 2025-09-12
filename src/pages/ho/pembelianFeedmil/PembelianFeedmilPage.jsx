@@ -487,6 +487,32 @@ const PembelianFeedmilPage = () => {
                 .pembelian-feedmill-table table tbody tr:hover td:nth-child(2) {
                     background-color: #f9fafb !important;
                 }
+                
+                /* Custom scrollbar styling for table container */
+                .table-scroll-container::-webkit-scrollbar {
+                    height: 8px;
+                }
+                
+                .table-scroll-container::-webkit-scrollbar-track {
+                    background: #f1f5f9;
+                    border-radius: 4px;
+                }
+                
+                .table-scroll-container::-webkit-scrollbar-thumb {
+                    background: #cbd5e1;
+                    border-radius: 4px;
+                    transition: background 0.2s ease;
+                }
+                
+                .table-scroll-container::-webkit-scrollbar-thumb:hover {
+                    background: #94a3b8;
+                }
+                
+                /* Hide scrollbar on Firefox while keeping functionality */
+                .table-scroll-container {
+                    scrollbar-width: thin;
+                    scrollbar-color: #cbd5e1 #f1f5f9;
+                }
             `}</style>
             <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-2 sm:p-4 md:p-6">
             <div className="w-full max-w-none mx-0 space-y-6 md:space-y-8">
@@ -609,14 +635,12 @@ const PembelianFeedmilPage = () => {
                     
                     {/* Scrollable Table Content */}
                     <div 
-                        className="w-full overflow-x-auto overflow-y-hidden horizontal-scroll-container" 
+                        className="w-full overflow-x-auto max-w-full table-scroll-container" 
                         onScroll={handleTableScroll} 
                         style={{ 
-                            maxWidth: '100vw',
+                            maxHeight: '60vh',
                             scrollBehavior: 'smooth',
                             WebkitOverflowScrolling: 'touch',
-                            scrollbarWidth: 'thin',
-                            scrollbarColor: '#94a3b8 #e2e8f0',
                         }}
                     >
                         <div style={{ minWidth: '1850px' }}>
