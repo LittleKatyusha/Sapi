@@ -42,11 +42,7 @@ const StokDagingPage = lazy(() => import('./pages/boning/StokDagingPage'));
 const ReturnPage = lazy(() => import('./pages/boning/ReturnPage'));
 const SuratJalanPage = lazy(() => import('./pages/boning/SuratJalanPage'));
 
-// System Pages - Lazy loaded
-const RolePage = lazy(() => import('./pages/system/RolePage'));
-const PermissionPage = lazy(() => import('./pages/system/PermissionPageNew'));
-const UsersPage = lazy(() => import('./pages/system/UsersPage'));
-const ParametersPage = lazy(() => import('./pages/system/ParametersPage'));
+// System Pages - Removed
 
 // HO Pages - Lazy loaded
 const PembelianHOPage = lazy(() => import('./pages/ho/pembelian/PembelianHOPage'));
@@ -194,11 +190,7 @@ function AppSecure() {
               <Route path="/ho/penjualan/edit/:id" element={<AddEditPenjualanPage />} />
               <Route path="/ho/penjualan/detail/:id" element={<PenjualanDetailPage />} />
 
-              {/* System Routes */}
-              <Route path="/system/role" element={<RolePage />} />
-              <Route path="/system/permission" element={<PermissionPage />} />
-              <Route path="/system/users" element={<UsersPage />} />
-              <Route path="/system/parameters" element={<ParametersPage />} />
+              {/* System Routes - Removed */}
 
               {/* Fallback Route */}
               <Route path="*" element={<DashboardPage />} />

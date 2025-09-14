@@ -204,42 +204,14 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef }) => 
 
     const actions = [
         {
-            label: 'Detail Pembelian',
+            label: 'Lihat Detail',
             icon: Eye,
             onClick: () => onDetail && onDetail(row),
             className: 'text-gray-700',
-            description: 'Lihat detail lengkap',
+            description: 'Informasi lengkap',
             bg: 'bg-blue-100',
             hoverBg: 'group-hover:bg-blue-200',
             text: 'text-blue-600',
-        },
-        // Only show "Lihat File" if file exists
-        ...(row.file ? [{
-            label: 'Lihat File',
-            icon: fileLoading ? Loader2 : File,
-            onClick: () => handleViewFile(row),
-            className: fileLoading ? 'text-gray-400' : 'text-gray-700',
-            description: fileLoading ? 'Membuka...' : 'Buka dokumen',
-            bg: 'bg-green-100',
-            hoverBg: 'group-hover:bg-green-200',
-            text: 'text-green-600',
-            disabled: fileLoading,
-            isLoading: fileLoading,
-        }] : []),
-        {
-            label: 'Download Laporan',
-            icon: downloadLoading ? Loader2 : Download,
-            onClick: () => handleDownloadReport(row),
-            className: downloadLoading ? 'text-gray-400' : 'text-gray-700',
-            description: downloadLoading ? 'Mengunduh...' : 'Unduh PDF laporan',
-            bg: 'bg-purple-100',
-            hoverBg: 'group-hover:bg-purple-200',
-            text: 'text-purple-600',
-            disabled: downloadLoading,
-            isLoading: downloadLoading,
-        },
-        {
-            divider: true
         },
         {
             label: 'Edit Pembelian',
@@ -250,6 +222,31 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef }) => 
             bg: 'bg-amber-100',
             hoverBg: 'group-hover:bg-amber-200',
             text: 'text-amber-600',
+        },
+        // Only show "Unduh File" if file exists
+        ...(row.file ? [{
+            label: 'Unduh File',
+            icon: fileLoading ? Loader2 : Download,
+            onClick: () => handleViewFile(row),
+            className: fileLoading ? 'text-gray-400' : 'text-gray-700',
+            description: fileLoading ? 'Mengunduh...' : 'Unduh dokumen',
+            bg: 'bg-purple-100',
+            hoverBg: 'group-hover:bg-purple-200',
+            text: 'text-purple-600',
+            disabled: fileLoading,
+            isLoading: fileLoading,
+        }] : []),
+        {
+            label: 'Unduh Laporan',
+            icon: downloadLoading ? Loader2 : Download,
+            onClick: () => handleDownloadReport(row),
+            className: downloadLoading ? 'text-gray-400' : 'text-gray-700',
+            description: downloadLoading ? 'Mengunduh...' : 'Download PDF',
+            bg: 'bg-green-100',
+            hoverBg: 'group-hover:bg-green-200',
+            text: 'text-green-600',
+            disabled: downloadLoading,
+            isLoading: downloadLoading,
         },
         {
             divider: true

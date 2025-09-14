@@ -8,6 +8,8 @@ import {
   BarChart3, Receipt
 } from 'lucide-react';
 import { useAuthSecure } from '../hooks/useAuthSecure';
+import { useDynamicMenu } from '../hooks/useDynamicMenu';
+import { DynamicMenuList } from './DynamicMenuItem';
 import SecurityNotification from './security/SecurityNotification';
 
 
@@ -24,6 +26,14 @@ const LayoutSecure = ({ children, title }) => {
     logout
   } = useAuthSecure();
 
+  const {
+    menuTree,
+    loading: menuLoading,
+    error: menuError,
+    refreshMenu,
+    isEmpty: isMenuEmpty
+  } = useDynamicMenu();
+
 
   // Check for mobile screen size
   useEffect(() => {
@@ -37,108 +47,15 @@ const LayoutSecure = ({ children, title }) => {
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
 
-  // Log page access
+  // Log page access (development only)
   useEffect(() => {
-    console.log('Page access:', location.pathname);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Page access:', location.pathname);
+    }
   }, [location.pathname, title, user?.id]);
 
-  const menuItems = [
-    {
-      name: 'Dashboard',
-      icon: Home,
-      path: '/dashboard',
-      active: location.pathname === '/dashboard'
-    },
-    {
-      name: 'Head Office',
-      icon: Building2,
-      children: [
-        { name: 'Pembelian Doka & Sapi', path: '/ho/pembelian', icon: ShoppingCart },
-        { name: 'Pembelian Feedmil', path: '/ho/pembelian-feedmil', icon: Package },
-        { name: 'Pembelian OVK', path: '/ho/pembelian-ovk', icon: Syringe },
-        { name: 'Penjualan', path: '/ho/penjualan', icon: TrendingUp }
-      ]
-    },
-    // {
-    //   name: 'Operasional',
-    //   icon: Package,
-    //   children: [
-    //     { name: 'Penjualan', path: '/sales' },
-    //     { name: 'Pembelian', path: '/purchases' },
-    //     { name: 'Surat Jalan', path: '/delivery-orders' }
-    //   ]
-    // },
-    // {
-    //   name: 'Inventaris',
-    //   icon: Package,
-    //   children: [
-    //     { name: 'Stok Ternak', path: '/inventory/livestock' },
-    //     { name: 'Stok Daging', path: '/inventory/meat' }
-    //   ]
-    // },
-    {
-      name: 'Data Master',
-      icon: FileText,
-      children: [
-        { name: 'Kandang & Office', path: '/master-data/kandang-office' },
-        { name: 'Jenis Hewan', path: '/master-data/jenis-hewan' },
-        { name: 'Klasifikasi Hewan', path: '/master-data/klasifikasi-hewan' },
-        { name: 'Klasifikasi OVK', path: '/master-data/klasifikasi-ovk' },
-        { name: 'Klasifikasi Feedmil', path: '/master-data/klasifikasi-feedmil' },
-        { name: 'Supplier', path: '/master-data/supplier' },
-        { name: 'Pelanggan', path: '/master-data/pelanggan' },
-        { name: 'Outlet', path: '/master-data/outlet' },
-        { name: 'Produk Gudang', path: '/master-data/produk-gds' },
-        { name: 'Eartag', path: '/master-data/eartag' }
-      ]
-    },
-    // {
-    //   name: 'SDM',
-    //   icon: Users,
-    //   children: [
-    //     { name: 'Absensi', path: '/hr/attendance' },
-    //     { name: 'Pengajuan Cuti', path: '/hr/leave-requests' }
-    //   ]
-    // },
-    // {
-    //   name: 'Boning',
-    //   icon: Beef,
-    //   badge: '6',
-    //   children: [
-    //     { name: 'Keuangan', path: '/boning/keuangan', icon: DollarSign },
-    //     { name: 'Pembelian', path: '/boning/pembelian', icon: ShoppingCart },
-    //     { name: 'Penjualan', path: '/boning/penjualan', icon: TrendingUp },
-    //     { name: 'Stok Daging', path: '/boning/stok-daging', icon: Package },
-    //     { name: 'Return', path: '/boning/return', icon: RotateCcw },
-    //     { name: 'Surat Jalan', path: '/boning/surat-jalan', icon: Truck }
-    //   ]
-    // },
-    // {
-    //   name: 'System',
-    //   icon: Shield,
-    //   children: [
-    //     { name: 'Role', path: '/system/role', icon: UserCheck },
-    //     { name: 'Permission', path: '/system/permission', icon: Key },
-    //     { name: 'Users', path: '/system/users', icon: Users },
-    //     { name: 'Parameters', path: '/system/parameters', icon: Settings }
-    //   ]
-    // },
-    {
-      name: 'Laporan',
-      icon: BarChart3,
-      children: [
-        { name: 'Laporan per Nota Supplier', path: '/reports/nota-supplier', icon: FileText },
-        { name: 'Laporan Semua Supplier', path: '/reports/semua-supplier', icon: Users },
-        { name: 'Laporan Pajak', path: '/reports/pajak', icon: Receipt }
-      ]
-    },
-    {
-      name: 'Pengaturan',
-      icon: Settings,
-      path: '/settings',
-      active: location.pathname === '/settings'
-    }
-  ];
+  // Use dynamic menu only (no fallback)
+  const currentMenuItems = menuTree;
 
   const toggleMenu = (menuName) => {
     setExpandedMenus(prev => {
@@ -159,7 +76,6 @@ const LayoutSecure = ({ children, title }) => {
 
   const handleLogout = async () => {
     if (window.confirm('Apakah Anda yakin ingin keluar?')) {
-      console.log('Logout initiated');
       await logout();
     }
   };
@@ -176,15 +92,17 @@ const LayoutSecure = ({ children, title }) => {
   // Determine if sidebar should be shown as expanded (either manually opened or hovered)
   const shouldShowExpanded = sidebarOpen || isHovering;
 
-  const isMenuActive = (item) => {
-    if (item.path) {
-      return location.pathname === item.path;
+  // Show menu error notification
+  useEffect(() => {
+    if (menuError && !notification) {
+      setNotification({
+        message: 'Gagal memuat menu dari server.',
+        type: 'error'
+      });
+      // Auto hide notification after 5 seconds
+      setTimeout(() => setNotification(null), 5000);
     }
-    if (item.children) {
-      return item.children.some(child => location.pathname === child.path);
-    }
-    return false;
-  };
+  }, [menuError, notification]);
 
 
   return (
@@ -226,91 +144,33 @@ const LayoutSecure = ({ children, title }) => {
                marginTop: '73px', // Header height
                marginBottom: '140px' // Profile section height
              }}>
-          <div className="py-4">
-            <ul className="space-y-1 px-2">
-              {menuItems.map((item, index) => (
-                <li key={index}>
-                  {item.children ? (
-                    // Menu dengan submenu
-                    <div>
-                      <button
-                        onClick={() => toggleMenu(item.name)}
-                        className={`w-full flex items-center justify-between px-3 py-2 rounded-lg sidebar-item-hover ${
-                          isMenuActive(item)
-                            ? 'bg-emerald-900 text-white'
-                            : 'text-emerald-200 hover:bg-emerald-700/50'
-                        }`}
-                      >
-                        <div className="flex items-center">
-                          <item.icon className="w-5 h-5" />
-                          {shouldShowExpanded && (
-                            <div className="flex items-center ml-3">
-                              <span className="text-sm font-medium sidebar-content-fade sidebar-text-slide">
-                                {item.name}
-                              </span>
-                              {item.badge && (
-                                <span className="ml-2 bg-emerald-100 text-emerald-600 text-xs px-2 py-1 rounded-full font-medium">
-                                  {item.badge}
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                        {shouldShowExpanded && (
-                          expandedMenus[item.name] ?
-                          <ChevronDown className="w-4 h-4 text-emerald-200" /> :
-                          <ChevronRight className="w-4 h-4 text-emerald-200" />
-                        )}
-                      </button>
-                      
-                      {/* Submenu */}
-                      {shouldShowExpanded && expandedMenus[item.name] && (
-                        <ul className="ml-6 mt-1 space-y-1 submenu-slide-down">
-                          {item.children.map((child, childIndex) => (
-                            <li key={childIndex}>
-                              <Link
-                                to={child.path}
-                                className={`flex items-center px-3 py-2 rounded-lg text-sm transition-colors ${
-                                  location.pathname === child.path
-                                    ? 'bg-emerald-900 text-white font-medium'
-                                    : 'text-emerald-300 hover:bg-emerald-700/30'
-                                }`}
-                                onClick={() => {
-                                  console.log('Navigation:', location.pathname, '->', child.path);
-                                }}
-                              >
-                                {child.icon && <child.icon className="w-4 h-4 mr-2" />}
-                                {child.name}
-                              </Link>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                  ) : (
-                    // Menu langsung
-                    <Link
-                      to={item.path}
-                      className={`flex items-center px-3 py-2 rounded-lg sidebar-item-hover ${
-                        item.active
-                          ? 'bg-emerald-900 text-white'
-                          : 'text-emerald-200 hover:bg-emerald-700/50'
-                      }`}
-                      onClick={() => {
-                        console.log('Navigation:', location.pathname, '->', item.path);
-                      }}
-                    >
-                      <item.icon className="w-5 h-5" />
-                      {shouldShowExpanded && (
-                        <span className="ml-3 text-sm font-medium sidebar-content-fade sidebar-text-slide">
-                          {item.name}
-                        </span>
-                      )}
-                    </Link>
-                  )}
-                </li>
-              ))}
-            </ul>
+          <div className="py-6">
+            {menuLoading && shouldShowExpanded ? (
+              <div className="px-4 py-8 text-center">
+                <div className="text-emerald-300 text-sm animate-pulse">
+                  Memuat menu...
+                </div>
+              </div>
+            ) : menuError && shouldShowExpanded ? (
+              <div className="px-4 py-8 text-center">
+                <div className="text-red-300 text-sm mb-2">
+                  Error: {menuError}
+                </div>
+                <button
+                  onClick={refreshMenu}
+                  className="text-xs text-emerald-300 hover:text-emerald-200 underline"
+                >
+                  Coba muat ulang
+                </button>
+              </div>
+            ) : (
+              <DynamicMenuList
+                menuItems={currentMenuItems}
+                shouldShowExpanded={shouldShowExpanded}
+                expandedMenus={expandedMenus}
+                onToggleMenu={toggleMenu}
+              />
+            )}
           </div>
         </nav>
 
@@ -525,6 +385,39 @@ const LayoutSecure = ({ children, title }) => {
 
         .submenu-slide-down {
           animation: slideDown 0.3s ease-in-out;
+        }
+
+        /* Enhanced menu item animations */
+        .menu-item-glow {
+          box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+        }
+
+        .menu-item-hover-glow:hover {
+          box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+        }
+
+        /* Hierarchy line animation */
+        .hierarchy-line {
+          position: relative;
+        }
+
+        .hierarchy-line::before {
+          content: '';
+          position: absolute;
+          left: -8px;
+          top: 0;
+          bottom: 0;
+          width: 2px;
+          background: linear-gradient(to bottom, 
+            rgba(16, 185, 129, 0.3) 0%, 
+            rgba(16, 185, 129, 0.1) 100%);
+          transition: all 0.3s ease;
+        }
+
+        .hierarchy-line:hover::before {
+          background: linear-gradient(to bottom, 
+            rgba(16, 185, 129, 0.6) 0%, 
+            rgba(16, 185, 129, 0.3) 100%);
         }
 
         .sidebar-mobile-overlay {

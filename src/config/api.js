@@ -43,7 +43,8 @@ export const API_ENDPOINTS = {
     USERS: '/api/system/pegawai',
     ROLES: '/api/system/roles', 
     PERMISSIONS: '/api/system/permissions',
-    PARAMETERS: '/api/system/parameter'
+    PARAMETERS: '/api/system/parameter',
+    MENU: '/api/system/menu'
   },
 
   // Master Data

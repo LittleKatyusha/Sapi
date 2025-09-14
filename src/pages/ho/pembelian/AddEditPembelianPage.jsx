@@ -1662,7 +1662,7 @@ const AddEditPembelianPage = () => {
                             <div>
                                 <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-1 sm:mb-2 flex items-center gap-2">
                                     <Package size={28} />
-                                    {isEdit ? 'Edit Pembelian' : 'Tambah Pembelian'}
+                                    {isEdit ? 'Edit Pembelian Doka & Sapi' : 'Tambah Pembelian Doka & Sapi'}
                                 </h1>
                                 <p className="text-gray-600 text-sm sm:text-base">
                                     {isEdit ? 'Ubah data pembelian dan detail ternak' : 'Buat pembelian baru dengan detail ternak'}

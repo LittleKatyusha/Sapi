@@ -299,7 +299,7 @@ const PembelianFeedmilPage = () => {
             wrap: true,
             cell: row => (
                 <span className="inline-flex px-3 py-1.5 text-sm font-semibold rounded-lg bg-indigo-100 text-indigo-800">
-                    {row.jumlah || 0} {row.satuan || 'sak'}
+                    {row.jumlah || 0} {row.satuan || 'Item'}
                 </span>
             )
         },
