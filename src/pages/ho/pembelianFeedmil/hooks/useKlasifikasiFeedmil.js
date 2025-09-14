@@ -21,13 +21,14 @@ const useKlasifikasiFeedmil = () => {
                 
                 console.log('📦 Fetching klasifikasi feedmil from dedicated endpoint:', klasifikasiData.length, 'items');
                 
-                // Map the data to feedmil format with proper ID field
+                // Map the data to feedmil format - use integer id as unique identifier
                 const mappedData = klasifikasiData.map((item, index) => ({
-                    id: item.id || item.pid, // Use id or pid as fallback
-                    pubid: item.pubid || `temp_pubid_${index}`,
-                    name: item.name || item.nama,
-                    description: item.description || item.name || item.nama,
-                    pid: item.pid || `temp_pid_${index}`
+                    id: item.id, // Use integer id as unique identifier for backend validation
+                    pubid: item.pubid,
+                    name: item.name,
+                    description: item.description,
+                    pid: item.pid,
+                    originalData: item
                 }));
                 
                 setKlasifikasiFeedmil(mappedData);
@@ -40,35 +41,6 @@ const useKlasifikasiFeedmil = () => {
             console.error('❌ Error fetching klasifikasi feedmil:', err);
             setError(err.message);
             setKlasifikasiFeedmil([]);
-            
-            // Fallback to mock data if API fails
-            console.log('🔄 Using fallback mock data for klasifikasi feedmil');
-            setKlasifikasiFeedmil([
-                {
-                    id: 1,
-                    pid: 'encrypted_1',
-                    name: 'Pakan Starter',
-                    description: 'Pakan untuk anak ayam umur 0-3 minggu'
-                },
-                {
-                    id: 2,
-                    pid: 'encrypted_2',
-                    name: 'Pakan Grower',
-                    description: 'Pakan untuk ayam umur 4-6 minggu'
-                },
-                {
-                    id: 3,
-                    pid: 'encrypted_3',
-                    name: 'Pakan Finisher',
-                    description: 'Pakan untuk ayam umur 7+ minggu'
-                },
-                {
-                    id: 4,
-                    pid: 'encrypted_4',
-                    name: 'Pakan Layer',
-                    description: 'Pakan untuk ayam petelur'
-                }
-            ]);
         } finally {
             setLoading(false);
         }
@@ -80,28 +52,32 @@ const useKlasifikasiFeedmil = () => {
 
     // Transform data to select options
     const klasifikasiFeedmilOptions = useMemo(() => {
-        const options = klasifikasiFeedmil.map(item => {
-            // ParameterSelectController now provides proper integer ID field
-            let rawId = item.id;
+        console.log('🔄 Processing klasifikasi feedmil data:', klasifikasiFeedmil);
+        
+        const options = klasifikasiFeedmil.map((item, index) => {
+            // Use integer ID as value since backend validation expects integer
+            const value = item.id;
             
-            // Validate that we have a proper integer ID
-            if (!rawId || typeof rawId !== 'number') {
-                // Use index as fallback (should not happen with ParameterSelectController)
-                rawId = klasifikasiFeedmil.indexOf(item) + 1;
+            // Validate that we have a valid id
+            if (!value || typeof value !== 'number') {
+                console.warn('⚠️ Skipping klasifikasi feedmil item without valid id:', item);
+                return null;
             }
             
             return {
-                value: rawId, // Use raw integer ID (required by backend validation)
-                label: item.name || item.description || `Item ${rawId}`,
-                id: rawId,
+                value: value, // Use integer ID as value for backend validation
+                label: item.name || item.description || `Item ${index + 1}`,
+                id: value,
                 name: item.name,
                 description: item.description,
-                pid: item.pid, // Keep encrypted pid for reference
+                pid: item.pid,
+                pubid: item.pubid,
                 rawData: item
             };
-        });
+        }).filter(Boolean); // Remove null items
         
-
+        console.log('📋 Klasifikasi feedmil options prepared:', options.length, 'valid options out of', klasifikasiFeedmil.length, 'total items');
+        console.log('📋 Options:', options);
         
         return options;
     }, [klasifikasiFeedmil]);

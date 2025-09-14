@@ -2,11 +2,8 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Save, Plus, Trash2, Building2, User, Calendar, Truck, Hash, Package, X, Settings, AlertCircle, Weight, DollarSign, Upload, FileText } from 'lucide-react';
 import usePembelianFeedmil from './hooks/usePembelianFeedmil';
-import useSuppliersAPI from '../pembelian/hooks/useSuppliersAPI';
-import useKlasifikasiFeedmil from './hooks/useKlasifikasiFeedmil';
+import useParameterSelect from './hooks/useParameterSelect';
 import useJenisPembelianFeedmil from './hooks/useJenisPembelianFeedmil';
-import useOfficesAPI from '../pembelian/hooks/useOfficesAPI';
-import useFarmAPI from './hooks/useFarmAPI';
 import useBanksAPI from './hooks/useBanksAPI';
 import SearchableSelect from '../../../components/shared/SearchableSelect';
 import HttpClient from '../../../services/httpClient';
@@ -35,21 +32,19 @@ const AddEditPembelianFeedmilPage = () => {
         deleteDetail
     } = usePembelianFeedmil();
 
-    // Supplier API integration - filter for Feedmil suppliers only (kategori_supplier = 2)
+    // Parameter Select integration - centralized data from ParameterSelectController
     const {
-        suppliers,
+        parameterData,
         supplierOptions,
-        loading: suppliersLoading,
-        error: suppliersError,
-        fetchSuppliersWithFilter
-    } = useSuppliersAPI(null, 2); // kategori_supplier = 2 for Feedmil
-
-    // Klasifikasi Feedmil API integration
-    const {
+        officeOptions,
         klasifikasiFeedmilOptions,
-        loading: klasifikasiLoading,
-        error: klasifikasiError
-    } = useKlasifikasiFeedmil();
+        farmOptions,
+        loading: parameterLoading,
+        error: parameterError,
+        supplierLoading,
+        isSupplierDataFetched,
+        fetchSupplierData
+    } = useParameterSelect(isEdit);
 
     // Jenis Pembelian Feedmil API integration
     const {
@@ -58,20 +53,6 @@ const AddEditPembelianFeedmilPage = () => {
         error: jenisPembelianError,
         getLabelByValue
     } = useJenisPembelianFeedmil();
-
-    // Office API integration
-    const {
-        officeOptions,
-        loading: officeLoading,
-        error: officeError
-    } = useOfficesAPI();
-
-    // Farm API integration
-    const {
-        farmOptions,
-        loading: farmLoading,
-        error: farmError
-    } = useFarmAPI();
 
     // Bank API integration for Syarat Pembelian
     const {
@@ -119,7 +100,7 @@ const AddEditPembelianFeedmilPage = () => {
     // Default data untuk batch operations - aligned with backend validation
     const [defaultData, setDefaultData] = useState({
         item_name: '',
-        id_klasifikasi_feedmil: '', // Correct field name for feedmil classification
+        id_klasifikasi_feedmil: null, // Use null instead of empty string to avoid auto-selection
         berat: 0, // Start with 0 like harga total pattern
         harga: 0, // Also change to 0 for consistency
         persentase: 0 // Also change to 0 for consistency
@@ -215,12 +196,6 @@ const AddEditPembelianFeedmilPage = () => {
     // Use Feedmil suppliers only (kategori_supplier = 2)
     const supplierOptionsToShow = supplierOptions;
 
-    // Fetch Feedmil suppliers once when component mounts
-    useEffect(() => {
-        fetchSuppliersWithFilter(null, 2); // Fetch suppliers with kategori_supplier = 2 (Feedmil)
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []); // Intentionally empty - we only want to fetch once on mount
-
     // Note: Removed pembelian list fetching for edit mode since we now use /show endpoint directly
     // This eliminates the need to fetch all data and then filter by pubid
 
@@ -230,7 +205,7 @@ const AddEditPembelianFeedmilPage = () => {
     // Load data untuk edit mode - using /show endpoint for both header and detail data
     useEffect(() => {
         // Wait for all required options to load first (like OVK pattern)
-        if (isEdit && id && suppliers.length > 0 && officeOptions.length > 0 && farmOptions.length > 0 && jenisPembelianOptions.length > 0) {
+        if (isEdit && id && supplierOptions.length > 0 && officeOptions.length > 0 && farmOptions.length > 0 && jenisPembelianOptions.length > 0) {
             const loadEditData = async () => {
                 try {
                     const decodedId = decodeURIComponent(id);
@@ -264,26 +239,25 @@ const AddEditPembelianFeedmilPage = () => {
                         let supplierId = headerData.id_supplier || '';
                         if (!supplierId && headerData.nama_supplier) {
                             // Try exact match first
-                            let foundSupplier = suppliers.find(s => s.name === headerData.nama_supplier);
+                            let foundSupplier = supplierOptions.find(s => s.label === headerData.nama_supplier);
                             // If no exact match, try partial match (case insensitive)
                             if (!foundSupplier) {
-                                foundSupplier = suppliers.find(s => 
-                                    s.name.toLowerCase().includes(headerData.nama_supplier.toLowerCase()) ||
-                                    headerData.nama_supplier.toLowerCase().includes(s.name.toLowerCase())
+                                foundSupplier = supplierOptions.find(s => 
+                                    s.label.toLowerCase().includes(headerData.nama_supplier.toLowerCase()) ||
+                                    headerData.nama_supplier.toLowerCase().includes(s.label.toLowerCase())
                                 );
                             }
                             if (foundSupplier) {
-                                supplierId = foundSupplier.id;
+                                supplierId = foundSupplier.value;
                             }
                         }
 
                         // Find office ID - handle both id_office (direct) and nama_office (by name matching)
                         let officeId = headerData.id_office || '';
                         
-                        
-                        // If we have id_office directly, use it (convert to string to match form field format)
+                        // If we have id_office directly, use it (keep as integer to match form field format)
                         if (officeId) {
-                            officeId = String(officeId);
+                            officeId = parseInt(officeId);
                         } else if (headerData.nama_office) {
                             // Fallback: Try to find office by name if id_office is not available
                             let foundOffice = officeOptions.find(o => o.label === headerData.nama_office);
@@ -295,7 +269,7 @@ const AddEditPembelianFeedmilPage = () => {
                                 );
                             }
                             if (foundOffice) {
-                                officeId = foundOffice.value;
+                                officeId = parseInt(foundOffice.value);
                             }
                         }
                         
@@ -329,11 +303,11 @@ const AddEditPembelianFeedmilPage = () => {
                         setHeaderData({
                             nota: safeGetString(headerData.nota),
                             nota_ho: safeGetString(headerData.nota_ho),
-                            farm: safeGetString(headerData.farm) || safeGetString(headerData.id_farm),
+                            farm: headerData.id_farm ? parseInt(headerData.id_farm) : (headerData.farm ? parseInt(headerData.farm) : null),
                             syarat_pembelian: safeGetString(headerData.syarat_pembelian) || safeGetString(headerData.id_syarat_pembelian),
-                            idOffice: officeId || safeGetString(headerData.id_office),
-                            tipePembelian: tipePembelianId || safeGetString(headerData.tipe_pembelian),
-                            idSupplier: supplierId || safeGetString(headerData.id_supplier),
+                            idOffice: officeId || (headerData.id_office ? parseInt(headerData.id_office) : null),
+                            tipePembelian: tipePembelianId || (headerData.tipe_pembelian ? parseInt(headerData.tipe_pembelian) : null),
+                            idSupplier: supplierId || (headerData.id_supplier ? parseInt(headerData.id_supplier) : null),
                             tgl_masuk: safeGetString(headerData.tgl_masuk),
                             nama_supir: safeGetString(headerData.nama_supir),
                             plat_nomor: safeGetString(headerData.plat_nomor),
@@ -364,7 +338,14 @@ const AddEditPembelianFeedmilPage = () => {
                             pubidDetail: item.pubid_detail, // Raw pubid if available
                                 // Detail fields using safe helper functions
                                 item_name: safeGetString(item.item_name) || `Feedmil Item ${index + 1}`,
-                                id_klasifikasi_feedmil: safeGetNumber(item.id_klasifikasi_feedmil, 0),
+                                id_klasifikasi_feedmil: (() => {
+                                    // Backend sends integer ID, use it directly since frontend now uses integer IDs
+                                    const backendId = item.id_klasifikasi_feedmil;
+                                    if (!backendId) return null;
+                                    
+                                    // Use the integer ID directly since we changed frontend to use integer IDs
+                                    return parseInt(backendId);
+                                })(),
                                 berat: safeGetNumber(item.berat, 0),
                                 harga: safeGetNumber(item.harga, 0),
                             persentase: (() => {
@@ -390,7 +371,7 @@ const AddEditPembelianFeedmilPage = () => {
             
             loadEditData();
         }
-    }, [isEdit, id, suppliers, officeOptions, farmOptions, jenisPembelianOptions]);
+    }, [isEdit, id, supplierOptions, officeOptions, farmOptions, jenisPembelianOptions]);
 
 
 
@@ -425,7 +406,7 @@ const AddEditPembelianFeedmilPage = () => {
         const newItem = {
             id: Date.now(),
             item_name: defaultData.item_name || '',
-            id_klasifikasi_feedmil: defaultData.id_klasifikasi_feedmil || '', // Fix: correct field name
+            id_klasifikasi_feedmil: defaultData.id_klasifikasi_feedmil || null, // Use null instead of empty string
             berat: defaultData.berat || 0,
             harga: defaultData.harga || '',
             persentase: defaultData.persentase || '', // Fix: correct spelling
@@ -451,7 +432,7 @@ const AddEditPembelianFeedmilPage = () => {
             newItems.push({
                 id: Date.now() + i,
                 item_name: defaultData.item_name || '',
-                id_klasifikasi_feedmil: defaultData.id_klasifikasi_feedmil || '', // Fix: correct field name
+                id_klasifikasi_feedmil: defaultData.id_klasifikasi_feedmil || null, // Use null instead of empty string
                 berat: defaultData.berat || 0,
                 harga: defaultData.harga || '',
                 persentase: defaultData.persentase || '', // Fix: correct spelling
@@ -903,7 +884,7 @@ const AddEditPembelianFeedmilPage = () => {
 
         try {
             // Get selected supplier details
-            const selectedSupplier = suppliers.find(s => s.id === headerData.idSupplier);
+            const selectedSupplier = supplierOptions.find(s => s.value === headerData.idSupplier);
             
             // Debug file state
             console.log('🔍 File Debug Info:');
@@ -919,8 +900,8 @@ const AddEditPembelianFeedmilPage = () => {
                 totalHPP: totals.totalHPP,
                 detailItems: detailItems,
                 tipe_pembelian: headerData.tipePembelian, // Backend expects tipe_pembelian as integer
-                supplier: selectedSupplier ? selectedSupplier.name : '',
-                nama_supplier: selectedSupplier ? selectedSupplier.name : '',
+                supplier: selectedSupplier ? selectedSupplier.label : '',
+                nama_supplier: selectedSupplier ? selectedSupplier.label : '',
                 id_supplier: headerData.idSupplier,
                 jenis_supplier: selectedSupplier ? selectedSupplier.jenis_supplier : '',
                 // Transform nullable fields
@@ -1092,15 +1073,15 @@ const AddEditPembelianFeedmilPage = () => {
                                 value={headerData.idOffice}
                                 onChange={(value) => setHeaderData(prev => ({ ...prev, idOffice: value }))}
                                 options={officeOptions}
-                                placeholder={officeLoading ? 'Loading offices...' : officeError ? 'Error loading offices' : 'Pilih Office'}
-                                isLoading={officeLoading}
-                                isDisabled={officeLoading || officeError}
+                                placeholder={parameterLoading ? 'Loading offices...' : parameterError ? 'Error loading offices' : 'Pilih Office'}
+                                isLoading={parameterLoading}
+                                isDisabled={parameterLoading || parameterError}
                                 required
                                 className="w-full"
                             />
-                            {officeError && (
+                            {parameterError && (
                                 <p className="text-xs text-red-500 mt-1">
-                                    ⚠️ Error loading offices: {officeError}
+                                    ⚠️ Error loading offices: {parameterError}
                                 </p>
                             )}
                         </div>
@@ -1144,18 +1125,18 @@ const AddEditPembelianFeedmilPage = () => {
                                 value={headerData.idSupplier}
                                 onChange={(value) => handleHeaderChange('idSupplier', value)}
                                 options={supplierOptionsToShow}
-                                placeholder={suppliersLoading ? "Memuat supplier..." : "Pilih Supplier"}
+                                placeholder={supplierLoading ? "Memuat supplier..." : "Pilih Supplier"}
                                 className="w-full"
-                                disabled={suppliersLoading}
+                                disabled={supplierLoading}
                             />
-                            {suppliersLoading && (
+                            {supplierLoading && (
                                 <p className="text-xs text-blue-600 mt-1">
                                     🔄 Memuat data supplier...
                                 </p>
                             )}
-                            {suppliersError && (
+                            {parameterError && (
                                 <p className="text-xs text-red-600 mt-1">
-                                    ❌ Error: {suppliersError}
+                                    ❌ Error: {parameterError}
                                 </p>
                             )}
                         </div>
@@ -1310,15 +1291,15 @@ const AddEditPembelianFeedmilPage = () => {
                                 options={farmOptions}
                                 value={headerData.farm}
                                 onChange={(value) => handleHeaderChange('farm', value)}
-                                placeholder={farmLoading ? 'Loading farms...' : farmError ? 'Error loading farms' : 'Pilih farm'}
-                                isLoading={farmLoading}
-                                isDisabled={farmLoading || farmError}
+                                placeholder={parameterLoading ? 'Loading farms...' : parameterError ? 'Error loading farms' : 'Pilih farm'}
+                                isLoading={parameterLoading}
+                                isDisabled={parameterLoading || parameterError}
                                 required={true}
                                 className="w-full"
                             />
-                            {officeError && (
+                            {parameterError && (
                                 <p className="text-xs text-red-500 mt-1">
-                                    ⚠️ Error loading offices: {officeError}
+                                    ⚠️ Error loading offices: {parameterError}
                                 </p>
                             )}
                         </div>
@@ -1464,13 +1445,13 @@ const AddEditPembelianFeedmilPage = () => {
                                 value={defaultData.id_klasifikasi_feedmil}
                                 onChange={(value) => handleDefaultDataChange('id_klasifikasi_feedmil', value)}
                                 options={klasifikasiFeedmilOptions}
-                                placeholder={klasifikasiLoading ? "Memuat..." : "Pilih Klasifikasi"}
+                                placeholder={parameterLoading ? "Memuat..." : "Pilih Klasifikasi"}
                                 className="w-full"
-                                disabled={klasifikasiLoading}
+                                disabled={parameterLoading}
                             />
-                            {klasifikasiError && (
+                            {parameterError && (
                                 <p className="text-xs text-red-600 mt-1">
-                                    ❌ Error: {klasifikasiError}
+                                    ❌ Error: {parameterError}
                                 </p>
                             )}
                         </div>
@@ -1630,9 +1611,9 @@ const AddEditPembelianFeedmilPage = () => {
                                                         handleDetailChange(item.id, 'id_klasifikasi_feedmil', value);
                                                     }}
                                                         options={klasifikasiFeedmilOptions}
-                                                        placeholder={klasifikasiLoading ? "Memuat..." : "Pilih Klasifikasi"}
+                                                        placeholder={parameterLoading ? "Memuat..." : "Pilih Klasifikasi"}
                                                         className="w-full text-xs sm:text-sm"
-                                                        disabled={klasifikasiLoading}
+                                                        disabled={parameterLoading}
                                                     />
 
                                                 </td>

@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import HttpClient from '../../../../services/httpClient';
 import { API_ENDPOINTS } from '../../../../config/api';
+import useKlasifikasiFeedmil from './useKlasifikasiFeedmil';
 
 // HttpClient already handles JSON parsing and error handling internally
 
@@ -8,6 +9,9 @@ const usePembelianFeedmil = () => {
     const [pembelian, setPembelian] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    
+    // Get klasifikasi feedmil options
+    const { klasifikasiFeedmilOptions } = useKlasifikasiFeedmil();
     const [searchTerm, setSearchTerm] = useState('');
     const [filterJenisPembelian, setFilterJenisPembelian] = useState('all');
     const [isSearching, setIsSearching] = useState(false);
@@ -39,12 +43,20 @@ const usePembelianFeedmil = () => {
     // Base API endpoint for feedmil pembelian
     const FEEDMIL_API_BASE = API_ENDPOINTS.HO.FEEDMIL.PEMBELIAN;
     
-    // Fetch klasifikasi feedmil data
+    // Fetch klasifikasi feedmil data from ParameterSelectController
     const fetchKlasifikasiFeedmil = useCallback(async () => {
         try {
-            const data = await HttpClient.get(API_ENDPOINTS.MASTER.KLASIFIKASI_FEEDMIL + '/data');
-            if (data && data.data) {
-                setKlasifikasiFeedmil(data.data);
+            const data = await HttpClient.get(API_ENDPOINTS.MASTER.PARAMETER + '/data');
+            if (data && data.data && data.data.length > 0) {
+                // Get klasifikasifeedmil from ParameterSelectController
+                const klasifikasifeedmil = data.data[0].klasifikasifeedmil || [];
+                // Map the data to consistent format for getKlasifikasiName function
+                const mappedData = klasifikasifeedmil.map((item) => ({
+                    id: item.id, // Use integer id as unique identifier
+                    name: item.name,
+                    originalData: item
+                }));
+                setKlasifikasiFeedmil(mappedData);
             }
         } catch (err) {
             console.error('Error fetching klasifikasi feedmil:', err);
@@ -62,16 +74,12 @@ const usePembelianFeedmil = () => {
             return null;
         }
         
-        // Try different possible field names and types
+        // Convert to integer for comparison since we now use integer IDs
         const numId = parseInt(id);
-        const strId = String(id);
         
         let klasifikasi = klasifikasiFeedmil.find(k => {
-            // Try multiple matching strategies
-            return (k.id === numId) || 
-                   (k.id === strId) || 
-                   (parseInt(k.id) === numId) ||
-                   (String(k.id) === strId);
+            // Match by integer ID
+            return k.id === numId;
         });
         
         console.log('Found klasifikasi:', klasifikasi);
@@ -224,9 +232,12 @@ const usePembelianFeedmil = () => {
                     // Only append fields that match backend DETAIL_VALIDATION_RULES with proper type conversion
                     formData.append(`details[${index}][item_name]`, item.item_name || '');
                     
-                    // Convert id_klasifikasi_feedmil to integer (backend expects integer or null)
-                    const klasifikasiId = item.id_klasifikasi_feedmil ? parseInt(item.id_klasifikasi_feedmil) : null;
-                    formData.append(`details[${index}][id_klasifikasi_feedmil]`, klasifikasiId || '');
+                    // Handle id_klasifikasi_feedmil - send integer ID to backend
+                    const klasifikasiValue = item.id_klasifikasi_feedmil;
+                    if (klasifikasiValue && (typeof klasifikasiValue === 'number' || !isNaN(parseInt(klasifikasiValue)))) {
+                        // Send integer ID directly to backend for validation
+                        formData.append(`details[${index}][id_klasifikasi_feedmil]`, parseInt(klasifikasiValue));
+                    }
                     
                     // Ensure numeric fields are properly formatted according to backend validation
                     formData.append(`details[${index}][harga]`, parseFloat(item.harga) || 0);
@@ -519,10 +530,9 @@ const usePembelianFeedmil = () => {
                 item_name: String(detailData.item_name || ''),
                 id_klasifikasi_feedmil: (() => {
                     const value = detailData.id_klasifikasi_feedmil;
-                    // Handle both string and integer values
+                    // Send integer ID to backend for validation
                     if (value === null || value === undefined || value === '') return null;
-                    const parsed = parseInt(value);
-                    return isNaN(parsed) ? null : parsed;
+                    return parseInt(value); // Convert to integer for backend validation
                 })(),
                 harga: parseFloat(detailData.harga || 0),
                  persentase: (() => {
@@ -658,6 +668,11 @@ const usePembelianFeedmil = () => {
         fetchPembelian(1, serverPagination.perPage, '', filterJenisPembelian, false);
     }, [fetchPembelian, serverPagination.perPage, filterJenisPembelian]);
     
+    // Fetch klasifikasi feedmil data on mount
+    useEffect(() => {
+        fetchKlasifikasiFeedmil();
+    }, [fetchKlasifikasiFeedmil]);
+
     // Cleanup timeout on unmount
     useEffect(() => {
         return () => {

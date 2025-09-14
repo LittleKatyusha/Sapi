@@ -2,11 +2,8 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Save, Plus, Trash2, Building2, User, Calendar, Truck, Hash, Package, X, Settings, AlertCircle, Weight, DollarSign, Upload, FileText } from 'lucide-react';
 import usePembelianOVK from './hooks/usePembelianOVK';
-import useSuppliersAPI from '../pembelian/hooks/useSuppliersAPI';
+import useParameterSelect from './hooks/useParameterSelect';
 import useJenisPembelianOVK from './hooks/useJenisPembelianOVK';
-import useKlasifikasiOVK from './hooks/useKlasifikasiOVK';
-import useOfficesAPI from '../pembelian/hooks/useOfficesAPI';
-import useFarmAPI from './hooks/useFarmAPI';
 import useBanksAPI from '../pembelianFeedmil/hooks/useBanksAPI';
 import SearchableSelect from '../../../components/shared/SearchableSelect';
 import HttpClient from '../../../services/httpClient';
@@ -30,14 +27,19 @@ const AddEditPembelianOVKPage = () => {
         error
     } = usePembelianOVK();
 
-    // Supplier API integration - filter for OVK suppliers only (kategori_supplier = 3)
+    // Parameter Select integration - centralized data from ParameterSelectController
     const {
-        suppliers,
+        parameterData,
         supplierOptions,
-        loading: suppliersLoading,
-        error: suppliersError,
-        fetchSuppliersWithFilter
-    } = useSuppliersAPI(null, 3); // kategori_supplier = 3 for OVK
+        officeOptions,
+        klasifikasiOVKOptions,
+        farmOptions,
+        loading: parameterLoading,
+        error: parameterError,
+        supplierLoading,
+        isSupplierDataFetched,
+        fetchSupplierData
+    } = useParameterSelect(isEdit);
 
     // Jenis Pembelian OVK API integration
     const {
@@ -45,28 +47,6 @@ const AddEditPembelianOVKPage = () => {
         loading: jenisPembelianLoading,
         error: jenisPembelianError
     } = useJenisPembelianOVK();
-
-    // Klasifikasi OVK API integration
-    const {
-        klasifikasiOVK,
-        klasifikasiOptions,
-        loading: klasifikasiOVKLoading,
-        error: klasifikasiOVKError
-    } = useKlasifikasiOVK();
-
-    // Office API integration
-    const {
-        officeOptions,
-        loading: officeLoading,
-        error: officeError
-    } = useOfficesAPI();
-
-    // Farm API integration
-    const {
-        farmOptions,
-        loading: farmLoading,
-        error: farmError
-    } = useFarmAPI();
 
     // Bank API integration for Syarat Pembelian
     const {
@@ -122,12 +102,6 @@ const AddEditPembelianOVKPage = () => {
 
     // Use OVK suppliers only (kategori_supplier = 3)
     const supplierOptionsToShow = supplierOptions;
-
-    // Fetch OVK suppliers once when component mounts
-    useEffect(() => {
-        fetchSuppliersWithFilter(null, 3); // Fetch suppliers with kategori_supplier = 3 (OVK)
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []); // Intentionally empty - we only want to fetch once on mount
 
 
 
@@ -218,7 +192,7 @@ const AddEditPembelianOVKPage = () => {
 
     // Load data untuk edit mode - using /show endpoint for both header and detail data
     useEffect(() => {
-        if (isEdit && id && suppliers.length > 0 && officeOptions.length > 0 && farmOptions.length > 0 && jenisPembelianOptions.length > 0) { // Wait for all options to load first
+        if (isEdit && id && supplierOptions.length > 0 && officeOptions.length > 0 && farmOptions.length > 0 && jenisPembelianOptions.length > 0) { // Wait for all options to load first
             const loadEditData = async () => {
                 try {
                     const decodedId = decodeURIComponent(id);
@@ -265,25 +239,25 @@ const AddEditPembelianOVKPage = () => {
                         let supplierId = headerData.id_supplier || '';
                         if (!supplierId && headerData.nama_supplier) {
                             // Try exact match first
-                            let foundSupplier = suppliers.find(s => s.name === headerData.nama_supplier);
+                            let foundSupplier = supplierOptions.find(s => s.label === headerData.nama_supplier);
                             // If no exact match, try partial match (case insensitive)
                             if (!foundSupplier) {
-                                foundSupplier = suppliers.find(s => 
-                                    s.name.toLowerCase().includes(headerData.nama_supplier.toLowerCase()) ||
-                                    headerData.nama_supplier.toLowerCase().includes(s.name.toLowerCase())
+                                foundSupplier = supplierOptions.find(s => 
+                                    s.label.toLowerCase().includes(headerData.nama_supplier.toLowerCase()) ||
+                                    headerData.nama_supplier.toLowerCase().includes(s.label.toLowerCase())
                                 );
                             }
                             if (foundSupplier) {
-                                supplierId = foundSupplier.id;
+                                supplierId = foundSupplier.value;
                             }
                         }
 
                         // Find office ID - handle both direct ID and name matching (like Feedmil pattern)
                         let officeId = headerData.id_office || '';
                         
-                        // If we have id_office directly, use it (convert to string to match form field format)
+                        // If we have id_office directly, use it (keep as integer to match form field format)
                         if (officeId) {
-                            officeId = String(officeId);
+                            officeId = parseInt(officeId);
                         } else if (headerData.nama_office) {
                             // Fallback: Try to find office by name if id_office is not available
                             let foundOffice = officeOptions.find(o => o.label === headerData.nama_office);
@@ -295,7 +269,7 @@ const AddEditPembelianOVKPage = () => {
                                 );
                             }
                             if (foundOffice) {
-                                officeId = foundOffice.value;
+                                officeId = parseInt(foundOffice.value);
                             }
                         }
                         
@@ -373,18 +347,18 @@ const AddEditPembelianOVKPage = () => {
                             availableOptions: {
                                 officeOptions: officeOptions.length,
                                 jenisPembelianOptions: jenisPembelianOptions.length,
-                                suppliers: suppliers.length
+                                suppliers: supplierOptions.length
                             }
                         });
                         
                         setHeaderData({
                             nota: safeGetString(headerData.nota),
                             nota_ho: safeGetString(headerData.nota_ho),
-                            farm: safeGetString(headerData.farm) || safeGetString(headerData.id_farm),
+                            farm: headerData.id_farm ? parseInt(headerData.id_farm) : (headerData.farm ? parseInt(headerData.farm) : null),
                             syarat_pembelian: safeGetString(headerData.syarat_pembelian) || safeGetString(headerData.id_syarat_pembelian),
-                            idOffice: officeId || safeGetString(headerData.id_office),
-                            tipePembelian: tipePembelianId || safeGetString(headerData.tipe_pembelian),
-                            idSupplier: supplierId || safeGetString(headerData.id_supplier),
+                            idOffice: officeId || (headerData.id_office ? parseInt(headerData.id_office) : null),
+                            tipePembelian: tipePembelianId || (headerData.tipe_pembelian ? parseInt(headerData.tipe_pembelian) : null),
+                            idSupplier: supplierId || (headerData.id_supplier ? parseInt(headerData.id_supplier) : null),
                             tgl_masuk: safeGetString(headerData.tgl_masuk),
                             nama_supir: safeGetString(headerData.nama_supir),
                             plat_nomor: safeGetString(headerData.plat_nomor),
@@ -393,7 +367,7 @@ const AddEditPembelianOVKPage = () => {
                             biaya_lain: safeGetNumber(headerData.biaya_lain),
                             biaya_total: safeGetNumber(headerData.biaya_total) ?? safeGetNumber(headerData.total_belanja),
                             berat_total: safeGetNumber(headerData.berat_total),
-                            farm: safeGetString(headerData.farm) || safeGetString(headerData.id_farm),
+                            farm: headerData.id_farm ? parseInt(headerData.id_farm) : (headerData.farm ? parseInt(headerData.farm) : null),
                             syarat_pembelian: safeGetString(headerData.syarat_pembelian) || safeGetString(headerData.id_syarat_pembelian),
                             nota_ho: safeGetString(headerData.nota_ho),
                             file: safeGetString(headerData.file), // Keep as string for display purposes
@@ -442,7 +416,7 @@ const AddEditPembelianOVKPage = () => {
             
             loadEditData();
         }
-    }, [isEdit, id, suppliers, officeOptions, farmOptions, jenisPembelianOptions]);
+    }, [isEdit, id, supplierOptions, officeOptions, farmOptions, jenisPembelianOptions]);
 
 
 
@@ -999,7 +973,7 @@ const AddEditPembelianOVKPage = () => {
 
         try {
             // Get selected supplier details
-            const selectedSupplier = suppliers.find(s => s.id === headerData.idSupplier);
+            const selectedSupplier = supplierOptions.find(s => s.value === headerData.idSupplier);
             
             // Map frontend fields to backend expected format
             const submissionData = {
@@ -1044,8 +1018,8 @@ const AddEditPembelianOVKPage = () => {
                 totalHPP: totals.totalHPP,
                 totalHargaItems: totals.totalHargaItems,
                 jenis_pembelian: 'OVK',
-                supplier: selectedSupplier ? selectedSupplier.name : '',
-                nama_supplier: selectedSupplier ? selectedSupplier.name : '',
+                supplier: selectedSupplier ? selectedSupplier.label : '',
+                nama_supplier: selectedSupplier ? selectedSupplier.label : '',
                 jenis_supplier: selectedSupplier ? selectedSupplier.jenis_supplier : ''
             };
 
@@ -1198,15 +1172,15 @@ const AddEditPembelianOVKPage = () => {
                                 value={headerData.idOffice}
                                 onChange={(value) => setHeaderData(prev => ({ ...prev, idOffice: value }))}
                                 options={officeOptions}
-                                placeholder={officeLoading ? 'Loading offices...' : officeError ? 'Error loading offices' : 'Pilih Office'}
-                                isLoading={officeLoading}
-                                isDisabled={officeLoading || officeError}
+                                placeholder={parameterLoading ? 'Loading offices...' : parameterError ? 'Error loading offices' : 'Pilih Office'}
+                                isLoading={parameterLoading}
+                                isDisabled={parameterLoading || parameterError}
                                 required
                                 className="w-full"
                             />
-                            {officeError && (
+                            {parameterError && (
                                 <p className="text-xs text-red-500 mt-1">
-                                    ⚠️ Error loading offices: {officeError}
+                                    ⚠️ Error loading offices: {parameterError}
                                 </p>
                             )}
                         </div>
@@ -1254,18 +1228,18 @@ const AddEditPembelianOVKPage = () => {
                                 value={headerData.idSupplier}
                                 onChange={(value) => handleHeaderChange('idSupplier', value)}
                                 options={supplierOptionsToShow}
-                                placeholder={suppliersLoading ? "Memuat supplier..." : "Pilih Supplier"}
+                                placeholder={supplierLoading ? "Memuat supplier..." : "Pilih Supplier"}
                                 className="w-full"
-                                disabled={suppliersLoading}
+                                disabled={supplierLoading}
                             />
-                            {suppliersLoading && (
+                            {supplierLoading && (
                                 <p className="text-xs text-blue-600 mt-1">
                                     🔄 Memuat data supplier...
                                 </p>
                             )}
-                            {suppliersError && (
+                            {parameterError && (
                                 <p className="text-xs text-red-600 mt-1">
-                                    ❌ Error: {suppliersError}
+                                    ❌ Error: {parameterError}
                                 </p>
                             )}
                         </div>
@@ -1418,15 +1392,15 @@ const AddEditPembelianOVKPage = () => {
                                 options={farmOptions}
                                 value={headerData.farm}
                                 onChange={(value) => handleHeaderChange('farm', value)}
-                                placeholder={farmLoading ? 'Loading farms...' : farmError ? 'Error loading farms' : 'Pilih farm'}
-                                isLoading={farmLoading}
-                                isDisabled={farmLoading || farmError}
+                                placeholder={parameterLoading ? 'Loading farms...' : parameterError ? 'Error loading farms' : 'Pilih farm'}
+                                isLoading={parameterLoading}
+                                isDisabled={parameterLoading || parameterError}
                                 required={true}
                                 className="w-full"
                             />
-                            {officeError && (
+                            {parameterError && (
                                 <p className="text-xs text-red-500 mt-1">
-                                    ⚠️ Error loading offices: {officeError}
+                                    ⚠️ Error loading offices: {parameterError}
                                 </p>
                             )}
                         </div>
@@ -1569,16 +1543,16 @@ const AddEditPembelianOVKPage = () => {
                             <SearchableSelect
                                 value={defaultData.id_klasifikasi_ovk}
                                 onChange={(value) => handleDefaultDataChange('id_klasifikasi_ovk', value)}
-                                options={klasifikasiOptions}
-                                placeholder={klasifikasiOVKLoading ? "Loading..." : "Pilih Klasifikasi OVK"}
+                                options={klasifikasiOVKOptions}
+                                placeholder={parameterLoading ? "Loading..." : "Pilih Klasifikasi OVK"}
                                 className="w-full"
-                                disabled={klasifikasiOVKLoading}
+                                disabled={parameterLoading}
                             />
-                            {klasifikasiOVKLoading && (
+                            {parameterLoading && (
                                 <p className="text-xs text-blue-600 mt-1">🔄 Memuat klasifikasi OVK...</p>
                             )}
-                            {klasifikasiOVKError && (
-                                <p className="text-xs text-red-600 mt-1">❌ Error: {klasifikasiOVKError}</p>
+                            {parameterError && (
+                                <p className="text-xs text-red-600 mt-1">❌ Error: {parameterError}</p>
                             )}
                         </div>
 
@@ -1733,10 +1707,10 @@ const AddEditPembelianOVKPage = () => {
                                                     <SearchableSelect
                                                         value={item.id_klasifikasi_ovk}
                                                         onChange={(value) => handleDetailChange(item.id, 'id_klasifikasi_ovk', value)}
-                                                        options={klasifikasiOptions}
-                                                        placeholder={klasifikasiOVKLoading ? "Loading..." : "Pilih Klasifikasi"}
+                                                        options={klasifikasiOVKOptions}
+                                                        placeholder={parameterLoading ? "Loading..." : "Pilih Klasifikasi"}
                                                         className="w-full text-xs sm:text-sm"
-                                                        disabled={klasifikasiOVKLoading}
+                                                        disabled={parameterLoading}
                                                     />
                                                 </td>
                                                 

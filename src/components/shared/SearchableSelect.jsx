@@ -62,6 +62,8 @@ const SearchableSelect = ({
     // Handle change to ensure we pass the value correctly
     const handleChange = (selectedOption) => {
         if (onChange) {
+            // Only pass the value if an option is actually selected
+            // Don't auto-select the first option when value is null/undefined
             onChange(selectedOption ? selectedOption.value : null);
         }
     };
