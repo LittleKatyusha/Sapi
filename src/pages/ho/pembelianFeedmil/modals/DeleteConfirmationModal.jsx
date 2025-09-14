@@ -68,7 +68,7 @@ const DeleteConfirmationModal = ({
                                 </div>
                                 <div className="flex justify-between py-1">
                                     <span className="text-gray-600">Jumlah:</span>
-                                    <span className="font-medium text-gray-900">{data.jumlah || 0} {data.satuan || 'sak'}</span>
+                                    <span className="font-medium text-gray-900">{data.jumlah || 0} {data.satuan || 'item'}</span>
                                 </div>
                                 <div className="flex justify-between py-1">
                                     <span className="text-gray-600">Berat Total:</span>

@@ -296,7 +296,7 @@ const PembelianFeedmilCard = ({
                             <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Jumlah</span>
                         </div>
                         <span className="inline-flex px-3 py-1 text-sm font-bold rounded-full bg-indigo-100 text-indigo-800">
-                            {data.jumlah || 0} {data.satuan || 'sak'}
+                            {data.jumlah || 0} {data.satuan || 'item'}
                         </span>
                     </div>
                 </div>

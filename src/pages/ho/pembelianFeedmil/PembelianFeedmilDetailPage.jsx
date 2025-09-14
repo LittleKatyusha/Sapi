@@ -136,7 +136,7 @@ const PembelianFeedmilDetailPage = () => {
                                 biaya_truk: parseFloat(headerData.biaya_truk) || 0,
                                 biaya_total: parseFloat(headerData.biaya_total) || 0,
                                 jumlah: parseInt(headerData.jumlah) || 0,
-                                satuan: headerData.satuan || 'sak',
+                                satuan: headerData.satuan || 'item',
                                 berat_total: parseFloat(headerData.berat_total) || 0,
                                 jenis_pembelian: headerData.jenis_pembelian || 'INTERNAL',
                                 file: headerData.file || null
@@ -161,7 +161,7 @@ const PembelianFeedmilDetailPage = () => {
                                 biaya_truk: parseFloat(firstItem.biaya_truk) || 0,
                                 biaya_total: parseFloat(firstItem.biaya_total) || 0,
                                 jumlah: parseInt(firstItem.jumlah) || 0,
-                                satuan: 'sak',
+                                satuan: 'item',
                                 berat_total: parseFloat(firstItem.berat_total) || 0,
                                 jenis_pembelian: firstItem.jenis_pembelian || 'INTERNAL',
                                 file: firstItem.file || null
@@ -198,7 +198,7 @@ const PembelianFeedmilDetailPage = () => {
                             biaya_lain: 0,
                             biaya_total: 0,
                             jumlah: 0,
-                            satuan: 'sak',
+                            satuan: 'item',
                             berat_total: 0,
                             jenis_pembelian: 'INTERNAL' // Default to first option
                         });

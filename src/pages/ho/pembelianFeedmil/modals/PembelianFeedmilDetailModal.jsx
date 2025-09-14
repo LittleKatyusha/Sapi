@@ -116,7 +116,7 @@ const PembelianFeedmilDetailModal = ({ isOpen, onClose, pembelian }) => {
                                     Jumlah
                                 </label>
                                 <p className="text-gray-900 bg-white px-3 py-2 rounded border">
-                                    {pembelian.jumlah || 0} {pembelian.satuan || 'sak'}
+                                    {pembelian.jumlah || 0} {pembelian.satuan || 'item'}
                                 </p>
                             </div>
                             <div>
@@ -132,7 +132,7 @@ const PembelianFeedmilDetailModal = ({ isOpen, onClose, pembelian }) => {
                                     Satuan
                                 </label>
                                 <p className="text-gray-900 bg-white px-3 py-2 rounded border">
-                                    {pembelian.satuan || 'sak'}
+                                    {pembelian.satuan || 'item'}
                                 </p>
                             </div>
                         </div>
@@ -180,7 +180,7 @@ const PembelianFeedmilDetailModal = ({ isOpen, onClose, pembelian }) => {
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                             <div>
                                 <p className="text-2xl font-bold">{pembelian.jumlah || 0}</p>
-                                <p className="text-sm text-gray-300">Total {pembelian.satuan || 'Sak'}</p>
+                                <p className="text-sm text-gray-300">Total {pembelian.satuan || 'Item'}</p>
                             </div>
                             <div>
                                 <p className="text-2xl font-bold">

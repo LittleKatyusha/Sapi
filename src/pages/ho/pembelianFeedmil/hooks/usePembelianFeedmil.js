@@ -133,7 +133,7 @@ const usePembelianFeedmil = () => {
                     nama_supir: item.nama_supir,
                     plat_nomor: item.plat_nomor,
                     jumlah: item.jumlah,
-                    satuan: 'sak', // Default unit
+                    satuan: 'item', // Default unit
                     berat_total: item.berat_total,
                     biaya_total: item.biaya_total,
                     total_belanja: item.total_belanja, // Add total_belanja field from backend
