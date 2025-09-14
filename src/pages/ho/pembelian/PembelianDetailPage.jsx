@@ -40,6 +40,16 @@ const PembelianDetailPage = () => {
         return option ? option.label : jenisPembelianId;
     };
 
+    // Function to get office name from ID
+    const getOfficeName = (officeId) => {
+        if (!officeId || !parameterData.office || !Array.isArray(parameterData.office)) {
+            return 'Head Office (HO)';
+        }
+        
+        const office = parameterData.office.find(opt => String(opt.id) === String(officeId));
+        return office ? office.name : 'Head Office (HO)';
+    };
+
     // Fetch detail data from /show endpoint (contains both header and detail data)
     useEffect(() => {
         const fetchDetail = async () => {
@@ -69,7 +79,8 @@ const PembelianDetailPage = () => {
                             encryptedPid: headerData.pid || id,
                             nota: headerData.nota || '',
                             nama_supplier: headerData.nama_supplier || '',
-                            nama_office: headerData.nama_office || '',
+                            nama_office: headerData.nama_office || getOfficeName(headerData.id_office),
+                            id_office: headerData.id_office || null,
                             tgl_masuk: headerData.tgl_masuk || '',
                             nama_supir: headerData.nama_supir || '',
                             plat_nomor: headerData.plat_nomor || '',
@@ -129,6 +140,18 @@ const PembelianDetailPage = () => {
         }
     }, [detailData, parameterData.eartag]);
 
+    // Update office name when parameter data is available
+    useEffect(() => {
+        if (pembelianData && pembelianData.id_office && parameterData.office) {
+            const officeName = getOfficeName(pembelianData.id_office);
+            if (officeName !== pembelianData.nama_office) {
+                setPembelianData(prev => ({
+                    ...prev,
+                    nama_office: officeName
+                }));
+            }
+        }
+    }, [pembelianData, parameterData.office]);
 
     const handleBack = () => {
         navigate('/ho/pembelian');
@@ -302,7 +325,7 @@ const PembelianDetailPage = () => {
                             <div>
                                 <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-1 sm:mb-2 flex items-center gap-2">
                                     <Eye size={28} />
-                                    Detail Pembelian
+                                    Detail Pembelian Doka & Sapi
                                 </h1>
                                 <p className="text-gray-600 text-sm sm:text-base">
                                     Informasi lengkap pembelian dan detail ternak

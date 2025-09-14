@@ -11,19 +11,57 @@ class LaporanPembelianService {
   
   /**
    * Get laporan per nota supplier
-   * @param {string} nota - Nomor nota yang akan dilaporkan
+   * @param {string} id - ID pembelian yang akan dilaporkan
    * @returns {Promise} - Response dari API
    */
-  static async getReportNotaSupplier(nota) {
+  static async getReportNotaSupplier(id) {
     try {
       const response = await HttpClient.get('/api/report/pembelian/getReportNotaSupplier', {
         params: { 
-          nota: nota
+          id: id
         }
       });
       return response;
     } catch (error) {
       console.error('Error getting report nota supplier:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get laporan per nota feedmil
+   * @param {string} id - ID pembelian feedmil yang akan dilaporkan
+   * @returns {Promise} - Response dari API
+   */
+  static async getReportNotaFeedmil(id) {
+    try {
+      const response = await HttpClient.get('/api/report/pembelian/getReportNotaFeedmil', {
+        params: { 
+          id: id
+        }
+      });
+      return response;
+    } catch (error) {
+      console.error('Error getting report nota feedmil:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get laporan per nota OVK
+   * @param {string} id - ID pembelian OVK yang akan dilaporkan
+   * @returns {Promise} - Response dari API
+   */
+  static async getReportNotaOvk(id) {
+    try {
+      const response = await HttpClient.get('/api/report/pembelian/getReportNotaOvk', {
+        params: { 
+          id: id
+        }
+      });
+      return response;
+    } catch (error) {
+      console.error('Error getting report nota OVK:', error);
       throw error;
     }
   }
@@ -235,6 +273,59 @@ class LaporanPembelianService {
       console.error('Error in PDF download with HttpClient:', error);
       throw error;
     }
+  }
+
+  /**
+   * Download PDF report for regular pembelian (supplier)
+   * @param {string} id - ID pembelian
+   * @returns {Promise} - Blob response
+   */
+  static async downloadReportNotaSupplier(id) {
+    return await this.downloadPdfReport('getReportNotaSupplier', { id });
+  }
+
+  /**
+   * Download PDF report for pembelian feedmil
+   * @param {string} id - ID pembelian feedmil
+   * @returns {Promise} - Blob response
+   */
+  static async downloadReportNotaFeedmil(id) {
+    return await this.downloadPdfReport('getReportNotaFeedmil', { id });
+  }
+
+  /**
+   * Download PDF report for pembelian OVK
+   * @param {string} id - ID pembelian OVK
+   * @returns {Promise} - Blob response
+   */
+  static async downloadReportNotaOvk(id) {
+    return await this.downloadPdfReport('getReportNotaOvk', { id });
+  }
+
+  /**
+   * Download PDF report for all suppliers
+   * @param {string} startDate - Start date (YYYY-MM-DD)
+   * @param {string} endDate - End date (YYYY-MM-DD)
+   * @returns {Promise} - Blob response
+   */
+  static async downloadReportAllSupplier(startDate, endDate) {
+    return await this.downloadPdfReport('getReportAllSupplier', { 
+      start_date: startDate, 
+      end_date: endDate 
+    });
+  }
+
+  /**
+   * Download PDF report for supplier tax
+   * @param {string} startDate - Start date (YYYY-MM-DD)
+   * @param {string} endDate - End date (YYYY-MM-DD)
+   * @returns {Promise} - Blob response
+   */
+  static async downloadReportSupplierTax(startDate, endDate) {
+    return await this.downloadPdfReport('getReportSupplierTax', { 
+      start_date: startDate, 
+      end_date: endDate 
+    });
   }
 
   /**

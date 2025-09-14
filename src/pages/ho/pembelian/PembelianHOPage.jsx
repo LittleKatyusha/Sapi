@@ -631,10 +631,10 @@ const PembelianHOPage = () => {
                         <div>
                             <h1 className="text-2xl sm:text-4xl font-bold text-gray-800 mb-1 sm:mb-2 flex items-center gap-3">
                                 <ShoppingCart size={32} className="text-red-500" />
-                                Pembelian Head Office
+                                Pembelian Doka & Sapi
                             </h1>
                             <p className="text-gray-600 text-sm sm:text-base">
-                                Kelola data pembelian ternak untuk Head Office
+                                Kelola data pembelian ternak untuk Doka & Sapi
                             </p>
                         </div>
                         <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 md:gap-6">

@@ -1,12 +1,14 @@
 import React, { useRef, useEffect, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Edit, Trash2, Eye, File, Loader2 } from 'lucide-react';
+import { Edit, Trash2, Eye, File, Loader2, Download } from 'lucide-react';
 import { API_ENDPOINTS, API_BASE_URL } from '../../../../config/api';
+import LaporanPembelianService from '../../../../services/laporanPembelianService';
 
 const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef }) => {
     const menuRef = useRef(null);
     const [menuStyle, setMenuStyle] = useState(null);
     const [fileLoading, setFileLoading] = useState(false);
+    const [downloadLoading, setDownloadLoading] = useState(false);
 
     useLayoutEffect(() => {
         function updatePosition() {
@@ -165,6 +167,41 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef }) => 
         }
     };
 
+    // Handle download report functionality
+    const handleDownloadReport = async (row) => {
+        // Use id if available, otherwise fallback to encryptedPid
+        const reportId = row.id || row.encryptedPid;
+        
+        if (!reportId) {
+            alert('ID pembelian tidak tersedia');
+            return;
+        }
+
+        setDownloadLoading(true);
+        try {
+            const blob = await LaporanPembelianService.downloadReportNotaFeedmil(reportId);
+            
+            // Create download link
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `Laporan_Pembelian_Feedmil_${row.nota || 'Report'}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            
+            // Close menu after successful download
+            onClose();
+            
+        } catch (error) {
+            console.error('Error downloading report:', error);
+            alert(error.message || 'Terjadi kesalahan saat mengunduh laporan');
+        } finally {
+            setDownloadLoading(false);
+        }
+    };
+
     const actions = [
         {
             label: 'Detail Pembelian',
@@ -189,6 +226,18 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef }) => 
             disabled: fileLoading,
             isLoading: fileLoading,
         }] : []),
+        {
+            label: 'Download Laporan',
+            icon: downloadLoading ? Loader2 : Download,
+            onClick: () => handleDownloadReport(row),
+            className: downloadLoading ? 'text-gray-400' : 'text-gray-700',
+            description: downloadLoading ? 'Mengunduh...' : 'Unduh PDF laporan',
+            bg: 'bg-purple-100',
+            hoverBg: 'group-hover:bg-purple-200',
+            text: 'text-purple-600',
+            disabled: downloadLoading,
+            isLoading: downloadLoading,
+        },
         {
             divider: true
         },

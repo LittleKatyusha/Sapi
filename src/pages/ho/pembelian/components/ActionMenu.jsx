@@ -171,22 +171,43 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef, apiEn
 
     // Handle download functionality
     const handleDownload = async (row) => {
-        if (!row.nota) {
-            alert('Nomor nota tidak tersedia');
+        // Use id if available, otherwise fallback to encryptedPid
+        const reportId = row.id || row.encryptedPid;
+        
+        if (!reportId) {
+            alert('ID pembelian tidak tersedia');
             return;
         }
 
         setDownloadLoading(true);
         try {
-            const blob = await LaporanPembelianService.downloadPdfReport('getReportNotaSupplier', {
-                nota: row.nota
-            });
+            let blob;
+            
+            // Determine report type based on API endpoint
+            if (apiEndpoint && apiEndpoint.includes('feedmil')) {
+                blob = await LaporanPembelianService.downloadReportNotaFeedmil(reportId);
+            } else if (apiEndpoint && apiEndpoint.includes('ovk')) {
+                blob = await LaporanPembelianService.downloadReportNotaOvk(reportId);
+            } else {
+                // Default to regular supplier report
+                blob = await LaporanPembelianService.downloadReportNotaSupplier(reportId);
+            }
             
             // Create download link
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = `LAPORAN_PEMBELIAN_${row.nota}.pdf`;
+            
+            // Generate appropriate filename based on purchase type
+            let filename = 'Laporan_Pembelian';
+            if (apiEndpoint && apiEndpoint.includes('feedmil')) {
+                filename = 'Laporan_Pembelian_Feedmil';
+            } else if (apiEndpoint && apiEndpoint.includes('ovk')) {
+                filename = 'Laporan_Pembelian_OVK';
+            }
+            filename += `_${row.nota || 'Report'}.pdf`;
+            
+            link.download = filename;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
