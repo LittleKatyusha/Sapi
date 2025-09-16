@@ -57,6 +57,7 @@ export const API_ENDPOINTS = {
     JENIS_HEWAN: '/api/master/jenishewan',
     KLASIFIKASI_HEWAN: '/api/master/klasifikasihewan',
     KLASIFIKASI_FEEDMIL: '/api/master/klasifikasifeedmil',
+    KLASIFIKASI_KULIT: '/api/master/klasifikasikulit',
     KLASIFIKASI_OVK: '/api/master/klasifikasiovk',
     PARAMETER: '/api/master/parameter',
     PARAMETER_SELECT: '/api/master/parameter',
@@ -69,6 +70,9 @@ export const API_ENDPOINTS = {
     PENJUALAN: '/api/ho/penjualan',
     FEEDMIL: {
       PEMBELIAN: '/api/ho/feedmil/pembelian'
+    },
+    KULIT: {
+      PEMBELIAN: '/api/ho/kulit/pembelian'
     },
     OVK: {
       PEMBELIAN: '/api/ho/ovk/pembelian'

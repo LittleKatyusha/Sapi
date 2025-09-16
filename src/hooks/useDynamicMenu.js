@@ -15,18 +15,27 @@ export const useDynamicMenu = () => {
   // Cache duration (5 menit)
   const CACHE_DURATION = 5 * 60 * 1000;
 
+
   /**
-   * Filter out System menu from the menu tree
+   * Filter menu items to only show accessible ones
    */
-  const filterSystemMenu = (menuItems) => {
-    // Remove System menu and its children
-    return menuItems.filter(item => 
-      !(item.nama && item.nama.toLowerCase().includes('system'))
-    );
+  const filterAccessibleMenus = (menuItems) => {
+    return menuItems.filter(item => {
+      // If menu has access info, check has_access
+      if (item.has_access !== undefined) {
+        return item.has_access;
+      }
+      
+      // If no access info, assume accessible (for backward compatibility)
+      return true;
+    }).map(item => ({
+      ...item,
+      children: item.children ? filterAccessibleMenus(item.children) : []
+    }));
   };
 
   /**
-   * Fetch menu tree dari backend
+   * Fetch menu tree dari backend berdasarkan role user
    */
   const fetchMenuTree = useCallback(async (forceRefresh = false) => {
     try {
@@ -38,7 +47,121 @@ export const useDynamicMenu = () => {
       setLoading(true);
       setError(null);
 
-      const response = await HttpClient.get(`${API_ENDPOINTS.SYSTEM.MENU}/tree`);
+      // Get user role from localStorage
+      const storedUser = JSON.parse(localStorage.getItem('user') || 'null');
+      const userRoleId = storedUser?.roles_id;
+
+      if (!userRoleId) {
+        console.warn('User role not found, using default menu');
+        // Fallback to default menu without role filtering
+        const response = await HttpClient.get(`${API_ENDPOINTS.SYSTEM.MENU}/tree`);
+        
+        if (response.status === 'ok' && response.data) {
+          // Normalize URLs - add leading slash and correct path mapping
+          const normalizeMenuUrls = (items) => {
+            return items.map(item => ({
+              ...item,
+              url: item.url && item.url !== '#' ? 
+                normalizeUrl(item.url) : 
+                item.url,
+              children: item.children ? normalizeMenuUrls(item.children) : item.children
+            }));
+          };
+          
+          // URL mapping function
+          const normalizeUrl = (url) => {
+            // Remove leading slash if exists
+            const cleanUrl = url.startsWith('/') ? url.substring(1) : url;
+            
+            // Map menu URLs to correct route paths
+            const urlMapping = {
+              'dashboard': '/dashboard',
+              'pembelian': '/ho/pembelian',
+              'pembelian-feedmil': '/ho/pembelian-feedmil',
+              'pembelian-ovk': '/ho/pembelian-ovk',
+              'penjualan': '/ho/penjualan',
+              'kandang-office': '/master-data/kandang-office',
+              'jenis-hewan': '/master-data/jenis-hewan',
+              'klasifikasi-hewan': '/master-data/klasifikasi-hewan',
+              'klasifikasi-ovk': '/master-data/klasifikasi-ovk',
+              'klasifikasi-feedmil': '/master-data/klasifikasi-feedmil',
+              'supplier': '/master-data/supplier',
+              'pelanggan': '/master-data/pelanggan',
+              'outlet': '/master-data/outlet',
+              'produk-gds': '/master-data/produk-gds',
+              'eartag': '/master-data/eartag',
+              'nota-supplier': '/reports/nota-supplier',
+              'semua-supplier': '/reports/semua-supplier',
+              'pajak': '/reports/pajak',
+              'settings': '/settings'
+            };
+            
+            return urlMapping[cleanUrl] || `/${cleanUrl}`;
+          };
+          
+          const normalizedData = normalizeMenuUrls(response.data);
+          setMenuTree(normalizedData);
+          setLastFetch(Date.now());
+          return;
+        } else {
+          throw new Error('Failed to load default menu');
+        }
+      }
+
+      // Fetch menu tree with role access information
+      // Try with include_access parameter first
+      let response;
+      try {
+        // Build URL manually to handle boolean parameters correctly
+        // Laravel boolean validation only accepts: true, false, 1, 0, '1', '0'
+        // NOT 'true' or 'false' strings
+        const baseUrl = `${API_ENDPOINTS.SYSTEM.MENU}/tree`;
+        const url = `${baseUrl}?role_id=${userRoleId}&include_access=1`;
+        
+        response = await HttpClient.get(url);
+      } catch (error) {
+        // If include_access fails, try without it and get access matrix separately
+        console.warn('Failed to get menu with access info, trying alternative approach:', error.message);
+        
+        const [menuResponse, accessMatrixResponse] = await Promise.all([
+          HttpClient.get(`${API_ENDPOINTS.SYSTEM.MENU}/tree`),
+          HttpClient.get(`${API_ENDPOINTS.SYSTEM.MENU}/access-matrix`)
+        ]);
+        
+        // Merge menu data with access information
+        if (menuResponse.status === 'ok' && accessMatrixResponse.status === 'ok') {
+          const menuData = menuResponse.data;
+          const accessMatrix = accessMatrixResponse.data;
+          
+          // Find role in access matrix
+          const roleAccess = accessMatrix.find(role => role.role_id === userRoleId);
+          
+          if (roleAccess) {
+            // Add access information to menu items
+            const addAccessInfo = (items) => {
+              return items.map(item => {
+                const menuAccess = roleAccess.menus.find(menu => menu.menu_id === item.id);
+                return {
+                  ...item,
+                  has_access: menuAccess ? menuAccess.has_access : false,
+                  access_type: menuAccess ? menuAccess.access_type : 'none',
+                  children: item.children ? addAccessInfo(item.children) : []
+                };
+              });
+            };
+            
+            response = {
+              status: 'ok',
+              data: addAccessInfo(menuData)
+            };
+          } else {
+            // If role not found in access matrix, use menu without access info
+            response = menuResponse;
+          }
+        } else {
+          throw new Error('Failed to get menu data');
+        }
+      }
       
       if (response.status === 'ok' && response.data) {
         
@@ -78,6 +201,7 @@ export const useDynamicMenu = () => {
             'nota-supplier': '/reports/nota-supplier',
             'semua-supplier': '/reports/semua-supplier',
             'pajak': '/reports/pajak',
+            'permission-management': '/system/permission-management',
             'settings': '/settings'
           };
           
@@ -86,15 +210,21 @@ export const useDynamicMenu = () => {
         
         const normalizedData = normalizeMenuUrls(response.data);
         
-        // Filter out System menu
-        const menuWithoutSystem = filterSystemMenu(normalizedData);
+        // Debug: Log the menu data
+        console.log('useDynamicMenu - Raw menu data:', normalizedData);
         
-        setMenuTree(menuWithoutSystem);
+        // Show accessible menus
+        const accessibleMenus = filterAccessibleMenus(normalizedData);
+        
+        // Debug: Log the filtered menu data
+        console.log('useDynamicMenu - Filtered menu data:', accessibleMenus);
+        
+        setMenuTree(accessibleMenus);
         setLastFetch(Date.now());
         
         // Cache ke localStorage untuk offline support
         localStorage.setItem('menuTree', JSON.stringify({
-          data: menuWithoutSystem,
+          data: accessibleMenus,
           timestamp: Date.now()
         }));
         
@@ -112,7 +242,7 @@ export const useDynamicMenu = () => {
     } finally {
       setLoading(false);
     }
-  }, [lastFetch, CACHE_DURATION]);
+  }, []);
 
   /**
    * Load menu dari cache localStorage
@@ -158,6 +288,7 @@ export const useDynamicMenu = () => {
               'nota-supplier': '/reports/nota-supplier',
               'semua-supplier': '/reports/semua-supplier',
               'pajak': '/reports/pajak',
+              'permission-management': '/system/permission-management',
               'settings': '/settings',
               'system': '#', // Parent menu
               'parameter': '/system/parameters'
@@ -166,7 +297,7 @@ export const useDynamicMenu = () => {
           };
           
           const normalizedData = normalizeMenuUrls(data);
-          return filterSystemMenu(normalizedData);
+          return filterAccessibleMenus(normalizedData);
         }
       }
     } catch (err) {
@@ -188,7 +319,7 @@ export const useDynamicMenu = () => {
    */
   const refreshMenu = useCallback(() => {
     return fetchMenuTree(true);
-  }, [fetchMenuTree]);
+  }, []);
 
   /**
    * Get breadcrumb untuk path tertentu
@@ -260,11 +391,15 @@ export const useDynamicMenu = () => {
   }, [menuTree]);
 
   /**
-   * Check if menu has permission (placeholder for future implementation)
+   * Check if menu has permission based on backend data
    */
   const hasPermission = useCallback((menuItem) => {
-    // TODO: Implement permission check dengan backend
-    // Untuk sekarang return true untuk semua menu
+    // Check if menu has access info from backend
+    if (menuItem.has_access !== undefined) {
+      return menuItem.has_access;
+    }
+    
+    // If no access info, assume accessible (for backward compatibility)
     return true;
   }, []);
 
@@ -284,21 +419,16 @@ export const useDynamicMenu = () => {
    * Get filtered menu tree (dengan permission)
    */
   const filteredMenuTree = useMemo(() => {
-    return filterMenuByPermission(menuTree);
+    const filtered = filterMenuByPermission(menuTree);
+    console.log('useDynamicMenu - Final filtered menu tree:', filtered);
+    return filtered;
   }, [menuTree, filterMenuByPermission]);
 
   // Load menu saat component mount
   useEffect(() => {
-    // Load dari cache terlebih dahulu untuk UX yang lebih baik
-    const cached = loadFromCache();
-    if (cached) {
-      setMenuTree(cached);
-      setLoading(false);
-    }
-    
-    // Fetch dari server
-    fetchMenuTree();
-  }, [fetchMenuTree, loadFromCache]);
+    // Fetch dari server dengan force refresh untuk memastikan data fresh
+    fetchMenuTree(true);
+  }, []); // Empty dependency array to run only once on mount
 
   return {
     // Data

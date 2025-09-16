@@ -42,7 +42,8 @@ const StokDagingPage = lazy(() => import('./pages/boning/StokDagingPage'));
 const ReturnPage = lazy(() => import('./pages/boning/ReturnPage'));
 const SuratJalanPage = lazy(() => import('./pages/boning/SuratJalanPage'));
 
-// System Pages - Removed
+// System Pages
+const PermissionManagementPage = lazy(() => import('./pages/system/PermissionManagementPage'));
 
 // HO Pages - Lazy loaded
 const PembelianHOPage = lazy(() => import('./pages/ho/pembelian/PembelianHOPage'));
@@ -190,7 +191,8 @@ function AppSecure() {
               <Route path="/ho/penjualan/edit/:id" element={<AddEditPenjualanPage />} />
               <Route path="/ho/penjualan/detail/:id" element={<PenjualanDetailPage />} />
 
-              {/* System Routes - Removed */}
+              {/* System Routes */}
+              <Route path="/system/permission-management" element={<PermissionManagementPage />} />
 
               {/* Fallback Route */}
               <Route path="*" element={<DashboardPage />} />

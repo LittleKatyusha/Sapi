@@ -11,6 +11,7 @@ import { useAuthSecure } from '../hooks/useAuthSecure';
 import { useDynamicMenu } from '../hooks/useDynamicMenu';
 import { DynamicMenuList } from './DynamicMenuItem';
 import SecurityNotification from './security/SecurityNotification';
+import MenuStatusPanel from './MenuStatusPanel';
 
 
 const LayoutSecure = ({ children, title }) => {
@@ -19,6 +20,7 @@ const LayoutSecure = ({ children, title }) => {
   const [expandedMenus, setExpandedMenus] = useState({});
   const [notification, setNotification] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [showMenuStatus, setShowMenuStatus] = useState(false);
   const location = useLocation();
   
   const {
@@ -28,10 +30,15 @@ const LayoutSecure = ({ children, title }) => {
 
   const {
     menuTree,
+    rawMenuTree,
     loading: menuLoading,
     error: menuError,
+    menuStats,
+    lastFetch,
     refreshMenu,
-    isEmpty: isMenuEmpty
+    clearCache,
+    isEmpty: isMenuEmpty,
+    isStale
   } = useDynamicMenu();
 
 
@@ -275,6 +282,18 @@ const LayoutSecure = ({ children, title }) => {
               </div>
             </div>
 
+            {/* Menu Status Button - Development Only */}
+            {process.env.NODE_ENV === 'development' && (
+              <button
+                onClick={() => setShowMenuStatus(true)}
+                className="flex items-center px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
+                title="Menu Status Panel"
+              >
+                <Menu className="w-4 h-4 mr-2" />
+                Menu Status
+              </button>
+            )}
+
           </div>
         </header>
 
@@ -476,6 +495,22 @@ const LayoutSecure = ({ children, title }) => {
           onClose={() => setNotification(null)}
         />
       )}
+
+      {/* Menu Status Panel */}
+      <MenuStatusPanel
+        isOpen={showMenuStatus}
+        onClose={() => setShowMenuStatus(false)}
+        menuTree={menuTree}
+        rawMenuTree={rawMenuTree}
+        loading={menuLoading}
+        error={menuError}
+        menuStats={menuStats}
+        lastFetch={lastFetch}
+        refreshMenu={refreshMenu}
+        clearCache={clearCache}
+        isEmpty={isMenuEmpty}
+        isStale={isStale}
+      />
     </div>
   );
 };
