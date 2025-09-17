@@ -267,7 +267,8 @@ const useUsers = () => {
             
             const result = await HttpClient.post(`${API_BASE}/reset-password`, {
                 pid: user.pubid || user.id,
-                password: newPassword
+                new_password: newPassword,
+                new_password_confirmation: newPassword
             });
             
             return {

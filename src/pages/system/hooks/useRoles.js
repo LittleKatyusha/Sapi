@@ -16,10 +16,10 @@ const useRoles = () => {
         currentPage: 1,
         totalPages: 1,
         totalItems: 0,
-        perPage: 10
+        perPage: 25  // Increased from 10 to 25 to show more data
     });
 
-    const fetchRoles = useCallback(async (page = 1, perPage = 10, forceRefresh = false) => {
+    const fetchRoles = useCallback(async (page = 1, perPage = 25, forceRefresh = false) => {
         setLoading(true);
         setError(null);
         
@@ -75,25 +75,22 @@ const useRoles = () => {
                         console.log('[DEBUG] Full item data:', item);
                     }
                     
-                    // Simplified approach: Each row represents one role
-                    // parent_role = the actual role name in this row
-                    // child_role = if exists, this role has a child with that name
-                    
+                    // Map data sesuai dengan struktur backend role_detail view
                     const mapped = {
+                        id: item.id,
                         pubid: item.pid || `TEMP-${index + 1}`,
-                        nama: item.parent_role || 'Unknown Role', // This is the actual role name
-                        hasChild: !!item.child_role, // Whether this role has a child
-                        childRoleName: item.child_role || null, // Name of child role if exists
+                        nama: item.parent_role || 'Unknown Role', // parent_role adalah nama role utama
                         description: item.description || '',
                         createdAt: item.created_at,
                         updatedAt: item.updated_at,
-                        // Determine if this is a parent or child role based on ViewRoles structure
-                        isParentRole: !!item.child_role, // If child_role exists, this is a parent role
-                        isChildRole: false  // Will be determined in post-processing
+                        // Informasi hierarki dari view role_detail
+                        parentRole: item.parent_role, // Nama parent role
+                        childRole: item.child_role, // Nama child role jika ada
+                        hasChild: !!item.child_role, // Apakah role ini punya child
+                        isParentRole: !!item.child_role, // Role ini adalah parent jika punya child
+                        isChildRole: false // Akan ditentukan di post-processing
                     };
                     
-                    // To find parent, we need to look for a role that has this role as child_role
-                    // This will be done later in a post-processing step
                     return mapped;
                 });
                 
@@ -101,15 +98,17 @@ const useRoles = () => {
                 const processedData = validatedData.map(role => {
                     // Find if this role is someone's child
                     // A role is a child if another role has it as child_role
-                    const parentRole = validatedData.find(r => r.childRoleName === role.nama);
+                    const parentRole = validatedData.find(r => r.childRole === role.nama);
                     
-                    // Update isChildRole based on whether we found a parent
                     return {
                         ...role,
                         isChildRole: !!parentRole,
-                        parentRoleName: parentRole ? parentRole.nama : null
+                        parentRoleName: parentRole ? parentRole.parentRole : null
                     };
                 });
+                
+                // Debug: Log processed data
+                console.log('[DEBUG] Processed roles data:', processedData);
                 
                 setRoles(processedData);
             } else {
@@ -208,8 +207,12 @@ const useRoles = () => {
                 throw new Error('Token authentication tidak ditemukan.');
             }
             
+            console.log('[DEBUG] Deleting role with pubid:', pubid);
             const result = await HttpClient.post(`${API_BASE}/hapus`, { pid: pubid });
-            await fetchRoles(1, 10);
+            console.log('[DEBUG] Delete result:', result);
+            
+            // Refresh data after successful delete
+            await fetchRoles(serverPagination.currentPage, serverPagination.perPage, true);
             
             return {
                 success: true,
@@ -217,22 +220,26 @@ const useRoles = () => {
             };
             
         } catch (err) {
+            console.error('[DEBUG] Delete error:', err);
             const errorMsg = err.message || 'Terjadi kesalahan saat menghapus data';
             setError(errorMsg);
             return { success: false, message: errorMsg };
         } finally {
             setLoading(false);
         }
-    }, [getAuthHeader, fetchRoles]);
+    }, [getAuthHeader, fetchRoles, serverPagination.currentPage, serverPagination.perPage]);
 
     const stats = useMemo(() => {
         const totalRoles = serverPagination.totalItems;
         // Count roles that are parents (have child roles)
         const parentRoles = roles.filter(r => r.hasChild).length;
+        // Count unique parent roles
+        const uniqueParentRoles = [...new Set(roles.map(r => r.parentRole))].length;
         
         return {
             total: totalRoles,
             parents: parentRoles,
+            uniqueParents: uniqueParentRoles,
         };
     }, [roles, serverPagination]);
 

@@ -91,7 +91,7 @@ const RolePage = () => {
       
       // Format data correctly for editing
       const formattedData = {
-          nama: role.nama || '',  // Use nama as the role name
+          nama: role.parentRole || '',  // Use parentRole as the role name
           description: role.description || ''
       };
       
@@ -107,18 +107,33 @@ const RolePage = () => {
   };
 
   const handleDelete = (role) => {
+      console.log('[DEBUG] Setting delete data:', role);
       setDeleteData(role);
   };
 
   const handleConfirmDelete = async () => {
       if (!deleteData) return;
       setIsDeleting(true);
-      const result = await deleteRole(deleteData.pubid);
-      if (result.success) {
-          setDeleteData(null);
-          fetchRoles();
+      
+      try {
+          console.log('[DEBUG] Confirming delete for role:', deleteData);
+          const result = await deleteRole(deleteData.pubid);
+          
+          if (result.success) {
+              console.log('[DEBUG] Delete successful, closing modal');
+              setDeleteData(null);
+              // Data will be refreshed automatically by deleteRole function
+              alert(result.message || 'Role berhasil dihapus!');
+          } else {
+              console.error('[DEBUG] Delete failed:', result.message);
+              alert('Error: ' + (result.message || 'Gagal menghapus data'));
+          }
+      } catch (error) {
+          console.error('[DEBUG] Delete error:', error);
+          alert('Terjadi kesalahan: ' + (error.message || 'Gagal menghapus data'));
+      } finally {
+          setIsDeleting(false);
       }
-      setIsDeleting(false);
   };
 
   const handleSave = async (formData) => {
@@ -186,22 +201,27 @@ const RolePage = () => {
   const columns = useMemo(() => [
     {
         name: 'Parent Role',
-        selector: row => row.nama,
+        selector: row => row.parentRole || '-',
         sortable: true,
     },
     {
         name: 'Child Role',
-        selector: row => row.childRoleName || '',
+        selector: row => row.childRole || '-',
         sortable: true,
     },
     {
         name: 'Description',
-        selector: row => row.description,
+        selector: row => row.description || '-',
+        sortable: true,
+    },
+    {
+        name: 'Created At',
+        selector: row => row.createdAt || '-',
         sortable: true,
     },
     {
         name: 'Updated At',
-        selector: row => row.updatedAt,
+        selector: row => row.updatedAt || '-',
         sortable: true,
     },
     {
@@ -231,10 +251,10 @@ const RolePage = () => {
                             Manajemen Role
                         </h1>
                         <p className="text-gray-600 text-sm sm:text-base">
-                            Kelola hierarki role dengan sistem parent-child relationship
+                            Kelola role dan permission untuk mengatur akses pengguna dalam sistem
                         </p>
                         <div className="text-xs text-gray-500 mt-1">
-                            <span className="font-medium">Tips:</span> Buat parent role terlebih dahulu, kemudian tambahkan child role sesuai kebutuhan
+                            <span className="font-medium">Tips:</span> Buat role sesuai dengan hierarki organisasi dan kebutuhan akses
                         </div>
                     </div>
                     <div className="flex flex-col gap-2 sm:flex-row sm:gap-4">
@@ -308,7 +328,7 @@ const RolePage = () => {
           isOpen={!!deleteData}
           onClose={() => { setDeleteData(null); setIsDeleting(false); }}
           onConfirm={handleConfirmDelete}
-          title={`Hapus Role "${deleteData?.nama || ''}"?`}
+          title={`Hapus Role "${deleteData?.parentRole || ''}"?`}
           description="Tindakan ini akan menghapus role secara permanen dan tidak dapat dibatalkan."
           loading={isDeleting}
         />

@@ -38,7 +38,7 @@ const AddEditRoleModal = ({ isOpen, onClose, onSave, editData, loading, existing
     
     // Validate role name uniqueness (except when editing same role)
     const existingRole = existingRoles.find(role =>
-      role.nama.toLowerCase() === formData.nama.toLowerCase() &&
+      role.parentRole && role.parentRole.toLowerCase() === formData.nama.toLowerCase() &&
       (!editData || role.pubid !== editData.pubid)
     );
     if (existingRole) {

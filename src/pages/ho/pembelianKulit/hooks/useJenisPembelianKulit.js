@@ -59,12 +59,12 @@ const useJenisPembelianKulit = () => {
     };
 
     useEffect(() => {
-        fetchJenisPembelianFeedmil();
+        fetchJenisPembelianKulit();
     }, []);
 
     // Transform data to select options
     const jenisPembelianOptions = useMemo(() => {
-        return jenisPembelianFeedmil.map(item => ({
+        return jenisPembelianKulit.map(item => ({
             value: item.value, // Keep as string since API returns string values
             label: item.name || item.description,
             rawId: item.pubid || item.id,

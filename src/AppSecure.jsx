@@ -27,6 +27,7 @@ const JenisHewanPage = lazy(() => import('./pages/dataMaster/JenisHewanPage'));
 const KlasifikasiHewanPage = lazy(() => import('./pages/dataMaster/KlasifikasiHewanPage'));
 const KlasifikasiOvkPage = lazy(() => import('./pages/dataMaster/KlasifikasiOvkPage'));
 const KlasifikasiFeedmilPage = lazy(() => import('./pages/dataMaster/KlasifikasiFeedmilPage'));
+const ItemKulitPage = lazy(() => import('./pages/dataMaster/ItemKulitPage'));
 const SupplierPage = lazy(() => import('./pages/dataMaster/SupplierPage'));
 const PelangganPage = lazy(() => import('./pages/dataMaster/PelangganPage'));
 const OutletPage = lazy(() => import('./pages/dataMaster/OutletPage'));
@@ -44,6 +45,8 @@ const SuratJalanPage = lazy(() => import('./pages/boning/SuratJalanPage'));
 
 // System Pages
 const PermissionManagementPage = lazy(() => import('./pages/system/PermissionManagementPage'));
+const RolePage = lazy(() => import('./pages/system/RolePage'));
+const UsersPage = lazy(() => import('./pages/system/UsersPage'));
 
 // HO Pages - Lazy loaded
 const PembelianHOPage = lazy(() => import('./pages/ho/pembelian/PembelianHOPage'));
@@ -65,6 +68,11 @@ const PembelianFeedmilDetailPage = lazy(() => import('./pages/ho/pembelianFeedmi
 const PembelianOVKPage = lazy(() => import('./pages/ho/pembelianOVK/PembelianOVKPage'));
 const AddEditPembelianOVKPage = lazy(() => import('./pages/ho/pembelianOVK/addEditPembelianOVK'));
 const PembelianOVKDetailPage = lazy(() => import('./pages/ho/pembelianOVK/PembelianOVKDetailPage'));
+
+// Pembelian Kulit Pages - Lazy loaded
+const PembelianKulitPage = lazy(() => import('./pages/ho/pembelianKulit/PembelianKulitPage'));
+const AddEditPembelianKulitPage = lazy(() => import('./pages/ho/pembelianKulit/AddEditPembelianKulitPage'));
+const PembelianKulitDetailPage = lazy(() => import('./pages/ho/pembelianKulit/PembelianKulitDetailPage'));
 
 const AppWrapperSecure = () => (
   <Router>
@@ -153,6 +161,7 @@ function AppSecure() {
               <Route path="/master-data/klasifikasi-hewan" element={<KlasifikasiHewanPage />} />
               <Route path="/master-data/klasifikasi-ovk" element={<KlasifikasiOvkPage />} />
               <Route path="/master-data/klasifikasi-feedmil" element={<KlasifikasiFeedmilPage />} />
+              <Route path="/master-data/item-kulit" element={<ItemKulitPage />} />
               <Route path="/master-data/supplier" element={<SupplierPage />} />
               <Route path="/master-data/pelanggan" element={<PelangganPage />} />
               <Route path="/master-data/outlet" element={<OutletPage />} />
@@ -185,6 +194,12 @@ function AppSecure() {
               <Route path="/ho/pembelian-ovk/edit/:id" element={<AddEditPembelianOVKPage />} />
               <Route path="/ho/pembelian-ovk/detail/:id" element={<PembelianOVKDetailPage />} />
               
+              {/* HO Pembelian Kulit Routes */}
+              <Route path="/ho/pembelian-kulit" element={<PembelianKulitPage />} />
+              <Route path="/ho/pembelian-kulit/add" element={<AddEditPembelianKulitPage />} />
+              <Route path="/ho/pembelian-kulit/edit/:id" element={<AddEditPembelianKulitPage />} />
+              <Route path="/ho/pembelian-kulit/detail/:id" element={<PembelianKulitDetailPage />} />
+              
               {/* HO Sales Routes */}
               <Route path="/ho/penjualan" element={<PenjualanHOPage />} />
               <Route path="/ho/penjualan/add" element={<AddEditPenjualanPage />} />
@@ -193,6 +208,8 @@ function AppSecure() {
 
               {/* System Routes */}
               <Route path="/system/permission-management" element={<PermissionManagementPage />} />
+              <Route path="/system/roles" element={<RolePage />} />
+              <Route path="/system/users" element={<UsersPage />} />
 
               {/* Fallback Route */}
               <Route path="*" element={<DashboardPage />} />

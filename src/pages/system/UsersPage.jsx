@@ -275,20 +275,6 @@ const UsersPage = () => {
             )
         },
         {
-            name: 'Status Email',
-            selector: row => row.emailVerified,
-            sortable: true,
-            cell: row => (
-                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                  row.emailVerified === 'Verified'
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-red-100 text-red-800'
-                }`}>
-                  {row.emailVerified || 'Unverified'}
-                </span>
-            )
-        },
-        {
             name: 'Aksi',
             cell: row => (
                 <ActionButton
@@ -332,24 +318,6 @@ const UsersPage = () => {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4 md:gap-6">
-                    <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg">
-                        <h3 className="text-xs sm:text-sm font-medium opacity-90">Total Pengguna</h3>
-                        <p className="text-xl sm:text-3xl font-bold">{stats.total}</p>
-                    </div>
-                    <div className="bg-gradient-to-br from-green-500 to-emerald-600 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg">
-                        <h3 className="text-xs sm:text-sm font-medium opacity-90">Aktif</h3>
-                        <p className="text-xl sm:text-3xl font-bold">{stats.active}</p>
-                    </div>
-                    <div className="bg-gradient-to-br from-orange-500 to-amber-600 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg">
-                        <h3 className="text-xs sm:text-sm font-medium opacity-90">Verified</h3>
-                        <p className="text-xl sm:text-3xl font-bold">{stats.verified}</p>
-                    </div>
-                    <div className="bg-gradient-to-br from-red-500 to-rose-600 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg">
-                        <h3 className="text-xs sm:text-sm font-medium opacity-90">Unverified</h3>
-                        <p className="text-xl sm:text-3xl font-bold">{stats.unverified}</p>
-                    </div>
-                </div>
 
                 <div className="bg-white rounded-2xl p-3 sm:p-6 shadow-lg border border-gray-100">
                     <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 sm:items-center sm:justify-between">

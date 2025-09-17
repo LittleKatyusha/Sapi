@@ -37,7 +37,6 @@ const AddEditPembelianKulitPage = () => {
         parameterData,
         supplierOptions,
         officeOptions,
-        klasifikasiKulitOptions,
         farmOptions,
         loading: parameterLoading,
         error: parameterError,
@@ -63,18 +62,12 @@ const AddEditPembelianKulitPage = () => {
 
     // Header form state - aligned with backend validation requirements
     const [headerData, setHeaderData] = useState({
-        nota: '',
         nota_ho: '', // Nomor Nota HO
         farm: '', // Farm
         syarat_pembelian: '', // Syarat Pembelian
         idOffice: '', // Office now selectable
-        tipePembelian: '',
         idSupplier: '',
         tgl_masuk: '',
-        nama_supir: '',
-        plat_nomor: '',
-        biaya_truck: '', // Will map to biaya_truk in backend
-        biaya_lain: '',
         berat_total: '',
         harga_total: '', // Will map to biaya_total in backend
         total_kulit: '', // Will map to jumlah in backend
@@ -100,7 +93,6 @@ const AddEditPembelianKulitPage = () => {
     // Default data untuk batch operations - aligned with backend validation
     const [defaultData, setDefaultData] = useState({
         item_name: '',
-        id_klasifikasi_kulit: null, // Use null instead of empty string to avoid auto-selection
         berat: 0, // Start with 0 like harga total pattern
         harga: 0, // Also change to 0 for consistency
         persentase: 0 // Also change to 0 for consistency
@@ -301,18 +293,12 @@ const AddEditPembelianKulitPage = () => {
 
                         // Set header data using safe helper functions (like OVK pattern)
                         setHeaderData({
-                            nota: safeGetString(headerData.nota),
                             nota_ho: safeGetString(headerData.nota_ho),
                             farm: headerData.id_farm ? parseInt(headerData.id_farm) : (headerData.farm ? parseInt(headerData.farm) : null),
                             syarat_pembelian: safeGetString(headerData.syarat_pembelian) || safeGetString(headerData.id_syarat_pembelian),
                             idOffice: officeId || (headerData.id_office ? parseInt(headerData.id_office) : null),
-                            tipePembelian: tipePembelianId || (headerData.tipe_pembelian ? parseInt(headerData.tipe_pembelian) : null),
                             idSupplier: supplierId || (headerData.id_supplier ? parseInt(headerData.id_supplier) : null),
                             tgl_masuk: safeGetString(headerData.tgl_masuk),
-                            nama_supir: safeGetString(headerData.nama_supir),
-                            plat_nomor: safeGetString(headerData.plat_nomor),
-                            biaya_truck: safeGetNumber(headerData.biaya_truk) ?? safeGetNumber(headerData.biaya_truck),
-                            biaya_lain: safeGetNumber(headerData.biaya_lain),
                             berat_total: safeGetNumber(headerData.berat_total),
                             harga_total: safeGetNumber(headerData.biaya_total) || safeGetNumber(headerData.total_belanja),
                             total_kulit: safeGetNumber(headerData.jumlah),
@@ -338,14 +324,6 @@ const AddEditPembelianKulitPage = () => {
                             pubidDetail: item.pubid_detail, // Raw pubid if available
                                 // Detail fields using safe helper functions
                                 item_name: safeGetString(item.item_name) || `Kulit Item ${index + 1}`,
-                                id_klasifikasi_kulit: (() => {
-                                    // Backend sends integer ID, use it directly since frontend now uses integer IDs
-                                    const backendId = item.id_klasifikasi_kulit;
-                                    if (!backendId) return null;
-                                    
-                                    // Use the integer ID directly since we changed frontend to use integer IDs
-                                    return parseInt(backendId);
-                                })(),
                                 berat: safeGetNumber(item.berat, 0),
                                 harga: safeGetNumber(item.harga, 0),
                             persentase: (() => {
@@ -406,7 +384,6 @@ const AddEditPembelianKulitPage = () => {
         const newItem = {
             id: Date.now(),
             item_name: defaultData.item_name || '',
-            id_klasifikasi_kulit: defaultData.id_klasifikasi_kulit || null, // Use null instead of empty string
             berat: defaultData.berat || 0,
             harga: defaultData.harga || '',
             persentase: defaultData.persentase || '', // Fix: correct spelling
@@ -432,7 +409,6 @@ const AddEditPembelianKulitPage = () => {
             newItems.push({
                 id: Date.now() + i,
                 item_name: defaultData.item_name || '',
-                id_klasifikasi_kulit: defaultData.id_klasifikasi_kulit || null, // Use null instead of empty string
                 berat: defaultData.berat || 0,
                 harga: defaultData.harga || '',
                 persentase: defaultData.persentase || '', // Fix: correct spelling
@@ -548,7 +524,6 @@ const AddEditPembelianKulitPage = () => {
         if (!item.item_name || item.item_name.trim() === '') {
             itemErrors.push('Nama item harus diisi');
         }
-        // id_klasifikasi_kulit is nullable according to backend rules - no validation needed
         if (!item.harga || parseFloat(item.harga) <= 0) {
             itemErrors.push('Harga harus diisi dan > 0');
         }
@@ -581,20 +556,6 @@ const AddEditPembelianKulitPage = () => {
                 idPembelian: item.idPembelian || null, // Use item's id_pembelian if available (for existing items)
                 idOffice: parseInt(headerData.idOffice) || 1, // Use selected office ID
                 item_name: String(item.item_name || ''),
-                id_klasifikasi_kulit: (() => {
-                    const rawValue = item.id_klasifikasi_kulit;
-                    
-                    if (rawValue === null || rawValue === undefined || rawValue === '') {
-                        return null;
-                    }
-                    
-                    const parsed = parseInt(rawValue);
-                    if (isNaN(parsed)) {
-                        return null;
-                    }
-                    
-                    return parsed;
-                })(),
                 harga: parseFloat(item.harga) || 0,
                 berat: parseInt(item.berat) || 0,
                 persentase: getParsedPersentase(item.persentase),
@@ -795,10 +756,6 @@ const AddEditPembelianKulitPage = () => {
     const validateForm = () => {
         const errors = [];
 
-        if (!headerData.nota.trim()) {
-            errors.push('Nomor Nota Supplier harus diisi');
-        }
-
         if (!headerData.farm) {
             errors.push('Farm harus dipilih');
         }
@@ -811,22 +768,13 @@ const AddEditPembelianKulitPage = () => {
             errors.push('Nomor Nota HO harus diisi');
         }
 
-        if (!headerData.tipePembelian) {
-            errors.push('Tipe Pembelian harus dipilih');
-        }
-
         if (!headerData.idSupplier) {
             errors.push('Supplier harus dipilih');
         }
 
-
-
         if (!headerData.tgl_masuk) {
             errors.push('Tanggal masuk harus diisi');
         }
-
-        // nama_supir, plat_nomor, dan biaya_truck sekarang opsional (nullable)
-        // Validasi dihapus sesuai permintaan client
 
         if (detailItems.length === 0) {
             errors.push('Minimal harus ada 1 item kulit');
@@ -836,8 +784,6 @@ const AddEditPembelianKulitPage = () => {
             if (!item.item_name || item.item_name.trim() === '') {
                 errors.push(`Item ${index + 1}: Nama item harus diisi`);
             }
-            // id_klasifikasi_kulit is nullable according to backend validation rules
-            // Remove required validation for klasifikasi kulit
             const berat = parseFloat(item.berat);
             if (isNaN(berat) || berat <= 0) {
                 errors.push(`Item ${index + 1}: Berat harus lebih dari 0`);
@@ -899,16 +845,10 @@ const AddEditPembelianKulitPage = () => {
                 totalBerat: totals.totalBerat,
                 totalHPP: totals.totalHPP,
                 detailItems: detailItems,
-                tipe_pembelian: headerData.tipePembelian, // Backend expects tipe_pembelian as integer
                 supplier: selectedSupplier ? selectedSupplier.label : '',
                 nama_supplier: selectedSupplier ? selectedSupplier.label : '',
                 id_supplier: headerData.idSupplier,
                 jenis_supplier: selectedSupplier ? selectedSupplier.jenis_supplier : '',
-                // Transform nullable fields
-                nama_supir: headerData.nama_supir || '-',
-                plat_nomor: headerData.plat_nomor || '-',
-                biaya_truck: headerData.biaya_truck ? parseFloat(headerData.biaya_truck) : 0,
-                biaya_lain: headerData.biaya_lain ? parseFloat(headerData.biaya_lain) : 0,
                 // New fields
                 nota_ho: headerData.nota_ho || '',
                 id_farm: headerData.farm ? parseInt(headerData.farm) : null,
@@ -1032,20 +972,6 @@ const AddEditPembelianKulitPage = () => {
                     </h2>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-                        {/* Nomor Nota Supplier */}
-                        <div>
-                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <Hash className="w-4 h-4" />
-                                Nomor Nota Supplier *
-                            </label>
-                            <input
-                                type="text"
-                                value={headerData.nota}
-                                onChange={(e) => handleHeaderChange('nota', e.target.value)}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                placeholder="Masukkan nomor nota supplier"
-                            />
-                        </div>
 
                         {/* Nomor Nota CV. Puput Bersaudara */}
                         <div>
@@ -1086,32 +1012,6 @@ const AddEditPembelianKulitPage = () => {
                             )}
                         </div>
 
-                        {/* Tipe Pembelian */}
-                        <div>
-                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <Package className="w-4 h-4" />
-                                Tipe Pembelian *
-                            </label>
-                            <SearchableSelect
-                                value={headerData.tipePembelian}
-                                onChange={(value) => handleHeaderChange('tipePembelian', value)}
-                                options={jenisPembelianOptions}
-                                placeholder={jenisPembelianLoading ? "Memuat tipe pembelian..." : "Pilih Tipe Pembelian"}
-                                className="w-full"
-                                disabled={jenisPembelianLoading}
-                            />
-                            {jenisPembelianLoading && (
-                                <p className="text-xs text-blue-600 mt-1">
-                                    🔄 Memuat tipe pembelian...
-                                </p>
-                            )}
-                            {jenisPembelianError && (
-                                <p className="text-xs text-red-600 mt-1">
-                                    ❌ Error: {jenisPembelianError}
-                                </p>
-                            )}
-
-                        </div>
 
                         {/* Supplier */}
                         <div>
@@ -1155,74 +1055,11 @@ const AddEditPembelianKulitPage = () => {
                             />
                         </div>
 
-                        {/* Nama Supir */}
-                        <div>
-                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <User className="w-4 h-4" />
-                                Nama Sopir
-                            </label>
-                            <input
-                                type="text"
-                                value={headerData.nama_supir}
-                                onChange={(e) => handleHeaderChange('nama_supir', e.target.value)}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                placeholder="Masukkan nama supir"
-                            />
-                        </div>
-
-                        {/* Plat Nomor */}
-                        <div>
-                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <Truck className="w-4 h-4" />
-                                Plat Nomor
-                            </label>
-                            <input
-                                type="text"
-                                value={headerData.plat_nomor}
-                                onChange={(e) => handleHeaderChange('plat_nomor', e.target.value.toUpperCase())}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                placeholder="B1234XX"
-                                style={{ textTransform: 'uppercase' }}
-                            />
-                        </div>
 
 
 
-                        {/* Biaya Truck */}
-                        <div>
-                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <DollarSign className="w-4 h-4" />
-                                Biaya Truck (Rp)
-                            </label>
-                            <input
-                                type="text"
-                                value={formatNumber(headerData.biaya_truck)}
-                                onChange={(e) => handleHeaderChange('biaya_truck', parseNumber(e.target.value))}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                placeholder="1.000.000"
-                            />
-                            <p className="text-xs text-gray-500 mt-1">
-                                💡 Biaya transportasi truck untuk pengiriman (opsional)
-                            </p>
-                        </div>
 
-                        {/* Biaya Lain */}
-                        <div>
-                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <DollarSign className="w-4 h-4" />
-                                Biaya Lain - Lain (RP)
-                            </label>
-                            <input
-                                type="text"
-                                value={formatNumber(headerData.biaya_lain)}
-                                onChange={(e) => handleHeaderChange('biaya_lain', parseNumber(e.target.value))}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                placeholder=""
-                            />
-                            <p className="text-xs text-gray-500 mt-1">
-                                💡 Biaya tambahan lainnya (opsional)
-                            </p>
-                        </div>
+
 
                         {/* Berat Total */}
                         <div>
@@ -1436,25 +1273,6 @@ const AddEditPembelianKulitPage = () => {
                             />
                         </div>
 
-                        {/* Klasifikasi Kulit Default */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Klasifikasi Kulit Default
-                            </label>
-                            <SearchableSelect
-                                value={defaultData.id_klasifikasi_kulit}
-                                onChange={(value) => handleDefaultDataChange('id_klasifikasi_kulit', value)}
-                                options={klasifikasiKulitOptions}
-                                placeholder={parameterLoading ? "Memuat..." : "Pilih Klasifikasi"}
-                                className="w-full"
-                                disabled={parameterLoading}
-                            />
-                            {parameterError && (
-                                <p className="text-xs text-red-600 mt-1">
-                                    ❌ Error: {parameterError}
-                                </p>
-                            )}
-                        </div>
 
                         {/* Berat Default */}
                         <div>
@@ -1567,7 +1385,6 @@ const AddEditPembelianKulitPage = () => {
                                     <tr className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b-2 border-blue-200">
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 w-12">No</th>
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[180px]">Nama Item</th>
-                                        <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[120px]">Klasifikasi Kulit</th>
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 w-24">Berat (kg)</th>
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[120px]">Harga (Rp)</th>
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 w-20">Persentase (%)</th>
@@ -1603,20 +1420,6 @@ const AddEditPembelianKulitPage = () => {
                                                     />
                                                 </td>
                                                 
-                                                {/* Klasifikasi Kulit */}
-                                                <td className="p-2 sm:p-3">
-                                                    <SearchableSelect
-                                                        value={item.id_klasifikasi_kulit}
-                                                                                                            onChange={(value) => {
-                                                        handleDetailChange(item.id, 'id_klasifikasi_kulit', value);
-                                                    }}
-                                                        options={klasifikasiKulitOptions}
-                                                        placeholder={parameterLoading ? "Memuat..." : "Pilih Klasifikasi"}
-                                                        className="w-full text-xs sm:text-sm"
-                                                        disabled={parameterLoading}
-                                                    />
-
-                                                </td>
                                                 
                                                 {/* Berat */}
                                                 <td className="p-2 sm:p-3">

@@ -173,8 +173,6 @@ const PembelianKulitDetailPage = () => {
                             id: index + 1,
                             pubid: item.pid || '',
                             item_name: item.item_name || '',
-                            id_klasifikasi_kulit: item.id_klasifikasi_kulit || '',
-                            nama_klasifikasi_kulit: item.nama_klasifikasi_kulit || '',
                             harga: parseFloat(item.harga) || 0,
                             persentase: parseFloat(item.persentase) || 0,
                             berat: parseInt(item.berat) || 0,

@@ -202,6 +202,8 @@ export const useDynamicMenu = () => {
             'semua-supplier': '/reports/semua-supplier',
             'pajak': '/reports/pajak',
             'permission-management': '/system/permission-management',
+            'roles': '/system/roles',
+            'users': '/system/users',
             'settings': '/settings'
           };
           

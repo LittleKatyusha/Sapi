@@ -56,7 +56,7 @@ const usePembelianKulit = () => {
                     name: item.name,
                     originalData: item
                 }));
-                setKlasifikasiFeedmil(mappedData);
+                setKlasifikasiKulit(mappedData);
             }
         } catch (err) {
             console.error('Error fetching klasifikasi kulit:', err);
@@ -119,7 +119,7 @@ const usePembelianKulit = () => {
                 'order[0][dir]': 'desc'
             });
             
-            const jsonData = await HttpClient.get(`${FEEDMIL_API_BASE}/data?${params}`);
+            const jsonData = await HttpClient.get(`${KULIT_API_BASE}/data?${params}`);
             
             if (jsonData && jsonData.data) {
                 // Transform backend data to match frontend expectations
@@ -196,26 +196,11 @@ const usePembelianKulit = () => {
             
             // Header data mapping to backend fields - aligned with backend validation rules
             formData.append('id_office', parseInt(pembelianData.idOffice) || 1); // Use selected office ID
-            formData.append('nota', pembelianData.nota || '');
             formData.append('id_supplier', pembelianData.idSupplier || pembelianData.id_supplier || '');
             formData.append('tgl_masuk', pembelianData.tgl_masuk || '');
-            formData.append('nama_supir', pembelianData.nama_supir || '');
-            formData.append('plat_nomor', pembelianData.plat_nomor || '');
             formData.append('jumlah', pembelianData.total_kulit || pembelianData.totalJumlah || 0);
-            formData.append('biaya_truk', pembelianData.biaya_truck || pembelianData.biaya_truk || 0); // Fixed: backend expects 'biaya_truk'
-            formData.append('biaya_lain', pembelianData.biaya_lain || 0);
             formData.append('biaya_total', pembelianData.harga_total || pembelianData.totalHPP || 0); // Backend expects 'biaya_total'
             formData.append('berat_total', pembelianData.berat_total || pembelianData.totalBerat || 0);
-            // Map values to integers as per backend validation
-            // Handle both string values from dropdown and integer values from API
-            const mapTipePembelian = (tipe) => {
-                // Handle integer values from dropdown/API
-                if (tipe === 1 || tipe === '1') return 1; // FEEDMIL - SUPPLIER
-                if (tipe === 2 || tipe === '2') return 2; // FEEDMIL - LANGSUNG
-                if (tipe === 3 || tipe === '3') return 3; // FEEDMIL - KONTRAK
-                return parseInt(tipe) || 1; // Default to SUPPLIER if can't parse
-            };
-            formData.append('tipe_pembelian', mapTipePembelian(pembelianData.tipePembelian));
             formData.append('note', pembelianData.note || 'Pembelian Feedmil dari Head Office'); // Required field
             formData.append('nota_ho', pembelianData.nota_ho || ''); // Required field
             formData.append('id_farm', pembelianData.id_farm || ''); // Required field
@@ -231,13 +216,6 @@ const usePembelianKulit = () => {
                 pembelianData.detailItems.forEach((item, index) => {
                     // Only append fields that match backend DETAIL_VALIDATION_RULES with proper type conversion
                     formData.append(`details[${index}][item_name]`, item.item_name || '');
-                    
-                    // Handle id_klasifikasi_kulit - send integer ID to backend
-                    const klasifikasiValue = item.id_klasifikasi_kulit;
-                    if (klasifikasiValue && (typeof klasifikasiValue === 'number' || !isNaN(parseInt(klasifikasiValue)))) {
-                        // Send integer ID directly to backend for validation
-                        formData.append(`details[${index}][id_klasifikasi_kulit]`, parseInt(klasifikasiValue));
-                    }
                     
                     // Ensure numeric fields are properly formatted according to backend validation
                     formData.append(`details[${index}][harga]`, parseFloat(item.harga) || 0);
@@ -267,7 +245,7 @@ const usePembelianKulit = () => {
             const authToken = localStorage.getItem('authToken') || localStorage.getItem('token');
             
             // Try with explicit options to handle 302 redirect issue
-            const jsonData = await HttpClient.post(`${FEEDMIL_API_BASE}/store`, formData, {
+            const jsonData = await HttpClient.post(`${KULIT_API_BASE}/store`, formData, {
                 // Don't set Content-Type for FormData - browser will set it automatically with boundary
                 skipCsrf: true, // Skip CSRF token for JWT-based API
                 credentials: 'omit', // Don't send cookies that might interfere with JWT
@@ -314,7 +292,7 @@ const usePembelianKulit = () => {
             
             // For development: provide more detailed error info
             const errorMsg = `${err.message || 'Terjadi kesalahan saat menyimpan data'}\n\nDetail: ${JSON.stringify({
-                endpoint: `${FEEDMIL_API_BASE}/store`,
+                endpoint: `${KULIT_API_BASE}/store`,
                 hasFormData: true,
                 errorType: err.name || 'Unknown'
             }, null, 2)}`;
@@ -339,26 +317,11 @@ const usePembelianKulit = () => {
             
             // Header data mapping to backend fields - aligned with backend validation rules
             formData.append('id_office', parseInt(data.idOffice) || 1); // Use selected office ID, fallback to Head Office
-            formData.append('nota', data.nota || '');
             formData.append('id_supplier', data.idSupplier || data.id_supplier || '');
             formData.append('tgl_masuk', data.tgl_masuk || '');
-            formData.append('nama_supir', data.nama_supir || '');
-            formData.append('plat_nomor', data.plat_nomor || '');
             formData.append('jumlah', data.total_kulit || data.totalJumlah || 0);
-            formData.append('biaya_truk', data.biaya_truck || data.biaya_truk || 0); // Fixed: backend expects 'biaya_truk'
-            formData.append('biaya_lain', data.biaya_lain || 0);
             formData.append('biaya_total', data.harga_total || data.totalHPP || 0); // Backend expects 'biaya_total'
             formData.append('berat_total', data.berat_total || data.totalBerat || 0);
-            // Map values to integers as per backend validation
-            // Handle both string values from dropdown and integer values from API
-            const mapTipePembelian = (tipe) => {
-                // Handle integer values from dropdown/API
-                if (tipe === 1 || tipe === '1') return 1; // FEEDMIL - SUPPLIER
-                if (tipe === 2 || tipe === '2') return 2; // FEEDMIL - LANGSUNG
-                if (tipe === 3 || tipe === '3') return 3; // FEEDMIL - KONTRAK
-                return parseInt(tipe) || 1; // Default to SUPPLIER if can't parse
-            };
-            formData.append('tipe_pembelian', mapTipePembelian(data.tipePembelian));
             formData.append('note', data.note || 'Pembelian Feedmil dari Head Office'); // Required field
             formData.append('nota_ho', data.nota_ho || ''); // Required field
             formData.append('id_farm', data.id_farm || ''); // Required field
@@ -369,7 +332,7 @@ const usePembelianKulit = () => {
                 formData.append('file', data.file);
             }
             
-            const jsonData = await HttpClient.post(`${FEEDMIL_API_BASE}/update`, formData, {
+            const jsonData = await HttpClient.post(`${KULIT_API_BASE}/update`, formData, {
                 // Don't set Content-Type for FormData - browser will set it automatically with boundary
                 skipCsrf: true // Skip CSRF token for JWT-based API
             });
@@ -411,7 +374,7 @@ const usePembelianKulit = () => {
                 throw new Error('ID pembelian tidak valid atau tidak ditemukan');
             }
             
-            const jsonData = await HttpClient.post(`${FEEDMIL_API_BASE}/hapus`, {
+            const jsonData = await HttpClient.post(`${KULIT_API_BASE}/hapus`, {
                 pid: encryptedPid
             }, {
                 skipCsrf: true // Skip CSRF token for JWT-based API
@@ -469,7 +432,7 @@ const usePembelianKulit = () => {
         setError(null);
         
         try {
-            const jsonData = await HttpClient.post(`${FEEDMIL_API_BASE}/show`, {
+            const jsonData = await HttpClient.post(`${KULIT_API_BASE}/show`, {
                 pid: encryptedPid
             }, {
                 skipCsrf: true // Skip CSRF token for JWT-based API
@@ -554,7 +517,7 @@ const usePembelianKulit = () => {
             
 
             
-            const result = await HttpClient.post(`${FEEDMIL_API_BASE}/update`, requestData);
+            const result = await HttpClient.post(`${KULIT_API_BASE}/update`, requestData);
             
             if (result && result.status === 'ok') {
                 return {
@@ -583,7 +546,7 @@ const usePembelianKulit = () => {
         
         try {
             // Backend delete method menggunakan POST method
-            const result = await HttpClient.post(`${FEEDMIL_API_BASE}/hapus`, {
+            const result = await HttpClient.post(`${KULIT_API_BASE}/hapus`, {
                 pid: encryptedPid
             });
             
@@ -629,7 +592,7 @@ const usePembelianKulit = () => {
         
         return {
             total: serverPagination.recordsTotal || serverPagination.totalItems || total, // Use recordsTotal from API response
-            totalFeedmil: totalFeedmil,
+            totalKulit: totalFeedmil, // Renamed to match kulit context
             today: todayPurchases,
             thisMonth: thisMonthPurchases
         };
