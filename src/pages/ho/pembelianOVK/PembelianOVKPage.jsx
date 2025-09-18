@@ -776,6 +776,7 @@ const PembelianOVKPage = () => {
                                         onEdit={handleEdit}
                                         onDelete={handleDelete}
                                         onDetail={handleDetail}
+                                        cardType="ovk"
                                     />
                                 ))}
                             </div>

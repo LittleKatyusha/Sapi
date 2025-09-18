@@ -11,19 +11,23 @@ import {
   Eye,
   File,
   Loader2,
-  MoreVertical 
+  MoreVertical,
+  Download
 } from 'lucide-react';
 import { API_ENDPOINTS, API_BASE_URL } from '../../../../config/api';
+import LaporanPembelianService from '../../../../services/laporanPembelianService';
 
 const PembelianFeedmilCard = ({
     data,
     onEdit,
     onDelete,
     onDetail,
-    index
+    index,
+    cardType = 'feedmil' // 'feedmil' or 'ovk'
 }) => {
     const [showMenu, setShowMenu] = useState(false);
     const [fileLoading, setFileLoading] = useState(false);
+    const [downloadLoading, setDownloadLoading] = useState(false);
     const menuRef = useRef(null);
 
     // Menangani klik di luar menu untuk menutupnya
@@ -191,6 +195,53 @@ const PembelianFeedmilCard = ({
         }
     };
 
+    // Handle download functionality
+    const handleDownload = async () => {
+        // Use id if available, otherwise fallback to encryptedPid
+        const reportId = data.id || data.encryptedPid;
+        
+        if (!reportId) {
+            alert('ID pembelian tidak tersedia');
+            return;
+        }
+
+        setDownloadLoading(true);
+        try {
+            let blob;
+            let filename;
+            
+            // Use appropriate service based on card type
+            if (cardType === 'ovk') {
+                blob = await LaporanPembelianService.downloadReportNotaOvk(reportId);
+                filename = `Laporan_Pembelian_OVK_${data.nota || 'Report'}.pdf`;
+            } else {
+                // Default to feedmil
+                blob = await LaporanPembelianService.downloadReportNotaFeedmil(reportId);
+                filename = `Laporan_Pembelian_Feedmil_${data.nota || 'Report'}.pdf`;
+            }
+            
+            // Create download link
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            
+            // Close menu after successful download
+            setShowMenu(false);
+            
+        } catch (error) {
+            console.error('Error downloading report:', error);
+            alert(error.message || 'Terjadi kesalahan saat mengunduh laporan');
+        } finally {
+            setDownloadLoading(false);
+        }
+    };
+
 
     return (
         <div className="bg-white rounded-2xl p-5 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 relative overflow-hidden">
@@ -215,7 +266,7 @@ const PembelianFeedmilCard = ({
                     </button>
                     
                     {showMenu && (
-                        <div className="absolute right-0 top-10 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-20 min-w-[160px]">
+                        <div className="absolute right-0 top-10 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-20 min-w-[180px]">
                             <button
                                 onClick={handleDetail}
                                 className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 transition-colors duration-150"
@@ -230,17 +281,33 @@ const PembelianFeedmilCard = ({
                                     className={`flex items-center gap-3 w-full px-4 py-2.5 text-sm transition-colors duration-150 ${
                                         fileLoading 
                                             ? 'text-gray-400 cursor-not-allowed' 
-                                            : 'text-gray-700 hover:bg-green-50'
+                                            : 'text-gray-700 hover:bg-purple-50'
                                     }`}
                                 >
                                     {fileLoading ? (
-                                        <Loader2 className="w-4 h-4 text-green-500 animate-spin" />
+                                        <Loader2 className="w-4 h-4 text-purple-500 animate-spin" />
                                     ) : (
-                                        <File className="w-4 h-4 text-green-500" />
+                                        <File className="w-4 h-4 text-purple-500" />
                                     )}
                                     {fileLoading ? 'Membuka...' : 'Lihat File'}
                                 </button>
                             )}
+                            <button
+                                onClick={handleDownload}
+                                disabled={downloadLoading}
+                                className={`flex items-center gap-3 w-full px-4 py-2.5 text-sm transition-colors duration-150 ${
+                                    downloadLoading 
+                                        ? 'text-gray-400 cursor-not-allowed' 
+                                        : 'text-gray-700 hover:bg-green-50'
+                                }`}
+                            >
+                                {downloadLoading ? (
+                                    <Loader2 className="w-4 h-4 text-green-500 animate-spin" />
+                                ) : (
+                                    <Download className="w-4 h-4 text-green-500" />
+                                )}
+                                {downloadLoading ? 'Mengunduh...' : 'Download Nota'}
+                            </button>
                             <button
                                 onClick={handleEdit}
                                 className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150"
@@ -248,6 +315,7 @@ const PembelianFeedmilCard = ({
                                 <Edit className="w-4 h-4 text-amber-500" />
                                 Edit
                             </button>
+                            <div className="border-t border-gray-200 my-1"></div>
                             <button
                                 onClick={handleDelete}
                                 className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors duration-150"

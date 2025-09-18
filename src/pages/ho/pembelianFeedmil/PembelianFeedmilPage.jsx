@@ -855,6 +855,7 @@ const PembelianFeedmilPage = () => {
                                         onEdit={handleEdit}
                                         onDelete={handleDelete}
                                         onDetail={handleDetail}
+                                        cardType="feedmil"
                                     />
                                 ))}
                             </div>

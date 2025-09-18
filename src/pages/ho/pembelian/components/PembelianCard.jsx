@@ -11,8 +11,13 @@ import {
   Eye, 
   Edit, 
   Trash2, 
-  MoreVertical 
+  MoreVertical,
+  Download,
+  FileText,
+  Loader2
 } from 'lucide-react';
+import LaporanPembelianService from '../../../../services/laporanPembelianService';
+import { API_ENDPOINTS, API_BASE_URL } from '../../../../config/api';
 
 const PembelianCard = ({
     data,
@@ -23,6 +28,8 @@ const PembelianCard = ({
     getJenisPembelianLabel
 }) => {
     const [showMenu, setShowMenu] = useState(false);
+    const [downloadLoading, setDownloadLoading] = useState(false);
+    const [fileLoading, setFileLoading] = useState(false);
     const menuRef = useRef(null);
 
     // Menangani klik di luar menu untuk menutupnya
@@ -63,6 +70,176 @@ const PembelianCard = ({
         setShowMenu(false);
     };
 
+    // Handle view file functionality - Updated for new Minio storage
+    const handleViewFile = async () => {
+        if (!data.file) {
+            alert('File tidak tersedia untuk pembelian ini');
+            return;
+        }
+
+        setFileLoading(true);
+        try {
+            // Get auth token
+            const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+            
+            if (!token) {
+                alert('Sesi login telah berakhir. Silakan login kembali.');
+                return;
+            }
+
+            // Debug: Log the original path
+            console.log('PembelianCard - Original file path:', data.file);
+            
+            let cleanPath;
+            
+            // Check if it's a full Minio URL or relative path
+            if (data.file.startsWith('http://') || data.file.startsWith('https://')) {
+                // It's a full Minio URL, extract the relative path
+                // Example: http://31.97.110.74:9000/ternasys/ho/ternak/pembelian/2025/9/224/filename.pdf
+                // Extract: ho/ternak/pembelian/2025/9/224/filename.pdf
+                const url = new URL(data.file);
+                const pathParts = url.pathname.split('/');
+                // Remove empty parts and 'ternasys' prefix
+                const filteredParts = pathParts.filter(part => part && part !== 'ternasys');
+                cleanPath = filteredParts.join('/');
+                console.log('PembelianCard - Extracted relative path from Minio URL:', cleanPath);
+            } else {
+                // It's already a relative path
+                cleanPath = data.file.replace(/\\/g, '/');
+                console.log('PembelianCard - Using relative path as is:', cleanPath);
+            }
+            
+            // Create the API endpoint URL - Use regular pembelian endpoint
+            const fileUrl = `${API_BASE_URL}${API_ENDPOINTS.HO.PEMBELIAN}/file/${cleanPath}`;
+            
+            console.log('PembelianCard - Final file URL:', fileUrl);
+            
+            // Create new window
+            const newWindow = window.open('about:blank', '_blank');
+            
+            // Fetch file with authentication and proper headers for Minio storage
+            const response = await fetch(fileUrl, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/pdf,image/*,*/*',
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache'
+                }
+            });
+
+            console.log('PembelianCard - Response status:', response.status);
+            console.log('PembelianCard - Response headers:', response.headers);
+
+            if (response.ok) {
+                // Check if response is a streamed response from backend
+                const contentType = response.headers.get('content-type');
+                const contentDisposition = response.headers.get('content-disposition');
+                
+                console.log('PembelianCard - Content-Type:', contentType);
+                console.log('PembelianCard - Content-Disposition:', contentDisposition);
+                
+                const blob = await response.blob();
+                console.log('PembelianCard - Blob received:', blob);
+                console.log('PembelianCard - Blob size:', blob.size);
+                console.log('PembelianCard - Blob type:', blob.type);
+                
+                if (blob.size === 0) {
+                    throw new Error('File kosong atau tidak valid');
+                }
+                
+                const blobUrl = URL.createObjectURL(blob);
+                console.log('PembelianCard - Blob URL created:', blobUrl);
+                
+                if (newWindow && !newWindow.closed) {
+                    newWindow.location.href = blobUrl;
+                    // Clean up blob URL after a delay to allow the window to load
+                    setTimeout(() => {
+                        URL.revokeObjectURL(blobUrl);
+                    }, 1000);
+                } else {
+                    // Fallback: download file
+                    const link = document.createElement('a');
+                    link.href = blobUrl;
+                    link.download = cleanPath.split('/').pop() || 'document';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(blobUrl);
+                }
+            } else if (response.status === 401) {
+                alert('Sesi login telah berakhir');
+                if (newWindow && !newWindow.closed) {
+                    newWindow.close();
+                }
+            } else if (response.status === 404) {
+                alert('File tidak ditemukan di server');
+                if (newWindow && !newWindow.closed) {
+                    newWindow.close();
+                }
+            } else if (response.status === 403) {
+                alert('Tidak memiliki izin untuk mengakses file ini');
+                if (newWindow && !newWindow.closed) {
+                    newWindow.close();
+                }
+            } else {
+                alert(`File tidak dapat diakses (${response.status})`);
+                if (newWindow && !newWindow.closed) {
+                    newWindow.close();
+                }
+            }
+            
+            // Close menu after successful view
+            setShowMenu(false);
+            
+        } catch (error) {
+            console.error('Error viewing file:', error);
+            alert('Gagal membuka file. Silakan coba lagi.');
+        } finally {
+            setFileLoading(false);
+        }
+    };
+
+    // Handle download functionality
+    const handleDownload = async () => {
+        // Use id if available, otherwise fallback to encryptedPid
+        const reportId = data.id || data.encryptedPid;
+        
+        if (!reportId) {
+            alert('ID pembelian tidak tersedia');
+            return;
+        }
+
+        setDownloadLoading(true);
+        try {
+            // Use regular supplier report for HO pembelian
+            const blob = await LaporanPembelianService.downloadReportNotaSupplier(reportId);
+            
+            // Create download link
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            
+            // Generate appropriate filename
+            const filename = `Laporan_Pembelian_${data.nota || 'Report'}.pdf`;
+            
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            
+            // Close menu after successful download
+            setShowMenu(false);
+            
+        } catch (error) {
+            console.error('Error downloading report:', error);
+            alert(error.message || 'Terjadi kesalahan saat mengunduh laporan');
+        } finally {
+            setDownloadLoading(false);
+        }
+    };
+
 
     return (
         <div className="bg-white rounded-2xl p-5 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 relative overflow-hidden">
@@ -87,7 +264,7 @@ const PembelianCard = ({
                     </button>
                     
                     {showMenu && (
-                        <div className="absolute right-0 top-10 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-20 min-w-[160px]">
+                        <div className="absolute right-0 top-10 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-20 min-w-[180px]">
                             <button
                                 onClick={handleDetail}
                                 className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150"
@@ -102,6 +279,33 @@ const PembelianCard = ({
                                 <Edit className="w-4 h-4 text-amber-500" />
                                 Edit
                             </button>
+                            {data.file && (
+                                <button
+                                    onClick={handleViewFile}
+                                    disabled={fileLoading}
+                                    className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {fileLoading ? (
+                                        <Loader2 className="w-4 h-4 text-purple-500 animate-spin" />
+                                    ) : (
+                                        <FileText className="w-4 h-4 text-purple-500" />
+                                    )}
+                                    {fileLoading ? 'Membuka...' : 'Lihat File'}
+                                </button>
+                            )}
+                            <button
+                                onClick={handleDownload}
+                                disabled={downloadLoading}
+                                className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {downloadLoading ? (
+                                    <Loader2 className="w-4 h-4 text-green-500 animate-spin" />
+                                ) : (
+                                    <Download className="w-4 h-4 text-green-500" />
+                                )}
+                                {downloadLoading ? 'Mengunduh...' : 'Download Nota'}
+                            </button>
+                            <div className="border-t border-gray-200 my-1"></div>
                             <button
                                 onClick={handleDelete}
                                 className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors duration-150"
