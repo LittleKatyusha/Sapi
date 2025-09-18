@@ -191,11 +191,22 @@ const handleResponseError = async (response) => {
 };
 
 /**
+ * Request cache for GET requests
+ */
+const requestCache = new Map();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * Request deduplication for concurrent requests
+ */
+const pendingRequests = new Map();
+
+/**
  * Main HTTP client class
  */
 class HttpClient {
   /**
-   * GET request
+   * GET request with caching and deduplication
    */
   static async get(endpoint, options = {}) {
     return performanceMonitor.measureApiCall(endpoint, async () => {
@@ -216,33 +227,73 @@ class HttpClient {
         }
       }
       
+      // Check cache first (if caching is enabled)
+      const cacheKey = `GET:${url}`;
+      if (options.cache !== false) {
+        const cached = requestCache.get(cacheKey);
+        if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+          if (process.env.NODE_ENV === 'development') {
+            console.log('📦 Cache hit for:', url);
+          }
+          return cached.data;
+        }
+      }
+      
+      // Check for pending request (deduplication)
+      if (pendingRequests.has(cacheKey)) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('⏳ Deduplicating request for:', url);
+        }
+        return pendingRequests.get(cacheKey);
+      }
+      
       // Check if request should be blocked due to recent failures
       if (shouldBlockRequest(url)) {
         throw new Error('Request blocked due to recent failures. Please wait before retrying.');
       }
       
       // Remove params from options before passing to fetch
-      const { params, ...fetchOptions } = options;
+      const { params, cache, ...fetchOptions } = options;
       
-      try {
-        const response = await fetch(url, {
-          method: 'GET',
-          headers: await buildHeaders(options.headers),
-          credentials: 'include',
-          ...fetchOptions
-        });
-        
-        await handleResponseError(response);
-        
-        // Clear failed request record on success
-        clearFailedRequest(url);
-        
-        return response.json();
-      } catch (error) {
-        // Record failed request for retry prevention
-        recordFailedRequest(url);
-        throw error;
-      }
+      // Create the request promise
+      const requestPromise = (async () => {
+        try {
+          const response = await fetch(url, {
+            method: 'GET',
+            headers: await buildHeaders(options.headers),
+            credentials: 'include',
+            ...fetchOptions
+          });
+          
+          await handleResponseError(response);
+          const data = await response.json();
+          
+          // Clear failed request record on success
+          clearFailedRequest(url);
+          
+          // Cache the response (if caching is enabled)
+          if (options.cache !== false) {
+            requestCache.set(cacheKey, {
+              data,
+              timestamp: Date.now()
+            });
+          }
+          
+          return data;
+        } catch (error) {
+          // Record failed request for retry prevention
+          recordFailedRequest(url);
+          throw error;
+        } finally {
+          // Remove from pending requests
+          pendingRequests.delete(cacheKey);
+        }
+      })();
+      
+      // Store pending request
+      pendingRequests.set(cacheKey, requestPromise);
+      
+      return requestPromise;
     });
   }
 
@@ -380,6 +431,92 @@ class HttpClient {
     
     return response.json();
   }
+  
+  /**
+   * Clear request cache
+   */
+  static clearCache(pattern = null) {
+    if (pattern) {
+      const regex = new RegExp(pattern);
+      for (const [key] of requestCache) {
+        if (regex.test(key)) {
+          requestCache.delete(key);
+        }
+      }
+    } else {
+      requestCache.clear();
+    }
+  }
+  
+  /**
+   * Get cache statistics
+   */
+  static getCacheStats() {
+    return {
+      size: requestCache.size,
+      keys: Array.from(requestCache.keys()),
+      pendingRequests: pendingRequests.size
+    };
+  }
+  
+  /**
+   * Batch requests utility
+   */
+  static async batch(requests) {
+    const results = await Promise.allSettled(
+      requests.map(({ method, endpoint, data, options }) => 
+        this.request(method, endpoint, data, options)
+      )
+    );
+    
+    return results.map((result, index) => ({
+      ...requests[index],
+      success: result.status === 'fulfilled',
+      data: result.status === 'fulfilled' ? result.value : null,
+      error: result.status === 'rejected' ? result.reason : null
+    }));
+  }
+  
+  /**
+   * Retry mechanism for failed requests
+   */
+  static async withRetry(requestFn, maxRetries = 3, delay = 1000) {
+    let lastError;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await requestFn();
+      } catch (error) {
+        lastError = error;
+        
+        if (attempt === maxRetries) {
+          throw error;
+        }
+        
+        // Exponential backoff
+        const waitTime = delay * Math.pow(2, attempt - 1);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.warn(`🔄 Retrying request (attempt ${attempt + 1}/${maxRetries}) after ${waitTime}ms`);
+        }
+      }
+    }
+    
+    throw lastError;
+  }
+}
+
+// Clean up expired cache entries periodically
+if (typeof window !== 'undefined') {
+  setInterval(() => {
+    const now = Date.now();
+    for (const [key, value] of requestCache) {
+      if (now - value.timestamp > CACHE_DURATION) {
+        requestCache.delete(key);
+      }
+    }
+  }, CACHE_DURATION);
 }
 
 export default HttpClient;
