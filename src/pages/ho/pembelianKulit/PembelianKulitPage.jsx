@@ -220,18 +220,6 @@ const PembelianKulitPage = () => {
             ignoreRowClick: true,
         },
         {
-            name: 'Nota',
-            selector: row => row.nota,
-            sortable: true,
-            width: '150px',
-            wrap: true,
-            cell: row => (
-                <span className="font-mono text-sm bg-gray-100 px-3 py-1.5 rounded-lg" title={row.nota}>
-                    {row.nota || '-'}
-                </span>
-            )
-        },
-        {
             name: 'Nota HO',
             selector: row => row.nota_ho,
             sortable: true,
@@ -252,30 +240,6 @@ const PembelianKulitPage = () => {
             cell: row => (
                 <span className="text-gray-900">
                     {row.tgl_masuk ? new Date(row.tgl_masuk).toLocaleDateString('id-ID') : '-'}
-                </span>
-            )
-        },
-        {
-            name: 'Nama Sopir',
-            selector: row => row.nama_supir,
-            sortable: true,
-            width: '180px',
-            wrap: true,
-            cell: row => (
-                <div className="font-medium text-gray-900" title={row.nama_supir}>
-                    {row.nama_supir || '-'}
-                </div>
-            )
-        },
-        {
-            name: 'Plat Nomor',
-            selector: row => row.plat_nomor,
-            sortable: true,
-            width: '130px',
-            wrap: true,
-            cell: row => (
-                <span className="font-mono text-sm" title={row.plat_nomor}>
-                    {row.plat_nomor || '-'}
                 </span>
             )
         },
@@ -365,40 +329,6 @@ const PembelianKulitPage = () => {
                         minimumFractionDigits: 0,
                         maximumFractionDigits: 0
                     }).format(row.biaya_total) : 'Rp 0'}
-                </span>
-            )
-        },
-        {
-            name: 'Biaya Lain',
-            selector: row => row.biaya_lain,
-            sortable: true,
-            width: '150px',
-            wrap: true,
-            cell: row => (
-                <span className="inline-flex px-3 py-2 text-sm font-semibold rounded-lg bg-orange-100 text-orange-800">
-                    {row.biaya_lain ? new Intl.NumberFormat('id-ID', {
-                        style: 'currency',
-                        currency: 'IDR',
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0
-                    }).format(row.biaya_lain) : 'Rp 0'}
-                </span>
-            )
-        },
-        {
-            name: 'Biaya Truk',
-            selector: row => row.biaya_truk,
-            sortable: true,
-            width: '150px',
-            wrap: true,
-            cell: row => (
-                <span className="inline-flex px-3 py-2 text-sm font-semibold rounded-lg bg-cyan-100 text-cyan-800">
-                    {row.biaya_truk ? new Intl.NumberFormat('id-ID', {
-                        style: 'currency',
-                        currency: 'IDR',
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0
-                    }).format(row.biaya_truk) : 'Rp 0'}
                 </span>
             )
         },
@@ -579,7 +509,7 @@ const PembelianKulitPage = () => {
                             
                             <input
                                 type="text"
-                                placeholder="Cari berdasarkan nota, supplier, supir, atau plat nomor..."
+                                placeholder="Cari berdasarkan supplier atau nota HO..."
                                 value={searchTerm}
                                 onChange={(e) => handleSearch(e.target.value)}
                                 className={`w-full pl-12 ${searchTerm || isSearching ? 'pr-12' : 'pr-4'} py-2.5 sm:py-3 md:py-4 border ${searchError ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'} rounded-full transition-all duration-200 text-sm sm:text-base shadow-sm hover:shadow-md`}
@@ -642,7 +572,7 @@ const PembelianKulitPage = () => {
                             WebkitOverflowScrolling: 'touch',
                         }}
                     >
-                        <div style={{ minWidth: '1850px' }}>
+                        <div style={{ minWidth: '1200px' }}>
                             <DataTable
                             key={`datatable-${serverPagination.currentPage}-${filteredData.length}`}
                             columns={columns}
@@ -661,7 +591,7 @@ const PembelianKulitPage = () => {
                                 },
                                 table: {
                                     style: {
-                                        minWidth: '1850px',
+                                        minWidth: '1200px',
                                     }
                                 },
                                 headCells: {

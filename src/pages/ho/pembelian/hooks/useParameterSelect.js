@@ -16,6 +16,8 @@ const useParameterSelect = (isEditMode = false, supplierFilters = {}, tipePembel
         klasifikasihewan: [],
         klasifikasifeedmil: [],
         klasifikasiovk: [],
+        klasifikasikulit: [],
+        itemkulit: [],
         farm: [],
         outlet: [],
         jenishewan: []
@@ -74,6 +76,8 @@ const useParameterSelect = (isEditMode = false, supplierFilters = {}, tipePembel
                     klasifikasihewan: data.klasifikasihewan || [],
                     klasifikasifeedmil: data.klasifikasifeedmil || [],
                     klasifikasiovk: data.klasifikasiovk || [],
+                    klasifikasikulit: data.klasifikasikulit || [],
+                    itemkulit: data.itemkulit || [],
                     farm: data.farm || [],
                     outlet: data.outlet || [],
                     jenishewan: data.jenishewan || []
@@ -106,6 +110,8 @@ const useParameterSelect = (isEditMode = false, supplierFilters = {}, tipePembel
                 klasifikasihewan: [],
                 klasifikasifeedmil: [],
                 klasifikasiovk: [],
+                klasifikasikulit: [],
+                itemkulit: [],
                 farm: [],
                 outlet: [],
                 jenishewan: []
@@ -214,6 +220,20 @@ const useParameterSelect = (isEditMode = false, supplierFilters = {}, tipePembel
         }));
     }, [parameterData.klasifikasiovk]);
 
+    const klasifikasiKulitOptions = useMemo(() => {
+        return parameterData.klasifikasikulit.map(item => ({
+            value: item.id,
+            label: item.name
+        }));
+    }, [parameterData.klasifikasikulit]);
+
+    const itemKulitOptions = useMemo(() => {
+        return parameterData.itemkulit.map(item => ({
+            value: item.id,
+            label: item.name
+        }));
+    }, [parameterData.itemkulit]);
+
     const farmOptions = useMemo(() => {
         return parameterData.farm.map(item => ({
             value: item.id,
@@ -246,6 +266,8 @@ const useParameterSelect = (isEditMode = false, supplierFilters = {}, tipePembel
         klasifikasiHewanOptions,
         klasifikasiFeedmilOptions,
         klasifikasiOVKOptions,
+        klasifikasiKulitOptions,
+        itemKulitOptions,
         farmOptions,
         outletOptions,
         jenisHewanOptions,

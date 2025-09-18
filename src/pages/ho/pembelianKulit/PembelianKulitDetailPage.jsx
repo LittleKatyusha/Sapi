@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Building2, User, Calendar, Truck, Hash, Package, Eye, Weight, DollarSign } from 'lucide-react';
+import { ArrowLeft, Building2, Calendar, Hash, Package, Eye, Weight } from 'lucide-react';
 import usePembelianKulit from './hooks/usePembelianKulit';
 import useFarmAPI from './hooks/useFarmAPI';
 import useBanksAPI from './hooks/useBanksAPI';
@@ -487,15 +487,6 @@ const PembelianKulitDetailPage = () => {
                     </h2>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <Hash className="w-4 h-4 inline mr-1" />
-                                Nomor Nota
-                            </label>
-                            <p className="text-lg font-bold text-gray-900">
-                                {pembelianData.nota || '-'}
-                            </p>
-                        </div>
 
                         <div className="bg-gradient-to-r from-cyan-50 to-blue-50 p-4 rounded-lg">
                             <label className="block text-sm font-medium text-gray-600 mb-2">
@@ -562,35 +553,8 @@ const PembelianKulitDetailPage = () => {
                             </p>
                         </div>
 
-                        <div className="bg-gradient-to-r from-teal-50 to-cyan-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <User className="w-4 h-4 inline mr-1" />
-                                Nama Sopir
-                            </label>
-                            <p className="text-lg font-bold text-gray-900">
-                                {pembelianData.nama_supir || '-'}
-                            </p>
-                        </div>
 
-                        <div className="bg-gradient-to-r from-red-50 to-rose-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <Truck className="w-4 h-4 inline mr-1" />
-                                Plat Nomor
-                            </label>
-                            <p className="text-lg font-bold text-gray-900 font-mono">
-                                {pembelianData.plat_nomor || '-'}
-                            </p>
-                        </div>
 
-                        <div className="bg-gradient-to-r from-yellow-50 to-orange-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <Package className="w-4 h-4 inline mr-1" />
-                                Jenis Pembelian
-                            </label>
-                            <p className="text-lg font-bold text-gray-900">
-                                {pembelianData.jenis_pembelian || '-'}
-                            </p>
-                        </div>
 
                         <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-lg">
                             <label className="block text-sm font-medium text-gray-600 mb-2">
@@ -602,20 +566,6 @@ const PembelianKulitDetailPage = () => {
                             </p>
                         </div>
 
-                        <div className="bg-gradient-to-r from-pink-50 to-rose-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <DollarSign className="w-4 h-4 inline mr-1" />
-                                Biaya Lain
-                            </label>
-                            <p className="text-lg font-bold text-gray-900">
-                                {pembelianData.biaya_lain ? new Intl.NumberFormat('id-ID', {
-                                    style: 'currency',
-                                    currency: 'IDR',
-                                    minimumFractionDigits: 0,
-                                    maximumFractionDigits: 0
-                                }).format(pembelianData.biaya_lain) : 'Rp 0'}
-                            </p>
-                        </div>
                     </div>
 
 
