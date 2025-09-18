@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Save, Plus, Trash2, Building2, User, Calendar, Truck, Hash, Package, X, Settings, AlertCircle, Weight, DollarSign, Upload, FileText } from 'lucide-react';
 import usePembelianFeedmil from './hooks/usePembelianFeedmil';
-import useParameterSelect from './hooks/useParameterSelect';
+import useParameterSelect from '../pembelian/hooks/useParameterSelect';
 import useJenisPembelianFeedmil from './hooks/useJenisPembelianFeedmil';
 import useBanksAPI from './hooks/useBanksAPI';
 import SearchableSelect from '../../../components/shared/SearchableSelect';
@@ -40,11 +40,8 @@ const AddEditPembelianFeedmilPage = () => {
         klasifikasiFeedmilOptions,
         farmOptions,
         loading: parameterLoading,
-        error: parameterError,
-        supplierLoading,
-        isSupplierDataFetched,
-        fetchSupplierData
-    } = useParameterSelect(isEdit);
+        error: parameterError
+    } = useParameterSelect(isEdit, { kategoriSupplier: 2 });
 
     // Jenis Pembelian Feedmil API integration
     const {
@@ -195,6 +192,14 @@ const AddEditPembelianFeedmilPage = () => {
 
     // Use Feedmil suppliers only (kategori_supplier = 2)
     const supplierOptionsToShow = supplierOptions;
+    
+    // Debug: Log supplier options to verify filtering
+    useEffect(() => {
+        console.log('📊 AddEditPembelianFeedmilPage: Supplier options received:', supplierOptionsToShow.length, 'suppliers');
+        if (supplierOptionsToShow.length > 0) {
+            console.log('📊 First supplier sample:', supplierOptionsToShow[0]);
+        }
+    }, [supplierOptionsToShow]);
 
     // Note: Removed pembelian list fetching for edit mode since we now use /show endpoint directly
     // This eliminates the need to fetch all data and then filter by pubid
@@ -1125,11 +1130,11 @@ const AddEditPembelianFeedmilPage = () => {
                                 value={headerData.idSupplier}
                                 onChange={(value) => handleHeaderChange('idSupplier', value)}
                                 options={supplierOptionsToShow}
-                                placeholder={supplierLoading ? "Memuat supplier..." : "Pilih Supplier"}
+                                placeholder={parameterLoading ? "Memuat supplier..." : parameterError ? "Error loading supplier" : "Pilih Supplier"}
                                 className="w-full"
-                                disabled={supplierLoading}
+                                disabled={parameterLoading || parameterError}
                             />
-                            {supplierLoading && (
+                            {parameterLoading && (
                                 <p className="text-xs text-blue-600 mt-1">
                                     🔄 Memuat data supplier...
                                 </p>

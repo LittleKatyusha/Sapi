@@ -1,7 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import HttpClient from '../../../../services/httpClient';
 import { API_ENDPOINTS } from '../../../../config/api';
-import useKlasifikasiFeedmil from './useKlasifikasiFeedmil';
 
 // HttpClient already handles JSON parsing and error handling internally
 
@@ -10,8 +9,6 @@ const usePembelianFeedmil = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     
-    // Get klasifikasi feedmil options
-    const { klasifikasiFeedmilOptions } = useKlasifikasiFeedmil();
     const [searchTerm, setSearchTerm] = useState('');
     const [filterJenisPembelian, setFilterJenisPembelian] = useState('all');
     const [isSearching, setIsSearching] = useState(false);

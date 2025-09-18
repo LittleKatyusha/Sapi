@@ -1,162 +1,127 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import HttpClient from '../../../../services/httpClient';
 import { API_ENDPOINTS } from '../../../../config/api';
-import useSuppliersAPI from './useSuppliersAPI';
 
-const useParameterSelect = (isEditMode = false) => {
-    const [parameterData, setParameterData] = useState({
+// Module-level cache untuk mencegah multiple fetch
+let cachedData = null;
+let cachedLoading = false;
+let cachedError = null;
+let fetchInProgress = false;
+
+const useParameterSelect = (isEditMode = false, supplierFilters = {}, tipePembelianOptions = [], selectedTipePembelian = null) => {
+    const [parameterData, setParameterData] = useState(cachedData || {
         eartag: [],
         supplier: [],
         office: [],
         klasifikasihewan: [],
+        klasifikasifeedmil: [],
+        klasifikasiovk: [],
+        farm: [],
         outlet: [],
         jenishewan: []
     });
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
-    
-    // Use the dedicated supplier hook for better filtering support
-    const {
-        supplierOptions: directSupplierOptions,
-        loading: supplierLoading,
-        error: supplierError,
-        fetchSuppliersWithFilter
-    } = useSuppliersAPI(null, 1); // kategori_supplier = 1 for Ternak
-    
-    const [isSupplierDataFetched, setIsSupplierDataFetched] = useState(false);
+    const [loading, setLoading] = useState(cachedLoading);
+    const [error, setError] = useState(cachedError);
+    const hasInitialized = useRef(false);
 
-    // Supplier data loading function - can be immediate or lazy based on context
-    const fetchSupplierData = async (jenisSupplier = null, forceLoad = false) => {
-        // Skip caching check if forceLoad is true (for edit mode)
-        if (!forceLoad && isSupplierDataFetched && jenisSupplier === null) {
-            console.log('📊 Supplier data already fetched (no filter), skipping...');
+
+    const fetchParameterData = async () => {
+        // Jika sudah ada data cached, gunakan data tersebut
+        if (cachedData) {
+            setParameterData(cachedData);
+            setLoading(false);
+            setError(null);
             return;
         }
 
-        console.log('📊 Fetching supplier data with filter:', jenisSupplier, forceLoad ? '(forced load)' : '(lazy loading)');
-        
-        try {
-            // Use the direct supplier API with filter support
-            await fetchSuppliersWithFilter(jenisSupplier);
-            
-            // Only mark as fetched if no specific filter (general data)
-            if (jenisSupplier === null) {
-                setIsSupplierDataFetched(true);
-            }
-            
-            
-        } catch (err) {
-            
-            setError(err.message);
+        // Jika sedang loading, tunggu sebentar dan cek lagi
+        if (fetchInProgress) {
+            // Polling untuk menunggu fetch selesai
+            const checkInterval = setInterval(() => {
+                if (!fetchInProgress) {
+                    clearInterval(checkInterval);
+                    if (cachedData) {
+                        setParameterData(cachedData);
+                        setLoading(false);
+                        setError(null);
+                    } else if (cachedError) {
+                        setError(cachedError);
+                        setLoading(false);
+                    }
+                }
+            }, 100);
+            return;
         }
-    };
 
-    const fetchParameterData = async () => {
+        // Mulai fetch baru
+        fetchInProgress = true;
         setLoading(true);
         setError(null);
+        cachedLoading = true;
+        cachedError = null;
         
         try {
-            
-            
-            // Use the new centralized parameter endpoint
+            console.log('🔄 Fetching parameter data from API...');
             const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.PARAMETER}/data`);
-            
-            
             
             // Handle the response format from ParameterSelectController
             if (result.data && Array.isArray(result.data) && result.data.length > 0) {
                 const data = result.data[0]; // The controller returns data in an array
-                setParameterData({
+                const newData = {
                     eartag: data.eartag || [],
                     supplier: data.supplier || [],
                     office: data.office || [],
                     klasifikasihewan: data.klasifikasihewan || [],
+                    klasifikasifeedmil: data.klasifikasifeedmil || [],
+                    klasifikasiovk: data.klasifikasiovk || [],
+                    farm: data.farm || [],
                     outlet: data.outlet || [],
                     jenishewan: data.jenishewan || []
-                });
-                setIsSupplierDataFetched(true);
-                console.log('✅ Parameter data loaded:', Object.keys(data).map(key => `${key}: ${data[key]?.length || 0} items`).join(', '));
+                };
+                
+                // Update cache
+                cachedData = newData;
+                cachedLoading = false;
+                cachedError = null;
+                
+                // Update local state
+                setParameterData(newData);
+                setLoading(false);
+                setError(null);
+                console.log('✅ Parameter data cached successfully');
             } else {
                 throw new Error('Invalid response format from parameter endpoint');
             }
         } catch (err) {
+            console.error('❌ Error fetching parameter data:', err);
+            cachedError = err.message;
+            cachedLoading = false;
+            cachedData = null;
             
             setError(err.message);
-            // Set empty data on error
             setParameterData({
                 eartag: [],
                 supplier: [],
                 office: [],
                 klasifikasihewan: [],
+                klasifikasifeedmil: [],
+                klasifikasiovk: [],
+                farm: [],
                 outlet: [],
                 jenishewan: []
             });
-        } finally {
             setLoading(false);
-        }
-    };
-
-    // Auto-fetch non-supplier data on mount
-    const fetchNonSupplierData = async () => {
-        setLoading(true);
-        setError(null);
-        
-        try {
-            
-            
-            // Use the new centralized parameter endpoint
-            const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.PARAMETER}/data`);
-            
-            
-            
-            // Handle the response format from ParameterSelectController
-            if (result.data && Array.isArray(result.data) && result.data.length > 0) {
-                const data = result.data[0]; // The controller returns data in an array
-                setParameterData(prev => ({
-                    ...prev,
-                    eartag: data.eartag || [],
-                    office: data.office || [],
-                    klasifikasihewan: data.klasifikasihewan || [],
-                    outlet: data.outlet || [],
-                    jenishewan: data.jenishewan || []
-                    // supplier: intentionally omitted for lazy loading
-                }));
-                // Parameter data loaded successfully
-            } else {
-                throw new Error('Invalid response format from parameter endpoint');
-            }
-        } catch (err) {
-            
-            setError(err.message);
-            // Set empty data on error
-            setParameterData(prev => ({
-                ...prev,
-                eartag: [],
-                office: [],
-                klasifikasihewan: [],
-                outlet: [],
-                jenishewan: []
-            }));
         } finally {
-            setLoading(false);
+            fetchInProgress = false;
         }
-    };
-
-    // Function to preload supplier data for edit mode
-    const preloadSupplierForEdit = async () => {
-        
-        await fetchSupplierData(null, true); // Force load all suppliers
     };
 
     useEffect(() => {
-        fetchNonSupplierData();
-        
-        // Load supplier data for both edit and add modes
-        // For edit mode, load all suppliers immediately
-        // For add mode, also load suppliers immediately for ternak
-        console.log('📊 Loading supplier data for mode:', isEditMode ? 'edit' : 'add');
-        fetchSupplierData(null, true); // Force load all suppliers for both modes
-    }, [isEditMode]);
+        if (!hasInitialized.current) {
+            hasInitialized.current = true;
+            fetchParameterData();
+        }
+    }, []);
 
     // Create select options for each parameter type
     const eartagOptions = useMemo(() => {
@@ -166,25 +131,64 @@ const useParameterSelect = (isEditMode = false) => {
         }));
     }, [parameterData.eartag]);
 
-    // Use direct supplier options from the dedicated supplier hook
+    // Filter supplier options based on frontend filters and tipe pembelian
     const supplierOptions = useMemo(() => {
-        // Prioritize direct supplier options if available, fallback to parameter data
-        if (directSupplierOptions && directSupplierOptions.length > 0) {
-            return directSupplierOptions;
+        let suppliers = parameterData.supplier || [];
+        
+        // Filter berdasarkan kategori_supplier
+        if (supplierFilters.kategoriSupplier !== null && supplierFilters.kategoriSupplier !== undefined) {
+            suppliers = suppliers.filter(supplier => 
+                supplier.kategori_supplier === supplierFilters.kategoriSupplier
+            );
         }
         
-        // Fallback to parameter data supplier (for backward compatibility)
-        return parameterData.supplier.map(item => ({
+        // Filter berdasarkan jenis_supplier
+        if (supplierFilters.jenisSupplier) {
+            suppliers = suppliers.filter(supplier => 
+                supplier.jenis_supplier === supplierFilters.jenisSupplier
+            );
+        }
+        
+        // Filter berdasarkan tipe pembelian (PERUSAHAAN/PERORANGAN)
+        if (selectedTipePembelian && tipePembelianOptions.length > 0) {
+            const selectedTipe = tipePembelianOptions.find(tipe => tipe.value === selectedTipePembelian);
+            if (selectedTipe) {
+                const tipeLabel = selectedTipe.label.toUpperCase();
+                let jenisSupplierFilter = null;
+                
+                if (tipeLabel.includes('PERUSAHAAN')) {
+                    jenisSupplierFilter = 1; // PERUSAHAAN
+                } else if (tipeLabel.includes('PERORANGAN')) {
+                    jenisSupplierFilter = 2; // PERORANGAN
+                }
+                
+                if (jenisSupplierFilter !== null) {
+                    suppliers = suppliers.filter(supplier => {
+                        // jenis_supplier is integer: 1 = PERUSAHAAN, 2 = PERORANGAN
+                        if (!supplier.jenis_supplier || typeof supplier.jenis_supplier !== 'number') {
+                            return false; // Hide suppliers without valid jenis_supplier number
+                        }
+                        
+                        // Direct integer comparison
+                        return supplier.jenis_supplier === jenisSupplierFilter;
+                    });
+                    
+                }
+            }
+        }
+        
+        return suppliers.map(item => ({
             value: item.id,
             label: item.name,
             pid: item.pid || item.id,
-            jenis_supplier: item.jenis_supplier
+            jenis_supplier: item.jenis_supplier,
+            kategori_supplier: item.kategori_supplier
         }));
-    }, [directSupplierOptions, parameterData.supplier]);
+    }, [parameterData.supplier, supplierFilters.kategoriSupplier, supplierFilters.jenisSupplier, selectedTipePembelian, tipePembelianOptions]);
 
     const officeOptions = useMemo(() => {
         return parameterData.office.map(item => ({
-            value: item.id,
+            value: item.id, // Keep numeric for consumer pages that expect number
             label: item.name
         }));
     }, [parameterData.office]);
@@ -195,6 +199,27 @@ const useParameterSelect = (isEditMode = false) => {
             label: item.name
         }));
     }, [parameterData.klasifikasihewan]);
+
+    const klasifikasiFeedmilOptions = useMemo(() => {
+        return parameterData.klasifikasifeedmil.map(item => ({
+            value: item.id,
+            label: item.name
+        }));
+    }, [parameterData.klasifikasifeedmil]);
+
+    const klasifikasiOVKOptions = useMemo(() => {
+        return parameterData.klasifikasiovk.map(item => ({
+            value: item.id,
+            label: item.name
+        }));
+    }, [parameterData.klasifikasiovk]);
+
+    const farmOptions = useMemo(() => {
+        return parameterData.farm.map(item => ({
+            value: item.id,
+            label: item.name
+        }));
+    }, [parameterData.farm]);
 
     const outletOptions = useMemo(() => {
         return parameterData.outlet.map(item => ({
@@ -219,19 +244,18 @@ const useParameterSelect = (isEditMode = false) => {
         supplierOptions,
         officeOptions,
         klasifikasiHewanOptions,
+        klasifikasiFeedmilOptions,
+        klasifikasiOVKOptions,
+        farmOptions,
         outletOptions,
         jenisHewanOptions,
         
         // State
         loading,
-        error: error || supplierError, // Combine errors from both sources
-        supplierLoading,
-        isSupplierDataFetched,
+        error,
         
         // Actions
-        refetch: fetchParameterData,
-        fetchSupplierData,
-        preloadSupplierForEdit
+        refetch: fetchParameterData
     };
 };
 

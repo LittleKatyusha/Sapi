@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Save, Plus, Trash2, Building2, User, Calendar, Truck, Hash, Package, X, Settings, AlertCircle, Weight, DollarSign, Upload, FileText } from 'lucide-react';
 import usePembelianOVK from './hooks/usePembelianOVK';
-import useParameterSelect from './hooks/useParameterSelect';
+import useParameterSelect from '../pembelian/hooks/useParameterSelect';
 import useJenisPembelianOVK from './hooks/useJenisPembelianOVK';
 import useBanksAPI from '../pembelianFeedmil/hooks/useBanksAPI';
 import SearchableSelect from '../../../components/shared/SearchableSelect';
@@ -35,11 +35,8 @@ const AddEditPembelianOVKPage = () => {
         klasifikasiOVKOptions,
         farmOptions,
         loading: parameterLoading,
-        error: parameterError,
-        supplierLoading,
-        isSupplierDataFetched,
-        fetchSupplierData
-    } = useParameterSelect(isEdit);
+        error: parameterError
+    } = useParameterSelect(isEdit, { kategoriSupplier: 3 });
 
     // Jenis Pembelian OVK API integration
     const {
@@ -102,6 +99,14 @@ const AddEditPembelianOVKPage = () => {
 
     // Use OVK suppliers only (kategori_supplier = 3)
     const supplierOptionsToShow = supplierOptions;
+    
+    // Debug: Log supplier options to verify filtering
+    useEffect(() => {
+        console.log('📊 AddEditPembelianOVKPage: Supplier options received:', supplierOptionsToShow.length, 'suppliers');
+        if (supplierOptionsToShow.length > 0) {
+            console.log('📊 First supplier sample:', supplierOptionsToShow[0]);
+        }
+    }, [supplierOptionsToShow]);
 
 
 
@@ -1228,11 +1233,11 @@ const AddEditPembelianOVKPage = () => {
                                 value={headerData.idSupplier}
                                 onChange={(value) => handleHeaderChange('idSupplier', value)}
                                 options={supplierOptionsToShow}
-                                placeholder={supplierLoading ? "Memuat supplier..." : "Pilih Supplier"}
+                                placeholder={parameterLoading ? "Memuat supplier..." : parameterError ? "Error loading supplier" : "Pilih Supplier"}
                                 className="w-full"
-                                disabled={supplierLoading}
+                                disabled={parameterLoading || parameterError}
                             />
-                            {supplierLoading && (
+                            {parameterLoading && (
                                 <p className="text-xs text-blue-600 mt-1">
                                     🔄 Memuat data supplier...
                                 </p>

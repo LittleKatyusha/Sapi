@@ -5,7 +5,6 @@ import { ArrowLeft, Save, Plus, Trash2, Building2, User, Calendar, Truck, Hash, 
 import usePembelianHO from './hooks/usePembelianHO';
 import useParameterSelect from './hooks/useParameterSelect';
 import useTipePembelian from './hooks/useTipePembelian';
-import useOfficesAPI from './hooks/useOfficesAPI';
 import SearchableSelect from '../../../components/shared/SearchableSelect';
 import { API_ENDPOINTS, API_BASE_URL } from '../../../config/api';
 
@@ -29,37 +28,7 @@ const AddEditPembelianPage = () => {
         error
     } = usePembelianHO();
 
-    // Get master data from centralized parameter endpoint
-    const {
-        parameterData,
-        eartagOptions,
-        supplierOptions,
-        officeOptions,
-        klasifikasiHewanOptions,
-        loading: parameterLoading,
-        error: parameterError,
-        supplierLoading,
-        isSupplierDataFetched,
-        fetchSupplierData
-    } = useParameterSelect(isEdit); // Pass edit mode flag untuk preload supplier data
-
-    const {
-        tipePembelianOptions,
-        loading: tipePembelianLoading,
-        error: tipePembelianError
-    } = useTipePembelian();
-
-    const {
-        officeOptions: officeAPIOptions,
-        loading: officeLoading,
-        error: officeError
-    } = useOfficesAPI();
-
-    // Extract raw data for compatibility with existing logic
-    const availableKlasifikasi = parameterData.klasifikasihewan || [];
-    const availableSuppliers = parameterData.supplier || [];
-
-    // Header form state - Office now selectable
+    // Header form state - Office now selectable (moved up to avoid reference error)
     const [headerData, setHeaderData] = useState({
         idOffice: '', // Office ID now selectable
         nota: '',
@@ -79,6 +48,32 @@ const AddEditPembelianPage = () => {
         note: '', // Note field from backend
         // markup removed - no longer needed in header
     });
+
+    // Get tipe pembelian options first
+    const {
+        tipePembelianOptions,
+        loading: tipePembelianLoading,
+        error: tipePembelianError
+    } = useTipePembelian();
+
+    // Get master data from centralized parameter endpoint with supplier filter
+    const {
+        parameterData,
+        eartagOptions,
+        supplierOptions,
+        officeOptions,
+        klasifikasiHewanOptions,
+        loading: parameterLoading,
+        error: parameterError
+    } = useParameterSelect(isEdit, {
+        kategoriSupplier: 1 // Filter untuk Ternak saja
+    }, tipePembelianOptions, headerData.tipePembelian);
+
+    // Office options now come from useParameterSelect
+
+    // Extract raw data for compatibility with existing logic
+    const availableKlasifikasi = parameterData.klasifikasihewan || [];
+    const availableSuppliers = parameterData.supplier || [];
 
     // File upload state
     const [selectedFile, setSelectedFile] = useState(null);
@@ -139,7 +134,7 @@ const AddEditPembelianPage = () => {
     // Markup percentage state - user can change this manually
     const [markupPercentage, setMarkupPercentage] = useState(0); // Default 12%
 
-    // Supplier options are now filtered server-side, no need for client-side filtering
+    // Supplier options are now filtered directly in useParameterSelect hook
     const filteredSupplierOptions = supplierOptions;
     
     // No longer need stablePembelianList - using /show endpoint only
@@ -155,50 +150,8 @@ const AddEditPembelianPage = () => {
         return parseInt(value.toString().replace(/\./g, '')) || 0;
     };
 
-    // Optimized supplier data fetching with proper caching
-    useEffect(() => {
-        // Skip if we're in edit mode - useParameterSelect already handles supplier loading
-        if (isEdit) {
-            return;
-        }
-
-        // Only fetch supplier data for add mode when tipe pembelian is selected
-        if (headerData.tipePembelian && tipePembelianOptions.length > 0) {
-            const selectedTipe = tipePembelianOptions.find(tipe => tipe.value === headerData.tipePembelian);
-            if (selectedTipe) {
-                const tipeLabel = selectedTipe.label.toUpperCase();
-                let jenisSupplierFilter = null;
-                
-                if (tipeLabel.includes('PERUSAHAAN')) {
-                    jenisSupplierFilter = 1; // PERUSAHAAN
-                } else if (tipeLabel.includes('PERORANGAN')) {
-                    jenisSupplierFilter = 2; // PERORANGAN
-                }
-                
-                // Check cache to avoid redundant calls
-                const cacheKey = `supplier_${jenisSupplierFilter}`;
-                const now = Date.now();
-                const cache = supplierDataCacheRef.current;
-                
-                // Skip if we have cached data and it's less than 30 seconds old
-                if (cache[cacheKey] && (now - cache.lastFetch) < 30000) {
-                    console.log('📊 Using cached supplier data for filter:', jenisSupplierFilter);
-                    return;
-                }
-                
-                // Use a timeout to debounce rapid changes
-                const timeoutId = setTimeout(() => {
-                    console.log('📊 Fetching supplier data for filter:', jenisSupplierFilter);
-                    fetchSupplierData(jenisSupplierFilter);
-                    // Update cache
-                    cache[cacheKey] = true;
-                    cache.lastFetch = now;
-                }, 300);
-                
-                return () => clearTimeout(timeoutId);
-            }
-        }
-    }, [headerData.tipePembelian, tipePembelianOptions, isEdit, fetchSupplierData]);
+    // Supplier data is now handled entirely by useParameterSelect hook
+    // No need for additional fetching to avoid duplicate API calls
 
     // Optimized supplier validation - only when needed
     useEffect(() => {
@@ -230,20 +183,15 @@ const AddEditPembelianPage = () => {
     // Add ref to track if edit data has been loaded to prevent re-loading
     const editDataLoadedRef = useRef(false);
     
-    // Cache for supplier data to prevent redundant API calls
-    const supplierDataCacheRef = useRef({
-        supplier_1: null, // PERUSAHAAN
-        supplier_2: null, // PERORANGAN
-        supplier_null: null, // ALL
-        lastFetch: null
-    });
+    // Supplier caching is now handled by useParameterSelect hook
     
     // Memoize computed values to prevent unnecessary re-renders
     const hasRequiredData = useMemo(() => {
         return parameterData.eartag?.length > 0 &&
                parameterData.klasifikasihewan?.length > 0 &&
+               parameterData.office?.length > 0 &&
                tipePembelianOptions?.length > 0;
-    }, [parameterData.eartag, parameterData.klasifikasihewan, tipePembelianOptions]);
+    }, [parameterData.eartag, parameterData.klasifikasihewan, parameterData.office, tipePembelianOptions]);
     
     const isDataReady = useMemo(() => {
         return !parameterLoading && !tipePembelianLoading;
@@ -322,8 +270,8 @@ const AddEditPembelianPage = () => {
                         // Fallback: try to find by nama_office if id_office is not available
                         const officeNameToMatch = (firstDetail.nama_office || '').trim();
                         
-                        if (officeNameToMatch && officeAPIOptions.length > 0) {
-                            const matchedOffice = officeAPIOptions.find(office => {
+                        if (officeNameToMatch && officeOptions.length > 0) {
+                            const matchedOffice = officeOptions.find(office => {
                                 const labelMatch = office.label && office.label.trim().toLowerCase() === officeNameToMatch.toLowerCase();
                                 const nameMatch = office.name && office.name.trim().toLowerCase() === officeNameToMatch.toLowerCase();
                                 return labelMatch || nameMatch;
@@ -331,7 +279,6 @@ const AddEditPembelianPage = () => {
                             
                             if (matchedOffice) {
                                 officeIdFromBackend = matchedOffice.value;
-                                console.log('✅ Found office by name fallback:', officeIdFromBackend);
                             }
                         }
                     }
@@ -490,7 +437,7 @@ const AddEditPembelianPage = () => {
         }
         // Remove automatic detail item creation for new records
         // Users will add details manually using the "Tambah Detail" button
-    }, [isEdit, id, cloneData, isDataReady, hasRequiredData]);
+    }, [isEdit, id, cloneData, isDataReady, hasRequiredData, officeOptions]);
 
     // Removed office mapping useEffect - now using id_office directly from backend
 
@@ -1733,16 +1680,16 @@ const AddEditPembelianPage = () => {
                             <SearchableSelect
                                 value={headerData.idOffice}
                                 onChange={(value) => handleHeaderChange('idOffice', value)}
-                                options={officeAPIOptions}
-                                placeholder={officeLoading ? 'Loading offices...' : officeError ? 'Error loading offices' : 'Pilih Office'}
-                                isLoading={officeLoading}
-                                isDisabled={officeLoading || officeError}
+                                options={officeOptions}
+                                placeholder={parameterLoading ? 'Loading offices...' : parameterError ? 'Error loading offices' : 'Pilih Office'}
+                                isLoading={parameterLoading}
+                                isDisabled={parameterLoading || parameterError}
                                 required
                                 className="w-full"
                             />
-                            {officeError && (
+                            {parameterError && (
                                 <p className="text-xs text-red-500 mt-1">
-                                    ⚠️ Error loading offices: {officeError}
+                                    ⚠️ Error loading offices: {parameterError}
                                 </p>
                             )}
                         </div>
@@ -1780,7 +1727,7 @@ const AddEditPembelianPage = () => {
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 <Building2 className="w-4 h-4 inline mr-1" />
                                 Supplier *
-                                {headerData.tipePembelian && isSupplierDataFetched && (
+                                {headerData.tipePembelian && supplierOptions.length > 0 && (
                                     <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
                                         Filtered ({filteredSupplierOptions.length} dari {supplierOptions.length})
                                     </span>
@@ -1794,16 +1741,16 @@ const AddEditPembelianPage = () => {
                                 }}
                                 options={filteredSupplierOptions}
                                 placeholder={
-                                    supplierLoading 
+                                    parameterLoading 
                                         ? 'Loading suppliers...' 
                                         : !headerData.tipePembelian 
                                             ? 'Pilih Tipe Pembelian terlebih dahulu'
-                                            : filteredSupplierOptions.length === 0 && isSupplierDataFetched
+                                            : filteredSupplierOptions.length === 0 && supplierOptions.length > 0
                                                 ? 'Tidak ada supplier untuk tipe ini'
                                                 : 'Pilih Supplier'
                                 }
-                                isLoading={supplierLoading}
-                                isDisabled={supplierLoading || !headerData.tipePembelian}
+                                isLoading={parameterLoading}
+                                isDisabled={parameterLoading || !headerData.tipePembelian}
                                 required
                                 className="w-full"
                             />
@@ -1811,7 +1758,7 @@ const AddEditPembelianPage = () => {
                                 {!headerData.tipePembelian ? (
                                     <span>💡 Supplier akan difilter berdasarkan jenis_supplier sesuai tipe pembelian</span>
                                 ) : (
-                                    <span>💡 Menampilkan {filteredSupplierOptions.length} supplier dengan jenis_supplier yang sesuai ({isSupplierDataFetched ? 'data loaded' : 'loading...'})</span>
+                                    <span>💡 Menampilkan {filteredSupplierOptions.length} supplier dengan jenis_supplier yang sesuai ({supplierOptions.length > 0 ? 'data loaded' : 'loading...'})</span>
                                 )}
                             </p>
                         </div>

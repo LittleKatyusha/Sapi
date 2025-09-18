@@ -1,9 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import HttpClient from '../../../../services/httpClient';
 import { API_ENDPOINTS } from '../../../../config/api';
-import useSuppliersAPI from '../../pembelian/hooks/useSuppliersAPI';
 
-const useParameterSelect = (isEditMode = false) => {
+const useParameterSelect = (isEditMode = false, supplierFilters = {}) => {
     const [parameterData, setParameterData] = useState({
         supplier: [],
         office: [],
@@ -13,39 +12,6 @@ const useParameterSelect = (isEditMode = false) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     
-    // Use the dedicated supplier hook for better filtering support
-    const {
-        supplierOptions: directSupplierOptions,
-        loading: supplierLoading,
-        error: supplierError,
-        fetchSuppliersWithFilter
-    } = useSuppliersAPI(null, 2); // kategori_supplier = 2 for Feedmil
-    
-    const [isSupplierDataFetched, setIsSupplierDataFetched] = useState(false);
-
-    // Supplier data loading function - can be immediate or lazy based on context
-    const fetchSupplierData = async (jenisSupplier = null, forceLoad = false) => {
-        // Skip caching check if forceLoad is true (for edit mode)
-        if (!forceLoad && isSupplierDataFetched && jenisSupplier === null) {
-            console.log('📊 Supplier data already fetched (no filter), skipping...');
-            return;
-        }
-
-        console.log('📊 Fetching supplier data with filter:', jenisSupplier, forceLoad ? '(forced load)' : '(lazy loading)');
-        
-        try {
-            // Use the direct supplier API with filter support
-            await fetchSuppliersWithFilter(jenisSupplier);
-            
-            // Only mark as fetched if no specific filter (general data)
-            if (jenisSupplier === null) {
-                setIsSupplierDataFetched(true);
-            }
-            
-        } catch (err) {
-            setError(err.message);
-        }
-    };
 
     const fetchParameterData = async () => {
         setLoading(true);
@@ -64,7 +30,6 @@ const useParameterSelect = (isEditMode = false) => {
                     klasifikasifeedmil: data.klasifikasifeedmil || [],
                     farm: data.farm || []
                 });
-                setIsSupplierDataFetched(true);
                 console.log('✅ Parameter data loaded:', Object.keys(data).map(key => `${key}: ${data[key]?.length || 0} items`).join(', '));
             } else {
                 throw new Error('Invalid response format from parameter endpoint');
@@ -83,72 +48,36 @@ const useParameterSelect = (isEditMode = false) => {
         }
     };
 
-    // Auto-fetch non-supplier data on mount
-    const fetchNonSupplierData = async () => {
-        setLoading(true);
-        setError(null);
-        
-        try {
-            // Use the centralized parameter endpoint
-            const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.PARAMETER}/data`);
-            
-            // Handle the response format from ParameterSelectController
-            if (result.data && Array.isArray(result.data) && result.data.length > 0) {
-                const data = result.data[0]; // The controller returns data in an array
-                setParameterData(prev => ({
-                    ...prev,
-                    office: data.office || [],
-                    klasifikasifeedmil: data.klasifikasifeedmil || [],
-                    farm: data.farm || []
-                    // supplier: intentionally omitted for lazy loading
-                }));
-            } else {
-                throw new Error('Invalid response format from parameter endpoint');
-            }
-        } catch (err) {
-            setError(err.message);
-            // Set empty data on error
-            setParameterData(prev => ({
-                ...prev,
-                office: [],
-                klasifikasifeedmil: [],
-                farm: []
-            }));
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // Function to preload supplier data for edit mode
-    const preloadSupplierForEdit = async () => {
-        await fetchSupplierData(null, true); // Force load all suppliers
-    };
-
     useEffect(() => {
-        fetchNonSupplierData();
-        
-        // Load supplier data for both edit and add modes
-        // For edit mode, load all suppliers immediately
-        // For add mode, also load suppliers immediately for feedmil
-        console.log('📊 Loading supplier data for mode:', isEditMode ? 'edit' : 'add');
-        fetchSupplierData(null, true); // Force load all suppliers for both modes
-    }, [isEditMode]);
+        fetchParameterData();
+    }, []);
 
-    // Use direct supplier options from the dedicated supplier hook
+    // Filter supplier options based on frontend filters
     const supplierOptions = useMemo(() => {
-        // Prioritize direct supplier options if available, fallback to parameter data
-        if (directSupplierOptions && directSupplierOptions.length > 0) {
-            return directSupplierOptions;
+        let suppliers = parameterData.supplier || [];
+        
+        // Filter berdasarkan kategori_supplier
+        if (supplierFilters.kategoriSupplier !== null && supplierFilters.kategoriSupplier !== undefined) {
+            suppliers = suppliers.filter(supplier => 
+                supplier.kategori_supplier === supplierFilters.kategoriSupplier
+            );
         }
         
-        // Fallback to parameter data supplier (for backward compatibility)
-        return parameterData.supplier.map(item => ({
+        // Filter berdasarkan jenis_supplier
+        if (supplierFilters.jenisSupplier) {
+            suppliers = suppliers.filter(supplier => 
+                supplier.jenis_supplier === supplierFilters.jenisSupplier
+            );
+        }
+        
+        return suppliers.map(item => ({
             value: item.id,
             label: item.name,
             pid: item.pid || item.id,
-            jenis_supplier: item.jenis_supplier
+            jenis_supplier: item.jenis_supplier,
+            kategori_supplier: item.kategori_supplier
         }));
-    }, [directSupplierOptions, parameterData.supplier]);
+    }, [parameterData.supplier, supplierFilters.kategoriSupplier, supplierFilters.jenisSupplier]);
 
     const officeOptions = useMemo(() => {
         return parameterData.office.map(item => ({
@@ -183,14 +112,10 @@ const useParameterSelect = (isEditMode = false) => {
         
         // State
         loading,
-        error: error || supplierError, // Combine errors from both sources
-        supplierLoading,
-        isSupplierDataFetched,
+        error,
         
         // Actions
-        refetch: fetchParameterData,
-        fetchSupplierData,
-        preloadSupplierForEdit
+        refetch: fetchParameterData
     };
 };
 
