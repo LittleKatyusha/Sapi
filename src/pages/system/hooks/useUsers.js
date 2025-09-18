@@ -84,8 +84,8 @@ const useUsers = () => {
             
             if (dataArray.length >= 0) {
                 const validatedData = dataArray.map((item, index) => ({
-                    pubid: item.pubid || `TEMP-${index + 1}`,
-                    encryptedPid: item.encrypted_pid || item.pid || item.pubid,
+                    pubid: item.pid, // Use encrypted pid as pubid
+                    encryptedPid: item.pid || item.encrypted_pid || item.pubid,
                     nik: item.nik || '',
                     name: item.name || 'Nama tidak tersedia',
                     email: item.email || '',
@@ -102,7 +102,7 @@ const useUsers = () => {
                     status: item.status !== undefined ? item.status : 1,
                     createdAt: item.created_at || new Date().toISOString(),
                     updatedAt: item.updated_at || new Date().toISOString(),
-                    id: item.pubid || `TEMP-${index + 1}`
+                    id: item.pid
                 }));
                 
                 console.log('Validated users data:', validatedData.slice(0, 2));
