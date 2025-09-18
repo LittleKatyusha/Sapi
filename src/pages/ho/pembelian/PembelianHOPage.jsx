@@ -361,11 +361,11 @@ const PembelianHOPage = () => {
             name: 'Nota',
             selector: row => row.nota,
             sortable: true,
-            width: '150px', // Increased width to prevent wrapping
+            width: '150px',
             wrap: true,
             cell: row => (
                 <div className="w-full px-2 flex items-center justify-center">
-                    <div className="font-mono text-sm bg-gray-50 px-3 py-2 rounded-lg inline-block whitespace-nowrap">
+                    <div className="font-mono text-sm bg-gray-50 px-3 py-2 rounded-lg text-center break-words whitespace-normal leading-tight">
                         {row.nota || '-'}
                     </div>
                 </div>
