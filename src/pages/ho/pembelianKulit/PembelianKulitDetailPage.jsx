@@ -330,21 +330,6 @@ const PembelianKulitDetailPage = () => {
             )
         },
         {
-            name: 'Klasifikasi Kulit',
-            selector: row => row.nama_klasifikasi_kulit,
-            sortable: true,
-            grow: 1.5,
-            wrap: true,
-            center: true,
-            cell: row => (
-                <div className="w-full flex items-center justify-center">
-                    <span className="inline-flex px-3 py-1.5 text-xs font-medium rounded-lg bg-green-100 text-green-800">
-                        {row.nama_klasifikasi_kulit || '-'}
-                    </span>
-                </div>
-            )
-        },
-        {
             name: 'Berat (kg)',
             selector: row => row.berat,
             sortable: true,

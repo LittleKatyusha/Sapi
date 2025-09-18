@@ -41,6 +41,11 @@ const useSuppliersAPI = (jenisSupplier = null, kategoriSupplier = null) => {
                 params.jenis_supplier = filterJenisSupplier;
             }
             
+            // Add kategori_supplier filter if provided
+            if (filterKategoriSupplier !== null) {
+                params.kategori_supplier = filterKategoriSupplier;
+            }
+            
             // Use same URL pattern as other working APIs with pagination to get all records
             const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.SUPPLIER}/data`, {
                 params
@@ -48,30 +53,8 @@ const useSuppliersAPI = (jenisSupplier = null, kategoriSupplier = null) => {
             
             // Handle DataTables format response
             if (result.data && Array.isArray(result.data)) {
-                // Apply kategori_supplier filter on frontend if specified
-                let filteredSuppliers = result.data;
-                if (filterKategoriSupplier !== null) {
-                    filteredSuppliers = result.data.filter(supplier => {
-                        // Parse kategori_supplier from the display text or use raw value
-                        if (supplier.kategori_supplier) {
-                            if (typeof supplier.kategori_supplier === 'string') {
-                                // Convert display text back to number
-                                const kategoriMap = {
-                                    'Ternak': 1,
-                                    'Feedmil': 2,
-                                    'Ovk': 3
-                                };
-                                return kategoriMap[supplier.kategori_supplier] === filterKategoriSupplier;
-                            } else {
-                                // Direct number comparison
-                                return supplier.kategori_supplier === filterKategoriSupplier;
-                            }
-                        }
-                        return false;
-                    });
-                }
-                
-                setSuppliers(filteredSuppliers);
+                // Backend already filters by kategori_supplier, so use data directly
+                setSuppliers(result.data);
                 setLastFilter(currentFilterKey); // Track the filter used
                 
             } else {
@@ -86,11 +69,12 @@ const useSuppliersAPI = (jenisSupplier = null, kategoriSupplier = null) => {
         }
     }, [jenisSupplier, kategoriSupplier]); // Depend on both filter params
 
-    // Remove auto-fetch on mount to avoid duplicate calls
-    // Let the parent component control when to fetch
-    // useEffect(() => {
-    //     fetchSuppliers();
-    // }, []);
+    // Auto-fetch on mount if kategoriSupplier is provided
+    useEffect(() => {
+        if (kategoriSupplier !== null) {
+            fetchSuppliers();
+        }
+    }, [kategoriSupplier, fetchSuppliers]);
 
     const supplierOptions = useMemo(() => {
         if (suppliers.length > 0) {

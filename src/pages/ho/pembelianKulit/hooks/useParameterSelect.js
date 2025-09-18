@@ -8,7 +8,8 @@ const useParameterSelect = (isEditMode = false) => {
         supplier: [],
         office: [],
         klasifikasifeedmil: [],
-        farm: []
+        farm: [],
+        itemkulit: []
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -19,7 +20,7 @@ const useParameterSelect = (isEditMode = false) => {
         loading: supplierLoading,
         error: supplierError,
         fetchSuppliersWithFilter
-    } = useSuppliersAPI(null, 2); // kategori_supplier = 2 for Feedmil
+    } = useSuppliersAPI(null, 4); // kategori_supplier = 4 for Kulit
     
     const [isSupplierDataFetched, setIsSupplierDataFetched] = useState(false);
 
@@ -62,7 +63,8 @@ const useParameterSelect = (isEditMode = false) => {
                     supplier: data.supplier || [],
                     office: data.office || [],
                     klasifikasifeedmil: data.klasifikasifeedmil || [],
-                    farm: data.farm || []
+                    farm: data.farm || [],
+                    itemkulit: data.itemkulit || []
                 });
                 setIsSupplierDataFetched(true);
                 console.log('✅ Parameter data loaded:', Object.keys(data).map(key => `${key}: ${data[key]?.length || 0} items`).join(', '));
@@ -76,7 +78,8 @@ const useParameterSelect = (isEditMode = false) => {
                 supplier: [],
                 office: [],
                 klasifikasifeedmil: [],
-                farm: []
+                farm: [],
+                itemkulit: []
             });
         } finally {
             setLoading(false);
@@ -99,7 +102,8 @@ const useParameterSelect = (isEditMode = false) => {
                     ...prev,
                     office: data.office || [],
                     klasifikasifeedmil: data.klasifikasifeedmil || [],
-                    farm: data.farm || []
+                    farm: data.farm || [],
+                    itemkulit: data.itemkulit || []
                     // supplier: intentionally omitted for lazy loading
                 }));
             } else {
@@ -112,7 +116,8 @@ const useParameterSelect = (isEditMode = false) => {
                 ...prev,
                 office: [],
                 klasifikasifeedmil: [],
-                farm: []
+                farm: [],
+                itemkulit: []
             }));
         } finally {
             setLoading(false);
@@ -127,13 +132,11 @@ const useParameterSelect = (isEditMode = false) => {
     useEffect(() => {
         fetchNonSupplierData();
         
-        // Only load supplier data once when component mounts
+        // Load supplier data for both edit and add modes
         // For edit mode, load all suppliers immediately
-        // For add mode, use lazy loading when tipe pembelian is selected
-        if (isEditMode) {
-            console.log('📊 Edit mode detected: Loading all supplier data once');
-            fetchSupplierData(null, true); // Force load all suppliers
-        }
+        // For add mode, also load suppliers immediately for kulit
+        console.log('📊 Loading supplier data for mode:', isEditMode ? 'edit' : 'add');
+        fetchSupplierData(null, true); // Force load all suppliers for both modes
     }, [isEditMode]);
 
     // Use direct supplier options from the dedicated supplier hook
@@ -173,6 +176,13 @@ const useParameterSelect = (isEditMode = false) => {
         }));
     }, [parameterData.farm]);
 
+    const itemKulitOptions = useMemo(() => {
+        return parameterData.itemkulit.map(item => ({
+            value: item.id,
+            label: item.name
+        }));
+    }, [parameterData.itemkulit]);
+
     return {
         // Raw data
         parameterData,
@@ -182,6 +192,7 @@ const useParameterSelect = (isEditMode = false) => {
         officeOptions,
         klasifikasiFeedmilOptions,
         farmOptions,
+        itemKulitOptions,
         
         // State
         loading,

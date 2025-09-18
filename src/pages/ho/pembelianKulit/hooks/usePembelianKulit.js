@@ -1,7 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import HttpClient from '../../../../services/httpClient';
 import { API_ENDPOINTS } from '../../../../config/api';
-import useKlasifikasiKulit from './useKlasifikasiKulit';
 
 // HttpClient already handles JSON parsing and error handling internally
 
@@ -10,14 +9,11 @@ const usePembelianKulit = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     
-    // Get klasifikasi kulit options
-    const { klasifikasiKulitOptions } = useKlasifikasiKulit();
     const [searchTerm, setSearchTerm] = useState('');
     const [filterJenisPembelian, setFilterJenisPembelian] = useState('all');
     const [isSearching, setIsSearching] = useState(false);
     const [searchError, setSearchError] = useState(null);
     const [deleteLoading, setDeleteLoading] = useState(null);
-    const [klasifikasiKulit, setKlasifikasiKulit] = useState([]);
 
     // Mapping function to convert tipe_pembelian to jenis_pembelian
     // This will be passed from the main component to avoid duplicate fetching
@@ -42,57 +38,6 @@ const usePembelianKulit = () => {
 
     // Base API endpoint for kulit pembelian
     const KULIT_API_BASE = API_ENDPOINTS.HO.KULIT.PEMBELIAN;
-    
-    // Fetch klasifikasi kulit data from ParameterSelectController
-    const fetchKlasifikasiKulit = useCallback(async () => {
-        try {
-            const data = await HttpClient.get(API_ENDPOINTS.MASTER.PARAMETER + '/data');
-            if (data && data.data && data.data.length > 0) {
-                // Get klasifikasikulit from ParameterSelectController
-                const klasifikasikulit = data.data[0].klasifikasikulit || [];
-                // Map the data to consistent format for getKlasifikasiName function
-                const mappedData = klasifikasikulit.map((item) => ({
-                    id: item.id, // Use integer id as unique identifier
-                    name: item.name,
-                    originalData: item
-                }));
-                setKlasifikasiKulit(mappedData);
-            }
-        } catch (err) {
-            console.error('Error fetching klasifikasi kulit:', err);
-            // Don't set error state for this as it's not critical
-        }
-    }, []);
-
-    // Get klasifikasi name by ID
-    const getKlasifikasiName = useCallback((id) => {
-        console.log('getKlasifikasiName called with id:', id, 'type:', typeof id);
-        console.log('klasifikasiKulit data:', klasifikasiKulit);
-        
-        if (!id || !klasifikasiKulit.length) {
-            console.log('No id or no klasifikasiKulit data');
-            return null;
-        }
-        
-        // Convert to integer for comparison since we now use integer IDs
-        const numId = parseInt(id);
-        
-        let klasifikasi = klasifikasiKulit.find(k => {
-            // Match by integer ID
-            return k.id === numId;
-        });
-        
-        console.log('Found klasifikasi:', klasifikasi);
-        
-        if (klasifikasi) {
-            const name = klasifikasi.name || klasifikasi.nama;
-            console.log('Returning name:', name);
-            return name;
-        }
-        
-        console.log('No klasifikasi found for id:', id);
-        return null;
-    }, [klasifikasiKulit]);
 
     // Fetch pembelian kulit data from API
     const fetchPembelian = useCallback(async (page = 1, perPage = null, search = null, filter = null, isSearchRequest = false) => {
@@ -201,7 +146,9 @@ const usePembelianKulit = () => {
             formData.append('jumlah', pembelianData.total_kulit || pembelianData.totalJumlah || 0);
             formData.append('biaya_total', pembelianData.harga_total || pembelianData.totalHPP || 0); // Backend expects 'biaya_total'
             formData.append('berat_total', pembelianData.berat_total || pembelianData.totalBerat || 0);
-            formData.append('note', pembelianData.note || 'Pembelian Feedmil dari Head Office'); // Required field
+            formData.append('biaya_truk', pembelianData.biaya_truk || 0); // Send 0 as default if not provided
+            formData.append('note', pembelianData.note || 'Pembelian Kulit dari Head Office'); // Required field
+            formData.append('nota', pembelianData.nota_ho || ''); // Map nota_ho to nota for backend
             formData.append('nota_ho', pembelianData.nota_ho || ''); // Required field
             formData.append('id_farm', pembelianData.id_farm || ''); // Required field
             formData.append('id_syarat_pembelian', pembelianData.id_syarat_pembelian || ''); // Required field
@@ -215,7 +162,8 @@ const usePembelianKulit = () => {
             if (pembelianData.detailItems && pembelianData.detailItems.length > 0) {
                 pembelianData.detailItems.forEach((item, index) => {
                     // Only append fields that match backend DETAIL_VALIDATION_RULES with proper type conversion
-                    formData.append(`details[${index}][item_name]`, item.item_name || '');
+                    formData.append(`details[${index}][id_office]`, parseInt(pembelianData.idOffice) || 1); // Add id_office for detail
+                    formData.append(`details[${index}][id_item]`, parseInt(item.item_name_id) || 0); // Send item_name_id as id_item
                     
                     // Ensure numeric fields are properly formatted according to backend validation
                     formData.append(`details[${index}][harga]`, parseFloat(item.harga) || 0);
@@ -491,12 +439,6 @@ const usePembelianKulit = () => {
                 pid: encryptedPid, // Backend expects encrypted PID (null for new items)
                 id_pembelian: idPembelian, // Always required by backend validator
                 item_name: String(detailData.item_name || ''),
-                id_klasifikasi_kulit: (() => {
-                    const value = detailData.id_klasifikasi_kulit;
-                    // Send integer ID to backend for validation
-                    if (value === null || value === undefined || value === '') return null;
-                    return parseInt(value); // Convert to integer for backend validation
-                })(),
                 harga: parseFloat(detailData.harga || 0),
                  persentase: (() => {
                      if (!detailData.persentase) return 0;
@@ -631,10 +573,6 @@ const usePembelianKulit = () => {
         fetchPembelian(1, serverPagination.perPage, '', filterJenisPembelian, false);
     }, [fetchPembelian, serverPagination.perPage, filterJenisPembelian]);
     
-    // Fetch klasifikasi kulit data on mount
-    useEffect(() => {
-        fetchKlasifikasiKulit();
-    }, [fetchKlasifikasiKulit]);
 
     // Cleanup timeout on unmount
     useEffect(() => {
@@ -686,10 +624,7 @@ const usePembelianKulit = () => {
         deleteLoading,
         getPembelianDetail,
         updateDetail,
-        deleteDetail,
-        klasifikasiKulit,
-        fetchKlasifikasiKulit,
-        getKlasifikasiName
+        deleteDetail
     };
 };
 

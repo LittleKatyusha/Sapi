@@ -21,7 +21,7 @@ const useParameterSelect = (isEditMode = false) => {
         loading: supplierLoading,
         error: supplierError,
         fetchSuppliersWithFilter
-    } = useSuppliersAPI();
+    } = useSuppliersAPI(null, 1); // kategori_supplier = 1 for Ternak
     
     const [isSupplierDataFetched, setIsSupplierDataFetched] = useState(false);
 
@@ -151,14 +151,11 @@ const useParameterSelect = (isEditMode = false) => {
     useEffect(() => {
         fetchNonSupplierData();
         
-        // Only load supplier data once when component mounts
+        // Load supplier data for both edit and add modes
         // For edit mode, load all suppliers immediately
-        // For add mode, use lazy loading when tipe pembelian is selected
-        if (isEditMode) {
-            console.log('📊 Edit mode detected: Loading all supplier data once');
-            fetchSupplierData(null, true); // Force load all suppliers
-        }
-        // Remove automatic loading for add mode - let AddEditPembelianPage handle it
+        // For add mode, also load suppliers immediately for ternak
+        console.log('📊 Loading supplier data for mode:', isEditMode ? 'edit' : 'add');
+        fetchSupplierData(null, true); // Force load all suppliers for both modes
     }, [isEditMode]);
 
     // Create select options for each parameter type

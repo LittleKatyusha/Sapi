@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Save, Plus, Trash2, Building2, User, Calendar, Truck, Hash, Package, X, Settings, AlertCircle, Weight, DollarSign, Upload, FileText } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Save, Plus, Trash2, Building2, Calendar, Hash, Package, X, Settings, AlertCircle, Weight, DollarSign, Upload, FileText } from 'lucide-react';
 import usePembelianKulit from './hooks/usePembelianKulit';
 import useParameterSelect from './hooks/useParameterSelect';
-import useJenisPembelianKulit from './hooks/useJenisPembelianKulit';
 import useBanksAPI from './hooks/useBanksAPI';
 import SearchableSelect from '../../../components/shared/SearchableSelect';
 import HttpClient from '../../../services/httpClient';
@@ -16,42 +15,27 @@ import { API_ENDPOINTS } from '../../../config/api';
 const AddEditPembelianKulitPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const location = useLocation();
     const isEdit = Boolean(id);
-    const cloneData = location.state?.cloneData;
     
     const {
-        getPembelianDetail,
         createPembelian,
         updatePembelian,
-        fetchPembelian,
-        pembelian: pembelianList,
-        loading,
-        error,
         updateDetail,
         deleteDetail
     } = usePembelianKulit();
 
     // Parameter Select integration - centralized data from ParameterSelectController
     const {
-        parameterData,
         supplierOptions,
         officeOptions,
         farmOptions,
+        itemKulitOptions,
         loading: parameterLoading,
         error: parameterError,
-        supplierLoading,
-        isSupplierDataFetched,
-        fetchSupplierData
+        supplierLoading
     } = useParameterSelect(isEdit);
 
-    // Jenis Pembelian Kulit API integration
-    const {
-        jenisPembelianOptions,
-        loading: jenisPembelianLoading,
-        error: jenisPembelianError,
-        getLabelByValue
-    } = useJenisPembelianKulit();
+    // Removed jenis pembelian fetching as it's not required
 
     // Bank API integration for Syarat Pembelian
     const {
@@ -92,15 +76,15 @@ const AddEditPembelianKulitPage = () => {
 
     // Default data untuk batch operations - aligned with backend validation
     const [defaultData, setDefaultData] = useState({
-        item_name: '',
+        item_name: '', // Will store the selected item ID
+        item_name_display: '', // Will store the display name for showing in UI
         berat: 0, // Start with 0 like harga total pattern
         harga: 0, // Also change to 0 for consistency
         persentase: 0 // Also change to 0 for consistency
     });
     const [batchCount, setBatchCount] = useState(0);
     
-    // Ref to track if batchCount has been manually set by user
-    const batchCountManuallySetRef = useRef(false);
+    // Removed unused ref for batch count manual set
     
     // Helper functions for number formatting (same as pembelian)
     const formatNumber = (value) => {
@@ -197,10 +181,10 @@ const AddEditPembelianKulitPage = () => {
     // Load data untuk edit mode - using /show endpoint for both header and detail data
     useEffect(() => {
         // Wait for all required options to load first (like OVK pattern)
-        if (isEdit && id && supplierOptions.length > 0 && officeOptions.length > 0 && farmOptions.length > 0 && jenisPembelianOptions.length > 0) {
+        if (isEdit && id && supplierOptions.length > 0 && officeOptions.length > 0 && farmOptions.length > 0) {
             const loadEditData = async () => {
                 try {
-                    const decodedId = decodeURIComponent(id);
+                    // decodedId not needed; use id directly
                     
                     // Get both header and detail data from /show endpoint only
                     
@@ -266,30 +250,7 @@ const AddEditPembelianKulitPage = () => {
                         }
                         
 
-                        // Find tipe pembelian ID - backend sends tipe_pembelian as integer (1 or 2)
-                        let tipePembelianId = '';
-                        
-                        if (headerData.tipe_pembelian !== undefined && headerData.tipe_pembelian !== null) {
-                            // Backend sends tipe_pembelian as integer, convert to string for matching
-                            const tipePembelianValue = String(headerData.tipe_pembelian);
-                            const foundTipePembelian = jenisPembelianOptions.find(t => t.value === tipePembelianValue);
-                            
-                            if (foundTipePembelian) {
-                                tipePembelianId = foundTipePembelian.value;
-                            }
-                        } else if (headerData.jenis_pembelian) {
-                            // Fallback: try to match by jenis_pembelian name (for backward compatibility)
-                            let foundTipePembelian = jenisPembelianOptions.find(t => t.label === headerData.jenis_pembelian);
-                            if (!foundTipePembelian) {
-                                foundTipePembelian = jenisPembelianOptions.find(t => 
-                                    t.label.toLowerCase().includes(headerData.jenis_pembelian.toLowerCase()) ||
-                                    headerData.jenis_pembelian.toLowerCase().includes(t.label.toLowerCase())
-                                );
-                            }
-                            if (foundTipePembelian) {
-                                tipePembelianId = foundTipePembelian.value;
-                            }
-                        }
+                        // Removed jenis pembelian mapping as it's not required
 
                         // Set header data using safe helper functions (like OVK pattern)
                         setHeaderData({
@@ -315,24 +276,31 @@ const AddEditPembelianKulitPage = () => {
 
                         // Transform detail items from backend data (using optimized data)
                         if (detailResult.success && detailResult.data.length > 0) {
-                            const transformedDetailItems = detailResult.data.map((item, index) => ({
-                            id: index + 1,
-                            // Include backend identifiers for update operations
-                            idPembelian: item.id_pembelian, // This is crucial for update operations
-                            id_pembelian: item.id_pembelian, // Keep both for compatibility
-                            encryptedPid: item.pid, // Encrypted PID for existing items
-                            pubidDetail: item.pubid_detail, // Raw pubid if available
-                                // Detail fields using safe helper functions
-                                item_name: safeGetString(item.item_name) || `Kulit Item ${index + 1}`,
-                                berat: safeGetNumber(item.berat, 0),
-                                harga: safeGetNumber(item.harga, 0),
-                            persentase: (() => {
-                                return formatPersentaseFromBackend(item.persentase);
-                            })(),
-                                hpp: safeGetNumber(item.hpp, 0),
-                                total_harga: safeGetNumber(item.total_harga, 0),
-                                tgl_masuk_rph: safeGetString(item.tgl_masuk_rph) || new Date().toISOString().split('T')[0]
-                        }));
+                            const transformedDetailItems = detailResult.data.map((item, index) => {
+                                // Find the item ID from itemKulitOptions if we have the item name
+                                const itemName = safeGetString(item.item_name) || `Kulit Item ${index + 1}`;
+                                const foundItem = itemKulitOptions.find(option => option.label === itemName);
+                                
+                                return {
+                                    id: index + 1,
+                                    // Include backend identifiers for update operations
+                                    idPembelian: item.id_pembelian, // This is crucial for update operations
+                                    id_pembelian: item.id_pembelian, // Keep both for compatibility
+                                    encryptedPid: item.pid, // Encrypted PID for existing items
+                                    pubidDetail: item.pubid_detail, // Raw pubid if available
+                                    // Detail fields using safe helper functions
+                                    item_name: itemName, // Display name for UI
+                                    item_name_id: foundItem ? foundItem.value : '', // ID for SearchableSelect
+                                    berat: safeGetNumber(item.berat, 0),
+                                    harga: safeGetNumber(item.harga, 0),
+                                    persentase: (() => {
+                                        return formatPersentaseFromBackend(item.persentase);
+                                    })(),
+                                    hpp: safeGetNumber(item.hpp, 0),
+                                    total_harga: safeGetNumber(item.total_harga, 0),
+                                    tgl_masuk_rph: safeGetString(item.tgl_masuk_rph) || new Date().toISOString().split('T')[0]
+                                };
+                            });
                         
                         setDetailItems(transformedDetailItems);
                         }
@@ -349,7 +317,7 @@ const AddEditPembelianKulitPage = () => {
             
             loadEditData();
         }
-    }, [isEdit, id, supplierOptions, officeOptions, farmOptions, jenisPembelianOptions]);
+    }, [isEdit, id, supplierOptions, officeOptions, farmOptions]);
 
 
 
@@ -365,15 +333,19 @@ const AddEditPembelianKulitPage = () => {
 
     // Handle detail item changes
     const handleDetailChange = (itemId, field, value) => {
-
-        
         setDetailItems(prev => prev.map(item => {
             if (item.id === itemId) {
-                const updatedItem = { ...item, [field]: value };
-                
-
-                
-                return updatedItem;
+                if (field === 'item_name') {
+                    // Find the display name for the selected item
+                    const selectedItem = itemKulitOptions.find(option => option.value === value);
+                    return {
+                        ...item,
+                        item_name: selectedItem ? selectedItem.label : '',
+                        item_name_id: value
+                    };
+                } else {
+                    return { ...item, [field]: value };
+                }
             }
             return item;
         }));
@@ -383,7 +355,8 @@ const AddEditPembelianKulitPage = () => {
     const addDetailItem = () => {
         const newItem = {
             id: Date.now(),
-            item_name: defaultData.item_name || '',
+            item_name: defaultData.item_name_display || '', // Use display name for UI
+            item_name_id: defaultData.item_name || '', // Store the ID for backend
             berat: defaultData.berat || 0,
             harga: defaultData.harga || '',
             persentase: defaultData.persentase || '', // Fix: correct spelling
@@ -408,7 +381,8 @@ const AddEditPembelianKulitPage = () => {
         for (let i = 0; i < batchCount; i++) {
             newItems.push({
                 id: Date.now() + i,
-                item_name: defaultData.item_name || '',
+                item_name: defaultData.item_name_display || '', // Use display name for UI
+                item_name_id: defaultData.item_name || '', // Store the ID for backend
                 berat: defaultData.berat || 0,
                 harga: defaultData.harga || '',
                 persentase: defaultData.persentase || '', // Fix: correct spelling
@@ -555,7 +529,8 @@ const AddEditPembelianKulitPage = () => {
             const detailData = {
                 idPembelian: item.idPembelian || null, // Use item's id_pembelian if available (for existing items)
                 idOffice: parseInt(headerData.idOffice) || 1, // Use selected office ID
-                item_name: String(item.item_name || ''),
+                item_name: String(item.item_name || ''), // Send display name to backend
+                id_item: item.item_name_id ? parseInt(item.item_name_id) : null, // Send item ID to backend
                 harga: parseFloat(item.harga) || 0,
                 berat: parseInt(item.berat) || 0,
                 persentase: getParsedPersentase(item.persentase),
@@ -645,10 +620,20 @@ const AddEditPembelianKulitPage = () => {
 
     // Handle default data changes
     const handleDefaultDataChange = (field, value) => {
-        setDefaultData(prev => ({
-            ...prev,
-            [field]: value
-        }));
+        if (field === 'item_name') {
+            // Find the display name for the selected item
+            const selectedItem = itemKulitOptions.find(item => item.value === value);
+            setDefaultData(prev => ({
+                ...prev,
+                item_name: value,
+                item_name_display: selectedItem ? selectedItem.label : ''
+            }));
+        } else {
+            setDefaultData(prev => ({
+                ...prev,
+                [field]: value
+            }));
+        }
     };
 
     // Handle file upload
@@ -1264,13 +1249,20 @@ const AddEditPembelianKulitPage = () => {
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Nama Item Default
                             </label>
-                            <input
-                                type="text"
+                            <SearchableSelect
                                 value={defaultData.item_name}
-                                onChange={(e) => handleDefaultDataChange('item_name', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                                placeholder="Contoh: Kulit Sapi"
+                                onChange={(value) => handleDefaultDataChange('item_name', value)}
+                                options={itemKulitOptions}
+                                placeholder={parameterLoading ? 'Loading items...' : parameterError ? 'Error loading items' : 'Pilih Item Kulit'}
+                                isLoading={parameterLoading}
+                                isDisabled={parameterLoading || parameterError}
+                                className="w-full"
                             />
+                            {parameterError && (
+                                <p className="text-xs text-red-500 mt-1">
+                                    ⚠️ Error loading items: {parameterError}
+                                </p>
+                            )}
                         </div>
 
 
@@ -1331,7 +1323,6 @@ const AddEditPembelianKulitPage = () => {
                                 value={formatNumber(batchCount)}
                                 onChange={(e) => {
                                     const rawValue = parseNumber(e.target.value);
-                                    batchCountManuallySetRef.current = true; // Mark as manually set
                                     setBatchCount(rawValue);
                                 }}
                                 className="w-20 px-2 py-1 border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
@@ -1411,12 +1402,14 @@ const AddEditPembelianKulitPage = () => {
                                                 
                                                 {/* Nama Item */}
                                                 <td className="p-2 sm:p-3">
-                                                    <input
-                                                        type="text"
-                                                        value={item.item_name}
-                                                        onChange={(e) => handleDetailChange(item.id, 'item_name', e.target.value)}
-                                                        className="w-full px-1 sm:px-2 py-1 border border-gray-300 rounded text-xs sm:text-sm"
-                                                        placeholder="Nama item kulit"
+                                                    <SearchableSelect
+                                                        value={item.item_name_id || item.item_name}
+                                                        onChange={(value) => handleDetailChange(item.id, 'item_name', value)}
+                                                        options={itemKulitOptions}
+                                                        placeholder={parameterLoading ? 'Loading...' : 'Pilih Item'}
+                                                        isLoading={parameterLoading}
+                                                        isDisabled={parameterLoading || parameterError}
+                                                        className="w-full text-xs sm:text-sm"
                                                     />
                                                 </td>
                                                 
