@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, Plus, Trash2, Building2, Calendar, Hash, Package, X, Settings, AlertCircle, Weight, DollarSign, Upload, FileText } from 'lucide-react';
 import usePembelianKulit from './hooks/usePembelianKulit';
-import useParameterSelect from './hooks/useParameterSelect';
+import useParameterSelect from '../pembelian/hooks/useParameterSelect';
 import useBanksAPI from './hooks/useBanksAPI';
 import SearchableSelect from '../../../components/shared/SearchableSelect';
 import HttpClient from '../../../services/httpClient';
@@ -31,9 +31,8 @@ const AddEditPembelianKulitPage = () => {
         farmOptions,
         itemKulitOptions,
         loading: parameterLoading,
-        error: parameterError,
-        supplierLoading
-    } = useParameterSelect(isEdit);
+        error: parameterError
+    } = useParameterSelect(isEdit, { kategoriSupplier: 4 });
 
     // Removed jenis pembelian fetching as it's not required
 
@@ -835,7 +834,7 @@ const AddEditPembelianKulitPage = () => {
                 id_supplier: headerData.idSupplier,
                 jenis_supplier: selectedSupplier ? selectedSupplier.jenis_supplier : '',
                 // New fields
-                nota_ho: headerData.nota_ho || '',
+                nota_HO: headerData.nota_ho || '',
                 id_farm: headerData.farm ? parseInt(headerData.farm) : null,
                 id_syarat_pembelian: headerData.syarat_pembelian ? parseInt(headerData.syarat_pembelian) : null,
                 // Ensure file is properly passed - prioritize selectedFile over headerData.file
@@ -1010,11 +1009,11 @@ const AddEditPembelianKulitPage = () => {
                                 value={headerData.idSupplier}
                                 onChange={(value) => handleHeaderChange('idSupplier', value)}
                                 options={supplierOptionsToShow}
-                                placeholder={supplierLoading ? "Memuat supplier..." : "Pilih Supplier"}
+                                placeholder={parameterLoading ? "Memuat supplier..." : parameterError ? "Error loading supplier" : "Pilih Supplier"}
                                 className="w-full"
-                                disabled={supplierLoading}
+                                disabled={parameterLoading || parameterError}
                             />
-                            {supplierLoading && (
+                            {parameterLoading && (
                                 <p className="text-xs text-blue-600 mt-1">
                                     🔄 Memuat data supplier...
                                 </p>
