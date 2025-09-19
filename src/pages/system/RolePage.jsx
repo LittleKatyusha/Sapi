@@ -90,16 +90,19 @@ const RolePage = () => {
       console.log('[DEBUG] All available roles:', roles);
       
       // Format data correctly for editing
+      // For editing, we want to show the role's own name, not the parent role name
+      // and we want to show the parent_id of this role (the ID of its parent)
       const formattedData = {
-          nama: role.parentRole || '',  // Use parentRole as the role name
-          description: role.description || ''
+          nama: role.childRole || role.parentRole || '',  // Use childRole if exists, otherwise parentRole
+          description: role.description || '',
+          id: role.parent_id || null  // Use parent_id as the parent role ID for this role
       };
       
       console.log('[DEBUG] Formatted data for edit:', formattedData);
       
       setEditingRole({ ...role, ...formattedData });
       setIsModalOpen(true);
-  };
+ };
 
   const handleAdd = () => {
       setEditingRole(null);
@@ -146,7 +149,8 @@ const RolePage = () => {
           
           const apiData = {
               nama: formData.nama,
-              description: formData.description
+              description: formData.description,
+              parent_id: formData.id || null  // Use formData.id as parent_id for API
           };
           
           console.log('[DEBUG] Final API data to send:', apiData);
@@ -154,18 +158,16 @@ const RolePage = () => {
           let result;
           if (editingRole) {
               console.log('[DEBUG] Updating existing role:', editingRole.pubid);
-              // For updates, we preserve the existing parent_id
+              // For updates, we use the new id from form as parent_id
               const updateData = {
-                  ...apiData,
-                  parent_id: editingRole.parent_id || null
+                  ...apiData
               };
               result = await updateRole(editingRole.pubid, updateData);
           } else {
               console.log('[DEBUG] Creating new role');
-              // For new roles, parent_id is null initially
+              // For new roles, use id from form as parent_id
               const createData = {
-                  ...apiData,
-                  parent_id: null
+                  ...apiData
               };
               result = await createRole(createData);
           }
@@ -200,13 +202,13 @@ const RolePage = () => {
 
   const columns = useMemo(() => [
     {
-        name: 'Parent Role',
-        selector: row => row.parentRole || '-',
+        name: 'Child Role',
+        selector: row => row.childRole || '-',
         sortable: true,
     },
     {
-        name: 'Child Role',
-        selector: row => row.childRole || '-',
+        name: 'Parent Role',
+        selector: row => row.parentRole || '-',
         sortable: true,
     },
     {

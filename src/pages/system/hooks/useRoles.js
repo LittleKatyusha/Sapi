@@ -79,7 +79,7 @@ const useRoles = () => {
                     const mapped = {
                         id: item.id,
                         pubid: item.pid || `TEMP-${index + 1}`,
-                        nama: item.parent_role || 'Unknown Role', // parent_role adalah nama role utama
+                        nama: item.child_role || 'Unknown Role', // child_role adalah nama role utama
                         description: item.description || '',
                         createdAt: item.created_at,
                         updatedAt: item.updated_at,
@@ -96,14 +96,17 @@ const useRoles = () => {
                 
                 // Post-process to establish parent relationships
                 const processedData = validatedData.map(role => {
-                    // Find if this role is someone's child
-                    // A role is a child if another role has it as child_role
-                    const parentRole = validatedData.find(r => r.childRole === role.nama);
+                    // Use parent role name as parent_id
+                    const parent_id = role.parentRole || null;
+                    
+                    // A role is a child if it has a parent_role
+                    const isChildRole = !!role.parentRole;
                     
                     return {
                         ...role,
-                        isChildRole: !!parentRole,
-                        parentRoleName: parentRole ? parentRole.parentRole : null
+                        isChildRole: isChildRole,
+                        parentRoleName: role.parentRole,
+                        parent_id: parent_id
                     };
                 });
                 

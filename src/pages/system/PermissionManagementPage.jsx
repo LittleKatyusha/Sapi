@@ -152,7 +152,9 @@ const PermissionManagementPage = () => {
       setPermissionOptions(options);
 
       // Map assigned permissions for the selected role (requires pid from /data)
-      const roleRows = rows.filter(r => r.role_name === role.nama);
+      // Since we're using child_role in the role list, we need to match against the original role name
+      // The role.nama now contains child_role, but permission data still has the original role name
+      const roleRows = rows.filter(r => r.role_name === role.originalName);
       const rolePidByValue = new Map(roleRows.map(r => [r.value, r.pid]));
 
       const selection = {};
