@@ -40,6 +40,7 @@ const usePembelianKulit = () => {
 
     // Fetch pembelian kulit data from API
     const fetchPembelian = useCallback(async (page = 1, perPage = null, search = null, isSearchRequest = false, forceRefresh = false) => {
+        console.log('🔄 Kulit Hook: fetchPembelian called with params:', { page, perPage, search, isSearchRequest, forceRefresh });
         setLoading(true);
         setError(null);
         setSearchError(null);
@@ -63,7 +64,11 @@ const usePembelianKulit = () => {
                 'order[0][dir]': 'desc'
             });
             
-            const jsonData = await HttpClient.get(`${KULIT_API_BASE}/data?${params}`);
+            // Add cache-busting parameter when forceRefresh is true
+            const finalParams = forceRefresh ? `${params}&_t=${Date.now()}` : params;
+            const apiUrl = `${KULIT_API_BASE}/data?${finalParams}`;
+            console.log('🔄 Kulit Hook: Making API call to:', apiUrl);
+            const jsonData = await HttpClient.get(apiUrl);
             
             if (jsonData && jsonData.data) {
                 // Transform backend data to match frontend expectations

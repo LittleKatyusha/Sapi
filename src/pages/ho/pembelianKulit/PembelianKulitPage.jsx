@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import DataTable from 'react-data-table-component';
 import { PlusCircle, Search, Filter, Package, Building2, Truck, User, X, Loader2 } from 'lucide-react';
 
@@ -16,11 +16,13 @@ import DeleteConfirmationModal from './modals/DeleteConfirmationModal';
 
 const PembelianKulitPage = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const [openMenuId, setOpenMenuId] = useState(null);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [selectedPembelian, setSelectedPembelian] = useState(null);
     const [notification, setNotification] = useState(null);
     const [scrollPosition, setScrollPosition] = useState({ canScrollLeft: false, canScrollRight: false });
+    const [lastRefreshTime, setLastRefreshTime] = useState(Date.now());
     
     const {
         pembelian: filteredData,
@@ -68,8 +70,61 @@ const PembelianKulitPage = () => {
 
     useEffect(() => {
         fetchPembelian();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []); // Remove fetchPembelian dependency to prevent infinite loop
+    }, []);
+
+    // Auto-refresh when user returns to the page (e.g., from edit page)
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (!document.hidden) {
+                // Check if it's been more than 30 seconds since last refresh
+                const timeSinceLastRefresh = Date.now() - lastRefreshTime;
+                if (timeSinceLastRefresh > 30000) { // 30 seconds
+                    fetchPembelian(serverPagination.currentPage, serverPagination.perPage, searchTerm, false, true);
+                    setLastRefreshTime(Date.now());
+                }
+            }
+        };
+
+        const handleFocus = () => {
+            // Check if it's been more than 30 seconds since last refresh
+            const timeSinceLastRefresh = Date.now() - lastRefreshTime;
+            if (timeSinceLastRefresh > 30000) { // 30 seconds
+                fetchPembelian(serverPagination.currentPage, serverPagination.perPage, searchTerm, false, true);
+                setLastRefreshTime(Date.now());
+            }
+        };
+
+        // Listen for visibility changes
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        
+        // Listen for window focus (backup method)
+        window.addEventListener('focus', handleFocus);
+
+        // Cleanup listeners
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('focus', handleFocus);
+        };
+    }, [fetchPembelian, lastRefreshTime, serverPagination.currentPage, serverPagination.perPage, searchTerm]);
+
+    // Refresh data when returning from edit page
+    useEffect(() => {
+        // Check if we're returning from an edit page
+        if (location.state?.fromEdit) {
+            console.log('🔄 Kulit: Auto-refreshing data after returning from edit page');
+            console.log('🔄 Kulit: Current state:', { 
+                currentPage: serverPagination.currentPage, 
+                perPage: serverPagination.perPage, 
+                searchTerm 
+            });
+            fetchPembelian(serverPagination.currentPage, serverPagination.perPage, searchTerm, false, true);
+            setLastRefreshTime(Date.now());
+            
+            // Clear the state to prevent unnecessary refreshes
+            window.history.replaceState({}, document.title);
+        }
+    }, [location.state, fetchPembelian, serverPagination.currentPage, serverPagination.perPage, searchTerm]);
+
 
     const handleEdit = (pembelianItem) => {
         const id = pembelianItem.encryptedPid || pembelianItem.id;
