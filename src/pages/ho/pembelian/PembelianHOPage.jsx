@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import DataTable from 'react-data-table-component';
 import { PlusCircle, Search, ShoppingCart, X, Loader2, Calendar } from 'lucide-react';
 
@@ -173,10 +173,12 @@ const Notification = React.memo(({ notification, onClose }) => {
 
 const PembelianHOPage = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const [openMenuId, setOpenMenuId] = useState(null);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [selectedPembelian, setSelectedPembelian] = useState(null);
     const [notification, setNotification] = useState(null);
+    const [lastRefreshTime, setLastRefreshTime] = useState(Date.now());
     
     const {
         pembelian: filteredData,
@@ -222,6 +224,52 @@ const PembelianHOPage = () => {
         fetchPembelian();
     }, []);
 
+    // Auto-refresh when user returns to the page (e.g., from edit page)
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (!document.hidden) {
+                // Check if it's been more than 30 seconds since last refresh
+                const timeSinceLastRefresh = Date.now() - lastRefreshTime;
+                if (timeSinceLastRefresh > 30000) { // 30 seconds
+                    fetchPembelian();
+                    setLastRefreshTime(Date.now());
+                }
+            }
+        };
+
+        const handleFocus = () => {
+            // Check if it's been more than 30 seconds since last refresh
+            const timeSinceLastRefresh = Date.now() - lastRefreshTime;
+            if (timeSinceLastRefresh > 30000) { // 30 seconds
+                fetchPembelian();
+                setLastRefreshTime(Date.now());
+            }
+        };
+
+        // Listen for visibility changes
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        
+        // Listen for window focus (backup method)
+        window.addEventListener('focus', handleFocus);
+
+        // Cleanup listeners
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('focus', handleFocus);
+        };
+    }, [fetchPembelian, lastRefreshTime]);
+
+    // Refresh data when returning from edit page
+    useEffect(() => {
+        // Check if we're returning from an edit page
+        if (location.state?.fromEdit) {
+            fetchPembelian();
+            setLastRefreshTime(Date.now());
+            
+            // Clear the state to prevent unnecessary refreshes
+            window.history.replaceState({}, document.title);
+        }
+    }, [location.state, fetchPembelian]);
 
     const handleEdit = (pembelian) => {
         const id = pembelian.encryptedPid; // Always use encrypted PID for API operations

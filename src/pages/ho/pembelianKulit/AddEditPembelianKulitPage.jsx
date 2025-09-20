@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, Plus, Trash2, Building2, Calendar, Hash, Package, X, Settings, AlertCircle, Weight, DollarSign, Upload, FileText } from 'lucide-react';
 import usePembelianKulit from './hooks/usePembelianKulit';
@@ -171,6 +171,9 @@ const AddEditPembelianKulitPage = () => {
     // Use Kulit suppliers only (kategori_supplier = 2)
     const supplierOptionsToShow = supplierOptions;
 
+    // Ref to track if edit data has been loaded to prevent multiple API calls
+    const editDataLoaded = useRef(false);
+
     // Note: Removed pembelian list fetching for edit mode since we now use /show endpoint directly
     // This eliminates the need to fetch all data and then filter by pubid
 
@@ -179,13 +182,24 @@ const AddEditPembelianKulitPage = () => {
 
     // Load data untuk edit mode - using /show endpoint for both header and detail data
     useEffect(() => {
+        console.log('剥 Edit useEffect triggered:', {
+            isEdit,
+            id,
+            editDataLoaded: editDataLoaded.current,
+            supplierOptionsLength: supplierOptions.length,
+            officeOptionsLength: officeOptions.length,
+            farmOptionsLength: farmOptions.length
+        });
+        
         // Wait for all required options to load first (like OVK pattern)
-        if (isEdit && id && supplierOptions.length > 0 && officeOptions.length > 0 && farmOptions.length > 0) {
+        // Also check if data has already been loaded to prevent multiple API calls
+        if (isEdit && id && supplierOptions.length > 0 && officeOptions.length > 0 && farmOptions.length > 0 && !editDataLoaded.current) {
             const loadEditData = async () => {
                 try {
                     // decodedId not needed; use id directly
                     
                     // Get both header and detail data from /show endpoint only
+                    console.log('噫 Calling /show API for edit data with pid:', id);
                     
                     const showResponse = await HttpClient.post(`${API_ENDPOINTS.HO.KULIT.PEMBELIAN}/show`, {
                         pid: id
@@ -304,6 +318,8 @@ const AddEditPembelianKulitPage = () => {
                         setDetailItems(transformedDetailItems);
                         }
                         
+                        // Mark data as loaded to prevent multiple API calls
+                        editDataLoaded.current = true;
                     }
                 } catch (error) {
                     console.error('Error loading edit data:', error);
@@ -316,7 +332,7 @@ const AddEditPembelianKulitPage = () => {
             
             loadEditData();
         }
-    }, [isEdit, id, supplierOptions, officeOptions, farmOptions]);
+    }, [isEdit, id, supplierOptions.length, officeOptions.length, farmOptions.length]);
 
 
 
@@ -817,7 +833,7 @@ const AddEditPembelianKulitPage = () => {
             const selectedSupplier = supplierOptions.find(s => s.value === headerData.idSupplier);
             
             // Debug file state
-            console.log('🔍 File Debug Info:');
+            console.log('剥 File Debug Info:');
             console.log('selectedFile:', selectedFile);
             console.log('headerData.file:', headerData.file);
             console.log('selectedFile instanceof File:', selectedFile instanceof File);
@@ -844,7 +860,7 @@ const AddEditPembelianKulitPage = () => {
                 existingFileName: existingFileName
             };
 
-            console.log('🔍 Final submissionData.file:', submissionData.file);
+            console.log('剥 Final submissionData.file:', submissionData.file);
 
 
             let result;
@@ -863,8 +879,11 @@ const AddEditPembelianKulitPage = () => {
                     message: result.message || (isEdit ? 'Data berhasil diperbarui!' : 'Data berhasil disimpan!')
                 });
                 
+                // Set flag for refresh when returning to main page
+                sessionStorage.setItem('kulit-should-refresh', 'true');
+                
                 setTimeout(() => {
-                    navigate('/ho/pembelian-kulit');
+                    navigate('/ho/pembelian-kulit', { state: { fromEdit: true } });
                 }, 1500);
             } else {
                 setNotification({
@@ -885,7 +904,7 @@ const AddEditPembelianKulitPage = () => {
 
     // Handle back navigation
     const handleBack = () => {
-        navigate('/ho/pembelian-kulit');
+        navigate('/ho/pembelian-kulit', { state: { fromEdit: true } });
     };
 
     // Auto-hide notification
@@ -991,7 +1010,7 @@ const AddEditPembelianKulitPage = () => {
                             />
                             {parameterError && (
                                 <p className="text-xs text-red-500 mt-1">
-                                    ⚠️ Error loading offices: {parameterError}
+                                    笞・・Error loading offices: {parameterError}
                                 </p>
                             )}
                         </div>
@@ -1015,12 +1034,12 @@ const AddEditPembelianKulitPage = () => {
                             />
                             {parameterLoading && (
                                 <p className="text-xs text-blue-600 mt-1">
-                                    🔄 Memuat data supplier...
+                                    売 Memuat data supplier...
                                 </p>
                             )}
                             {parameterError && (
                                 <p className="text-xs text-red-600 mt-1">
-                                    ❌ Error: {parameterError}
+                                    笶・Error: {parameterError}
                                 </p>
                             )}
                         </div>
@@ -1061,7 +1080,7 @@ const AddEditPembelianKulitPage = () => {
                                 step="0.1"
                             />
                             <p className="text-xs text-blue-600 mt-1">
-                                💡 Total berat semua kulit dalam pembelian ini
+                                庁 Total berat semua kulit dalam pembelian ini
                             </p>
                         </div>
 
@@ -1079,7 +1098,7 @@ const AddEditPembelianKulitPage = () => {
                                 placeholder=""
                             />
                             <p className="text-xs text-blue-600 mt-1">
-                                💡 Total harga keseluruhan pembelian
+                                庁 Total harga keseluruhan pembelian
                             </p>
                         </div>
 
@@ -1098,7 +1117,7 @@ const AddEditPembelianKulitPage = () => {
                                 min="0"
                             />
                             <p className="text-xs text-blue-600 mt-1">
-                                💡 Total jumlah kulit dalam pembelian ini
+                                庁 Total jumlah kulit dalam pembelian ini
                             </p>
                         </div>
 
@@ -1120,7 +1139,7 @@ const AddEditPembelianKulitPage = () => {
                             />
                             {parameterError && (
                                 <p className="text-xs text-red-500 mt-1">
-                                    ⚠️ Error loading offices: {parameterError}
+                                    笞・・Error loading offices: {parameterError}
                                 </p>
                             )}
                         </div>
@@ -1143,7 +1162,7 @@ const AddEditPembelianKulitPage = () => {
                             />
                             {bankError && (
                                 <p className="text-xs text-red-500 mt-1">
-                                    ⚠️ Error loading banks: {bankError}
+                                    笞・・Error loading banks: {bankError}
                                 </p>
                             )}
                         </div>
@@ -1162,7 +1181,7 @@ const AddEditPembelianKulitPage = () => {
                                 placeholder="Masukkan catatan pembelian kulit..."
                             />
                             <p className="text-xs text-blue-600 mt-1">
-                                💡 Catatan terkait pembelian kulit (wajib diisi)
+                                庁 Catatan terkait pembelian kulit (wajib diisi)
                             </p>
                         </div>
 
@@ -1214,15 +1233,15 @@ const AddEditPembelianKulitPage = () => {
                                                     {selectedFile ? (
                                                         <>
                                                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                                📄 {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                                                                塘 {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
                                                             </span>
                                                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                                🏷️ {selectedFile.type.split('/')[1]?.toUpperCase() || 'FILE'}
+                                                                捷・・{selectedFile.type.split('/')[1]?.toUpperCase() || 'FILE'}
                                                             </span>
                                                         </>
                                                     ) : (
                                                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                            📁 File Existing
+                                                            刀 File Existing
                                                         </span>
                                                     )}
                                                 </div>
@@ -1259,7 +1278,7 @@ const AddEditPembelianKulitPage = () => {
                             />
                             {parameterError && (
                                 <p className="text-xs text-red-500 mt-1">
-                                    ⚠️ Error loading items: {parameterError}
+                                    笞・・Error loading items: {parameterError}
                                 </p>
                             )}
                         </div>
@@ -1339,8 +1358,8 @@ const AddEditPembelianKulitPage = () => {
 
                         {/* Info Text */}
                         <div className="text-xs text-gray-600 ml-auto">
-                            <p>💡 Isi data default untuk mempercepat input batch</p>
-                            <p>📝 Item baru akan menggunakan data default ini</p>
+                            <p>庁 Isi data default untuk mempercepat input batch</p>
+                            <p>統 Item baru akan menggunakan data default ini</p>
                         </div>
                     </div>
                 </div>
@@ -1669,7 +1688,7 @@ const AddEditPembelianKulitPage = () => {
                                                 <h3 className={`text-xl font-bold transition-all duration-500 ${
                                                     isDragOver ? 'text-white drop-shadow-lg' : 'text-gray-800'
                                                 }`}>
-                                                    {isDragOver ? '🎉 Drop file di sini!' : '📁 Upload File Dokumen'}
+                                                    {isDragOver ? '脂 Drop file di sini!' : '刀 Upload File Dokumen'}
                                                 </h3>
                                                 <p className={`text-sm transition-all duration-500 ${
                                                     isDragOver ? 'text-blue-100 drop-shadow-md' : 'text-gray-600'
@@ -1712,7 +1731,7 @@ const AddEditPembelianKulitPage = () => {
                                                         : 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg hover:shadow-xl hover:scale-105 hover:from-blue-600 hover:to-indigo-700 active:scale-95'
                                                 }`}
                                             >
-                                                {isDragOver ? '🎯 Upload Sekarang!' : '🚀 Pilih File'}
+                                                {isDragOver ? '識 Upload Sekarang!' : '噫 Pilih File'}
                                             </button>
                                         </div>
                                     </div>
@@ -1751,20 +1770,20 @@ const AddEditPembelianKulitPage = () => {
                                                     {selectedFile ? (
                                                         <>
                                                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                                📄 {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                                                                塘 {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
                                                             </span>
                                                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                                🏷️ {selectedFile.type.split('/')[1]?.toUpperCase() || 'FILE'}
+                                                                捷・・{selectedFile.type.split('/')[1]?.toUpperCase() || 'FILE'}
                                                             </span>
                                                         </>
                                                     ) : (
                                                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                            📁 File Existing
+                                                            刀 File Existing
                                                         </span>
                                                     )}
                                                 </div>
                                                 <p className="text-sm text-green-600 mt-2">
-                                                    {selectedFile ? '✅ File berhasil dipilih dan siap diupload' : '📁 File existing akan dipertahankan'}
+                                                    {selectedFile ? '笨・File berhasil dipilih dan siap diupload' : '刀 File existing akan dipertahankan'}
                                                 </p>
                                             </div>
                                         </div>
@@ -1781,7 +1800,7 @@ const AddEditPembelianKulitPage = () => {
                                         </div>
                                         <div className="flex-1">
                                             <h5 className="text-sm font-semibold text-blue-800 mb-1">
-                                                💡 Tips Upload File
+                                                庁 Tips Upload File
                                             </h5>
                                             <p className="text-sm text-blue-700 leading-relaxed">
                                                 Upload file dokumen terkait pembelian seperti invoice, kontrak, atau foto kulit (opsional). 
@@ -1809,7 +1828,7 @@ const AddEditPembelianKulitPage = () => {
                                         }}
                                         className="px-6 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-200 shadow-md hover:shadow-lg"
                                     >
-                                        ✅ Konfirmasi File
+                                        笨・Konfirmasi File
                                     </button>
                                 )}
                             </div>

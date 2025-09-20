@@ -9,6 +9,9 @@ let cachedError = null;
 let fetchInProgress = false;
 
 const useParameterSelect = (isEditMode = false, supplierFilters = {}, tipePembelianOptions = [], selectedTipePembelian = null) => {
+    // Stabilize the parameters to prevent unnecessary re-renders
+    const stableTipePembelianOptions = useMemo(() => tipePembelianOptions || [], [tipePembelianOptions]);
+    const stableSelectedTipePembelian = useMemo(() => selectedTipePembelian, [selectedTipePembelian]);
     const [parameterData, setParameterData] = useState(cachedData || {
         eartag: [],
         supplier: [],
@@ -156,8 +159,9 @@ const useParameterSelect = (isEditMode = false, supplierFilters = {}, tipePembel
         }
         
         // Filter berdasarkan tipe pembelian (PERUSAHAAN/PERORANGAN)
-        if (selectedTipePembelian && tipePembelianOptions.length > 0) {
-            const selectedTipe = tipePembelianOptions.find(tipe => tipe.value === selectedTipePembelian);
+        // Only apply this filter if both selectedTipePembelian and tipePembelianOptions are provided
+        if (stableSelectedTipePembelian && stableTipePembelianOptions && stableTipePembelianOptions.length > 0) {
+            const selectedTipe = stableTipePembelianOptions.find(tipe => tipe.value === stableSelectedTipePembelian);
             if (selectedTipe) {
                 const tipeLabel = selectedTipe.label.toUpperCase();
                 let jenisSupplierFilter = null;
@@ -190,13 +194,24 @@ const useParameterSelect = (isEditMode = false, supplierFilters = {}, tipePembel
             jenis_supplier: item.jenis_supplier,
             kategori_supplier: item.kategori_supplier
         }));
-    }, [parameterData.supplier, supplierFilters.kategoriSupplier, supplierFilters.jenisSupplier, selectedTipePembelian, tipePembelianOptions]);
+    }, [parameterData.supplier, supplierFilters.kategoriSupplier, supplierFilters.jenisSupplier, stableSelectedTipePembelian, stableTipePembelianOptions]);
 
     const officeOptions = useMemo(() => {
-        return parameterData.office.map(item => ({
+        const options = parameterData.office.map(item => ({
             value: item.id, // Keep numeric for consumer pages that expect number
             label: item.name
         }));
+        
+        // Debug logging for office options
+        if (parameterData.office.length > 0) {
+            console.log('🏢 Office options created:', {
+                count: options.length,
+                firstThree: options.slice(0, 3),
+                rawData: parameterData.office.slice(0, 3)
+            });
+        }
+        
+        return options;
     }, [parameterData.office]);
 
     const klasifikasiHewanOptions = useMemo(() => {

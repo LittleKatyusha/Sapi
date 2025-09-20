@@ -10,7 +10,6 @@ const usePembelianKulit = () => {
     const [error, setError] = useState(null);
     
     const [searchTerm, setSearchTerm] = useState('');
-    const [filterJenisPembelian, setFilterJenisPembelian] = useState('all');
     const [isSearching, setIsSearching] = useState(false);
     const [searchError, setSearchError] = useState(null);
     const [deleteLoading, setDeleteLoading] = useState(null);
@@ -40,7 +39,7 @@ const usePembelianKulit = () => {
     const KULIT_API_BASE = API_ENDPOINTS.HO.KULIT.PEMBELIAN;
 
     // Fetch pembelian kulit data from API
-    const fetchPembelian = useCallback(async (page = 1, perPage = null, search = null, filter = null, isSearchRequest = false) => {
+    const fetchPembelian = useCallback(async (page = 1, perPage = null, search = null, isSearchRequest = false, forceRefresh = false) => {
         setLoading(true);
         setError(null);
         setSearchError(null);
@@ -128,7 +127,7 @@ const usePembelianKulit = () => {
             setLoading(false);
             setIsSearching(false);
         }
-    }, [searchTerm, filterJenisPembelian]); // Remove serverPagination dependencies to prevent infinite loops
+    }, [searchTerm]); // Remove serverPagination dependencies to prevent infinite loops
 
     // Create pembelian kulit
     const createPembelian = useCallback(async (pembelianData) => {
@@ -203,7 +202,18 @@ const usePembelianKulit = () => {
             
             // Backend uses sendResponse() which returns { status: 'ok', data: [...], message: '...' }
             if (jsonData && jsonData.status === 'ok') {
-                await fetchPembelian(1, serverPagination.perPage);
+                // Force refresh to get the latest data
+                try {
+                    await fetchPembelian(1, serverPagination.perPage, searchTerm, false, true);
+                } catch (refreshError) {
+                    console.warn('Refresh after create failed:', refreshError);
+                    // If refresh fails, try to refresh without search term
+                    try {
+                        await fetchPembelian(1, serverPagination.perPage, '', false, true);
+                    } catch (fallbackError) {
+                        console.error('Fallback refresh also failed:', fallbackError);
+                    }
+                }
                 
                 return {
                     success: true,
@@ -250,7 +260,7 @@ const usePembelianKulit = () => {
         } finally {
             setLoading(false);
         }
-    }, [fetchPembelian, serverPagination.perPage]);
+    }, [fetchPembelian, serverPagination.perPage, searchTerm]);
 
     // Update pembelian kulit
     const updatePembelian = useCallback(async (data) => {
@@ -265,6 +275,7 @@ const usePembelianKulit = () => {
             
             // Header data mapping to backend fields - aligned with backend validation rules
             formData.append('id_office', parseInt(data.idOffice) || 1); // Use selected office ID, fallback to Head Office
+            formData.append('nota', data.nota || data.nota_ho || ''); // Required for header update detection
             formData.append('id_supplier', data.idSupplier || data.id_supplier || '');
             formData.append('tgl_masuk', data.tgl_masuk || '');
             formData.append('jumlah', data.total_kulit || data.totalJumlah || 0);
@@ -288,7 +299,18 @@ const usePembelianKulit = () => {
             
             // Backend uses sendResponse() which returns { status: 'ok', data: [...], message: '...' }
             if (jsonData && jsonData.status === 'ok') {
-                await fetchPembelian();
+                // Force refresh to get the latest data
+                try {
+                    await fetchPembelian(serverPagination.currentPage, serverPagination.perPage, searchTerm, false, true);
+                } catch (refreshError) {
+                    console.warn('Refresh after update failed:', refreshError);
+                    // If refresh fails, try to refresh the first page
+                    try {
+                        await fetchPembelian(1, serverPagination.perPage, searchTerm, false, true);
+                    } catch (fallbackError) {
+                        console.error('Fallback refresh also failed:', fallbackError);
+                    }
+                }
                 
                 return {
                     success: true,
@@ -308,7 +330,7 @@ const usePembelianKulit = () => {
         } finally {
             setLoading(false);
         }
-    }, [fetchPembelian]);
+    }, [fetchPembelian, serverPagination.currentPage, serverPagination.perPage, searchTerm]);
 
     // Delete pembelian kulit
     const deletePembelian = useCallback(async (encryptedPid, pembelianData = null) => {
@@ -331,28 +353,38 @@ const usePembelianKulit = () => {
             
             // Backend uses sendResponse() which returns { status: 'ok', data: [...], message: '...' }
             if (jsonData && jsonData.status === 'ok') {
-                // Update state immediately
-                setPembelian(prevData => 
-                    prevData.filter(item => 
-                        item.encryptedPid !== encryptedPid && 
-                        item.id !== encryptedPid
-                    )
-                );
+                // Calculate the current page after deletion
+                const currentPage = serverPagination.currentPage;
+                const currentPerPage = serverPagination.perPage;
+                const totalItemsAfterDelete = Math.max(0, serverPagination.totalItems - 1);
+                const totalPagesAfterDelete = Math.ceil(totalItemsAfterDelete / currentPerPage);
                 
-                // Update pagination
+                // If current page is empty after deletion, go to previous page
+                let targetPage = currentPage;
+                if (currentPage > totalPagesAfterDelete && totalPagesAfterDelete > 0) {
+                    targetPage = totalPagesAfterDelete;
+                }
+                
+                // Update pagination state
                 setServerPagination(prev => ({
                     ...prev,
-                    totalItems: Math.max(0, prev.totalItems - 1)
+                    totalItems: totalItemsAfterDelete,
+                    totalPages: totalPagesAfterDelete,
+                    currentPage: targetPage
                 }));
                 
-                // Refresh data
-                setTimeout(async () => {
+                // Refresh data with the correct page
+                try {
+                    await fetchPembelian(targetPage, currentPerPage, searchTerm, false, true);
+                } catch (refreshError) {
+                    console.warn('Refresh after delete failed:', refreshError);
+                    // If refresh fails, try to refresh the first page
                     try {
-                        await fetchPembelian(serverPagination.currentPage, serverPagination.perPage);
-                    } catch (refreshError) {
-                        console.warn('Refresh after delete failed:', refreshError);
+                        await fetchPembelian(1, currentPerPage, searchTerm, false, true);
+                    } catch (fallbackError) {
+                        console.error('Fallback refresh also failed:', fallbackError);
                     }
-                }, 500);
+                }
                 
                 return {
                     success: true,
@@ -371,8 +403,9 @@ const usePembelianKulit = () => {
             return { success: false, message: errorMsg };
         } finally {
             setDeleteLoading(null);
+            setLoading(false);
         }
-    }, [fetchPembelian, serverPagination.currentPage, serverPagination.perPage]);
+    }, [fetchPembelian, serverPagination.currentPage, serverPagination.perPage, searchTerm]);
 
     // Get pembelian detail
     const getPembelianDetail = useCallback(async (encryptedPid, jenisPembelianOptions = []) => {
@@ -386,36 +419,73 @@ const usePembelianKulit = () => {
                 skipCsrf: true // Skip CSRF token for JWT-based API
             });
             
-            
             // Backend uses sendResponse() which returns { status: 'ok', data: [...], message: '...' }
             if (jsonData && jsonData.status === 'ok') {
+                // Validasi dan proses data yang diterima
+                let headerData = jsonData.header || null;
+                let detailData = Array.isArray(jsonData.data) ? jsonData.data : [];
+                
+                // Jika tidak ada header tapi ada detail, gunakan data dari detail pertama
+                if (!headerData && detailData.length > 0) {
+                    const firstItem = detailData[0];
+                    headerData = {
+                        encryptedPid: firstItem.pid || encryptedPid,
+                        nota: firstItem.nota || '',
+                        nota_ho: firstItem.nota_ho || '',
+                        nama_supplier: firstItem.nama_supplier || '',
+                        nama_office: firstItem.nama_office || 'Head Office (HO)',
+                        tgl_masuk: firstItem.tgl_masuk || '',
+                        nama_supir: firstItem.nama_supir || '',
+                        plat_nomor: firstItem.plat_nomor || '',
+                        biaya_lain: parseFloat(firstItem.biaya_lain) || 0,
+                        biaya_truk: parseFloat(firstItem.biaya_truk) || 0,
+                        biaya_total: parseFloat(firstItem.biaya_total) || 0,
+                        jumlah: parseInt(firstItem.jumlah) || 0,
+                        berat_total: parseFloat(firstItem.berat_total) || 0,
+                        file: firstItem.file || null,
+                        // Extract farm and syarat pembelian IDs from detail data
+                        id_farm: firstItem.id_farm,
+                        id_syarat_pembelian: firstItem.id_syarat_pembelian
+                    };
+                }
+                
+                // Ensure header data has id_farm and id_syarat_pembelian from detail data if not present
+                if (headerData && detailData.length > 0) {
+                    const firstItem = detailData[0];
+                    if (!headerData.id_farm && firstItem.id_farm) {
+                        headerData.id_farm = firstItem.id_farm;
+                    }
+                    if (!headerData.id_syarat_pembelian && firstItem.id_syarat_pembelian) {
+                        headerData.id_syarat_pembelian = firstItem.id_syarat_pembelian;
+                    }
+                }
+                
                 // Map tipe_pembelian to jenis_pembelian in header data
-                let headerData = jsonData.header;
                 if (headerData && headerData.tipe_pembelian) {
                     headerData = {
                         ...headerData,
                         jenis_pembelian: mapTipePembelianToJenis(headerData.tipe_pembelian, jenisPembelianOptions)
                     };
                 }
-
+                
                 return {
                     success: true,
-                    data: jsonData.data || [],
-                    header: headerData || null, // Include header data from /show endpoint with mapped jenis_pembelian
+                    data: detailData,
+                    header: headerData,
                     message: jsonData.message || 'Detail pembelian berhasil diambil'
                 };
             } else {
                 // Backend returned error response with { status: 'no', message: '...' }
                 const errorMessage = jsonData?.message || 'Detail tidak ditemukan';
                 console.warn('Backend returned error:', errorMessage);
-                return { success: false, data: [], message: errorMessage };
+                return { success: false, data: [], header: null, message: errorMessage };
             }
             
         } catch (err) {
             console.error('Get pembelian detail error:', err);
             const errorMsg = err.message || 'Terjadi kesalahan saat mengambil detail pembelian';
             setError(errorMsg);
-            return { success: false, data: [], message: errorMsg };
+            return { success: false, data: [], header: null, message: errorMsg };
         } finally {
             setLoading(false);
         }
@@ -552,14 +622,14 @@ const usePembelianKulit = () => {
         }
         
         if (!newSearchTerm.trim()) {
-            fetchPembelian(1, serverPagination.perPage, '', filterJenisPembelian, false);
+            fetchPembelian(1, serverPagination.perPage, '', false);
             return;
         }
         
         searchTimeoutRef.current = setTimeout(() => {
-            fetchPembelian(1, serverPagination.perPage, newSearchTerm, filterJenisPembelian, true);
+            fetchPembelian(1, serverPagination.perPage, newSearchTerm, true);
         }, 300);
-    }, [fetchPembelian, serverPagination.perPage, filterJenisPembelian]);
+    }, [fetchPembelian, serverPagination.perPage]);
     
     // Clear search function
     const clearSearch = useCallback(() => {
@@ -570,8 +640,8 @@ const usePembelianKulit = () => {
             clearTimeout(searchTimeoutRef.current);
         }
         
-        fetchPembelian(1, serverPagination.perPage, '', filterJenisPembelian, false);
-    }, [fetchPembelian, serverPagination.perPage, filterJenisPembelian]);
+        fetchPembelian(1, serverPagination.perPage, '', false);
+    }, [fetchPembelian, serverPagination.perPage]);
     
 
     // Cleanup timeout on unmount
@@ -583,21 +653,15 @@ const usePembelianKulit = () => {
         };
     }, []);
 
-    // Filter handler
-    const handleFilter = useCallback((newFilter) => {
-        setFilterJenisPembelian(newFilter);
-        setSearchError(null);
-        fetchPembelian(1, serverPagination.perPage, searchTerm, newFilter, false);
-    }, [fetchPembelian, serverPagination.perPage, searchTerm]);
 
     // Pagination handlers
     const handlePageChange = useCallback((newPage) => {
-        fetchPembelian(newPage, serverPagination.perPage, searchTerm, filterJenisPembelian, false);
-    }, [fetchPembelian, serverPagination.perPage, searchTerm, filterJenisPembelian]);
+        fetchPembelian(newPage, serverPagination.perPage, searchTerm, false);
+    }, [fetchPembelian, serverPagination.perPage, searchTerm]);
 
     const handlePerPageChange = useCallback((newPerPage) => {
-        fetchPembelian(1, newPerPage, searchTerm, filterJenisPembelian, false);
-    }, [fetchPembelian, searchTerm, filterJenisPembelian]);
+        fetchPembelian(1, newPerPage, searchTerm, false);
+    }, [fetchPembelian, searchTerm]);
 
     return {
         pembelian,
@@ -606,8 +670,6 @@ const usePembelianKulit = () => {
         error,
         searchTerm,
         setSearchTerm,
-        filterJenisPembelian,
-        setFilterJenisPembelian,
         isSearching,
         searchError,
         stats,
@@ -615,7 +677,6 @@ const usePembelianKulit = () => {
         fetchPembelian,
         handleSearch,
         clearSearch,
-        handleFilter,
         handlePageChange,
         handlePerPageChange,
         createPembelian,

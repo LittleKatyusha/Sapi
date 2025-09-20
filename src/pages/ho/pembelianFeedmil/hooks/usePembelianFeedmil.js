@@ -92,7 +92,7 @@ const usePembelianFeedmil = () => {
     }, [klasifikasiFeedmil]);
 
     // Fetch pembelian feedmil data from API
-    const fetchPembelian = useCallback(async (page = 1, perPage = null, search = null, filter = null, isSearchRequest = false) => {
+    const fetchPembelian = useCallback(async (page = 1, perPage = null, search = null, filter = null, isSearchRequest = false, forceRefresh = false) => {
         setLoading(true);
         setError(null);
         setSearchError(null);
@@ -116,7 +116,9 @@ const usePembelianFeedmil = () => {
                 'order[0][dir]': 'desc'
             });
             
-            const jsonData = await HttpClient.get(`${FEEDMIL_API_BASE}/data?${params}`);
+            // Add cache-busting parameter when forceRefresh is true
+            const finalParams = forceRefresh ? `${params}&_t=${Date.now()}` : params;
+            const jsonData = await HttpClient.get(`${FEEDMIL_API_BASE}/data?${finalParams}`);
             
             if (jsonData && jsonData.data) {
                 // Transform backend data to match frontend expectations
@@ -417,28 +419,38 @@ const usePembelianFeedmil = () => {
             
             // Backend uses sendResponse() which returns { status: 'ok', data: [...], message: '...' }
             if (jsonData && jsonData.status === 'ok') {
-                // Update state immediately
-                setPembelian(prevData => 
-                    prevData.filter(item => 
-                        item.encryptedPid !== encryptedPid && 
-                        item.id !== encryptedPid
-                    )
-                );
+                // Calculate the current page after deletion
+                const currentPage = serverPagination.currentPage;
+                const currentPerPage = serverPagination.perPage;
+                const totalItemsAfterDelete = Math.max(0, serverPagination.totalItems - 1);
+                const totalPagesAfterDelete = Math.ceil(totalItemsAfterDelete / currentPerPage);
                 
-                // Update pagination
+                // If current page is empty after deletion, go to previous page
+                let targetPage = currentPage;
+                if (currentPage > totalPagesAfterDelete && totalPagesAfterDelete > 0) {
+                    targetPage = totalPagesAfterDelete;
+                }
+                
+                // Update pagination state
                 setServerPagination(prev => ({
                     ...prev,
-                    totalItems: Math.max(0, prev.totalItems - 1)
+                    totalItems: totalItemsAfterDelete,
+                    totalPages: totalPagesAfterDelete,
+                    currentPage: targetPage
                 }));
                 
-                // Refresh data
-                setTimeout(async () => {
+                // Refresh data with the correct page
+                try {
+                    await fetchPembelian(targetPage, currentPerPage, searchTerm, filterJenisPembelian, false, true);
+                } catch (refreshError) {
+                    console.warn('Refresh after delete failed:', refreshError);
+                    // If refresh fails, try to refresh the first page
                     try {
-                        await fetchPembelian(serverPagination.currentPage, serverPagination.perPage);
-                    } catch (refreshError) {
-                        console.warn('Refresh after delete failed:', refreshError);
+                        await fetchPembelian(1, currentPerPage, searchTerm, filterJenisPembelian, false, true);
+                    } catch (fallbackError) {
+                        console.error('Fallback refresh also failed:', fallbackError);
                     }
-                }, 500);
+                }
                 
                 return {
                     success: true,
@@ -457,8 +469,9 @@ const usePembelianFeedmil = () => {
             return { success: false, message: errorMsg };
         } finally {
             setDeleteLoading(null);
+            setLoading(false);
         }
-    }, [fetchPembelian, serverPagination.currentPage, serverPagination.perPage]);
+    }, [fetchPembelian, serverPagination.currentPage, serverPagination.perPage, searchTerm, filterJenisPembelian]);
 
     // Get pembelian detail
     const getPembelianDetail = useCallback(async (encryptedPid, jenisPembelianOptions = []) => {

@@ -20,6 +20,9 @@ const AddEditPembelianFeedmilPage = () => {
     const isEdit = Boolean(id);
     const cloneData = location.state?.cloneData;
     
+    // Flag to prevent multiple API calls in edit mode
+    const editDataLoaded = useRef(false);
+    
     const {
         getPembelianDetail,
         createPembelian,
@@ -210,9 +213,13 @@ const AddEditPembelianFeedmilPage = () => {
     // Load data untuk edit mode - using /show endpoint for both header and detail data
     useEffect(() => {
         // Wait for all required options to load first (like OVK pattern)
-        if (isEdit && id && supplierOptions.length > 0 && officeOptions.length > 0 && farmOptions.length > 0 && jenisPembelianOptions.length > 0) {
+        // Also check if data has already been loaded to prevent multiple API calls
+        if (isEdit && id && supplierOptions.length > 0 && officeOptions.length > 0 && farmOptions.length > 0 && jenisPembelianOptions.length > 0 && !editDataLoaded.current) {
             const loadEditData = async () => {
                 try {
+                    // Set flag to prevent multiple calls
+                    editDataLoaded.current = true;
+                    
                     const decodedId = decodeURIComponent(id);
                     
                     // Get both header and detail data from /show endpoint only
@@ -376,10 +383,12 @@ const AddEditPembelianFeedmilPage = () => {
             
             loadEditData();
         }
-    }, [isEdit, id, supplierOptions, officeOptions, farmOptions, jenisPembelianOptions]);
+    }, [isEdit, id, supplierOptions.length, officeOptions.length, farmOptions.length, jenisPembelianOptions.length]);
 
-
-
+    // Reset edit data loaded flag when id changes
+    useEffect(() => {
+        editDataLoaded.current = false;
+    }, [id]);
 
 
     // Handle header form changes
@@ -945,7 +954,11 @@ const AddEditPembelianFeedmilPage = () => {
                 });
                 
                 setTimeout(() => {
-                    navigate('/ho/pembelian-feedmil');
+                    // Set sessionStorage flag as backup
+                    sessionStorage.setItem('feedmil-should-refresh', 'true');
+                    // Dispatch custom event
+                    window.dispatchEvent(new CustomEvent('feedmil-data-updated'));
+                    navigate('/ho/pembelian-feedmil', { state: { fromEdit: true } });
                 }, 1500);
             } else {
                 setNotification({
@@ -966,7 +979,11 @@ const AddEditPembelianFeedmilPage = () => {
 
     // Handle back navigation
     const handleBack = () => {
-        navigate('/ho/pembelian-feedmil');
+        // Set sessionStorage flag as backup
+        sessionStorage.setItem('feedmil-should-refresh', 'true');
+        // Dispatch custom event
+        window.dispatchEvent(new CustomEvent('feedmil-data-updated'));
+        navigate('/ho/pembelian-feedmil', { state: { fromEdit: true } });
     };
 
     // Auto-hide notification

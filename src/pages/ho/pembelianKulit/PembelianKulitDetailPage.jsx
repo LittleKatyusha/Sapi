@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Building2, Calendar, Hash, Package, Eye, Weight } from 'lucide-react';
 import usePembelianKulit from './hooks/usePembelianKulit';
@@ -47,7 +47,7 @@ const PembelianKulitDetailPage = () => {
         // Convert ID to number for comparison
         const numericId = parseInt(id);
         const bank = banks.find(b => b.id === numericId || b.id === id);
-        return bank ? bank.nama : '';
+        return bank ? (bank.display_name || bank.nama) : '';
     }, [banks]);
 
     
@@ -63,6 +63,14 @@ const PembelianKulitDetailPage = () => {
         totalItems: 0,
         totalPages: 0
     });
+    
+    // Ref to track if we've already fetched the data
+    const hasFetchedData = useRef(false);
+    
+    // Function to reset the fetched data flag (useful for force refresh)
+    const resetFetchedDataFlag = useCallback(() => {
+        hasFetchedData.current = false;
+    }, []);
 
     // Update pagination when detail data changes
     useEffect(() => {
@@ -104,18 +112,24 @@ const PembelianKulitDetailPage = () => {
     };
 
     // No longer need to load pembelian list for header data - will get from /show endpoint
-
+    
     useEffect(() => {
+        // Flag to prevent state updates if component unmounts during fetch
+        let isMounted = true;
+        
         const fetchDetail = async () => {
-            if (id) {
+            if (id && !hasFetchedData.current) {
                 try {
                     const result = await getPembelianDetail(id);
-                    if (result.success && result.data && result.data.length > 0) {
-                        // Detail items dari view dt_pembelian_ho_kulit_detail
-                        const detailItems = result.data;
-
-                        // Get header data directly from /show endpoint
+                    
+                    // Mark that we've fetched the data to prevent future fetches
+                    hasFetchedData.current = true;
+                    
+                    // Only update state if component is still mounted
+                    if (isMounted && result.success) {
+                        // Gunakan header data jika tersedia, jika tidak gunakan dari detail
                         let headerData = result.header;
+                        const detailItems = result.data || [];
                         
                         if (headerData) {
                             // Use header data from /show endpoint
@@ -123,8 +137,8 @@ const PembelianKulitDetailPage = () => {
                                 encryptedPid: headerData.encryptedPid || headerData.pid || id,
                                 nota: headerData.nota || '',
                                 nota_ho: headerData.nota_ho || '',
-                                farm: headerData.farm || '', // Will be updated by useEffect when farmData is available
-                                syarat_pembelian: headerData.syarat_pembelian || '', // Will be updated by useEffect when banks is available
+                                farm: '', // Will be updated by useEffect when farmData is available
+                                syarat_pembelian: '', // Will be updated by useEffect when banks is available
                                 id_farm: headerData.id_farm,
                                 id_syarat_pembelian: headerData.id_syarat_pembelian,
                                 nama_supplier: headerData.nama_supplier || '',
@@ -141,19 +155,19 @@ const PembelianKulitDetailPage = () => {
                                 jenis_pembelian: headerData.jenis_pembelian || 'INTERNAL',
                                 file: headerData.file || null
                             });
-                        } else {
+                        } else if (detailItems.length > 0) {
                             // Fallback: gunakan informasi dari detail pertama jika header tidak tersedia
                             const firstItem = detailItems[0];
                             setPembelianData({
                                 encryptedPid: firstItem.pid || id,
                                 nota: firstItem.nota || '',
                                 nota_ho: firstItem.nota_ho || '',
-                                farm: firstItem.farm || '', // Will be updated by useEffect when farmData is available
-                                syarat_pembelian: firstItem.syarat_pembelian || '', // Will be updated by useEffect when banks is available
+                                farm: '', // Will be updated by useEffect when farmData is available
+                                syarat_pembelian: '', // Will be updated by useEffect when banks is available
                                 id_farm: firstItem.id_farm,
                                 id_syarat_pembelian: firstItem.id_syarat_pembelian,
                                 nama_supplier: firstItem.nama_supplier || '',
-                                nama_office: 'Head Office (HO)', // Default since not in detail view
+                                nama_office: firstItem.nama_office || 'Head Office (HO)',
                                 tgl_masuk: firstItem.tgl_masuk || '',
                                 nama_supir: firstItem.nama_supir || '',
                                 plat_nomor: firstItem.plat_nomor || '',
@@ -166,8 +180,32 @@ const PembelianKulitDetailPage = () => {
                                 jenis_pembelian: firstItem.jenis_pembelian || 'INTERNAL',
                                 file: firstItem.file || null
                             });
+                        } else {
+                            // Jika tidak ada data sama sekali
+                            setPembelianData({
+                                encryptedPid: id,
+                                nota: '',
+                                nota_ho: '',
+                                farm: '',
+                                syarat_pembelian: '',
+                                id_farm: null,
+                                id_syarat_pembelian: null,
+                                nama_supplier: '',
+                                nama_office: 'Head Office (HO)',
+                                tgl_masuk: '',
+                                nama_supir: '',
+                                plat_nomor: '',
+                                biaya_lain: 0,
+                                biaya_truk: 0,
+                                biaya_total: 0,
+                                jumlah: 0,
+                                satuan: 'item',
+                                berat_total: 0,
+                                jenis_pembelian: 'INTERNAL',
+                                file: null
+                            });
                         }
-
+                        
                         // Transform detail items untuk struktur frontend
                         const transformedDetailItems = detailItems.map((item, index) => ({
                             id: index + 1,
@@ -181,66 +219,79 @@ const PembelianKulitDetailPage = () => {
                             status: item.status || 1,
                             tgl_masuk_rph: item.tgl_masuk_rph || null
                         }));
-
+                        
                         setDetailData(transformedDetailItems);
-                    } else {
+                    } else if (isMounted) {
                         console.warn('No detail data found for pembelian kulit:', id);
                         setPembelianData({
                             encryptedPid: id,
                             nota: '',
+                            nota_ho: '',
+                            farm: '',
+                            syarat_pembelian: '',
+                            id_farm: null,
+                            id_syarat_pembelian: null,
                             nama_supplier: '',
                             nama_office: 'Head Office (HO)',
                             tgl_masuk: '',
                             nama_supir: '',
                             plat_nomor: '',
                             biaya_lain: 0,
+                            biaya_truk: 0,
                             biaya_total: 0,
                             jumlah: 0,
                             satuan: 'item',
                             berat_total: 0,
-                            jenis_pembelian: 'INTERNAL' // Default to first option
+                            jenis_pembelian: 'INTERNAL',
+                            file: null
                         });
                         setDetailData([]);
                     }
                 } catch (err) {
-                    console.error('Error fetching pembelian kulit detail:', err);
-                    setNotification({
-                        type: 'error',
-                        message: err.message || 'Gagal memuat detail pembelian kulit'
-                    });
-                    setPembelianData(null);
-                    setDetailData([]);
+                    // Only update state if component is still mounted
+                    if (isMounted) {
+                        console.error('Error fetching pembelian kulit detail:', err);
+                        setNotification({
+                            type: 'error',
+                            message: err.message || 'Gagal memuat detail pembelian kulit'
+                        });
+                        setPembelianData(null);
+                        setDetailData([]);
+                    }
                 }
             }
         };
-
-        // Only fetch detail if we have an id and haven't already loaded the data
-        if (id && !pembelianData) {
-            fetchDetail();
-        }
-    }, [id]); // Remove getPembelianDetail dependency to prevent duplicate calls
+        
+        fetchDetail();
+        
+        // Cleanup function to prevent state updates if component unmounts
+        return () => {
+            isMounted = false;
+        };
+    }, [id, getPembelianDetail]);
+    
+    // Reset the fetched data flag when ID changes
+    useEffect(() => {
+        hasFetchedData.current = false;
+    }, [id]);
 
     // Update farm and syarat_pembelian when farm/bank data becomes available
     useEffect(() => {
         if (pembelianData && (farmData.length > 0 || banks.length > 0)) {
-            setPembelianData(prev => {
-                if (!prev) return prev;
-                
-                const updatedFarm = prev.farm || getFarmName(prev.id_farm);
-                const updatedSyarat = prev.syarat_pembelian || getBankName(prev.id_syarat_pembelian);
-                
-                // Only update if values actually changed to prevent infinite loop
-                if (updatedFarm !== prev.farm || updatedSyarat !== prev.syarat_pembelian) {
-                    return {
-                        ...prev,
-                        farm: updatedFarm,
-                        syarat_pembelian: updatedSyarat
-                    };
-                }
-                return prev;
-            });
+            const updatedFarm = getFarmName(pembelianData.id_farm);
+            const updatedSyarat = getBankName(pembelianData.id_syarat_pembelian);
+            
+            
+            // Only update if values actually changed to prevent infinite loop
+            if (updatedFarm !== pembelianData.farm || updatedSyarat !== pembelianData.syarat_pembelian) {
+                setPembelianData(prev => ({
+                    ...prev,
+                    farm: updatedFarm,
+                    syarat_pembelian: updatedSyarat
+                }));
+            }
         }
-    }, [pembelianData?.id_farm, pembelianData?.id_syarat_pembelian, farmData, banks, getFarmName, getBankName]);
+    }, [pembelianData, farmData, banks, getFarmName, getBankName]);
 
     const handleBack = () => {
         navigate('/ho/pembelian-kulit');

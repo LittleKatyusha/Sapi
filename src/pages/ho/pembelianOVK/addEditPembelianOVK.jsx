@@ -19,6 +19,9 @@ const AddEditPembelianOVKPage = () => {
     const isEdit = Boolean(id);
     const cloneData = location.state?.cloneData;
     
+    // Flag to prevent multiple API calls in edit mode
+    const editDataLoaded = useRef(false);
+    
     const {
         getPembelianDetail,
         createPembelian,
@@ -197,9 +200,12 @@ const AddEditPembelianOVKPage = () => {
 
     // Load data untuk edit mode - using /show endpoint for both header and detail data
     useEffect(() => {
-        if (isEdit && id && supplierOptions.length > 0 && officeOptions.length > 0 && farmOptions.length > 0 && jenisPembelianOptions.length > 0) { // Wait for all options to load first
+        if (isEdit && id && supplierOptions.length > 0 && officeOptions.length > 0 && farmOptions.length > 0 && jenisPembelianOptions.length > 0 && !editDataLoaded.current) { // Wait for all options to load first
             const loadEditData = async () => {
                 try {
+                    // Set flag to prevent multiple calls
+                    editDataLoaded.current = true;
+                    
                     const decodedId = decodeURIComponent(id);
                     
                     // Get both header and detail data from /show endpoint only
@@ -421,10 +427,12 @@ const AddEditPembelianOVKPage = () => {
             
             loadEditData();
         }
-    }, [isEdit, id, supplierOptions, officeOptions, farmOptions, jenisPembelianOptions]);
+    }, [isEdit, id, supplierOptions.length, officeOptions.length, farmOptions.length, jenisPembelianOptions.length]);
 
-
-
+    // Reset edit data loaded flag when id changes
+    useEffect(() => {
+        editDataLoaded.current = false;
+    }, [id]);
 
 
     // Handle header form changes
@@ -1046,7 +1054,11 @@ const AddEditPembelianOVKPage = () => {
                 });
                 
                 setTimeout(() => {
-                    navigate('/ho/pembelian-ovk');
+                    // Set sessionStorage flag as backup
+                    sessionStorage.setItem('ovk-should-refresh', 'true');
+                    // Dispatch custom event
+                    window.dispatchEvent(new CustomEvent('ovk-data-updated'));
+                    navigate('/ho/pembelian-ovk', { state: { fromEdit: true } });
                 }, 1500);
             } else {
                 setNotification({
@@ -1066,7 +1078,11 @@ const AddEditPembelianOVKPage = () => {
 
     // Handle back navigation
     const handleBack = () => {
-        navigate('/ho/pembelian-ovk');
+        // Set sessionStorage flag as backup
+        sessionStorage.setItem('ovk-should-refresh', 'true');
+        // Dispatch custom event
+        window.dispatchEvent(new CustomEvent('ovk-data-updated'));
+        navigate('/ho/pembelian-ovk', { state: { fromEdit: true } });
     };
 
     // Auto-hide notification

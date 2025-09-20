@@ -264,8 +264,29 @@ const AddEditPembelianPage = () => {
                     let officeIdFromBackend = '';
                     
                     // First try to use id_office directly from backend
-                    if (firstDetail.id_office) {
-                        officeIdFromBackend = String(firstDetail.id_office);
+                    if (firstDetail.id_office !== null && firstDetail.id_office !== undefined && firstDetail.id_office !== '') {
+                        // Convert to number to match officeOptions value type
+                        const convertedOfficeId = Number(firstDetail.id_office);
+                        
+                        // Verify that the office ID exists in the available options
+                        const officeExists = officeOptions.some(option => option.value === convertedOfficeId);
+                        
+                        if (officeExists) {
+                            officeIdFromBackend = convertedOfficeId;
+                            console.log('🏢 Office ID from backend (valid):', {
+                                id_office: firstDetail.id_office,
+                                converted: officeIdFromBackend,
+                                officeOptionsLength: officeOptions.length,
+                                officeExists: true
+                            });
+                        } else {
+                            console.warn('🏢 Office ID from backend not found in options:', {
+                                id_office: firstDetail.id_office,
+                                converted: convertedOfficeId,
+                                officeOptionsLength: officeOptions.length,
+                                availableIds: officeOptions.map(opt => opt.value).slice(0, 5)
+                            });
+                        }
                     } else {
                         // Fallback: try to find by nama_office if id_office is not available
                         const officeNameToMatch = (firstDetail.nama_office || '').trim();
@@ -302,6 +323,13 @@ const AddEditPembelianPage = () => {
                         totalSapi: totalSapiCount, // Always use calculated count
                         note: firstDetail.note || '', // Note field from backend
                     };
+                    
+                    console.log('📋 Final header data for edit:', {
+                        idOffice: finalHeaderData.idOffice,
+                        officeIdFromBackend,
+                        originalIdOffice: firstDetail.id_office,
+                        officeOptionsAvailable: officeOptions.length > 0
+                    });
                         
                     setHeaderData(finalHeaderData);
 
@@ -1362,9 +1390,9 @@ const AddEditPembelianPage = () => {
                     message: result.message
                 });
                 
-                // Navigate back after success
+                // Navigate back after success with state to trigger refresh
                 setTimeout(() => {
-                    navigate('/ho/pembelian');
+                    navigate('/ho/pembelian', { state: { fromEdit: true } });
                 }, 1500);
             } else {
                 
@@ -1557,7 +1585,7 @@ const AddEditPembelianPage = () => {
     // Handle back
     const handleBack = () => {
         if (window.confirm('Apakah Anda yakin ingin kembali? Data yang belum disimpan akan hilang.')) {
-            navigate('/ho/pembelian');
+            navigate('/ho/pembelian', { state: { fromEdit: true } });
         }
     };
 

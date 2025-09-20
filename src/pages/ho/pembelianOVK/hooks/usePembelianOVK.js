@@ -97,7 +97,7 @@ const usePembelianOVK = () => {
     ];
 
     // Fetch pembelian OVK data from API
-    const fetchPembelian = useCallback(async (page = 1, perPage = null, search = null, filter = null, isSearchRequest = false) => {
+    const fetchPembelian = useCallback(async (page = 1, perPage = null, search = null, filter = null, isSearchRequest = false, forceRefresh = false) => {
         setLoading(true);
         setError(null);
         setSearchError(null);
@@ -123,8 +123,10 @@ const usePembelianOVK = () => {
             };
 
             // Call real API endpoint for OVK data
+            // Add cache-busting parameter when forceRefresh is true
+            const finalParams = forceRefresh ? { ...params, _t: Date.now() } : params;
             const responseData = await HttpClient.get(`${API_ENDPOINTS.HO.OVK.PEMBELIAN}/data`, {
-                params: params
+                params: finalParams
             });
             
             if (responseData.recordsTotal !== undefined) {
@@ -367,28 +369,38 @@ const usePembelianOVK = () => {
             });
             
             if (responseData.status === 'ok') {
-                // Update state immediately
-                setPembelian(prevData => 
-                    prevData.filter(item => 
-                        item.encryptedPid !== encryptedPid && 
-                        item.id !== encryptedPid
-                    )
-                );
+                // Calculate the current page after deletion
+                const currentPage = serverPagination.currentPage;
+                const currentPerPage = serverPagination.perPage;
+                const totalItemsAfterDelete = Math.max(0, serverPagination.totalItems - 1);
+                const totalPagesAfterDelete = Math.ceil(totalItemsAfterDelete / currentPerPage);
                 
-                // Update pagination
+                // If current page is empty after deletion, go to previous page
+                let targetPage = currentPage;
+                if (currentPage > totalPagesAfterDelete && totalPagesAfterDelete > 0) {
+                    targetPage = totalPagesAfterDelete;
+                }
+                
+                // Update pagination state
                 setServerPagination(prev => ({
                     ...prev,
-                    totalItems: Math.max(0, prev.totalItems - 1)
+                    totalItems: totalItemsAfterDelete,
+                    totalPages: totalPagesAfterDelete,
+                    currentPage: targetPage
                 }));
                 
-                // Refresh the data list
-                setTimeout(async () => {
+                // Refresh data with the correct page
+                try {
+                    await fetchPembelian(targetPage, currentPerPage, searchTerm, filterJenisPembelian, false, true);
+                } catch (refreshError) {
+                    console.warn('Refresh after delete failed:', refreshError);
+                    // If refresh fails, try to refresh the first page
                     try {
-                        await fetchPembelian(serverPagination.currentPage, serverPagination.perPage);
-                    } catch (refreshError) {
-                        console.warn('Refresh after delete failed:', refreshError);
+                        await fetchPembelian(1, currentPerPage, searchTerm, filterJenisPembelian, false, true);
+                    } catch (fallbackError) {
+                        console.error('Fallback refresh also failed:', fallbackError);
                     }
-                }, 500);
+                }
                 
                 return {
                     success: true,
@@ -402,33 +414,44 @@ const usePembelianOVK = () => {
             // Fallback to mock data for development
             console.warn('API call failed, using mock data:', err.message);
             
+            // Calculate pagination for mock data
+            const currentPage = serverPagination.currentPage;
+            const currentPerPage = serverPagination.perPage;
+            const totalItemsAfterDelete = Math.max(0, serverPagination.totalItems - 1);
+            const totalPagesAfterDelete = Math.ceil(totalItemsAfterDelete / currentPerPage);
+            
+            // If current page is empty after deletion, go to previous page
+            let targetPage = currentPage;
+            if (currentPage > totalPagesAfterDelete && totalPagesAfterDelete > 0) {
+                targetPage = totalPagesAfterDelete;
+            }
+            
             // Remove from mock data
             const index = mockData.findIndex(item => item.encryptedPid === encryptedPid);
             if (index !== -1) {
                 mockData.splice(index, 1);
             }
             
-            // Update state immediately
-            setPembelian(prevData => 
-                prevData.filter(item => 
-                    item.encryptedPid !== encryptedPid && 
-                    item.id !== encryptedPid
-                )
-            );
-            
-            // Update pagination
+            // Update pagination state
             setServerPagination(prev => ({
                 ...prev,
-                totalItems: Math.max(0, prev.totalItems - 1)
+                totalItems: totalItemsAfterDelete,
+                totalPages: totalPagesAfterDelete,
+                currentPage: targetPage
             }));
             
-            setTimeout(async () => {
+            // Refresh data with the correct page
+            try {
+                await fetchPembelian(targetPage, currentPerPage, searchTerm, filterJenisPembelian, false, true);
+            } catch (refreshError) {
+                console.warn('Refresh after delete failed:', refreshError);
+                // If refresh fails, try to refresh the first page
                 try {
-                    await fetchPembelian(serverPagination.currentPage, serverPagination.perPage);
-                } catch (refreshError) {
-                    console.warn('Refresh after delete failed:', refreshError);
+                    await fetchPembelian(1, currentPerPage, searchTerm, filterJenisPembelian, false, true);
+                } catch (fallbackError) {
+                    console.error('Fallback refresh also failed:', fallbackError);
                 }
-            }, 500);
+            }
             
             return {
                 success: true,
@@ -436,8 +459,9 @@ const usePembelianOVK = () => {
             };
         } finally {
             setDeleteLoading(null);
+            setLoading(false);
         }
-    }, [fetchPembelian, serverPagination.currentPage, serverPagination.perPage]);
+    }, [fetchPembelian, serverPagination.currentPage, serverPagination.perPage, searchTerm, filterJenisPembelian]);
 
     // Get pembelian detail
     const getPembelianDetail = useCallback(async (encryptedPid) => {

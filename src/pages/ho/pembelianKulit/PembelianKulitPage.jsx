@@ -550,13 +550,13 @@ const PembelianKulitPage = () => {
                             </span>
                             <div className="flex items-center gap-2 text-xs">
                                 {scrollPosition.canScrollLeft && (
-                                    <span className="text-blue-600 animate-pulse">← Scroll kiri untuk melihat kolom sebelumnya</span>
+                                    <span className="text-blue-600 animate-pulse">Scroll kiri untuk melihat kolom sebelumnya</span>
                                 )}
                                 {scrollPosition.canScrollRight && (
-                                    <span className="text-blue-600 animate-pulse">Scroll kanan untuk melihat kolom lainnya →</span>
+                                    <span className="text-blue-600 animate-pulse">Scroll kanan untuk melihat kolom lainnya</span>
                                 )}
                                 {!scrollPosition.canScrollLeft && !scrollPosition.canScrollRight && (
-                                    <span className="text-green-600">✓ Semua kolom terlihat</span>
+                                    <span className="text-green-600">Semua kolom terlihat</span>
                                 )}
                             </div>
                         </div>
@@ -670,13 +670,13 @@ const PembelianKulitPage = () => {
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2 text-xs text-gray-500">
                                 {scrollPosition.canScrollLeft && (
-                                    <span className="text-blue-600 bg-blue-50 px-2 py-1 rounded-md">← Geser kiri untuk melihat kolom sebelumnya</span>
+                                    <span className="text-blue-600 bg-blue-50 px-2 py-1 rounded-md">Geser kiri untuk melihat kolom sebelumnya</span>
                                 )}
                                 {scrollPosition.canScrollRight && (
-                                    <span className="text-blue-600 bg-blue-50 px-2 py-1 rounded-md">Geser kanan untuk melihat kolom lainnya →</span>
+                                    <span className="text-blue-600 bg-blue-50 px-2 py-1 rounded-md">Geser kanan untuk melihat kolom lainnya</span>
                                 )}
                                 {!scrollPosition.canScrollLeft && !scrollPosition.canScrollRight && (
-                                    <span className="text-green-600 bg-green-50 px-2 py-1 rounded-md">✓ Semua kolom terlihat</span>
+                                    <span className="text-green-600 bg-green-50 px-2 py-1 rounded-md">Semua kolom terlihat</span>
                                 )}
                             </div>
                             
