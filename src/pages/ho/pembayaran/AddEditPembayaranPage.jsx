@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Save, Plus, Trash2, Building2, User, Calendar, Truck, Hash, Package, X, Settings, AlertCircle, Weight, DollarSign, Upload, FileText } from 'lucide-react';
-import usePembelianFeedmil from './hooks/usePembelianFeedmil';
+import { useParams, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Save, Plus, Trash2, Building2, Calendar, Hash, Package, X, Settings, AlertCircle, Weight, DollarSign, Upload, FileText } from 'lucide-react';
+import usePembayaran from './hooks/usePembayaran';
 import useParameterSelect from '../pembelian/hooks/useParameterSelect';
-import useJenisPembelianFeedmil from './hooks/useJenisPembelianFeedmil';
 import useBanksAPI from './hooks/useBanksAPI';
 import SearchableSelect from '../../../components/shared/SearchableSelect';
 import HttpClient from '../../../services/httpClient';
@@ -11,49 +10,27 @@ import { API_ENDPOINTS } from '../../../config/api';
 
 
 
-// Mock data removed - now using real backend data via useJenisPembelianFeedmil
+// Mock data removed - now using real backend data via useJenisPembayaran
 
-const AddEditPembelianFeedmilPage = () => {
+const AddEditPembayaranPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const location = useLocation();
     const isEdit = Boolean(id);
-    const cloneData = location.state?.cloneData;
     
-    // Flag to prevent multiple API calls in edit mode
-    const editDataLoaded = useRef(false);
-    
-    const {
-        getPembelianDetail,
-        createPembelian,
-        updatePembelian,
-        fetchPembelian,
-        pembelian: pembelianList,
-        loading,
-        error,
-        updateDetail,
-        deleteDetail
-    } = usePembelianFeedmil();
+    // Direct API usage since payment endpoints are different from purchase
+    // Will use HttpClient directly for payment operations
 
     // Parameter Select integration - centralized data from ParameterSelectController
     const {
-        parameterData,
         supplierOptions,
         officeOptions,
-        klasifikasiFeedmilOptions,
-        itemFeedmilOptions,
         farmOptions,
+        itemPembayaranOptions,
         loading: parameterLoading,
         error: parameterError
-    } = useParameterSelect(isEdit, { kategoriSupplier: 2 });
+    } = useParameterSelect(isEdit, { kategoriSupplier: 4 });
 
-    // Jenis Pembelian Feedmil API integration
-    const {
-        jenisPembelianOptions,
-        loading: jenisPembelianLoading,
-        error: jenisPembelianError,
-        getLabelByValue
-    } = useJenisPembelianFeedmil();
+    // Removed jenis pembelian fetching as it's not required
 
     // Bank API integration for Syarat Pembelian
     const {
@@ -62,26 +39,14 @@ const AddEditPembelianFeedmilPage = () => {
         error: bankError
     } = useBanksAPI();
 
-    // Header form state - aligned with backend validation requirements
+    // Header form state - aligned with backend TrPembayaran validation requirements
     const [headerData, setHeaderData] = useState({
-        nota: '',
-        nota_ho: '', // Nomor Nota HO
-        farm: '', // Farm
-        syarat_pembelian: '', // Syarat Pembelian
-        idOffice: '', // Office now selectable
-        tipePembelian: '',
-        idSupplier: '',
-        tgl_masuk: '',
-        nama_supir: '',
-        plat_nomor: '',
-        biaya_truck: '', // Will map to biaya_truk in backend
-        biaya_lain: '',
-        berat_total: '',
-        harga_total: '', // Will map to biaya_total in backend
-        total_feedmil: '', // Will map to jumlah in backend
-        file: '',
-        fileName: '',
-        note: '' // Required field for backend
+        id_pembelian: '', // Required - refers to tr_pembelian_ho.id
+        purchase_type: '', // Required - 1 or 2 
+        due_date: '', // Required - tanggal jatuh tempo
+        settlement_date: '', // Nullable - tanggal pelunasan
+        payment_status: 0, // Nullable - 0 (belum lunas) or 1 (lunas)
+        note: '' // Additional note field
     });
 
     // Detail items state
@@ -98,19 +63,15 @@ const AddEditPembelianFeedmilPage = () => {
     const [isFileModalOpen, setIsFileModalOpen] = useState(false);
     const [existingFileName, setExistingFileName] = useState(null); // Track existing file name
 
-    // Default data untuk batch operations - aligned with backend validation
+    // Default data untuk batch operations - aligned with TrPembayaranDetail backend validation
     const [defaultData, setDefaultData] = useState({
-        item_name: '',
-        item_name_id: null, // Store the selected item ID
-        id_klasifikasi_feedmil: null, // Use null instead of empty string to avoid auto-selection
-        berat: 0, // Start with 0 like harga total pattern
-        harga: 0, // Also change to 0 for consistency
-        persentase: 0 // Also change to 0 for consistency
+        amount: 0, // Required - numeric min:0 - jumlah pembayaran
+        payment_date: '', // Required - date - tanggal pembayaran
+        description: '' // Additional description for payment detail
     });
     const [batchCount, setBatchCount] = useState(0);
     
-    // Ref to track if batchCount has been manually set by user
-    const batchCountManuallySetRef = useRef(false);
+    // Removed unused ref for batch count manual set
     
     // Helper functions for number formatting (same as pembelian)
     const formatNumber = (value) => {
@@ -195,24 +156,11 @@ const AddEditPembelianFeedmilPage = () => {
         return result;
     };
 
-    // Use Feedmil suppliers only (kategori_supplier = 2)
+    // Use Payment suppliers only (kategori_supplier = 4)
     const supplierOptionsToShow = supplierOptions;
-    
-    // Debug: Log supplier options to verify filtering
-    useEffect(() => {
-        console.log('📊 AddEditPembelianFeedmilPage: Supplier options received:', supplierOptionsToShow.length, 'suppliers');
-        if (supplierOptionsToShow.length > 0) {
-            console.log('📊 First supplier sample:', supplierOptionsToShow[0]);
-        }
-    }, [supplierOptionsToShow]);
 
-    // Debug: Log item feedmil options
-    useEffect(() => {
-        console.log('📊 AddEditPembelianFeedmilPage: Item Feedmil options received:', itemFeedmilOptions.length, 'items');
-        if (itemFeedmilOptions.length > 0) {
-            console.log('📊 First item feedmil sample:', itemFeedmilOptions[0]);
-        }
-    }, [itemFeedmilOptions]);
+    // Ref to track if edit data has been loaded to prevent multiple API calls
+    const editDataLoaded = useRef(false);
 
     // Note: Removed pembelian list fetching for edit mode since we now use /show endpoint directly
     // This eliminates the need to fetch all data and then filter by pubid
@@ -222,19 +170,26 @@ const AddEditPembelianFeedmilPage = () => {
 
     // Load data untuk edit mode - using /show endpoint for both header and detail data
     useEffect(() => {
+        console.log('Edit useEffect triggered:', {
+            isEdit,
+            id,
+            editDataLoaded: editDataLoaded.current,
+            supplierOptionsLength: supplierOptions.length,
+            officeOptionsLength: officeOptions.length,
+            farmOptionsLength: farmOptions.length
+        });
+        
         // Wait for all required options to load first (like OVK pattern)
         // Also check if data has already been loaded to prevent multiple API calls
-        if (isEdit && id && supplierOptions.length > 0 && officeOptions.length > 0 && farmOptions.length > 0 && jenisPembelianOptions.length > 0 && !editDataLoaded.current) {
+        if (isEdit && id && supplierOptions.length > 0 && officeOptions.length > 0 && farmOptions.length > 0 && !editDataLoaded.current) {
             const loadEditData = async () => {
                 try {
-                    // Set flag to prevent multiple calls
-                    editDataLoaded.current = true;
-                    
-                    const decodedId = decodeURIComponent(id);
+                    // decodedId not needed; use id directly
                     
                     // Get both header and detail data from /show endpoint only
+                    console.log('Calling /show API for edit data with pid:', id);
                     
-                    const showResponse = await HttpClient.post(`${API_ENDPOINTS.HO.FEEDMIL.PEMBELIAN}/show`, {
+                    const showResponse = await HttpClient.post(`${API_ENDPOINTS.HO.PAYMENT.SHOW}`, {
                         pid: id
                     });
                     
@@ -296,50 +251,15 @@ const AddEditPembelianFeedmilPage = () => {
                         }
                         
 
-                        // Find tipe pembelian ID - backend sends tipe_pembelian as integer (1 or 2)
-                        let tipePembelianId = '';
-                        
-                        if (headerData.tipe_pembelian !== undefined && headerData.tipe_pembelian !== null) {
-                            // Backend sends tipe_pembelian as integer, convert to string for matching
-                            const tipePembelianValue = String(headerData.tipe_pembelian);
-                            const foundTipePembelian = jenisPembelianOptions.find(t => t.value === tipePembelianValue);
-                            
-                            if (foundTipePembelian) {
-                                tipePembelianId = foundTipePembelian.value;
-                            }
-                        } else if (headerData.jenis_pembelian) {
-                            // Fallback: try to match by jenis_pembelian name (for backward compatibility)
-                            let foundTipePembelian = jenisPembelianOptions.find(t => t.label === headerData.jenis_pembelian);
-                            if (!foundTipePembelian) {
-                                foundTipePembelian = jenisPembelianOptions.find(t => 
-                                    t.label.toLowerCase().includes(headerData.jenis_pembelian.toLowerCase()) ||
-                                    headerData.jenis_pembelian.toLowerCase().includes(t.label.toLowerCase())
-                                );
-                            }
-                            if (foundTipePembelian) {
-                                tipePembelianId = foundTipePembelian.value;
-                            }
-                        }
+                        // Removed jenis pembelian mapping as it's not required
 
-                        // Set header data using safe helper functions (like OVK pattern)
+                        // Set header data using safe helper functions - aligned with TrPembayaran backend
                         setHeaderData({
-                            nota: safeGetString(headerData.nota),
-                            nota_ho: safeGetString(headerData.nota_ho),
-                            farm: headerData.id_farm ? parseInt(headerData.id_farm) : (headerData.farm ? parseInt(headerData.farm) : null),
-                            syarat_pembelian: safeGetString(headerData.syarat_pembelian) || safeGetString(headerData.id_syarat_pembelian),
-                            idOffice: officeId || (headerData.id_office ? parseInt(headerData.id_office) : null),
-                            tipePembelian: tipePembelianId || (headerData.tipe_pembelian ? parseInt(headerData.tipe_pembelian) : null),
-                            idSupplier: supplierId || (headerData.id_supplier ? parseInt(headerData.id_supplier) : null),
-                            tgl_masuk: safeGetString(headerData.tgl_masuk),
-                            nama_supir: safeGetString(headerData.nama_supir),
-                            plat_nomor: safeGetString(headerData.plat_nomor),
-                            biaya_truck: safeGetNumber(headerData.biaya_truk) ?? safeGetNumber(headerData.biaya_truck),
-                            biaya_lain: safeGetNumber(headerData.biaya_lain),
-                            berat_total: safeGetNumber(headerData.berat_total),
-                            harga_total: safeGetNumber(headerData.biaya_total) || safeGetNumber(headerData.total_belanja),
-                            total_feedmil: safeGetNumber(headerData.jumlah),
-                            file: safeGetString(headerData.file), // Keep as string for display purposes
-                            fileName: safeGetString(headerData.file_name) || safeGetString(headerData.fileName),
+                            id_pembelian: safeGetNumber(headerData.id_pembelian),
+                            purchase_type: safeGetNumber(headerData.purchase_type) || 1,
+                            due_date: safeGetString(headerData.due_date),
+                            settlement_date: safeGetString(headerData.settlement_date),
+                            payment_status: safeGetNumber(headerData.payment_status) || 0,
                             note: safeGetString(headerData.note) || safeGetString(headerData.catatan)
                         });
 
@@ -349,45 +269,28 @@ const AddEditPembelianFeedmilPage = () => {
                             setExistingFileName(existingFile);
                         }
 
-                        // Transform detail items from backend data (using optimized data)
+                        // Transform detail items from backend data - aligned with TrPembayaranDetail
                         if (detailResult.success && detailResult.data.length > 0) {
                             const transformedDetailItems = detailResult.data.map((item, index) => {
-                                // Find the item ID from itemFeedmilOptions if we have the item name
-                                const itemName = safeGetString(item.item_name) || `Feedmil Item ${index + 1}`;
-                                const foundItem = itemFeedmilOptions.find(option => option.label === itemName);
-                                
                                 return {
                                     id: index + 1,
                                     // Include backend identifiers for update operations
-                                    idPembelian: item.id_pembelian, // This is crucial for update operations
-                                    id_pembelian: item.id_pembelian, // Keep both for compatibility
+                                    idPembayaran: item.id_pembayaran, // This is crucial for update operations
+                                    id_pembayaran: item.id_pembayaran, // Keep both for compatibility
                                     encryptedPid: item.pid, // Encrypted PID for existing items
                                     pubidDetail: item.pubid_detail, // Raw pubid if available
-                                    // Detail fields using safe helper functions
-                                    item_name: itemName,
-                                    item_name_id: foundItem ? foundItem.value : null,
-                                    id_klasifikasi_feedmil: (() => {
-                                        // Backend sends integer ID, use it directly since frontend now uses integer IDs
-                                        const backendId = item.id_klasifikasi_feedmil;
-                                        if (!backendId) return null;
-                                        
-                                        // Use the integer ID directly since we changed frontend to use integer IDs
-                                        return parseInt(backendId);
-                                    })(),
-                                    berat: safeGetNumber(item.berat, 0),
-                                    harga: safeGetNumber(item.harga, 0),
-                                    persentase: (() => {
-                                        return formatPersentaseFromBackend(item.persentase);
-                                    })(),
-                                    hpp: safeGetNumber(item.hpp, 0),
-                                    total_harga: safeGetNumber(item.total_harga, 0),
-                                    tgl_masuk_rph: safeGetString(item.tgl_masuk_rph) || new Date().toISOString().split('T')[0]
+                                    // Detail fields aligned with TrPembayaranDetail backend
+                                    amount: safeGetNumber(item.amount, 0), // Amount field from backend
+                                    payment_date: safeGetString(item.payment_date) || new Date().toISOString().split('T')[0],
+                                    description: safeGetString(item.description) || '' // Optional description
                                 };
                             });
                         
                         setDetailItems(transformedDetailItems);
                         }
                         
+                        // Mark data as loaded to prevent multiple API calls
+                        editDataLoaded.current = true;
                     }
                 } catch (error) {
                     console.error('Error loading edit data:', error);
@@ -400,12 +303,10 @@ const AddEditPembelianFeedmilPage = () => {
             
             loadEditData();
         }
-    }, [isEdit, id, supplierOptions.length, officeOptions.length, farmOptions.length, jenisPembelianOptions.length]);
+    }, [isEdit, id, supplierOptions.length, officeOptions.length, farmOptions.length]);
 
-    // Reset edit data loaded flag when id changes
-    useEffect(() => {
-        editDataLoaded.current = false;
-    }, [id]);
+
+
 
 
     // Handle header form changes
@@ -416,38 +317,23 @@ const AddEditPembelianFeedmilPage = () => {
         }));
     };
 
-    // Handle detail item changes
+    // Handle detail item changes - aligned with TrPembayaranDetail
     const handleDetailChange = (itemId, field, value) => {
         setDetailItems(prev => prev.map(item => {
             if (item.id === itemId) {
-                if (field === 'item_name') {
-                    // Find the display name for the selected item
-                    const selectedItem = itemFeedmilOptions.find(option => option.value === value);
-                    return {
-                        ...item,
-                        item_name: selectedItem ? selectedItem.label : '',
-                        item_name_id: value
-                    };
-                } else {
-                    return { ...item, [field]: value };
-                }
+                return { ...item, [field]: value };
             }
             return item;
         }));
     };
 
-    // Add new detail item
+    // Add new detail item - aligned with TrPembayaranDetail
     const addDetailItem = () => {
         const newItem = {
             id: Date.now(),
-            item_name: defaultData.item_name_display || defaultData.item_name || '',
-            item_name_id: defaultData.item_name || null,
-            id_klasifikasi_feedmil: defaultData.id_klasifikasi_feedmil || null, // Use null instead of empty string
-            berat: defaultData.berat || 0,
-            harga: defaultData.harga || '',
-            persentase: defaultData.persentase || '', // Fix: correct spelling
-            hpp: '', // Will be calculated
-            tgl_masuk_rph: ''
+            amount: defaultData.amount || 0,
+            payment_date: defaultData.payment_date || new Date().toISOString().split('T')[0],
+            description: defaultData.description || ''
         };
         
         setDetailItems(prev => [...prev, newItem]);
@@ -467,14 +353,9 @@ const AddEditPembelianFeedmilPage = () => {
         for (let i = 0; i < batchCount; i++) {
             newItems.push({
                 id: Date.now() + i,
-                item_name: defaultData.item_name_display || defaultData.item_name || '',
-                item_name_id: defaultData.item_name || null,
-                id_klasifikasi_feedmil: defaultData.id_klasifikasi_feedmil || null, // Use null instead of empty string
-                berat: defaultData.berat || 0,
-                harga: defaultData.harga || '',
-                persentase: defaultData.persentase || '', // Fix: correct spelling
-                hpp: '', // Will be calculated
-                tgl_masuk_rph: ''
+                amount: defaultData.amount || 0,
+                payment_date: defaultData.payment_date || new Date().toISOString().split('T')[0],
+                description: defaultData.description || ''
             });
         }
         setDetailItems(prev => [...prev, ...newItems]);
@@ -524,7 +405,9 @@ const AddEditPembelianFeedmilPage = () => {
                     message: 'Menghapus detail dari database...'
                 });
 
-                const result = await deleteDetail(detailPid);
+                const result = await HttpClient.post(API_ENDPOINTS.HO.PAYMENT.DETAIL_DELETE, {
+                    pid: detailPid
+                });
                 
                 if (result.success) {
                     // Remove from local state after successful backend deletion
@@ -532,7 +415,7 @@ const AddEditPembelianFeedmilPage = () => {
                     
                     setNotification({
                         type: 'success',
-                        message: result.message || 'Detail feedmil berhasil dihapus dari database'
+                        message: result.message || 'Detail pembayaran berhasil dihapus dari database'
                     });
                 } else {
                     setNotification({
@@ -582,10 +465,9 @@ const AddEditPembelianFeedmilPage = () => {
 
         // Validate individual item
         const itemErrors = [];
-        if (!item.item_name_id && (!item.item_name || item.item_name.trim() === '')) {
+        if (!item.item_name || item.item_name.trim() === '') {
             itemErrors.push('Nama item harus diisi');
         }
-        // id_klasifikasi_feedmil is nullable according to backend rules - no validation needed
         if (!item.harga || parseFloat(item.harga) <= 0) {
             itemErrors.push('Harga harus diisi dan > 0');
         }
@@ -617,22 +499,8 @@ const AddEditPembelianFeedmilPage = () => {
             const detailData = {
                 idPembelian: item.idPembelian || null, // Use item's id_pembelian if available (for existing items)
                 idOffice: parseInt(headerData.idOffice) || 1, // Use selected office ID
-                item_name: String(item.item_name || ''),
-                item_name_id: item.item_name_id || null, // Include item ID for backend reference
-                id_klasifikasi_feedmil: (() => {
-                    const rawValue = item.id_klasifikasi_feedmil;
-                    
-                    if (rawValue === null || rawValue === undefined || rawValue === '') {
-                        return null;
-                    }
-                    
-                    const parsed = parseInt(rawValue);
-                    if (isNaN(parsed)) {
-                        return null;
-                    }
-                    
-                    return parsed;
-                })(),
+                item_name: String(item.item_name || ''), // Send display name to backend
+                id_item: item.item_name_id ? parseInt(item.item_name_id) : null, // Send item ID to backend
                 harga: parseFloat(item.harga) || 0,
                 berat: parseInt(item.berat) || 0,
                 persentase: getParsedPersentase(item.persentase),
@@ -663,7 +531,10 @@ const AddEditPembelianFeedmilPage = () => {
                 }
                 
                 const detailPid = item.encryptedPid || item.pid || item.pubidDetail;
-                result = await updateDetail(detailPid, detailData);
+                result = await HttpClient.post(API_ENDPOINTS.HO.PAYMENT.DETAIL_UPDATE, {
+                    pid: detailPid,
+                    ...detailData
+                });
             } else {
                 // This is a new item created in frontend - use updateDetail with null pid to create new detail
                 // Get id_pembelian from existing detail items or fallback method
@@ -679,13 +550,13 @@ const AddEditPembelianFeedmilPage = () => {
                 }
                 
                 detailData.idPembelian = idPembelianValue; // Use the resolved id_pembelian
-                result = await updateDetail(null, detailData); // null pid will trigger create in backend
+                result = await HttpClient.post(API_ENDPOINTS.HO.PAYMENT.DETAIL_STORE, detailData);
             }
 
             if (result.success) {
                 setNotification({
                     type: 'success',
-                    message: 'Detail feedmil berhasil disimpan!'
+                    message: 'Detail pembayaran berhasil disimpan!'
                 });
                 
                 // Update the saved item with new encrypted PID if it was a new item
@@ -712,7 +583,7 @@ const AddEditPembelianFeedmilPage = () => {
                 });
             }
         } catch (err) {
-            console.error('Error saving detail feedmil item:', err);
+            console.error('Error saving detail pembayaran item:', err);
             setNotification({
                 type: 'error',
                 message: err.message || 'Terjadi kesalahan saat menyimpan detail'
@@ -720,22 +591,12 @@ const AddEditPembelianFeedmilPage = () => {
         }
     };
 
-    // Handle default data changes
+    // Handle default data changes - aligned with TrPembayaranDetail
     const handleDefaultDataChange = (field, value) => {
-        if (field === 'item_name') {
-            // Find the display name for the selected item
-            const selectedItem = itemFeedmilOptions.find(item => item.value === value);
-            setDefaultData(prev => ({
-                ...prev,
-                item_name: value,
-                item_name_display: selectedItem ? selectedItem.label : ''
-            }));
-        } else {
-            setDefaultData(prev => ({
-                ...prev,
-                [field]: value
-            }));
-        }
+        setDefaultData(prev => ({
+            ...prev,
+            [field]: value
+        }));
     };
 
     // Handle file upload
@@ -843,67 +704,35 @@ const AddEditPembelianFeedmilPage = () => {
     const validateForm = () => {
         const errors = [];
 
-        if (!headerData.nota.trim()) {
-            errors.push('Nomor Nota Supplier harus diisi');
+        // Validate TrPembayaran header fields (aligned with backend validation)
+
+        if (!headerData.purchase_type) {
+            errors.push('Tipe Pembelian harus dipilih (1 atau 2)');
+        } else if (![1, 2].includes(parseInt(headerData.purchase_type))) {
+            errors.push('Tipe Pembelian harus 1 atau 2');
         }
 
-        if (!headerData.farm) {
-            errors.push('Farm harus dipilih');
+        if (!headerData.due_date) {
+            errors.push('Tanggal jatuh tempo harus diisi');
         }
 
-        if (!headerData.syarat_pembelian) {
-            errors.push('Syarat Pembelian harus dipilih');
-        }
-
-        if (!headerData.nota_ho) {
-            errors.push('Nomor Nota HO harus diisi');
-        }
-
-        if (!headerData.tipePembelian) {
-            errors.push('Tipe Pembelian harus dipilih');
-        }
-
-        if (!headerData.idSupplier) {
-            errors.push('Supplier harus dipilih');
-        }
-
-
-
-        if (!headerData.tgl_masuk) {
-            errors.push('Tanggal masuk harus diisi');
-        }
-
-        // nama_supir, plat_nomor, dan biaya_truck sekarang opsional (nullable)
-        // Validasi dihapus sesuai permintaan client
-
+        // Validate TrPembayaranDetail items
         if (detailItems.length === 0) {
-            errors.push('Minimal harus ada 1 item feedmil');
+            errors.push('Minimal harus ada 1 detail pembayaran');
         }
 
         detailItems.forEach((item, index) => {
-            if (!item.item_name_id && (!item.item_name || item.item_name.trim() === '')) {
-                errors.push(`Item ${index + 1}: Nama item harus diisi`);
+            // Validate amount (required, numeric, min:0)
+            const amount = parseFloat(item.amount);
+            if (isNaN(amount) || amount < 0) {
+                errors.push(`Detail ${index + 1}: Amount harus berupa angka >= 0`);
             }
-            // id_klasifikasi_feedmil is nullable according to backend validation rules
-            // Remove required validation for klasifikasi feedmil
-            const berat = parseFloat(item.berat);
-            if (isNaN(berat) || berat <= 0) {
-                errors.push(`Item ${index + 1}: Berat harus lebih dari 0`);
-            }
-            const harga = parseFloat(item.harga);
-            if (isNaN(harga) || harga <= 0) {
-                errors.push(`Item ${index + 1}: Harga harus lebih dari 0`);
-            }
-            const persentase = getParsedPersentase(item.persentase);
-            if (isNaN(persentase) || persentase < 0) {
-                errors.push(`Item ${index + 1}: Persentase harus >= 0`);
+
+            // Validate payment_date (required, date format)
+            if (!item.payment_date || item.payment_date.trim() === '') {
+                errors.push(`Detail ${index + 1}: Tanggal pembayaran harus diisi`);
             }
         });
-
-        // Validate note field (required by backend)
-        if (!headerData.note || !headerData.note.trim()) {
-            errors.push('Catatan harus diisi');
-        }
 
         if (errors.length > 0) {
             setNotification({
@@ -935,50 +764,38 @@ const AddEditPembelianFeedmilPage = () => {
             const selectedSupplier = supplierOptions.find(s => s.value === headerData.idSupplier);
             
             // Debug file state
-            console.log('🔍 File Debug Info:');
+            console.log('File Debug Info:');
             console.log('selectedFile:', selectedFile);
             console.log('headerData.file:', headerData.file);
             console.log('selectedFile instanceof File:', selectedFile instanceof File);
             console.log('headerData.file instanceof File:', headerData.file instanceof File);
 
             const submissionData = {
-                ...headerData,
-                totalJumlah: totals.totalJumlah,
-                totalBerat: totals.totalBerat,
-                totalHPP: totals.totalHPP,
-                detailItems: detailItems,
-                tipe_pembelian: headerData.tipePembelian, // Backend expects tipe_pembelian as integer
-                supplier: selectedSupplier ? selectedSupplier.label : '',
-                nama_supplier: selectedSupplier ? selectedSupplier.label : '',
-                id_supplier: headerData.idSupplier,
-                jenis_supplier: selectedSupplier ? selectedSupplier.jenis_supplier : '',
-                // Transform nullable fields
-                nama_supir: headerData.nama_supir || '-',
-                plat_nomor: headerData.plat_nomor || '-',
-                biaya_truck: headerData.biaya_truck ? parseFloat(headerData.biaya_truck) : 0,
-                biaya_lain: headerData.biaya_lain ? parseFloat(headerData.biaya_lain) : 0,
-                // New fields
-                nota_ho: headerData.nota_ho || '',
-                id_farm: headerData.farm ? parseInt(headerData.farm) : null,
-                id_syarat_pembelian: headerData.syarat_pembelian ? parseInt(headerData.syarat_pembelian) : null,
-                // Ensure file is properly passed - prioritize selectedFile over headerData.file
-                // Only pass file if it's a File object (new upload) or if we have existing file name but no new file
-                file: selectedFile || (headerData.file && headerData.file instanceof File ? headerData.file : null),
-                // Pass existing file name for backend to know if file should be kept
-                existingFileName: existingFileName
+                // TrPembayaran header fields
+                id_pembelian: parseInt(headerData.id_pembelian),
+                purchase_type: parseInt(headerData.purchase_type),
+                due_date: headerData.due_date,
+                settlement_date: headerData.settlement_date || null,
+                payment_status: parseInt(headerData.payment_status) || 0,
+                // Details array aligned with TrPembayaranDetail
+                details: detailItems.map(item => ({
+                    amount: parseFloat(item.amount),
+                    payment_date: item.payment_date,
+                    description: item.description || ''
+                }))
             };
 
-            console.log('🔍 Final submissionData.file:', submissionData.file);
+            console.log('Final submissionData.file:', submissionData.file);
 
 
             let result;
             if (isEdit) {
-                result = await updatePembelian({
+                result = await HttpClient.post(API_ENDPOINTS.HO.PAYMENT.UPDATE, {
                     ...submissionData,
                     id: id
                 });
             } else {
-                result = await createPembelian(submissionData);
+                result = await HttpClient.post(API_ENDPOINTS.HO.PAYMENT.STORE, submissionData);
             }
 
             if (result.success) {
@@ -987,12 +804,11 @@ const AddEditPembelianFeedmilPage = () => {
                     message: result.message || (isEdit ? 'Data berhasil diperbarui!' : 'Data berhasil disimpan!')
                 });
                 
+                // Set flag for refresh when returning to main page
+                sessionStorage.setItem('pembayaran-should-refresh', 'true');
+                
                 setTimeout(() => {
-                    // Set sessionStorage flag as backup
-                    sessionStorage.setItem('feedmil-should-refresh', 'true');
-                    // Dispatch custom event
-                    window.dispatchEvent(new CustomEvent('feedmil-data-updated'));
-                    navigate('/ho/pembelian-feedmil', { state: { fromEdit: true } });
+                    navigate('/ho/pembayaran', { state: { fromEdit: true } });
                 }, 1500);
             } else {
                 setNotification({
@@ -1013,11 +829,7 @@ const AddEditPembelianFeedmilPage = () => {
 
     // Handle back navigation
     const handleBack = () => {
-        // Set sessionStorage flag as backup
-        sessionStorage.setItem('feedmil-should-refresh', 'true');
-        // Dispatch custom event
-        window.dispatchEvent(new CustomEvent('feedmil-data-updated'));
-        navigate('/ho/pembelian-feedmil', { state: { fromEdit: true } });
+        navigate('/ho/pembayaran', { state: { fromEdit: true } });
     };
 
     // Auto-hide notification
@@ -1048,10 +860,10 @@ const AddEditPembelianFeedmilPage = () => {
                             <div>
                                 <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 flex items-center gap-3">
                                     <Package className="w-8 h-8 text-blue-500" />
-                                    {isEdit ? 'Edit Pembelian Feedmil' : 'Tambah Pembelian Feedmil'}
+                                    {isEdit ? 'Edit Pembayaran' : 'Tambah Pembayaran'}
                                 </h1>
                                 <p className="text-gray-600 mt-1">
-                                    {isEdit ? 'Perbarui data pembelian feedmil' : 'Tambahkan data pembelian feedmil baru'}
+                                    {isEdit ? 'Perbarui data pembayaran' : 'Tambahkan data pembayaran baru'}
                                 </p>
                             </div>
                         </div>
@@ -1083,220 +895,104 @@ const AddEditPembelianFeedmilPage = () => {
                 {/* Header Form */}
                 <div className="bg-white rounded-none sm:rounded-none p-4 sm:p-6 shadow-xl border border-gray-100">
                     <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                        <Hash className="w-6 h-6 text-blue-600" />
-                        Data Header Pembelian
+                        <DollarSign className="w-6 h-6 text-blue-600" />
+                        Data Header Pembayaran
                     </h2>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-                        {/* Nomor Nota Supplier */}
-                        <div>
-                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <Hash className="w-4 h-4" />
-                                Nomor Nota Supplier *
-                            </label>
-                            <input
-                                type="text"
-                                value={headerData.nota}
-                                onChange={(e) => handleHeaderChange('nota', e.target.value)}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                placeholder="Masukkan nomor nota supplier"
-                            />
-                        </div>
 
-                        {/* Nomor Nota CV. Puput Bersaudara */}
-                        <div>
-                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <Hash className="w-4 h-4" />
-                                Nomor Nota CV. Puput Bersaudara
-                            </label>
-                            <input
-                                type="text"
-                                value={headerData.nota_ho}
-                                onChange={(e) => handleHeaderChange('nota_ho', e.target.value)}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                placeholder="Masukkan nomor nota CV"
-                            />
-                        </div>
 
 
                         {/* Office */}
                         <div>
                             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                                 <Building2 className="w-4 h-4" />
-                                Office *
-                            </label>
-                            <SearchableSelect
-                                value={headerData.idOffice}
-                                onChange={(value) => setHeaderData(prev => ({ ...prev, idOffice: value }))}
-                                options={officeOptions}
-                                placeholder={parameterLoading ? 'Loading offices...' : parameterError ? 'Error loading offices' : 'Pilih Office'}
-                                isLoading={parameterLoading}
-                                isDisabled={parameterLoading || parameterError}
-                                required
-                                className="w-full"
-                            />
-                            {parameterError && (
-                                <p className="text-xs text-red-500 mt-1">
-                                    ⚠️ Error loading offices: {parameterError}
-                                </p>
-                            )}
-                        </div>
-
-                        {/* Tipe Pembelian */}
-                        <div>
-                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <Package className="w-4 h-4" />
                                 Tipe Pembelian *
                             </label>
-                            <SearchableSelect
-                                value={headerData.tipePembelian}
-                                onChange={(value) => handleHeaderChange('tipePembelian', value)}
-                                options={jenisPembelianOptions}
-                                placeholder={jenisPembelianLoading ? "Memuat tipe pembelian..." : "Pilih Tipe Pembelian"}
-                                className="w-full"
-                                disabled={jenisPembelianLoading}
-                            />
-                            {jenisPembelianLoading && (
-                                <p className="text-xs text-blue-600 mt-1">
-                                    🔄 Memuat tipe pembelian...
+                            <select
+                                value={headerData.purchase_type}
+                                onChange={(e) => handleHeaderChange('purchase_type', e.target.value)}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                                required
+                            >
+                                <option value="">Pilih Tipe Pembelian</option>
+                                <option value="1">Tipe 1</option>
+                                <option value="2">Tipe 2</option>
+                            </select>
+                            {parameterError && (
+                                <p className="text-xs text-red-500 mt-1">
+Error loading offices: {parameterError}
                                 </p>
                             )}
-                            {jenisPembelianError && (
-                                <p className="text-xs text-red-600 mt-1">
-                                    ❌ Error: {jenisPembelianError}
-                                </p>
-                            )}
-
                         </div>
+
 
                         {/* Supplier */}
                         <div>
                             <div className="flex items-center justify-between mb-2">
                                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
-                                    <Building2 className="w-4 h-4" />
-                                    Supplier *
+                                    <Calendar className="w-4 h-4" />
+                                    Tanggal Jatuh Tempo *
                                 </label>
                             </div>
-                            <SearchableSelect
-                                value={headerData.idSupplier}
-                                onChange={(value) => handleHeaderChange('idSupplier', value)}
-                                options={supplierOptionsToShow}
-                                placeholder={parameterLoading ? "Memuat supplier..." : parameterError ? "Error loading supplier" : "Pilih Supplier"}
-                                className="w-full"
-                                disabled={parameterLoading || parameterError}
+                            <input
+                                type="date"
+                                value={headerData.due_date}
+                                onChange={(e) => handleHeaderChange('due_date', e.target.value)}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                                required
                             />
                             {parameterLoading && (
                                 <p className="text-xs text-blue-600 mt-1">
-                                    🔄 Memuat data supplier...
+                                    Memuat data supplier...
                                 </p>
                             )}
                             {parameterError && (
                                 <p className="text-xs text-red-600 mt-1">
-                                    ❌ Error: {parameterError}
+Error: {parameterError}
                                 </p>
                             )}
                         </div>
 
-                        {/* Tanggal Masuk */}
+                        {/* Settlement Date */}
                         <div>
                             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                                 <Calendar className="w-4 h-4" />
-                                Tanggal Masuk *
+                                Tanggal Pelunasan
                             </label>
                             <input
                                 type="date"
-                                value={headerData.tgl_masuk}
-                                onChange={(e) => handleHeaderChange('tgl_masuk', e.target.value)}
+                                value={headerData.settlement_date}
+                                onChange={(e) => handleHeaderChange('settlement_date', e.target.value)}
                                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
                             />
-                        </div>
-
-                        {/* Nama Supir */}
-                        <div>
-                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <User className="w-4 h-4" />
-                                Nama Sopir
-                            </label>
-                            <input
-                                type="text"
-                                value={headerData.nama_supir}
-                                onChange={(e) => handleHeaderChange('nama_supir', e.target.value)}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                placeholder="Masukkan nama supir"
-                            />
-                        </div>
-
-                        {/* Plat Nomor */}
-                        <div>
-                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <Truck className="w-4 h-4" />
-                                Plat Nomor
-                            </label>
-                            <input
-                                type="text"
-                                value={headerData.plat_nomor}
-                                onChange={(e) => handleHeaderChange('plat_nomor', e.target.value.toUpperCase())}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                placeholder="B1234XX"
-                                style={{ textTransform: 'uppercase' }}
-                            />
-                        </div>
-
-
-
-                        {/* Biaya Truck */}
-                        <div>
-                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <DollarSign className="w-4 h-4" />
-                                Biaya Truck (Rp)
-                            </label>
-                            <input
-                                type="text"
-                                value={formatNumber(headerData.biaya_truck)}
-                                onChange={(e) => handleHeaderChange('biaya_truck', parseNumber(e.target.value))}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                placeholder="1.000.000"
-                            />
-                            <p className="text-xs text-gray-500 mt-1">
-                                💡 Biaya transportasi truck untuk pengiriman (opsional)
+                            <p className="text-xs text-blue-600 mt-1">
+Tanggal pelunasan pembayaran (opsional)
                             </p>
                         </div>
 
-                        {/* Biaya Lain */}
-                        <div>
-                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <DollarSign className="w-4 h-4" />
-                                Biaya Lain - Lain (RP)
-                            </label>
-                            <input
-                                type="text"
-                                value={formatNumber(headerData.biaya_lain)}
-                                onChange={(e) => handleHeaderChange('biaya_lain', parseNumber(e.target.value))}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                placeholder=""
-                            />
-                            <p className="text-xs text-gray-500 mt-1">
-                                💡 Biaya tambahan lainnya (opsional)
-                            </p>
-                        </div>
+
+
+
+
+
 
                         {/* Berat Total */}
                         <div>
                             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <Weight className="w-4 h-4" />
-                                Berat Total (Kg)
+                                <Settings className="w-4 h-4" />
+                                Status Pembayaran
                             </label>
-                            <input
-                                type="number"
-                                value={headerData.berat_total}
-                                onChange={(e) => handleHeaderChange('berat_total', e.target.value)}
+                            <select
+                                value={headerData.payment_status}
+                                onChange={(e) => handleHeaderChange('payment_status', e.target.value)}
                                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                placeholder=""
-                                min="0"
-                                step="0.1"
-                            />
+                            >
+                                <option value="0">Belum Lunas</option>
+                                <option value="1">Lunas</option>
+                            </select>
                             <p className="text-xs text-blue-600 mt-1">
-                                💡 Total berat semua feedmil dalam pembelian ini
+                                Status pembayaran (0: Belum Lunas, 1: Lunas)
                             </p>
                         </div>
 
@@ -1314,26 +1010,26 @@ const AddEditPembelianFeedmilPage = () => {
                                 placeholder=""
                             />
                             <p className="text-xs text-blue-600 mt-1">
-                                💡 Total harga keseluruhan pembelian
+                                Total harga keseluruhan pembelian
                             </p>
                         </div>
 
-                        {/* Total Feedmil */}
+                        {/* Total Pembayaran */}
                         <div>
                             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <Package className="w-4 h-4" />
-                                Total Feedmil
+                                <DollarSign className="w-4 h-4" />
+                                Total Pembayaran
                             </label>
                             <input
                                 type="number"
-                                value={headerData.total_feedmil}
-                                onChange={(e) => handleHeaderChange('total_feedmil', e.target.value)}
+                                value={headerData.total_pembayaran}
+                                onChange={(e) => handleHeaderChange('total_pembayaran', e.target.value)}
                                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
                                 placeholder=""
                                 min="0"
                             />
                             <p className="text-xs text-blue-600 mt-1">
-                                💡 Total jumlah feedmil dalam pembelian ini
+                                Total jumlah pembayaran ini
                             </p>
                         </div>
 
@@ -1355,7 +1051,7 @@ const AddEditPembelianFeedmilPage = () => {
                             />
                             {parameterError && (
                                 <p className="text-xs text-red-500 mt-1">
-                                    ⚠️ Error loading offices: {parameterError}
+Error loading offices: {parameterError}
                                 </p>
                             )}
                         </div>
@@ -1378,7 +1074,7 @@ const AddEditPembelianFeedmilPage = () => {
                             />
                             {bankError && (
                                 <p className="text-xs text-red-500 mt-1">
-                                    ⚠️ Error loading banks: {bankError}
+Error loading banks: {bankError}
                                 </p>
                             )}
                         </div>
@@ -1394,10 +1090,10 @@ const AddEditPembelianFeedmilPage = () => {
                                 onChange={(e) => handleHeaderChange('note', e.target.value)}
                                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
                                 rows="3"
-                                placeholder="Masukkan catatan pembelian feedmil..."
+                                placeholder="Masukkan catatan pembayaran..."
                             />
                             <p className="text-xs text-blue-600 mt-1">
-                                💡 Catatan terkait pembelian feedmil (wajib diisi)
+                                Catatan terkait pembayaran (wajib diisi)
                             </p>
                         </div>
 
@@ -1449,15 +1145,15 @@ const AddEditPembelianFeedmilPage = () => {
                                                     {selectedFile ? (
                                                         <>
                                                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                                📄 {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                                                                {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
                                                             </span>
                                                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                                🏷️ {selectedFile.type.split('/')[1]?.toUpperCase() || 'FILE'}
+                                                                {selectedFile.type.split('/')[1]?.toUpperCase() || 'FILE'}
                                                             </span>
                                                         </>
                                                     ) : (
                                                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                            📁 File Existing
+                                                            File Existing
                                                         </span>
                                                     )}
                                                 </div>
@@ -1486,38 +1182,19 @@ const AddEditPembelianFeedmilPage = () => {
                             <SearchableSelect
                                 value={defaultData.item_name}
                                 onChange={(value) => handleDefaultDataChange('item_name', value)}
-                                options={itemFeedmilOptions}
-                                placeholder={parameterLoading ? 'Loading items...' : parameterError ? 'Error loading items' : 'Pilih Item Feedmil'}
+                                options={itemPembayaranOptions}
+                                placeholder={parameterLoading ? 'Loading items...' : parameterError ? 'Error loading items' : 'Pilih Item Pembayaran'}
                                 isLoading={parameterLoading}
                                 isDisabled={parameterLoading || parameterError}
                                 className="w-full"
                             />
                             {parameterError && (
                                 <p className="text-xs text-red-500 mt-1">
-                                    ⚠️ Error loading items: {parameterError}
+Error loading items: {parameterError}
                                 </p>
                             )}
                         </div>
 
-                        {/* Klasifikasi Feedmil Default */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Klasifikasi Feedmil Default
-                            </label>
-                            <SearchableSelect
-                                value={defaultData.id_klasifikasi_feedmil}
-                                onChange={(value) => handleDefaultDataChange('id_klasifikasi_feedmil', value)}
-                                options={klasifikasiFeedmilOptions}
-                                placeholder={parameterLoading ? "Memuat..." : "Pilih Klasifikasi"}
-                                className="w-full"
-                                disabled={parameterLoading}
-                            />
-                            {parameterError && (
-                                <p className="text-xs text-red-600 mt-1">
-                                    ❌ Error: {parameterError}
-                                </p>
-                            )}
-                        </div>
 
                         {/* Berat Default */}
                         <div>
@@ -1576,7 +1253,6 @@ const AddEditPembelianFeedmilPage = () => {
                                 value={formatNumber(batchCount)}
                                 onChange={(e) => {
                                     const rawValue = parseNumber(e.target.value);
-                                    batchCountManuallySetRef.current = true; // Mark as manually set
                                     setBatchCount(rawValue);
                                 }}
                                 className="w-20 px-2 py-1 border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
@@ -1594,8 +1270,8 @@ const AddEditPembelianFeedmilPage = () => {
 
                         {/* Info Text */}
                         <div className="text-xs text-gray-600 ml-auto">
-                            <p>💡 Isi data default untuk mempercepat input batch</p>
-                            <p>📝 Item baru akan menggunakan data default ini</p>
+                            <p>Isi data default untuk mempercepat input batch</p>
+                            <p>Item baru akan menggunakan data default ini</p>
                         </div>
                     </div>
                 </div>
@@ -1605,7 +1281,7 @@ const AddEditPembelianFeedmilPage = () => {
                     <div className="flex items-center justify-between mb-6">
                         <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                             <Package className="w-6 h-6 text-green-600" />
-                            Detail Item Feedmil ({detailItems.length} items)
+                            Detail Item Pembayaran ({detailItems.length} items)
                         </h2>
                         <button
                             onClick={addDetailItem}
@@ -1619,7 +1295,7 @@ const AddEditPembelianFeedmilPage = () => {
                     {detailItems.length === 0 ? (
                         <div className="text-center py-12 bg-gray-50 rounded-xl">
                             <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                            <p className="text-gray-500 text-lg">Belum ada item feedmil</p>
+                            <p className="text-gray-500 text-lg">Belum ada item pembayaran</p>
                             <p className="text-gray-400 text-sm mt-1">Klik "Tambah Item" untuk menambahkan detail</p>
                         </div>
                     ) : (
@@ -1630,7 +1306,6 @@ const AddEditPembelianFeedmilPage = () => {
                                     <tr className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b-2 border-blue-200">
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 w-12">No</th>
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[180px]">Nama Item</th>
-                                        <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[120px]">Klasifikasi Feedmil</th>
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 w-24">Berat (kg)</th>
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[120px]">Harga (Rp)</th>
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 w-20">Persentase (%)</th>
@@ -1660,7 +1335,7 @@ const AddEditPembelianFeedmilPage = () => {
                                                     <SearchableSelect
                                                         value={item.item_name_id || item.item_name}
                                                         onChange={(value) => handleDetailChange(item.id, 'item_name', value)}
-                                                        options={itemFeedmilOptions}
+                                                        options={itemPembayaranOptions}
                                                         placeholder={parameterLoading ? 'Loading...' : 'Pilih Item'}
                                                         isLoading={parameterLoading}
                                                         isDisabled={parameterLoading || parameterError}
@@ -1668,20 +1343,6 @@ const AddEditPembelianFeedmilPage = () => {
                                                     />
                                                 </td>
                                                 
-                                                {/* Klasifikasi Feedmil */}
-                                                <td className="p-2 sm:p-3">
-                                                    <SearchableSelect
-                                                        value={item.id_klasifikasi_feedmil}
-                                                                                                            onChange={(value) => {
-                                                        handleDetailChange(item.id, 'id_klasifikasi_feedmil', value);
-                                                    }}
-                                                        options={klasifikasiFeedmilOptions}
-                                                        placeholder={parameterLoading ? "Memuat..." : "Pilih Klasifikasi"}
-                                                        className="w-full text-xs sm:text-sm"
-                                                        disabled={parameterLoading}
-                                                    />
-
-                                                </td>
                                                 
                                                 {/* Berat */}
                                                 <td className="p-2 sm:p-3">
@@ -1939,7 +1600,7 @@ const AddEditPembelianFeedmilPage = () => {
                                                 <h3 className={`text-xl font-bold transition-all duration-500 ${
                                                     isDragOver ? 'text-white drop-shadow-lg' : 'text-gray-800'
                                                 }`}>
-                                                    {isDragOver ? '🎉 Drop file di sini!' : '📁 Upload File Dokumen'}
+                                                    {isDragOver ? 'Drop file di sini!' : 'Upload File Dokumen'}
                                                 </h3>
                                                 <p className={`text-sm transition-all duration-500 ${
                                                     isDragOver ? 'text-blue-100 drop-shadow-md' : 'text-gray-600'
@@ -1982,7 +1643,7 @@ const AddEditPembelianFeedmilPage = () => {
                                                         : 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg hover:shadow-xl hover:scale-105 hover:from-blue-600 hover:to-indigo-700 active:scale-95'
                                                 }`}
                                             >
-                                                {isDragOver ? '🎯 Upload Sekarang!' : '🚀 Pilih File'}
+                                                {isDragOver ? 'Upload Sekarang!' : 'Pilih File'}
                                             </button>
                                         </div>
                                     </div>
@@ -2021,20 +1682,20 @@ const AddEditPembelianFeedmilPage = () => {
                                                     {selectedFile ? (
                                                         <>
                                                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                                📄 {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                                                                {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
                                                             </span>
                                                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                                🏷️ {selectedFile.type.split('/')[1]?.toUpperCase() || 'FILE'}
+                                                                {selectedFile.type.split('/')[1]?.toUpperCase() || 'FILE'}
                                                             </span>
                                                         </>
                                                     ) : (
                                                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                            📁 File Existing
+                                                            File Existing
                                                         </span>
                                                     )}
                                                 </div>
                                                 <p className="text-sm text-green-600 mt-2">
-                                                    {selectedFile ? '✅ File berhasil dipilih dan siap diupload' : '📁 File existing akan dipertahankan'}
+                                                    {selectedFile ? 'File berhasil dipilih dan siap diupload' : 'File existing akan dipertahankan'}
                                                 </p>
                                             </div>
                                         </div>
@@ -2051,10 +1712,10 @@ const AddEditPembelianFeedmilPage = () => {
                                         </div>
                                         <div className="flex-1">
                                             <h5 className="text-sm font-semibold text-blue-800 mb-1">
-                                                💡 Tips Upload File
+                                                Tips Upload File
                                             </h5>
                                             <p className="text-sm text-blue-700 leading-relaxed">
-                                                Upload file dokumen terkait pembelian seperti invoice, kontrak, atau foto barang (opsional). 
+                                                Upload file dokumen terkait pembayaran seperti invoice, kontrak, atau bukti transfer (opsional). 
                                                 Format yang didukung: <span className="font-semibold">JPG, JPEG, PNG, atau PDF</span>. 
                                                 Maksimal ukuran file: <span className="font-semibold text-blue-800">2MB</span>.
                                             </p>
@@ -2079,7 +1740,7 @@ const AddEditPembelianFeedmilPage = () => {
                                         }}
                                         className="px-6 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-200 shadow-md hover:shadow-lg"
                                     >
-                                        ✅ Konfirmasi File
+Konfirmasi File
                                     </button>
                                 )}
                             </div>
@@ -2175,4 +1836,4 @@ const AddEditPembelianFeedmilPage = () => {
     );
 };
 
-export default AddEditPembelianFeedmilPage;
+export default AddEditPembayaranPage;

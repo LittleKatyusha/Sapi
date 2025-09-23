@@ -74,6 +74,11 @@ const PembelianKulitPage = lazy(() => import('./pages/ho/pembelianKulit/Pembelia
 const AddEditPembelianKulitPage = lazy(() => import('./pages/ho/pembelianKulit/AddEditPembelianKulitPage'));
 const PembelianKulitDetailPage = lazy(() => import('./pages/ho/pembelianKulit/PembelianKulitDetailPage'));
 
+// Pembayaran Pages - Lazy loaded
+const PembayaranPage = lazy(() => import('./pages/ho/pembayaran/PembayaranPage'));
+const AddEditPembayaranPage = lazy(() => import('./pages/ho/pembayaran/AddEditPembayaranPage'));
+const PembayaranDetailPage = lazy(() => import('./pages/ho/pembayaran/PembayaranDetailPage'));
+
 const AppWrapperSecure = () => (
   <Router>
     <AppSecure />
@@ -199,6 +204,12 @@ function AppSecure() {
               <Route path="/ho/pembelian-kulit/add" element={<AddEditPembelianKulitPage />} />
               <Route path="/ho/pembelian-kulit/edit/:id" element={<AddEditPembelianKulitPage />} />
               <Route path="/ho/pembelian-kulit/detail/:id" element={<PembelianKulitDetailPage />} />
+              
+              {/* HO Pembayaran Routes */}
+              <Route path="/ho/pembayaran" element={<PembayaranPage />} />
+              <Route path="/ho/pembayaran/add" element={<AddEditPembayaranPage />} />
+              <Route path="/ho/pembayaran/edit/:id" element={<AddEditPembayaranPage />} />
+              <Route path="/ho/pembayaran/detail/:id" element={<PembayaranDetailPage />} />
               
               {/* HO Sales Routes */}
               <Route path="/ho/penjualan" element={<PenjualanHOPage />} />

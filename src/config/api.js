@@ -77,6 +77,20 @@ export const API_ENDPOINTS = {
     },
     OVK: {
       PEMBELIAN: '/api/ho/ovk/pembelian'
+    },
+    PAYMENT: {
+      BASE: '/api/ho/payment',
+      DATA: '/api/ho/payment/data',
+      SUMMARY: '/api/ho/payment/summary',
+      STORE: '/api/ho/payment/store',
+      UPDATE: '/api/ho/payment/update',
+      DELETE: '/api/ho/payment/hapus',
+      SHOW: '/api/ho/payment/show',
+      BULK_UPDATE_STATUS: '/api/ho/payment/bulk-update-status',
+      DETAILS: '/api/ho/payment/details',
+      DETAIL_STORE: '/api/ho/payment/detail/store',
+      DETAIL_UPDATE: '/api/ho/payment/detail/update',
+      DETAIL_DELETE: '/api/ho/payment/detail/hapus'
     }
   },
 
