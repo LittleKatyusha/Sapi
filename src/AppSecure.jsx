@@ -28,6 +28,8 @@ const KlasifikasiHewanPage = lazy(() => import('./pages/dataMaster/KlasifikasiHe
 const KlasifikasiOvkPage = lazy(() => import('./pages/dataMaster/KlasifikasiOvkPage'));
 const KlasifikasiFeedmilPage = lazy(() => import('./pages/dataMaster/KlasifikasiFeedmilPage'));
 const ItemKulitPage = lazy(() => import('./pages/dataMaster/ItemKulitPage'));
+const ItemFeedmilPage = lazy(() => import('./pages/dataMaster/ItemFeedmilPage'));
+const ItemOvkPage = lazy(() => import('./pages/dataMaster/ItemOvkPage'));
 const SupplierPage = lazy(() => import('./pages/dataMaster/SupplierPage'));
 const PelangganPage = lazy(() => import('./pages/dataMaster/PelangganPage'));
 const OutletPage = lazy(() => import('./pages/dataMaster/OutletPage'));
@@ -167,6 +169,8 @@ function AppSecure() {
               <Route path="/master-data/klasifikasi-ovk" element={<KlasifikasiOvkPage />} />
               <Route path="/master-data/klasifikasi-feedmil" element={<KlasifikasiFeedmilPage />} />
               <Route path="/master-data/item-kulit" element={<ItemKulitPage />} />
+              <Route path="/master-data/item-feedmil" element={<ItemFeedmilPage />} />
+              <Route path="/master-data/item-ovk" element={<ItemOvkPage />} />
               <Route path="/master-data/supplier" element={<SupplierPage />} />
               <Route path="/master-data/pelanggan" element={<PelangganPage />} />
               <Route path="/master-data/outlet" element={<OutletPage />} />

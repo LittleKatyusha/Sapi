@@ -12,6 +12,8 @@ export const pageTitleMap = {
   '/master-data/klasifikasi-ovk': 'Data Master: Klasifikasi OVK',
   '/master-data/klasifikasi-feedmil': 'Data Master: Klasifikasi Feedmil',
   '/master-data/item-kulit': 'Data Master: Item Kulit',
+  '/master-data/item-feedmil': 'Data Master: Item Feedmil',
+  '/master-data/item-ovk': 'Data Master: Item OVK',
   '/master-data/supplier': 'Data Master: Supplier',
   '/master-data/pelanggan': 'Data Master: Pelanggan',
   '/master-data/outlet': 'Data Master: Outlet',
