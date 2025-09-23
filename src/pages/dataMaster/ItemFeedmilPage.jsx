@@ -1,18 +1,18 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
 import DataTable from "react-data-table-component";
 import { PlusCircle, Search, LayoutGrid, List } from "lucide-react";
-import ActionButton from "./itemOvk/components/ActionButton";
+import ActionButton from "./itemFeedmil/components/ActionButton";
 
 // Komponen dan hooks terpisah
-import CardView from "./itemOvk/components/CardView";
-import AddEditItemOvkModal from "./itemOvk/modals/AddEditItemOvkModal";
-import ItemOvkDetailModal from "./itemOvk/modals/ItemOvkDetailModal";
-import DeleteConfirmationModal from "./itemOvk/modals/DeleteConfirmationModal";
-import useItemOvk from "./itemOvk/hooks/useItemOvk";
-import customTableStyles from "./itemOvk/constants/tableStyles";
+import CardView from "./itemFeedmil/components/CardView";
+import AddEditItemFeedmilModal from "./itemFeedmil/modals/AddEditItemFeedmilModal";
+import ItemFeedmilDetailModal from "./itemFeedmil/modals/ItemFeedmilDetailModal";
+import DeleteConfirmationModal from "./itemFeedmil/modals/DeleteConfirmationModal";
+import useItemFeedmil from "./itemFeedmil/hooks/useItemFeedmil";
+import customTableStyles from "./itemFeedmil/constants/tableStyles";
 
 // Main Page
-const ItemOvkPage = () => {
+const ItemFeedmilPage = () => {
   // State
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -27,22 +27,22 @@ const ItemOvkPage = () => {
 
   // Custom hook
   const {
-    itemOvk,
+    itemFeedmil,
     loading,
     error,
-    createItemOvk,
-    updateItemOvk,
-    deleteItemOvk,
-    fetchItemOvk,
+    createItemFeedmil,
+    updateItemFeedmil,
+    deleteItemFeedmil,
+    fetchItemFeedmil,
     searchTerm,
     setSearchTerm,
     stats,
-  } = useItemOvk();
+  } = useItemFeedmil();
 
   // Load data on component mount
   useEffect(() => {
-    fetchItemOvk();
-  }, [fetchItemOvk]);
+    fetchItemFeedmil();
+  }, [fetchItemFeedmil]);
 
   // Auto-refresh when user returns to the page
   useEffect(() => {
@@ -51,7 +51,7 @@ const ItemOvkPage = () => {
         // Check if it's been more than 30 seconds since last refresh
         const timeSinceLastRefresh = Date.now() - lastRefreshTime;
         if (timeSinceLastRefresh > 30000) { // 30 seconds
-          fetchItemOvk();
+          fetchItemFeedmil();
           setLastRefreshTime(Date.now());
         }
       }
@@ -61,7 +61,7 @@ const ItemOvkPage = () => {
       // Check if it's been more than 30 seconds since last refresh
       const timeSinceLastRefresh = Date.now() - lastRefreshTime;
       if (timeSinceLastRefresh > 30000) { // 30 seconds
-        fetchItemOvk();
+        fetchItemFeedmil();
         setLastRefreshTime(Date.now());
       }
     };
@@ -77,7 +77,7 @@ const ItemOvkPage = () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleFocus);
     };
-  }, [fetchItemOvk, lastRefreshTime]);
+  }, [fetchItemFeedmil, lastRefreshTime]);
 
   // Event handlers
   const handleAdd = useCallback(() => {
@@ -102,11 +102,9 @@ const ItemOvkPage = () => {
   const handleSave = useCallback(async (data) => {
     try {
       if (editData) {
-        await updateItemOvk(editData.pid || editData.pubid, data);
-        console.log('✅ Item OVK berhasil diupdate');
+        await updateItemFeedmil(editData.pid || editData.pubid, data);
       } else {
-        await createItemOvk(data);
-        console.log('✅ Item OVK berhasil dibuat');
+        await createItemFeedmil(data);
       }
       
       // Close modals
@@ -115,30 +113,30 @@ const ItemOvkPage = () => {
       setEditData(null);
       
       // Force refresh data directly (following PembelianFeedmilPage pattern)
-      await fetchItemOvk();
+      await fetchItemFeedmil();
       setLastRefreshTime(Date.now());
     } catch (err) {
       console.error('❌ Error saving data:', err);
     }
-  }, [editData, updateItemOvk, createItemOvk, fetchItemOvk]);
+  }, [editData, updateItemFeedmil, createItemFeedmil, fetchItemFeedmil]);
 
   const handleConfirmDelete = useCallback(async () => {
     if (!deleteData) return;
     
     setIsDeleting(true);
     try {
-      await deleteItemOvk(deleteData.pid || deleteData.pubid);
+      await deleteItemFeedmil(deleteData.pid || deleteData.pubid);
       setDeleteData(null);
       
       // Force refresh data directly (following PembelianFeedmilPage pattern)
-      await fetchItemOvk();
+      await fetchItemFeedmil();
       setLastRefreshTime(Date.now());
     } catch (err) {
       console.error('❌ Error deleting data:', err);
     } finally {
       setIsDeleting(false);
     }
-  }, [deleteData, deleteItemOvk, fetchItemOvk]);
+  }, [deleteData, deleteItemFeedmil, fetchItemFeedmil]);
 
   // Toggle menu untuk mobile
   const toggleMenu = useCallback((id) => {
@@ -159,7 +157,7 @@ const ItemOvkPage = () => {
       width: "100px"
     },
     {
-      name: "Nama Item OVK",
+      name: "Nama Item Feedmil",
       selector: row => row.name,
       sortable: true,
       cell: row => (
@@ -194,13 +192,17 @@ const ItemOvkPage = () => {
 
   // Filter data berdasarkan search term dan tambahkan order_no
   const filteredData = useMemo(() => {
-    let filtered = itemOvk;
+    console.log('🔄 Computing filteredData, itemFeedmil length:', itemFeedmil.length);
+    console.log('📋 Raw itemFeedmil data:', itemFeedmil);
+    
+    let filtered = itemFeedmil;
     
     if (searchTerm) {
-      filtered = itemOvk.filter(item =>
+      filtered = itemFeedmil.filter(item =>
         item.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.description?.toLowerCase().includes(searchTerm.toLowerCase())
       );
+      console.log('🔍 After search filter, length:', filtered.length);
     }
     
     // Tambahkan order_no untuk semua data (filtered atau tidak)
@@ -209,9 +211,10 @@ const ItemOvkPage = () => {
       ...item
     }));
     
-    console.log('📊 ItemOvk filteredData updated:', result.length, 'items');
+    console.log('📊 ItemFeedmil filteredData updated:', result.length, 'items');
+    console.log('📋 Final filteredData:', result);
     return result;
-  }, [itemOvk, searchTerm]);
+  }, [itemFeedmil, searchTerm]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-2 sm:p-4 md:p-6">
@@ -221,10 +224,10 @@ const ItemOvkPage = () => {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-1 sm:mb-2">
-                Manajemen Item OVK
+                Manajemen Item Feedmil
               </h1>
               <p className="text-gray-600 text-sm sm:text-base">
-                Kelola data master item obat, vitamin, dan kespro (OVK)
+                Kelola data master item feedmil
               </p>
             </div>
             <div className="flex flex-col gap-2 sm:flex-row sm:gap-4">
@@ -233,7 +236,7 @@ const ItemOvkPage = () => {
                 className="bg-gradient-to-r from-red-500 to-rose-600 text-white px-4 py-2 sm:px-6 sm:py-3 rounded-xl sm:rounded-2xl hover:from-red-600 hover:to-rose-700 transition-all duration-300 flex items-center gap-2 font-medium shadow-lg hover:shadow-xl text-sm sm:text-base"
               >
                 <PlusCircle className="w-5 h-5" />
-                Tambah Item OVK
+                Tambah Item Feedmil
               </button>
             </div>
           </div>
@@ -242,7 +245,7 @@ const ItemOvkPage = () => {
         {/* Stats Cards */}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4 md:gap-6">
           <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg">
-            <h3 className="text-xs sm:text-sm font-medium opacity-90">Total Item OVK</h3>
+            <h3 className="text-xs sm:text-sm font-medium opacity-90">Total Item Feedmil</h3>
             <p className="text-xl sm:text-3xl font-bold">{stats.total}</p>
           </div>
         </div>
@@ -254,7 +257,7 @@ const ItemOvkPage = () => {
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
                 type="text"
-                placeholder="Cari item OVK..."
+                placeholder="Cari item feedmil..."
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
                 className="w-full pl-12 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors duration-200 text-sm sm:text-base"
@@ -293,7 +296,7 @@ const ItemOvkPage = () => {
             {viewMode === "table" ? (
               <div className="w-full min-w-[600px]">
                 <DataTable
-                  key={`datatable-ovk-${filteredData.length}`}
+                  key={`datatable-feedmil-${filteredData.length}`}
                   columns={columns}
                   data={filteredData}
                   pagination
@@ -302,19 +305,28 @@ const ItemOvkPage = () => {
                   customStyles={customTableStyles}
                   noDataComponent={
                     <div className="text-center py-12">
-                      <p className="text-gray-500 text-lg">Tidak ada data item OVK ditemukan</p>
+                      <p className="text-gray-500 text-lg">Tidak ada data item feedmil ditemukan</p>
                     </div>
                   }
                   progressPending={loading}
                   responsive={true}
                   highlightOnHover={true}
                   pointerOnHover={true}
+                  onRowClicked={(row) => {
+                    console.log('🖱️ DataTable row clicked:', row);
+                  }}
+                  onChangePage={(page) => {
+                    console.log('📄 DataTable page changed to:', page);
+                  }}
+                  onChangeRowsPerPage={(currentRowsPerPage, currentPage) => {
+                    console.log('📊 DataTable rows per page changed:', currentRowsPerPage, 'page:', currentPage);
+                  }}
                 />
               </div>
             ) : (
               <div className="p-2 sm:p-6">
                 <CardView
-                  key={`cardview-ovk-${filteredData.length}`}
+                  key={`cardview-feedmil-${filteredData.length}`}
                   data={filteredData}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
@@ -329,7 +341,7 @@ const ItemOvkPage = () => {
         
         {/* Modals */}
         {(showAddModal || showEditModal) && (
-          <AddEditItemOvkModal
+          <AddEditItemFeedmilModal
             item={editData}
             onClose={() => {
               setShowAddModal(false);
@@ -342,7 +354,7 @@ const ItemOvkPage = () => {
         )}
 
         {showDetailModal && (
-          <ItemOvkDetailModal
+          <ItemFeedmilDetailModal
             item={detailData}
             onClose={() => {
               setShowDetailModal(false);
@@ -360,7 +372,7 @@ const ItemOvkPage = () => {
             onCancel={() => setDeleteData(null)}
             isDeleting={isDeleting}
             itemName={deleteData?.name}
-            message={`Apakah Anda yakin ingin menghapus item OVK "${deleteData?.name}"?`}
+            message={`Apakah Anda yakin ingin menghapus item feedmil "${deleteData?.name}"?`}
           />
         )}
 
@@ -369,4 +381,6 @@ const ItemOvkPage = () => {
   );
 };
 
-export default ItemOvkPage;
+export default ItemFeedmilPage;
+
+

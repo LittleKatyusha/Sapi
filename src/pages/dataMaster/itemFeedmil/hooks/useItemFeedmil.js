@@ -64,7 +64,7 @@ const useItemFeedmil = () => {
     } finally {
       setLoading(false);
     }
-  }, [fetchItemFeedmil]);
+  }, []);
 
   // Update item feedmil
   const updateItemFeedmil = useCallback(async (pid, data) => {
