@@ -22,6 +22,7 @@ const useParameterSelect = (isEditMode = false, supplierFilters = {}, tipePembel
         klasifikasikulit: [],
         itemkulit: [],
         itemfeedmil: [],
+        itemovk: [],
         farm: [],
         outlet: [],
         jenishewan: []
@@ -83,6 +84,7 @@ const useParameterSelect = (isEditMode = false, supplierFilters = {}, tipePembel
                     klasifikasikulit: data.klasifikasikulit || [],
                     itemkulit: data.itemkulit || [],
                     itemfeedmil: data.itemfeedmil || [],
+                    itemovk: data.itemovk || [],
                     farm: data.farm || [],
                     outlet: data.outlet || [],
                     jenishewan: data.jenishewan || []
@@ -259,6 +261,13 @@ const useParameterSelect = (isEditMode = false, supplierFilters = {}, tipePembel
         }));
     }, [parameterData.itemfeedmil]);
 
+    const itemOvkOptions = useMemo(() => {
+        return parameterData.itemovk.map(item => ({
+            value: item.id,
+            label: item.name
+        }));
+    }, [parameterData.itemovk]);
+
     const farmOptions = useMemo(() => {
         return parameterData.farm.map(item => ({
             value: item.id,
@@ -294,6 +303,7 @@ const useParameterSelect = (isEditMode = false, supplierFilters = {}, tipePembel
         klasifikasiKulitOptions,
         itemKulitOptions,
         itemFeedmilOptions,
+        itemOvkOptions,
         farmOptions,
         outletOptions,
         jenisHewanOptions,

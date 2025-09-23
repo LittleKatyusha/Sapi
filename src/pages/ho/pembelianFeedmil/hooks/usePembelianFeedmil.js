@@ -538,6 +538,7 @@ const usePembelianFeedmil = () => {
                 pid: encryptedPid, // Backend expects encrypted PID (null for new items)
                 id_pembelian: idPembelian, // Always required by backend validator
                 item_name: String(detailData.item_name || ''),
+                id_item: detailData.item_name_id ? parseInt(detailData.item_name_id) : null, // Send item ID to backend
                 id_klasifikasi_feedmil: (() => {
                     const value = detailData.id_klasifikasi_feedmil;
                     // Send integer ID to backend for validation

@@ -14,7 +14,9 @@ const useItemKulit = () => {
     setError(null);
     
     try {
-      const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.ITEM_KULIT}/data`);
+      // Add cache busting parameter to force fresh data from server
+      const cacheBuster = `?t=${Date.now()}`;
+      const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.ITEM_KULIT}/data${cacheBuster}`);
 
       // Handle berbagai bentuk respons (DataTables atau sendResponse)
       let dataArray = [];
@@ -52,7 +54,6 @@ const useItemKulit = () => {
     try {
       const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.ITEM_KULIT}/store`, data);
       if (result?.status === 'ok' || result?.data) {
-        await fetchItemKulit();
         return result;
       }
       throw new Error(result?.message || 'Gagal membuat data');
@@ -63,7 +64,7 @@ const useItemKulit = () => {
     } finally {
       setLoading(false);
     }
-  }, [fetchItemKulit]);
+  }, []);
 
   // Update item kulit
   const updateItemKulit = useCallback(async (pid, data) => {
@@ -74,7 +75,6 @@ const useItemKulit = () => {
       const payload = { pid, ...data };
       const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.ITEM_KULIT}/update`, payload);
       if (result?.status === 'ok' || result?.data) {
-        await fetchItemKulit();
         return result;
       }
       throw new Error(result?.message || 'Gagal memperbarui data');
@@ -85,7 +85,7 @@ const useItemKulit = () => {
     } finally {
       setLoading(false);
     }
-  }, [fetchItemKulit]);
+  }, []);
 
   // Delete item kulit
   const deleteItemKulit = useCallback(async (pid) => {
@@ -95,7 +95,6 @@ const useItemKulit = () => {
     try {
       const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.ITEM_KULIT}/hapus`, { pid });
       if (result?.status === 'ok' || result?.data === null) {
-        await fetchItemKulit();
         return result;
       }
       throw new Error(result?.message || 'Gagal menghapus data');
@@ -106,26 +105,16 @@ const useItemKulit = () => {
     } finally {
       setLoading(false);
     }
-  }, [fetchItemKulit]);
+  }, []);
 
   // Computed values
   const stats = useMemo(() => ({
     total: itemKulit.length,
   }), [itemKulit]);
 
-  // Filter data berdasarkan search term
-  const filteredData = useMemo(() => {
-    if (!searchTerm) return itemKulit;
-    const q = searchTerm.toLowerCase();
-    return itemKulit.filter(item =>
-      item.name?.toLowerCase().includes(q) ||
-      item.description?.toLowerCase().includes(q)
-    );
-  }, [itemKulit, searchTerm]);
-
   return {
-    // Data
-    itemKulit: filteredData,
+    // Data - return raw data, filtering will be done in component
+    itemKulit,
     loading,
     error,
     stats,

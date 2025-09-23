@@ -36,6 +36,7 @@ const AddEditPembelianOVKPage = () => {
         supplierOptions,
         officeOptions,
         klasifikasiOVKOptions,
+        itemOvkOptions,
         farmOptions,
         loading: parameterLoading,
         error: parameterError
@@ -396,23 +397,30 @@ const AddEditPembelianOVKPage = () => {
 
                     if (detailResult.success && detailResult.data.length > 0) {
                         // Load detail items from detail API response
-                        const processedDetailItems = detailResult.data.map((item, index) => ({
-                            id: item.id || index + 1,
-                            // Include backend identifiers for update operations (like Feedmil)
-                            idPembelian: item.id_pembelian, // This is crucial for update operations
-                            id_pembelian: item.id_pembelian, // Keep both for compatibility
-                            encryptedPid: item.pid, // Encrypted PID for existing items
-                            pubid: item.pubid || '', // Raw pubid for API calls
-                            pubidDetail: item.pubid_detail, // Alternative pubid field
-                            id_office: item.id_office || 'head-office',
-                            item_name: item.item_name || '',
-                            id_klasifikasi_ovk: item.id_klasifikasi_ovk || null,
-                            berat: parseFloat(item.berat) || 0,
-                            harga: parseFloat(item.harga) || 0,
-                            persentase: formatPersentaseFromBackend(item.persentase), // Format with comma for display
-                            hpp: parseFloat(item.hpp) || 0,
-                            total_harga: parseFloat(item.total_harga) || 0,
-                        }));
+                        const processedDetailItems = detailResult.data.map((item, index) => {
+                            // Find the item ID from itemOvkOptions if we have the item name
+                            const itemName = item.item_name || `OVK Item ${index + 1}`;
+                            const foundItem = itemOvkOptions.find(option => option.label === itemName);
+                            
+                            return {
+                                id: item.id || index + 1,
+                                // Include backend identifiers for update operations (like Feedmil)
+                                idPembelian: item.id_pembelian, // This is crucial for update operations
+                                id_pembelian: item.id_pembelian, // Keep both for compatibility
+                                encryptedPid: item.pid, // Encrypted PID for existing items
+                                pubid: item.pubid || '', // Raw pubid for API calls
+                                pubidDetail: item.pubid_detail, // Alternative pubid field
+                                id_office: item.id_office || 'head-office',
+                                item_name: itemName, // Display name for UI
+                                item_name_id: foundItem ? foundItem.value : '', // ID for SearchableSelect
+                                id_klasifikasi_ovk: item.id_klasifikasi_ovk || null,
+                                berat: parseFloat(item.berat) || 0,
+                                harga: parseFloat(item.harga) || 0,
+                                persentase: formatPersentaseFromBackend(item.persentase), // Format with comma for display
+                                hpp: parseFloat(item.hpp) || 0,
+                                total_harga: parseFloat(item.total_harga) || 0,
+                            };
+                        });
                         
                         setDetailItems(processedDetailItems);
                     }
@@ -427,7 +435,7 @@ const AddEditPembelianOVKPage = () => {
             
             loadEditData();
         }
-    }, [isEdit, id, supplierOptions.length, officeOptions.length, farmOptions.length, jenisPembelianOptions.length]);
+    }, [isEdit, id, supplierOptions.length, officeOptions.length, farmOptions.length, jenisPembelianOptions.length, itemOvkOptions.length]);
 
     // Reset edit data loaded flag when id changes
     useEffect(() => {
@@ -447,7 +455,17 @@ const AddEditPembelianOVKPage = () => {
     const handleDetailChange = (itemId, field, value) => {
         setDetailItems(prev => prev.map(item => {
             if (item.id === itemId) {
-                return { ...item, [field]: value };
+                if (field === 'item_name') {
+                    // Find the display name for the selected item
+                    const selectedItem = itemOvkOptions.find(option => option.value === value);
+                    return {
+                        ...item,
+                        item_name: selectedItem ? selectedItem.label : '',
+                        item_name_id: value
+                    };
+                } else {
+                    return { ...item, [field]: value };
+                }
             }
             return item;
         }));
@@ -463,7 +481,8 @@ const AddEditPembelianOVKPage = () => {
             encryptedPid: '', // Will be set when saving
             pubidDetail: '', // Alternative pubid field
             id_office: headerData.idOffice || 'head-office', // Use selected office or fallback
-            item_name: defaultData.item_name || '',
+            item_name: defaultData.item_name_display || defaultData.item_name || '',
+            item_name_id: defaultData.item_name || null,
             id_klasifikasi_ovk: defaultData.id_klasifikasi_ovk || null,
             berat: defaultData.berat || '',
             harga: defaultData.harga || '',
@@ -495,7 +514,8 @@ const AddEditPembelianOVKPage = () => {
                 encryptedPid: '', // Will be set when saving
                 pubidDetail: '', // Alternative pubid field
                 id_office: headerData.idOffice || 'head-office', // Use selected office or fallback
-                item_name: defaultData.item_name || '',
+                item_name: defaultData.item_name_display || defaultData.item_name || '',
+                item_name_id: defaultData.item_name || null,
                 id_klasifikasi_ovk: defaultData.id_klasifikasi_ovk || null,
                 berat: defaultData.berat || '',
                 harga: defaultData.harga || '',
@@ -658,6 +678,7 @@ const AddEditPembelianOVKPage = () => {
                 idPembelian: item.idPembelian || null, // Use item's id_pembelian if available (for existing items)
                 idOffice: parseInt(headerData.idOffice) || 1, // Use selected office ID
                 item_name: String(item.item_name || ''),
+                item_name_id: item.item_name_id || null, // Include item ID for backend reference
                 id_klasifikasi_ovk: (() => {
                     const rawValue = item.id_klasifikasi_ovk;
                     
@@ -701,6 +722,7 @@ const AddEditPembelianOVKPage = () => {
                     pid: detailPid, // Backend expects encrypted PID for existing items
                     id_pembelian: detailData.idPembelian, // Always required by backend validator
                     item_name: detailData.item_name,
+                    id_item: detailData.item_name_id ? parseInt(detailData.item_name_id) : null, // Send item ID to backend
                     id_klasifikasi_ovk: detailData.id_klasifikasi_ovk,
                     harga: detailData.harga,
                     persentase: detailData.persentase,
@@ -735,6 +757,7 @@ const AddEditPembelianOVKPage = () => {
                     id_pembelian: detailData.idPembelian, // Always required by backend validator
                     id_office: detailData.idOffice, // Required for new items
                     item_name: detailData.item_name,
+                    id_item: detailData.item_name_id ? parseInt(detailData.item_name_id) : null, // Send item ID to backend
                     id_klasifikasi_ovk: detailData.id_klasifikasi_ovk,
                     harga: detailData.harga,
                     persentase: detailData.persentase,
@@ -795,10 +818,20 @@ const AddEditPembelianOVKPage = () => {
 
     // Handle default data changes
     const handleDefaultDataChange = (field, value) => {
-        setDefaultData(prev => ({
-            ...prev,
-            [field]: value
-        }));
+        if (field === 'item_name') {
+            // Find the display name for the selected item
+            const selectedItem = itemOvkOptions.find(item => item.value === value);
+            setDefaultData(prev => ({
+                ...prev,
+                item_name: value,
+                item_name_display: selectedItem ? selectedItem.label : ''
+            }));
+        } else {
+            setDefaultData(prev => ({
+                ...prev,
+                [field]: value
+            }));
+        }
     };
 
     // Handle file upload - sesuai dengan validasi backend (max 2MB, jpg,jpeg,png,pdf)
@@ -1547,13 +1580,20 @@ const AddEditPembelianOVKPage = () => {
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Nama Item Default
                             </label>
-                            <input
-                                type="text"
+                            <SearchableSelect
                                 value={defaultData.item_name}
-                                onChange={(e) => handleDefaultDataChange('item_name', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                                placeholder="Contoh: Vitamin B Complex"
+                                onChange={(value) => handleDefaultDataChange('item_name', value)}
+                                options={itemOvkOptions}
+                                placeholder={parameterLoading ? 'Loading items...' : parameterError ? 'Error loading items' : 'Pilih Item OVK'}
+                                isLoading={parameterLoading}
+                                isDisabled={parameterLoading || parameterError}
+                                className="w-full"
                             />
+                            {parameterError && (
+                                <p className="text-xs text-red-500 mt-1">
+                                    ⚠️ Error loading items: {parameterError}
+                                </p>
+                            )}
                         </div>
 
                         {/* Klasifikasi OVK Default */}
@@ -1714,12 +1754,14 @@ const AddEditPembelianOVKPage = () => {
                                                 
                                                 {/* Nama Item */}
                                                 <td className="p-2 sm:p-3">
-                                                    <input
-                                                        type="text"
-                                                        value={item.item_name}
-                                                        onChange={(e) => handleDetailChange(item.id, 'item_name', e.target.value)}
-                                                        className="w-full px-1 sm:px-2 py-1 border border-gray-300 rounded text-xs sm:text-sm"
-                                                        placeholder="Nama item OVK"
+                                                    <SearchableSelect
+                                                        value={item.item_name_id || item.item_name}
+                                                        onChange={(value) => handleDetailChange(item.id, 'item_name', value)}
+                                                        options={itemOvkOptions}
+                                                        placeholder={parameterLoading ? 'Loading...' : 'Pilih Item'}
+                                                        isLoading={parameterLoading}
+                                                        isDisabled={parameterLoading || parameterError}
+                                                        className="w-full text-xs sm:text-sm"
                                                     />
                                                 </td>
                                                 

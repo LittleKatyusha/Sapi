@@ -23,6 +23,7 @@ const ItemKulitPage = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [openMenuId, setOpenMenuId] = useState(null);
   const [viewMode, setViewMode] = useState("table");
+  const [lastRefreshTime, setLastRefreshTime] = useState(Date.now());
 
   // Custom hook
   const {
@@ -41,6 +42,33 @@ const ItemKulitPage = () => {
   // Load data on component mount
   useEffect(() => {
     fetchItemKulit();
+  }, [fetchItemKulit]);
+
+  // Auto-refresh on visibility change and window focus (following PembelianFeedmilPage pattern)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        setTimeout(() => {
+          fetchItemKulit();
+          setLastRefreshTime(Date.now());
+        }, 500);
+      }
+    };
+
+    const handleWindowFocus = () => {
+      setTimeout(() => {
+        fetchItemKulit();
+        setLastRefreshTime(Date.now());
+      }, 500);
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleWindowFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleWindowFocus);
+    };
   }, [fetchItemKulit]);
 
   // Event handlers
@@ -70,13 +98,19 @@ const ItemKulitPage = () => {
       } else {
         await createItemKulit(data);
       }
+      
+      // Close modals
       setShowAddModal(false);
       setShowEditModal(false);
       setEditData(null);
+      
+      // Force refresh data directly (following PembelianFeedmilPage pattern)
+      await fetchItemKulit();
+      setLastRefreshTime(Date.now());
     } catch (err) {
       console.error('Error saving data:', err);
     }
-  }, [editData, updateItemKulit, createItemKulit]);
+  }, [editData, updateItemKulit, createItemKulit, fetchItemKulit]);
 
   const handleConfirmDelete = useCallback(async () => {
     if (!deleteData) return;
@@ -85,12 +119,16 @@ const ItemKulitPage = () => {
     try {
       await deleteItemKulit(deleteData.pid || deleteData.pubid);
       setDeleteData(null);
+      
+      // Force refresh data directly (following PembelianFeedmilPage pattern)
+      await fetchItemKulit();
+      setLastRefreshTime(Date.now());
     } catch (err) {
       console.error('Error deleting data:', err);
     } finally {
       setIsDeleting(false);
     }
-  }, [deleteData, deleteItemKulit]);
+  }, [deleteData, deleteItemKulit, fetchItemKulit]);
 
   // Toggle menu untuk mobile
   const toggleMenu = useCallback((id) => {
@@ -146,7 +184,13 @@ const ItemKulitPage = () => {
 
   // Filter data berdasarkan search term
   const filteredData = useMemo(() => {
-    if (!searchTerm) return itemKulit;
+    if (!searchTerm) {
+      return itemKulit.map((item, idx) => ({
+        // Tambahkan order_no untuk tampilan tabel
+        order_no: idx + 1,
+        ...item
+      }));
+    }
     
     return itemKulit.filter(item =>
       item.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
