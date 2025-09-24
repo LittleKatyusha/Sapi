@@ -32,7 +32,6 @@ const PembayaranPage = () => {
         setSearchTerm,
         isSearching,
         searchError,
-        stats,
         serverPagination,
         fetchPembayaran,
         handleSearch,
@@ -43,6 +42,19 @@ const PembayaranPage = () => {
         updatePembayaran,
         deletePembayaran,
     } = usePembayaran();
+
+    // Ensure openMenuId is reset when data changes to prevent auto-opening
+    useEffect(() => {
+        if (filteredData.length > 0) {
+            setOpenMenuId(null);
+        }
+    }, [filteredData]);
+
+    // Additional safeguard: Reset openMenuId on component mount
+    useEffect(() => {
+        setOpenMenuId(null);
+    }, []);
+
 
     // Farm and Bank API hooks for ID to name conversion
     const { farmData } = useFarmAPI();
@@ -124,7 +136,7 @@ const PembayaranPage = () => {
 
 
     const handleEdit = (pembayaranItem) => {
-        const id = pembayaranItem.encryptedPid || pembayaranItem.id;
+        const id = pembayaranItem.id;
         if (!id || id.toString().startsWith('TEMP-')) {
             setNotification({
                 type: 'error',
@@ -132,12 +144,12 @@ const PembayaranPage = () => {
             });
             return;
         }
-        navigate(`/ho/pembayaran/edit/${encodeURIComponent(id)}`);
+        navigate(`/pembayaran/doka/edit/${encodeURIComponent(id)}`);
         setOpenMenuId(null);
     };
 
     const handleDetail = (pembayaranItem) => {
-        const id = pembayaranItem.encryptedPid || pembayaranItem.id;
+        const id = pembayaranItem.id;
         if (!id || id.toString().startsWith('TEMP-')) {
             setNotification({
                 type: 'error',
@@ -145,7 +157,7 @@ const PembayaranPage = () => {
             });
             return;
         }
-        navigate(`/ho/pembayaran/detail/${encodeURIComponent(id)}`);
+        navigate(`/pembayaran/doka/detail/${encodeURIComponent(id)}`);
         setOpenMenuId(null);
     };
 
@@ -164,17 +176,17 @@ const PembayaranPage = () => {
 
     const handleDeletePembayaran = useCallback(async (pembayaran) => {
         try {
-            const encryptedPid = pembayaran.encryptedPid || pembayaran.id;
+            const id = pembayaran.id;
             
-            if (!encryptedPid) {
+            if (!id) {
                 throw new Error('ID pembayaran tidak tersedia untuk penghapusan');
             }
             
-            if (encryptedPid.toString().startsWith('TEMP-')) {
+            if (id.toString().startsWith('TEMP-')) {
                 throw new Error('Item ini adalah data sementara dan tidak dapat dihapus');
             }
 
-            const result = await deletePembayaran(encryptedPid, pembayaran);
+            const result = await deletePembayaran(id, pembayaran);
             
             if (result.success) {
                 setNotification({
@@ -266,20 +278,20 @@ const PembayaranPage = () => {
                     onEdit={handleEdit}
                     onDelete={handleDelete}
                     onDetail={handleDetail}
-                    isActive={openMenuId === (row.id || row.encryptedPid)}
+                    isActive={openMenuId === row.id}
                 />
             ),
             ignoreRowClick: true,
         },
         {
-            name: 'ID Pembayaran',
-            selector: row => row.id,
+            name: 'Nota',
+            selector: row => row.nota,
             sortable: true,
-            width: '120px',
+            width: '150px',
             wrap: true,
             cell: row => (
-                <span className="font-mono text-sm bg-gray-100 px-3 py-1.5 rounded-lg" title={row.id}>
-                    #{row.id || '-'}
+                <span className="font-mono text-sm bg-gray-100 px-3 py-1.5 rounded-lg" title={row.nota}>
+                    {row.nota || '-'}
                 </span>
             )
         },
@@ -293,18 +305,6 @@ const PembayaranPage = () => {
                 <span className="font-mono text-sm bg-blue-100 px-3 py-1.5 rounded-lg" title={row.nota_ho}>
                     {row.nota_ho || '-'}
                 </span>
-            )
-        },
-        {
-            name: 'Supplier',
-            selector: row => row.nama_supplier,
-            sortable: true,
-            width: '200px',
-            wrap: true,
-            cell: row => (
-                <div className="font-medium text-gray-900" title={row.nama_supplier}>
-                    {row.nama_supplier || '-'}
-                </div>
             )
         },
         {
@@ -329,6 +329,18 @@ const PembayaranPage = () => {
                 <span className="text-gray-900">
                     {row.settlement_date ? new Date(row.settlement_date).toLocaleDateString('id-ID') : '-'}
                 </span>
+            )
+        },
+        {
+            name: 'Supplier',
+            selector: row => row.nama_supplier,
+            sortable: true,
+            width: '200px',
+            wrap: true,
+            cell: row => (
+                <div className="font-medium text-gray-900" title={row.nama_supplier}>
+                    {row.nama_supplier || '-'}
+                </div>
             )
         },
         {
@@ -389,7 +401,33 @@ const PembayaranPage = () => {
                     background: #f1f5f9;
                 }
                 
-                /* Sticky Action Column Styles - Specific to Pembayaran Page */
+                /* Sticky No and Action Column Styles - Specific to Pembayaran Page */
+                .pembayaran-table .rdt_TableHeadRow .rdt_TableCol:nth-child(1),
+                .pembayaran-table .rdt_TableHeadRow th:nth-child(1) {
+                    position: sticky !important;
+                    left: 0 !important;
+                    z-index: 1002 !important;
+                    background-color: #f8fafc !important;
+                    border-right: 2px solid #e5e7eb !important;
+                    box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
+                    will-change: transform !important;
+                    min-width: 60px !important;
+                    max-width: 60px !important;
+                }
+                
+                .pembayaran-table .rdt_TableBodyRow .rdt_TableCell:nth-child(1),
+                .pembayaran-table .rdt_TableBodyRow td:nth-child(1) {
+                    position: sticky !important;
+                    left: 0 !important;
+                    z-index: 999 !important;
+                    background-color: #ffffff !important;
+                    border-right: 2px solid #e5e7eb !important;
+                    box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
+                    will-change: transform !important;
+                    min-width: 60px !important;
+                    max-width: 60px !important;
+                }
+                
                 .pembayaran-table .rdt_TableHeadRow .rdt_TableCol:nth-child(2),
                 .pembayaran-table .rdt_TableHeadRow th:nth-child(2) {
                     position: sticky !important;
@@ -416,12 +454,38 @@ const PembayaranPage = () => {
                     max-width: 80px !important;
                 }
                 
+                .pembayaran-table .rdt_TableBodyRow:hover .rdt_TableCell:nth-child(1),
+                .pembayaran-table .rdt_TableBodyRow:hover td:nth-child(1),
                 .pembayaran-table .rdt_TableBodyRow:hover .rdt_TableCell:nth-child(2),
                 .pembayaran-table .rdt_TableBodyRow:hover td:nth-child(2) {
                     background-color: #f9fafb !important;
                 }
                 
                 /* Additional selectors for better compatibility */
+                .pembayaran-table table thead tr th:nth-child(1) {
+                    position: sticky !important;
+                    left: 0 !important;
+                    z-index: 1002 !important;
+                    background-color: #f8fafc !important;
+                    border-right: 2px solid #e5e7eb !important;
+                    box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
+                    will-change: transform !important;
+                    min-width: 60px !important;
+                    max-width: 60px !important;
+                }
+                
+                .pembayaran-table table tbody tr td:nth-child(1) {
+                    position: sticky !important;
+                    left: 0 !important;
+                    z-index: 999 !important;
+                    background-color: #ffffff !important;
+                    border-right: 2px solid #e5e7eb !important;
+                    box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
+                    will-change: transform !important;
+                    min-width: 60px !important;
+                    max-width: 60px !important;
+                }
+                
                 .pembayaran-table table thead tr th:nth-child(2) {
                     position: sticky !important;
                     left: 60px !important;
@@ -446,6 +510,7 @@ const PembayaranPage = () => {
                     max-width: 80px !important;
                 }
                 
+                .pembayaran-table table tbody tr:hover td:nth-child(1),
                 .pembayaran-table table tbody tr:hover td:nth-child(2) {
                     background-color: #f9fafb !important;
                 }
@@ -491,32 +556,13 @@ const PembayaranPage = () => {
                         </div>
                         <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 md:gap-6">
                             <button
-                                onClick={() => navigate('/ho/pembayaran/add')}
+                                onClick={() => navigate('/pembayaran/doka/add')}
                                 className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white px-4 py-2 sm:px-6 sm:py-3 md:px-7 md:py-4 lg:px-8 lg:py-4 rounded-xl sm:rounded-2xl hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 flex items-center gap-3 font-medium shadow-lg hover:shadow-xl text-sm sm:text-base"
                             >
                                 <PlusCircle className="w-5 h-5 sm:w-6 sm:h-6" />
                                 Tambah Pembayaran
                             </button>
                         </div>
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-1 gap-3 sm:gap-4 md:gap-6 sm:grid-cols-2 md:grid-cols-4">
-                    <div className="bg-gradient-to-br from-blue-400 to-blue-500 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
-                        <h3 className="text-sm sm:text-base font-medium opacity-90 mb-2">Total Pembayaran</h3>
-                        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold">{stats.total}</p>
-                    </div>
-                    <div className="bg-gradient-to-br from-emerald-400 to-emerald-500 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
-                        <h3 className="text-sm sm:text-base font-medium opacity-90 mb-2">Lunas</h3>
-                        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold">{stats.settled}</p>
-                    </div>
-                    <div className="bg-gradient-to-br from-amber-400 to-orange-500 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
-                        <h3 className="text-sm sm:text-base font-medium opacity-90 mb-2">Belum Lunas</h3>
-                        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold">{stats.pending}</p>
-                    </div>
-                    <div className="bg-gradient-to-br from-red-400 to-red-500 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
-                        <h3 className="text-sm sm:text-base font-medium opacity-90 mb-2">Terlambat</h3>
-                        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold">{stats.overdue}</p>
                     </div>
                 </div>
 
@@ -541,7 +587,7 @@ const PembayaranPage = () => {
                             
                             <input
                                 type="text"
-                                placeholder="Cari berdasarkan supplier, nota HO, atau ID pembayaran..."
+                                placeholder="Cari berdasarkan supplier, nota, atau nota HO..."
                                 value={searchTerm}
                                 onChange={(e) => handleSearch(e.target.value)}
                                 className={`w-full pl-12 ${searchTerm || isSearching ? 'pr-12' : 'pr-4'} py-2.5 sm:py-3 md:py-4 border ${searchError ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'} rounded-full transition-all duration-200 text-sm sm:text-base shadow-sm hover:shadow-md`}
@@ -602,7 +648,7 @@ const PembayaranPage = () => {
                             WebkitOverflowScrolling: 'touch',
                         }}
                     >
-                        <div style={{ minWidth: '1200px' }}>
+                        <div style={{ minWidth: '1100px' }}>
                             <DataTable
                             key={`datatable-${serverPagination.currentPage}-${filteredData.length}`}
                             columns={columns}
@@ -621,13 +667,23 @@ const PembayaranPage = () => {
                                 },
                                 table: {
                                     style: {
-                                        minWidth: '1200px',
+                                        minWidth: '1100px',
                                     }
                                 },
                                 headCells: {
                                     style: {
                                         ...customTableStyles.headCells.style,
-                                        // Ensure sticky positioning for action column
+                                        // Ensure sticky positioning for No and Action columns
+                                        '&:nth-child(1)': {
+                                            position: 'sticky',
+                                            left: '0',
+                                            zIndex: 1002,
+                                            backgroundColor: '#f8fafc',
+                                            borderRight: '2px solid #e5e7eb',
+                                            boxShadow: '1px 0 2px rgba(0, 0, 0, 0.05)',
+                                            minWidth: '60px',
+                                            maxWidth: '60px',
+                                        },
                                         '&:nth-child(2)': {
                                             position: 'sticky',
                                             left: '60px',
@@ -643,7 +699,17 @@ const PembayaranPage = () => {
                                 cells: {
                                     style: {
                                         ...customTableStyles.cells.style,
-                                        // Ensure sticky positioning for action column
+                                        // Ensure sticky positioning for No and Action columns
+                                        '&:nth-child(1)': {
+                                            position: 'sticky',
+                                            left: '0',
+                                            zIndex: 999,
+                                            backgroundColor: '#ffffff',
+                                            borderRight: '2px solid #e5e7eb',
+                                            boxShadow: '1px 0 2px rgba(0, 0, 0, 0.05)',
+                                            minWidth: '60px',
+                                            maxWidth: '60px',
+                                        },
                                         '&:nth-child(2)': {
                                             position: 'sticky',
                                             left: '60px',
@@ -808,7 +874,7 @@ const PembayaranPage = () => {
                             <div className="space-y-3">
                                 {filteredData.map((item, index) => (
                                     <PembayaranCard
-                                        key={item.encryptedPid || item.id}
+                                        key={item.id}
                                         data={item}
                                         index={(serverPagination.currentPage - 1) * serverPagination.perPage + index}
                                         onEdit={handleEdit}

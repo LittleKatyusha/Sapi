@@ -198,7 +198,7 @@ const PembayaranDetailPage = () => {
 
     // Handle edit
     const handleEdit = () => {
-        navigate(`/ho/pembayaran/edit/${id}`);
+        navigate(`/pembayaran/ovk/edit/${id}`);
     };
 
     // Handle delete
@@ -219,7 +219,7 @@ const PembayaranDetailPage = () => {
                 
                 // Navigate back after success
                 setTimeout(() => {
-                    navigate('/ho/pembayaran');
+                    navigate('/pembayaran/ovk');
                 }, 1500);
             } else {
                 throw new Error(result.message || 'Gagal menghapus pembayaran');
@@ -256,7 +256,7 @@ const PembayaranDetailPage = () => {
     const totalAmount = detailData.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
 
     const handleBack = () => {
-        navigate('/ho/pembayaran');
+        navigate('/pembayaran/ovk');
     };
 
     // Auto hide notification

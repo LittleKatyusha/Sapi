@@ -1,54 +1,36 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Save, Plus, Trash2, Building2, User, Calendar, Truck, Hash, Package, X, Settings, AlertCircle, Weight, DollarSign, Upload, FileText } from 'lucide-react';
-import usePembelianOVK from './hooks/usePembelianOVK';
-import useParameterSelect from '../pembelian/hooks/useParameterSelect';
-import useJenisPembelianOVK from './hooks/useJenisPembelianOVK';
-import useBanksAPI from '../pembelianFeedmil/hooks/useBanksAPI';
-import useTipePembayaran from '../../../hooks/useTipePembayaran';
+import { useParams, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Save, Plus, Trash2, Building2, Calendar, Hash, Package, X, Settings, AlertCircle, Weight, DollarSign, Upload, FileText } from 'lucide-react';
+import usePembayaran from './hooks/usePembayaran';
+import useParameterSelect from '../../ho/pembelian/hooks/useParameterSelect';
+import useBanksAPI from './hooks/useBanksAPI';
 import SearchableSelect from '../../../components/shared/SearchableSelect';
 import HttpClient from '../../../services/httpClient';
 import { API_ENDPOINTS } from '../../../config/api';
 
 
 
+// Mock data removed - now using real backend data via useJenisPembayaran
 
-const AddEditPembelianOVKPage = () => {
+const AddEditPembayaranPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const location = useLocation();
     const isEdit = Boolean(id);
-    const cloneData = location.state?.cloneData;
     
-    // Flag to prevent multiple API calls in edit mode
-    const editDataLoaded = useRef(false);
-    
-    const {
-        getPembelianDetail,
-        createPembelian,
-        updatePembelian,
-        loading,
-        error
-    } = usePembelianOVK();
+    // Direct API usage since payment endpoints are different from purchase
+    // Will use HttpClient directly for payment operations
 
     // Parameter Select integration - centralized data from ParameterSelectController
     const {
-        parameterData,
         supplierOptions,
         officeOptions,
-        klasifikasiOVKOptions,
-        itemOvkOptions,
         farmOptions,
+        itemPembayaranOptions,
         loading: parameterLoading,
         error: parameterError
-    } = useParameterSelect(isEdit, { kategoriSupplier: 3 });
+    } = useParameterSelect(isEdit, { kategoriSupplier: 4 });
 
-    // Jenis Pembelian OVK API integration
-    const {
-        jenisPembelianOptions,
-        loading: jenisPembelianLoading,
-        error: jenisPembelianError
-    } = useJenisPembelianOVK();
+    // Removed jenis pembelian fetching as it's not required
 
     // Bank API integration for Syarat Pembelian
     const {
@@ -57,35 +39,20 @@ const AddEditPembelianOVKPage = () => {
         error: bankError
     } = useBanksAPI();
 
-    // Tipe Pembayaran API integration
-    const {
-        tipePembayaranOptions,
-        loading: tipePembayaranLoading,
-        error: tipePembayaranError
-    } = useTipePembayaran();
-
-    // Header form state
+    // Header form state - aligned with backend TrPembayaran validation requirements
     const [headerData, setHeaderData] = useState({
-        nota: '',
-        idOffice: '', // Office now selectable
-        tipePembelian: '',
-        idSupplier: '',
-        tgl_masuk: '',
-        nama_supir: '',
-        plat_nomor: '',
-        jumlah: '', // Added: Jumlah item
-        biaya_truck: '',
-        biaya_lain: '',
-        biaya_total: '', // Added: Total biaya keseluruhan
-        berat_total: '',
-        farm: '', // Farm
-        syarat_pembelian: '', // Syarat Pembelian
-        nota_ho: '', // Nomor Nota HO
-        file: '',
-        fileName: '',
-        tipe_pembayaran: '', // Added: Tipe pembayaran
-        due_date: '', // Added: Jatuh tempo payment
-        note: '' // Added: Required note field
+        id_pembelian: '', // Required - refers to tr_pembelian_ho.id
+        purchase_type: '', // Required - 1 or 2 
+        due_date: '', // Required - tanggal jatuh tempo
+        settlement_date: '', // Nullable - tanggal pelunasan
+        payment_status: 0, // Nullable - 0 (belum lunas) or 1 (lunas)
+        note: '', // Additional note field
+        // Additional fields for form display
+        farm: '', // Farm selection
+        syarat_pembelian: '', // Payment terms selection
+        // Optional display fields
+        harga_total: 0, // Total price display
+        total_pembayaran: 0 // Total payment display
     });
 
     // Detail items state
@@ -93,6 +60,7 @@ const AddEditPembelianOVKPage = () => {
     const [notification, setNotification] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [deletingItemId, setDeletingItemId] = useState(null);
+    
 
     // File upload state
     const [selectedFile, setSelectedFile] = useState(null);
@@ -101,45 +69,44 @@ const AddEditPembelianOVKPage = () => {
     const [isFileModalOpen, setIsFileModalOpen] = useState(false);
     const [existingFileName, setExistingFileName] = useState(null); // Track existing file name
 
-    // Default data untuk batch operations
+    // Default data untuk batch operations - aligned with TrPembayaranDetail backend validation
     const [defaultData, setDefaultData] = useState({
-        item_name: '',
-        id_klasifikasi_ovk: null,
-        berat: '',
-        harga: '',
-        persentase: ''
+        amount: 0, // Required - numeric min:0 - jumlah pembayaran
+        payment_date: '', // Required - date - tanggal pembayaran
+        description: '' // Additional description for payment detail
     });
-    const [batchCount, setBatchCount] = useState('');
-
-    // Use OVK suppliers only (kategori_supplier = 3)
-    const supplierOptionsToShow = supplierOptions;
+    const [batchCount, setBatchCount] = useState(0);
     
-    // Debug: Log supplier options to verify filtering
-    useEffect(() => {
-        console.log('📊 AddEditPembelianOVKPage: Supplier options received:', supplierOptionsToShow.length, 'suppliers');
-        if (supplierOptionsToShow.length > 0) {
-            console.log('📊 First supplier sample:', supplierOptionsToShow[0]);
-        }
-    }, [supplierOptionsToShow]);
-
-
-
-    // Helper functions for number formatting
+    // Removed unused ref for batch count manual set
+    
+    // Helper functions for number formatting (same as pembelian)
     const formatNumber = (value) => {
         if (value === null || value === undefined || value === '') return '';
-        const numValue = parseFloat(value);
-        if (isNaN(numValue)) return '';
-        return numValue.toLocaleString('id-ID');
+        return parseInt(value).toLocaleString('id-ID');
     };
 
     const parseNumber = (value) => {
         if (!value) return 0;
-        // Remove dots and commas, then convert to number
-        const cleanValue = value.toString().replace(/[.,]/g, '');
-        return parseFloat(cleanValue) || 0;
+        return parseInt(value.toString().replace(/\./g, '')) || 0;
     };
 
-    // Helper functions for decimal formatting (for persentase field) - like Feedmil
+    // Helper functions for safe value handling (like OVK pattern)
+    const safeGetNumber = (value, fallback = 0) => {
+        if (value === null || value === undefined || value === '') {
+            return fallback;
+        }
+        const numValue = parseFloat(value);
+        return isNaN(numValue) ? fallback : numValue;
+    };
+
+    const safeGetString = (value, fallback = '') => {
+        if (value === null || value === undefined) {
+            return fallback;
+        }
+        return value.toString();
+    };
+
+    // Helper functions for decimal formatting (for persentase field)
     const formatDecimal = (value) => {
         if (!value && value !== 0) return '';
         const numValue = parseFloat(value);
@@ -155,7 +122,7 @@ const AddEditPembelianOVKPage = () => {
         return parseFloat(cleanValue) || 0;
     };
 
-    // Special handler for persentase input to allow comma typing - like Feedmil
+    // Special handler for persentase input to allow comma typing
     const handlePersentaseChange = (itemId, inputValue) => {
         // Allow comma in input, don't convert immediately
         setDetailItems(prev => prev.map(item => {
@@ -166,15 +133,18 @@ const AddEditPembelianOVKPage = () => {
         }));
     };
 
-    // Parse persentase value when needed (for calculations) - like Feedmil
+    // Parse persentase value when needed (for calculations)
     const getParsedPersentase = (value) => {
         if (!value) return 0;
         const cleanValue = value.toString().replace(',', '.');
         return parseFloat(cleanValue) || 0;
     };
 
-    // Convert backend decimal persentase to display format with comma - like Feedmil
+    // Convert backend decimal persentase to display format with comma
     const formatPersentaseFromBackend = (value) => {
+        if (!value && value !== 0) return '';
+        
+        
         // If value is already a decimal string (like "12,5"), return as is
         if (typeof value === 'string' && value.includes(',')) {
             return value;
@@ -192,57 +162,49 @@ const AddEditPembelianOVKPage = () => {
         return result;
     };
 
-    // Helper function to safely get numeric values (including 0) but exclude null/undefined/empty string
-    const safeGetNumber = (value, fallback = 0) => {
-        if (value === null || value === undefined || value === '') {
-            return fallback;
-        }
-        const numValue = parseFloat(value);
-        return isNaN(numValue) ? fallback : numValue;
-    };
+    // Use Payment suppliers only (kategori_supplier = 4)
+    const supplierOptionsToShow = supplierOptions;
 
-    // Helper function to safely get string values
-    const safeGetString = (value, fallback = '') => {
-        if (value === null || value === undefined) {
-            return fallback;
-        }
-        return value.toString();
-    };
+    // Ref to track if edit data has been loaded to prevent multiple API calls
+    const editDataLoaded = useRef(false);
+
+    // Note: Removed pembelian list fetching for edit mode since we now use /show endpoint directly
+    // This eliminates the need to fetch all data and then filter by pubid
+
+
+
 
     // Load data untuk edit mode - using /show endpoint for both header and detail data
     useEffect(() => {
-        if (isEdit && id && supplierOptions.length > 0 && officeOptions.length > 0 && farmOptions.length > 0 && jenisPembelianOptions.length > 0 && !editDataLoaded.current) { // Wait for all options to load first
+        console.log('Edit mode data loading check:', {
+            isEdit,
+            id,
+            editDataLoaded: editDataLoaded.current,
+            supplierOptionsLength: supplierOptions.length,
+            officeOptionsLength: officeOptions.length,
+            farmOptionsLength: farmOptions.length
+        });
+        
+        // Wait for all required options to load first (like OVK pattern)
+        // Also check if data has already been loaded to prevent multiple API calls
+        if (isEdit && id && supplierOptions.length > 0 && officeOptions.length > 0 && farmOptions.length > 0 && !editDataLoaded.current) {
             const loadEditData = async () => {
                 try {
-                    // Set flag to prevent multiple calls
-                    editDataLoaded.current = true;
-                    
-                    const decodedId = decodeURIComponent(id);
+                    // decodedId not needed; use id directly
                     
                     // Get both header and detail data from /show endpoint only
-                    console.log('🔍 Getting header and detail data from /show endpoint for PID:', id);
                     
-                    const showResponse = await HttpClient.post(`${API_ENDPOINTS.HO.OVK.PEMBELIAN}/show`, {
+                    const showResponse = await HttpClient.post(`${API_ENDPOINTS.HO.PAYMENT.SHOW}`, {
                         pid: id
                     });
                     
                     if (!showResponse.data || showResponse.data.length === 0) {
-                        console.log('❌ No data from /show endpoint');
                         throw new Error('Data tidak ditemukan untuk pubid yang dipilih');
                     }
                     
-                    // Use the first record as header data (since /show returns detail records with header info)
-                    // All records have the same header data (nota, tgl_masuk, nama_supir, etc.)
-                    // So we only need the first record for header information
                     const headerData = showResponse.data[0];
                     const showResponseData = showResponse.data;
                     
-                    console.log('✅ Header and detail data found from /show endpoint:', {
-                        nota: headerData.nota,
-                        pid: headerData.pid,
-                        nama_supplier: headerData.nama_supplier,
-                        detailRecords: showResponseData.length
-                    });
                     
                     // Mark this as coming from show endpoint
                     headerData.source = 'show';
@@ -255,8 +217,6 @@ const AddEditPembelianOVKPage = () => {
                     };
                     
                     if (headerData) {
-                        // Debug: Log available options
-                        
                         // Find supplier ID by name if we have nama_supplier but not id_supplier
                         let supplierId = headerData.id_supplier || '';
                         if (!supplierId && headerData.nama_supplier) {
@@ -274,7 +234,7 @@ const AddEditPembelianOVKPage = () => {
                             }
                         }
 
-                        // Find office ID - handle both direct ID and name matching (like Feedmil pattern)
+                        // Find office ID - handle both id_office (direct) and nama_office (by name matching)
                         let officeId = headerData.id_office || '';
                         
                         // If we have id_office directly, use it (keep as integer to match form field format)
@@ -296,145 +256,46 @@ const AddEditPembelianOVKPage = () => {
                         }
                         
 
-                        // Find tipe pembelian ID - backend sends tipe_pembelian as integer (1 or 2) - like Feedmil pattern
-                        let tipePembelianId = '';
-                        
-                        if (headerData.tipe_pembelian !== undefined && headerData.tipe_pembelian !== null) {
-                            // Backend sends tipe_pembelian as integer, convert to string for matching
-                            const tipePembelianValue = String(headerData.tipe_pembelian);
-                            const foundTipePembelian = jenisPembelianOptions.find(t => t.value === tipePembelianValue);
-                            
-                            if (foundTipePembelian) {
-                                tipePembelianId = foundTipePembelian.value;
-                            }
-                        } else if (headerData.jenis_pembelian) {
-                            // Fallback: try to match by jenis_pembelian name (for backward compatibility)
-                            let foundTipePembelian = jenisPembelianOptions.find(t => t.label === headerData.jenis_pembelian);
-                            if (!foundTipePembelian) {
-                                foundTipePembelian = jenisPembelianOptions.find(t => 
-                                    t.label.toLowerCase().includes(headerData.jenis_pembelian.toLowerCase()) ||
-                                    headerData.jenis_pembelian.toLowerCase().includes(t.label.toLowerCase())
-                                );
-                            }
-                            if (foundTipePembelian) {
-                                tipePembelianId = foundTipePembelian.value;
-                            }
-                        }
-                        
+                        // Removed jenis pembelian mapping as it's not required
 
-                        // Determine data source and log accordingly
-                        // Data now comes from /show endpoint only
-                        const dataSource = 'Show Endpoint (Detail Model with Header Info)';
-                        
-                        // Debug field values before setting
-                        console.log('🔍 OVK Edit Data Loading Debug:', {
-                            dataSource,
-                            rawHeaderData: headerData,
-                            rawHeaderDataStringified: JSON.stringify(headerData, null, 2),
-                            allFieldsRaw: {
-                                nota: headerData.nota,
-                                nama_office: headerData.nama_office,
-                                jenis_pembelian: headerData.jenis_pembelian,
-                                nama_supplier: headerData.nama_supplier,
-                                tgl_masuk: headerData.tgl_masuk,
-                                nama_supir: headerData.nama_supir,
-                                plat_nomor: headerData.plat_nomor,
-                                jumlah: headerData.jumlah,
-                                biaya_truk: headerData.biaya_truk,
-                                biaya_lain: headerData.biaya_lain,
-                                biaya_total: headerData.biaya_total,
-                                total_belanja: headerData.total_belanja,
-                                berat_total: headerData.berat_total,
-                                file: headerData.file,
-                                note: headerData.note,
-                                // Check for alternative field names
-                                catatan: headerData.catatan
-                            },
-                            mappedValues: {
-                                nota: safeGetString(headerData.nota),
-                                officeId,
-                                tipePembelianId,
-                                supplierId,
-                                tgl_masuk: safeGetString(headerData.tgl_masuk),
-                                nama_supir: safeGetString(headerData.nama_supir),
-                                plat_nomor: safeGetString(headerData.plat_nomor),
-                                jumlah: safeGetNumber(headerData.jumlah),
-                                biaya_truck: safeGetNumber(headerData.biaya_truk) ?? safeGetNumber(headerData.biaya_truck),
-                                biaya_lain: safeGetNumber(headerData.biaya_lain),
-                                biaya_total: safeGetNumber(headerData.biaya_total) ?? safeGetNumber(headerData.total_belanja),
-                                berat_total: safeGetNumber(headerData.berat_total),
-                                file: safeGetString(headerData.file),
-                                note: safeGetString(headerData.note) || safeGetString(headerData.catatan)
-                            },
-                            availableOptions: {
-                                officeOptions: officeOptions.length,
-                                jenisPembelianOptions: jenisPembelianOptions.length,
-                                suppliers: supplierOptions.length
-                            }
-                        });
-                        
+                        // Set header data using safe helper functions - aligned with TrPembayaran backend
                         setHeaderData({
-                            nota: safeGetString(headerData.nota),
-                            nota_ho: safeGetString(headerData.nota_ho),
-                            farm: headerData.id_farm ? parseInt(headerData.id_farm) : (headerData.farm ? parseInt(headerData.farm) : null),
-                            syarat_pembelian: safeGetString(headerData.syarat_pembelian) || safeGetString(headerData.id_syarat_pembelian),
-                            idOffice: officeId || (headerData.id_office ? parseInt(headerData.id_office) : null),
-                            tipePembelian: tipePembelianId || (headerData.tipe_pembelian ? parseInt(headerData.tipe_pembelian) : null),
-                            idSupplier: supplierId || (headerData.id_supplier ? parseInt(headerData.id_supplier) : null),
-                            tgl_masuk: safeGetString(headerData.tgl_masuk),
-                            nama_supir: safeGetString(headerData.nama_supir),
-                            plat_nomor: safeGetString(headerData.plat_nomor),
-                            jumlah: safeGetNumber(headerData.jumlah),
-                            biaya_truck: safeGetNumber(headerData.biaya_truk) ?? safeGetNumber(headerData.biaya_truck),
-                            biaya_lain: safeGetNumber(headerData.biaya_lain),
-                            biaya_total: safeGetNumber(headerData.biaya_total) ?? safeGetNumber(headerData.total_belanja),
-                            berat_total: safeGetNumber(headerData.berat_total),
-                            farm: headerData.id_farm ? parseInt(headerData.id_farm) : (headerData.farm ? parseInt(headerData.farm) : null),
-                            syarat_pembelian: safeGetString(headerData.syarat_pembelian) || safeGetString(headerData.id_syarat_pembelian),
-                            nota_ho: safeGetString(headerData.nota_ho),
-                            file: safeGetString(headerData.file), // Keep as string for display purposes
-                            fileName: headerData.file ? headerData.file.split('/').pop() : '',
-                            tipe_pembayaran: safeGetString(headerData.tipe_pembayaran),
+                            id_pembelian: safeGetNumber(headerData.id_pembelian),
+                            purchase_type: safeGetNumber(headerData.purchase_type) || 1,
                             due_date: safeGetString(headerData.due_date),
+                            settlement_date: safeGetString(headerData.settlement_date),
+                            payment_status: safeGetNumber(headerData.payment_status) || 0,
                             note: safeGetString(headerData.note) || safeGetString(headerData.catatan)
                         });
 
                         // Set existing file name if available
-                        const existingFile = headerData.file ? headerData.file.split('/').pop() : '';
+                        const existingFile = safeGetString(headerData.file_name) || safeGetString(headerData.fileName);
                         if (existingFile) {
                             setExistingFileName(existingFile);
                         }
-                        
-                    }
 
-                    if (detailResult.success && detailResult.data.length > 0) {
-                        // Load detail items from detail API response
-                        const processedDetailItems = detailResult.data.map((item, index) => {
-                            // Find the item ID from itemOvkOptions if we have the item name
-                            const itemName = item.item_name || `OVK Item ${index + 1}`;
-                            const foundItem = itemOvkOptions.find(option => option.label === itemName);
-                            
-                            return {
-                                id: item.id || index + 1,
-                                // Include backend identifiers for update operations (like Feedmil)
-                                idPembelian: item.id_pembelian, // This is crucial for update operations
-                                id_pembelian: item.id_pembelian, // Keep both for compatibility
-                                encryptedPid: item.pid, // Encrypted PID for existing items
-                                pubid: item.pubid || '', // Raw pubid for API calls
-                                pubidDetail: item.pubid_detail, // Alternative pubid field
-                                id_office: item.id_office || 'head-office',
-                                item_name: itemName, // Display name for UI
-                                item_name_id: foundItem ? foundItem.value : '', // ID for SearchableSelect
-                                id_klasifikasi_ovk: item.id_klasifikasi_ovk || null,
-                                berat: parseFloat(item.berat) || 0,
-                                harga: parseFloat(item.harga) || 0,
-                                persentase: formatPersentaseFromBackend(item.persentase), // Format with comma for display
-                                hpp: parseFloat(item.hpp) || 0,
-                                total_harga: parseFloat(item.total_harga) || 0,
-                            };
-                        });
+                        // Transform detail items from backend data - aligned with TrPembayaranDetail
+                        if (detailResult.success && detailResult.data.length > 0) {
+                            const transformedDetailItems = detailResult.data.map((item, index) => {
+                                return {
+                                    id: index + 1,
+                                    // Include backend identifiers for update operations
+                                    idPembayaran: item.id_pembayaran, // This is crucial for update operations
+                                    id_pembayaran: item.id_pembayaran, // Keep both for compatibility
+                                    encryptedPid: item.pid, // Encrypted PID for existing items
+                                    pubidDetail: item.pubid_detail, // Raw pubid if available
+                                    // Detail fields aligned with TrPembayaranDetail backend
+                                    amount: safeGetNumber(item.amount, 0), // Amount field from backend
+                                    payment_date: safeGetString(item.payment_date) || new Date().toISOString().split('T')[0],
+                                    description: safeGetString(item.description) || '' // Optional description
+                                };
+                            });
                         
-                        setDetailItems(processedDetailItems);
+                        setDetailItems(transformedDetailItems);
+                        }
+                        
+                        // Mark data as loaded to prevent multiple API calls
+                        editDataLoaded.current = true;
                     }
                 } catch (error) {
                     console.error('Error loading edit data:', error);
@@ -447,12 +308,10 @@ const AddEditPembelianOVKPage = () => {
             
             loadEditData();
         }
-    }, [isEdit, id, supplierOptions.length, officeOptions.length, farmOptions.length, jenisPembelianOptions.length, itemOvkOptions.length]);
+    }, [isEdit, id, supplierOptions.length, officeOptions.length, farmOptions.length]);
 
-    // Reset edit data loaded flag when id changes
-    useEffect(() => {
-        editDataLoaded.current = false;
-    }, [id]);
+
+
 
 
     // Handle header form changes
@@ -463,44 +322,23 @@ const AddEditPembelianOVKPage = () => {
         }));
     };
 
-    // Handle detail item changes
+    // Handle detail item changes - aligned with TrPembayaranDetail
     const handleDetailChange = (itemId, field, value) => {
         setDetailItems(prev => prev.map(item => {
             if (item.id === itemId) {
-                if (field === 'item_name') {
-                    // Find the display name for the selected item
-                    const selectedItem = itemOvkOptions.find(option => option.value === value);
-                    return {
-                        ...item,
-                        item_name: selectedItem ? selectedItem.label : '',
-                        item_name_id: value
-                    };
-                } else {
-                    return { ...item, [field]: value };
-                }
+                return { ...item, [field]: value };
             }
             return item;
         }));
     };
 
-    // Add new detail item
+    // Add new detail item - aligned with TrPembayaranDetail
     const addDetailItem = () => {
         const newItem = {
             id: Date.now(),
-            pubid: '', // Empty pubid for new items
-            id_pembelian: '', // Will be set when saving
-            idPembelian: '', // Will be set when saving (like Feedmil)
-            encryptedPid: '', // Will be set when saving
-            pubidDetail: '', // Alternative pubid field
-            id_office: headerData.idOffice || 'head-office', // Use selected office or fallback
-            item_name: defaultData.item_name_display || defaultData.item_name || '',
-            item_name_id: defaultData.item_name || null,
-            id_klasifikasi_ovk: defaultData.id_klasifikasi_ovk || null,
-            berat: defaultData.berat || '',
-            harga: defaultData.harga || '',
-            persentase: defaultData.persentase || '',
-            hpp: '', // Will be calculated
-            total_harga: '', // Added: total_harga field
+            amount: defaultData.amount || 0,
+            payment_date: defaultData.payment_date || new Date().toISOString().split('T')[0],
+            description: defaultData.description || ''
         };
         
         setDetailItems(prev => [...prev, newItem]);
@@ -511,29 +349,18 @@ const AddEditPembelianOVKPage = () => {
         if (!batchCount || batchCount < 1) {
             setNotification({
                 type: 'error',
-                message: 'Jumlah batch minimal 1 item'
+                message: 'Jumlah batch harus diisi dan minimal 1 item'
             });
             return;
         }
 
         const newItems = [];
-        for (let i = 0; i < (batchCount || 0); i++) {
+        for (let i = 0; i < batchCount; i++) {
             newItems.push({
                 id: Date.now() + i,
-                pubid: '', // Empty pubid for new items
-                id_pembelian: '', // Will be set when saving
-                idPembelian: '', // Will be set when saving (like Feedmil)
-                encryptedPid: '', // Will be set when saving
-                pubidDetail: '', // Alternative pubid field
-                id_office: headerData.idOffice || 'head-office', // Use selected office or fallback
-                item_name: defaultData.item_name_display || defaultData.item_name || '',
-                item_name_id: defaultData.item_name || null,
-                id_klasifikasi_ovk: defaultData.id_klasifikasi_ovk || null,
-                berat: defaultData.berat || '',
-                harga: defaultData.harga || '',
-                persentase: defaultData.persentase || '',
-                hpp: '', // Will be calculated
-                total_harga: '', // Added: total_harga field
+                amount: defaultData.amount || 0,
+                payment_date: defaultData.payment_date || new Date().toISOString().split('T')[0],
+                description: defaultData.description || ''
             });
         }
         setDetailItems(prev => [...prev, ...newItems]);
@@ -541,11 +368,11 @@ const AddEditPembelianOVKPage = () => {
         // Show success notification
         setNotification({
             type: 'success',
-            message: `Berhasil menambahkan ${batchCount || 0} item dengan data default`
+            message: `Berhasil menambahkan ${batchCount} item dengan data default`
         });
     };
 
-    // Remove detail item - enhanced for edit mode (like Feedmil)
+    // Remove detail item - enhanced for edit mode
     const removeDetailItem = async (itemId) => {
         const item = detailItems.find(detail => detail.id === itemId);
         if (!item) {
@@ -561,7 +388,7 @@ const AddEditPembelianOVKPage = () => {
 
         try {
             // Check if this is an existing item from database (has encryptedPid)
-            const hasDetailIdentifier = !!(item.encryptedPid || item.pid || item.pubid || item.pubidDetail);
+            const hasDetailIdentifier = !!(item.encryptedPid || item.pid || item.pubidDetail);
             const isTimestampId = typeof item.id === 'number' && item.id > 1000000000; // Timestamp-based IDs are > 1B
             const isSequentialId = typeof item.id === 'number' && item.id < 1000; // Sequential IDs from database are usually small
             
@@ -572,7 +399,7 @@ const AddEditPembelianOVKPage = () => {
 
             if (isExistingItem && isEdit) {
                 // This is an existing database item - call backend delete API
-                const detailPid = item.encryptedPid || item.pid || item.pubid || item.pubidDetail;
+                const detailPid = item.encryptedPid || item.pid || item.pubidDetail;
                 
                 if (!detailPid) {
                     throw new Error('ID detail tidak ditemukan untuk penghapusan');
@@ -583,30 +410,22 @@ const AddEditPembelianOVKPage = () => {
                     message: 'Menghapus detail dari database...'
                 });
 
-                // Call OVK delete API
-                const result = await HttpClient.post(`${API_ENDPOINTS.HO.OVK.PEMBELIAN}/hapus`, {
+                const result = await HttpClient.post(API_ENDPOINTS.HO.PAYMENT.DETAIL_DELETE, {
                     pid: detailPid
                 });
                 
-                // Check response success with multiple possible formats
-                const isSuccess = (result.data && result.data.success) || 
-                                 (result.data && result.data.status === 'ok') || 
-                                 (result.data && result.data.status === 'success') ||
-                                 (result && result.status === 'ok') ||
-                                 (result && result.status === 'success');
-                
-                if (isSuccess) {
+                if (result.success) {
                     // Remove from local state after successful backend deletion
                     setDetailItems(prev => prev.filter(item => item.id !== itemId));
                     
                     setNotification({
                         type: 'success',
-                        message: result.data?.message || result.message || 'Detail OVK berhasil dihapus dari database'
+                        message: result.message || 'Detail pembayaran berhasil dihapus dari database'
                     });
                 } else {
                     setNotification({
                         type: 'error',
-                        message: result.data?.message || result.message || 'Gagal menghapus detail dari database'
+                        message: result.message || 'Gagal menghapus detail dari database'
                     });
                 }
             } else {
@@ -619,6 +438,7 @@ const AddEditPembelianOVKPage = () => {
                 });
             }
         } catch (err) {
+            console.error('Error deleting detail:', err);
             setNotification({
                 type: 'error',
                 message: err.message || 'Terjadi kesalahan saat menghapus detail'
@@ -629,124 +449,100 @@ const AddEditPembelianOVKPage = () => {
         }
     };
 
-    // Save individual detail item
-    const saveDetailItem = async (itemId) => {
+    // Save individual detail item - following regular pembelian pattern
+    const handleSaveDetailItem = async (itemId) => {
+        if (!isEdit) {
+            setNotification({
+                type: 'error',
+                message: 'Header pembelian harus disimpan terlebih dahulu sebelum menyimpan detail individual'
+            });
+            return;
+        }
+
         const item = detailItems.find(detail => detail.id === itemId);
-        if (!item) return;
-
-        // Validate item data
-        if (!item.item_name || !item.item_name.trim()) {
+        if (!item) {
             setNotification({
                 type: 'error',
-                message: 'Nama item harus diisi'
+                message: 'Item detail tidak ditemukan'
             });
             return;
         }
 
-        if (!item.id_klasifikasi_ovk) {
-            setNotification({
-                type: 'error',
-                message: 'Klasifikasi OVK harus dipilih'
-            });
-            return;
+        // Validate individual item
+        const itemErrors = [];
+        if (!item.item_name || item.item_name.trim() === '') {
+            itemErrors.push('Nama item harus diisi');
+        }
+        if (!item.harga || parseFloat(item.harga) <= 0) {
+            itemErrors.push('Harga harus diisi dan > 0');
+        }
+        if (!item.berat || parseInt(item.berat) <= 0) {
+            itemErrors.push('Berat harus diisi dan > 0');
+        }
+        if (!item.persentase || getParsedPersentase(item.persentase) < 0) {
+            itemErrors.push('Persentase harus diisi dan >= 0');
         }
 
-        const berat = parseFloat(item.berat);
-        if (isNaN(berat) || berat <= 0) {
+        if (itemErrors.length > 0) {
             setNotification({
                 type: 'error',
-                message: 'Berat harus lebih dari 0'
-            });
-            return;
-        }
-
-        const harga = parseFloat(item.harga);
-        if (isNaN(harga) || harga <= 0) {
-            setNotification({
-                type: 'error',
-                message: 'Harga harus lebih dari 0'
+                message: itemErrors.join(', ')
             });
             return;
         }
 
         try {
-            setIsSubmitting(true);
-            setNotification({
-                type: 'info',
-                message: 'Menyimpan perubahan item...'
-            });
+            // Calculate HPP
+            const harga = parseFloat(item.harga) || 0;
+            const persentase = getParsedPersentase(item.persentase);
+            const hpp = harga + (harga * persentase / 100);
+            const totalHarga = hpp * parseInt(item.berat);
 
-            // Check if this is an existing item from database or a new frontend-only item
-            const hasDetailIdentifier = !!(item.encryptedPid || item.pid || item.pubid || item.pubidDetail);
-            const isTimestampId = typeof item.id === 'number' && item.id > 1000000000; // Timestamp-based IDs are > 1B
-            const isSequentialId = typeof item.id === 'number' && item.id < 1000; // Sequential IDs from database are usually small
-            
-            // An item is existing if it has a detail identifier (encrypted pid, pid, pubid, or pubidDetail)
-            // This is the primary indicator that the item came from the database
-            const isExistingItem = hasDetailIdentifier;
 
-            // Prepare detail data for save - use structure like Feedmil
+
+            // Prepare detail data for save - use snake_case format for backend compatibility
             const detailData = {
                 idPembelian: item.idPembelian || null, // Use item's id_pembelian if available (for existing items)
                 idOffice: parseInt(headerData.idOffice) || 1, // Use selected office ID
-                item_name: String(item.item_name || ''),
-                item_name_id: item.item_name_id || null, // Include item ID for backend reference
-                id_klasifikasi_ovk: (() => {
-                    const rawValue = item.id_klasifikasi_ovk;
-                    
-                    if (rawValue === null || rawValue === undefined || rawValue === '') {
-                        return null;
-                    }
-                    
-                    const parsed = parseInt(rawValue);
-                    if (isNaN(parsed)) {
-                        return null;
-                    }
-                    
-                    return parsed;
-                })(),
+                item_name: String(item.item_name || ''), // Send display name to backend
+                id_item: item.item_name_id ? parseInt(item.item_name_id) : null, // Send item ID to backend
                 harga: parseFloat(item.harga) || 0,
                 berat: parseInt(item.berat) || 0,
-                persentase: getParsedPersentase(item.persentase), // Use comma-aware parsing
-                hpp: parseFloat(item.hpp) || 0,
-                total_harga: parseFloat(item.total_harga) || 0
+                persentase: getParsedPersentase(item.persentase),
+                hpp: hpp,
+                total_harga: totalHarga
             };
 
-            // Validate that we have a valid pembelian ID for existing items only
-            if (isExistingItem && !detailData.idPembelian) {
-                setNotification({
-                    type: 'error',
-                    message: 'ID Pembelian tidak ditemukan untuk detail existing. Data mungkin tidak lengkap.'
-                });
-                return;
-            }
 
-            // Debug log
 
-            // Call API to update individual item using the correct endpoint
+            // Check if this is an existing item from database or a new frontend-only item
+            const hasDetailIdentifier = !!(item.encryptedPid || item.pid || item.pubidDetail);
+            const isTimestampId = typeof item.id === 'number' && item.id > 1000000000; // Timestamp-based IDs are > 1B
+            const isSequentialId = typeof item.id === 'number' && item.id < 1000; // Sequential IDs from database are usually small
+            
+            // An item is existing if:
+            // 1. Has detail identifier (encrypted pid) AND is sequential ID (from backend mapping)
+            // 2. OR has detail identifier AND is not timestamp ID
+            const isExistingItem = hasDetailIdentifier && (isSequentialId || !isTimestampId);
+            
+
+
             let result;
             if (isExistingItem) {
-                // This is an existing database item - use updateDetail with encrypted PID
-                const detailPid = item.encryptedPid || item.pid || item.pubid || item.pubidDetail;
+                // This is an existing database item - use updateDetail
+                // Validate that we have id_pembelian for backend validation
+                if (!detailData.idPembelian) {
+                    throw new Error('ID pembelian tidak ditemukan untuk detail existing. Data mungkin tidak lengkap.');
+                }
                 
-                // Prepare request data for existing item update
-                const requestData = {
-                    pid: detailPid, // Backend expects encrypted PID for existing items
-                    id_pembelian: detailData.idPembelian, // Always required by backend validator
-                    item_name: detailData.item_name,
-                    id_item: detailData.item_name_id ? parseInt(detailData.item_name_id) : null, // Send item ID to backend
-                    id_klasifikasi_ovk: detailData.id_klasifikasi_ovk,
-                    harga: detailData.harga,
-                    persentase: detailData.persentase,
-                    berat: detailData.berat,
-                    hpp: detailData.hpp,
-                    total_harga: detailData.total_harga
-                };
-                
-                result = await HttpClient.post(`${API_ENDPOINTS.HO.OVK.PEMBELIAN}/update`, requestData);
+                const detailPid = item.encryptedPid || item.pid || item.pubidDetail;
+                result = await HttpClient.post(API_ENDPOINTS.HO.PAYMENT.DETAIL_UPDATE, {
+                    pid: detailPid,
+                    ...detailData
+                });
             } else {
                 // This is a new item created in frontend - use updateDetail with null pid to create new detail
-                // Get id_pembelian from existing detail items
+                // Get id_pembelian from existing detail items or fallback method
                 let idPembelianValue = null;
                 
                 // Try to get id_pembelian from existing detail items
@@ -754,102 +550,64 @@ const AddEditPembelianOVKPage = () => {
                 if (existingDetailWithId) {
                     idPembelianValue = existingDetailWithId.idPembelian;
                 } else {
-                    setNotification({
-                        type: 'error',
-                        message: 'Tidak dapat menambah detail baru: ID pembelian tidak ditemukan. Pastikan header pembelian sudah disimpan dan detail lain sudah ada.'
-                    });
-                    return;
+                    // Fallback: For new pembelian without existing details, use header ID from backend response
+                    throw new Error('Tidak dapat menambah detail baru: ID pembelian tidak ditemukan. Pastikan header pembelian sudah disimpan dan detail lain sudah ada.');
                 }
                 
                 detailData.idPembelian = idPembelianValue; // Use the resolved id_pembelian
-                
-                // Prepare request data for new item creation
-                const requestData = {
-                    pid: null, // null pid will trigger create in backend
-                    id_pembelian: detailData.idPembelian, // Always required by backend validator
-                    id_office: detailData.idOffice, // Required for new items
-                    item_name: detailData.item_name,
-                    id_item: detailData.item_name_id ? parseInt(detailData.item_name_id) : null, // Send item ID to backend
-                    id_klasifikasi_ovk: detailData.id_klasifikasi_ovk,
-                    harga: detailData.harga,
-                    persentase: detailData.persentase,
-                    berat: detailData.berat,
-                    hpp: detailData.hpp,
-                    total_harga: detailData.total_harga
-                };
-                
-                result = await HttpClient.post(`${API_ENDPOINTS.HO.OVK.PEMBELIAN}/update`, requestData);
+                result = await HttpClient.post(API_ENDPOINTS.HO.PAYMENT.DETAIL_STORE, detailData);
             }
 
-            // Debug API response
-
-            // Check response success with multiple possible formats
-            const isSuccess = (result.data && result.data.success) || 
-                             (result.data && result.data.status === 'ok') || 
-                             (result.data && result.data.status === 'success') ||
-                             (result && result.status === 'ok') ||
-                             (result && result.status === 'success');
-
-            if (isSuccess) {
+            if (result.success) {
                 setNotification({
                     type: 'success',
-                    message: 'Detail item berhasil disimpan!'
+                    message: 'Detail pembayaran berhasil disimpan!'
                 });
                 
                 // Update the saved item with new encrypted PID if it was a new item
-                if (!isExistingItem && (result.data?.pid || result.data?.data?.pid)) {
-                    const newPid = result.data?.pid || result.data?.data?.pid;
+                if (!isExistingItem && result.data && result.data.pid) {
                     setDetailItems(prevItems => 
                         prevItems.map(prevItem => 
                             prevItem.id === item.id 
-                                ? { ...prevItem, encryptedPid: newPid, pubid: newPid }
+                                ? { ...prevItem, encryptedPid: result.data.pid }
                                 : prevItem
                         )
                     );
                 }
                 
-                // Auto hard refresh setelah save berhasil dalam mode edit (like Feedmil)
+                // Auto hard refresh setelah save berhasil dalam mode edit
                 setTimeout(() => {
                     window.location.reload();
                 }, 1500); // Delay 1.5 detik untuk memberi waktu user melihat notification
+                
+
             } else {
                 setNotification({
                     type: 'error',
-                    message: result.data?.message || result.message || 'Gagal menyimpan detail item'
+                    message: result.message || 'Gagal menyimpan detail'
                 });
             }
-        } catch (error) {
+        } catch (err) {
+            console.error('Error saving detail pembayaran item:', err);
             setNotification({
                 type: 'error',
-                message: 'Terjadi kesalahan saat menyimpan item'
+                message: err.message || 'Terjadi kesalahan saat menyimpan detail'
             });
-        } finally {
-            setIsSubmitting(false);
         }
     };
 
-    // Handle default data changes
+    // Handle default data changes - aligned with TrPembayaranDetail
     const handleDefaultDataChange = (field, value) => {
-        if (field === 'item_name') {
-            // Find the display name for the selected item
-            const selectedItem = itemOvkOptions.find(item => item.value === value);
-            setDefaultData(prev => ({
-                ...prev,
-                item_name: value,
-                item_name_display: selectedItem ? selectedItem.label : ''
-            }));
-        } else {
-            setDefaultData(prev => ({
-                ...prev,
-                [field]: value
-            }));
-        }
+        setDefaultData(prev => ({
+            ...prev,
+            [field]: value
+        }));
     };
 
-    // Handle file upload - sesuai dengan validasi backend (max 2MB, jpg,jpeg,png,pdf)
+    // Handle file upload
     const handleFileUpload = (file) => {
         if (file) {
-            // Validate file size (max 2MB sesuai backend)
+            // Validate file size (max 2MB) - sesuai backend
             const maxSize = 2 * 1024 * 1024; // 2MB
             if (file.size > maxSize) {
                 setNotification({
@@ -859,27 +617,27 @@ const AddEditPembelianOVKPage = () => {
                 return;
             }
 
-            // Validate file type - sesuai dengan backend (jpg,jpeg,png,pdf)
+            // Validate file type - sesuai backend (jpg,jpeg,png,pdf)
             const allowedTypes = [
                 'application/pdf',
                 'image/jpeg',
-                'image/jpg', 
+                'image/jpg',
                 'image/png'
             ];
 
             if (!allowedTypes.includes(file.type)) {
                 setNotification({
                     type: 'error',
-                    message: 'Tipe file tidak didukung. Gunakan PDF atau gambar (JPG, JPEG, PNG).'
+                    message: 'Tipe file tidak didukung. Gunakan PDF, JPG, JPEG, atau PNG.'
                 });
                 return;
             }
 
             setSelectedFile(file);
             setFilePreview(file.type.startsWith('image/') ? URL.createObjectURL(file) : null);
-            handleHeaderChange('file', file);  // Store the actual File object
+            handleHeaderChange('file', file.name);
             handleHeaderChange('fileName', file.name);
-        }
+        };
     };
 
     // Handle drag and drop
@@ -908,7 +666,7 @@ const AddEditPembelianOVKPage = () => {
         setSelectedFile(null);
         setFilePreview(null);
         setExistingFileName(null); // Clear existing file name
-        handleHeaderChange('file', null);  // Reset to null instead of empty string
+        handleHeaderChange('file', '');
         handleHeaderChange('fileName', '');
     };
 
@@ -920,7 +678,17 @@ const AddEditPembelianOVKPage = () => {
     // Close file upload modal
     const closeFileModal = () => {
         setIsFileModalOpen(false);
+        setIsDragOver(false);
     };
+
+    // Cleanup file preview on unmount
+    useEffect(() => {
+        return () => {
+            if (filePreview) {
+                URL.revokeObjectURL(filePreview);
+            }
+        };
+    }, [filePreview]);
 
     // Calculate totals
     const totals = useMemo(() => {
@@ -933,82 +701,49 @@ const AddEditPembelianOVKPage = () => {
             const hpp = parseFloat(item.hpp);
             return sum + (isNaN(hpp) ? 0 : hpp);
         }, 0);
-        const totalHargaItems = detailItems.reduce((sum, item) => {
-            const totalHarga = parseFloat(item.total_harga);
-            return sum + (isNaN(totalHarga) ? 0 : totalHarga);
-        }, 0);
         
-        return { totalJumlah, totalBerat, totalHPP, totalHargaItems };
+        return { totalJumlah, totalBerat, totalHPP };
     }, [detailItems]);
 
     // Form validation
     const validateForm = () => {
         const errors = [];
 
-        if (!headerData.nota.trim()) {
-            errors.push('Nomor Nota Supplier harus diisi');
+        // Validate TrPembayaran header fields (aligned with backend validation)
+        
+        if (!headerData.id_pembelian) {
+            errors.push('ID Pembelian harus diisi');
         }
 
-        if (!headerData.tipePembelian) {
-            errors.push('Tipe Pembelian harus dipilih');
-        }
-
-        if (!headerData.idSupplier) {
-            errors.push('Supplier harus dipilih');
-        }
-
-        if (!headerData.farm) {
-            errors.push('Farm harus dipilih');
-        }
-
-        if (!headerData.syarat_pembelian) {
-            errors.push('Syarat Pembelian harus dipilih');
-        }
-
-        if (!headerData.nota_ho) {
-            errors.push('Nomor Nota HO harus diisi');
-        }
-
-        if (!headerData.tgl_masuk) {
-            errors.push('Tanggal masuk harus diisi');
-        }
-
-        // nama_supir, plat_nomor, dan biaya_truck sekarang opsional (nullable)
-        // Validasi dihapus sesuai permintaan client
-
-        if (!headerData.tipe_pembayaran) {
-            errors.push('Tipe pembayaran harus diisi');
+        if (!headerData.purchase_type) {
+            errors.push('Tipe Pembelian harus dipilih (1 atau 2)');
+        } else if (![1, 2].includes(parseInt(headerData.purchase_type))) {
+            errors.push('Tipe Pembelian harus 1 atau 2');
         }
 
         if (!headerData.due_date) {
-            errors.push('Jatuh tempo harus diisi');
+            errors.push('Tanggal jatuh tempo harus diisi');
         }
 
-        if (!headerData.note.trim()) {
-            errors.push('Catatan pembelian harus diisi');
+        if (!headerData.note || headerData.note.trim() === '') {
+            errors.push('Catatan harus diisi');
         }
 
+        // Validate TrPembayaranDetail items
         if (detailItems.length === 0) {
-            errors.push('Minimal harus ada 1 item OVK');
+            errors.push('Minimal harus ada 1 detail pembayaran');
         }
 
         detailItems.forEach((item, index) => {
-            if (!item.item_name || item.item_name.trim() === '') {
-                errors.push(`Item ${index + 1}: Nama item harus diisi`);
+            // Validate amount (required, numeric, min:0)
+            const amount = parseFloat(item.amount);
+            if (isNaN(amount) || amount < 0) {
+                errors.push(`Detail ${index + 1}: Amount harus berupa angka >= 0`);
             }
-            // id_klasifikasi_ovk is nullable according to backend rules - no validation needed (like Feedmil)
-            // Remove required validation for klasifikasi OVK to match Feedmil implementation
-            const berat = parseFloat(item.berat);
-            if (isNaN(berat) || berat <= 0) {
-                errors.push(`Item ${index + 1}: Berat harus lebih dari 0`);
-            }
-            const harga = parseFloat(item.harga);
-            if (isNaN(harga) || harga <= 0) {
-                errors.push(`Item ${index + 1}: Harga harus lebih dari 0`);
-            }
-            const persentase = getParsedPersentase(item.persentase); // Use comma-aware parsing
-            if (isNaN(persentase) || persentase < 0) {
-                errors.push(`Item ${index + 1}: Persentase harus lebih dari atau sama dengan 0`);
+
+            // Validate payment_date (required, date format)
+            if (!item.payment_date || item.payment_date.trim() === '') {
+                errors.push(`Detail ${index + 1}: Tanggal pembayaran harus diisi`);
             }
         });
 
@@ -1041,65 +776,33 @@ const AddEditPembelianOVKPage = () => {
             // Get selected supplier details
             const selectedSupplier = supplierOptions.find(s => s.value === headerData.idSupplier);
             
-            // Map frontend fields to backend expected format
+            // Debug file state
+
             const submissionData = {
-                // Header data mapping to backend format
-                id_office: parseInt(headerData.idOffice) || 1, // Use selected office ID
-                nota: headerData.nota,
-                id_supplier: parseInt(headerData.idSupplier),
-                tgl_masuk: headerData.tgl_masuk,
-                nama_supir: headerData.nama_supir || '-',
-                plat_nomor: headerData.plat_nomor || '-',
-                jumlah: parseInt(headerData.jumlah) || null,
-                biaya_truk: headerData.biaya_truck !== null && headerData.biaya_truck !== undefined && headerData.biaya_truck !== '' ? parseFloat(headerData.biaya_truck) : 0,
-                biaya_lain: headerData.biaya_lain !== null && headerData.biaya_lain !== undefined && headerData.biaya_lain !== '' ? parseFloat(headerData.biaya_lain) : 0,
-                id_farm: headerData.farm ? parseInt(headerData.farm) : null,
-                id_syarat_pembelian: headerData.syarat_pembelian ? parseInt(headerData.syarat_pembelian) : null,
-                nota_ho: headerData.nota_ho || '',
-                biaya_total: parseFloat(headerData.biaya_total) || null,
-                berat_total: parseFloat(headerData.berat_total) || null,
-                tipe_pembelian: parseInt(headerData.tipePembelian),
-                tipe_pembayaran: parseInt(headerData.tipe_pembayaran),
+                // TrPembayaran header fields
+                id_pembelian: parseInt(headerData.id_pembelian),
+                purchase_type: parseInt(headerData.purchase_type),
                 due_date: headerData.due_date,
-                note: headerData.note,
-                // Ensure file is properly passed - prioritize selectedFile over headerData.file
-                // Only pass file if it's a File object (new upload) or if we have existing file name but no new file
-                file: selectedFile || (headerData.file && headerData.file instanceof File ? headerData.file : null),
-                // Pass existing file name for backend to know if file should be kept
-                existingFileName: existingFileName,
-
-                // Detail items mapping
+                settlement_date: headerData.settlement_date || null,
+                payment_status: parseInt(headerData.payment_status) || 0,
+                // Details array aligned with TrPembayaranDetail
                 details: detailItems.map(item => ({
-                    id_office: parseInt(headerData.idOffice) || 1, // Use selected office ID
-                    item_name: item.item_name || null,
-                    id_klasifikasi_ovk: item.id_klasifikasi_ovk ? parseInt(item.id_klasifikasi_ovk) || null : null, // Use selected ID directly from dropdown
-                    harga: parseFloat(item.harga) || null,
-                    persentase: getParsedPersentase(item.persentase) || null, // Use comma-aware parsing
-                    berat: parseFloat(item.berat) || null,
-                    hpp: parseFloat(item.hpp) || null,
-                    total_harga: parseFloat(item.total_harga) || null
-                })),
-
-                // Additional data for compatibility
-                totalJumlah: totals.totalJumlah,
-                totalBerat: totals.totalBerat,
-                totalHPP: totals.totalHPP,
-                totalHargaItems: totals.totalHargaItems,
-                jenis_pembelian: 'OVK',
-                supplier: selectedSupplier ? selectedSupplier.label : '',
-                nama_supplier: selectedSupplier ? selectedSupplier.label : '',
-                jenis_supplier: selectedSupplier ? selectedSupplier.jenis_supplier : ''
+                    amount: parseFloat(item.amount),
+                    payment_date: item.payment_date,
+                    description: item.description || ''
+                }))
             };
+
 
 
             let result;
             if (isEdit) {
-                result = await updatePembelian({
+                result = await HttpClient.post(API_ENDPOINTS.HO.PAYMENT.UPDATE, {
                     ...submissionData,
-                    pid: id  // Use pid instead of id for update
+                    id: id
                 });
             } else {
-                result = await createPembelian(submissionData);
+                result = await HttpClient.post(API_ENDPOINTS.HO.PAYMENT.STORE, submissionData);
             }
 
             if (result.success) {
@@ -1108,12 +811,11 @@ const AddEditPembelianOVKPage = () => {
                     message: result.message || (isEdit ? 'Data berhasil diperbarui!' : 'Data berhasil disimpan!')
                 });
                 
+                // Set flag for refresh when returning to main page
+                sessionStorage.setItem('pembayaran-should-refresh', 'true');
+                
                 setTimeout(() => {
-                    // Set sessionStorage flag as backup
-                    sessionStorage.setItem('ovk-should-refresh', 'true');
-                    // Dispatch custom event
-                    window.dispatchEvent(new CustomEvent('ovk-data-updated'));
-                    navigate('/ho/pembelian-ovk', { state: { fromEdit: true } });
+                    navigate('/pembayaran/ovk', { state: { fromEdit: true } });
                 }, 1500);
             } else {
                 setNotification({
@@ -1122,6 +824,7 @@ const AddEditPembelianOVKPage = () => {
                 });
             }
         } catch (error) {
+            console.error('Submit error:', error);
             setNotification({
                 type: 'error',
                 message: 'Terjadi kesalahan tidak terduga'
@@ -1133,11 +836,7 @@ const AddEditPembelianOVKPage = () => {
 
     // Handle back navigation
     const handleBack = () => {
-        // Set sessionStorage flag as backup
-        sessionStorage.setItem('ovk-should-refresh', 'true');
-        // Dispatch custom event
-        window.dispatchEvent(new CustomEvent('ovk-data-updated'));
-        navigate('/ho/pembelian-ovk', { state: { fromEdit: true } });
+        navigate('/pembayaran/ovk', { state: { fromEdit: true } });
     };
 
     // Auto-hide notification
@@ -1168,21 +867,21 @@ const AddEditPembelianOVKPage = () => {
                             <div>
                                 <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 flex items-center gap-3">
                                     <Package className="w-8 h-8 text-blue-500" />
-                                    {isEdit ? 'Edit Pembelian OVK' : 'Tambah Pembelian OVK'}
+                                    {isEdit ? 'Edit Pembayaran' : 'Tambah Pembayaran'}
                                 </h1>
                                 <p className="text-gray-600 mt-1">
-                                    {isEdit ? 'Perbarui data pembelian OVK' : 'Tambahkan data pembelian OVK baru'}
+                                    {isEdit ? 'Perbarui data pembayaran' : 'Tambahkan data pembayaran baru'}
                                 </p>
                             </div>
                         </div>
                         
-                        {/* Action Buttons - Show only in edit mode */}
+                        {/* Action buttons for edit mode only */}
                         {isEdit && (
-                            <div className="flex flex-col sm:flex-row gap-3">
+                            <div className="flex gap-3">
                                 <button
                                     type="button"
                                     onClick={handleBack}
-                                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200 text-sm"
+                                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors duration-200"
                                 >
                                     Batal
                                 </button>
@@ -1190,9 +889,9 @@ const AddEditPembelianOVKPage = () => {
                                     type="button"
                                     onClick={handleSubmit}
                                     disabled={isSubmitting}
-                                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-lg hover:from-blue-600 hover:to-cyan-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                                    className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-xl hover:from-blue-600 hover:to-cyan-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    <Save className="w-4 h-4" />
+                                    <Save className="w-5 h-5" />
                                     {isSubmitting ? 'Menyimpan...' : 'Perbarui Data'}
                                 </button>
                             </div>
@@ -1203,258 +902,158 @@ const AddEditPembelianOVKPage = () => {
                 {/* Header Form */}
                 <div className="bg-white rounded-none sm:rounded-none p-4 sm:p-6 shadow-xl border border-gray-100">
                     <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                        <Hash className="w-6 h-6 text-blue-600" />
-                        Data Header Pembelian
+                        <DollarSign className="w-6 h-6 text-blue-600" />
+                        Data Header Pembayaran
                     </h2>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-                        {/* Nomor Nota Supplier */}
+
+                        {/* ID Pembelian */}
                         <div>
                             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                                 <Hash className="w-4 h-4" />
-                                Nomor Nota Supplier *
+                                ID Pembelian *
                             </label>
                             <input
-                                type="text"
-                                value={headerData.nota}
-                                onChange={(e) => handleHeaderChange('nota', e.target.value)}
+                                type="number"
+                                value={headerData.id_pembelian}
+                                onChange={(e) => handleHeaderChange('id_pembelian', e.target.value)}
                                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                placeholder="Masukkan nomor nota supplier"
-                            />
-                        </div>
-
-                        {/* Nomor Nota CV. Puput Bersaudara */}
-                        <div>
-                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <Hash className="w-4 h-4" />
-                                Nomor Nota CV. Puput Bersaudara
-                            </label>
-                            <input
-                                type="text"
-                                value={headerData.nota_ho}
-                                onChange={(e) => handleHeaderChange('nota_ho', e.target.value)}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                placeholder="Masukkan nomor nota CV"
-                            />
-                        </div>
-
-                        {/* Office */}
-                        <div>
-                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <Building2 className="w-4 h-4" />
-                                Office *
-                            </label>
-                            <SearchableSelect
-                                value={headerData.idOffice}
-                                onChange={(value) => setHeaderData(prev => ({ ...prev, idOffice: value }))}
-                                options={officeOptions}
-                                placeholder={parameterLoading ? 'Loading offices...' : parameterError ? 'Error loading offices' : 'Pilih Office'}
-                                isLoading={parameterLoading}
-                                isDisabled={parameterLoading || parameterError}
+                                placeholder="Masukkan ID pembelian"
                                 required
-                                className="w-full"
                             />
-                            {parameterError && (
-                                <p className="text-xs text-red-500 mt-1">
-                                    ⚠️ Error loading offices: {parameterError}
-                                </p>
-                            )}
+                            <p className="text-xs text-blue-600 mt-1">
+                                ID pembelian yang akan dibayar
+                            </p>
                         </div>
 
                         {/* Tipe Pembelian */}
                         <div>
                             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <Package className="w-4 h-4" />
+                                <Building2 className="w-4 h-4" />
                                 Tipe Pembelian *
                             </label>
-                            <SearchableSelect
-                                value={headerData.tipePembelian}
-                                onChange={(value) => handleHeaderChange('tipePembelian', value)}
-                                options={jenisPembelianOptions}
-                                placeholder={jenisPembelianLoading ? "Memuat jenis pembelian..." : "Pilih Tipe Pembelian"}
-                                className="w-full"
-                                disabled={jenisPembelianLoading}
-                            />
-                            {jenisPembelianLoading && (
-                                <p className="text-xs text-blue-600 mt-1">
-                                    🔄 Memuat jenis pembelian...
-                                </p>
-                            )}
-                            {jenisPembelianError && (
-                                <p className="text-xs text-red-600 mt-1">
-                                    ❌ Error: {jenisPembelianError}
-                                </p>
-                            )}
-                            {!jenisPembelianLoading && !jenisPembelianError && (
-                                <p className="text-xs text-orange-600 mt-1">
-                                    💡 Jenis pembelian untuk klasifikasi OVK
+                            <select
+                                value={headerData.purchase_type}
+                                onChange={(e) => handleHeaderChange('purchase_type', e.target.value)}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                                required
+                            >
+                                <option value="">Pilih Tipe Pembelian</option>
+                                <option value="1">Tipe 1</option>
+                                <option value="2">Tipe 2</option>
+                            </select>
+                            {parameterError && (
+                                <p className="text-xs text-red-500 mt-1">
+Error loading data: {parameterError}
                                 </p>
                             )}
                         </div>
+
 
                         {/* Supplier */}
                         <div>
                             <div className="flex items-center justify-between mb-2">
                                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
-                                    <Building2 className="w-4 h-4" />
-                                    Supplier *
+                                    <Calendar className="w-4 h-4" />
+                                    Tanggal Jatuh Tempo *
                                 </label>
                             </div>
-                            <SearchableSelect
-                                value={headerData.idSupplier}
-                                onChange={(value) => handleHeaderChange('idSupplier', value)}
-                                options={supplierOptionsToShow}
-                                placeholder={parameterLoading ? "Memuat supplier..." : parameterError ? "Error loading supplier" : "Pilih Supplier"}
-                                className="w-full"
-                                disabled={parameterLoading || parameterError}
+                            <input
+                                type="date"
+                                value={headerData.due_date}
+                                onChange={(e) => handleHeaderChange('due_date', e.target.value)}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                                required
                             />
                             {parameterLoading && (
                                 <p className="text-xs text-blue-600 mt-1">
-                                    🔄 Memuat data supplier...
+                                    Memuat data...
                                 </p>
                             )}
                             {parameterError && (
                                 <p className="text-xs text-red-600 mt-1">
-                                    ❌ Error: {parameterError}
+Error: {parameterError}
                                 </p>
                             )}
                         </div>
 
-                        {/* Tanggal Masuk */}
+                        {/* Settlement Date */}
                         <div>
                             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                                 <Calendar className="w-4 h-4" />
-                                Tanggal Masuk *
+                                Tanggal Pelunasan
                             </label>
                             <input
                                 type="date"
-                                value={headerData.tgl_masuk}
-                                onChange={(e) => handleHeaderChange('tgl_masuk', e.target.value)}
+                                value={headerData.settlement_date}
+                                onChange={(e) => handleHeaderChange('settlement_date', e.target.value)}
                                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
                             />
-                        </div>
-
-                        {/* Nama Supir */}
-                        <div>
-                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <User className="w-4 h-4" />
-                                Nama Sopir
-                            </label>
-                            <input
-                                type="text"
-                                value={headerData.nama_supir}
-                                onChange={(e) => handleHeaderChange('nama_supir', e.target.value)}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                placeholder="Masukkan nama supir"
-                            />
-                        </div>
-
-                        {/* Plat Nomor */}
-                        <div>
-                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <Truck className="w-4 h-4" />
-                                Plat Nomor
-                            </label>
-                            <input
-                                type="text"
-                                value={headerData.plat_nomor}
-                                onChange={(e) => handleHeaderChange('plat_nomor', e.target.value.toUpperCase())}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                placeholder="B1234XX"
-                                style={{ textTransform: 'uppercase' }}
-                            />
-                        </div>
-
-                        {/* Biaya Truck */}
-                        <div>
-                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <DollarSign className="w-4 h-4" />
-                                Biaya Ongkos Kirim (Rp)
-                            </label>
-                            <input
-                                type="text"
-                                value={formatNumber(headerData.biaya_truck)}
-                                onChange={(e) => handleHeaderChange('biaya_truck', parseNumber(e.target.value))}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                placeholder="1.000.000"
-                            />
-                            <p className="text-xs text-gray-500 mt-1">
-                                💡 Biaya transportasi truck untuk pengiriman (opsional)
+                            <p className="text-xs text-blue-600 mt-1">
+Tanggal pelunasan pembayaran (opsional)
                             </p>
                         </div>
 
-                        {/* Biaya Lain */}
-                        <div>
-                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <DollarSign className="w-4 h-4" />
-                                Biaya Lain - Lain (RP)
-                            </label>
-                            <input
-                                type="text"
-                                value={formatNumber(headerData.biaya_lain)}
-                                onChange={(e) => handleHeaderChange('biaya_lain', parseNumber(e.target.value))}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                placeholder=""
-                            />
-                            <p className="text-xs text-gray-500 mt-1">
-                                💡 Biaya tambahan lainnya (opsional)
-                            </p>
-                        </div>
+
+
+
+
+
 
                         {/* Berat Total */}
                         <div>
                             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <Weight className="w-4 h-4" />
-                                Berat Total (Kg)
+                                <Settings className="w-4 h-4" />
+                                Status Pembayaran
                             </label>
-                            <input
-                                type="number"
-                                value={headerData.berat_total}
-                                onChange={(e) => handleHeaderChange('berat_total', e.target.value)}
+                            <select
+                                value={headerData.payment_status}
+                                onChange={(e) => handleHeaderChange('payment_status', e.target.value)}
                                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                placeholder=""
-                                min="0"
-                                step="0.1"
-                            />
+                            >
+                                <option value="0">Belum Lunas</option>
+                                <option value="1">Lunas</option>
+                            </select>
                             <p className="text-xs text-blue-600 mt-1">
-                                💡 Total berat semua OVK dalam pembelian ini
+                                Status pembayaran (0: Belum Lunas, 1: Lunas)
                             </p>
                         </div>
 
-                        {/* Biaya Total */}
+                        {/* Harga Total */}
                         <div>
                             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                                 <DollarSign className="w-4 h-4" />
-                                Biaya Total (Rp)
+                                Harga Total (Rp)
                             </label>
                             <input
                                 type="text"
-                                value={formatNumber(headerData.biaya_total)}
-                                onChange={(e) => handleHeaderChange('biaya_total', parseNumber(e.target.value))}
+                                value={formatNumber(headerData.harga_total || 0)}
+                                onChange={(e) => handleHeaderChange('harga_total', parseNumber(e.target.value))}
                                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
                                 placeholder=""
                             />
                             <p className="text-xs text-blue-600 mt-1">
-                                💡 Total seluruh biaya (truck + lain-lain + pembelian)
+                                Total harga keseluruhan pembelian
                             </p>
                         </div>
 
-                        {/* Jumlah Item */}
+                        {/* Total Pembayaran */}
                         <div>
                             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <Hash className="w-4 h-4" />
-                                Jumlah Item
+                                <DollarSign className="w-4 h-4" />
+                                Total Pembayaran
                             </label>
                             <input
                                 type="number"
-                                value={headerData.jumlah}
-                                onChange={(e) => handleHeaderChange('jumlah', e.target.value)}
+                                value={headerData.total_pembayaran || 0}
+                                onChange={(e) => handleHeaderChange('total_pembayaran', e.target.value)}
                                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
                                 placeholder=""
                                 min="0"
                             />
-                            <p className="text-xs text-gray-500 mt-1">
-                                💡 Jumlah item dalam pembelian
+                            <p className="text-xs text-blue-600 mt-1">
+                                Total jumlah pembayaran ini
                             </p>
                         </div>
 
@@ -1476,11 +1075,10 @@ const AddEditPembelianOVKPage = () => {
                             />
                             {parameterError && (
                                 <p className="text-xs text-red-500 mt-1">
-                                    ⚠️ Error loading offices: {parameterError}
+Error loading data: {parameterError}
                                 </p>
                             )}
                         </div>
-
 
                         {/* Syarat Pembelian */}
                         <div>
@@ -1492,7 +1090,7 @@ const AddEditPembelianOVKPage = () => {
                                 options={bankOptions}
                                 value={headerData.syarat_pembelian}
                                 onChange={(value) => handleHeaderChange('syarat_pembelian', value)}
-                                placeholder={bankLoading ? 'Loading banks...' : bankError ? 'Error loading banks' : 'Pilih syarat pembelian'}
+                                placeholder={bankLoading ? 'Loading payment terms...' : bankError ? 'Error loading payment terms' : 'Pilih syarat pembelian'}
                                 isLoading={bankLoading}
                                 isDisabled={bankLoading || bankError}
                                 required={true}
@@ -1500,61 +1098,27 @@ const AddEditPembelianOVKPage = () => {
                             />
                             {bankError && (
                                 <p className="text-xs text-red-500 mt-1">
-                                    ⚠️ Error loading banks: {bankError}
+Error loading payment terms: {bankError}
                                 </p>
                             )}
                         </div>
 
-                        {/* Tipe Pembayaran & Jatuh Tempo */}
-                        <div className="col-span-full md:col-span-1">
-                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <DollarSign className="w-4 h-4" />
-                                Tipe Pembayaran *
-                            </label>
-                            <SearchableSelect
-                                options={tipePembayaranOptions}
-                                value={headerData.tipe_pembayaran}
-                                onChange={(value) => handleHeaderChange('tipe_pembayaran', value)}
-                                placeholder={tipePembayaranLoading ? 'Loading tipe pembayaran...' : tipePembayaranError ? 'Error loading tipe pembayaran' : 'Pilih tipe pembayaran'}
-                                isLoading={tipePembayaranLoading}
-                                isDisabled={tipePembayaranLoading || tipePembayaranError}
-                                required={true}
-                                className="w-full"
-                            />
-                            {tipePembayaranError && (
-                                <p className="text-xs text-red-500 mt-1">
-                                    ⚠️ Error loading tipe pembayaran: {tipePembayaranError}
-                                </p>
-                            )}
-                        </div>
-
-                        <div className="col-span-full md:col-span-1">
-                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <Calendar className="w-4 h-4" />
-                                Jatuh Tempo *
-                            </label>
-                            <input
-                                type="date"
-                                value={headerData.due_date}
-                                onChange={(e) => handleHeaderChange('due_date', e.target.value)}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                required
-                            />
-                        </div>
-
-                        {/* Note - Catatan */}
+                        {/* Note Field - Required by Backend */}
                         <div className="col-span-full">
                             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                                 <FileText className="w-4 h-4" />
-                                Catatan Pembelian *
+                                Catatan *
                             </label>
                             <textarea
                                 value={headerData.note}
                                 onChange={(e) => handleHeaderChange('note', e.target.value)}
                                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                placeholder="Masukkan catatan pembelian OVK..."
                                 rows="3"
+                                placeholder="Masukkan catatan pembayaran..."
                             />
+                            <p className="text-xs text-blue-600 mt-1">
+                                Catatan terkait pembayaran (wajib diisi)
+                            </p>
                         </div>
 
                         {/* File Upload */}
@@ -1605,15 +1169,15 @@ const AddEditPembelianOVKPage = () => {
                                                     {selectedFile ? (
                                                         <>
                                                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                                📄 {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                                                                {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
                                                             </span>
                                                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                                🏷️ {selectedFile.type.split('/')[1]?.toUpperCase() || 'FILE'}
+                                                                {selectedFile.type.split('/')[1]?.toUpperCase() || 'FILE'}
                                                             </span>
                                                         </>
                                                     ) : (
                                                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                            📁 File Existing
+                                                            File Existing
                                                         </span>
                                                     )}
                                                 </div>
@@ -1642,39 +1206,19 @@ const AddEditPembelianOVKPage = () => {
                             <SearchableSelect
                                 value={defaultData.item_name}
                                 onChange={(value) => handleDefaultDataChange('item_name', value)}
-                                options={itemOvkOptions}
-                                placeholder={parameterLoading ? 'Loading items...' : parameterError ? 'Error loading items' : 'Pilih Item OVK'}
+                                options={itemPembayaranOptions}
+                                placeholder={parameterLoading ? 'Loading payment items...' : parameterError ? 'Error loading payment items' : 'Pilih Item Pembayaran'}
                                 isLoading={parameterLoading}
                                 isDisabled={parameterLoading || parameterError}
                                 className="w-full"
                             />
                             {parameterError && (
                                 <p className="text-xs text-red-500 mt-1">
-                                    ⚠️ Error loading items: {parameterError}
+Error loading payment items: {parameterError}
                                 </p>
                             )}
                         </div>
 
-                        {/* Klasifikasi OVK Default */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Klasifikasi OVK Default
-                            </label>
-                            <SearchableSelect
-                                value={defaultData.id_klasifikasi_ovk}
-                                onChange={(value) => handleDefaultDataChange('id_klasifikasi_ovk', value)}
-                                options={klasifikasiOVKOptions}
-                                placeholder={parameterLoading ? "Loading..." : "Pilih Klasifikasi OVK"}
-                                className="w-full"
-                                disabled={parameterLoading}
-                            />
-                            {parameterLoading && (
-                                <p className="text-xs text-blue-600 mt-1">🔄 Memuat klasifikasi OVK...</p>
-                            )}
-                            {parameterError && (
-                                <p className="text-xs text-red-600 mt-1">❌ Error: {parameterError}</p>
-                            )}
-                        </div>
 
                         {/* Berat Default */}
                         <div>
@@ -1682,13 +1226,14 @@ const AddEditPembelianOVKPage = () => {
                                 Berat Default (kg)
                             </label>
                             <input
-                                type="number"
-                                value={defaultData.berat}
-                                onChange={(e) => handleDefaultDataChange('berat', e.target.value)}
+                                type="text"
+                                value={defaultData.berat === 0 ? '0' : formatNumber(defaultData.berat)}
+                                onChange={(e) => {
+                                    const rawValue = parseNumber(e.target.value);
+                                    handleDefaultDataChange('berat', rawValue);
+                                }}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                                placeholder="5"
-                                min="0"
-                                step="0.1"
+                                placeholder="Masukkan berat dalam kg"
                             />
                         </div>
 
@@ -1702,7 +1247,7 @@ const AddEditPembelianOVKPage = () => {
                                 value={formatNumber(defaultData.harga)}
                                 onChange={(e) => handleDefaultDataChange('harga', parseNumber(e.target.value))}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                                placeholder="50000"
+                                placeholder="300000"
                             />
                         </div>
 
@@ -1730,8 +1275,12 @@ const AddEditPembelianOVKPage = () => {
                             <input
                                 type="text"
                                 value={formatNumber(batchCount)}
-                                onChange={(e) => setBatchCount(parseNumber(e.target.value) || '')}
+                                onChange={(e) => {
+                                    const rawValue = parseNumber(e.target.value);
+                                    setBatchCount(rawValue);
+                                }}
                                 className="w-20 px-2 py-1 border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                placeholder="0"
                             />
                         </div>
                         
@@ -1740,13 +1289,13 @@ const AddEditPembelianOVKPage = () => {
                             className="bg-gradient-to-r from-orange-500 to-amber-600 text-white px-4 py-2 rounded-lg hover:from-orange-600 hover:to-amber-700 transition-all duration-300 flex items-center gap-2 text-sm font-medium shadow-md hover:shadow-lg"
                         >
                             <Plus className="w-4 h-4" />
-                            Tambah {batchCount || 0} Item Batch
+                            Tambah {formatNumber(batchCount)} Item Batch
                         </button>
 
                         {/* Info Text */}
                         <div className="text-xs text-gray-600 ml-auto">
-                            <p>💡 Isi data default untuk mempercepat input batch</p>
-                            <p>📝 Item baru akan menggunakan data default ini</p>
+                            <p>Isi data default untuk mempercepat input batch</p>
+                            <p>Item baru akan menggunakan data default ini</p>
                         </div>
                     </div>
                 </div>
@@ -1756,7 +1305,7 @@ const AddEditPembelianOVKPage = () => {
                     <div className="flex items-center justify-between mb-6">
                         <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                             <Package className="w-6 h-6 text-green-600" />
-                            Detail Item OVK ({detailItems.length} items)
+                            Detail Item Pembayaran ({detailItems.length} items)
                         </h2>
                         <button
                             onClick={addDetailItem}
@@ -1770,7 +1319,7 @@ const AddEditPembelianOVKPage = () => {
                     {detailItems.length === 0 ? (
                         <div className="text-center py-12 bg-gray-50 rounded-xl">
                             <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                            <p className="text-gray-500 text-lg">Belum ada item OVK</p>
+                            <p className="text-gray-500 text-lg">Belum ada item pembayaran</p>
                             <p className="text-gray-400 text-sm mt-1">Klik "Tambah Item" untuk menambahkan detail</p>
                         </div>
                     ) : (
@@ -1781,30 +1330,24 @@ const AddEditPembelianOVKPage = () => {
                                     <tr className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b-2 border-blue-200">
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 w-12">No</th>
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[180px]">Nama Item</th>
-                                        <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[120px]">Klasifikasi OVK</th>
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 w-24">Berat (kg)</th>
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[120px]">Harga (Rp)</th>
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 w-20">Persentase (%)</th>
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[120px]">HPP (Rp)</th>
-                                        <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[120px]">Total Harga (Rp)</th>
-                                        <th className="p-2 sm:p-3 text-center text-xs sm:text-sm font-semibold text-blue-800 w-20">Aksi</th>
+                                        <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[120px]">Tgl Masuk RPH</th>
+                                        <th className="p-2 sm:p-3 text-center text-xs sm:text-sm font-semibold text-blue-800 w-16">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {detailItems.map((item, index) => {
-                                        // Calculate HPP: harga + markup persen (using comma-aware parsing)
+                                        // Calculate HPP: harga + markup persen
                                         const harga = parseFloat(item.harga) || 0;
                                         const persentase = getParsedPersentase(item.persentase); // Use comma-aware parsing
-                                        const berat = parseFloat(item.berat) || 0;
                                         const hpp = harga && persentase ? harga + (harga * persentase / 100) : harga;
-                                        const totalHarga = hpp * berat; // Total harga = HPP * berat
                                         
-                                        // Update item dengan calculated values
+                                        // Update item dengan calculated HPP value
                                         if (item.hpp !== hpp) {
                                             handleDetailChange(item.id, 'hpp', hpp);
-                                        }
-                                        if (item.total_harga !== totalHarga) {
-                                            handleDetailChange(item.id, 'total_harga', totalHarga);
                                         }
                                         
                                         return (
@@ -1816,7 +1359,7 @@ const AddEditPembelianOVKPage = () => {
                                                     <SearchableSelect
                                                         value={item.item_name_id || item.item_name}
                                                         onChange={(value) => handleDetailChange(item.id, 'item_name', value)}
-                                                        options={itemOvkOptions}
+                                                        options={itemPembayaranOptions}
                                                         placeholder={parameterLoading ? 'Loading...' : 'Pilih Item'}
                                                         isLoading={parameterLoading}
                                                         isDisabled={parameterLoading || parameterError}
@@ -1824,27 +1367,18 @@ const AddEditPembelianOVKPage = () => {
                                                     />
                                                 </td>
                                                 
-                                                {/* Klasifikasi OVK */}
-                                                <td className="p-2 sm:p-3">
-                                                    <SearchableSelect
-                                                        value={item.id_klasifikasi_ovk}
-                                                        onChange={(value) => handleDetailChange(item.id, 'id_klasifikasi_ovk', value)}
-                                                        options={klasifikasiOVKOptions}
-                                                        placeholder={parameterLoading ? "Loading..." : "Pilih Klasifikasi"}
-                                                        className="w-full text-xs sm:text-sm"
-                                                        disabled={parameterLoading}
-                                                    />
-                                                </td>
                                                 
                                                 {/* Berat */}
                                                 <td className="p-2 sm:p-3">
                                                     <input
-                                                        type="number"
-                                                        value={item.berat}
-                                                        onChange={(e) => handleDetailChange(item.id, 'berat', e.target.value)}
+                                                        type="text"
+                                                        value={formatNumber(item.berat)}
+                                                        onChange={(e) => {
+                                                            const rawValue = parseNumber(e.target.value);
+                                                            handleDetailChange(item.id, 'berat', rawValue);
+                                                        }}
                                                         className="w-full px-1 sm:px-2 py-1 border border-gray-300 rounded text-xs sm:text-sm"
-                                                        min="0"
-                                                        step="0.1"
+                                                        placeholder="0"
                                                     />
                                                 </td>
                                                 
@@ -1865,7 +1399,7 @@ const AddEditPembelianOVKPage = () => {
                                                         value={item.persentase || ''}
                                                         onChange={(e) => handlePersentaseChange(item.id, e.target.value)}
                                                         className="w-full px-1 sm:px-2 py-1 border border-gray-300 rounded text-xs sm:text-sm"
-                                                        placeholder="15,5"
+                                                        placeholder="15,5%"
                                                     />
                                                 </td>
                                                 
@@ -1876,11 +1410,14 @@ const AddEditPembelianOVKPage = () => {
                                                     </div>
                                                 </td>
                                                 
-                                                {/* Total Harga (calculated) */}
+                                                {/* Tanggal Masuk RPH */}
                                                 <td className="p-2 sm:p-3">
-                                                    <div className="w-full px-1 sm:px-2 py-1 border border-gray-300 rounded text-xs sm:text-sm bg-blue-50 text-blue-900 font-semibold">
-                                                        {formatNumber(totalHarga)}
-                                                    </div>
+                                                    <input
+                                                        type="date"
+                                                        value={item.tgl_masuk_rph}
+                                                        onChange={(e) => handleDetailChange(item.id, 'tgl_masuk_rph', e.target.value)}
+                                                        className="w-full px-1 sm:px-2 py-1 border border-gray-300 rounded text-xs sm:text-sm"
+                                                    />
                                                 </td>
                                                 
                                                 {/* Aksi */}
@@ -1889,9 +1426,9 @@ const AddEditPembelianOVKPage = () => {
                                                         {isEdit && (
                                                             <button
                                                                 type="button"
-                                                                onClick={() => saveDetailItem(item.id)}
+                                                                onClick={() => handleSaveDetailItem(item.id)}
                                                                 className="p-1 text-green-600 hover:text-green-700 hover:bg-green-50 rounded"
-                                                                title="Simpan perubahan item"
+                                                                title="Simpan item"
                                                             >
                                                                 <Save className="w-4 h-4" />
                                                             </button>
@@ -1928,7 +1465,7 @@ const AddEditPembelianOVKPage = () => {
                     {detailItems.length > 0 && (
                         <div className="mt-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-200">
                             <h3 className="text-lg font-semibold text-blue-800 mb-3">Total Keseluruhan</h3>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4 sm:gap-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 sm:gap-6">
                                 <div className="text-center">
                                     <p className="text-sm text-blue-600">Total Items</p>
                                     <p className="text-xl font-bold text-blue-800">{totals.totalJumlah} items</p>
@@ -1941,16 +1478,12 @@ const AddEditPembelianOVKPage = () => {
                                     <p className="text-sm text-blue-600">Total HPP</p>
                                     <p className="text-xl font-bold text-blue-800">Rp {formatNumber(totals.totalHPP)}</p>
                                 </div>
-                                <div className="text-center">
-                                    <p className="text-sm text-green-600">Total Harga Items</p>
-                                    <p className="text-xl font-bold text-green-800">Rp {formatNumber(totals.totalHargaItems)}</p>
-                                </div>
                             </div>
                         </div>
                     )}
                 </div>
 
-                {/* Submit Buttons - Show only in add mode, hidden in edit mode */}
+                {/* Submit Buttons - Only show for add mode */}
                 {!isEdit && (
                     <div className="bg-white rounded-none sm:rounded-none p-4 sm:p-6 shadow-xl border border-gray-100">
                         <div className="flex flex-col sm:flex-row gap-4 justify-end">
@@ -1988,18 +1521,18 @@ const AddEditPembelianOVKPage = () => {
                         {/* Modal panel */}
                         <div className="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
                             {/* Modal header */}
-                            <div className="bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-4">
+                            <div className="bg-gradient-to-r from-blue-500 to-indigo-600 px-6 py-4">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-                                            <Upload className="w-6 h-6 text-white" />
+                                            <Package className="w-6 h-6 text-white" />
                                         </div>
                                         <div>
                                             <h3 className="text-lg font-bold text-white">
-                                                Upload File Dokumen OVK (Opsional)
+                                                Upload File Dokumen (Opsional)
                                             </h3>
-                                            <p className="text-green-100 text-sm">
-                                                Pilih file dokumen terkait pembelian OVK (tidak wajib)
+                                            <p className="text-blue-100 text-sm">
+                                                Pilih file dokumen terkait pembelian (tidak wajib)
                                             </p>
                                         </div>
                                     </div>
@@ -2018,7 +1551,7 @@ const AddEditPembelianOVKPage = () => {
                                 <div
                                     className={`relative overflow-hidden rounded-xl transition-all duration-500 ease-out ${
                                         isDragOver 
-                                            ? 'ring-4 ring-green-400 ring-opacity-50 scale-105 shadow-2xl' 
+                                            ? 'ring-4 ring-blue-400 ring-opacity-50 scale-105 shadow-2xl' 
                                             : 'hover:scale-102 hover:shadow-xl'
                                     }`}
                                     onDragOver={handleDragOver}
@@ -2028,20 +1561,20 @@ const AddEditPembelianOVKPage = () => {
                                     {/* Background with gradient and animated pattern */}
                                     <div className={`absolute inset-0 bg-gradient-to-br ${
                                         isDragOver 
-                                            ? 'from-green-400 via-green-500 to-emerald-600' 
-                                            : 'from-gray-50 via-green-50 to-emerald-100'
+                                            ? 'from-blue-400 via-blue-500 to-indigo-600' 
+                                            : 'from-gray-50 via-blue-50 to-indigo-100'
                                     } transition-all duration-500`}>
                                         {/* Animated background pattern */}
                                         <div className="absolute inset-0 opacity-10">
-                                            <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_20%_80%,rgba(34,197,94,0.3),transparent_50%)]"></div>
-                                            <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(circle_at_80%_20%,rgba(16,185,129,0.3),transparent_50%)]"></div>
+                                            <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_20%_80%,rgba(120,119,198,0.3),transparent_50%)]"></div>
+                                            <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(circle_at_80%_20%,rgba(255,119,198,0.3),transparent_50%)]"></div>
                                         </div>
                                     </div>
                                     
                                     {/* Animated border with glow effect */}
                                     <div className={`absolute inset-0 rounded-xl border-2 ${
                                         isDragOver 
-                                            ? 'border-green-400 border-dashed shadow-[0_0_20px_rgba(34,197,94,0.5)]' 
+                                            ? 'border-blue-400 border-dashed shadow-[0_0_20px_rgba(59,130,246,0.5)]' 
                                             : 'border-gray-200 border-dashed'
                                     } transition-all duration-500`}></div>
                                     
@@ -2067,10 +1600,10 @@ const AddEditPembelianOVKPage = () => {
                                                 {/* Icon with gradient background and pulse effect */}
                                                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
                                                     isDragOver 
-                                                        ? 'bg-gradient-to-br from-green-500 to-emerald-600 animate-pulse' 
-                                                        : 'bg-gradient-to-br from-green-400 to-emerald-500'
+                                                        ? 'bg-gradient-to-br from-blue-500 to-indigo-600 animate-pulse' 
+                                                        : 'bg-gradient-to-br from-blue-400 to-indigo-500'
                                                 } transition-all duration-500`}>
-                                                    <Upload className={`w-6 h-6 transition-all duration-500 ${
+                                                    <Package className={`w-6 h-6 transition-all duration-500 ${
                                                         isDragOver ? 'text-white scale-110 rotate-12' : 'text-white'
                                                     }`} />
                                                 </div>
@@ -2080,7 +1613,7 @@ const AddEditPembelianOVKPage = () => {
                                                     <>
                                                         <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full animate-ping"></div>
                                                         <div className="absolute -bottom-1 -left-1 w-2 h-2 bg-pink-400 rounded-full animate-pulse"></div>
-                                                        <div className="absolute top-1/2 -right-2 w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                                                        <div className="absolute top-1/2 -right-2 w-1.5 h-1.5 bg-green-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
                                                         <div className="absolute top-1/2 -left-2 w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" style={{animationDelay: '0.4s'}}></div>
                                                     </>
                                                 )}
@@ -2091,10 +1624,10 @@ const AddEditPembelianOVKPage = () => {
                                                 <h3 className={`text-xl font-bold transition-all duration-500 ${
                                                     isDragOver ? 'text-white drop-shadow-lg' : 'text-gray-800'
                                                 }`}>
-                                                    {isDragOver ? '🎉 Drop file di sini!' : '📁 Upload File Dokumen OVK'}
+                                                    {isDragOver ? 'Drop file di sini!' : 'Upload File Dokumen'}
                                                 </h3>
                                                 <p className={`text-sm transition-all duration-500 ${
-                                                    isDragOver ? 'text-green-100 drop-shadow-md' : 'text-gray-600'
+                                                    isDragOver ? 'text-blue-100 drop-shadow-md' : 'text-gray-600'
                                                 }`}>
                                                     {isDragOver ? 'Lepaskan file untuk upload' : 'Klik area ini atau drag & drop file'}
                                                 </p>
@@ -2130,11 +1663,11 @@ const AddEditPembelianOVKPage = () => {
                                                 onClick={() => document.getElementById('file-upload-modal').click()}
                                                 className={`px-8 py-3 rounded-xl font-semibold transition-all duration-500 transform ${
                                                     isDragOver 
-                                                        ? 'bg-white text-green-600 shadow-2xl scale-105 animate-pulse' 
-                                                        : 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg hover:shadow-xl hover:scale-105 hover:from-green-600 hover:to-emerald-700 active:scale-95'
+                                                        ? 'bg-white text-blue-600 shadow-2xl scale-105 animate-pulse' 
+                                                        : 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg hover:shadow-xl hover:scale-105 hover:from-blue-600 hover:to-indigo-700 active:scale-95'
                                                 }`}
                                             >
-                                                {isDragOver ? '🎯 Upload Sekarang!' : '🚀 Pilih File'}
+                                                {isDragOver ? 'Upload Sekarang!' : 'Pilih File'}
                                             </button>
                                         </div>
                                     </div>
@@ -2156,7 +1689,7 @@ const AddEditPembelianOVKPage = () => {
                                                     </div>
                                                 ) : (
                                                     <div className="relative w-16 h-16 bg-gradient-to-br from-green-400 to-emerald-500 rounded-xl flex items-center justify-center border-2 border-green-200 shadow-md">
-                                                        <Upload className="w-8 h-8 text-white" />
+                                                        <Package className="w-8 h-8 text-white" />
                                                         <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
                                                             <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                                                                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -2172,50 +1705,68 @@ const AddEditPembelianOVKPage = () => {
                                                 <div className="flex items-center gap-4 mt-1">
                                                     {selectedFile ? (
                                                         <>
-                                                            <span className="text-sm text-green-600">
-                                                                {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                                {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
                                                             </span>
-                                                            <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
-                                                                {selectedFile.type.split('/')[1]?.toUpperCase() || 'FILE'}
+                                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                                {selectedFile.type.split('/')[1]?.toUpperCase() || 'FILE'}
                                                             </span>
                                                         </>
                                                     ) : (
-                                                        <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
-                                                            📁 File Existing
+                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                            File Existing
                                                         </span>
                                                     )}
                                                 </div>
+                                                <p className="text-sm text-green-600 mt-2">
+                                                    {selectedFile ? 'File berhasil dipilih dan siap diupload' : 'File existing akan dipertahankan'}
+                                                </p>
                                             </div>
-                                            <button
-                                                onClick={removeFile}
-                                                className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
-                                                title="Hapus file"
-                                            >
-                                                <X size={20} />
-                                            </button>
                                         </div>
                                     </div>
                                 )}
+
+                                {/* File Upload Hint in Modal */}
+                                <div className="mt-6 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4">
+                                    <div className="flex items-start gap-3">
+                                        <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-lg flex items-center justify-center">
+                                            <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                            </svg>
+                                        </div>
+                                        <div className="flex-1">
+                                            <h5 className="text-sm font-semibold text-blue-800 mb-1">
+                                                Tips Upload File
+                                            </h5>
+                                            <p className="text-sm text-blue-700 leading-relaxed">
+                                                Upload file dokumen terkait pembayaran seperti invoice, kontrak, atau bukti transfer (opsional). 
+                                                Format yang didukung: <span className="font-semibold">JPG, JPEG, PNG, atau PDF</span>. 
+                                                Maksimal ukuran file: <span className="font-semibold text-blue-800">2MB</span>.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             {/* Modal footer */}
-                            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
-                                <div className="flex justify-end gap-3">
+                            <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3">
+                                <button
+                                    onClick={closeFileModal}
+                                    className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                                >
+                                    Batal
+                                </button>
+                                {(selectedFile || existingFileName) && (
                                     <button
-                                        onClick={closeFileModal}
-                                        className="px-6 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                                        onClick={() => {
+                                            closeFileModal();
+                                            // File sudah tersimpan di state, tidak perlu action tambahan
+                                        }}
+                                        className="px-6 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-200 shadow-md hover:shadow-lg"
                                     >
-                                        {(selectedFile || existingFileName) ? 'Selesai' : 'Batal'}
+Konfirmasi File
                                     </button>
-                                    {(selectedFile || existingFileName) && (
-                                        <button
-                                            onClick={closeFileModal}
-                                            className="px-6 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-200 font-medium shadow-md hover:shadow-lg"
-                                        >
-                                            ✅ Simpan File
-                                        </button>
-                                    )}
-                                </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -2309,4 +1860,4 @@ const AddEditPembelianOVKPage = () => {
     );
 };
 
-export default AddEditPembelianOVKPage;
+export default AddEditPembayaranPage;

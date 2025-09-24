@@ -2,8 +2,10 @@ import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import HttpClient from '../../../../services/httpClient';
 import { API_ENDPOINTS } from '../../../../config/api';
 
-// HttpClient already handles JSON parsing and error handling internally
-
+/**
+ * Hook untuk mengelola data pembayaran Doka
+ * Khusus untuk purchase_type = 1 (Doka)
+ */
 const usePembayaran = () => {
     const [pembayaran, setPembayaran] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -22,12 +24,9 @@ const usePembayaran = () => {
         perPage: 10
     });
 
-    // Base API endpoint for pembayaran
-    const PAYMENT_API_BASE = API_ENDPOINTS.HO.PAYMENT.BASE;
-
     // Fetch pembayaran data from API
     const fetchPembayaran = useCallback(async (page = 1, perPage = null, search = null, isSearchRequest = false, forceRefresh = false) => {
-        console.log('🔄 Pembayaran Hook: fetchPembayaran called with params:', { page, perPage, search, isSearchRequest, forceRefresh });
+        console.log('🔄 Pembayaran Doka Hook: fetchPembayaran called with params:', { page, perPage, search, isSearchRequest, forceRefresh });
         setLoading(true);
         setError(null);
         setSearchError(null);
@@ -53,14 +52,16 @@ const usePembayaran = () => {
             
             // Add cache-busting parameter when forceRefresh is true
             const finalParams = forceRefresh ? `${params}&_t=${Date.now()}` : params;
-            const apiUrl = `${API_ENDPOINTS.HO.PAYMENT.DATA}?${finalParams}`;
-            console.log('🔄 Pembayaran Hook: Making API call to:', apiUrl);
+            
+            // Build API URL with purchase_type as query parameter
+            const apiUrl = `${API_ENDPOINTS.HO.PAYMENT.DATA}/?purchase_type=1&${finalParams}`;
+            console.log('🔄 Pembayaran Doka Hook: Making API call to:', apiUrl);
             const jsonData = await HttpClient.get(apiUrl);
             
             if (jsonData && jsonData.data) {
                 // Transform backend data to match frontend expectations
                 const transformedData = jsonData.data.map(item => ({
-                    id: item.pid, // Use encrypted pid as id
+                    id: item.id, // Use actual id from API response
                     encryptedPid: item.pid,
                     nota_ho: item.nota_ho,
                     nama_supplier: item.nama_supplier,
@@ -68,10 +69,8 @@ const usePembayaran = () => {
                     settlement_date: item.settlement_date,
                     payment_status: item.payment_status,
                     amount: item.amount,
-                    // Add the missing fields for the new columns
                     farm: item.farm,
                     syarat_pembayaran: item.syarat_pembayaran,
-                    // Also include the ID fields for potential conversion
                     id_farm: item.id_farm,
                     id_syarat_pembayaran: item.id_syarat_pembayaran
                 }));
@@ -81,7 +80,7 @@ const usePembayaran = () => {
                     currentPage: currentPage,
                     totalPages: Math.ceil((jsonData.recordsFiltered || 0) / currentPerPage),
                     totalItems: jsonData.recordsFiltered || 0,
-                    recordsTotal: jsonData.recordsTotal || 0, // Total records before filtering
+                    recordsTotal: jsonData.recordsTotal || 0,
                     perPage: currentPerPage
                 });
                 
@@ -106,7 +105,7 @@ const usePembayaran = () => {
             setLoading(false);
             setIsSearching(false);
         }
-    }, [searchTerm]); // Remove serverPagination dependencies to prevent infinite loops
+    }, [searchTerm, serverPagination.currentPage, serverPagination.perPage]);
 
     // Create pembayaran
     const createPembayaran = useCallback(async (pembayaranData) => {
@@ -114,17 +113,14 @@ const usePembayaran = () => {
         setError(null);
         
         try {
-            // Prepare form data for backend
             const formData = new FormData();
             
-            // Header data mapping to backend fields
             formData.append('id_pembelian', pembayaranData.id_pembelian || '');
             formData.append('purchase_type', pembayaranData.purchase_type || 1);
             formData.append('due_date', pembayaranData.due_date || '');
             formData.append('settlement_date', pembayaranData.settlement_date || '');
             formData.append('payment_status', pembayaranData.payment_status || 0);
             
-            // Add detail items if exists
             if (pembayaranData.details && pembayaranData.details.length > 0) {
                 pembayaranData.details.forEach((item, index) => {
                     formData.append(`details[${index}][amount]`, parseFloat(item.amount) || 0);
@@ -132,29 +128,17 @@ const usePembayaran = () => {
                 });
             }
             
-            // Debug: Check if auth token exists
-            const authToken = localStorage.getItem('authToken') || localStorage.getItem('token');
-            
             const jsonData = await HttpClient.post(API_ENDPOINTS.HO.PAYMENT.STORE, formData, {
-                // Don't set Content-Type for FormData - browser will set it automatically with boundary
-                skipCsrf: true, // Skip CSRF token for JWT-based API
-                credentials: 'omit', // Don't send cookies that might interfere with JWT
-                redirect: 'error' // Throw error on redirect instead of following it
+                skipCsrf: true,
+                credentials: 'omit',
+                redirect: 'error'
             });
             
-            // Backend uses sendResponse() which returns { status: 'ok', data: [...], message: '...' }
             if (jsonData && jsonData.status === 'ok') {
-                // Force refresh to get the latest data
                 try {
                     await fetchPembayaran(1, serverPagination.perPage, searchTerm, false, true);
                 } catch (refreshError) {
                     console.warn('Refresh after create failed:', refreshError);
-                    // If refresh fails, try to refresh without search term
-                    try {
-                        await fetchPembayaran(1, serverPagination.perPage, '', false, true);
-                    } catch (fallbackError) {
-                        console.error('Fallback refresh also failed:', fallbackError);
-                    }
                 }
                 
                 return {
@@ -163,40 +147,13 @@ const usePembayaran = () => {
                     data: jsonData.data
                 };
             } else {
-                // Backend returned error response with { status: 'no', message: '...' }
                 const errorMessage = jsonData?.message || 'Gagal menyimpan data';
                 throw new Error(errorMessage);
             }
             
         } catch (err) {
             console.error('Create pembayaran error:', err);
-            console.error('Error details:', {
-                message: err.message,
-                stack: err.stack,
-                name: err.name
-            });
-            
-            // Check if it's an authentication error (401 or redirect to login)
-            if (err.message.includes('401') || err.message.includes('login') || err.message.includes('302')) {
-                const authError = 'Sesi Anda telah berakhir atau ada masalah authentikasi. Silakan login kembali.';
-                setError(authError);
-                return { success: false, message: authError, needsLogin: true };
-            }
-            
-            // Check if it's a 405 Method Not Allowed (might be CSRF issue)
-            if (err.message.includes('405')) {
-                const methodError = 'Method tidak diizinkan. Kemungkinan masalah CSRF token atau routing.';
-                setError(methodError);
-                return { success: false, message: methodError };
-            }
-            
-            // For development: provide more detailed error info
-            const errorMsg = `${err.message || 'Terjadi kesalahan saat menyimpan data'}\n\nDetail: ${JSON.stringify({
-                endpoint: API_ENDPOINTS.HO.PAYMENT.STORE,
-                hasFormData: true,
-                errorType: err.name || 'Unknown'
-            }, null, 2)}`;
-            
+            const errorMsg = err.message || 'Terjadi kesalahan saat menyimpan data';
             setError(errorMsg);
             return { success: false, message: errorMsg };
         } finally {
@@ -210,12 +167,9 @@ const usePembayaran = () => {
         setError(null);
         
         try {
-            // Prepare form data for backend
             const formData = new FormData();
             
             formData.append('pid', data.id || data.encryptedPid);
-            
-            // Header data mapping to backend fields
             formData.append('id_pembelian', data.id_pembelian || '');
             formData.append('purchase_type', data.purchase_type || 1);
             formData.append('due_date', data.due_date || '');
@@ -223,23 +177,14 @@ const usePembayaran = () => {
             formData.append('payment_status', data.payment_status || 0);
             
             const jsonData = await HttpClient.post(API_ENDPOINTS.HO.PAYMENT.UPDATE, formData, {
-                // Don't set Content-Type for FormData - browser will set it automatically with boundary
-                skipCsrf: true // Skip CSRF token for JWT-based API
+                skipCsrf: true
             });
             
-            // Backend uses sendResponse() which returns { status: 'ok', data: [...], message: '...' }
             if (jsonData && jsonData.status === 'ok') {
-                // Force refresh to get the latest data
                 try {
                     await fetchPembayaran(serverPagination.currentPage, serverPagination.perPage, searchTerm, false, true);
                 } catch (refreshError) {
                     console.warn('Refresh after update failed:', refreshError);
-                    // If refresh fails, try to refresh the first page
-                    try {
-                        await fetchPembayaran(1, serverPagination.perPage, searchTerm, false, true);
-                    } catch (fallbackError) {
-                        console.error('Fallback refresh also failed:', fallbackError);
-                    }
                 }
                 
                 return {
@@ -247,7 +192,6 @@ const usePembayaran = () => {
                     message: jsonData.message || 'Pembayaran berhasil diperbarui!'
                 };
             } else {
-                // Backend returned error response with { status: 'no', message: '...' }
                 const errorMessage = jsonData?.message || 'Gagal memperbarui data';
                 throw new Error(errorMessage);
             }
@@ -277,24 +221,20 @@ const usePembayaran = () => {
             const jsonData = await HttpClient.post(API_ENDPOINTS.HO.PAYMENT.DELETE, {
                 pid: encryptedPid
             }, {
-                skipCsrf: true // Skip CSRF token for JWT-based API
+                skipCsrf: true
             });
             
-            // Backend uses sendResponse() which returns { status: 'ok', data: [...], message: '...' }
             if (jsonData && jsonData.status === 'ok') {
-                // Calculate the current page after deletion
                 const currentPage = serverPagination.currentPage;
                 const currentPerPage = serverPagination.perPage;
                 const totalItemsAfterDelete = Math.max(0, serverPagination.totalItems - 1);
                 const totalPagesAfterDelete = Math.ceil(totalItemsAfterDelete / currentPerPage);
                 
-                // If current page is empty after deletion, go to previous page
                 let targetPage = currentPage;
                 if (currentPage > totalPagesAfterDelete && totalPagesAfterDelete > 0) {
                     targetPage = totalPagesAfterDelete;
                 }
                 
-                // Update pagination state
                 setServerPagination(prev => ({
                     ...prev,
                     totalItems: totalItemsAfterDelete,
@@ -302,17 +242,10 @@ const usePembayaran = () => {
                     currentPage: targetPage
                 }));
                 
-                // Refresh data with the correct page
                 try {
                     await fetchPembayaran(targetPage, currentPerPage, searchTerm, false, true);
                 } catch (refreshError) {
                     console.warn('Refresh after delete failed:', refreshError);
-                    // If refresh fails, try to refresh the first page
-                    try {
-                        await fetchPembayaran(1, currentPerPage, searchTerm, false, true);
-                    } catch (fallbackError) {
-                        console.error('Fallback refresh also failed:', fallbackError);
-                    }
                 }
                 
                 return {
@@ -320,7 +253,6 @@ const usePembayaran = () => {
                     message: jsonData.message || 'Data berhasil dihapus'
                 };
             } else {
-                // Backend returned error response with { status: 'no', message: '...' }
                 const errorMessage = jsonData?.message || 'Gagal menghapus data';
                 throw new Error(errorMessage);
             }
@@ -345,16 +277,13 @@ const usePembayaran = () => {
             const jsonData = await HttpClient.post(API_ENDPOINTS.HO.PAYMENT.SHOW, {
                 pid: encryptedPid
             }, {
-                skipCsrf: true // Skip CSRF token for JWT-based API
+                skipCsrf: true
             });
             
-            // Backend uses sendResponse() which returns { status: 'ok', data: [...], message: '...' }
             if (jsonData && jsonData.status === 'ok') {
-                // Validasi dan proses data yang diterima
                 let headerData = jsonData.header || null;
                 let detailData = Array.isArray(jsonData.data) ? jsonData.data : [];
                 
-                // Jika tidak ada header tapi ada detail, gunakan data dari detail pertama
                 if (!headerData && detailData.length > 0) {
                     const firstItem = detailData[0];
                     headerData = {
@@ -365,13 +294,11 @@ const usePembayaran = () => {
                         settlement_date: firstItem.settlement_date || '',
                         payment_status: firstItem.payment_status || 0,
                         amount: parseFloat(firstItem.amount) || 0,
-                        // Extract farm and syarat pembayaran IDs from detail data
                         id_farm: firstItem.id_farm,
                         id_syarat_pembayaran: firstItem.id_syarat_pembayaran
                     };
                 }
                 
-                // Ensure header data has id_farm and id_syarat_pembayaran from detail data if not present
                 if (headerData && detailData.length > 0) {
                     const firstItem = detailData[0];
                     if (!headerData.id_farm && firstItem.id_farm) {
@@ -389,7 +316,6 @@ const usePembayaran = () => {
                     message: jsonData.message || 'Detail pembayaran berhasil diambil'
                 };
             } else {
-                // Backend returned error response with { status: 'no', message: '...' }
                 const errorMessage = jsonData?.message || 'Detail tidak ditemukan';
                 console.warn('Backend returned error:', errorMessage);
                 return { success: false, data: [], header: null, message: errorMessage };
@@ -405,152 +331,7 @@ const usePembayaran = () => {
         }
     }, []);
 
-    // Get payment details for a specific payment
-    const getPaymentDetails = useCallback(async (paymentId) => {
-        setLoading(true);
-        setError(null);
-        
-        try {
-            const jsonData = await HttpClient.get(`${API_ENDPOINTS.HO.PAYMENT.DETAILS}?id_pembayaran=${paymentId}`, {
-                skipCsrf: true // Skip CSRF token for JWT-based API
-            });
-            
-            if (jsonData && jsonData.status === 'ok') {
-                return {
-                    success: true,
-                    data: jsonData.data || [],
-                    message: jsonData.message || 'Detail pembayaran berhasil diambil'
-                };
-            } else {
-                const errorMessage = jsonData?.message || 'Gagal mengambil detail pembayaran';
-                throw new Error(errorMessage);
-            }
-        } catch (err) {
-            console.error('Get payment details error:', err);
-            const errorMsg = err.message || 'Terjadi kesalahan saat mengambil detail pembayaran';
-            setError(errorMsg);
-            return { success: false, data: [], message: errorMsg };
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    // Create payment detail
-    const createPaymentDetail = useCallback(async (detailData) => {
-        setLoading(true);
-        setError(null);
-        
-        try {
-            const requestData = {
-                id_pembayaran: detailData.id_pembayaran,
-                amount: parseFloat(detailData.amount || 0),
-                payment_date: detailData.payment_date || ''
-            };
-            
-            const result = await HttpClient.post(API_ENDPOINTS.HO.PAYMENT.DETAIL_STORE, requestData);
-            
-            if (result && result.status === 'ok') {
-                return {
-                    success: true,
-                    message: result.message || 'Detail pembayaran berhasil dibuat',
-                    data: result.data
-                };
-            } else {
-                throw new Error(result?.message || 'Gagal membuat detail pembayaran');
-            }
-        } catch (err) {
-            console.error('Create payment detail error:', err);
-            const errorMsg = err.message || 'Terjadi kesalahan saat membuat detail pembayaran';
-            setError(errorMsg);
-            return { success: false, message: errorMsg };
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    // Update payment detail
-    const updatePaymentDetail = useCallback(async (encryptedPid, detailData) => {
-        setLoading(true);
-        setError(null);
-        
-        try {
-            const requestData = {
-                pid: encryptedPid,
-                id_pembayaran: detailData.id_pembayaran,
-                amount: parseFloat(detailData.amount || 0),
-                payment_date: detailData.payment_date || ''
-            };
-            
-            const result = await HttpClient.post(API_ENDPOINTS.HO.PAYMENT.DETAIL_UPDATE, requestData);
-            
-            if (result && result.status === 'ok') {
-                return {
-                    success: true,
-                    message: result.message || 'Detail pembayaran berhasil diperbarui',
-                    data: result.data
-                };
-            } else {
-                throw new Error(result?.message || 'Gagal memperbarui detail pembayaran');
-            }
-        } catch (err) {
-            console.error('Update payment detail error:', err);
-            const errorMsg = err.message || 'Terjadi kesalahan saat memperbarui detail pembayaran';
-            setError(errorMsg);
-            return { success: false, message: errorMsg };
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    // Delete payment detail
-    const deletePaymentDetail = useCallback(async (encryptedPid) => {
-        setLoading(true);
-        setError(null);
-        
-        try {
-            const result = await HttpClient.post(API_ENDPOINTS.HO.PAYMENT.DETAIL_DELETE, {
-                pid: encryptedPid
-            });
-            
-            if (result && result.status === 'ok') {
-                return {
-                    success: true,
-                    message: result.message || 'Detail pembayaran berhasil dihapus'
-                };
-            } else {
-                throw new Error(result?.message || 'Gagal menghapus detail pembayaran');
-            }
-        } catch (err) {
-            console.error('Delete payment detail error:', err);
-            const errorMsg = err.message || 'Terjadi kesalahan saat menghapus detail pembayaran';
-            setError(errorMsg);
-            return { success: false, message: errorMsg };
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
     // Computed stats based on current data
-    const stats = useMemo(() => {
-        const total = pembayaran.length;
-        
-        // Count settled and pending payments
-        const settled = pembayaran.filter(item => item.payment_status === 1).length;
-        const pending = pembayaran.filter(item => item.payment_status === 0).length;
-        
-        // Count overdue payments (pending payments with due date in the past)
-        const now = new Date();
-        const overdue = pembayaran.filter(item => {
-            return item.payment_status === 0 && item.due_date && new Date(item.due_date) < now;
-        }).length;
-        
-        return {
-            total: serverPagination.recordsTotal || serverPagination.totalItems || total, // Use recordsTotal from API response
-            settled,
-            pending,
-            overdue
-        };
-    }, [pembayaran, serverPagination.totalItems, serverPagination.recordsTotal]);
 
     // Enhanced debounced search handler
     const searchTimeoutRef = useRef(null);
@@ -584,7 +365,6 @@ const usePembayaran = () => {
         
         fetchPembayaran(1, serverPagination.perPage, '', false);
     }, [fetchPembayaran, serverPagination.perPage]);
-    
 
     // Cleanup timeout on unmount
     useEffect(() => {
@@ -595,7 +375,6 @@ const usePembayaran = () => {
         };
     }, []);
 
-
     // Pagination handlers
     const handlePageChange = useCallback((newPage) => {
         fetchPembayaran(newPage, serverPagination.perPage, searchTerm, false);
@@ -605,16 +384,21 @@ const usePembayaran = () => {
         fetchPembayaran(1, newPerPage, searchTerm, false);
     }, [fetchPembayaran, searchTerm]);
 
+    // Computed filtered data (for compatibility with existing code)
+    const filteredData = useMemo(() => {
+        return pembayaran;
+    }, [pembayaran]);
+
     return {
         pembayaran,
         allPembayaran: pembayaran,
+        filteredData,
         loading,
         error,
         searchTerm,
         setSearchTerm,
         isSearching,
         searchError,
-        stats,
         serverPagination,
         fetchPembayaran,
         handleSearch,
@@ -626,10 +410,10 @@ const usePembayaran = () => {
         deletePembayaran,
         deleteLoading,
         getPembayaranDetail,
-        getPaymentDetails,
-        createPaymentDetail,
-        updatePaymentDetail,
-        deletePaymentDetail
+        getPaymentDetails: () => ({ success: false, data: [], message: 'Not implemented' }),
+        createPaymentDetail: () => ({ success: false, message: 'Not implemented' }),
+        updatePaymentDetail: () => ({ success: false, message: 'Not implemented' }),
+        deletePaymentDetail: () => ({ success: false, message: 'Not implemented' })
     };
 };
 

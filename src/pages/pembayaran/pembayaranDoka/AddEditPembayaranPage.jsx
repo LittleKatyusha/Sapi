@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, Plus, Trash2, Building2, Calendar, Hash, Package, X, Settings, AlertCircle, Weight, DollarSign, Upload, FileText } from 'lucide-react';
 import usePembayaran from './hooks/usePembayaran';
-import useParameterSelect from '../pembelian/hooks/useParameterSelect';
+import useParameterSelect from '../../ho/pembelian/hooks/useParameterSelect';
 import useBanksAPI from './hooks/useBanksAPI';
 import SearchableSelect from '../../../components/shared/SearchableSelect';
 import HttpClient from '../../../services/httpClient';
@@ -46,7 +46,13 @@ const AddEditPembayaranPage = () => {
         due_date: '', // Required - tanggal jatuh tempo
         settlement_date: '', // Nullable - tanggal pelunasan
         payment_status: 0, // Nullable - 0 (belum lunas) or 1 (lunas)
-        note: '' // Additional note field
+        note: '', // Additional note field
+        // Additional fields for form display
+        farm: '', // Farm selection
+        syarat_pembelian: '', // Payment terms selection
+        // Optional display fields
+        harga_total: 0, // Total price display
+        total_pembayaran: 0 // Total payment display
     });
 
     // Detail items state
@@ -170,7 +176,7 @@ const AddEditPembayaranPage = () => {
 
     // Load data untuk edit mode - using /show endpoint for both header and detail data
     useEffect(() => {
-        console.log('Edit useEffect triggered:', {
+        console.log('Edit mode data loading check:', {
             isEdit,
             id,
             editDataLoaded: editDataLoaded.current,
@@ -187,7 +193,6 @@ const AddEditPembayaranPage = () => {
                     // decodedId not needed; use id directly
                     
                     // Get both header and detail data from /show endpoint only
-                    console.log('Calling /show API for edit data with pid:', id);
                     
                     const showResponse = await HttpClient.post(`${API_ENDPOINTS.HO.PAYMENT.SHOW}`, {
                         pid: id
@@ -705,6 +710,10 @@ const AddEditPembayaranPage = () => {
         const errors = [];
 
         // Validate TrPembayaran header fields (aligned with backend validation)
+        
+        if (!headerData.id_pembelian) {
+            errors.push('ID Pembelian harus diisi');
+        }
 
         if (!headerData.purchase_type) {
             errors.push('Tipe Pembelian harus dipilih (1 atau 2)');
@@ -714,6 +723,10 @@ const AddEditPembayaranPage = () => {
 
         if (!headerData.due_date) {
             errors.push('Tanggal jatuh tempo harus diisi');
+        }
+
+        if (!headerData.note || headerData.note.trim() === '') {
+            errors.push('Catatan harus diisi');
         }
 
         // Validate TrPembayaranDetail items
@@ -764,11 +777,6 @@ const AddEditPembayaranPage = () => {
             const selectedSupplier = supplierOptions.find(s => s.value === headerData.idSupplier);
             
             // Debug file state
-            console.log('File Debug Info:');
-            console.log('selectedFile:', selectedFile);
-            console.log('headerData.file:', headerData.file);
-            console.log('selectedFile instanceof File:', selectedFile instanceof File);
-            console.log('headerData.file instanceof File:', headerData.file instanceof File);
 
             const submissionData = {
                 // TrPembayaran header fields
@@ -785,7 +793,6 @@ const AddEditPembayaranPage = () => {
                 }))
             };
 
-            console.log('Final submissionData.file:', submissionData.file);
 
 
             let result;
@@ -808,7 +815,7 @@ const AddEditPembayaranPage = () => {
                 sessionStorage.setItem('pembayaran-should-refresh', 'true');
                 
                 setTimeout(() => {
-                    navigate('/ho/pembayaran', { state: { fromEdit: true } });
+                    navigate('/pembayaran/doka', { state: { fromEdit: true } });
                 }, 1500);
             } else {
                 setNotification({
@@ -829,7 +836,7 @@ const AddEditPembayaranPage = () => {
 
     // Handle back navigation
     const handleBack = () => {
-        navigate('/ho/pembayaran', { state: { fromEdit: true } });
+        navigate('/pembayaran/doka', { state: { fromEdit: true } });
     };
 
     // Auto-hide notification
@@ -901,9 +908,26 @@ const AddEditPembayaranPage = () => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
 
+                        {/* ID Pembelian */}
+                        <div>
+                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <Hash className="w-4 h-4" />
+                                ID Pembelian *
+                            </label>
+                            <input
+                                type="number"
+                                value={headerData.id_pembelian}
+                                onChange={(e) => handleHeaderChange('id_pembelian', e.target.value)}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                                placeholder="Masukkan ID pembelian"
+                                required
+                            />
+                            <p className="text-xs text-blue-600 mt-1">
+                                ID pembelian yang akan dibayar
+                            </p>
+                        </div>
 
-
-                        {/* Office */}
+                        {/* Tipe Pembelian */}
                         <div>
                             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                                 <Building2 className="w-4 h-4" />
@@ -921,7 +945,7 @@ const AddEditPembayaranPage = () => {
                             </select>
                             {parameterError && (
                                 <p className="text-xs text-red-500 mt-1">
-Error loading offices: {parameterError}
+Error loading data: {parameterError}
                                 </p>
                             )}
                         </div>
@@ -944,7 +968,7 @@ const AddEditPembayaranPage = () => {
                             />
                             {parameterLoading && (
                                 <p className="text-xs text-blue-600 mt-1">
-                                    Memuat data supplier...
+                                    Memuat data...
                                 </p>
                             )}
                             {parameterError && (
@@ -1004,7 +1028,7 @@ Tanggal pelunasan pembayaran (opsional)
                             </label>
                             <input
                                 type="text"
-                                value={formatNumber(headerData.harga_total)}
+                                value={formatNumber(headerData.harga_total || 0)}
                                 onChange={(e) => handleHeaderChange('harga_total', parseNumber(e.target.value))}
                                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
                                 placeholder=""
@@ -1022,7 +1046,7 @@ Tanggal pelunasan pembayaran (opsional)
                             </label>
                             <input
                                 type="number"
-                                value={headerData.total_pembayaran}
+                                value={headerData.total_pembayaran || 0}
                                 onChange={(e) => handleHeaderChange('total_pembayaran', e.target.value)}
                                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
                                 placeholder=""
@@ -1051,7 +1075,7 @@ Tanggal pelunasan pembayaran (opsional)
                             />
                             {parameterError && (
                                 <p className="text-xs text-red-500 mt-1">
-Error loading offices: {parameterError}
+Error loading data: {parameterError}
                                 </p>
                             )}
                         </div>
@@ -1066,7 +1090,7 @@ Tanggal pelunasan pembayaran (opsional)
                                 options={bankOptions}
                                 value={headerData.syarat_pembelian}
                                 onChange={(value) => handleHeaderChange('syarat_pembelian', value)}
-                                placeholder={bankLoading ? 'Loading banks...' : bankError ? 'Error loading banks' : 'Pilih syarat pembelian'}
+                                placeholder={bankLoading ? 'Loading payment terms...' : bankError ? 'Error loading payment terms' : 'Pilih syarat pembelian'}
                                 isLoading={bankLoading}
                                 isDisabled={bankLoading || bankError}
                                 required={true}
@@ -1074,7 +1098,7 @@ Tanggal pelunasan pembayaran (opsional)
                             />
                             {bankError && (
                                 <p className="text-xs text-red-500 mt-1">
-Error loading banks: {bankError}
+Error loading payment terms: {bankError}
                                 </p>
                             )}
                         </div>
@@ -1183,14 +1207,14 @@ Tanggal pelunasan pembayaran (opsional)
                                 value={defaultData.item_name}
                                 onChange={(value) => handleDefaultDataChange('item_name', value)}
                                 options={itemPembayaranOptions}
-                                placeholder={parameterLoading ? 'Loading items...' : parameterError ? 'Error loading items' : 'Pilih Item Pembayaran'}
+                                placeholder={parameterLoading ? 'Loading payment items...' : parameterError ? 'Error loading payment items' : 'Pilih Item Pembayaran'}
                                 isLoading={parameterLoading}
                                 isDisabled={parameterLoading || parameterError}
                                 className="w-full"
                             />
                             {parameterError && (
                                 <p className="text-xs text-red-500 mt-1">
-Error loading items: {parameterError}
+Error loading payment items: {parameterError}
                                 </p>
                             )}
                         </div>
