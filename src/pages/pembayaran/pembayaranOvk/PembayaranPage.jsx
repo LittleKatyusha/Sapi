@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import DataTable from 'react-data-table-component';
-import { PlusCircle, Search, Filter, CreditCard, Building2, Calendar, User, X, Loader2 } from 'lucide-react';
+import { Search, Filter, CreditCard, Building2, Calendar, User, X, Loader2 } from 'lucide-react';
 
 import usePembayaran from './hooks/usePembayaran';
 import useFarmAPI from './hooks/useFarmAPI';
@@ -553,15 +553,6 @@ const PembayaranPage = () => {
                             <p className="text-gray-600 text-sm sm:text-base">
                                 Kelola data pembayaran
                             </p>
-                        </div>
-                        <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 md:gap-6">
-                            <button
-                                onClick={() => navigate('/pembayaran/ovk/add')}
-                                className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white px-4 py-2 sm:px-6 sm:py-3 md:px-7 md:py-4 lg:px-8 lg:py-4 rounded-xl sm:rounded-2xl hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 flex items-center gap-3 font-medium shadow-lg hover:shadow-xl text-sm sm:text-base"
-                            >
-                                <PlusCircle className="w-5 h-5 sm:w-6 sm:h-6" />
-                                Tambah Pembayaran
-                            </button>
                         </div>
                     </div>
                 </div>
