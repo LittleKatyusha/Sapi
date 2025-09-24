@@ -48,6 +48,7 @@ const SuratJalanPage = lazy(() => import('./pages/boning/SuratJalanPage'));
 // System Pages
 const PermissionManagementPage = lazy(() => import('./pages/system/PermissionManagementPage'));
 const RolePage = lazy(() => import('./pages/system/RolePage'));
+const MenuManagementPage = lazy(() => import('./pages/system/MenuManagementPage'));
 const UsersPage = lazy(() => import('./pages/system/UsersPage'));
 
 // HO Pages - Lazy loaded
@@ -236,6 +237,7 @@ function AppSecure() {
               <Route path="/system/permission-management" element={<PermissionManagementPage />} />
               <Route path="/system/roles" element={<RolePage />} />
               <Route path="/system/users" element={<UsersPage />} />
+              <Route path="/system/menu-management" element={<MenuManagementPage />} />
 
               {/* Fallback Route */}
               <Route path="*" element={<DashboardPage />} />

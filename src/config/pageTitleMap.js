@@ -37,6 +37,7 @@ export const pageTitleMap = {
   '/system/roles': 'System: Role Management',
   '/system/permission-management': 'System: Permission Management',
   '/system/users': 'System: User Management',
+  '/system/menu-management': 'System: Menu Management',
   '/system/parameters': 'System: Parameter Management',
   '/reports': 'Laporan',
   '/reports/nota-supplier': 'Laporan: Nota Supplier',

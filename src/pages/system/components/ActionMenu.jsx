@@ -1,8 +1,8 @@
 import React, { useRef, useEffect, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Eye, Edit, Trash2, Key } from 'lucide-react';
+import { Eye, Edit, Trash2, Key, Shield } from 'lucide-react';
 
-const ActionMenu = ({ row, onEdit, onDelete, onDetail, onResetPassword, onClose, buttonRef }) => {
+const ActionMenu = ({ row, onEdit, onDelete, onDetail, onResetPassword, onAccess, onClose, buttonRef, showAccess = false }) => {
     const menuRef = useRef(null);
     const [menuStyle, setMenuStyle] = useState(null);
 
@@ -22,6 +22,7 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onResetPassword, onClose,
         window.addEventListener('scroll', updatePosition, true);
         window.addEventListener('resize', updatePosition);
         const handleClickOutside = (event) => {
+            // Only close if this specific menu is open and click is outside
             if (menuRef.current && !menuRef.current.contains(event.target) &&
                 buttonRef.current && !buttonRef.current.contains(event.target)) {
                 onClose();
@@ -55,7 +56,7 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onResetPassword, onClose,
     // Edit action (always available)
     if (onEdit) {
         actions.push({
-            label: onResetPassword ? 'Edit User' : onDetail ? 'Edit Parameter' : 'Edit Permission',
+            label: onResetPassword ? 'Edit User' : onDetail ? 'Edit Parameter' : showAccess ? 'Edit Menu' : 'Edit Permission',
             icon: Edit,
             onClick: () => onEdit(row),
             className: 'text-gray-700',
@@ -80,6 +81,20 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onResetPassword, onClose,
         });
     }
 
+    // Access action (only for menus)
+    if (onAccess && showAccess) {
+        actions.push({
+            label: 'Kelola Akses',
+            icon: Shield,
+            onClick: () => onAccess(row),
+            className: 'text-emerald-600',
+            description: 'Atur akses role',
+            bg: 'bg-emerald-100',
+            hoverBg: 'group-hover:bg-emerald-200',
+            text: 'text-emerald-600',
+        });
+    }
+
     // Divider before delete
     if (actions.length > 0 && onDelete) {
         actions.push({ divider: true });
@@ -88,7 +103,7 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onResetPassword, onClose,
     // Delete action
     if (onDelete) {
         actions.push({
-            label: onResetPassword ? 'Hapus User' : onDetail ? 'Hapus Parameter' : 'Hapus Permission',
+            label: onResetPassword ? 'Hapus User' : onDetail ? 'Hapus Parameter' : showAccess ? 'Hapus Menu' : 'Hapus Permission',
             icon: Trash2,
             onClick: () => onDelete(row),
             className: 'text-red-600',

@@ -2,20 +2,30 @@ import React, { useRef, useState } from 'react';
 import { MoreVertical } from 'lucide-react';
 import ActionMenu from './ActionMenu';
 
-const ActionButton = ({ row, openMenuId, setOpenMenuId, onEdit, onDelete, onDetail, onResetPassword, isActive }) => {
+const ActionButton = ({ row, openMenuId, setOpenMenuId, onEdit, onDelete, onDetail, onResetPassword, onAccess, isActive, showAccess = false }) => {
     const buttonRef = useRef(null);
     const [isAnimating, setIsAnimating] = useState(false);
 
-    // Get row ID - handle both 'id' and 'pubid' for different data structures
-    const rowId = row?.id || row?.pubid;
+    // Get row ID - handle different data structures (id, pubid, pid)
+    const rowId = row?.id || row?.pubid || row?.pid;
+    
+    // Debug log to check rowId values
+    if (process.env.NODE_ENV === 'development') {
+        console.log('ActionButton rowId:', rowId, 'openMenuId:', openMenuId, 'isActive:', openMenuId === rowId);
+    }
 
     // Handle click dan keyboard
     const handleAction = (e) => {
         e.stopPropagation();
         e.preventDefault();
         setIsAnimating(true);
+        console.log('ActionButton clicked, rowId:', rowId, 'current openMenuId:', openMenuId);
         if (openMenuId !== rowId) {
+            console.log('Setting openMenuId to:', rowId);
             setOpenMenuId(rowId);
+        } else {
+            console.log('Closing menu, setting openMenuId to null');
+            setOpenMenuId(null);
         }
         setTimeout(() => setIsAnimating(false), 180);
     };
@@ -53,8 +63,13 @@ const ActionButton = ({ row, openMenuId, setOpenMenuId, onEdit, onDelete, onDeta
                     onDelete={onDelete}
                     onDetail={onDetail}
                     onResetPassword={onResetPassword}
-                    onClose={() => setOpenMenuId(null)}
+                    onAccess={onAccess}
+                    onClose={() => {
+                        console.log('ActionMenu onClose called, setting openMenuId to null');
+                        setOpenMenuId(null);
+                    }}
                     buttonRef={buttonRef}
+                    showAccess={showAccess}
                 />
             )}
         </div>
