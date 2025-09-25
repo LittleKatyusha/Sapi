@@ -41,6 +41,7 @@ const AddEditPembayaranPage = () => {
 
     // Header form state - aligned with backend TrPembayaran validation requirements
     const [headerData, setHeaderData] = useState({
+        id: null, // Database ID for update operations
         id_pembelian: '', // Required - refers to tr_pembelian_ho.id
         purchase_type: '', // Required - 1 or 2 
         due_date: '', // Required - tanggal jatuh tempo
@@ -194,26 +195,29 @@ const AddEditPembayaranPage = () => {
                     
                     // Get both header and detail data from /show endpoint only
                     
-                    const showResponse = await HttpClient.post(`${API_ENDPOINTS.HO.PAYMENT.SHOW}`, {
-                        pid: id
-                    });
+                    // Use the correct endpoint for getting payment details
+                    const showResponse = await HttpClient.get(`${API_ENDPOINTS.HO.PAYMENT.DETAILS}?id_pembayaran=${id}`);
                     
-                    if (!showResponse.data || showResponse.data.length === 0) {
-                        throw new Error('Data tidak ditemukan untuk pubid yang dipilih');
+                    if (!showResponse.data) {
+                        throw new Error('Data tidak ditemukan untuk id_pembayaran yang dipilih');
                     }
                     
-                    const headerData = showResponse.data[0];
-                    const showResponseData = showResponse.data;
+                    // Handle different response structure from /details endpoint
+                    const headerData = showResponse.data;
+                    const showResponseData = Array.isArray(showResponse.data) ? showResponse.data : [showResponse.data];
                     
+                    console.log('🔍 API Response - showResponse.data:', showResponse.data);
+                    console.log('🔍 API Response - headerData.id:', headerData.id);
+                    console.log('🔍 API Response - headerData.pid:', headerData.pid);
                     
-                    // Mark this as coming from show endpoint
-                    headerData.source = 'show';
+                    // Mark this as coming from details endpoint
+                    headerData.source = 'details';
                     
-                    // Use detail data from the /show call
+                    // Use detail data from the /details call
                     const detailResult = {
                         success: true,
                         data: showResponseData,
-                        message: 'Detail data from /show endpoint'
+                        message: 'Detail data from /details endpoint'
                     };
                     
                     if (headerData) {
@@ -259,7 +263,15 @@ const AddEditPembayaranPage = () => {
                         // Removed jenis pembelian mapping as it's not required
 
                         // Set header data using safe helper functions - aligned with TrPembayaran backend
+                        const databaseId = headerData.id ? safeGetNumber(headerData.id) : null;
+                        console.log('🔍 Loading edit data - API response headerData.id:', headerData.id);
+                        console.log('🔍 Loading edit data - parsed databaseId:', databaseId);
+                        console.log('🔍 Loading edit data - headerData.id type:', typeof headerData.id);
+                        console.log('🔍 Loading edit data - headerData.id === null:', headerData.id === null);
+                        console.log('🔍 Loading edit data - headerData.id === undefined:', headerData.id === undefined);
+                        
                         setHeaderData({
+                            id: databaseId, // Store the actual database ID for update operations
                             id_pembelian: safeGetNumber(headerData.id_pembelian),
                             purchase_type: safeGetNumber(headerData.purchase_type) || 1,
                             due_date: safeGetString(headerData.due_date),
@@ -792,15 +804,24 @@ const AddEditPembayaranPage = () => {
                     description: item.description || ''
                 }))
             };
+            
+            // Only include id for edit mode
+            if (isEdit && headerData.id) {
+                submissionData.id = headerData.id;
+            }
 
 
 
             let result;
             if (isEdit) {
-                result = await HttpClient.post(API_ENDPOINTS.HO.PAYMENT.UPDATE, {
-                    ...submissionData,
-                    id: id
-                });
+                console.log('🔍 Edit mode - headerData.id:', headerData.id);
+                console.log('🔍 Edit mode - URL id parameter:', id);
+                console.log('🔍 Edit mode - submissionData:', submissionData);
+                console.log('🔍 Edit mode - submissionData.id:', submissionData.id);
+                console.log('🔍 Edit mode - isEdit:', isEdit);
+                console.log('🔍 Edit mode - headerData.id exists:', !!headerData.id);
+                
+                result = await HttpClient.post(API_ENDPOINTS.HO.PAYMENT.UPDATE, submissionData);
             } else {
                 result = await HttpClient.post(API_ENDPOINTS.HO.PAYMENT.STORE, submissionData);
             }

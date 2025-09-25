@@ -12,6 +12,7 @@ const useMenus = () => {
     const [allMenus, setAllMenus] = useState([]);
     const [menuTree, setMenuTree] = useState([]);
     const [menuOptions, setMenuOptions] = useState([]);
+    const [treeMenus, setTreeMenus] = useState([]); // For dropdown options with id field
     const [roles, setRoles] = useState([]);
     const [stats, setStats] = useState({
         total_menus: 0,
@@ -97,6 +98,8 @@ const useMenus = () => {
                 if (process.env.NODE_ENV === 'development') {
                     console.log('Menu data loaded:', dataArray);
                     console.log('First few items:', dataArray.slice(0, 3));
+                    console.log('First item has id:', dataArray[0]?.id);
+                    console.log('First item keys:', Object.keys(dataArray[0] || {}));
                 }
                 setAllMenus(dataArray);
                 setError(null);
@@ -120,7 +123,7 @@ const useMenus = () => {
                 throw new Error('Token authentication tidak ditemukan.');
             }
             
-            // Use the same data endpoint but with tree structure
+            // Always use /data endpoint for tree structure consistency
             const queryParams = new URLSearchParams({
                 'start': '0',
                 'length': '1000',
@@ -182,6 +185,60 @@ const useMenus = () => {
         } catch (err) {
             console.error('Error fetching menu options:', err);
             setMenuOptions([]);
+        }
+    }, [getAuthHeader]);
+
+    // Fetch tree menus for dropdown (with id field)
+    const fetchTreeMenus = useCallback(async () => {
+        try {
+            const authHeader = getAuthHeader();
+            if (!authHeader.Authorization) {
+                throw new Error('Token authentication tidak ditemukan.');
+            }
+            
+            console.log('Fetching tree menus for dropdown...');
+            
+            // Try different possible endpoints for tree data with id
+            const possibleEndpoints = [
+                `${API_BASE}/tree`,
+                `${API_BASE}/options-with-id`, 
+                `${API_BASE}/dropdown`
+            ];
+            
+            for (const endpoint of possibleEndpoints) {
+                try {
+                    console.log(`Trying endpoint: ${endpoint}`);
+                    const result = await HttpClient.get(endpoint);
+                    console.log(`Response from ${endpoint}:`, result);
+                    
+                    if (result.status === 'ok' && result.data) {
+                        // Check if it's direct array or nested data
+                        let treeData = Array.isArray(result.data) ? result.data : result.data.data || [];
+                        
+                        console.log('Tree menus data:', treeData);
+                        console.log('First tree item has id:', treeData[0]?.id);
+                        console.log('First tree item keys:', Object.keys(treeData[0] || {}));
+                        
+                        // Only set if we got data with id field
+                        if (treeData.length > 0 && treeData[0]?.id) {
+                            console.log(`Success! Using data from ${endpoint}`);
+                            setTreeMenus(treeData);
+                            return treeData;
+                        }
+                    }
+                } catch (endpointError) {
+                    console.log(`Endpoint ${endpoint} failed:`, endpointError.message);
+                }
+            }
+            
+            console.log('No tree endpoint with id field found, will use allMenus with pid');
+            setTreeMenus([]);
+            return [];
+            
+        } catch (err) {
+            console.error('Error fetching tree menus:', err);
+            setTreeMenus([]);
+            return [];
         }
     }, [getAuthHeader]);
 
@@ -372,7 +429,7 @@ const useMenus = () => {
         }
 
         // Apply parent filter
-        if (filterParent) {
+        if (filterParent && allMenus && allMenus.length > 0) {
             // Filter berdasarkan parent yang dipilih
             filtered = filtered.filter(menu => {
                 // Jika filterParent adalah 'root', tampilkan menu tanpa parent
@@ -380,12 +437,12 @@ const useMenus = () => {
                     return !menu.parent_name || menu.parent_name === '-';
                 }
                 // Jika filterParent adalah PID tertentu, filter berdasarkan parent
-                return menu.parent_name && menuOptions.find(opt => opt.pid === filterParent)?.nama === menu.parent_name;
+                return menu.parent_name && allMenus.find(menuItem => menuItem.pid === filterParent)?.nama === menu.parent_name;
             });
         }
 
         return filtered;
-    }, [allMenus, searchTerm, filterParent, menuOptions]);
+    }, [allMenus, searchTerm, filterParent]);
 
     return {
         // Data
@@ -393,6 +450,7 @@ const useMenus = () => {
         allMenus,
         menuTree,
         menuOptions,
+        treeMenus,
         roles,
         setRoles,
         stats,
@@ -412,6 +470,8 @@ const useMenus = () => {
         
         // Actions
         fetchMenus: fetchMenusWithDependencies,
+        fetchMenuTree,
+        fetchTreeMenus,
         fetchRoles,
         createMenu,
         updateMenu,

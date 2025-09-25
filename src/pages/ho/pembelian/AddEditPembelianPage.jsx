@@ -5,6 +5,7 @@ import { ArrowLeft, Save, Plus, Trash2, Building2, User, Calendar, Truck, Hash, 
 import usePembelianHO from './hooks/usePembelianHO';
 import useParameterSelect from './hooks/useParameterSelect';
 import useTipePembelian from './hooks/useTipePembelian';
+import useTipePembayaran from '../../../hooks/useTipePembayaran';
 import SearchableSelect from '../../../components/shared/SearchableSelect';
 import { API_ENDPOINTS, API_BASE_URL } from '../../../config/api';
 
@@ -46,6 +47,9 @@ const AddEditPembelianPage = () => {
         hargaTotal: 0, // New field for total price
         totalSapi: 0, // New field for total cattle count
         note: '', // Note field from backend
+        // Tipe Pembayaran dan Jatuh Tempo fields
+        purchase_type: '', // Required - 1 or 2
+        due_date: '', // Required - tanggal jatuh tempo
         // markup removed - no longer needed in header
     });
 
@@ -55,6 +59,13 @@ const AddEditPembelianPage = () => {
         loading: tipePembelianLoading,
         error: tipePembelianError
     } = useTipePembelian();
+
+    // Get tipe pembayaran options
+    const {
+        tipePembayaranOptions,
+        loading: tipePembayaranLoading,
+        error: tipePembayaranError
+    } = useTipePembayaran();
 
     // Get master data from centralized parameter endpoint with supplier filter
     const {
@@ -322,6 +333,8 @@ const AddEditPembelianPage = () => {
                         hargaTotal: parseFloat(firstDetail.biaya_total) || calculatedHargaTotal || 0,
                         totalSapi: totalSapiCount, // Always use calculated count
                         note: firstDetail.note || '', // Note field from backend
+                        purchase_type: firstDetail.tipe_pembayaran || '',
+                        due_date: firstDetail.due_date || ''
                     };
                     
                     console.log('📋 Final header data for edit:', {
@@ -448,6 +461,8 @@ const AddEditPembelianPage = () => {
                 hargaTotal: cloneData.harga_total || 0, // Load total price from clone data
                 totalSapi: cloneData.total_sapi || 0, // Load total cattle from clone data
                 note: cloneData.note || '', // Load note from clone data
+                purchase_type: cloneData.tipe_pembayaran || '',
+                due_date: cloneData.due_date || '',
                 // markup removed - no longer needed
             });
             
@@ -1236,6 +1251,17 @@ const AddEditPembelianPage = () => {
         if (!headerData.platNomor) errors.push('Plat nomor harus diisi');
         if (!headerData.biayaTruck || parseInt(headerData.biayaTruck) <= 0) errors.push('Biaya truck harus diisi dan > 0');
         // biayaLain is optional, no validation needed
+        
+        // Tipe Pembayaran dan Jatuh Tempo validation
+        if (!headerData.purchase_type) {
+            errors.push('Tipe Pembayaran harus dipilih');
+        } else if (![1, 2].includes(parseInt(headerData.purchase_type))) {
+            errors.push('Tipe Pembayaran harus 1 atau 2');
+        }
+        
+        if (!headerData.due_date) {
+            errors.push('Tanggal jatuh tempo harus diisi');
+        }
 
         // File validation (optional) - sesuai backend
         if (selectedFile) {
@@ -1325,6 +1351,8 @@ const AddEditPembelianPage = () => {
                     biayaTotal: parseFloat(updatedHeaderData.hargaTotal) || 0, // Map hargaTotal to biayaTotal for backend
                     totalSapi: parseInt(updatedHeaderData.totalSapi) || 0,
                     tipePembelian: parseInt(updatedHeaderData.tipePembelian) || 1,
+                    tipe_pembayaran: parseInt(updatedHeaderData.purchase_type) || 1,
+                    due_date: updatedHeaderData.due_date,
                     file: selectedFile, // Only send file if there's a new file upload
                     details: Array.isArray(detailItems) && detailItems.length > 0 
                         ? detailItems.map(item => ({ // Details are now required for all supplier types
@@ -1361,6 +1389,8 @@ const AddEditPembelianPage = () => {
                     //hargaTotal: parseFloat(updatedHeaderData.hargaTotal) || 0,
                     totalSapi: parseInt(updatedHeaderData.totalSapi) || 0,
                     tipePembelian: parseInt(updatedHeaderData.tipePembelian) || 1,
+                    tipe_pembayaran: parseInt(updatedHeaderData.purchase_type) || 1,
+                    due_date: updatedHeaderData.due_date,
                     file: selectedFile, // Send actual file object
                     details: Array.isArray(detailItems) && detailItems.length > 0 
                         ? detailItems.map(item => ({ // Details are now required for all supplier types
@@ -1424,6 +1454,17 @@ const AddEditPembelianPage = () => {
         if (!headerData.platNomor) headerValidationErrors.push('Plat nomor harus diisi');
         if (!headerData.biayaTruck || parseInt(headerData.biayaTruck) <= 0) headerValidationErrors.push('Biaya truck harus diisi dan > 0');
         
+        // Tipe Pembayaran dan Jatuh Tempo validation for header-only save
+        if (!headerData.purchase_type) {
+            headerValidationErrors.push('Tipe Pembayaran harus dipilih');
+        } else if (![1, 2].includes(parseInt(headerData.purchase_type))) {
+            headerValidationErrors.push('Tipe Pembayaran harus 1 atau 2');
+        }
+        
+        if (!headerData.due_date) {
+            headerValidationErrors.push('Tanggal jatuh tempo harus diisi');
+        }
+        
         if (headerValidationErrors.length > 0) {
             setNotification({
                 type: 'error',
@@ -1444,6 +1485,8 @@ const AddEditPembelianPage = () => {
                 biayaTotal: parseFloat(headerData.hargaTotal) || 0, // Map hargaTotal to biayaTotal for backend
                 totalSapi: parseInt(headerData.totalSapi) || 0,
                 tipePembelian: parseInt(headerData.tipePembelian) || 1,
+                tipe_pembayaran: parseInt(headerData.purchase_type) || 1,
+                due_date: headerData.due_date,
                 file: selectedFile,
                 details: [] // Empty array for header-only save
             };
@@ -1471,6 +1514,8 @@ const AddEditPembelianPage = () => {
                     biaya_total: headerOnlyData.biayaTotal,
                     berat_total: headerOnlyData.beratTotal, // Add missing berat_total mapping
                     tipe_pembelian: headerOnlyData.tipePembelian,
+                    tipe_pembayaran: headerOnlyData.purchase_type,
+                    due_date: headerOnlyData.due_date,
                     file: headerOnlyData.file
                 };
                 result = await saveHeaderOnly(headerDataForAPI, filteredSupplierOptions);
@@ -1876,9 +1921,7 @@ const AddEditPembelianPage = () => {
                             </p>
                         </div>
 
-
-        
-                                <div>
+                        <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
                                         Berat Total (kg)
                                         {isSupplierPerorangan && !isSupplierPerorangan2 && (
@@ -1955,6 +1998,59 @@ const AddEditPembelianPage = () => {
                                     <p className="text-xs text-gray-500 mt-1">
                                         💡 Total jumlah Ternak dalam pembelian ini
                                     </p>
+                                </div>
+
+                                {/* Tipe Pembayaran */}
+                                <div>
+                                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                        <Building2 className="w-4 h-4" />
+                                        Tipe Pembayaran *
+                                    </label>
+                                    <select
+                                        value={headerData.purchase_type}
+                                        onChange={(e) => handleHeaderChange('purchase_type', e.target.value)}
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                                        required
+                                    >
+                                        <option value="">Pilih Tipe Pembayaran</option>
+                                        {tipePembayaranOptions.map(option => (
+                                            <option key={option.value} value={option.value}>
+                                                {option.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {tipePembayaranError && (
+                                        <p className="text-xs text-red-500 mt-1">
+                                            Error loading data: {tipePembayaranError}
+                                        </p>
+                                    )}
+                                </div>
+
+                                {/* Tanggal Jatuh Tempo */}
+                                <div>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                                            <Calendar className="w-4 h-4" />
+                                            Tanggal Jatuh Tempo *
+                                        </label>
+                                    </div>
+                                    <input
+                                        type="date"
+                                        value={headerData.due_date}
+                                        onChange={(e) => handleHeaderChange('due_date', e.target.value)}
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                                        required
+                                    />
+                                    {tipePembayaranLoading && (
+                                        <p className="text-xs text-blue-600 mt-1">
+                                            Memuat data...
+                                        </p>
+                                    )}
+                                    {tipePembayaranError && (
+                                        <p className="text-xs text-red-500 mt-1">
+                                            ⚠️ Error loading data: {tipePembayaranError}
+                                        </p>
+                                    )}
                                 </div>
         
 

@@ -140,7 +140,8 @@ const MenuTreeViewModal = ({
   updateMenu,
   showNotification,
   onAccess,
-  roles = []
+  roles = [],
+  allMenus = []
 }) => {
   const [expandedItems, setExpandedItems] = useState({});
   const [expandAll, setExpandAll] = useState(false);
@@ -315,6 +316,7 @@ const MenuTreeViewModal = ({
               onSave={handleSaveEdit}
               menu={editingMenu}
               menuOptions={menuOptions}
+              allMenus={allMenus}
             />
           </div>
         )}

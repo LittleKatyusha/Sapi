@@ -136,6 +136,7 @@ const PembayaranPage = () => {
 
 
     const handleEdit = (pembayaranItem) => {
+        // Use database ID for edit operations since the backend /details endpoint expects database ID
         const id = pembayaranItem.id;
         if (!id || id.toString().startsWith('TEMP-')) {
             setNotification({
@@ -144,11 +145,15 @@ const PembayaranPage = () => {
             });
             return;
         }
+        console.log('🔍 Edit - pembayaranItem:', pembayaranItem);
+        console.log('🔍 Edit - using database id:', id);
+        console.log('🔍 Edit - id type:', typeof id);
         navigate(`/pembayaran/doka/edit/${encodeURIComponent(id)}`);
         setOpenMenuId(null);
     };
 
     const handleDetail = (pembayaranItem) => {
+        // Use database ID for detail operations since the backend /details endpoint expects database ID
         const id = pembayaranItem.id;
         if (!id || id.toString().startsWith('TEMP-')) {
             setNotification({
@@ -157,6 +162,9 @@ const PembayaranPage = () => {
             });
             return;
         }
+        console.log('🔍 Detail - pembayaranItem:', pembayaranItem);
+        console.log('🔍 Detail - using database id:', id);
+        console.log('🔍 Detail - id type:', typeof id);
         navigate(`/pembayaran/doka/detail/${encodeURIComponent(id)}`);
         setOpenMenuId(null);
     };
@@ -260,26 +268,30 @@ const PembayaranPage = () => {
             selector: (row, index) => index + 1,
             sortable: false,
             width: '60px',
+            center: true,
             ignoreRowClick: true,
             cell: (row, index) => (
-                <div className="font-semibold text-gray-600">
-                    {index + 1}
+                <div className="font-semibold text-gray-600 w-full flex items-center justify-center">
+                    {(serverPagination.currentPage - 1) * serverPagination.perPage + index + 1}
                 </div>
             )
         },
         {
             name: 'Aksi',
             width: '80px',
+            center: true,
             cell: row => (
-                <ActionButton
-                    row={row}
-                    openMenuId={openMenuId}
-                    setOpenMenuId={setOpenMenuId}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                    onDetail={handleDetail}
-                    isActive={openMenuId === row.id}
-                />
+                <div className="w-full flex items-center justify-center">
+                    <ActionButton
+                        row={row}
+                        openMenuId={openMenuId}
+                        setOpenMenuId={setOpenMenuId}
+                        onEdit={handleEdit}
+                        onDelete={handleDelete}
+                        onDetail={handleDetail}
+                        isActive={openMenuId === row.id}
+                    />
+                </div>
             ),
             ignoreRowClick: true,
         },
@@ -288,58 +300,124 @@ const PembayaranPage = () => {
             selector: row => row.nota,
             sortable: true,
             width: '150px',
+            center: true,
             wrap: true,
             cell: row => (
-                <span className="font-mono text-sm bg-gray-100 px-3 py-1.5 rounded-lg" title={row.nota}>
-                    {row.nota || '-'}
-                </span>
+                <div className="w-full flex items-center justify-center">
+                    <span className="font-mono text-sm bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200 text-gray-700" title={row.nota}>
+                        {row.nota || '-'}
+                    </span>
+                </div>
             )
         },
         {
-            name: 'Nota HO',
-            selector: row => row.nota_ho,
+            name: 'Tipe Pembelian',
+            selector: row => row.purchase_type,
             sortable: true,
-            width: '150px',
+            width: '180px',
+            center: true,
             wrap: true,
             cell: row => (
-                <span className="font-mono text-sm bg-blue-100 px-3 py-1.5 rounded-lg" title={row.nota_ho}>
-                    {row.nota_ho || '-'}
-                </span>
+                <div className="w-full flex items-center justify-center">
+                    <span className="font-medium text-sm bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg border border-indigo-200" title={row.purchase_type}>
+                        {row.purchase_type || '-'}
+                    </span>
+                </div>
+            )
+        },
+        {
+            name: 'Tanggal Masuk',
+            selector: row => row.tgl_masuk,
+            sortable: true,
+            width: '160px',
+            center: true,
+            wrap: true,
+            cell: row => (
+                <div className="w-full flex items-center justify-center">
+                    <span className="text-gray-900 font-medium text-sm">
+                        {row.tgl_masuk ? (() => {
+                            try {
+                                // Handle both DD-MM-YYYY and YYYY-MM-DD formats
+                                const dateStr = row.tgl_masuk;
+                                let date;
+                                if (dateStr.includes('-') && dateStr.split('-')[0].length === 2) {
+                                    // DD-MM-YYYY format
+                                    const [day, month, year] = dateStr.split('-');
+                                    date = new Date(year, month - 1, day);
+                                } else {
+                                    // YYYY-MM-DD format or other standard formats
+                                    date = new Date(dateStr);
+                                }
+                                return date.toLocaleDateString('id-ID');
+                            } catch (e) {
+                                return row.tgl_masuk;
+                            }
+                        })() : '-'}
+                    </span>
+                </div>
             )
         },
         {
             name: 'Tanggal Jatuh Tempo',
             selector: row => row.due_date,
             sortable: true,
-            width: '160px',
+            width: '220px',
+            center: true,
             wrap: true,
             cell: row => (
-                <span className="text-gray-900">
-                    {row.due_date ? new Date(row.due_date).toLocaleDateString('id-ID') : '-'}
-                </span>
+                <div className="w-full flex items-center justify-center">
+                    <span className="text-gray-900 font-medium text-sm">
+                        {row.due_date ? (() => {
+                            try {
+                                // Handle both DD-MM-YYYY and YYYY-MM-DD formats
+                                const dateStr = row.due_date;
+                                let date;
+                                if (dateStr.includes('-') && dateStr.split('-')[0].length === 2) {
+                                    // DD-MM-YYYY format
+                                    const [day, month, year] = dateStr.split('-');
+                                    date = new Date(year, month - 1, day);
+                                } else {
+                                    // YYYY-MM-DD format or other standard formats
+                                    date = new Date(dateStr);
+                                }
+                                return date.toLocaleDateString('id-ID');
+                            } catch (e) {
+                                return row.due_date;
+                            }
+                        })() : '-'}
+                    </span>
+                </div>
             )
         },
         {
             name: 'Tanggal Pelunasan',
             selector: row => row.settlement_date,
             sortable: true,
-            width: '160px',
-            wrap: true,
-            cell: row => (
-                <span className="text-gray-900">
-                    {row.settlement_date ? new Date(row.settlement_date).toLocaleDateString('id-ID') : '-'}
-                </span>
-            )
-        },
-        {
-            name: 'Supplier',
-            selector: row => row.nama_supplier,
-            sortable: true,
             width: '200px',
+            center: true,
             wrap: true,
             cell: row => (
-                <div className="font-medium text-gray-900" title={row.nama_supplier}>
-                    {row.nama_supplier || '-'}
+                <div className="w-full flex items-center justify-center">
+                    <span className="text-gray-900 font-medium text-sm">
+                        {row.settlement_date ? (() => {
+                            try {
+                                // Handle both DD-MM-YYYY and YYYY-MM-DD formats
+                                const dateStr = row.settlement_date;
+                                let date;
+                                if (dateStr.includes('-') && dateStr.split('-')[0].length === 2) {
+                                    // DD-MM-YYYY format
+                                    const [day, month, year] = dateStr.split('-');
+                                    date = new Date(year, month - 1, day);
+                                } else {
+                                    // YYYY-MM-DD format or other standard formats
+                                    date = new Date(dateStr);
+                                }
+                                return date.toLocaleDateString('id-ID');
+                            } catch (e) {
+                                return row.settlement_date;
+                            }
+                        })() : '-'}
+                    </span>
                 </div>
             )
         },
@@ -347,33 +425,103 @@ const PembayaranPage = () => {
             name: 'Status Pembayaran',
             selector: row => row.payment_status,
             sortable: true,
-            width: '140px',
+            width: '200px',
+            center: true,
             wrap: true,
             cell: row => (
-                <span className={`inline-flex px-3 py-1.5 text-xs font-medium rounded-lg ${
-                    row.payment_status === 1 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-red-100 text-red-800'
-                }`}>
-                    {row.payment_status === 1 ? 'Lunas' : 'Belum Lunas'}
-                </span>
+                <div className="w-full flex items-center justify-center">
+                    <span className={`inline-flex px-3 py-1.5 text-sm font-medium rounded-lg border ${
+                        row.payment_status === 1 
+                            ? 'bg-green-50 text-green-700 border-green-200' 
+                            : 'bg-red-50 text-red-700 border-red-200'
+                    }`}>
+                        {row.payment_status === 1 ? 'Lunas' : 'Belum Lunas'}
+                    </span>
+                </div>
             )
         },
         {
-            name: 'Jumlah',
-            selector: row => row.amount,
+            name: 'Biaya Total',
+            selector: row => row.biaya_total,
             sortable: true,
-            width: '160px',
+            width: '180px',
+            center: true,
             wrap: true,
             cell: row => (
-                <span className="inline-flex px-3 py-2 text-sm font-semibold rounded-lg bg-green-100 text-green-800">
-                    {row.amount ? new Intl.NumberFormat('id-ID', {
-                        style: 'currency',
-                        currency: 'IDR',
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0
-                    }).format(row.amount) : 'Rp 0'}
-                </span>
+                <div className="w-full flex items-center justify-center">
+                    <span className="inline-flex px-3 py-2 text-sm font-semibold rounded-lg bg-green-50 text-green-700 border border-green-200">
+                        {row.biaya_total ? new Intl.NumberFormat('id-ID', {
+                            style: 'currency',
+                            currency: 'IDR',
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 0
+                        }).format(row.biaya_total) : 'Rp 0'}
+                    </span>
+                </div>
+            )
+        },
+        {
+            name: 'Dibuat',
+            selector: row => row.created_at,
+            sortable: true,
+            width: '140px',
+            center: true,
+            wrap: true,
+            cell: row => (
+                <div className="w-full flex items-center justify-center">
+                    <span className="text-gray-900 font-medium text-sm">
+                        {row.created_at ? (() => {
+                            try {
+                                // Handle both DD-MM-YYYY and YYYY-MM-DD formats
+                                const dateStr = row.created_at;
+                                let date;
+                                if (dateStr.includes('-') && dateStr.split('-')[0].length === 2) {
+                                    // DD-MM-YYYY format
+                                    const [day, month, year] = dateStr.split('-');
+                                    date = new Date(year, month - 1, day);
+                                } else {
+                                    // YYYY-MM-DD format or other standard formats
+                                    date = new Date(dateStr);
+                                }
+                                return date.toLocaleDateString('id-ID');
+                            } catch (e) {
+                                return row.created_at;
+                            }
+                        })() : '-'}
+                    </span>
+                </div>
+            )
+        },
+        {
+            name: 'Diperbarui',
+            selector: row => row.updated_at,
+            sortable: true,
+            width: '140px',
+            center: true,
+            wrap: true,
+            cell: row => (
+                <div className="w-full flex items-center justify-center">
+                    <span className="text-gray-900 font-medium text-sm">
+                        {row.updated_at ? (() => {
+                            try {
+                                // Handle both DD-MM-YYYY and YYYY-MM-DD formats
+                                const dateStr = row.updated_at;
+                                let date;
+                                if (dateStr.includes('-') && dateStr.split('-')[0].length === 2) {
+                                    // DD-MM-YYYY format
+                                    const [day, month, year] = dateStr.split('-');
+                                    date = new Date(year, month - 1, day);
+                                } else {
+                                    // YYYY-MM-DD format or other standard formats
+                                    date = new Date(dateStr);
+                                }
+                                return date.toLocaleDateString('id-ID');
+                            } catch (e) {
+                                return row.updated_at;
+                            }
+                        })() : '-'}
+                    </span>
+                </div>
             )
         },
     ], [openMenuId, filteredData, getFarmName, getBankName]);
@@ -639,7 +787,7 @@ const PembayaranPage = () => {
                             WebkitOverflowScrolling: 'touch',
                         }}
                     >
-                        <div style={{ minWidth: '1100px' }}>
+                        <div style={{ minWidth: '1740px' }}>
                             <DataTable
                             key={`datatable-${serverPagination.currentPage}-${filteredData.length}`}
                             columns={columns}
@@ -658,7 +806,7 @@ const PembayaranPage = () => {
                                 },
                                 table: {
                                     style: {
-                                        minWidth: '1100px',
+                                        minWidth: '1480px',
                                     }
                                 },
                                 headCells: {

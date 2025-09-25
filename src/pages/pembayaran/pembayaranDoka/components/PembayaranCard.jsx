@@ -118,52 +118,62 @@ const PembayaranCard = ({
 
             {/* Card Content Grid */}
             <div className="space-y-4">
-                 {/* ID Pembayaran */}
+                {/* Nota */}
                 <div>
                     <div className="flex items-center gap-2 mb-1.5">
                         <div className="p-1.5 rounded-lg bg-gray-100">
                             <Hash className="w-4 h-4 text-gray-600" />
                         </div>
-                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">ID Pembayaran</span>
+                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Nota</span>
                     </div>
                     <span className="font-mono text-sm bg-gray-100 px-3 py-1.5 rounded-lg break-words block">
-                        #{data.id || '-'}
+                        {data.nota || '-'}
                     </span>
                 </div>
 
-                {/* Nota HO */}
+                {/* Tipe Pembelian */}
                 <div>
                     <div className="flex items-center gap-2 mb-1.5">
-                        <div className="p-1.5 rounded-lg bg-blue-100">
-                            <Hash className="w-4 h-4 text-blue-600" />
+                        <div className="p-1.5 rounded-lg bg-indigo-100">
+                            <CreditCard className="w-4 h-4 text-indigo-600" />
                         </div>
-                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Nota HO</span>
+                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Tipe Pembelian</span>
                     </div>
-                    <span className="font-mono text-sm bg-blue-100 px-3 py-1.5 rounded-lg break-words block">
-                        {data.nota_ho || '-'}
+                    <span className="font-medium text-sm bg-indigo-100 text-indigo-800 px-3 py-1.5 rounded-lg break-words block">
+                        {data.purchase_type || '-'}
                     </span>
                 </div>
 
-                {/* Supplier */}
-                <div>
-                    <div className="flex items-center gap-2 mb-1.5">
-                        <div className="p-1.5 rounded-lg bg-blue-100">
-                            <Building2 className="w-4 h-4 text-blue-600" />
+                {/* Tanggal Masuk & Tanggal Jatuh Tempo (Sebaris) */}
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <div className="flex items-center gap-2 mb-1.5">
+                            <div className="p-1.5 rounded-lg bg-blue-100">
+                                <Calendar className="w-4 h-4 text-blue-600" />
+                            </div>
+                            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Tgl Masuk</span>
                         </div>
-                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Supplier</span>
-                    </div>
-                    <div className="flex items-center">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-3 flex-shrink-0">
-                            <Building2 className="w-4 h-4 text-blue-600" />
-                        </div>
-                        <span className="font-semibold text-gray-900 text-base truncate">
-                            {data.nama_supplier || '-'}
+                        <span className="text-gray-900 font-medium text-sm">
+                            {data.tgl_masuk ? (() => {
+                                try {
+                                    // Handle both DD-MM-YYYY and YYYY-MM-DD formats
+                                    const dateStr = data.tgl_masuk;
+                                    let date;
+                                    if (dateStr.includes('-') && dateStr.split('-')[0].length === 2) {
+                                        // DD-MM-YYYY format
+                                        const [day, month, year] = dateStr.split('-');
+                                        date = new Date(year, month - 1, day);
+                                    } else {
+                                        // YYYY-MM-DD format or other standard formats
+                                        date = new Date(dateStr);
+                                    }
+                                    return date.toLocaleDateString('id-ID');
+                                } catch (e) {
+                                    return data.tgl_masuk;
+                                }
+                            })() : '-'}
                         </span>
                     </div>
-                </div>
-
-                {/* Tanggal Jatuh Tempo & Tanggal Pelunasan (Sebaris) */}
-                <div className="grid grid-cols-2 gap-4">
                     <div>
                         <div className="flex items-center gap-2 mb-1.5">
                             <div className="p-1.5 rounded-lg bg-orange-100">
@@ -172,20 +182,56 @@ const PembayaranCard = ({
                             <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Jatuh Tempo</span>
                         </div>
                         <span className="text-gray-900 font-medium text-sm">
-                            {data.due_date ? new Date(data.due_date).toLocaleDateString('id-ID') : '-'}
+                            {data.due_date ? (() => {
+                                try {
+                                    // Handle both DD-MM-YYYY and YYYY-MM-DD formats
+                                    const dateStr = data.due_date;
+                                    let date;
+                                    if (dateStr.includes('-') && dateStr.split('-')[0].length === 2) {
+                                        // DD-MM-YYYY format
+                                        const [day, month, year] = dateStr.split('-');
+                                        date = new Date(year, month - 1, day);
+                                    } else {
+                                        // YYYY-MM-DD format or other standard formats
+                                        date = new Date(dateStr);
+                                    }
+                                    return date.toLocaleDateString('id-ID');
+                                } catch (e) {
+                                    return data.due_date;
+                                }
+                            })() : '-'}
                         </span>
                     </div>
-                    <div>
-                        <div className="flex items-center gap-2 mb-1.5">
-                            <div className="p-1.5 rounded-lg bg-green-100">
-                                <Calendar className="w-4 h-4 text-green-600" />
-                            </div>
-                            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Pelunasan</span>
+                </div>
+
+                {/* Tanggal Pelunasan */}
+                <div>
+                    <div className="flex items-center gap-2 mb-1.5">
+                        <div className="p-1.5 rounded-lg bg-green-100">
+                            <Calendar className="w-4 h-4 text-green-600" />
                         </div>
-                        <span className="text-gray-900 font-medium text-sm">
-                            {data.settlement_date ? new Date(data.settlement_date).toLocaleDateString('id-ID') : '-'}
-                        </span>
+                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Tanggal Pelunasan</span>
                     </div>
+                    <span className="text-gray-900 font-medium text-sm">
+                        {data.settlement_date ? (() => {
+                            try {
+                                // Handle both DD-MM-YYYY and YYYY-MM-DD formats
+                                const dateStr = data.settlement_date;
+                                let date;
+                                if (dateStr.includes('-') && dateStr.split('-')[0].length === 2) {
+                                    // DD-MM-YYYY format
+                                    const [day, month, year] = dateStr.split('-');
+                                    date = new Date(year, month - 1, day);
+                                } else {
+                                    // YYYY-MM-DD format or other standard formats
+                                    date = new Date(dateStr);
+                                }
+                                return date.toLocaleDateString('id-ID');
+                            } catch (e) {
+                                return data.settlement_date;
+                            }
+                        })() : '-'}
+                    </span>
                 </div>
 
                 {/* Status Pembayaran */}
@@ -212,22 +258,82 @@ const PembayaranCard = ({
                     </div>
                 </div>
 
-                {/* Jumlah Pembayaran */}
+                {/* Biaya Total */}
                 <div>
                     <div className="flex items-center gap-2 mb-1.5">
                         <div className="p-1.5 rounded-lg bg-green-100">
                             <DollarSign className="w-4 h-4 text-green-600" />
                         </div>
-                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Jumlah</span>
+                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Biaya Total</span>
                     </div>
                     <span className="inline-flex px-4 py-2 text-base font-bold rounded-xl bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 shadow-inner">
-                        {data.amount ? new Intl.NumberFormat('id-ID', {
+                        {data.biaya_total ? new Intl.NumberFormat('id-ID', {
                             style: 'currency',
                             currency: 'IDR',
                             minimumFractionDigits: 0,
                             maximumFractionDigits: 0
-                        }).format(data.amount) : 'Rp 0'}
+                        }).format(data.biaya_total) : 'Rp 0'}
                     </span>
+                </div>
+
+                {/* Created At & Updated At (Sebaris) */}
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <div className="flex items-center gap-2 mb-1.5">
+                            <div className="p-1.5 rounded-lg bg-purple-100">
+                                <Calendar className="w-4 h-4 text-purple-600" />
+                            </div>
+                            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Dibuat</span>
+                        </div>
+                        <span className="text-gray-900 font-medium text-sm">
+                            {data.created_at ? (() => {
+                                try {
+                                    // Handle both DD-MM-YYYY and YYYY-MM-DD formats
+                                    const dateStr = data.created_at;
+                                    let date;
+                                    if (dateStr.includes('-') && dateStr.split('-')[0].length === 2) {
+                                        // DD-MM-YYYY format
+                                        const [day, month, year] = dateStr.split('-');
+                                        date = new Date(year, month - 1, day);
+                                    } else {
+                                        // YYYY-MM-DD format or other standard formats
+                                        date = new Date(dateStr);
+                                    }
+                                    return date.toLocaleDateString('id-ID');
+                                } catch (e) {
+                                    return data.created_at;
+                                }
+                            })() : '-'}
+                        </span>
+                    </div>
+                    <div>
+                        <div className="flex items-center gap-2 mb-1.5">
+                            <div className="p-1.5 rounded-lg bg-amber-100">
+                                <Calendar className="w-4 h-4 text-amber-600" />
+                            </div>
+                            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Diperbarui</span>
+                        </div>
+                        <span className="text-gray-900 font-medium text-sm">
+                            {data.updated_at ? (() => {
+                                try {
+                                    // Handle both DD-MM-YYYY and YYYY-MM-DD formats
+                                    const dateStr = data.updated_at;
+                                    let date;
+                                    if (dateStr.includes('-') && dateStr.split('-')[0].length === 2) {
+                                        // DD-MM-YYYY format
+                                        const [day, month, year] = dateStr.split('-');
+                                        date = new Date(year, month - 1, day);
+                                    } else {
+                                        // YYYY-MM-DD format or other standard formats
+                                        date = new Date(dateStr);
+                                    }
+                                    return date.toLocaleDateString('id-ID');
+                                } catch (e) {
+                                    return data.updated_at;
+                                }
+                            })() : '-'}
+                        </span>
+                    </div>
                 </div>
             </div>
         </div>

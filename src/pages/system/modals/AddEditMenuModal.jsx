@@ -1,7 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { X, Menu, Link, Hash, ArrowUp, Type, Palette } from 'lucide-react';
 
-const AddEditMenuModal = ({ isOpen, onClose, onSave, menu, menuOptions, selectedParentId }) => {
+const AddEditMenuModal = ({ isOpen, onClose, onSave, menu, menuOptions, selectedParentId, allMenus }) => {
+  console.log('AddEditMenuModal render - allMenus:', allMenus);
+  console.log('AddEditMenuModal render - allMenus length:', allMenus?.length);
+  console.log('AddEditMenuModal render - first item has id:', allMenus?.[0]?.id);
+  console.log('AddEditMenuModal render - first item has pid:', allMenus?.[0]?.pid);
+  console.log('AddEditMenuModal render - first item keys:', Object.keys(allMenus?.[0] || {}));
+  
   const [formData, setFormData] = useState({
     nama: '',
     icon: '',
@@ -11,9 +17,15 @@ const AddEditMenuModal = ({ isOpen, onClose, onSave, menu, menuOptions, selected
   });
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
+  const [localAllMenus, setLocalAllMenus] = useState([]);
 
   useEffect(() => {
     if (isOpen) {
+      console.log('Modal opened - allMenus:', allMenus);
+      console.log('Modal opened - allMenus length:', allMenus?.length);
+      console.log('Modal opened - allMenus type:', typeof allMenus);
+      console.log('Modal opened - allMenus is array:', Array.isArray(allMenus));
+      
       if (menu) {
         setFormData({
           nama: menu.nama || '',
@@ -33,7 +45,30 @@ const AddEditMenuModal = ({ isOpen, onClose, onSave, menu, menuOptions, selected
       }
       setErrors({});
     }
-  }, [menu, isOpen, selectedParentId]);
+  }, [menu, isOpen, selectedParentId, allMenus]);
+
+  // Separate effect to handle allMenus changes
+  useEffect(() => {
+    console.log('allMenus changed in modal:', allMenus);
+    console.log('allMenus length in modal:', allMenus?.length);
+    console.log('allMenus is array:', Array.isArray(allMenus));
+    
+    if (allMenus && Array.isArray(allMenus)) {
+      console.log('Setting localAllMenus to:', allMenus);
+      setLocalAllMenus(allMenus);
+    } else {
+      console.log('allMenus is not valid, setting empty array');
+      setLocalAllMenus([]);
+    }
+  }, [allMenus]);
+
+  // Force update localAllMenus when modal opens
+  useEffect(() => {
+    if (isOpen && allMenus && Array.isArray(allMenus) && allMenus.length > 0) {
+      console.log('Modal opened - force setting localAllMenus');
+      setLocalAllMenus([...allMenus]); // Create a new array to force update
+    }
+  }, [isOpen, allMenus]);
 
   const validateForm = () => {
     const newErrors = {};
@@ -71,12 +106,15 @@ const AddEditMenuModal = ({ isOpen, onClose, onSave, menu, menuOptions, selected
       const dataToSave = {
         nama: formData.nama.trim(),
         icon: formData.icon.trim() || null,
-        parent_id: formData.parent_id ? parseInt(formData.parent_id) : null,
+        parent_id: formData.parent_id && formData.parent_id !== '' ? 
+          // Try to parse as integer first, if fails send as string (pid)
+          (isNaN(parseInt(formData.parent_id)) ? formData.parent_id : parseInt(formData.parent_id)) 
+          : null,
         url: formData.url.trim() || '#', // Otomatis kirim '#' jika URL dikosongkan
         sequence_order: parseInt(formData.sequence_order) || 0
       };
 
-      console.log('Calling onSave with data:', dataToSave);
+      console.log('Saving menu with parent_id:', dataToSave.parent_id);
       await onSave(dataToSave);
       console.log('onSave completed successfully');
       // Modal akan ditutup oleh parent component setelah onSave berhasil
@@ -109,6 +147,26 @@ const AddEditMenuModal = ({ isOpen, onClose, onSave, menu, menuOptions, selected
     'BarChart3', 'TrendingUp', 'ShoppingCart', 'DollarSign', 'Beef', 'Truck',
     'Building2', 'UserCheck', 'Key', 'Receipt', 'Syringe', 'RotateCcw'
   ];
+
+  // Memoized dropdown options
+  const dropdownOptions = useMemo(() => {
+    console.log('Computing dropdown options - localAllMenus:', localAllMenus);
+    console.log('Computing dropdown options - localAllMenus length:', localAllMenus.length);
+    if (!localAllMenus || !Array.isArray(localAllMenus) || localAllMenus.length === 0) {
+      return [];
+    }
+    return localAllMenus.map((menuItem) => {
+      // Use id if available (from tree endpoint), otherwise use pid
+      const value = menuItem.id || menuItem.pid;
+      const key = menuItem.pid || menuItem.id || menuItem.nama; // Fallback for key
+      console.log('Menu item for dropdown:', { nama: menuItem.nama, id: menuItem.id, pid: menuItem.pid, using: value, key: key });
+      return {
+        key: key,
+        value: value,
+        label: menuItem.nama
+      };
+    });
+  }, [localAllMenus]);
 
   if (!isOpen) return null;
 
@@ -197,11 +255,23 @@ const AddEditMenuModal = ({ isOpen, onClose, onSave, menu, menuOptions, selected
               disabled={saving}
             >
               <option value="">-- Root Menu --</option>
-              {menuOptions.map((option) => (
-                <option key={option.pid} value={option.pid}>
-                  {option.nama}
+              {dropdownOptions.length > 0 ? (
+                dropdownOptions.map((option) => {
+                  console.log('Rendering dropdown option:', option);
+                  return (
+                    <option key={option.key} value={option.value}>
+                      {option.label}
+                    </option>
+                  );
+                })
+              ) : (
+              <>
+                <option value="">-- Root Menu --</option>
+                <option disabled>
+                  {localAllMenus.length === 0 ? 'Loading menus...' : 'No menus available'}
                 </option>
-              ))}
+              </>
+              )}
             </select>
           </div>
 

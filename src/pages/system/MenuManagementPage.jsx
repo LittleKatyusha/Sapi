@@ -41,9 +41,11 @@ const MenuManagementPage = () => {
     stats,
     menuOptions,
     menuTree,
+    treeMenus,
     roles,
     setRoles,
     fetchMenus,
+    fetchTreeMenus,
     fetchRoles,
     createMenu,
     updateMenu,
@@ -54,9 +56,21 @@ const MenuManagementPage = () => {
 
   useEffect(() => {
     fetchMenus();
+    fetchTreeMenus();
     fetchRoles();
     getMenuStatistics();
-  }, [fetchMenus, fetchRoles, getMenuStatistics]);
+  }, [fetchMenus, fetchTreeMenus, fetchRoles, getMenuStatistics]);
+
+  // Debug allMenus and treeMenus
+  useEffect(() => {
+    console.log('MenuManagementPage - allMenus updated:', allMenus);
+    console.log('MenuManagementPage - allMenus length:', allMenus?.length);
+    console.log('MenuManagementPage - treeMenus updated:', treeMenus);
+    console.log('MenuManagementPage - treeMenus length:', treeMenus?.length);
+    console.log('MenuManagementPage - menuTree updated:', menuTree);
+    console.log('MenuManagementPage - menuTree length:', menuTree?.length);
+    console.log('MenuManagementPage - will use treeMenus:', treeMenus?.length > 0);
+  }, [allMenus, treeMenus, menuTree]);
 
   // Notification handler
   const showNotification = (message, type = 'success') => {
@@ -67,15 +81,76 @@ const MenuManagementPage = () => {
   };
 
   const handleAdd = () => {
-    setEditingMenu(null);
-    setIsModalOpen(true);
+    console.log('handleAdd called');
+    console.log('handleAdd - allMenus at add time:', allMenus);
+    console.log('handleAdd - allMenus length at add time:', allMenus?.length);
+    console.log('handleAdd - treeMenus at add time:', treeMenus);
+    console.log('handleAdd - treeMenus length at add time:', treeMenus?.length);
+    
+    // Check if we have any menu data for dropdown (either allMenus or treeMenus)
+    const hasMenuData = (allMenus && allMenus.length > 0) || (treeMenus && treeMenus.length > 0);
+    
+    if (!hasMenuData) {
+      console.log('No menu data ready for add, waiting...');
+      // Wait a bit for data to load
+      setTimeout(() => {
+        console.log('Retry add - allMenus after timeout:', allMenus);
+        console.log('Retry add - treeMenus after timeout:', treeMenus);
+        const hasMenuDataRetry = (allMenus && allMenus.length > 0) || (treeMenus && treeMenus.length > 0);
+        if (hasMenuDataRetry) {
+          setEditingMenu(null);
+          setIsModalOpen(true);
+        } else {
+          console.log('Still no menu data, force refresh');
+          // Force refresh tree menus if still empty
+          fetchTreeMenus().then(() => {
+            setEditingMenu(null);
+            setIsModalOpen(true);
+          });
+        }
+      }, 100);
+    } else {
+      setEditingMenu(null);
+      setIsModalOpen(true);
+    }
   };
 
   const handleEdit = (menu) => {
     console.log('handleEdit called with menu:', menu);
-    setEditingMenu(menu);
-    setOpenMenuId(null);
-    setIsModalOpen(true);
+    console.log('handleEdit - allMenus at edit time:', allMenus);
+    console.log('handleEdit - allMenus length at edit time:', allMenus?.length);
+    console.log('handleEdit - treeMenus at edit time:', treeMenus);
+    console.log('handleEdit - treeMenus length at edit time:', treeMenus?.length);
+    
+    // Check if we have any menu data for dropdown (either allMenus or treeMenus)
+    const hasMenuData = (allMenus && allMenus.length > 0) || (treeMenus && treeMenus.length > 0);
+    
+    if (!hasMenuData) {
+      console.log('No menu data ready for edit, waiting...');
+      // Wait a bit for data to load
+      setTimeout(() => {
+        console.log('Retry edit - allMenus after timeout:', allMenus);
+        console.log('Retry edit - treeMenus after timeout:', treeMenus);
+        const hasMenuDataRetry = (allMenus && allMenus.length > 0) || (treeMenus && treeMenus.length > 0);
+        if (hasMenuDataRetry) {
+          setEditingMenu(menu);
+          setOpenMenuId(null);
+          setIsModalOpen(true);
+        } else {
+          console.log('Still no menu data, force refresh');
+          // Force refresh tree menus if still empty
+          fetchTreeMenus().then(() => {
+            setEditingMenu(menu);
+            setOpenMenuId(null);
+            setIsModalOpen(true);
+          });
+        }
+      }, 100);
+    } else {
+      setEditingMenu(menu);
+      setOpenMenuId(null);
+      setIsModalOpen(true);
+    }
   };
 
   const handleDelete = (menu) => {
@@ -379,9 +454,9 @@ const MenuManagementPage = () => {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
             >
               <option value="">Semua Parent</option>
-              {menuOptions.map((option) => (
-                <option key={option.pid} value={option.pid}>
-                  {option.nama}
+              {allMenus && allMenus.map((menuItem) => (
+                <option key={menuItem.pid} value={menuItem.pid}>
+                  {menuItem.nama}
                 </option>
               ))}
             </select>
@@ -437,6 +512,7 @@ const MenuManagementPage = () => {
       {/* Add/Edit Modal */}
       {isModalOpen && (
         <AddEditMenuModal
+          key={`modal-${(treeMenus?.length || 0) + (allMenus?.length || 0)}-${isModalOpen}`}
           isOpen={isModalOpen}
           onClose={() => {
             setIsModalOpen(false);
@@ -445,6 +521,7 @@ const MenuManagementPage = () => {
           onSave={handleSave}
           menu={editingMenu}
           menuOptions={menuOptions}
+          allMenus={JSON.parse(JSON.stringify(treeMenus?.length > 0 ? treeMenus : allMenus || []))} // Use treeMenus if available, fallback to allMenus
         />
       )}
 
@@ -477,6 +554,7 @@ const MenuManagementPage = () => {
           showNotification={showNotification}
           onAccess={handleAccess}
           roles={roles}
+          allMenus={JSON.parse(JSON.stringify(treeMenus?.length > 0 ? treeMenus : allMenus || []))} // Pass same data as modal
         />
       )}
 

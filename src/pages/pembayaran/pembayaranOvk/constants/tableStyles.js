@@ -1,15 +1,31 @@
 const customTableStyles = {
     table: {
         style: {
-            minHeight: '400px',
-            borderRadius: '0.75rem',
-            overflow: 'hidden',
+            backgroundColor: '#fff',
+            borderRadius: '0px', // Remove border radius from table itself for seamless scrolling
+            width: '100%',
+            minWidth: '1740px', // Optimized minimum width ensuring all headers display completely
+            maxWidth: '100%',
+            tableLayout: 'auto', // Auto layout for optimal column fitting
+            borderCollapse: 'separate',
+            borderSpacing: 0,
+            margin: 0,
         },
     },
     tableWrapper: {
         style: {
-            overflow: 'visible',
-            borderRadius: '0.75rem',
+            overflowX: 'auto',
+            overflowY: 'visible',
+            width: '100%',
+            maxWidth: '100%',
+            border: 'none',
+            borderRadius: '0',
+            WebkitOverflowScrolling: 'touch',
+            position: 'relative',
+            scrollBehavior: 'smooth',
+            // Custom scrollbar styling
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#cbd5e1 #f1f5f9',
         },
     },
     header: {
@@ -19,64 +35,81 @@ const customTableStyles = {
             padding: '1rem 1.5rem',
             fontSize: '1.25rem',
             fontWeight: '600',
+            textAlign: 'center', // Center alignment for header
         },
     },
     headRow: {
         style: {
-            backgroundColor: '#f1f5f9',
-            borderBottomWidth: '1px',
-            borderBottomColor: '#e2e8f0',
-            minHeight: '3.5rem',
+            position: 'sticky',
+            top: 0,
+            zIndex: 1000,
+            backgroundColor: '#f8fafc', // Subtle background instead of gradient
+            borderBottom: '2px solid #e2e8f0',
+            minHeight: '52px', // Increased for better breathing room
+            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
         },
     },
     headCells: {
         style: {
-            paddingLeft: '1rem',
-            paddingRight: '1rem',
+            paddingTop: '12px', // py-3 equivalent
+            paddingBottom: '12px',
+            paddingLeft: '16px', // px-4 equivalent
+            paddingRight: '16px',
             fontWeight: '600',
             color: '#334155',
-            fontSize: '0.875rem',
+            fontSize: '13px', // Slightly larger for better readability
             textTransform: 'uppercase',
             letterSpacing: '0.025em',
-            '&:first-child': {
-                paddingLeft: '1.5rem',
-            },
+            textAlign: 'center', // Center alignment for all headers
+            borderRight: '1px solid #e2e8f0', // Border between columns
+            whiteSpace: 'nowrap',
+            overflow: 'visible', // Allow content to expand
+            background: 'transparent',
+            // Remove border from last column to avoid empty column appearance
             '&:last-child': {
-                paddingRight: '1.5rem',
+                borderRight: 'none',
             },
         },
     },
     cells: {
         style: {
-            paddingLeft: '1rem',
-            paddingRight: '1rem',
-            fontSize: '0.875rem',
-            color: '#334155',
-            minHeight: '3rem',
-            '&:first-child': {
-                paddingLeft: '1.5rem',
-            },
+            paddingTop: '12px', // py-3 equivalent  
+            paddingBottom: '12px',
+            paddingLeft: '16px', // px-4 equivalent
+            paddingRight: '16px',
+            fontSize: '13px',
+            color: '#475569',
+            textAlign: 'center', // Center alignment for all cells
+            borderRight: '1px solid #f1f5f9', // Subtle border between columns
+            // Enable word wrapping and break words for long content
+            whiteSpace: 'normal',
+            wordWrap: 'break-word',
+            wordBreak: 'break-words',
+            overflowWrap: 'break-word',
+            // Allow dynamic row height
+            minHeight: 'auto',
+            height: 'auto',
+            // Remove border from last column
             '&:last-child': {
-                paddingRight: '1.5rem',
+                borderRight: 'none',
             },
         },
     },
     rows: {
         style: {
-            minHeight: '3.5rem',
-            '&:not(:last-of-type)': {
-                borderBottomStyle: 'solid',
-                borderBottomWidth: '1px',
-                borderBottomColor: '#f1f5f9',
-            },
+            minHeight: '44px', // Increased minimum height for better content display
+            height: 'auto', // Dynamic height adjustment
+            borderBottom: '1px solid #f1f5f9',
+            transition: 'all 0.2s ease',
             '&:hover': {
                 backgroundColor: '#f8fafc',
-                transition: 'background-color 0.2s ease',
+                transform: 'translateY(-1px)', // Subtle lift effect
+                boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
             },
         },
         highlightOnHoverStyle: {
-            backgroundColor: '#f1f5f9',
-            transition: 'background-color 0.2s ease',
+            backgroundColor: '#f8fafc',
+            transition: 'all 0.2s ease',
         },
     },
     pagination: {

@@ -228,6 +228,8 @@ const usePembelianHO = () => {
                 biaya_total: parseFloat(pembelianData.biayaTotal) || 0,
                 berat_total: parseFloat(pembelianData.beratTotal) || 0,
                 tipe_pembelian: parseInt(pembelianData.tipePembelian) || 1,
+                tipe_pembayaran: parseInt(pembelianData.tipe_pembayaran) || 1,
+                due_date: pembelianData.due_date || null,
                 file: pembelianData.file || null,
                 note: pembelianData.note || null
             };
@@ -318,6 +320,8 @@ const usePembelianHO = () => {
                     biaya_total: parseNumericField(data.biayaTotal || data.biaya_total),
                     berat_total: parseNumericField(data.beratTotal || data.berat_total),
                     tipe_pembelian: parseInt(data.tipePembelian || data.tipe_pembelian) || 1,
+                    tipe_pembayaran: parseInt(data.tipe_pembayaran) || 1,
+                    due_date: data.due_date || null,
                     note: String(data.note || '')
                 };
                 
@@ -737,6 +741,8 @@ const usePembelianHO = () => {
                 biaya_total: parseFloat(headerData.biaya_total) || 0,
                 berat_total: parseFloat(headerData.berat_total) || 0,
                 tipe_pembelian: parseInt(headerData.tipe_pembelian) || 1,
+                tipe_pembayaran: parseInt(headerData.tipe_pembayaran) || 1,
+                due_date: headerData.due_date || null,
                 file: headerData.file || null,
                 note: headerData.note || null
             };

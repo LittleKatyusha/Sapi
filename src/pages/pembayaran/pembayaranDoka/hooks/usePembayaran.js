@@ -61,13 +61,24 @@ const usePembayaran = () => {
             if (jsonData && jsonData.data) {
                 // Transform backend data to match frontend expectations
                 const transformedData = jsonData.data.map(item => ({
-                    id: item.id, // Use actual id from API response
-                    encryptedPid: item.pid,
-                    nota_ho: item.nota_ho,
-                    nama_supplier: item.nama_supplier,
+                    // Keep id for internal operations but don't display it in UI
+                    id: item.id,
+                    // Map all the fields from your API response
+                    id_pembelian: item.id_pembelian,
+                    purchase_type: item.purchase_type,
                     due_date: item.due_date,
                     settlement_date: item.settlement_date,
                     payment_status: item.payment_status,
+                    created_at: item.created_at,
+                    updated_at: item.updated_at,
+                    nota: item.nota,
+                    tgl_masuk: item.tgl_masuk,
+                    biaya_total: item.biaya_total,
+                    // Keep pid for internal operations but don't display it in UI
+                    encryptedPid: item.pid,
+                    // Keep existing fields for backward compatibility
+                    nota_ho: item.nota_ho,
+                    nama_supplier: item.nama_supplier,
                     amount: item.amount,
                     farm: item.farm,
                     syarat_pembayaran: item.syarat_pembayaran,
