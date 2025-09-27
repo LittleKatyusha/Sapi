@@ -120,8 +120,8 @@ const PembayaranPage = () => {
     useEffect(() => {
         // Check if we're returning from an edit page
         if (location.state?.fromEdit) {
-            console.log('🔄 Pembayaran: Auto-refreshing data after returning from edit page');
-            console.log('🔄 Pembayaran: Current state:', { 
+            console.log('🔄 Pembayaran Feedmill: Auto-refreshing data after returning from edit page');
+            console.log('🔄 Pembayaran Feedmill: Current state:', { 
                 currentPage: serverPagination.currentPage, 
                 perPage: serverPagination.perPage, 
                 searchTerm 
@@ -145,10 +145,10 @@ const PembayaranPage = () => {
             });
             return;
         }
-        console.log('🔍 OVK Edit - pembayaranItem:', pembayaranItem);
-        console.log('🔍 OVK Edit - using database id:', id);
-        console.log('🔍 OVK Edit - id type:', typeof id);
-        navigate(`/pembayaran/ovk/edit/${encodeURIComponent(id)}`);
+        console.log('🔍 Feedmill Edit - pembayaranItem:', pembayaranItem);
+        console.log('🔍 Feedmill Edit - using database id:', id);
+        console.log('🔍 Feedmill Edit - id type:', typeof id);
+        navigate(`/pembayaran/feedmill/edit/${encodeURIComponent(id)}`);
         setOpenMenuId(null);
     };
 
@@ -162,10 +162,10 @@ const PembayaranPage = () => {
             });
             return;
         }
-        console.log('🔍 OVK Detail - pembayaranItem:', pembayaranItem);
-        console.log('🔍 OVK Detail - using database id:', id);
-        console.log('🔍 OVK Detail - id type:', typeof id);
-        navigate(`/pembayaran/ovk/detail/${encodeURIComponent(id)}`);
+        console.log('🔍 Feedmill Detail - pembayaranItem:', pembayaranItem);
+        console.log('🔍 Feedmill Detail - using database id:', id);
+        console.log('🔍 Feedmill Detail - id type:', typeof id);
+        navigate(`/pembayaran/feedmill/detail/${encodeURIComponent(id)}`);
         setOpenMenuId(null);
     };
 
@@ -691,7 +691,7 @@ const PembayaranPage = () => {
                         <div>
                             <h1 className="text-2xl sm:text-4xl font-bold text-gray-800 mb-1 sm:mb-2 flex items-center gap-3">
                                 <CreditCard size={32} className="text-blue-500" />
-                                Pembayaran OVK
+                                Pembayaran Feedmill
                             </h1>
                             <p className="text-gray-600 text-sm sm:text-base">
                                 Kelola data pembayaran
@@ -756,7 +756,7 @@ const PembayaranPage = () => {
                         <div className="flex items-center justify-between text-sm text-gray-600">
                             <span className="flex items-center gap-2">
                                 <CreditCard className="w-4 h-4" />
-                                Data Pembayaran OVK
+                                Data Pembayaran Feedmill
                             </span>
                             <div className="flex items-center gap-2 text-xs">
                                 {scrollPosition.canScrollLeft && (

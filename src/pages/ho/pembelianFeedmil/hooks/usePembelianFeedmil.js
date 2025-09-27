@@ -219,6 +219,10 @@ const usePembelianFeedmil = () => {
             formData.append('nota_ho', pembelianData.nota_ho || ''); // Required field
             formData.append('id_farm', pembelianData.id_farm || ''); // Required field
             formData.append('id_syarat_pembelian', pembelianData.id_syarat_pembelian || ''); // Required field
+            formData.append('tipe_pembayaran', pembelianData.tipe_pembayaran || ''); // Added: Tipe pembayaran
+            formData.append('due_date', pembelianData.due_date || ''); // Added: Jatuh tempo
+            formData.append('jumlah', pembelianData.jumlah || 0); // Added: Jumlah
+            formData.append('biaya_total', pembelianData.biaya_total || 0); // Added: Total biaya
             
             // Add file if exists
             if (pembelianData.file && pembelianData.file instanceof File) {
@@ -362,6 +366,10 @@ const usePembelianFeedmil = () => {
             formData.append('nota_ho', data.nota_ho || ''); // Required field
             formData.append('id_farm', data.id_farm || ''); // Required field
             formData.append('id_syarat_pembelian', data.id_syarat_pembelian || ''); // Required field
+            formData.append('tipe_pembayaran', data.tipe_pembayaran || ''); // Added: Tipe pembayaran
+            formData.append('due_date', data.due_date || ''); // Added: Jatuh tempo
+            formData.append('jumlah', data.jumlah || 0); // Added: Jumlah
+            formData.append('biaya_total', data.biaya_total || 0); // Added: Total biaya
             
             // Add file if exists
             if (data.file && data.file instanceof File) {

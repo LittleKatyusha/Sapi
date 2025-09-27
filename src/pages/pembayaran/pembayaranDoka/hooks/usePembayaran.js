@@ -72,6 +72,7 @@ const usePembayaran = () => {
                     created_at: item.created_at,
                     updated_at: item.updated_at,
                     nota: item.nota,
+                    nota_sistem: item.nota_sistem,
                     tgl_masuk: item.tgl_masuk,
                     biaya_total: item.biaya_total,
                     // Keep pid for internal operations but don't display it in UI

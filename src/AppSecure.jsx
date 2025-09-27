@@ -85,6 +85,10 @@ const PembayaranDetailPage = lazy(() => import('./pages/pembayaran/pembayaranDok
 const PembayaranOvkPage = lazy(() => import('./pages/pembayaran/pembayaranOvk/PembayaranPage'));
 const PembayaranOvkDetailPage = lazy(() => import('./pages/pembayaran/pembayaranOvk/PembayaranDetailPage'));
 
+// Pembayaran Feedmill Pages - Lazy loaded
+const PembayaranFeedmillPage = lazy(() => import('./pages/pembayaran/pembayaranFeedmil/PembayaranPage'));
+const PembayaranFeedmillDetailPage = lazy(() => import('./pages/pembayaran/pembayaranFeedmil/PembayaranDetailPage'));
+
 const AppWrapperSecure = () => (
   <Router>
     <AppSecure />
@@ -220,6 +224,10 @@ function AppSecure() {
               {/* Pembayaran OVK Routes */}
               <Route path="/pembayaran/ovk" element={<PembayaranOvkPage />} />
               <Route path="/pembayaran/ovk/detail/:id" element={<PembayaranOvkDetailPage />} />
+
+              {/* Pembayaran Feedmill Routes */}
+              <Route path="/pembayaran/feedmill" element={<PembayaranFeedmillPage />} />
+              <Route path="/pembayaran/feedmill/detail/:id" element={<PembayaranFeedmillDetailPage />} />
               
               {/* HO Sales Routes */}
               <Route path="/ho/penjualan" element={<PenjualanHOPage />} />

@@ -456,26 +456,6 @@ const PembayaranPage = () => {
             )
         },
         {
-            name: 'Biaya Total',
-            selector: row => row.biaya_total,
-            sortable: true,
-            width: '180px',
-            center: true,
-            wrap: true,
-            cell: row => (
-                <div className="w-full flex items-center justify-center">
-                    <span className="inline-flex px-3 py-2 text-sm font-semibold rounded-lg bg-green-50 text-green-700 border border-green-200">
-                        {row.biaya_total ? new Intl.NumberFormat('id-ID', {
-                            style: 'currency',
-                            currency: 'IDR',
-                            minimumFractionDigits: 0,
-                            maximumFractionDigits: 0
-                        }).format(row.biaya_total) : 'Rp 0'}
-                    </span>
-                </div>
-            )
-        },
-        {
             name: 'Dibuat',
             selector: row => row.created_at,
             sortable: true,

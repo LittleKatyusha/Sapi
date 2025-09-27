@@ -47,16 +47,6 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef }) => 
             text: 'text-blue-600',
         },
         {
-            label: 'Edit Pembayaran',
-            icon: Edit,
-            onClick: () => onEdit(row),
-            className: 'text-gray-700',
-            description: 'Ubah informasi',
-            bg: 'bg-amber-100',
-            hoverBg: 'group-hover:bg-amber-200',
-            text: 'text-amber-600',
-        },
-        {
             divider: true
         },
         {

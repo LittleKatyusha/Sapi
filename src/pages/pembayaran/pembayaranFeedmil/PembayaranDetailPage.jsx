@@ -204,7 +204,7 @@ const PembayaranDetailPage = () => {
 
     // Handle edit
     const handleEdit = () => {
-        navigate(`/pembayaran/ovk/edit/${id}`);
+        navigate(`/pembayaran/feedmill/edit/${id}`);
     };
 
     // Handle delete
@@ -225,7 +225,7 @@ const PembayaranDetailPage = () => {
                 
                 // Navigate back after success
                 setTimeout(() => {
-                    navigate('/pembayaran/ovk');
+                    navigate('/pembayaran/feedmill');
                 }, 1500);
             } else {
                 throw new Error(result.message || 'Gagal menghapus pembayaran');
@@ -312,7 +312,7 @@ const PembayaranDetailPage = () => {
 
 
     const handleBack = () => {
-        navigate('/pembayaran/ovk');
+        navigate('/pembayaran/feedmill');
     };
 
     // Auto hide notification
@@ -514,7 +514,7 @@ const PembayaranDetailPage = () => {
                             <div>
                                 <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-1 sm:mb-2 flex items-center gap-2">
                                     <CreditCard size={28} className="text-blue-500" />
-                                    Detail Pembayaran OVK
+                                    Detail Pembayaran Feedmill
                                 </h1>
                                 <p className="text-gray-600 text-sm sm:text-base">
                                     Informasi lengkap pembayaran dan detail pembayaran
@@ -597,7 +597,7 @@ const PembayaranDetailPage = () => {
                             <div className="flex items-center gap-3">
                                 <DollarSign className="w-5 h-5 text-green-600" />
                                 <div>
-                                    <h2 className="text-lg font-bold text-gray-900">Detail Pembayaran OVK</h2>
+                                    <h2 className="text-lg font-bold text-gray-900">Detail Pembayaran Feedmill</h2>
                                     <p className="text-gray-500 text-sm">
                                         Rincian setiap pembayaran dalam transaksi ini
                                     </p>

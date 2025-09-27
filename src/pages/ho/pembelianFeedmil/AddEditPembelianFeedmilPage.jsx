@@ -5,6 +5,7 @@ import usePembelianFeedmil from './hooks/usePembelianFeedmil';
 import useParameterSelect from '../pembelian/hooks/useParameterSelect';
 import useJenisPembelianFeedmil from './hooks/useJenisPembelianFeedmil';
 import useBanksAPI from './hooks/useBanksAPI';
+import useTipePembayaran from '../../../hooks/useTipePembayaran';
 import SearchableSelect from '../../../components/shared/SearchableSelect';
 import HttpClient from '../../../services/httpClient';
 import { API_ENDPOINTS } from '../../../config/api';
@@ -62,6 +63,13 @@ const AddEditPembelianFeedmilPage = () => {
         error: bankError
     } = useBanksAPI();
 
+    // Tipe Pembayaran API integration
+    const {
+        tipePembayaranOptions,
+        loading: tipePembayaranLoading,
+        error: tipePembayaranError
+    } = useTipePembayaran();
+
     // Header form state - aligned with backend validation requirements
     const [headerData, setHeaderData] = useState({
         nota: '',
@@ -79,6 +87,10 @@ const AddEditPembelianFeedmilPage = () => {
         berat_total: '',
         harga_total: '', // Will map to biaya_total in backend
         total_feedmil: '', // Will map to jumlah in backend
+        jumlah: '', // Added: Jumlah item
+        biaya_total: '', // Added: Total biaya keseluruhan
+        tipe_pembayaran: '', // Added: Tipe pembayaran
+        due_date: '', // Added: Jatuh tempo payment
         file: '',
         fileName: '',
         note: '' // Required field for backend
@@ -338,6 +350,10 @@ const AddEditPembelianFeedmilPage = () => {
                             berat_total: safeGetNumber(headerData.berat_total),
                             harga_total: safeGetNumber(headerData.biaya_total) || safeGetNumber(headerData.total_belanja),
                             total_feedmil: safeGetNumber(headerData.jumlah),
+                            jumlah: safeGetNumber(headerData.jumlah),
+                            biaya_total: safeGetNumber(headerData.biaya_total) || safeGetNumber(headerData.total_belanja),
+                            tipe_pembayaran: safeGetString(headerData.tipe_pembayaran),
+                            due_date: safeGetString(headerData.due_date),
                             file: safeGetString(headerData.file), // Keep as string for display purposes
                             fileName: safeGetString(headerData.file_name) || safeGetString(headerData.fileName),
                             note: safeGetString(headerData.note) || safeGetString(headerData.catatan)
@@ -873,6 +889,14 @@ const AddEditPembelianFeedmilPage = () => {
             errors.push('Tanggal masuk harus diisi');
         }
 
+        if (!headerData.tipe_pembayaran) {
+            errors.push('Tipe pembayaran harus diisi');
+        }
+
+        if (!headerData.due_date) {
+            errors.push('Jatuh tempo harus diisi');
+        }
+
         // nama_supir, plat_nomor, dan biaya_truck sekarang opsional (nullable)
         // Validasi dihapus sesuai permintaan client
 
@@ -961,6 +985,10 @@ const AddEditPembelianFeedmilPage = () => {
                 nota_ho: headerData.nota_ho || '',
                 id_farm: headerData.farm ? parseInt(headerData.farm) : null,
                 id_syarat_pembelian: headerData.syarat_pembelian ? parseInt(headerData.syarat_pembelian) : null,
+                jumlah: parseInt(headerData.jumlah),
+                biaya_total: parseFloat(headerData.biaya_total) || null,
+                tipe_pembayaran: parseInt(headerData.tipe_pembayaran),
+                due_date: headerData.due_date || '',
                 // Ensure file is properly passed - prioritize selectedFile over headerData.file
                 // Only pass file if it's a File object (new upload) or if we have existing file name but no new file
                 file: selectedFile || (headerData.file && headerData.file instanceof File ? headerData.file : null),
@@ -1337,6 +1365,45 @@ const AddEditPembelianFeedmilPage = () => {
                             </p>
                         </div>
 
+                        {/* Jumlah */}
+                        <div>
+                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <Hash className="w-4 h-4" />
+                                Jumlah *
+                            </label>
+                            <input
+                                type="number"
+                                value={headerData.jumlah}
+                                onChange={(e) => handleHeaderChange('jumlah', e.target.value)}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                                placeholder=""
+                                min="0"
+                                required
+                            />
+                            <p className="text-xs text-blue-600 mt-1">
+                                💡 Jumlah item dalam pembelian ini
+                            </p>
+                        </div>
+
+                        {/* Total Biaya */}
+                        <div>
+                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <DollarSign className="w-4 h-4" />
+                                Total Biaya (Rp) *
+                            </label>
+                            <input
+                                type="text"
+                                value={formatNumber(headerData.biaya_total)}
+                                onChange={(e) => handleHeaderChange('biaya_total', parseNumber(e.target.value))}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                                placeholder=""
+                                required
+                            />
+                            <p className="text-xs text-blue-600 mt-1">
+                                💡 Total biaya keseluruhan pembelian
+                            </p>
+                        </div>
+
                         {/* Farm */}
                         <div>
                             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
@@ -1381,6 +1448,47 @@ const AddEditPembelianFeedmilPage = () => {
                                     ⚠️ Error loading banks: {bankError}
                                 </p>
                             )}
+                        </div>
+
+                        {/* Tipe Pembayaran */}
+                        <div>
+                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <Settings className="w-4 h-4" />
+                                Tipe Pembayaran *
+                            </label>
+                            <SearchableSelect
+                                options={tipePembayaranOptions}
+                                value={headerData.tipe_pembayaran}
+                                onChange={(value) => handleHeaderChange('tipe_pembayaran', value)}
+                                placeholder={tipePembayaranLoading ? 'Loading tipe pembayaran...' : tipePembayaranError ? 'Error loading tipe pembayaran' : 'Pilih tipe pembayaran'}
+                                isLoading={tipePembayaranLoading}
+                                isDisabled={tipePembayaranLoading || tipePembayaranError}
+                                required={true}
+                                className="w-full"
+                            />
+                            {tipePembayaranError && (
+                                <p className="text-xs text-red-500 mt-1">
+                                    ⚠️ Error loading tipe pembayaran: {tipePembayaranError}
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Due Date */}
+                        <div>
+                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <Calendar className="w-4 h-4" />
+                                Jatuh Tempo *
+                            </label>
+                            <input
+                                type="date"
+                                value={headerData.due_date}
+                                onChange={(e) => handleHeaderChange('due_date', e.target.value)}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                                required
+                            />
+                            <p className="text-xs text-blue-600 mt-1">
+                                💡 Tanggal jatuh tempo pembayaran
+                            </p>
                         </div>
 
                         {/* Note Field - Required by Backend */}

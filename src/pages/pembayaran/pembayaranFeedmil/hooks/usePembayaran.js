@@ -3,8 +3,8 @@ import HttpClient from '../../../../services/httpClient';
 import { API_ENDPOINTS } from '../../../../config/api';
 
 /**
- * Hook untuk mengelola data pembayaran OVK
- * Khusus untuk purchase_type = 3 (OVK)
+ * Hook untuk mengelola data pembayaran Feedmill
+ * Khusus untuk purchase_type = 2 (Feedmill)
  */
 const usePembayaran = () => {
     const [pembayaran, setPembayaran] = useState([]);
@@ -26,7 +26,7 @@ const usePembayaran = () => {
 
     // Fetch pembayaran data from API
     const fetchPembayaran = useCallback(async (page = 1, perPage = null, search = null, isSearchRequest = false, forceRefresh = false) => {
-        console.log('🔄 Pembayaran OVK Hook: fetchPembayaran called with params:', { page, perPage, search, isSearchRequest, forceRefresh });
+        console.log('🔄 Pembayaran Feedmill Hook: fetchPembayaran called with params:', { page, perPage, search, isSearchRequest, forceRefresh });
         setLoading(true);
         setError(null);
         setSearchError(null);
@@ -54,8 +54,8 @@ const usePembayaran = () => {
             const finalParams = forceRefresh ? `${params}&_t=${Date.now()}` : params;
             
             // Build API URL with purchase_type as query parameter
-            const apiUrl = `${API_ENDPOINTS.HO.PAYMENT.DATA}/?purchase_type=3&${finalParams}`;
-            console.log('🔄 Pembayaran OVK Hook: Making API call to:', apiUrl);
+            const apiUrl = `${API_ENDPOINTS.HO.PAYMENT.DATA}/?purchase_type=2&${finalParams}`;
+            console.log('🔄 Pembayaran Feedmill Hook: Making API call to:', apiUrl);
             const jsonData = await HttpClient.get(apiUrl);
             
             if (jsonData && jsonData.data) {
@@ -124,7 +124,7 @@ const usePembayaran = () => {
             const formData = new FormData();
             
             formData.append('id_pembelian', pembayaranData.id_pembelian || '');
-            formData.append('purchase_type', pembayaranData.purchase_type || 3);
+            formData.append('purchase_type', pembayaranData.purchase_type || 2);
             formData.append('due_date', pembayaranData.due_date || '');
             formData.append('settlement_date', pembayaranData.settlement_date || '');
             formData.append('payment_status', pembayaranData.payment_status || 0);
@@ -179,7 +179,7 @@ const usePembayaran = () => {
             
             formData.append('pid', data.id || data.encryptedPid);
             formData.append('id_pembelian', data.id_pembelian || '');
-            formData.append('purchase_type', data.purchase_type || 3);
+            formData.append('purchase_type', data.purchase_type || 2);
             formData.append('due_date', data.due_date || '');
             formData.append('settlement_date', data.settlement_date || '');
             formData.append('payment_status', data.payment_status || 0);
@@ -300,7 +300,7 @@ const usePembayaran = () => {
                         id: paymentData.id,
                         encryptedPid: paymentData.pid || encryptedPid,
                         id_pembelian: paymentData.id_pembelian || '',
-                        purchase_type: paymentData.purchase_type || 1,
+                        purchase_type: paymentData.purchase_type || 2,
                         due_date: paymentData.due_date || '',
                         settlement_date: paymentData.settlement_date || '',
                         payment_status: paymentData.payment_status || 0,

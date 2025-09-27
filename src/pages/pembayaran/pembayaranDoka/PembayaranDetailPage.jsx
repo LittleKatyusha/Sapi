@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Building2, Calendar, Hash, CreditCard, Eye, DollarSign, CheckCircle, XCircle, Edit, Trash2, Settings, Package, Plus } from 'lucide-react';
 import usePembayaran from './hooks/usePembayaran';
-import useTipePembayaran from '../../../hooks/useTipePembayaran';
 import customTableStyles from './constants/tableStyles';
 import DataTable from 'react-data-table-component';
 import { StyleSheetManager } from 'styled-components';
@@ -27,12 +26,6 @@ const PembayaranDetailPage = () => {
         error
     } = usePembayaran();
 
-    // Payment type options hook
-    const {
-        tipePembayaranOptions,
-        loading: loadingTipePembayaran,
-        error: errorTipePembayaran
-    } = useTipePembayaran();
 
     // State for payment data
     const [pembayaranData, setPembayaranData] = useState(null);
@@ -317,12 +310,6 @@ const PembayaranDetailPage = () => {
     // Calculate total amount
     const totalAmount = detailData.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
 
-    // Helper function to get payment type name
-    const getPaymentTypeName = (typeValue) => {
-        if (!typeValue && typeValue !== 0) return '-';
-        const paymentType = tipePembayaranOptions.find(option => option.value === parseInt(typeValue));
-        return paymentType ? paymentType.label : `Tipe ${typeValue}`;
-    };
 
     const handleBack = () => {
         navigate('/pembayaran/doka');
@@ -546,20 +533,6 @@ const PembayaranDetailPage = () => {
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
-                        {/* Tipe Pembayaran */}
-                        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <CreditCard className="w-4 h-4 inline mr-1" />
-                                Tipe Pembayaran
-                            </label>
-                            <p className="text-lg font-bold text-gray-900">
-                                {loadingTipePembayaran ? (
-                                    <span className="text-gray-500">Memuat...</span>
-                                ) : (
-                                    getPaymentTypeName(pembayaranData.purchase_type)
-                                )}
-                            </p>
-                        </div>
 
                         {/* Tanggal Jatuh Tempo */}
                         <div className="bg-gradient-to-r from-emerald-50 to-green-50 p-4 rounded-lg">
@@ -590,8 +563,15 @@ const PembayaranDetailPage = () => {
                                 Status Pembayaran
                             </label>
                             <div className="flex items-center gap-2">
-                                <span className="text-lg font-bold text-gray-900">
-                                    {pembayaranData.payment_status || '-'}
+                                <span className={`inline-flex px-3 py-1.5 text-sm font-medium rounded-lg border ${
+                                    pembayaranData.payment_status === 1 
+                                        ? 'bg-green-50 text-green-700 border-green-200' 
+                                        : pembayaranData.payment_status === 0
+                                        ? 'bg-red-50 text-red-700 border-red-200'
+                                        : 'bg-gray-50 text-gray-700 border-gray-200'
+                                }`}>
+                                    {pembayaranData.payment_status === 1 ? 'Lunas' : 
+                                     pembayaranData.payment_status === 0 ? 'Belum Lunas' : 'Belum Lunas'}
                                 </span>
                             </div>
                         </div>

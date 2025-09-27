@@ -98,13 +98,6 @@ const PembayaranCard = ({
                                 Detail
                             </button>
                             <button
-                                onClick={handleEdit}
-                                className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150"
-                            >
-                                <Edit className="w-4 h-4 text-amber-500" />
-                                Edit
-                            </button>
-                            <button
                                 onClick={handleDelete}
                                 className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors duration-150"
                             >
@@ -271,23 +264,6 @@ const PembayaranCard = ({
                     </div>
                 </div>
 
-                {/* Biaya Total */}
-                <div>
-                    <div className="flex items-center gap-2 mb-1.5">
-                        <div className="p-1.5 rounded-lg bg-green-100">
-                            <DollarSign className="w-4 h-4 text-green-600" />
-                        </div>
-                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Biaya Total</span>
-                    </div>
-                    <span className="inline-flex px-4 py-2 text-base font-bold rounded-xl bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 shadow-inner">
-                        {data.biaya_total ? new Intl.NumberFormat('id-ID', {
-                            style: 'currency',
-                            currency: 'IDR',
-                            minimumFractionDigits: 0,
-                            maximumFractionDigits: 0
-                        }).format(data.biaya_total) : 'Rp 0'}
-                    </span>
-                </div>
 
                 {/* Created At & Updated At (Sebaris) */}
                 <div className="grid grid-cols-2 gap-4">
