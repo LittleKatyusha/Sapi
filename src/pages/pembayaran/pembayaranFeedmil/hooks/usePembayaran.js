@@ -425,7 +425,37 @@ const usePembayaran = () => {
         getPaymentDetails: () => ({ success: false, data: [], message: 'Not implemented' }),
         createPaymentDetail: () => ({ success: false, message: 'Not implemented' }),
         updatePaymentDetail: () => ({ success: false, message: 'Not implemented' }),
-        deletePaymentDetail: () => ({ success: false, message: 'Not implemented' })
+        deletePaymentDetail: useCallback(async (detailId, pembayaranId) => {
+            setLoading(true);
+            setError(null);
+            
+            try {
+                const jsonData = await HttpClient.post(API_ENDPOINTS.HO.PAYMENT.DETAIL_DELETE, {
+                    id: detailId,
+                    pembayaran_id: pembayaranId
+                }, {
+                    skipCsrf: true
+                });
+                
+                if (jsonData && jsonData.status === 'ok') {
+                    return {
+                        success: true,
+                        message: jsonData.message || 'Detail pembayaran berhasil dihapus'
+                    };
+                } else {
+                    const errorMessage = jsonData?.message || 'Gagal menghapus detail pembayaran';
+                    throw new Error(errorMessage);
+                }
+                
+            } catch (err) {
+                console.error('Delete payment detail error:', err);
+                let errorMsg = err.message || 'Terjadi kesalahan saat menghapus detail pembayaran';
+                setError(errorMsg);
+                return { success: false, message: errorMsg };
+            } finally {
+                setLoading(false);
+            }
+        }, [])
     };
 };
 

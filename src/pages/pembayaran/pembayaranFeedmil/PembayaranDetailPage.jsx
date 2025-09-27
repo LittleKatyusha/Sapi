@@ -22,6 +22,7 @@ const PembayaranDetailPage = () => {
     const {
         getPembayaranDetail,
         deletePembayaran,
+        deletePaymentDetail,
         loading,
         error
     } = usePembayaran();
@@ -32,6 +33,8 @@ const PembayaranDetailPage = () => {
     const [detailData, setDetailData] = useState([]);
     const [notification, setNotification] = useState(null);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [isDeleteDetailModalOpen, setIsDeleteDetailModalOpen] = useState(false);
+    const [selectedDetail, setSelectedDetail] = useState(null);
     const [isAddPaymentModalOpen, setIsAddPaymentModalOpen] = useState(false);
     const [scrollPosition, setScrollPosition] = useState({ canScrollLeft: false, canScrollRight: false });
     const [openMenuId, setOpenMenuId] = useState(null);
@@ -151,7 +154,8 @@ const PembayaranDetailPage = () => {
                         
                         // Transform detail items untuk struktur frontend
                         const transformedDetailItems = detailItems.map((item, index) => ({
-                            id: index + 1,
+                            id: item.id, // Keep the actual database ID
+                            rowNumber: index + 1, // Add row number for display
                             amount: parseFloat(item.amount) || 0,
                             payment_date: item.payment_date || '',
                             note: item.note || item.description || '',
@@ -283,11 +287,59 @@ const PembayaranDetailPage = () => {
 
     // Handle delete action for payment details
     const handleDeleteAction = (row) => {
-        setNotification({
-            type: 'info',
-            message: 'Fitur hapus detail pembayaran akan segera tersedia'
-        });
+        setSelectedDetail(row);
+        setIsDeleteDetailModalOpen(true);
         setOpenMenuId(null);
+    };
+
+    // Handle delete detail confirmation
+    const handleDeleteDetailConfirm = async () => {
+        if (!selectedDetail) return;
+        
+        try {
+            const result = await deletePaymentDetail(selectedDetail.id, id);
+            
+            if (result.success) {
+                setNotification({
+                    type: 'success',
+                    message: result.message || 'Detail pembayaran berhasil dihapus'
+                });
+                
+                // Remove the deleted detail from the list
+                setDetailData(prevData => 
+                    prevData.filter(item => item.id !== selectedDetail.id)
+                );
+                
+                // Reset pagination if needed
+                const newTotalItems = detailData.length - 1;
+                const newTotalPages = Math.ceil(newTotalItems / pagination.perPage);
+                if (pagination.currentPage > newTotalPages && newTotalPages > 0) {
+                    setPagination(prev => ({
+                        ...prev,
+                        currentPage: newTotalPages,
+                        totalItems: newTotalItems,
+                        totalPages: newTotalPages
+                    }));
+                } else {
+                    setPagination(prev => ({
+                        ...prev,
+                        totalItems: newTotalItems,
+                        totalPages: newTotalPages
+                    }));
+                }
+            } else {
+                throw new Error(result.message || 'Gagal menghapus detail pembayaran');
+            }
+        } catch (error) {
+            console.error('Delete detail error:', error);
+            setNotification({
+                type: 'error',
+                message: error.message || 'Terjadi kesalahan saat menghapus detail pembayaran'
+            });
+        } finally {
+            setIsDeleteDetailModalOpen(false);
+            setSelectedDetail(null);
+        }
     };
 
     // Format currency
@@ -370,7 +422,7 @@ const PembayaranDetailPage = () => {
     const detailColumns = [
         {
             name: 'No',
-            selector: (row, index) => getRowNumber(index),
+            selector: (row, index) => row.rowNumber || getRowNumber(index),
             sortable: false,
             minWidth: '60px',
             maxWidth: '80px',
@@ -378,7 +430,7 @@ const PembayaranDetailPage = () => {
             ignoreRowClick: true,
             cell: (row, index) => (
                 <div className="font-semibold text-gray-600 w-full flex items-center justify-center">
-                    {getRowNumber(index)}
+                    {row.rowNumber || getRowNumber(index)}
                 </div>
             )
         },
@@ -832,6 +884,21 @@ const PembayaranDetailPage = () => {
                 onSuccess={handleAddPaymentSuccess}
                 pembayaranId={id}
                 pembayaranData={pembayaranData}
+            />
+
+            {/* Delete Detail Confirmation Modal */}
+            <DeleteConfirmationModal
+                isOpen={isDeleteDetailModalOpen}
+                onClose={() => {
+                    setIsDeleteDetailModalOpen(false);
+                    setSelectedDetail(null);
+                }}
+                onConfirm={handleDeleteDetailConfirm}
+                data={selectedDetail}
+                loading={loading}
+                type="detail-pembayaran"
+                title="Hapus Detail Pembayaran"
+                message={`Apakah Anda yakin ingin menghapus detail pembayaran sebesar ${selectedDetail ? formatCurrency(selectedDetail.amount) : ''}?`}
             />
         </div>
     );

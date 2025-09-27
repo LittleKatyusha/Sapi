@@ -1,0 +1,252 @@
+/* Horizontal scrollbar styling */
+.horizontal-scroll-container::-webkit-scrollbar {
+    height: 12px;
+}
+
+.horizontal-scroll-container::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 6px;
+}
+
+.horizontal-scroll-container::-webkit-scrollbar-thumb {
+    background: #94a3b8;
+    border-radius: 6px;
+    border: 2px solid #f1f5f9;
+}
+
+.horizontal-scroll-container::-webkit-scrollbar-thumb:hover {
+    background: #64748b;
+}
+
+.horizontal-scroll-container::-webkit-scrollbar-corner {
+    background: #f1f5f9;
+}
+
+/* Sticky No and Action Column Styles - Specific to Pembayaran Page */
+/* Header cells - Kolom No (1) */
+.pembayaran-table .rdt_TableHeadRow .rdt_TableCol:nth-child(1),
+.pembayaran-table .rdt_TableHeadRow th:nth-child(1),
+.pembayaran-table table thead tr th:nth-child(1) {
+    position: sticky !important;
+    left: 0 !important;
+    z-index: 1002 !important;
+    background-color: #f8fafc !important;
+    border-right: 2px solid #e5e7eb !important;
+    box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
+    will-change: transform !important;
+    min-width: 60px !important;
+    max-width: 60px !important;
+}
+
+/* Body cells - Kolom No (1) */
+.pembayaran-table .rdt_TableBodyRow .rdt_TableCell:nth-child(1),
+.pembayaran-table .rdt_TableBodyRow td:nth-child(1),
+.pembayaran-table table tbody tr td:nth-child(1) {
+    position: sticky !important;
+    left: 0 !important;
+    z-index: 999 !important;
+    background-color: #ffffff !important;
+    border-right: 2px solid #e5e7eb !important;
+    box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
+    will-change: transform !important;
+    min-width: 60px !important;
+    max-width: 60px !important;
+}
+
+/* Header cells - Kolom Aksi (2) */
+.pembayaran-table .rdt_TableHeadRow .rdt_TableCol:nth-child(2),
+.pembayaran-table .rdt_TableHeadRow th:nth-child(2),
+.pembayaran-table table thead tr th:nth-child(2) {
+    position: sticky !important;
+    left: 60px !important;
+    z-index: 1001 !important;
+    background-color: #f8fafc !important;
+    border-right: 2px solid #e5e7eb !important;
+    box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
+    will-change: transform !important;
+    min-width: 80px !important;
+    max-width: 80px !important;
+}
+
+/* Body cells - Kolom Aksi (2) */
+.pembayaran-table .rdt_TableBodyRow .rdt_TableCell:nth-child(2),
+.pembayaran-table .rdt_TableBodyRow td:nth-child(2),
+.pembayaran-table table tbody tr td:nth-child(2) {
+    position: sticky !important;
+    left: 60px !important;
+    z-index: 998 !important;
+    background-color: #ffffff !important;
+    border-right: 2px solid #e5e7eb !important;
+    box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
+    will-change: transform !important;
+    min-width: 80px !important;
+    max-width: 80px !important;
+}
+
+/* Hover effects for sticky columns */
+.pembayaran-table .rdt_TableBodyRow:hover .rdt_TableCell:nth-child(1),
+.pembayaran-table .rdt_TableBodyRow:hover td:nth-child(1),
+.pembayaran-table .rdt_TableBodyRow:hover .rdt_TableCell:nth-child(2),
+.pembayaran-table .rdt_TableBodyRow:hover td:nth-child(2),
+.pembayaran-table table tbody tr:hover td:nth-child(1),
+.pembayaran-table table tbody tr:hover td:nth-child(2) {
+    background-color: #f9fafb !important;
+}
+
+/* Additional selectors for better compatibility with react-data-table-component */
+.pembayaran-table .rdt_Table .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol:nth-child(1) {
+    position: sticky !important;
+    left: 0 !important;
+    z-index: 1002 !important;
+    background-color: #f8fafc !important;
+    border-right: 2px solid #e5e7eb !important;
+    box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
+    will-change: transform !important;
+    min-width: 60px !important;
+    max-width: 60px !important;
+}
+
+.pembayaran-table .rdt_Table .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol:nth-child(2) {
+    position: sticky !important;
+    left: 60px !important;
+    z-index: 1001 !important;
+    background-color: #f8fafc !important;
+    border-right: 2px solid #e5e7eb !important;
+    box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
+    will-change: transform !important;
+    min-width: 80px !important;
+    max-width: 80px !important;
+}
+
+.pembayaran-table .rdt_Table .rdt_TableBody .rdt_TableBodyRow .rdt_TableCell:nth-child(1) {
+    position: sticky !important;
+    left: 0 !important;
+    z-index: 999 !important;
+    background-color: #ffffff !important;
+    border-right: 2px solid #e5e7eb !important;
+    box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
+    will-change: transform !important;
+    min-width: 60px !important;
+    max-width: 60px !important;
+}
+
+.pembayaran-table .rdt_Table .rdt_TableBody .rdt_TableBodyRow .rdt_TableCell:nth-child(2) {
+    position: sticky !important;
+    left: 60px !important;
+    z-index: 998 !important;
+    background-color: #ffffff !important;
+    border-right: 2px solid #e5e7eb !important;
+    box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
+    will-change: transform !important;
+    min-width: 80px !important;
+    max-width: 80px !important;
+}
+
+.pembayaran-table .rdt_Table .rdt_TableBody .rdt_TableBodyRow:hover .rdt_TableCell:nth-child(1),
+.pembayaran-table .rdt_Table .rdt_TableBody .rdt_TableBodyRow:hover .rdt_TableCell:nth-child(2) {
+    background-color: #f9fafb !important;
+}
+
+/* Additional selectors for better compatibility */
+.pembayaran-table table thead tr th:nth-child(1) {
+    position: sticky !important;
+    left: 0 !important;
+    z-index: 1002 !important;
+    background-color: #f8fafc !important;
+    border-right: 2px solid #e5e7eb !important;
+    box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
+    will-change: transform !important;
+    min-width: 60px !important;
+    max-width: 60px !important;
+}
+
+.pembayaran-table table tbody tr td:nth-child(1) {
+    position: sticky !important;
+    left: 0 !important;
+    z-index: 999 !important;
+    background-color: #ffffff !important;
+    border-right: 2px solid #e5e7eb !important;
+    box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
+    will-change: transform !important;
+    min-width: 60px !important;
+    max-width: 60px !important;
+}
+
+.pembayaran-table table thead tr th:nth-child(2) {
+    position: sticky !important;
+    left: 60px !important;
+    z-index: 1001 !important;
+    background-color: #f8fafc !important;
+    border-right: 2px solid #e5e7eb !important;
+    box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
+    will-change: transform !important;
+    min-width: 80px !important;
+    max-width: 80px !important;
+}
+
+.pembayaran-table table tbody tr td:nth-child(2) {
+    position: sticky !important;
+    left: 60px !important;
+    z-index: 998 !important;
+    background-color: #ffffff !important;
+    border-right: 2px solid #e5e7eb !important;
+    box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
+    will-change: transform !important;
+    min-width: 80px !important;
+    max-width: 80px !important;
+}
+
+.pembayaran-table table tbody tr:hover td:nth-child(1),
+.pembayaran-table table tbody tr:hover td:nth-child(2) {
+    background-color: #f9fafb !important;
+}
+
+/* Custom scrollbar styling for table container */
+.table-scroll-container::-webkit-scrollbar {
+    height: 8px;
+}
+
+.table-scroll-container::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+}
+
+.table-scroll-container::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+    transition: background 0.2s ease;
+}
+
+.table-scroll-container::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Hide scrollbar on Firefox while keeping functionality */
+.table-scroll-container {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+/* Force sticky positioning for all table cells */
+.pembayaran-table .rdt_Table .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol:nth-child(1),
+.pembayaran-table .rdt_Table .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol:nth-child(2) {
+    position: sticky !important;
+}
+
+.pembayaran-table .rdt_Table .rdt_TableBody .rdt_TableBodyRow .rdt_TableCell:nth-child(1),
+.pembayaran-table .rdt_Table .rdt_TableBody .rdt_TableBodyRow .rdt_TableCell:nth-child(2) {
+    position: sticky !important;
+}
+
+/* Ensure table container allows sticky positioning */
+.pembayaran-table .rdt_Table {
+    position: relative !important;
+}
+
+.pembayaran-table .rdt_TableHead {
+    position: relative !important;
+}
+
+.pembayaran-table .rdt_TableBody {
+    position: relative !important;
+}
