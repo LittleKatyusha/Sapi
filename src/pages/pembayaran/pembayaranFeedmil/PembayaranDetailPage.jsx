@@ -1,19 +1,76 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Building2, Calendar, Hash, CreditCard, Eye, DollarSign, CheckCircle, XCircle, Edit, Trash2, Settings, Package, Plus } from 'lucide-react';
-import usePembayaran from './hooks/usePembayaran';
-import customTableStyles from './constants/tableStyles';
+import { 
+  ArrowLeft, 
+  Calendar, 
+  CreditCard, 
+  DollarSign, 
+  CheckCircle, 
+  Settings, 
+  Package, 
+  Plus 
+} from 'lucide-react';
 import DataTable from 'react-data-table-component';
 import { StyleSheetManager } from 'styled-components';
+
+// Custom hooks
+import usePembayaran from './hooks/usePembayaran';
+import { useNotification } from './hooks/useNotification';
+
+// Components
+import ActionButton from './components/ActionButton';
 import DeleteConfirmationModal from './modals/DeleteConfirmationModal';
 import AddPaymentModal from './modals/AddPaymentModal';
-import ActionButton from './components/ActionButton';
+
+// Styles and constants
+import customTableStyles from './constants/tableStyles';
+import { 
+  PAGINATION_OPTIONS, 
+  NOTIFICATION_TYPES,
+  ERROR_MESSAGES,
+  SUCCESS_MESSAGES
+} from './constants';
+
+// Constants
+const DEFAULT_PER_PAGE = 10;
+const REFRESH_DELAY = 1500;
 
 // Custom function to filter out invalid props that shouldn't be passed to DOM
 const shouldForwardProp = (prop) => {
-  // Filter out column-specific props that shouldn't be passed to DOM
   const invalidProps = ['grow', 'center', 'minWidth', 'maxWidth', 'wrap', 'sortable', 'ignoreRowClick'];
   return !invalidProps.includes(prop);
+};
+
+// Utility functions
+const formatCurrency = (value) => {
+  if (!value && value !== 0) return 'Rp 0';
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(value);
+};
+
+const formatDate = (dateString) => {
+  if (!dateString) return '-';
+  return new Date(dateString).toLocaleDateString('id-ID');
+};
+
+const getPaymentStatusConfig = (status) => {
+  switch (status) {
+    case 1:
+      return {
+        text: 'Lunas',
+        className: 'bg-green-50 text-green-700 border-green-200'
+      };
+    case 0:
+    default:
+      return {
+        text: 'Belum Lunas',
+        className: 'bg-red-50 text-red-700 border-red-200'
+      };
+  }
 };
 
 const PembayaranDetailPage = () => {
@@ -27,135 +84,150 @@ const PembayaranDetailPage = () => {
         error
     } = usePembayaran();
 
+    console.log('🔄 PembayaranDetailPage - Component rendered', { id, loading, error });
 
-    // State for payment data
+    // Custom hooks
+    const { notification, showSuccess, showError, showInfo, hideNotification } = useNotification();
+    
+    // Main state
     const [pembayaranData, setPembayaranData] = useState(null);
     const [detailData, setDetailData] = useState([]);
-    const [notification, setNotification] = useState(null);
-    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-    const [isDeleteDetailModalOpen, setIsDeleteDetailModalOpen] = useState(false);
+    
+    // Modal states
+    const [modals, setModals] = useState({
+        delete: false,
+        deleteDetail: false,
+        addPayment: false
+    });
+    
     const [selectedDetail, setSelectedDetail] = useState(null);
-    const [isAddPaymentModalOpen, setIsAddPaymentModalOpen] = useState(false);
-    const [scrollPosition, setScrollPosition] = useState({ canScrollLeft: false, canScrollRight: false });
     const [openMenuId, setOpenMenuId] = useState(null);
     
     // Pagination state
     const [pagination, setPagination] = useState({
         currentPage: 1,
-        perPage: 10,
+        perPage: DEFAULT_PER_PAGE,
         totalItems: 0,
         totalPages: 0
     });
     
-    // Ref to track if we've already fetched the data
     const hasFetchedData = useRef(false);
+    const isFetching = useRef(false);
     
-    // Function to reset the fetched data flag (useful for force refresh)
+    // Helper functions for modal management
+    const toggleModal = useCallback((modalType, isOpen = null) => {
+        setModals(prev => ({
+            ...prev,
+            [modalType]: isOpen !== null ? isOpen : !prev[modalType]
+        }));
+    }, []);
+    
     const resetFetchedDataFlag = useCallback(() => {
         hasFetchedData.current = false;
     }, []);
 
+
     // Update pagination when detail data changes
     useEffect(() => {
-        if (detailData.length > 0) {
-            const totalPages = Math.ceil(detailData.length / pagination.perPage);
-            setPagination(prev => ({
-                ...prev,
-                totalItems: detailData.length,
-                totalPages: totalPages,
-                // Reset to page 1 if current page exceeds total pages
-                currentPage: prev.currentPage > totalPages ? 1 : prev.currentPage
-            }));
-        }
+        const totalPages = Math.ceil(detailData.length / pagination.perPage) || 1;
+        setPagination(prev => ({
+            ...prev,
+            totalItems: detailData.length,
+            totalPages,
+            currentPage: prev.currentPage > totalPages ? 1 : prev.currentPage
+        }));
     }, [detailData.length, pagination.perPage]);
 
     // Pagination handlers
-    const handlePageChange = (page) => {
-        setPagination(prev => ({
-            ...prev,
-            currentPage: page
-        }));
-    };
+    const handlePageChange = useCallback((page) => {
+        setPagination(prev => ({ ...prev, currentPage: page }));
+    }, []);
 
-    const handlePerPageChange = (perPage) => {
-        const newTotalPages = Math.ceil(detailData.length / perPage);
+    const handlePerPageChange = useCallback((perPage) => {
+        const newTotalPages = Math.ceil(detailData.length / perPage) || 1;
         setPagination(prev => ({
             ...prev,
-            perPage: perPage,
+            perPage,
             totalPages: newTotalPages,
-            currentPage: 1 // Reset to first page when changing per page
+            currentPage: 1
         }));
-    };
+    }, [detailData.length]);
 
     // Get paginated data
-    const getPaginatedData = () => {
+    const getPaginatedData = useCallback(() => {
         const startIndex = (pagination.currentPage - 1) * pagination.perPage;
         const endIndex = startIndex + pagination.perPage;
         return detailData.slice(startIndex, endIndex);
-    };
+    }, [detailData, pagination.currentPage, pagination.perPage]);
+
+    // Reset fetch flag when ID changes
+    useEffect(() => {
+        console.log('🔄 PembayaranDetailPage - ID changed, resetting fetch flag', { id });
+        hasFetchedData.current = false;
+        isFetching.current = false;
+    }, [id]);
 
     // Load payment detail data
     useEffect(() => {
-        // Flag to prevent state updates if component unmounts during fetch
-        let isMounted = true;
+        console.log('🔄 PembayaranDetailPage - useEffect triggered', { id, hasFetchedData: hasFetchedData.current, isFetching: isFetching.current });
         
-        const fetchDetail = async () => {
-            if (id && !hasFetchedData.current) {
+        // Only fetch if we have an ID and haven't fetched yet
+        if (id && !hasFetchedData.current && !isFetching.current) {
+            console.log('🔄 PembayaranDetailPage - Making API call to getPembayaranDetail with id:', id);
+            // Mark as fetching to prevent double calls
+            isFetching.current = true;
+            
+            const fetchDetail = async () => {
                 try {
                     const result = await getPembayaranDetail(id);
-                    
-                    // Mark that we've fetched the data to prevent future fetches
-                    hasFetchedData.current = true;
-                    
+                    console.log('🔄 PembayaranDetailPage - API response received:', result);
+                        
                     // Only update state if component is still mounted
-                    if (isMounted && result.success) {
-                        // Gunakan header data jika tersedia, jika tidak gunakan dari detail
-                        let headerData = result.header;
+                    if (result.success) {
+                        const headerData = result.header;
                         const detailItems = result.data || [];
                         
-                        if (headerData) {
-                            // Use header data from /show endpoint
-                            setPembayaranData({
-                                encryptedPid: headerData.encryptedPid || headerData.pid || id,
-                                id_pembelian: headerData.id_pembelian || '',
-                                purchase_type: headerData.purchase_type || 1,
-                                due_date: headerData.due_date || '',
-                                settlement_date: headerData.settlement_date || '',
-                                payment_status: headerData.payment_status || 0,
-                                created_at: headerData.created_at || '',
-                                updated_at: headerData.updated_at || ''
-                            });
-                        } else if (detailItems.length > 0) {
-                            // Fallback: gunakan informasi dari detail pertama jika header tidak tersedia
-                            const firstItem = detailItems[0];
-                            setPembayaranData({
-                                encryptedPid: firstItem.pid || id,
-                                id_pembelian: firstItem.id_pembelian || '',
-                                purchase_type: firstItem.purchase_type || 1,
-                                due_date: firstItem.due_date || '',
-                                settlement_date: firstItem.settlement_date || '',
-                                payment_status: firstItem.payment_status || 0,
-                                created_at: firstItem.created_at || '',
-                                updated_at: firstItem.updated_at || ''
-                            });
+                        console.log('📊 PembayaranDetail - API Response:', { headerData, detailItems, result });
+                        
+                        // Create default data structure
+                        const defaultData = {
+                            encryptedPid: id,
+                            id_pembelian: '',
+                            purchase_type: 1,
+                            due_date: '',
+                            settlement_date: '',
+                            payment_status: 0,
+                            created_at: '',
+                            updated_at: ''
+                        };
+                        
+                        // Use header data if available, otherwise use first detail item, otherwise use defaults
+                        const sourceData = headerData || (detailItems.length > 0 ? detailItems[0] : null);
+                        
+                        if (sourceData) {
+                            console.log('📊 PembayaranDetail - Using source data:', sourceData);
+                            const pembayaranData = {
+                                ...defaultData,
+                                encryptedPid: sourceData.encryptedPid || sourceData.pid || id,
+                                id_pembelian: sourceData.id_pembelian || '',
+                                purchase_type: sourceData.purchase_type || 1,
+                                due_date: sourceData.due_date || '',
+                                settlement_date: sourceData.settlement_date || '',
+                                payment_status: sourceData.payment_status || 0,
+                                created_at: sourceData.created_at || '',
+                                updated_at: sourceData.updated_at || ''
+                            };
+                            console.log('📊 PembayaranDetail - Setting pembayaranData:', pembayaranData);
+                            setPembayaranData(pembayaranData);
                         } else {
-                            // Jika tidak ada data sama sekali
-                            setPembayaranData({
-                                encryptedPid: id,
-                                id_pembelian: '',
-                                purchase_type: 1,
-                                due_date: '',
-                                settlement_date: '',
-                                payment_status: 0,
-                                created_at: '',
-                                updated_at: ''
-                            });
+                            console.log('📊 PembayaranDetail - Using default data');
+                            setPembayaranData(defaultData);
                         }
                         
-                        // Transform detail items untuk struktur frontend
+                        // Transform detail items
                         const transformedDetailItems = detailItems.map((item, index) => ({
-                            id: item.id, // Keep the actual database ID
-                            rowNumber: index + 1, // Add row number for display
+                            id: item.id,
+                            rowNumber: index + 1,
                             amount: parseFloat(item.amount) || 0,
                             payment_date: item.payment_date || '',
                             note: item.note || item.description || '',
@@ -163,9 +235,15 @@ const PembayaranDetailPage = () => {
                             updated_at: item.updated_at || ''
                         }));
                         
+                        console.log('📊 PembayaranDetail - Transformed details:', transformedDetailItems);
                         setDetailData(transformedDetailItems);
-                    } else if (isMounted) {
+                        
+                        // Mark as fetched
+                        hasFetchedData.current = true;
+                    } else {
                         console.warn('No detail data found for pembayaran:', id);
+                        console.log('📊 PembayaranDetail - Result:', result);
+                        // Don't set pembayaranData to null, use default instead
                         setPembayaranData({
                             encryptedPid: id,
                             id_pembelian: '',
@@ -177,34 +255,33 @@ const PembayaranDetailPage = () => {
                             updated_at: ''
                         });
                         setDetailData([]);
+                        hasFetchedData.current = true;
                     }
                 } catch (err) {
-                    // Only update state if component is still mounted
-                    if (isMounted) {
-                        console.error('Error fetching pembayaran detail:', err);
-                        setNotification({
-                            type: 'error',
-                            message: err.message || 'Gagal memuat detail pembayaran'
-                        });
-                        setPembayaranData(null);
-                        setDetailData([]);
-                    }
+                    console.error('Error fetching pembayaran detail:', err);
+                    showError(err.message || ERROR_MESSAGES.FETCH_ERROR);
+                    // Don't set pembayaranData to null, use default instead
+                    setPembayaranData({
+                        encryptedPid: id,
+                        id_pembelian: '',
+                        purchase_type: 1,
+                        due_date: '',
+                        settlement_date: '',
+                        payment_status: 0,
+                        created_at: '',
+                        updated_at: ''
+                    });
+                    setDetailData([]);
+                    hasFetchedData.current = true;
+                } finally {
+                    // Reset fetching flag
+                    isFetching.current = false;
                 }
-            }
-        };
-        
-        fetchDetail();
-        
-        // Cleanup function to prevent state updates if component unmounts
-        return () => {
-            isMounted = false;
-        };
-    }, [id, getPembayaranDetail]);
-    
-    // Reset the fetched data flag when ID changes
-    useEffect(() => {
-        hasFetchedData.current = false;
-    }, [id]);
+            };
+            
+            fetchDetail();
+        }
+    }, [id, getPembayaranDetail, showError]);
 
     // Handle edit
     const handleEdit = () => {
@@ -212,194 +289,104 @@ const PembayaranDetailPage = () => {
     };
 
     // Handle delete
-    const handleDelete = () => {
-        setIsDeleteModalOpen(true);
-    };
+    const handleDelete = useCallback(() => {
+        toggleModal('delete', true);
+    }, [toggleModal]);
 
     // Handle delete confirmation
-    const handleDeleteConfirm = async () => {
+    const handleDeleteConfirm = useCallback(async () => {
         try {
             const result = await deletePembayaran(id, pembayaranData);
             
             if (result.success) {
-                setNotification({
-                    type: 'success',
-                    message: result.message || 'Pembayaran berhasil dihapus'
-                });
-                
-                // Navigate back after success
-                setTimeout(() => {
-                    navigate('/pembayaran/feedmill');
-                }, 1500);
+                showSuccess(result.message || SUCCESS_MESSAGES.DELETE_SUCCESS);
+                setTimeout(() => navigate('/pembayaran/feedmill'), REFRESH_DELAY);
             } else {
-                throw new Error(result.message || 'Gagal menghapus pembayaran');
+                throw new Error(result.message || ERROR_MESSAGES.DELETE_FAILED);
             }
         } catch (error) {
             console.error('Delete error:', error);
-            setNotification({
-                type: 'error',
-                message: error.message || 'Terjadi kesalahan saat menghapus pembayaran'
-            });
+            showError(error.message || ERROR_MESSAGES.DELETE_ERROR);
         } finally {
-            setIsDeleteModalOpen(false);
+            toggleModal('delete', false);
         }
-    };
+    }, [id, pembayaranData, deletePembayaran, navigate, showSuccess, showError, toggleModal]);
 
     // Handle add payment
-    const handleAddPayment = () => {
-        setIsAddPaymentModalOpen(true);
-    };
+    const handleAddPayment = useCallback(() => {
+        toggleModal('addPayment', true);
+    }, [toggleModal]);
 
     // Handle add payment success
-    const handleAddPaymentSuccess = () => {
-        // Close modal first
-        setIsAddPaymentModalOpen(false);
-        
-        // Set success notification
-        setNotification({
-            type: 'success',
-            message: 'Pembayaran berhasil ditambahkan'
-        });
-        
-        // Reload the page to refresh data after showing success message
-        setTimeout(() => {
-            window.location.reload();
-        }, 1500);
-    };
+    const handleAddPaymentSuccess = useCallback(() => {
+        toggleModal('addPayment', false);
+        showSuccess(SUCCESS_MESSAGES.ADD_SUCCESS);
+        setTimeout(() => window.location.reload(), REFRESH_DELAY);
+    }, [toggleModal, showSuccess]);
 
-    // Handle detail action for payment details
-    const handleDetailAction = (row) => {
-        setNotification({
-            type: 'info',
-            message: `Detail pembayaran: ${formatCurrency(row.amount)}`
-        });
+    // Handle detail actions
+    const handleDetailAction = useCallback((row) => {
+        showInfo(`Detail pembayaran: ${formatCurrency(row.amount)}`);
         setOpenMenuId(null);
-    };
+    }, [showInfo]);
 
-    // Handle edit action for payment details
-    const handleEditAction = (row) => {
-        setNotification({
-            type: 'info',
-            message: 'Fitur edit detail pembayaran akan segera tersedia'
-        });
+    const handleEditAction = useCallback((row) => {
+        showInfo('Fitur edit detail pembayaran akan segera tersedia');
         setOpenMenuId(null);
-    };
+    }, [showInfo]);
 
-    // Handle delete action for payment details
-    const handleDeleteAction = (row) => {
+    const handleDeleteAction = useCallback((row) => {
         setSelectedDetail(row);
-        setIsDeleteDetailModalOpen(true);
+        toggleModal('deleteDetail', true);
         setOpenMenuId(null);
-    };
+    }, [toggleModal]);
 
     // Handle delete detail confirmation
-    const handleDeleteDetailConfirm = async () => {
+    const handleDeleteDetailConfirm = useCallback(async () => {
         if (!selectedDetail) return;
         
         try {
             const result = await deletePaymentDetail(selectedDetail.id, id);
             
             if (result.success) {
-                setNotification({
-                    type: 'success',
-                    message: result.message || 'Detail pembayaran berhasil dihapus'
-                });
+                showSuccess(result.message || SUCCESS_MESSAGES.DELETE_DETAIL_SUCCESS);
                 
-                // Remove the deleted detail from the list
+                // Update detail data
                 setDetailData(prevData => 
                     prevData.filter(item => item.id !== selectedDetail.id)
                 );
                 
-                // Reset pagination if needed
+                // Update pagination
                 const newTotalItems = detailData.length - 1;
                 const newTotalPages = Math.ceil(newTotalItems / pagination.perPage);
-                if (pagination.currentPage > newTotalPages && newTotalPages > 0) {
-                    setPagination(prev => ({
-                        ...prev,
-                        currentPage: newTotalPages,
-                        totalItems: newTotalItems,
-                        totalPages: newTotalPages
-                    }));
-                } else {
-                    setPagination(prev => ({
-                        ...prev,
-                        totalItems: newTotalItems,
-                        totalPages: newTotalPages
-                    }));
-                }
+                setPagination(prev => ({
+                    ...prev,
+                    currentPage: prev.currentPage > newTotalPages && newTotalPages > 0 
+                        ? newTotalPages 
+                        : prev.currentPage,
+                    totalItems: newTotalItems,
+                    totalPages: newTotalPages
+                }));
             } else {
                 throw new Error(result.message || 'Gagal menghapus detail pembayaran');
             }
         } catch (error) {
             console.error('Delete detail error:', error);
-            setNotification({
-                type: 'error',
-                message: error.message || 'Terjadi kesalahan saat menghapus detail pembayaran'
-            });
+            showError(error.message || ERROR_MESSAGES.DELETE_DETAIL_ERROR);
         } finally {
-            setIsDeleteDetailModalOpen(false);
+            toggleModal('deleteDetail', false);
             setSelectedDetail(null);
         }
-    };
-
-    // Format currency
-    const formatCurrency = (value) => {
-        if (!value && value !== 0) return 'Rp 0';
-        return new Intl.NumberFormat('id-ID', {
-            style: 'currency',
-            currency: 'IDR',
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0
-        }).format(value);
-    };
-
-    // Format date
-    const formatDate = (dateString) => {
-        if (!dateString) return '-';
-        return new Date(dateString).toLocaleDateString('id-ID');
-    };
+    }, [selectedDetail, deletePaymentDetail, id, detailData.length, pagination.perPage, showSuccess, showError, toggleModal]);
 
     // Calculate total amount
     const totalAmount = detailData.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
 
 
-    const handleBack = () => {
+    const handleBack = useCallback(() => {
         navigate('/pembayaran/feedmill');
-    };
+    }, [navigate]);
 
-    // Auto hide notification
-    useEffect(() => {
-        if (notification) {
-            const timer = setTimeout(() => {
-                setNotification(null);
-            }, 5000);
-            return () => clearTimeout(timer);
-        }
-    }, [notification]);
-
-    // Handle table scroll for visual feedback
-    const handleTableScroll = useCallback((e) => {
-        const { scrollLeft, scrollWidth, clientWidth } = e.target;
-        setScrollPosition({
-            canScrollLeft: scrollLeft > 0,
-            canScrollRight: scrollLeft < scrollWidth - clientWidth - 1
-        });
-    }, []);
-
-    // Check initial scroll state when data loads
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            const scrollContainer = document.querySelector('.table-scroll-container');
-            if (scrollContainer) {
-                const { scrollWidth, clientWidth } = scrollContainer;
-                setScrollPosition({
-                    canScrollLeft: false,
-                    canScrollRight: scrollWidth > clientWidth
-                });
-            }
-        }, 100);
-        return () => clearTimeout(timer);
-    }, [detailData]);
 
     // Reset menu when data changes
     useEffect(() => {
@@ -414,12 +401,12 @@ const PembayaranDetailPage = () => {
 
 
     // Helper function for row number calculation
-    const getRowNumber = (index) => {
+    const getRowNumber = useCallback((index) => {
         return ((pagination.currentPage - 1) * pagination.perPage) + index + 1;
-    };
+    }, [pagination.currentPage, pagination.perPage]);
 
-    // Columns for payment details table
-    const detailColumns = [
+    // Table columns configuration
+    const detailColumns = useMemo(() => [
         {
             name: 'No',
             selector: (row, index) => row.rowNumber || getRowNumber(index),
@@ -517,7 +504,7 @@ const PembayaranDetailPage = () => {
                 </div>
             )
         }
-    ];
+    ], [getRowNumber, openMenuId, handleEditAction, handleDeleteAction, handleDetailAction]);
 
     if (loading) {
         return (
@@ -530,21 +517,32 @@ const PembayaranDetailPage = () => {
         );
     }
 
-    if (error || !pembayaranData) {
+    if (error) {
         return (
             <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
                 <div className="text-center">
                     <div className="text-red-600 mb-4">
                         <CreditCard size={48} className="mx-auto" />
                     </div>
-                    <h2 className="text-xl font-semibold text-gray-900 mb-2">Data Tidak Ditemukan</h2>
-                    <p className="text-gray-600 mb-4">{error || 'Detail pembayaran tidak dapat dimuat'}</p>
+                    <h2 className="text-xl font-semibold text-gray-900 mb-2">Error</h2>
+                    <p className="text-gray-600 mb-4">{error}</p>
                     <button
                         onClick={handleBack}
                         className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
                     >
                         Kembali ke Daftar
                     </button>
+                </div>
+            </div>
+        );
+    }
+
+    if (!pembayaranData) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                    <p className="text-gray-500 text-lg mt-4">Memuat detail pembayaran...</p>
                 </div>
             </div>
         );
@@ -583,62 +581,11 @@ const PembayaranDetailPage = () => {
                         Informasi Pembayaran
                     </h2>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-
-
-                        {/* Tanggal Jatuh Tempo */}
-                        <div className="bg-gradient-to-r from-emerald-50 to-green-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <Calendar className="w-4 h-4 inline mr-1" />
-                                Tanggal Jatuh Tempo
-                            </label>
-                            <p className="text-lg font-bold text-gray-900">
-                                {formatDate(pembayaranData.due_date)}
-                            </p>
-                        </div>
-
-                        {/* Tanggal Pelunasan */}
-                        <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <Calendar className="w-4 h-4 inline mr-1" />
-                                Tanggal Pelunasan
-                            </label>
-                            <p className="text-lg font-bold text-gray-900">
-                                {formatDate(pembayaranData.settlement_date)}
-                            </p>
-                        </div>
-
-                        {/* Status Pembayaran */}
-                        <div className="bg-gradient-to-r from-purple-50 to-violet-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <CheckCircle className="w-4 h-4 inline mr-1" />
-                                Status Pembayaran
-                            </label>
-                            <div className="flex items-center gap-2">
-                                <span className={`inline-flex px-3 py-1.5 text-sm font-medium rounded-lg border ${
-                                    pembayaranData.payment_status === 1 
-                                        ? 'bg-green-50 text-green-700 border-green-200' 
-                                        : pembayaranData.payment_status === 0
-                                        ? 'bg-red-50 text-red-700 border-red-200'
-                                        : 'bg-gray-50 text-gray-700 border-gray-200'
-                                }`}>
-                                    {pembayaranData.payment_status === 1 ? 'Lunas' : 
-                                     pembayaranData.payment_status === 0 ? 'Belum Lunas' : 'Belum Lunas'}
-                                </span>
-                            </div>
-                        </div>
-
-                        {/* Total Pembayaran */}
-                        <div className="bg-gradient-to-r from-orange-50 to-amber-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <DollarSign className="w-4 h-4 inline mr-1" />
-                                Total Pembayaran
-                            </label>
-                            <p className="text-lg font-bold text-gray-900">
-                                {formatCurrency(totalAmount)}
-                            </p>
-                        </div>
-                    </div>
+                    {/* Payment Information Cards */}
+                    <PaymentInfoCards 
+                        pembayaranData={pembayaranData}
+                        totalAmount={totalAmount}
+                    />
                 </div>
 
                 {/* Payment Details Table Section */}
@@ -794,10 +741,9 @@ const PembayaranDetailPage = () => {
                                         onChange={(e) => handlePerPageChange(parseInt(e.target.value))}
                                         className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
                                     >
-                                        <option value={10}>10</option>
-                                        <option value={25}>25</option>
-                                        <option value={50}>50</option>
-                                        <option value={100}>100</option>
+                                        {PAGINATION_OPTIONS.map(option => (
+                                            <option key={option} value={option}>{option}</option>
+                                        ))}
                                     </select>
                                 </div>
                                 
@@ -856,41 +802,81 @@ const PembayaranDetailPage = () => {
 
 
                 {/* Notification */}
-                {notification && (
-                    <div className={`fixed top-4 right-4 p-4 rounded-lg shadow-lg z-[9998] ${
-                        notification.type === 'success'
-                            ? 'bg-green-500 text-white'
-                            : 'bg-red-500 text-white'
+            {notification && (
+                <div className="fixed top-4 right-4 z-50">
+                    <div className={`max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden ${
+            notification.type === NOTIFICATION_TYPES.SUCCESS ? 'border-l-4 border-green-400' :
+            notification.type === NOTIFICATION_TYPES.INFO ? 'border-l-4 border-blue-400' :
+                        'border-l-4 border-red-400'
                     }`}>
-                        <p className="text-sm font-medium">{notification.message}</p>
+                        <div className="p-4">
+                            <div className="flex items-start">
+                                <div className="flex-shrink-0">
+                  {notification.type === NOTIFICATION_TYPES.SUCCESS ? (
+                                        <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
+                                            <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                            </svg>
+                                        </div>
+                  ) : notification.type === NOTIFICATION_TYPES.INFO ? (
+                                        <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
+                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                                        </div>
+                                    ) : (
+                                        <div className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center">
+                                            <svg className="w-4 h-4 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                            </svg>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="ml-3 w-0 flex-1 pt-0.5">
+                                    <p className="text-sm font-medium text-gray-900">
+                    {notification.type === NOTIFICATION_TYPES.SUCCESS ? 'Berhasil!' :
+                     notification.type === NOTIFICATION_TYPES.INFO ? 'Informasi' : 'Error!'}
+                                    </p>
+                                    <p className="mt-1 text-sm text-gray-500">{notification.message}</p>
+                                </div>
+                                <div className="ml-4 flex-shrink-0 flex">
+                                    <button
+                    onClick={hideNotification}
+                                        className="bg-white rounded-md inline-flex text-gray-400 hover:text-gray-500"
+                                    >
+                                        <span className="sr-only">Close</span>
+                                        <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                )}
+                </div>
+            )}
             </div>
 
-            {/* Delete Confirmation Modal */}
+            {/* Modals */}
             <DeleteConfirmationModal
-                isOpen={isDeleteModalOpen}
-                onClose={() => setIsDeleteModalOpen(false)}
+                isOpen={modals.delete}
+                onClose={() => toggleModal('delete', false)}
                 onConfirm={handleDeleteConfirm}
                 data={pembayaranData}
                 loading={loading}
                 type="pembayaran"
             />
 
-            {/* Add Payment Modal */}
             <AddPaymentModal
-                isOpen={isAddPaymentModalOpen}
-                onClose={() => setIsAddPaymentModalOpen(false)}
+                isOpen={modals.addPayment}
+                onClose={() => toggleModal('addPayment', false)}
                 onSuccess={handleAddPaymentSuccess}
                 pembayaranId={id}
                 pembayaranData={pembayaranData}
             />
 
-            {/* Delete Detail Confirmation Modal */}
             <DeleteConfirmationModal
-                isOpen={isDeleteDetailModalOpen}
+                isOpen={modals.deleteDetail}
                 onClose={() => {
-                    setIsDeleteDetailModalOpen(false);
+                    toggleModal('deleteDetail', false);
                     setSelectedDetail(null);
                 }}
                 onConfirm={handleDeleteDetailConfirm}
@@ -900,6 +886,61 @@ const PembayaranDetailPage = () => {
                 title="Hapus Detail Pembayaran"
                 message={`Apakah Anda yakin ingin menghapus detail pembayaran sebesar ${selectedDetail ? formatCurrency(selectedDetail.amount) : ''}?`}
             />
+        </div>
+    );
+};
+
+// Payment Information Cards Component
+const PaymentInfoCards = ({ pembayaranData, totalAmount }) => {
+    const statusConfig = getPaymentStatusConfig(pembayaranData.payment_status);
+    
+    return (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Tanggal Jatuh Tempo */}
+            <div className="bg-gradient-to-r from-emerald-50 to-green-50 p-4 rounded-lg">
+                <label className="block text-sm font-medium text-gray-600 mb-2">
+                    <Calendar className="w-4 h-4 inline mr-1" />
+                    Tanggal Jatuh Tempo
+                </label>
+                <p className="text-lg font-bold text-gray-900">
+                    {formatDate(pembayaranData.due_date)}
+                </p>
+            </div>
+
+            {/* Tanggal Pelunasan */}
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg">
+                <label className="block text-sm font-medium text-gray-600 mb-2">
+                    <Calendar className="w-4 h-4 inline mr-1" />
+                    Tanggal Pelunasan
+                </label>
+                <p className="text-lg font-bold text-gray-900">
+                    {formatDate(pembayaranData.settlement_date)}
+                </p>
+            </div>
+
+            {/* Status Pembayaran */}
+            <div className="bg-gradient-to-r from-purple-50 to-violet-50 p-4 rounded-lg">
+                <label className="block text-sm font-medium text-gray-600 mb-2">
+                    <CheckCircle className="w-4 h-4 inline mr-1" />
+                    Status Pembayaran
+                </label>
+                <div className="flex items-center gap-2">
+                    <span className={`inline-flex px-3 py-1.5 text-sm font-medium rounded-lg border ${statusConfig.className}`}>
+                        {statusConfig.text}
+                    </span>
+                </div>
+            </div>
+
+            {/* Total Pembayaran */}
+            <div className="bg-gradient-to-r from-orange-50 to-amber-50 p-4 rounded-lg">
+                <label className="block text-sm font-medium text-gray-600 mb-2">
+                    <DollarSign className="w-4 h-4 inline mr-1" />
+                    Total Pembayaran
+                </label>
+                <p className="text-lg font-bold text-gray-900">
+                    {formatCurrency(totalAmount)}
+                </p>
+            </div>
         </div>
     );
 };

@@ -278,15 +278,18 @@ const usePembayaran = () => {
 
     // Get pembayaran detail
     const getPembayaranDetail = useCallback(async (encryptedPid) => {
+        console.log('🔄 usePembayaran - getPembayaranDetail called with:', encryptedPid);
         setLoading(true);
         setError(null);
         
         try {
+            console.log('🔄 usePembayaran - Making API call to:', API_ENDPOINTS.HO.PAYMENT.SHOW);
             const jsonData = await HttpClient.post(API_ENDPOINTS.HO.PAYMENT.SHOW, {
                 id: encryptedPid
             }, {
                 skipCsrf: true
             });
+            console.log('🔄 usePembayaran - API response:', jsonData);
             
             if (jsonData && jsonData.status === 'ok') {
                 // API mengembalikan data dengan struktur: {data: {pembelian: {}, details: []}}
