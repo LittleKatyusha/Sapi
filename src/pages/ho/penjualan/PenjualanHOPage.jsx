@@ -135,6 +135,20 @@ const PenjualanHOPage = () => {
             )
         },
         {
+            name: 'Nota Sistem',
+            selector: row => row.nota_sistem,
+            sortable: true,
+            width: '12%',
+            wrap: true,
+            cell: row => (
+                <div className="text-center">
+                    <span className="font-mono text-sm bg-blue-50 px-2 py-1 rounded break-words text-blue-700" title={row.nota_sistem}>
+                        {row.nota_sistem || '-'}
+                    </span>
+                </div>
+            )
+        },
+        {
             name: 'Tanggal Masuk',
             selector: row => row.tgl_masuk,
             sortable: true,

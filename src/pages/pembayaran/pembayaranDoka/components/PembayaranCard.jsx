@@ -131,6 +131,19 @@ const PembayaranCard = ({
                     </span>
                 </div>
 
+                {/* Nota Sistem */}
+                <div>
+                    <div className="flex items-center gap-2 mb-1.5">
+                        <div className="p-1.5 rounded-lg bg-blue-100">
+                            <Hash className="w-4 h-4 text-blue-600" />
+                        </div>
+                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Nota Sistem</span>
+                    </div>
+                    <span className="font-mono text-sm bg-blue-50 px-3 py-1.5 rounded-lg break-words block text-blue-700">
+                        {data.nota_sistem || '-'}
+                    </span>
+                </div>
+
                 {/* Tipe Pembelian */}
                 <div>
                     <div className="flex items-center gap-2 mb-1.5">

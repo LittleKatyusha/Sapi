@@ -286,37 +286,41 @@ const usePembayaran = () => {
         
         try {
             const jsonData = await HttpClient.post(API_ENDPOINTS.HO.PAYMENT.SHOW, {
-                pid: encryptedPid
+                id: encryptedPid
             }, {
                 skipCsrf: true
             });
             
             if (jsonData && jsonData.status === 'ok') {
-                let headerData = jsonData.header || null;
-                let detailData = Array.isArray(jsonData.data) ? jsonData.data : [];
+                // API mengembalikan data dengan struktur: {data: {pembelian: {}, details: []}}
+                const paymentData = jsonData.data;
+                let headerData = null;
+                let detailData = [];
                 
-                if (!headerData && detailData.length > 0) {
-                    const firstItem = detailData[0];
+                if (paymentData) {
+                    // Header data dari payment object
                     headerData = {
-                        encryptedPid: firstItem.pid || encryptedPid,
-                        nota_ho: firstItem.nota_ho || '',
-                        nama_supplier: firstItem.nama_supplier || '',
-                        due_date: firstItem.due_date || '',
-                        settlement_date: firstItem.settlement_date || '',
-                        payment_status: firstItem.payment_status || 0,
-                        amount: parseFloat(firstItem.amount) || 0,
-                        id_farm: firstItem.id_farm,
-                        id_syarat_pembayaran: firstItem.id_syarat_pembayaran
+                        id: paymentData.id,
+                        encryptedPid: paymentData.pid || encryptedPid,
+                        id_pembelian: paymentData.id_pembelian || '',
+                        purchase_type: paymentData.purchase_type || 1,
+                        due_date: paymentData.due_date || '',
+                        settlement_date: paymentData.settlement_date || '',
+                        payment_status: paymentData.payment_status || 0,
+                        created_at: paymentData.created_at || '',
+                        updated_at: paymentData.updated_at || ''
                     };
-                }
-                
-                if (headerData && detailData.length > 0) {
-                    const firstItem = detailData[0];
-                    if (!headerData.id_farm && firstItem.id_farm) {
-                        headerData.id_farm = firstItem.id_farm;
-                    }
-                    if (!headerData.id_syarat_pembayaran && firstItem.id_syarat_pembayaran) {
-                        headerData.id_syarat_pembayaran = firstItem.id_syarat_pembayaran;
+                    
+                    // Detail data dari relasi details
+                    if (paymentData.details && Array.isArray(paymentData.details)) {
+                        detailData = paymentData.details.map(detail => ({
+                            id: detail.id,
+                            amount: parseFloat(detail.amount) || 0,
+                            payment_date: detail.payment_date || '',
+                            note: detail.note || detail.description || '',
+                            created_at: detail.created_at || '',
+                            updated_at: detail.updated_at || ''
+                        }));
                     }
                 }
                 

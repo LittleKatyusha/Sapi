@@ -282,6 +282,18 @@ const PembelianFeedmilPage = () => {
             )
         },
         {
+            name: 'Nota Sistem',
+            selector: row => row.nota_sistem,
+            sortable: true,
+            width: '150px',
+            wrap: true,
+            cell: row => (
+                <span className="font-mono text-sm bg-blue-50 px-3 py-1.5 rounded-lg text-blue-700" title={row.nota_sistem}>
+                    {row.nota_sistem || '-'}
+                </span>
+            )
+        },
+        {
             name: 'Nota HO',
             selector: row => row.nota_ho,
             sortable: true,

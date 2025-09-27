@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Building2, Calendar, Hash, CreditCard, Eye, DollarSign, CheckCircle, XCircle, Edit, Trash2, Settings, Package } from 'lucide-react';
+import { ArrowLeft, Building2, Calendar, Hash, CreditCard, Eye, DollarSign, CheckCircle, XCircle, Edit, Trash2, Settings, Package, Plus } from 'lucide-react';
 import usePembayaran from './hooks/usePembayaran';
+import useTipePembayaran from '../../../hooks/useTipePembayaran';
 import customTableStyles from './constants/tableStyles';
 import DataTable from 'react-data-table-component';
 import { StyleSheetManager } from 'styled-components';
 import DeleteConfirmationModal from './modals/DeleteConfirmationModal';
+import AddPaymentModal from './modals/AddPaymentModal';
+import ActionButton from './components/ActionButton';
 
 // Custom function to filter out invalid props that shouldn't be passed to DOM
 const shouldForwardProp = (prop) => {
@@ -24,12 +27,21 @@ const PembayaranDetailPage = () => {
         error
     } = usePembayaran();
 
+    // Payment type options hook
+    const {
+        tipePembayaranOptions,
+        loading: loadingTipePembayaran,
+        error: errorTipePembayaran
+    } = useTipePembayaran();
+
     // State for payment data
     const [pembayaranData, setPembayaranData] = useState(null);
     const [detailData, setDetailData] = useState([]);
     const [notification, setNotification] = useState(null);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [isAddPaymentModalOpen, setIsAddPaymentModalOpen] = useState(false);
     const [scrollPosition, setScrollPosition] = useState({ canScrollLeft: false, canScrollRight: false });
+    const [openMenuId, setOpenMenuId] = useState(null);
     
     // Pagination state
     const [pagination, setPagination] = useState({
@@ -149,6 +161,7 @@ const PembayaranDetailPage = () => {
                             id: index + 1,
                             amount: parseFloat(item.amount) || 0,
                             payment_date: item.payment_date || '',
+                            note: item.note || item.description || '',
                             created_at: item.created_at || '',
                             updated_at: item.updated_at || ''
                         }));
@@ -235,6 +248,55 @@ const PembayaranDetailPage = () => {
         }
     };
 
+    // Handle add payment
+    const handleAddPayment = () => {
+        setIsAddPaymentModalOpen(true);
+    };
+
+    // Handle add payment success
+    const handleAddPaymentSuccess = () => {
+        // Close modal first
+        setIsAddPaymentModalOpen(false);
+        
+        // Set success notification
+        setNotification({
+            type: 'success',
+            message: 'Pembayaran berhasil ditambahkan'
+        });
+        
+        // Reload the page to refresh data after showing success message
+        setTimeout(() => {
+            window.location.reload();
+        }, 1500);
+    };
+
+    // Handle detail action for payment details
+    const handleDetailAction = (row) => {
+        setNotification({
+            type: 'info',
+            message: `Detail pembayaran: ${formatCurrency(row.amount)}`
+        });
+        setOpenMenuId(null);
+    };
+
+    // Handle edit action for payment details
+    const handleEditAction = (row) => {
+        setNotification({
+            type: 'info',
+            message: 'Fitur edit detail pembayaran akan segera tersedia'
+        });
+        setOpenMenuId(null);
+    };
+
+    // Handle delete action for payment details
+    const handleDeleteAction = (row) => {
+        setNotification({
+            type: 'info',
+            message: 'Fitur hapus detail pembayaran akan segera tersedia'
+        });
+        setOpenMenuId(null);
+    };
+
     // Format currency
     const formatCurrency = (value) => {
         if (!value && value !== 0) return 'Rp 0';
@@ -254,6 +316,13 @@ const PembayaranDetailPage = () => {
 
     // Calculate total amount
     const totalAmount = detailData.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
+
+    // Helper function to get payment type name
+    const getPaymentTypeName = (typeValue) => {
+        if (!typeValue && typeValue !== 0) return '-';
+        const paymentType = tipePembayaranOptions.find(option => option.value === parseInt(typeValue));
+        return paymentType ? paymentType.label : `Tipe ${typeValue}`;
+    };
 
     const handleBack = () => {
         navigate('/pembayaran/doka');
@@ -293,6 +362,13 @@ const PembayaranDetailPage = () => {
         return () => clearTimeout(timer);
     }, [detailData]);
 
+    // Reset menu when data changes
+    useEffect(() => {
+        if (detailData.length > 0) {
+            setOpenMenuId(null);
+        }
+    }, [detailData]);
+
 
 
 
@@ -318,6 +394,25 @@ const PembayaranDetailPage = () => {
                     {getRowNumber(index)}
                 </div>
             )
+        },
+        {
+            name: 'Aksi',
+            width: '80px',
+            center: true,
+            cell: row => (
+                <div className="w-full flex items-center justify-center">
+                    <ActionButton
+                        row={row}
+                        openMenuId={openMenuId}
+                        setOpenMenuId={setOpenMenuId}
+                        onEdit={handleEditAction}
+                        onDelete={handleDeleteAction}
+                        onDetail={handleDetailAction}
+                        isActive={openMenuId === row.id}
+                    />
+                </div>
+            ),
+            ignoreRowClick: true,
         },
         {
             name: 'Jumlah Pembayaran',
@@ -347,6 +442,22 @@ const PembayaranDetailPage = () => {
                 <div className="w-full flex items-center justify-center">
                     <span className="text-gray-900 font-medium">
                         {formatDate(row.payment_date)}
+                    </span>
+                </div>
+            )
+        },
+        {
+            name: 'Catatan',
+            selector: row => row.note,
+            sortable: true,
+            grow: 2,
+            minWidth: '200px',
+            wrap: true,
+            center: true,
+            cell: row => (
+                <div className="w-full flex items-center justify-center">
+                    <span className="text-gray-900 font-medium text-sm">
+                        {row.note || '-'}
                     </span>
                 </div>
             )
@@ -401,8 +512,8 @@ const PembayaranDetailPage = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-0">
-            <div className="w-full space-y-6 sm:space-y-8">
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4 sm:p-6">
+            <div className="max-w-7xl mx-auto space-y-6">
                 {/* Header */}
                 <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-xl border border-gray-100 w-full">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -416,7 +527,7 @@ const PembayaranDetailPage = () => {
                             <div>
                                 <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-1 sm:mb-2 flex items-center gap-2">
                                     <CreditCard size={28} className="text-blue-500" />
-                                    Detail Pembayaran
+                                    Detail Pembayaran Doka & Sapi
                                 </h1>
                                 <p className="text-gray-600 text-sm sm:text-base">
                                     Informasi lengkap pembayaran dan detail pembayaran
@@ -426,8 +537,8 @@ const PembayaranDetailPage = () => {
                     </div>
                 </div>
 
-                {/* Header Information */}
-                <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-xl border border-gray-100 w-full">
+                {/* Payment Information Section */}
+                <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-xl border border-gray-100">
                     <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
                         <Settings className="w-6 h-6 text-blue-600" />
                         Informasi Pembayaran
@@ -435,26 +546,22 @@ const PembayaranDetailPage = () => {
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
-                        <div className="bg-gradient-to-r from-cyan-50 to-blue-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <Hash className="w-4 h-4 inline mr-1" />
-                                ID Pembelian
-                            </label>
-                            <p className="text-lg font-bold text-gray-900">
-                                {pembayaranData.id_pembelian || '-'}
-                            </p>
-                        </div>
-
+                        {/* Tipe Pembayaran */}
                         <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-lg">
                             <label className="block text-sm font-medium text-gray-600 mb-2">
                                 <CreditCard className="w-4 h-4 inline mr-1" />
-                                Tipe Pembelian
+                                Tipe Pembayaran
                             </label>
                             <p className="text-lg font-bold text-gray-900">
-                                {pembayaranData.purchase_type === 1 ? 'Regular' : 'Special'}
+                                {loadingTipePembayaran ? (
+                                    <span className="text-gray-500">Memuat...</span>
+                                ) : (
+                                    getPaymentTypeName(pembayaranData.purchase_type)
+                                )}
                             </p>
                         </div>
 
+                        {/* Tanggal Jatuh Tempo */}
                         <div className="bg-gradient-to-r from-emerald-50 to-green-50 p-4 rounded-lg">
                             <label className="block text-sm font-medium text-gray-600 mb-2">
                                 <Calendar className="w-4 h-4 inline mr-1" />
@@ -465,6 +572,7 @@ const PembayaranDetailPage = () => {
                             </p>
                         </div>
 
+                        {/* Tanggal Pelunasan */}
                         <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg">
                             <label className="block text-sm font-medium text-gray-600 mb-2">
                                 <Calendar className="w-4 h-4 inline mr-1" />
@@ -475,25 +583,20 @@ const PembayaranDetailPage = () => {
                             </p>
                         </div>
 
+                        {/* Status Pembayaran */}
                         <div className="bg-gradient-to-r from-purple-50 to-violet-50 p-4 rounded-lg">
                             <label className="block text-sm font-medium text-gray-600 mb-2">
                                 <CheckCircle className="w-4 h-4 inline mr-1" />
                                 Status Pembayaran
                             </label>
                             <div className="flex items-center gap-2">
-                                {pembayaranData.payment_status === 1 ? (
-                                    <CheckCircle className="w-5 h-5 text-green-500" />
-                                ) : (
-                                    <XCircle className="w-5 h-5 text-red-500" />
-                                )}
-                                <span className={`text-lg font-bold ${
-                                    pembayaranData.payment_status === 1 ? 'text-green-600' : 'text-red-600'
-                                }`}>
-                                    {pembayaranData.payment_status === 1 ? 'Lunas' : 'Belum Lunas'}
+                                <span className="text-lg font-bold text-gray-900">
+                                    {pembayaranData.payment_status || '-'}
                                 </span>
                             </div>
                         </div>
 
+                        {/* Total Pembayaran */}
                         <div className="bg-gradient-to-r from-orange-50 to-amber-50 p-4 rounded-lg">
                             <label className="block text-sm font-medium text-gray-600 mb-2">
                                 <DollarSign className="w-4 h-4 inline mr-1" />
@@ -503,200 +606,154 @@ const PembayaranDetailPage = () => {
                                 {formatCurrency(totalAmount)}
                             </p>
                         </div>
-
-
-
-
                     </div>
-
-
                 </div>
 
-                {/* Detail Table */}
-                <>
-                    <style>{`
-                        /* Custom scrollbar styling for table container */
-                        .table-scroll-container::-webkit-scrollbar {
-                            height: 8px;
-                        }
-                        
-                        .table-scroll-container::-webkit-scrollbar-track {
-                            background: #f1f5f9;
-                            border-radius: 4px;
-                        }
-                        
-                        .table-scroll-container::-webkit-scrollbar-thumb {
-                            background: #cbd5e1;
-                            border-radius: 4px;
-                            transition: background 0.2s ease;
-                        }
-                        
-                        .table-scroll-container::-webkit-scrollbar-thumb:hover {
-                            background: #94a3b8;
-                        }
-                        
-                        /* Firefox scrollbar styling */
-                        .table-scroll-container {
-                            scrollbar-width: thin;
-                            scrollbar-color: #cbd5e1 #f1f5f9;
-                        }
-                    `}</style>
-                    
-                    <div className="bg-white rounded-xl shadow-lg border border-gray-100 relative overflow-hidden">
-                        {/* Enhanced Scroll Indicator - Top */}
-                        <div className="px-6 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                {/* Payment Details Table Section */}
+                <div className="bg-white rounded-2xl sm:rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
+                    {/* Table Header */}
+                    <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                             <div className="flex items-center gap-3">
                                 <DollarSign className="w-5 h-5 text-green-600" />
                                 <div>
-                                    <h2 className="text-lg font-bold text-gray-900">Detail Pembayaran</h2>
-                                    <p className="text-gray-500 text-xs mt-1">
+                                    <h2 className="text-lg font-bold text-gray-900">Detail Pembayaran Doka & Sapi</h2>
+                                    <p className="text-gray-500 text-sm">
                                         Rincian setiap pembayaran dalam transaksi ini
                                     </p>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-4">
-                                <div className="flex items-center text-sm text-gray-600">
-                                    <svg className="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16l-4-4m0 0l4-4m-4 4h18"></path>
-                                    </svg>
-                                    Tabel responsif menggunakan ruang optimal
-                                    <svg className="w-4 h-4 ml-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m0-4H3"></path>
-                                    </svg>
-                                </div>
-                                <div className="text-xs text-gray-500">
-                                    {detailData.length} pembayaran{detailData.length !== 1 ? '' : ''}
-                                </div>
+                            <div className="flex justify-end">
+                                <button
+                                    onClick={handleAddPayment}
+                                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-200 shadow-md hover:shadow-lg text-sm font-medium"
+                                >
+                                    <Plus className="w-4 h-4" />
+                                    Tambah Pembayaran
+                                </button>
                             </div>
                         </div>
-                        
-                        {/* Table Container with proper scroll */}
-                        <div className="w-full overflow-x-auto max-w-full table-scroll-container" onScroll={handleTableScroll}>
-                            <div className="min-w-full">
-                                <StyleSheetManager shouldForwardProp={shouldForwardProp}>
-                                    <DataTable
-                                    title="Daftar Detail Pembayaran"
-                                    columns={detailColumns}
-                                    data={getPaginatedData()}
-                                    pagination={false}
-                                    customStyles={{
-                                        ...customTableStyles,
-                                        table: {
-                                            ...customTableStyles.table,
-                                            style: {
-                                                ...customTableStyles.table.style,
-                                                width: '100%',
-                                                minWidth: '100%',
-                                                tableLayout: 'auto',
-                                            }
-                                        },
-                                        tableWrapper: {
-                                            ...customTableStyles.tableWrapper,
-                                            style: {
-                                                ...customTableStyles.tableWrapper.style,
-                                                overflowX: 'visible',
-                                                overflowY: 'visible',
-                                                width: '100%',
-                                                border: 'none',
-                                                borderRadius: '0',
-                                                WebkitOverflowScrolling: 'touch',
-                                                position: 'relative',
-                                                scrollBehavior: 'smooth',
-                                            }
-                                        },
-                                        headCells: {
-                                            ...customTableStyles.headCells,
-                                            style: {
-                                                ...customTableStyles.headCells.style,
-                                                textAlign: 'center !important',
-                                                // Only keep first column (No) sticky
-                                                '&:first-child': {
-                                                    position: 'sticky',
-                                                    left: 0,
-                                                    zIndex: 1002,
-                                                    backgroundColor: '#f8fafc',
-                                                    borderRight: '2px solid #e5e7eb',
-                                                    boxShadow: '1px 0 2px rgba(0, 0, 0, 0.05)',
-                                                },
+                    </div>
+                    {/* Table Container */}
+                    <div className="overflow-x-auto">
+                        <StyleSheetManager shouldForwardProp={shouldForwardProp}>
+                            <DataTable
+                                columns={detailColumns}
+                                data={getPaginatedData()}
+                                pagination={false}
+                                customStyles={{
+                                    ...customTableStyles,
+                                    table: {
+                                        ...customTableStyles.table,
+                                        style: {
+                                            ...customTableStyles.table.style,
+                                            width: '100%',
+                                            minWidth: '100%',
+                                            tableLayout: 'auto',
+                                        }
+                                    },
+                                    tableWrapper: {
+                                        ...customTableStyles.tableWrapper,
+                                        style: {
+                                            ...customTableStyles.tableWrapper.style,
+                                            overflowX: 'visible',
+                                            overflowY: 'visible',
+                                            width: '100%',
+                                            border: 'none',
+                                            borderRadius: '0',
+                                            WebkitOverflowScrolling: 'touch',
+                                            position: 'relative',
+                                            scrollBehavior: 'smooth',
+                                        }
+                                    },
+                                    headCells: {
+                                        ...customTableStyles.headCells,
+                                        style: {
+                                            ...customTableStyles.headCells.style,
+                                            textAlign: 'center !important',
+                                            '&:first-child': {
+                                                position: 'sticky',
+                                                left: 0,
+                                                zIndex: 1002,
+                                                backgroundColor: '#f8fafc',
+                                                borderRight: '2px solid #e5e7eb',
+                                                boxShadow: '1px 0 2px rgba(0, 0, 0, 0.05)',
+                                            },
+                                            '&:nth-child(2)': {
+                                                position: 'sticky',
+                                                left: '80px',
+                                                zIndex: 1001,
+                                                backgroundColor: '#f8fafc',
+                                                borderRight: '2px solid #e5e7eb',
+                                                boxShadow: '1px 0 2px rgba(0, 0, 0, 0.05)',
                                             },
                                         },
-                                        cells: {
-                                            ...customTableStyles.cells,
-                                            style: {
-                                                ...customTableStyles.cells.style,
-                                                textAlign: 'center !important',
+                                    },
+                                    cells: {
+                                        ...customTableStyles.cells,
+                                        style: {
+                                            ...customTableStyles.cells.style,
+                                            textAlign: 'center !important',
+                                            display: 'flex !important',
+                                            alignItems: 'center !important',
+                                            justifyContent: 'center !important',
+                                            '&:first-child': {
+                                                position: 'sticky',
+                                                left: 0,
+                                                zIndex: 999,
+                                                backgroundColor: '#ffffff !important',
+                                                borderRight: '2px solid #e5e7eb',
+                                                boxShadow: '1px 0 2px rgba(0, 0, 0, 0.05)',
                                                 display: 'flex !important',
                                                 alignItems: 'center !important',
                                                 justifyContent: 'center !important',
-                                                // Only keep first column (No) sticky
-                                                '&:first-child': {
-                                                    position: 'sticky',
-                                                    left: 0,
-                                                    zIndex: 999,
-                                                    backgroundColor: '#ffffff !important',
-                                                    borderRight: '2px solid #e5e7eb',
-                                                    boxShadow: '1px 0 2px rgba(0, 0, 0, 0.05)',
-                                                    display: 'flex !important',
-                                                    alignItems: 'center !important',
-                                                    justifyContent: 'center !important',
-                                                },
-                                            }
+                                            },
+                                            '&:nth-child(2)': {
+                                                position: 'sticky',
+                                                left: '80px',
+                                                zIndex: 998,
+                                                backgroundColor: '#ffffff !important',
+                                                borderRight: '2px solid #e5e7eb',
+                                                boxShadow: '1px 0 2px rgba(0, 0, 0, 0.05)',
+                                                display: 'flex !important',
+                                                alignItems: 'center !important',
+                                                justifyContent: 'center !important',
+                                            },
                                         }
-                                    }}
-                                    wrapperStyle={{ 'data-detail-table-wrapper': 'true' }}
-                                    noDataComponent={
-                                        <div className="text-center py-12">
-                                            <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                                            <p className="text-gray-500 text-lg">Tidak ada detail pembayaran ditemukan</p>
-                                        </div>
                                     }
-                                    responsive={false}
-                                    highlightOnHover
-                                    pointerOnHover
-                                />
-                                </StyleSheetManager>
-                            </div>
-                        </div>
-                        
-                        {/* Enhanced Scroll Status Footer */}
-                        <div className="bg-gray-50 px-4 py-2 border-t border-gray-200">
-                            <div className="flex items-center justify-between text-xs text-gray-500">
-                                <span className="flex items-center gap-1">
-                                    {scrollPosition.canScrollLeft && (
-                                        <span className="text-blue-600 font-medium">← Scroll kiri</span>
-                                    )}
-                                    {!scrollPosition.canScrollLeft && !scrollPosition.canScrollRight && (
-                                        <span className="text-green-600 font-medium">✓ Tampilan optimal</span>
-                                    )}
-                                    {scrollPosition.canScrollRight && (
-                                        <span className="text-blue-600 font-medium">Scroll kanan →</span>
-                                    )}
+                                }}
+                                wrapperStyle={{ 'data-detail-table-wrapper': 'true' }}
+                                noDataComponent={
+                                    <div className="text-center py-12">
+                                        <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                                        <p className="text-gray-500 text-lg">Tidak ada detail pembayaran ditemukan</p>
+                                    </div>
+                                }
+                                responsive={false}
+                                highlightOnHover
+                                pointerOnHover
+                            />
+                        </StyleSheetManager>
+                    </div>
+                    
+                    {/* Pagination Footer */}
+                    <div className="border-t border-gray-200 bg-gray-50 px-6 py-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                            <div className="text-sm text-gray-700">
+                                Menampilkan{' '}
+                                <span className="font-semibold">
+                                    {pagination.totalItems === 0 ? 0 : ((pagination.currentPage - 1) * pagination.perPage) + 1}
                                 </span>
-                                <span className="text-gray-400">
-                                    {detailData.length} detail pembayaran
+                                {' '}sampai{' '}
+                                <span className="font-semibold">
+                                    {Math.min(pagination.currentPage * pagination.perPage, pagination.totalItems)}
                                 </span>
-                            </div>
-                        </div>
-                        
-                        {/* Custom Pagination - Fixed outside scroll area */}
-                        <div className="border-t border-gray-200 bg-gray-50 px-6 py-4 flex items-center justify-between rounded-b-xl">
-                            <div className="flex items-center text-sm text-gray-700">
-                                <span>
-                                    Menampilkan{' '}
-                                    <span className="font-semibold">
-                                        {pagination.totalItems === 0 ? 0 : ((pagination.currentPage - 1) * pagination.perPage) + 1}
-                                    </span>
-                                    {' '}sampai{' '}
-                                    <span className="font-semibold">
-                                        {Math.min(pagination.currentPage * pagination.perPage, pagination.totalItems)}
-                                    </span>
-                                    {' '}dari{' '}
-                                    <span className="font-semibold">{pagination.totalItems}</span>
-                                    {' '}hasil
-                                </span>
+                                {' '}dari{' '}
+                                <span className="font-semibold">{pagination.totalItems}</span>
+                                {' '}hasil
                             </div>
                             
-                            <div className="flex items-center space-x-2">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                                 {/* Rows per page selector */}
                                 <div className="flex items-center space-x-2">
                                     <span className="text-sm text-gray-700">Rows per page:</span>
@@ -763,34 +820,17 @@ const PembayaranDetailPage = () => {
                             </div>
                         </div>
                     </div>
-                </>
-
-                {/* Action Buttons */}
-                <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
-                    <div className="flex justify-end gap-4">
-                        <button
-                            onClick={handleEdit}
-                            className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200 flex items-center gap-2"
-                        >
-                            <Edit className="w-4 h-4" />
-                            Edit Pembayaran
-                        </button>
-                        <button
-                            onClick={handleDelete}
-                            className="px-6 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors duration-200 flex items-center gap-2"
-                        >
-                            <Trash2 className="w-4 h-4" />
-                            Hapus Pembayaran
-                        </button>
-                    </div>
                 </div>
+
 
                 {/* Notification */}
                 {notification && (
-                    <div className={`fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 ${
+                    <div className={`fixed top-4 right-4 p-4 rounded-lg shadow-lg z-[9998] ${
                         notification.type === 'success'
                             ? 'bg-green-500 text-white'
-                            : 'bg-red-500 text-white'
+                            : notification.type === 'error'
+                            ? 'bg-red-500 text-white'
+                            : 'bg-blue-500 text-white'
                     }`}>
                         <p className="text-sm font-medium">{notification.message}</p>
                     </div>
@@ -805,6 +845,15 @@ const PembayaranDetailPage = () => {
                 data={pembayaranData}
                 loading={loading}
                 type="pembayaran"
+            />
+
+            {/* Add Payment Modal */}
+            <AddPaymentModal
+                isOpen={isAddPaymentModalOpen}
+                onClose={() => setIsAddPaymentModalOpen(false)}
+                onSuccess={handleAddPaymentSuccess}
+                pembayaranId={id}
+                pembayaranData={pembayaranData}
             />
         </div>
     );

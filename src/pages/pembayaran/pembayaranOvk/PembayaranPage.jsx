@@ -311,6 +311,21 @@ const PembayaranPage = () => {
             )
         },
         {
+            name: 'Nota Sistem',
+            selector: row => row.nota_sistem,
+            sortable: true,
+            width: '150px',
+            center: true,
+            wrap: true,
+            cell: row => (
+                <div className="w-full flex items-center justify-center">
+                    <span className="font-mono text-sm bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-200 text-blue-700" title={row.nota_sistem}>
+                        {row.nota_sistem || '-'}
+                    </span>
+                </div>
+            )
+        },
+        {
             name: 'Tipe Pembelian',
             selector: row => row.purchase_type,
             sortable: true,
@@ -699,7 +714,7 @@ const PembayaranPage = () => {
                         <div>
                             <h1 className="text-2xl sm:text-4xl font-bold text-gray-800 mb-1 sm:mb-2 flex items-center gap-3">
                                 <CreditCard size={32} className="text-blue-500" />
-                                Pembayaran
+                                Pembayaran OVK
                             </h1>
                             <p className="text-gray-600 text-sm sm:text-base">
                                 Kelola data pembayaran
@@ -764,7 +779,7 @@ const PembayaranPage = () => {
                         <div className="flex items-center justify-between text-sm text-gray-600">
                             <span className="flex items-center gap-2">
                                 <CreditCard className="w-4 h-4" />
-                                Data Pembayaran
+                                Data Pembayaran OVK
                             </span>
                             <div className="flex items-center gap-2 text-xs">
                                 {scrollPosition.canScrollLeft && (

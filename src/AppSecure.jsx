@@ -79,12 +79,10 @@ const PembelianKulitDetailPage = lazy(() => import('./pages/ho/pembelianKulit/Pe
 
 // Pembayaran Pages - Lazy loaded
 const PembayaranPage = lazy(() => import('./pages/pembayaran/pembayaranDoka/PembayaranPage'));
-const AddEditPembayaranPage = lazy(() => import('./pages/pembayaran/pembayaranDoka/AddEditPembayaranPage'));
 const PembayaranDetailPage = lazy(() => import('./pages/pembayaran/pembayaranDoka/PembayaranDetailPage'));
 
 // Pembayaran OVK Pages - Lazy loaded
 const PembayaranOvkPage = lazy(() => import('./pages/pembayaran/pembayaranOvk/PembayaranPage'));
-const AddEditPembayaranOvkPage = lazy(() => import('./pages/pembayaran/pembayaranOvk/AddEditPembayaranPage'));
 const PembayaranOvkDetailPage = lazy(() => import('./pages/pembayaran/pembayaranOvk/PembayaranDetailPage'));
 
 const AppWrapperSecure = () => (
@@ -217,14 +215,10 @@ function AppSecure() {
               
               {/* Pembayaran Doka Routes */}
               <Route path="/pembayaran/doka" element={<PembayaranPage />} />
-              <Route path="/pembayaran/doka/add" element={<AddEditPembayaranPage />} />
-              <Route path="/pembayaran/doka/edit/:id" element={<AddEditPembayaranPage />} />
               <Route path="/pembayaran/doka/detail/:id" element={<PembayaranDetailPage />} />
 
               {/* Pembayaran OVK Routes */}
               <Route path="/pembayaran/ovk" element={<PembayaranOvkPage />} />
-              <Route path="/pembayaran/ovk/add" element={<AddEditPembayaranOvkPage />} />
-              <Route path="/pembayaran/ovk/edit/:id" element={<AddEditPembayaranOvkPage />} />
               <Route path="/pembayaran/ovk/detail/:id" element={<PembayaranOvkDetailPage />} />
               
               {/* HO Sales Routes */}

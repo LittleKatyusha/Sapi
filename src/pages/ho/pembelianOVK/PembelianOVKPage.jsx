@@ -260,6 +260,20 @@ const PembelianOVKPage = () => {
             )
         },
         {
+            name: 'Nota Sistem',
+            selector: row => row.nota_sistem,
+            sortable: true,
+            width: '150px',
+            wrap: true,
+            cell: row => (
+                <div className="w-full px-2 flex items-center justify-center min-h-[40px]">
+                    <div className="font-mono text-sm bg-blue-50 px-3 py-2 rounded-lg text-center break-all whitespace-normal leading-tight text-blue-700">
+                        {row.nota_sistem || '-'}
+                    </div>
+                </div>
+            )
+        },
+        {
             name: 'Nota HO',
             selector: row => row.nota_ho,
             sortable: true,
