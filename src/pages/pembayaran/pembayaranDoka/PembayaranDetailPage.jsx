@@ -22,6 +22,7 @@ const PembayaranDetailPage = () => {
     const {
         getPembayaranDetail,
         deletePembayaran,
+        deletePaymentDetail,
         loading,
         error
     } = usePembayaran();
@@ -32,6 +33,8 @@ const PembayaranDetailPage = () => {
     const [detailData, setDetailData] = useState([]);
     const [notification, setNotification] = useState(null);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [isDeleteDetailModalOpen, setIsDeleteDetailModalOpen] = useState(false);
+    const [selectedDetail, setSelectedDetail] = useState(null);
     const [isAddPaymentModalOpen, setIsAddPaymentModalOpen] = useState(false);
     const [scrollPosition, setScrollPosition] = useState({ canScrollLeft: false, canScrollRight: false });
     const [openMenuId, setOpenMenuId] = useState(null);
@@ -106,21 +109,25 @@ const PembayaranDetailPage = () => {
                     
                     // Only update state if component is still mounted
                     if (isMounted && result.success) {
-                        // Gunakan header data jika tersedia, jika tidak gunakan dari detail
-                        let headerData = result.header;
-                        const detailItems = result.data || [];
-                        
-                        if (headerData) {
-                            // Use header data from /show endpoint
+                        // Use data from hook response structure
+                        const paymentData = result.header || {};  // Header data from hook
+                        const detailItems = result.data || [];     // Detail data from hook
+
+                        if (paymentData) {
+                            // Use payment header data from hook response
                             setPembayaranData({
-                                encryptedPid: headerData.encryptedPid || headerData.pid || id,
-                                id_pembelian: headerData.id_pembelian || '',
-                                purchase_type: headerData.purchase_type || 1,
-                                due_date: headerData.due_date || '',
-                                settlement_date: headerData.settlement_date || '',
-                                payment_status: headerData.payment_status || 0,
-                                created_at: headerData.created_at || '',
-                                updated_at: headerData.updated_at || ''
+                                encryptedPid: paymentData.encryptedPid || paymentData.pid || id,
+                                id_pembelian: paymentData.id_pembelian || '',
+                                purchase_type: paymentData.purchase_type || 1,
+                                due_date: paymentData.due_date || '',
+                                settlement_date: paymentData.settlement_date || '',
+                                payment_status: paymentData.payment_status || 0,
+                                created_at: paymentData.created_at || '',
+                                updated_at: paymentData.updated_at || '',
+                                total_tagihan: paymentData.total_tagihan || 0,
+                                total_terbayar: paymentData.total_terbayar || 0,
+                                // Include pembelian data
+                                pembelian: paymentData.pembelian || null
                             });
                         } else if (detailItems.length > 0) {
                             // Fallback: gunakan informasi dari detail pertama jika header tidak tersedia
@@ -133,7 +140,9 @@ const PembayaranDetailPage = () => {
                                 settlement_date: firstItem.settlement_date || '',
                                 payment_status: firstItem.payment_status || 0,
                                 created_at: firstItem.created_at || '',
-                                updated_at: firstItem.updated_at || ''
+                                updated_at: firstItem.updated_at || '',
+                                total_tagihan: 0,
+                                total_terbayar: 0
                             });
                         } else {
                             // Jika tidak ada data sama sekali
@@ -145,20 +154,23 @@ const PembayaranDetailPage = () => {
                                 settlement_date: '',
                                 payment_status: 0,
                                 created_at: '',
-                                updated_at: ''
+                                updated_at: '',
+                                total_tagihan: 0,
+                                total_terbayar: 0
                             });
                         }
-                        
+
                         // Transform detail items untuk struktur frontend
                         const transformedDetailItems = detailItems.map((item, index) => ({
-                            id: index + 1,
+                            id: item.id, // Keep the actual database ID
+                            rowNumber: index + 1, // Add row number for display
                             amount: parseFloat(item.amount) || 0,
                             payment_date: item.payment_date || '',
                             note: item.note || item.description || '',
                             created_at: item.created_at || '',
                             updated_at: item.updated_at || ''
                         }));
-                        
+
                         setDetailData(transformedDetailItems);
                     } else if (isMounted) {
                         console.warn('No detail data found for pembayaran:', id);
@@ -283,11 +295,59 @@ const PembayaranDetailPage = () => {
 
     // Handle delete action for payment details
     const handleDeleteAction = (row) => {
-        setNotification({
-            type: 'info',
-            message: 'Fitur hapus detail pembayaran akan segera tersedia'
-        });
+        setSelectedDetail(row);
+        setIsDeleteDetailModalOpen(true);
         setOpenMenuId(null);
+    };
+
+    // Handle delete detail confirmation
+    const handleDeleteDetailConfirm = async () => {
+        if (!selectedDetail) return;
+        
+        try {
+            const result = await deletePaymentDetail(selectedDetail.id, id);
+            
+            if (result.success) {
+                setNotification({
+                    type: 'success',
+                    message: result.message || 'Detail pembayaran berhasil dihapus'
+                });
+                
+                // Remove the deleted detail from the list
+                setDetailData(prevData => 
+                    prevData.filter(item => item.id !== selectedDetail.id)
+                );
+                
+                // Reset pagination if needed
+                const newTotalItems = detailData.length - 1;
+                const newTotalPages = Math.ceil(newTotalItems / pagination.perPage);
+                if (pagination.currentPage > newTotalPages && newTotalPages > 0) {
+                    setPagination(prev => ({
+                        ...prev,
+                        currentPage: newTotalPages,
+                        totalItems: newTotalItems,
+                        totalPages: newTotalPages
+                    }));
+                } else {
+                    setPagination(prev => ({
+                        ...prev,
+                        totalItems: newTotalItems,
+                        totalPages: newTotalPages
+                    }));
+                }
+            } else {
+                throw new Error(result.message || 'Gagal menghapus detail pembayaran');
+            }
+        } catch (error) {
+            console.error('Delete detail error:', error);
+            setNotification({
+                type: 'error',
+                message: error.message || 'Terjadi kesalahan saat menghapus detail pembayaran'
+            });
+        } finally {
+            setIsDeleteDetailModalOpen(false);
+            setSelectedDetail(null);
+        }
     };
 
     // Format currency
@@ -307,8 +367,27 @@ const PembayaranDetailPage = () => {
         return new Date(dateString).toLocaleDateString('id-ID');
     };
 
-    // Calculate total amount
-    const totalAmount = detailData.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
+    // Calculate total amount - use total_terbayar from JSON response
+    const totalAmount = parseFloat(pembayaranData?.total_terbayar || 0);
+
+    // Calculate payment information from JSON response data
+    const calculatePaymentInfo = () => {
+        // Use total_tagihan from JSON response as total bill
+        const totalBiaya = parseFloat(pembayaranData?.total_tagihan || 0);
+        const totalPembayaran = totalAmount;
+        const sisaPembayaran = totalBiaya - totalPembayaran;
+
+        return {
+            biayaTruk: 0,
+            biayaLain: 0,
+            biayaTotal: 0,
+            totalBiaya,
+            totalPembayaran,
+            sisaPembayaran
+        };
+    };
+
+    const paymentInfo = calculatePaymentInfo();
 
 
     const handleBack = () => {
@@ -370,7 +449,7 @@ const PembayaranDetailPage = () => {
     const detailColumns = [
         {
             name: 'No',
-            selector: (row, index) => getRowNumber(index),
+            selector: (row, index) => row.rowNumber || getRowNumber(index),
             sortable: false,
             minWidth: '60px',
             maxWidth: '80px',
@@ -378,7 +457,7 @@ const PembayaranDetailPage = () => {
             ignoreRowClick: true,
             cell: (row, index) => (
                 <div className="font-semibold text-gray-600 w-full flex items-center justify-center">
-                    {getRowNumber(index)}
+                    {row.rowNumber || getRowNumber(index)}
                 </div>
             )
         },
@@ -586,8 +665,62 @@ const PembayaranDetailPage = () => {
                                 {formatCurrency(totalAmount)}
                             </p>
                         </div>
+
+                        {/* Total yang Harus Dibayar - hanya tampil jika ada data pembelian */}
+                        {pembayaranData && pembayaranData.pembelian && (
+                            <div className="bg-gradient-to-r from-indigo-50 to-blue-50 p-4 rounded-lg">
+                                <label className="block text-sm font-medium text-gray-600 mb-2">
+                                    <CreditCard className="w-4 h-4 inline mr-1" />
+                                    Total yang Harus Dibayar
+                                </label>
+                                <p className="text-lg font-bold text-gray-900">
+                                    {formatCurrency(paymentInfo.totalBiaya)}
+                                </p>
+                            </div>
+                        )}
+
+                        {/* Sisa Pembayaran - hanya tampil jika ada data pembelian */}
+                        {pembayaranData && pembayaranData.pembelian && (
+                            <div className={`p-4 rounded-lg ${
+                                paymentInfo.sisaPembayaran > 0 
+                                    ? 'bg-gradient-to-r from-red-50 to-pink-50' 
+                                    : paymentInfo.sisaPembayaran < 0
+                                    ? 'bg-gradient-to-r from-yellow-50 to-orange-50'
+                                    : 'bg-gradient-to-r from-green-50 to-emerald-50'
+                            }`}>
+                                <label className="block text-sm font-medium text-gray-600 mb-2">
+                                    {paymentInfo.sisaPembayaran > 0 ? (
+                                        <XCircle className="w-4 h-4 inline mr-1 text-red-600" />
+                                    ) : paymentInfo.sisaPembayaran < 0 ? (
+                                        <Settings className="w-4 h-4 inline mr-1 text-yellow-600" />
+                                    ) : (
+                                        <CheckCircle className="w-4 h-4 inline mr-1 text-green-600" />
+                                    )}
+                                    Sisa Pembayaran
+                                </label>
+                                <p className={`text-lg font-bold ${
+                                    paymentInfo.sisaPembayaran > 0 
+                                        ? 'text-red-700' 
+                                        : paymentInfo.sisaPembayaran < 0
+                                        ? 'text-yellow-700'
+                                        : 'text-green-700'
+                                }`}>
+                                    {formatCurrency(paymentInfo.sisaPembayaran)}
+                                </p>
+                                {paymentInfo.sisaPembayaran > 0 && (
+                                    <p className="text-xs text-red-600 mt-1">Belum lunas</p>
+                                )}
+                                {paymentInfo.sisaPembayaran < 0 && (
+                                    <p className="text-xs text-yellow-600 mt-1">Pembayaran berlebih</p>
+                                )}
+                                {paymentInfo.sisaPembayaran === 0 && (
+                                    <p className="text-xs text-green-600 mt-1">Lunas</p>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
+
 
                 {/* Payment Details Table Section */}
                 <div className="bg-white rounded-2xl sm:rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
@@ -834,6 +967,21 @@ const PembayaranDetailPage = () => {
                 onSuccess={handleAddPaymentSuccess}
                 pembayaranId={id}
                 pembayaranData={pembayaranData}
+            />
+
+            {/* Delete Detail Confirmation Modal */}
+            <DeleteConfirmationModal
+                isOpen={isDeleteDetailModalOpen}
+                onClose={() => {
+                    setIsDeleteDetailModalOpen(false);
+                    setSelectedDetail(null);
+                }}
+                onConfirm={handleDeleteDetailConfirm}
+                data={selectedDetail}
+                loading={loading}
+                type="detail-pembayaran"
+                title="Hapus Detail Pembayaran"
+                message={`Apakah Anda yakin ingin menghapus detail pembayaran sebesar ${selectedDetail ? formatCurrency(selectedDetail.amount) : ''}?`}
             />
         </div>
     );

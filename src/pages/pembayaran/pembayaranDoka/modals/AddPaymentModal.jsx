@@ -37,7 +37,7 @@ const AddPaymentModal = ({ isOpen, onClose, onSuccess, pembayaranId, pembayaranD
     const handleInputChange = (field, value) => {
         setFormData(prev => ({
             ...prev,
-            [field]: value
+            [field]: field === 'note' ? (value || '') : value
         }));
     };
 
@@ -91,11 +91,29 @@ const AddPaymentModal = ({ isOpen, onClose, onSuccess, pembayaranId, pembayaranD
                 id_pembayaran: pembayaranId,
                 amount: parseNumber(formData.amount),
                 payment_date: formData.payment_date,
-                note: formData.note || ''
+                note: formData.note ? String(formData.note).trim() : ''
             };
 
-            // Use DOKA payment endpoints - adjust if different from OVK
-            const result = await HttpClient.post(API_ENDPOINTS.HO.PAYMENT.DETAIL_STORE, submitData);
+            // Debug: Log the payload structure
+            console.log('Payment payload structure:', submitData);
+            console.log('Payload types:', {
+                id_pembayaran: typeof submitData.id_pembayaran,
+                amount: typeof submitData.amount,
+                payment_date: typeof submitData.payment_date,
+                note: typeof submitData.note
+            });
+            console.log('Note field details:', {
+                originalValue: formData.note,
+                originalType: typeof formData.note,
+                processedValue: submitData.note,
+                processedType: typeof submitData.note,
+                isEmpty: !submitData.note,
+                isNull: submitData.note === null,
+                isUndefined: submitData.note === undefined
+            });
+
+            // Use new add-payment endpoint
+            const result = await HttpClient.post(API_ENDPOINTS.HO.PAYMENT.ADD_PAYMENT, submitData);
 
             console.log('Payment submission result:', result);
 
