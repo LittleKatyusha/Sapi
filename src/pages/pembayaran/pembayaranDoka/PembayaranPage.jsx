@@ -6,8 +6,6 @@ import { CreditCard } from 'lucide-react';
 
 // Import hooks
 import usePembayaran from './hooks/usePembayaran';
-import useFarmAPI from './hooks/useFarmAPI';
-import useBanksAPI from './hooks/useBanksAPI';
 import { useScrollPosition } from './hooks/useScrollPosition';
 import { useNotification } from './hooks/useNotification';
 import { useAutoRefresh } from './hooks/useAutoRefresh';
@@ -61,25 +59,6 @@ const PembayaranPage = () => {
 
     // Scroll position management
     const { scrollPosition, handleTableScroll, getScrollMessage, getScrollIndicatorStyle } = useScrollPosition(filteredData);
-
-    // Farm and Bank API hooks for ID to name conversion
-    const { farmData } = useFarmAPI();
-    const { banks } = useBanksAPI();
-
-    // Helper functions to convert ID to name
-    const getFarmName = useCallback((id) => {
-        if (!id || !farmData.length) return '';
-        const numericId = parseInt(id);
-        const farm = farmData.find(f => f.id === numericId || f.id === id);
-        return farm ? farm.name : '';
-    }, [farmData]);
-
-    const getBankName = useCallback((id) => {
-        if (!id || !banks.length) return '';
-        const numericId = parseInt(id);
-        const bank = banks.find(b => b.id === numericId || b.id === id);
-        return bank ? bank.nama : '';
-    }, [banks]);
 
     // Reset openMenuId when data changes
     useEffect(() => {
