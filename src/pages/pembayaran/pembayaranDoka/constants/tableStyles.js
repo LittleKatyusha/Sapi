@@ -26,6 +26,8 @@ const customTableStyles = {
             // Custom scrollbar styling
             scrollbarWidth: 'thin',
             scrollbarColor: '#cbd5e1 #f1f5f9',
+            // Enable sticky positioning
+            isolation: 'isolate',
         },
     },
     header: {

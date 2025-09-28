@@ -92,7 +92,8 @@ export const API_ENDPOINTS = {
       DETAILS: '/api/ho/payment/details',
       DETAIL_STORE: '/api/ho/payment/detail/store',
       DETAIL_UPDATE: '/api/ho/payment/detail/update',
-      DETAIL_DELETE: '/api/ho/payment/detail/hapus'
+      DETAIL_DELETE: '/api/ho/payment/detail/hapus',
+      ADD_PAYMENT: '/api/ho/payment/add-payment'
     }
   },
 
