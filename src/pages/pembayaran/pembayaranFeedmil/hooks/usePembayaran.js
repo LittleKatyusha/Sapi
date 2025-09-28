@@ -298,6 +298,14 @@ const usePembayaran = () => {
                 let detailData = [];
                 
                 if (paymentData) {
+                    // Calculate total_terbayar from details
+                    let calculatedTotalTerbayar = 0;
+                    if (paymentData.details && Array.isArray(paymentData.details)) {
+                        calculatedTotalTerbayar = paymentData.details.reduce((sum, detail) => {
+                            return sum + (parseFloat(detail.amount) || 0);
+                        }, 0);
+                    }
+
                     // Header data dari payment object
                     headerData = {
                         id: paymentData.id,
@@ -308,7 +316,12 @@ const usePembayaran = () => {
                         settlement_date: paymentData.settlement_date || '',
                         payment_status: paymentData.payment_status || 0,
                         created_at: paymentData.created_at || '',
-                        updated_at: paymentData.updated_at || ''
+                        updated_at: paymentData.updated_at || '',
+                        // Include totals - use from API response or calculate from details
+                        total_tagihan: paymentData.total_tagihan || paymentData.pembelian?.biaya_total || 0,
+                        total_terbayar: paymentData.total_terbayar || calculatedTotalTerbayar,
+                        // Include pembelian data if available
+                        pembelian: paymentData.pembelian || null
                     };
                     
                     // Detail data dari relasi details

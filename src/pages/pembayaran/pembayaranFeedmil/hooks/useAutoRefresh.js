@@ -1,31 +1,40 @@
-import { useEffect, useRef } from 'react';
-import { AUTO_REFRESH_INTERVAL } from '../constants';
+import { useState, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 
 /**
- * Custom hook for auto-refresh functionality
- * @param {Function} fetchData - Function to fetch data
- * @param {Object} pagination - Pagination object
- * @param {string} searchTerm - Current search term
+ * Custom hook for managing auto-refresh functionality
  */
-export const useAutoRefresh = (fetchData, pagination, searchTerm) => {
-  const lastRefreshTime = useRef(Date.now());
+export const useAutoRefresh = (
+  refreshFunction,
+  refreshInterval = 30000, // 30 seconds
+  dependencies = []
+) => {
+  const location = useLocation();
+  const [lastRefreshTime, setLastRefreshTime] = useState(Date.now());
 
+  // Refresh data with timestamp update
+  const refreshData = useCallback((...args) => {
+    refreshFunction(...args);
+    setLastRefreshTime(Date.now());
+  }, [refreshFunction]);
+
+  // Check if enough time has passed since last refresh
+  const shouldRefresh = useCallback(() => {
+    const timeSinceLastRefresh = Date.now() - lastRefreshTime;
+    return timeSinceLastRefresh > refreshInterval;
+  }, [lastRefreshTime, refreshInterval]);
+
+  // Handle visibility change (when user returns to tab)
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        const timeSinceLastRefresh = Date.now() - lastRefreshTime.current;
-        if (timeSinceLastRefresh > AUTO_REFRESH_INTERVAL) {
-          fetchData(pagination.currentPage, pagination.perPage, searchTerm, false, true);
-          lastRefreshTime.current = Date.now();
-        }
+      if (!document.hidden && shouldRefresh()) {
+        refreshData(...dependencies, false, true);
       }
     };
 
     const handleFocus = () => {
-      const timeSinceLastRefresh = Date.now() - lastRefreshTime.current;
-      if (timeSinceLastRefresh > AUTO_REFRESH_INTERVAL) {
-        fetchData(pagination.currentPage, pagination.perPage, searchTerm, false, true);
-        lastRefreshTime.current = Date.now();
+      if (shouldRefresh()) {
+        refreshData(...dependencies, false, true);
       }
     };
 
@@ -40,12 +49,24 @@ export const useAutoRefresh = (fetchData, pagination, searchTerm) => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleFocus);
     };
-  }, [fetchData, pagination.currentPage, pagination.perPage, searchTerm]);
+  }, [refreshData, shouldRefresh, dependencies]);
 
-  const refreshNow = () => {
-    fetchData(pagination.currentPage, pagination.perPage, searchTerm, false, true);
-    lastRefreshTime.current = Date.now();
+  // Refresh data when returning from edit page
+  useEffect(() => {
+    // Check if we're returning from an edit page
+    if (location.state?.fromEdit) {
+      console.log('🔄 Auto-refreshing data after returning from edit page');
+      console.log('🔄 Current dependencies:', dependencies);
+      refreshData(...dependencies, false, true);
+      
+      // Clear the state to prevent unnecessary refreshes
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state, refreshData, dependencies]);
+
+  return {
+    lastRefreshTime,
+    refreshData,
+    shouldRefresh
   };
-
-  return { refreshNow };
 };

@@ -1,42 +1,45 @@
-import { useState, useEffect } from 'react';
-import { NOTIFICATION_TYPES } from '../constants';
+import { useState, useEffect, useCallback } from 'react';
 
 /**
- * Custom hook for managing notifications
- * @returns {Object} Notification state and handlers
+ * Custom hook for managing notification state with auto-hide functionality
  */
-export const useNotification = () => {
+export const useNotification = (autoHideDelay = 5000) => {
   const [notification, setNotification] = useState(null);
 
-  // Auto-hide notification after 5 seconds
+  // Show notification
+  const showNotification = useCallback((type, message) => {
+    setNotification({ type, message });
+  }, []);
+
+  // Show success notification
+  const showSuccess = useCallback((message) => {
+    showNotification('success', message);
+  }, [showNotification]);
+
+  // Show error notification
+  const showError = useCallback((message) => {
+    showNotification('error', message);
+  }, [showNotification]);
+
+  // Show info notification
+  const showInfo = useCallback((message) => {
+    showNotification('info', message);
+  }, [showNotification]);
+
+  // Hide notification
+  const hideNotification = useCallback(() => {
+    setNotification(null);
+  }, []);
+
+  // Auto-hide notification after specified delay
   useEffect(() => {
-    if (notification) {
+    if (notification && autoHideDelay > 0) {
       const timer = setTimeout(() => {
         setNotification(null);
-      }, 5000);
+      }, autoHideDelay);
       return () => clearTimeout(timer);
     }
-  }, [notification]);
-
-  const showNotification = (type, message) => {
-    setNotification({ type, message });
-  };
-
-  const showSuccess = (message) => {
-    showNotification(NOTIFICATION_TYPES.SUCCESS, message);
-  };
-
-  const showError = (message) => {
-    showNotification(NOTIFICATION_TYPES.ERROR, message);
-  };
-
-  const showInfo = (message) => {
-    showNotification(NOTIFICATION_TYPES.INFO, message);
-  };
-
-  const hideNotification = () => {
-    setNotification(null);
-  };
+  }, [notification, autoHideDelay]);
 
   return {
     notification,

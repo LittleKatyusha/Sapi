@@ -1,252 +1,498 @@
+/* Custom CSS for PembayaranPage horizontal scrollbar styling and sticky action column */
+
 /* Horizontal scrollbar styling */
 .horizontal-scroll-container::-webkit-scrollbar {
-    height: 12px;
+  height: 12px;
 }
 
 .horizontal-scroll-container::-webkit-scrollbar-track {
-    background: #f1f5f9;
-    border-radius: 6px;
+  background: #f1f5f9;
+  border-radius: 6px;
 }
 
 .horizontal-scroll-container::-webkit-scrollbar-thumb {
-    background: #94a3b8;
-    border-radius: 6px;
-    border: 2px solid #f1f5f9;
+  background: #94a3b8;
+  border-radius: 6px;
+  border: 2px solid #f1f5f9;
 }
 
 .horizontal-scroll-container::-webkit-scrollbar-thumb:hover {
-    background: #64748b;
+  background: #64748b;
 }
 
 .horizontal-scroll-container::-webkit-scrollbar-corner {
-    background: #f1f5f9;
+  background: #f1f5f9;
 }
 
 /* Sticky No and Action Column Styles - Specific to Pembayaran Page */
-/* Header cells - Kolom No (1) */
 .pembayaran-table .rdt_TableHeadRow .rdt_TableCol:nth-child(1),
-.pembayaran-table .rdt_TableHeadRow th:nth-child(1),
-.pembayaran-table table thead tr th:nth-child(1) {
-    position: sticky !important;
-    left: 0 !important;
-    z-index: 1002 !important;
-    background-color: #f8fafc !important;
-    border-right: 2px solid #e5e7eb !important;
-    box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
-    will-change: transform !important;
-    min-width: 60px !important;
-    max-width: 60px !important;
+.pembayaran-table .rdt_TableHeadRow th:nth-child(1) {
+  position: sticky !important;
+  left: 0 !important;
+  z-index: 1002 !important;
+  background-color: #f8fafc !important;
+  border-right: 1px solid #e2e8f0 !important;
+  border-bottom: 2px solid #e2e8f0 !important;
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05) !important;
+  will-change: transform !important;
+  min-width: 60px !important;
+  max-width: 60px !important;
+  padding: 12px 16px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+  font-size: 13px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.025em !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
 }
 
-/* Body cells - Kolom No (1) */
 .pembayaran-table .rdt_TableBodyRow .rdt_TableCell:nth-child(1),
-.pembayaran-table .rdt_TableBodyRow td:nth-child(1),
-.pembayaran-table table tbody tr td:nth-child(1) {
-    position: sticky !important;
-    left: 0 !important;
-    z-index: 999 !important;
-    background-color: #ffffff !important;
-    border-right: 2px solid #e5e7eb !important;
-    box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
-    will-change: transform !important;
-    min-width: 60px !important;
-    max-width: 60px !important;
+.pembayaran-table .rdt_TableBodyRow td:nth-child(1) {
+  position: sticky !important;
+  left: 0 !important;
+  z-index: 999 !important;
+  background-color: transparent !important;
+  border-right: 1px solid #f1f5f9 !important;
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05) !important;
+  will-change: transform !important;
+  min-width: 60px !important;
+  max-width: 60px !important;
 }
 
-/* Header cells - Kolom Aksi (2) */
 .pembayaran-table .rdt_TableHeadRow .rdt_TableCol:nth-child(2),
-.pembayaran-table .rdt_TableHeadRow th:nth-child(2),
-.pembayaran-table table thead tr th:nth-child(2) {
-    position: sticky !important;
-    left: 60px !important;
-    z-index: 1001 !important;
-    background-color: #f8fafc !important;
-    border-right: 2px solid #e5e7eb !important;
-    box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
-    will-change: transform !important;
-    min-width: 80px !important;
-    max-width: 80px !important;
+.pembayaran-table .rdt_TableHeadRow th:nth-child(2) {
+  position: sticky !important;
+  left: 60px !important;
+  z-index: 1001 !important;
+  background-color: #f8fafc !important;
+  border-right: 1px solid #e2e8f0 !important;
+  border-bottom: 2px solid #e2e8f0 !important;
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05) !important;
+  will-change: transform !important;
+  min-width: 80px !important;
+  max-width: 80px !important;
+  padding: 12px 16px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+  font-size: 13px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.025em !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
 }
 
-/* Body cells - Kolom Aksi (2) */
 .pembayaran-table .rdt_TableBodyRow .rdt_TableCell:nth-child(2),
-.pembayaran-table .rdt_TableBodyRow td:nth-child(2),
-.pembayaran-table table tbody tr td:nth-child(2) {
-    position: sticky !important;
-    left: 60px !important;
-    z-index: 998 !important;
-    background-color: #ffffff !important;
-    border-right: 2px solid #e5e7eb !important;
-    box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
-    will-change: transform !important;
-    min-width: 80px !important;
-    max-width: 80px !important;
+.pembayaran-table .rdt_TableBodyRow td:nth-child(2) {
+  position: sticky !important;
+  left: 60px !important;
+  z-index: 998 !important;
+  background-color: transparent !important;
+  border-right: 1px solid #f1f5f9 !important;
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05) !important;
+  will-change: transform !important;
+  min-width: 80px !important;
+  max-width: 80px !important;
 }
 
-/* Hover effects for sticky columns */
 .pembayaran-table .rdt_TableBodyRow:hover .rdt_TableCell:nth-child(1),
 .pembayaran-table .rdt_TableBodyRow:hover td:nth-child(1),
 .pembayaran-table .rdt_TableBodyRow:hover .rdt_TableCell:nth-child(2),
-.pembayaran-table .rdt_TableBodyRow:hover td:nth-child(2),
-.pembayaran-table table tbody tr:hover td:nth-child(1),
-.pembayaran-table table tbody tr:hover td:nth-child(2) {
-    background-color: #f9fafb !important;
-}
-
-/* Additional selectors for better compatibility with react-data-table-component */
-.pembayaran-table .rdt_Table .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol:nth-child(1) {
-    position: sticky !important;
-    left: 0 !important;
-    z-index: 1002 !important;
-    background-color: #f8fafc !important;
-    border-right: 2px solid #e5e7eb !important;
-    box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
-    will-change: transform !important;
-    min-width: 60px !important;
-    max-width: 60px !important;
-}
-
-.pembayaran-table .rdt_Table .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol:nth-child(2) {
-    position: sticky !important;
-    left: 60px !important;
-    z-index: 1001 !important;
-    background-color: #f8fafc !important;
-    border-right: 2px solid #e5e7eb !important;
-    box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
-    will-change: transform !important;
-    min-width: 80px !important;
-    max-width: 80px !important;
-}
-
-.pembayaran-table .rdt_Table .rdt_TableBody .rdt_TableBodyRow .rdt_TableCell:nth-child(1) {
-    position: sticky !important;
-    left: 0 !important;
-    z-index: 999 !important;
-    background-color: #ffffff !important;
-    border-right: 2px solid #e5e7eb !important;
-    box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
-    will-change: transform !important;
-    min-width: 60px !important;
-    max-width: 60px !important;
-}
-
-.pembayaran-table .rdt_Table .rdt_TableBody .rdt_TableBodyRow .rdt_TableCell:nth-child(2) {
-    position: sticky !important;
-    left: 60px !important;
-    z-index: 998 !important;
-    background-color: #ffffff !important;
-    border-right: 2px solid #e5e7eb !important;
-    box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
-    will-change: transform !important;
-    min-width: 80px !important;
-    max-width: 80px !important;
-}
-
-.pembayaran-table .rdt_Table .rdt_TableBody .rdt_TableBodyRow:hover .rdt_TableCell:nth-child(1),
-.pembayaran-table .rdt_Table .rdt_TableBody .rdt_TableBodyRow:hover .rdt_TableCell:nth-child(2) {
-    background-color: #f9fafb !important;
+.pembayaran-table .rdt_TableBodyRow:hover td:nth-child(2) {
+  background-color: #f9fafb !important;
 }
 
 /* Additional selectors for better compatibility */
 .pembayaran-table table thead tr th:nth-child(1) {
-    position: sticky !important;
-    left: 0 !important;
-    z-index: 1002 !important;
-    background-color: #f8fafc !important;
-    border-right: 2px solid #e5e7eb !important;
-    box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
-    will-change: transform !important;
-    min-width: 60px !important;
-    max-width: 60px !important;
+  position: sticky !important;
+  left: 0 !important;
+  z-index: 1002 !important;
+  background-color: #f8fafc !important;
+  border-right: 1px solid #e2e8f0 !important;
+  border-bottom: 2px solid #e2e8f0 !important;
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05) !important;
+  will-change: transform !important;
+  min-width: 60px !important;
+  max-width: 60px !important;
+  padding: 12px 16px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+  font-size: 13px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.025em !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
 }
 
 .pembayaran-table table tbody tr td:nth-child(1) {
-    position: sticky !important;
-    left: 0 !important;
-    z-index: 999 !important;
-    background-color: #ffffff !important;
-    border-right: 2px solid #e5e7eb !important;
-    box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
-    will-change: transform !important;
-    min-width: 60px !important;
-    max-width: 60px !important;
+  position: sticky !important;
+  left: 0 !important;
+  z-index: 999 !important;
+  background-color: transparent !important;
+  border-right: 1px solid #f1f5f9 !important;
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05) !important;
+  will-change: transform !important;
+  min-width: 60px !important;
+  max-width: 60px !important;
 }
 
 .pembayaran-table table thead tr th:nth-child(2) {
-    position: sticky !important;
-    left: 60px !important;
-    z-index: 1001 !important;
-    background-color: #f8fafc !important;
-    border-right: 2px solid #e5e7eb !important;
-    box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
-    will-change: transform !important;
-    min-width: 80px !important;
-    max-width: 80px !important;
+  position: sticky !important;
+  left: 60px !important;
+  z-index: 1001 !important;
+  background-color: #f8fafc !important;
+  border-right: 1px solid #e2e8f0 !important;
+  border-bottom: 2px solid #e2e8f0 !important;
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05) !important;
+  will-change: transform !important;
+  min-width: 80px !important;
+  max-width: 80px !important;
+  padding: 12px 16px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+  font-size: 13px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.025em !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
 }
 
 .pembayaran-table table tbody tr td:nth-child(2) {
-    position: sticky !important;
-    left: 60px !important;
-    z-index: 998 !important;
-    background-color: #ffffff !important;
-    border-right: 2px solid #e5e7eb !important;
-    box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
-    will-change: transform !important;
-    min-width: 80px !important;
-    max-width: 80px !important;
+  position: sticky !important;
+  left: 60px !important;
+  z-index: 998 !important;
+  background-color: transparent !important;
+  border-right: 1px solid #f1f5f9 !important;
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05) !important;
+  will-change: transform !important;
+  min-width: 80px !important;
+  max-width: 80px !important;
 }
 
 .pembayaran-table table tbody tr:hover td:nth-child(1),
 .pembayaran-table table tbody tr:hover td:nth-child(2) {
-    background-color: #f9fafb !important;
+  background-color: #f9fafb !important;
+}
+
+/* Additional sticky column selectors for maximum compatibility */
+.pembayaran-table [data-column-id="1"],
+.pembayaran-table [data-column-id="0"] {
+  position: sticky !important;
+  left: 0 !important;
+  z-index: 999 !important;
+  background-color: #ffffff !important;
+  border-right: 2px solid #e5e7eb !important;
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+.pembayaran-table [data-column-id="2"] {
+  position: sticky !important;
+  left: 60px !important;
+  z-index: 998 !important;
+  background-color: #ffffff !important;
+  border-right: 2px solid #e5e7eb !important;
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Force sticky positioning on all possible selectors */
+.pembayaran-table > div > div > table > thead > tr > th:nth-child(1),
+.pembayaran-table > div > div > table > thead > tr > th:first-child {
+  position: sticky !important;
+  left: 0 !important;
+  z-index: 1002 !important;
+  background-color: #f8fafc !important;
+  border-right: 1px solid #e2e8f0 !important;
+  border-bottom: 2px solid #e2e8f0 !important;
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05) !important;
+  padding: 12px 16px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+  font-size: 13px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.025em !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+}
+
+.pembayaran-table > div > div > table > tbody > tr > td:nth-child(1),
+.pembayaran-table > div > div > table > tbody > tr > td:first-child {
+  position: sticky !important;
+  left: 0 !important;
+  z-index: 999 !important;
+  background-color: #ffffff !important;
+  border-right: 2px solid #e5e7eb !important;
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+.pembayaran-table > div > div > table > thead > tr > th:nth-child(2) {
+  position: sticky !important;
+  left: 60px !important;
+  z-index: 1001 !important;
+  background-color: #f8fafc !important;
+  border-right: 1px solid #e2e8f0 !important;
+  border-bottom: 2px solid #e2e8f0 !important;
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05) !important;
+  padding: 12px 16px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+  font-size: 13px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.025em !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+}
+
+.pembayaran-table > div > div > table > tbody > tr > td:nth-child(2) {
+  position: sticky !important;
+  left: 60px !important;
+  z-index: 998 !important;
+  background-color: #ffffff !important;
+  border-right: 2px solid #e5e7eb !important;
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Enhanced hover effects for sticky columns */
+.pembayaran-table > div > div > table > tbody > tr:hover > td:nth-child(1),
+.pembayaran-table > div > div > table > tbody > tr:hover > td:nth-child(2) {
+  background-color: #f8fafc !important;
+}
+
+/* Sticky column content styling */
+.sticky-column-content {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Ensure sticky columns maintain their position during scroll */
+.pembayaran-table-scroll-container {
+  position: relative;
+  contain: layout style paint;
+}
+
+/* Force hardware acceleration for smooth scrolling */
+.pembayaran-table [class*="rdt_TableCol"]:nth-child(1),
+.pembayaran-table [class*="rdt_TableCol"]:nth-child(2),
+.pembayaran-table [class*="rdt_TableCell"]:nth-child(1),
+.pembayaran-table [class*="rdt_TableCell"]:nth-child(2) {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
 }
 
 /* Custom scrollbar styling for table container */
 .table-scroll-container::-webkit-scrollbar {
-    height: 8px;
+  height: 8px;
 }
 
 .table-scroll-container::-webkit-scrollbar-track {
-    background: #f1f5f9;
-    border-radius: 4px;
+  background: #f1f5f9;
+  border-radius: 4px;
 }
 
 .table-scroll-container::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 4px;
-    transition: background 0.2s ease;
+  background: #cbd5e1;
+  border-radius: 4px;
+  transition: background 0.2s ease;
 }
 
 .table-scroll-container::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
+  background: #94a3b8;
 }
 
 /* Hide scrollbar on Firefox while keeping functionality */
 .table-scroll-container {
-    scrollbar-width: thin;
-    scrollbar-color: #cbd5e1 #f1f5f9;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
 }
 
-/* Force sticky positioning for all table cells */
-.pembayaran-table .rdt_Table .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol:nth-child(1),
-.pembayaran-table .rdt_Table .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol:nth-child(2) {
-    position: sticky !important;
+/* Page layout styles */
+.pembayaran-page-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f8fafc 0%, #e0f2fe 50%, #e0e7ff 100%);
+  padding: 0.5rem;
 }
 
-.pembayaran-table .rdt_Table .rdt_TableBody .rdt_TableBodyRow .rdt_TableCell:nth-child(1),
-.pembayaran-table .rdt_Table .rdt_TableBody .rdt_TableBodyRow .rdt_TableCell:nth-child(2) {
-    position: sticky !important;
+@media (min-width: 640px) {
+  .pembayaran-page-container {
+    padding: 1rem;
+  }
 }
 
-/* Ensure table container allows sticky positioning */
-.pembayaran-table .rdt_Table {
-    position: relative !important;
+@media (min-width: 768px) {
+  .pembayaran-page-container {
+    padding: 1.5rem;
+  }
 }
 
-.pembayaran-table .rdt_TableHead {
-    position: relative !important;
+.pembayaran-content-wrapper {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
-.pembayaran-table .rdt_TableBody {
-    position: relative !important;
+@media (min-width: 768px) {
+  .pembayaran-content-wrapper {
+    gap: 2rem;
+  }
+}
+
+/* Header card styles */
+.pembayaran-header-card {
+  background: white;
+  border-radius: 0;
+  padding: 1rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  border: 1px solid #f3f4f6;
+}
+
+@media (min-width: 640px) {
+  .pembayaran-header-card {
+    padding: 1.5rem;
+  }
+}
+
+/* Table container styles */
+.pembayaran-table-container {
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #f3f4f6;
+  position: relative;
+}
+
+.pembayaran-table-header {
+  background: linear-gradient(90deg, #eff6ff 0%, #eef2ff 100%);
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.pembayaran-table-scroll-container {
+  width: 100%;
+  overflow-x: auto;
+  max-width: 100%;
+  max-height: 60vh;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Mobile card styles */
+.pembayaran-mobile-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.pembayaran-mobile-loading,
+.pembayaran-mobile-error,
+.pembayaran-mobile-empty {
+  background: white;
+  border-radius: 1rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #f3f4f6;
+  padding: 2rem;
+}
+
+/* Scroll indicator styles */
+.scroll-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+}
+
+.scroll-indicator-badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+}
+
+.scroll-indicator-left {
+  color: #2563eb;
+  background-color: #dbeafe;
+}
+
+.scroll-indicator-right {
+  color: #2563eb;
+  background-color: #dbeafe;
+}
+
+.scroll-indicator-complete {
+  color: #059669;
+  background-color: #d1fae5;
+}
+
+/* Pagination styles */
+.pembayaran-pagination-container {
+  background: white;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid #e5e7eb;
+  border-bottom-left-radius: 0.5rem;
+  border-bottom-right-radius: 0.5rem;
+}
+
+.pembayaran-pagination-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pembayaran-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.pembayaran-pagination-select {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pembayaran-pagination-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.pembayaran-pagination-button {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.25rem;
+  background: white;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pembayaran-pagination-button:hover:not(:disabled) {
+  background: #f9fafb;
+}
+
+.pembayaran-pagination-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pembayaran-pagination-current {
+  padding: 0.25rem 0.75rem;
+  font-size: 0.875rem;
+  border: 1px solid #d1d5db;
+  background: #dbeafe;
+  color: #2563eb;
+  border-radius: 0.25rem;
 }
