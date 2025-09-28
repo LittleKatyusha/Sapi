@@ -20,7 +20,7 @@ import CustomPagination from './components/CustomPagination';
 import DeleteConfirmationModal from './modals/DeleteConfirmationModal';
 
 // Import constants and utilities
-import { createPembayaranColumns, NoDataComponent } from './constants/pembayaranTableColumns';
+import { createPembayaranColumns, NoDataComponent } from './constants/mainPaymentTableColumns';
 import customTableStyles from './constants/tableStyles';
 
 // Import styles

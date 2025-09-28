@@ -28,7 +28,7 @@ import {
   getPaymentStatusInfo,
   getRemainingPaymentStyle 
 } from './utils/formatters';
-import { createDetailColumns, NoDataComponent } from './constants/tableColumns';
+import { createDetailColumns, NoDataComponent } from './constants/paymentDetailTableColumns';
 import customTableStyles from './constants/tableStyles';
 
 // Custom function to filter out invalid props that shouldn't be passed to DOM
