@@ -1,0 +1,274 @@
+/* Main Container Styles */
+.pembayaran-page-container {
+    min-height: 100vh;
+    background: linear-gradient(to bottom right, #f8fafc, #eff6ff, #e0e7ff);
+    padding: 0.5rem;
+}
+
+@media (min-width: 640px) {
+    .pembayaran-page-container {
+        padding: 1rem;
+    }
+}
+
+@media (min-width: 768px) {
+    .pembayaran-page-container {
+        padding: 1.5rem;
+    }
+}
+
+.pembayaran-content-wrapper {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+    .pembayaran-content-wrapper {
+        gap: 2rem;
+    }
+}
+
+/* Header Card */
+.pembayaran-header-card {
+    background-color: white;
+    border-radius: 0;
+    padding: 1rem;
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+    border: 1px solid #f3f4f6;
+}
+
+@media (min-width: 640px) {
+    .pembayaran-header-card {
+        padding: 1.5rem;
+    }
+}
+
+/* Table Container */
+.pembayaran-table-container {
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    border: 1px solid #f3f4f6;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Table Header */
+.pembayaran-table-header {
+    background: linear-gradient(to right, #eff6ff, #e0e7ff);
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+/* Table Scroll Container */
+.pembayaran-table-scroll-container {
+    width: 100%;
+    overflow-x: auto;
+    max-width: 100%;
+    max-height: 60vh;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Custom Scrollbar */
+.table-scroll-container::-webkit-scrollbar {
+    height: 8px;
+}
+
+.table-scroll-container::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+}
+
+.table-scroll-container::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+    transition: background 0.2s ease;
+}
+
+.table-scroll-container::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Firefox scrollbar */
+.table-scroll-container {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+/* Sticky Columns for Table */
+.pembayaran-table .rdt_TableHeadRow .rdt_TableCol:nth-child(1),
+.pembayaran-table .rdt_TableHeadRow th:nth-child(1),
+.pembayaran-table table thead tr th:nth-child(1) {
+    position: sticky !important;
+    left: 0 !important;
+    z-index: 1002 !important;
+    background-color: #f8fafc !important;
+    border-right: 2px solid #e5e7eb !important;
+    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+.pembayaran-table .rdt_TableBodyRow .rdt_TableCell:nth-child(1),
+.pembayaran-table .rdt_TableBodyRow td:nth-child(1),
+.pembayaran-table table tbody tr td:nth-child(1) {
+    position: sticky !important;
+    left: 0 !important;
+    z-index: 999 !important;
+    background-color: #ffffff !important;
+    border-right: 2px solid #e5e7eb !important;
+    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+.pembayaran-table .rdt_TableHeadRow .rdt_TableCol:nth-child(2),
+.pembayaran-table .rdt_TableHeadRow th:nth-child(2),
+.pembayaran-table table thead tr th:nth-child(2) {
+    position: sticky !important;
+    left: 75px !important;
+    z-index: 1001 !important;
+    background-color: #f8fafc !important;
+    border-right: 2px solid #e5e7eb !important;
+    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+.pembayaran-table .rdt_TableBodyRow .rdt_TableCell:nth-child(2),
+.pembayaran-table .rdt_TableBodyRow td:nth-child(2),
+.pembayaran-table table tbody tr td:nth-child(2) {
+    position: sticky !important;
+    left: 75px !important;
+    z-index: 998 !important;
+    background-color: #ffffff !important;
+    border-right: 2px solid #e5e7eb !important;
+    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+.pembayaran-table .rdt_TableBodyRow:hover .rdt_TableCell:nth-child(1),
+.pembayaran-table .rdt_TableBodyRow:hover td:nth-child(1),
+.pembayaran-table .rdt_TableBodyRow:hover .rdt_TableCell:nth-child(2),
+.pembayaran-table .rdt_TableBodyRow:hover td:nth-child(2),
+.pembayaran-table table tbody tr:hover td:nth-child(1),
+.pembayaran-table table tbody tr:hover td:nth-child(2) {
+    background-color: #f9fafb !important;
+}
+
+/* Pagination Container */
+.pembayaran-pagination-container {
+    background-color: white;
+    padding: 0.75rem 1rem;
+    border-top: 1px solid #e5e7eb;
+    border-bottom-left-radius: 0.5rem;
+    border-bottom-right-radius: 0.5rem;
+}
+
+.pembayaran-pagination-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.pembayaran-pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.pembayaran-pagination-select {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.pembayaran-pagination-buttons {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.pembayaran-pagination-button {
+    padding: 0.5rem;
+    font-size: 0.875rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.25rem;
+    background-color: white;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.pembayaran-pagination-button:hover:not(:disabled) {
+    background-color: #f9fafb;
+}
+
+.pembayaran-pagination-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pembayaran-pagination-current {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.875rem;
+    border: 1px solid #d1d5db;
+    background-color: #eff6ff;
+    color: #2563eb;
+    border-radius: 0.25rem;
+}
+
+/* Scroll Indicator Badge */
+.scroll-indicator-badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+}
+
+.scroll-indicator-left {
+    background-color: #eff6ff;
+    color: #2563eb;
+}
+
+.scroll-indicator-complete {
+    background-color: #f0fdf4;
+    color: #16a34a;
+}
+
+/* Mobile Styles */
+.pembayaran-mobile-loading,
+.pembayaran-mobile-error,
+.pembayaran-mobile-empty {
+    background-color: white;
+    border-radius: 1rem;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    border: 1px solid #f3f4f6;
+    padding: 2rem;
+}
+
+.pembayaran-mobile-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* Horizontal Scrollbar Styling */
+.horizontal-scroll-container::-webkit-scrollbar {
+    height: 12px;
+}
+
+.horizontal-scroll-container::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 6px;
+}
+
+.horizontal-scroll-container::-webkit-scrollbar-thumb {
+    background: #94a3b8;
+    border-radius: 6px;
+    border: 2px solid #f1f5f9;
+}
+
+.horizontal-scroll-container::-webkit-scrollbar-thumb:hover {
+    background: #64748b;
+}
+
+.horizontal-scroll-container::-webkit-scrollbar-corner {
+    background: #f1f5f9;
+}
