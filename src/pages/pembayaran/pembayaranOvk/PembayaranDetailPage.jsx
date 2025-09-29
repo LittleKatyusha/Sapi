@@ -8,6 +8,14 @@ import { StyleSheetManager } from 'styled-components';
 import DeleteConfirmationModal from './modals/DeleteConfirmationModal';
 import AddPaymentModal from './modals/AddPaymentModal';
 import ActionButton from './components/ActionButton';
+import PaymentInfoCard from './components/PaymentInfoCard';
+import {
+    formatCurrency as formatCurrencyUtil,
+    formatDate as formatDateUtil,
+    calculatePaymentInfo,
+    getPaymentStatusInfo,
+    getRemainingPaymentStyle
+} from './utils/formatters';
 
 // Custom function to filter out invalid props that shouldn't be passed to DOM
 const shouldForwardProp = (prop) => {
@@ -348,25 +356,15 @@ const PembayaranDetailPage = () => {
         }
     };
 
-    // Format currency
-    const formatCurrency = (value) => {
-        if (!value && value !== 0) return 'Rp 0';
-        return new Intl.NumberFormat('id-ID', {
-            style: 'currency',
-            currency: 'IDR',
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0
-        }).format(value);
-    };
+    // Use formatter utilities
+    const formatCurrency = formatCurrencyUtil;
+    const formatDate = formatDateUtil;
 
-    // Format date
-    const formatDate = (dateString) => {
-        if (!dateString) return '-';
-        return new Date(dateString).toLocaleDateString('id-ID');
-    };
-
-    // Calculate total amount - use total_terbayar from JSON response
+    // Calculate payment information
+    const paymentInfo = calculatePaymentInfo(pembayaranData);
     const totalAmount = parseFloat(pembayaranData?.total_terbayar || 0);
+    const paymentStatusInfo = getPaymentStatusInfo(pembayaranData?.payment_status);
+    const remainingPaymentStyle = getRemainingPaymentStyle(paymentInfo.sisaPembayaran);
 
 
     const handleBack = () => {
@@ -590,60 +588,65 @@ const PembayaranDetailPage = () => {
                     </h2>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-
-
                         {/* Tanggal Jatuh Tempo */}
-                        <div className="bg-gradient-to-r from-emerald-50 to-green-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <Calendar className="w-4 h-4 inline mr-1" />
-                                Tanggal Jatuh Tempo
-                            </label>
-                            <p className="text-lg font-bold text-gray-900">
-                                {formatDate(pembayaranData.due_date)}
-                            </p>
-                        </div>
+                        <PaymentInfoCard
+                            icon={Calendar}
+                            label="Tanggal Jatuh Tempo"
+                            value={formatDate(pembayaranData.due_date)}
+                            gradientClass="bg-gradient-to-r from-emerald-50 to-green-50"
+                        />
 
                         {/* Tanggal Pelunasan */}
-                        <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <Calendar className="w-4 h-4 inline mr-1" />
-                                Tanggal Pelunasan
-                            </label>
-                            <p className="text-lg font-bold text-gray-900">
-                                {formatDate(pembayaranData.settlement_date)}
-                            </p>
-                        </div>
+                        <PaymentInfoCard
+                            icon={Calendar}
+                            label="Tanggal Pelunasan"
+                            value={formatDate(pembayaranData.settlement_date)}
+                            gradientClass="bg-gradient-to-r from-green-50 to-emerald-50"
+                        />
 
                         {/* Status Pembayaran */}
-                        <div className="bg-gradient-to-r from-purple-50 to-violet-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <CheckCircle className="w-4 h-4 inline mr-1" />
-                                Status Pembayaran
-                            </label>
+                        <PaymentInfoCard
+                            icon={CheckCircle}
+                            label="Status Pembayaran"
+                            gradientClass="bg-gradient-to-r from-purple-50 to-violet-50"
+                        >
                             <div className="flex items-center gap-2">
-                                <span className={`inline-flex px-3 py-1.5 text-sm font-medium rounded-lg border ${
-                                    pembayaranData.payment_status === 1 
-                                        ? 'bg-green-50 text-green-700 border-green-200' 
-                                        : pembayaranData.payment_status === 0
-                                        ? 'bg-red-50 text-red-700 border-red-200'
-                                        : 'bg-gray-50 text-gray-700 border-gray-200'
-                                }`}>
-                                    {pembayaranData.payment_status === 1 ? 'Lunas' : 
-                                     pembayaranData.payment_status === 0 ? 'Belum Lunas' : 'Belum Lunas'}
+                                <span className={`inline-flex px-3 py-1.5 text-sm font-medium rounded-lg border ${paymentStatusInfo.className}`}>
+                                    {paymentStatusInfo.text}
                                 </span>
                             </div>
-                        </div>
+                        </PaymentInfoCard>
 
                         {/* Total Pembayaran */}
-                        <div className="bg-gradient-to-r from-orange-50 to-amber-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <DollarSign className="w-4 h-4 inline mr-1" />
-                                Total Pembayaran
-                            </label>
-                            <p className="text-lg font-bold text-gray-900">
-                                {formatCurrency(totalAmount)}
+                        <PaymentInfoCard
+                            icon={DollarSign}
+                            label="Total Pembayaran"
+                            value={formatCurrency(totalAmount)}
+                            gradientClass="bg-gradient-to-r from-orange-50 to-amber-50"
+                        />
+
+                        {/* Total yang Harus Dibayar */}
+                        <PaymentInfoCard
+                            icon={CreditCard}
+                            label="Total yang Harus Dibayar"
+                            value={formatCurrency(paymentInfo.totalBiaya)}
+                            gradientClass="bg-gradient-to-r from-indigo-50 to-blue-50"
+                        />
+
+                        {/* Sisa Pembayaran */}
+                        <PaymentInfoCard
+                            icon={paymentInfo.sisaPembayaran > 0 ? XCircle : paymentInfo.sisaPembayaran < 0 ? Settings : CheckCircle}
+                            label="Sisa Pembayaran"
+                            gradientClass={remainingPaymentStyle.containerClass}
+                            iconColor={remainingPaymentStyle.iconColor}
+                        >
+                            <p className={`text-lg font-bold ${remainingPaymentStyle.textClass}`}>
+                                {formatCurrency(paymentInfo.sisaPembayaran)}
                             </p>
-                        </div>
+                            <p className={`text-xs mt-1 ${remainingPaymentStyle.iconColor}`}>
+                                {remainingPaymentStyle.statusText}
+                            </p>
+                        </PaymentInfoCard>
                     </div>
                 </div>
 

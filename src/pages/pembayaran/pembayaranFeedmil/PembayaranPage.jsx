@@ -208,11 +208,11 @@ const PembayaranPage = () => {
                         </div>
                         
                         {/* Scrollable Table Content */}
-                        <div 
-                            className="pembayaran-table-scroll-container table-scroll-container" 
+                        <div
+                            className="pembayaran-table-scroll-container table-scroll-container"
                             onScroll={handleTableScroll}
                         >
-                            <div style={{ minWidth: '1740px' }}>
+                            <div style={{ width: 'fit-content', minWidth: '100%' }}>
                                 <DataTable
                                     key={`datatable-${serverPagination.currentPage}-${filteredData.length}`}
                                     columns={columns}
@@ -233,7 +233,7 @@ const PembayaranPage = () => {
                                         },
                                         table: {
                                             style: {
-                                                minWidth: '1480px',
+                                                minWidth: '100%',
                                                 position: 'relative',
                                                 borderCollapse: 'separate',
                                                 borderSpacing: 0,
@@ -253,7 +253,7 @@ const PembayaranPage = () => {
                                                 },
                                                 '&:nth-child(2)': {
                                                     position: 'sticky',
-                                                    left: '60px',
+                                                    left: '75px', // Updated to match new No column width
                                                     zIndex: 1001,
                                                     backgroundColor: '#f8fafc',
                                                     borderRight: '2px solid #e5e7eb',
@@ -275,7 +275,7 @@ const PembayaranPage = () => {
                                                 },
                                                 '&:nth-child(2)': {
                                                     position: 'sticky',
-                                                    left: '60px',
+                                                    left: '75px', // Updated to match new No column width
                                                     zIndex: 998,
                                                     backgroundColor: '#ffffff',
                                                     borderRight: '2px solid #e5e7eb',
@@ -302,8 +302,8 @@ const PembayaranPage = () => {
                                     responsive={false}
                                     highlightOnHover
                                     pointerOnHover
-                                    fixedHeader={false}
-                                    fixedHeaderScrollHeight="60vh"
+                                    fixedHeader={true}
+                                    fixedHeaderScrollHeight="500px"
                                 />
                             </div>
                         </div>

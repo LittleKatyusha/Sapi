@@ -2,30 +2,23 @@ const customTableStyles = {
     table: {
         style: {
             backgroundColor: '#fff',
-            borderRadius: '0px', // Remove border radius from table itself for seamless scrolling
-            width: '100%',
-            minWidth: '1740px', // Optimized minimum width ensuring all headers display completely
-            maxWidth: '100%',
-            tableLayout: 'auto', // Auto layout for optimal column fitting
+            borderRadius: '0px',
+            width: 'auto', // Changed from 100% to auto to fit content
+            minWidth: '100%', // Ensure it fills container if content is smaller
             borderCollapse: 'separate',
-            borderSpacing: 0,
+            borderSpacing: '0',
             margin: 0,
         },
     },
     tableWrapper: {
         style: {
-            overflowX: 'auto',
-            overflowY: 'visible',
-            width: '100%',
-            maxWidth: '100%',
+            width: 'auto', // Changed to auto to prevent forcing full width
+            minWidth: '100%', // Minimum width to fill container
             border: 'none',
             borderRadius: '0',
             WebkitOverflowScrolling: 'touch',
             position: 'relative',
-            scrollBehavior: 'smooth',
-            // Custom scrollbar styling
-            scrollbarWidth: 'thin',
-            scrollbarColor: '#cbd5e1 #f1f5f9',
+            overflow: 'visible', // Allow content to be visible
         },
     },
     header: {
@@ -35,7 +28,7 @@ const customTableStyles = {
             padding: '1rem 1.5rem',
             fontSize: '1.25rem',
             fontWeight: '600',
-            textAlign: 'center', // Center alignment for header
+            textAlign: 'center',
         },
     },
     headRow: {
@@ -43,53 +36,54 @@ const customTableStyles = {
             position: 'sticky',
             top: 0,
             zIndex: 1000,
-            backgroundColor: '#f8fafc', // Subtle background instead of gradient
+            backgroundColor: '#f8fafc',
             borderBottom: '2px solid #e2e8f0',
-            minHeight: '52px', // Increased for better breathing room
+            minHeight: '56px', // Slightly increased for better visual balance
             boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
         },
     },
     headCells: {
         style: {
-            paddingTop: '12px', // py-3 equivalent
+            paddingTop: '12px', // Reduced padding to save space
             paddingBottom: '12px',
-            paddingLeft: '16px', // px-4 equivalent
+            paddingLeft: '16px', // Reduced horizontal padding
             paddingRight: '16px',
             fontWeight: '600',
             color: '#334155',
-            fontSize: '13px', // Slightly larger for better readability
+            fontSize: '13px', // Slightly smaller font to save space
             textTransform: 'uppercase',
             letterSpacing: '0.025em',
-            textAlign: 'center', // Center alignment for all headers
-            borderRight: '1px solid #e2e8f0', // Border between columns
+            textAlign: 'center',
+            borderRight: '1px solid #e5e7eb',
             whiteSpace: 'nowrap',
-            overflow: 'visible', // Allow content to expand
+            overflow: 'visible',
             background: 'transparent',
-            // Remove border from last column to avoid empty column appearance
             '&:last-child': {
                 borderRight: 'none',
+            },
+            // Better visual hierarchy
+            '&:nth-child(1), &:nth-child(2)': {
+                backgroundColor: '#f8fafc',
+                fontWeight: '700',
             },
         },
     },
     cells: {
         style: {
-            paddingTop: '12px', // py-3 equivalent  
+            paddingTop: '12px', // Reduced vertical padding
             paddingBottom: '12px',
-            paddingLeft: '16px', // px-4 equivalent
+            paddingLeft: '16px', // Reduced horizontal padding
             paddingRight: '16px',
-            fontSize: '13px',
+            fontSize: '13px', // Slightly smaller font to save space
             color: '#475569',
-            textAlign: 'center', // Center alignment for all cells
-            borderRight: '1px solid #f1f5f9', // Subtle border between columns
-            // Enable word wrapping and break words for long content
+            textAlign: 'center',
+            borderRight: '1px solid #f1f5f9',
             whiteSpace: 'normal',
             wordWrap: 'break-word',
-            wordBreak: 'break-words',
+            wordBreak: 'break-word',
             overflowWrap: 'break-word',
-            // Allow dynamic row height
             minHeight: 'auto',
             height: 'auto',
-            // Remove border from last column
             '&:last-child': {
                 borderRight: 'none',
             },
@@ -97,19 +91,24 @@ const customTableStyles = {
     },
     rows: {
         style: {
-            minHeight: '44px', // Increased minimum height for better content display
-            height: 'auto', // Dynamic height adjustment
+            minHeight: '48px', // Reduced row height to save space
+            height: 'auto',
             borderBottom: '1px solid #f1f5f9',
             transition: 'all 0.2s ease',
             '&:hover': {
                 backgroundColor: '#f8fafc',
-                transform: 'translateY(-1px)', // Subtle lift effect
+                transform: 'translateY(-1px)',
                 boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+            },
+            // Add zebra striping for better readability
+            '&:nth-of-type(even)': {
+                backgroundColor: '#fafafa',
             },
         },
         highlightOnHoverStyle: {
-            backgroundColor: '#f8fafc',
+            backgroundColor: '#f0f9ff',
             transition: 'all 0.2s ease',
+            cursor: 'pointer',
         },
     },
     pagination: {

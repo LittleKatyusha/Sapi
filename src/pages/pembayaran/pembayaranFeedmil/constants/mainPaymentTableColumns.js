@@ -20,37 +20,21 @@ export const createPembayaranColumns = (
     name: 'No',
     selector: (row, index) => index + 1,
     sortable: false,
-    width: '60px',
+    width: '75px',
     center: true,
     ignoreRowClick: true,
-    style: {
-      position: 'sticky',
-      left: 0,
-      zIndex: 999,
-      backgroundColor: '#ffffff',
-      borderRight: '2px solid #e5e7eb',
-      boxShadow: '2px 0 4px rgba(0, 0, 0, 0.1)',
-    },
     cell: (row, index) => (
-      <div className="font-semibold text-gray-600 w-full flex items-center justify-center sticky-column-content">
+      <div className="font-semibold text-gray-600 w-full flex items-center justify-center">
         {(serverPagination.currentPage - 1) * serverPagination.perPage + index + 1}
       </div>
     )
   },
   {
     name: 'Aksi',
-    width: '80px',
+    width: '95px',
     center: true,
-    style: {
-      position: 'sticky',
-      left: '60px',
-      zIndex: 998,
-      backgroundColor: '#ffffff',
-      borderRight: '2px solid #e5e7eb',
-      boxShadow: '2px 0 4px rgba(0, 0, 0, 0.1)',
-    },
     cell: row => (
-      <div className="w-full flex items-center justify-center sticky-column-content">
+      <div className="w-full flex items-center justify-center">
         <ActionButton
           row={row}
           openMenuId={openMenuId}
@@ -68,12 +52,12 @@ export const createPembayaranColumns = (
     name: 'Nota',
     selector: row => row.nota,
     sortable: true,
-    width: '150px',
+    width: '175px',
     center: true,
     wrap: true,
     cell: row => (
-      <div className="w-full flex items-center justify-center">
-        <span className="font-mono text-sm bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200 text-gray-700" title={row.nota}>
+      <div className="w-full flex items-center justify-center px-2">
+        <span className="font-mono text-sm bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200 text-gray-700 whitespace-nowrap" title={row.nota}>
           {row.nota || '-'}
         </span>
       </div>
@@ -83,28 +67,13 @@ export const createPembayaranColumns = (
     name: 'Nota Sistem',
     selector: row => row.nota_sistem,
     sortable: true,
-    width: '150px',
+    width: '175px',
     center: true,
     wrap: true,
     cell: row => (
-      <div className="w-full flex items-center justify-center">
-        <span className="font-mono text-sm bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-200 text-blue-700" title={row.nota_sistem}>
+      <div className="w-full flex items-center justify-center px-2">
+        <span className="font-mono text-sm bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-200 text-blue-700 whitespace-nowrap" title={row.nota_sistem}>
           {row.nota_sistem || '-'}
-        </span>
-      </div>
-    )
-  },
-  {
-    name: 'Supplier',
-    selector: row => row.nama_supplier,
-    sortable: true,
-    width: '200px',
-    center: true,
-    wrap: true,
-    cell: row => (
-      <div className="w-full flex items-center justify-center">
-        <span className="font-medium text-sm bg-purple-50 text-purple-700 px-3 py-1.5 rounded-lg border border-purple-200" title={row.nama_supplier}>
-          {row.nama_supplier || '-'}
         </span>
       </div>
     )
@@ -113,59 +82,59 @@ export const createPembayaranColumns = (
     name: 'Tanggal Masuk',
     selector: row => row.tgl_masuk,
     sortable: true,
-    width: '160px',
+    width: '165px',
     center: true,
     wrap: true,
     cell: row => (
-      <div className="w-full flex items-center justify-center">
-        <span className="text-gray-900 font-medium text-sm">
+      <div className="w-full flex items-center justify-center px-2">
+        <span className="text-gray-900 font-medium text-sm whitespace-nowrap">
           {formatTableDate(row.tgl_masuk)}
         </span>
       </div>
     )
   },
   {
-    name: 'Tanggal Jatuh Tempo',
+    name: 'Jatuh Tempo',
     selector: row => row.due_date,
     sortable: true,
-    width: '220px',
+    width: '165px',
     center: true,
     wrap: true,
     cell: row => (
-      <div className="w-full flex items-center justify-center">
-        <span className="text-gray-900 font-medium text-sm">
+      <div className="w-full flex items-center justify-center px-2">
+        <span className="text-gray-900 font-medium text-sm whitespace-nowrap">
           {formatTableDate(row.due_date)}
         </span>
       </div>
     )
   },
   {
-    name: 'Tanggal Pelunasan',
+    name: 'Pelunasan',
     selector: row => row.settlement_date,
     sortable: true,
-    width: '200px',
+    width: '165px',
     center: true,
     wrap: true,
     cell: row => (
-      <div className="w-full flex items-center justify-center">
-        <span className="text-gray-900 font-medium text-sm">
+      <div className="w-full flex items-center justify-center px-2">
+        <span className="text-gray-900 font-medium text-sm whitespace-nowrap">
           {formatTableDate(row.settlement_date)}
         </span>
       </div>
     )
   },
   {
-    name: 'Status Pembayaran',
+    name: 'Status',
     selector: row => row.payment_status,
     sortable: true,
-    width: '200px',
+    width: '175px',
     center: true,
     wrap: true,
     cell: row => {
       const statusInfo = getPaymentStatusInfo(row.payment_status);
       return (
-        <div className="w-full flex items-center justify-center">
-          <span className={`inline-flex px-3 py-1.5 text-sm font-medium rounded-lg border ${statusInfo.className}`}>
+        <div className="w-full flex items-center justify-center px-2">
+          <span className={`inline-flex px-3 py-1.5 text-sm font-medium rounded-lg border whitespace-nowrap ${statusInfo.className}`}>
             {statusInfo.text}
           </span>
         </div>
@@ -176,12 +145,12 @@ export const createPembayaranColumns = (
     name: 'Dibuat',
     selector: row => row.created_at,
     sortable: true,
-    width: '140px',
+    width: '160px',
     center: true,
     wrap: true,
     cell: row => (
-      <div className="w-full flex items-center justify-center">
-        <span className="text-gray-900 font-medium text-sm">
+      <div className="w-full flex items-center justify-center px-2">
+        <span className="text-gray-900 font-medium text-sm whitespace-nowrap">
           {formatTableDate(row.created_at)}
         </span>
       </div>
@@ -191,12 +160,12 @@ export const createPembayaranColumns = (
     name: 'Diperbarui',
     selector: row => row.updated_at,
     sortable: true,
-    width: '140px',
+    width: '160px',
     center: true,
     wrap: true,
     cell: row => (
-      <div className="w-full flex items-center justify-center">
-        <span className="text-gray-900 font-medium text-sm">
+      <div className="w-full flex items-center justify-center px-2">
+        <span className="text-gray-900 font-medium text-sm whitespace-nowrap">
           {formatTableDate(row.updated_at)}
         </span>
       </div>

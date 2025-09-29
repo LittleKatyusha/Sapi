@@ -293,32 +293,28 @@ const PembayaranDetailPage = () => {
               gradientClass="bg-gradient-to-r from-orange-50 to-amber-50"
             />
 
-            {/* Total Bill - only show if purchase data exists */}
-            {pembayaranData?.pembelian && (
-              <PaymentInfoCard
-                icon={CreditCard}
-                label="Total yang Harus Dibayar"
-                value={formatCurrency(paymentInfo.totalBiaya)}
-                gradientClass="bg-gradient-to-r from-indigo-50 to-blue-50"
-              />
-            )}
+            {/* Total Bill */}
+            <PaymentInfoCard
+              icon={CreditCard}
+              label="Total yang Harus Dibayar"
+              value={formatCurrency(paymentInfo.totalBiaya)}
+              gradientClass="bg-gradient-to-r from-indigo-50 to-blue-50"
+            />
 
-            {/* Remaining Payment - only show if purchase data exists */}
-            {pembayaranData?.pembelian && (
-              <PaymentInfoCard
-                icon={paymentInfo.sisaPembayaran > 0 ? XCircle : paymentInfo.sisaPembayaran < 0 ? Settings : CheckCircle}
-                label="Sisa Pembayaran"
-                gradientClass={remainingPaymentStyle.containerClass}
-                iconColor={remainingPaymentStyle.iconColor}
-              >
-                <p className={`text-lg font-bold ${remainingPaymentStyle.textClass}`}>
-                  {formatCurrency(paymentInfo.sisaPembayaran)}
-                </p>
-                <p className={`text-xs mt-1 ${remainingPaymentStyle.iconColor}`}>
-                  {remainingPaymentStyle.statusText}
-                </p>
-              </PaymentInfoCard>
-            )}
+            {/* Remaining Payment */}
+            <PaymentInfoCard
+              icon={paymentInfo.sisaPembayaran > 0 ? XCircle : paymentInfo.sisaPembayaran < 0 ? Settings : CheckCircle}
+              label="Sisa Pembayaran"
+              gradientClass={remainingPaymentStyle.containerClass}
+              iconColor={remainingPaymentStyle.iconColor}
+            >
+              <p className={`text-lg font-bold ${remainingPaymentStyle.textClass}`}>
+                {formatCurrency(paymentInfo.sisaPembayaran)}
+              </p>
+              <p className={`text-xs mt-1 ${remainingPaymentStyle.iconColor}`}>
+                {remainingPaymentStyle.statusText}
+              </p>
+            </PaymentInfoCard>
           </div>
         </div>
 
