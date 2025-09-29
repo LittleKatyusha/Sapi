@@ -162,6 +162,11 @@ const usePembelianKulit = () => {
             formData.append('id_farm', pembelianData.id_farm || ''); // Required field
             formData.append('id_syarat_pembelian', pembelianData.id_syarat_pembelian || ''); // Required field
             
+            // Add the missing required fields
+            formData.append('tipe_pembelian', pembelianData.tipe_pembelian || ''); // Required field
+            formData.append('tipe_pembayaran', pembelianData.tipe_pembayaran || ''); // Required field
+            formData.append('due_date', pembelianData.due_date || ''); // Required field
+            
             // Add file if exists
             if (pembelianData.file && pembelianData.file instanceof File) {
                 formData.append('file', pembelianData.file);
@@ -295,6 +300,11 @@ const usePembelianKulit = () => {
             formData.append('nota_ho', data.nota_ho || ''); // Required field
             formData.append('id_farm', data.id_farm || ''); // Required field
             formData.append('id_syarat_pembelian', data.id_syarat_pembelian || ''); // Required field
+            
+            // Add the missing required fields
+            formData.append('tipe_pembelian', data.tipe_pembelian || ''); // Required field
+            formData.append('tipe_pembayaran', data.tipe_pembayaran || ''); // Required field
+            formData.append('due_date', data.due_date || ''); // Required field
             
             // Add file if exists
             if (data.file && data.file instanceof File) {

@@ -4,13 +4,11 @@ import { ArrowLeft, Save, Plus, Trash2, Building2, Calendar, Hash, Package, X, S
 import usePembelianKulit from './hooks/usePembelianKulit';
 import useParameterSelect from '../pembelian/hooks/useParameterSelect';
 import useBanksAPI from './hooks/useBanksAPI';
+import useTipePembayaran from '../../../hooks/useTipePembayaran';
 import SearchableSelect from '../../../components/shared/SearchableSelect';
 import HttpClient from '../../../services/httpClient';
 import { API_ENDPOINTS } from '../../../config/api';
-
-
-
-// Mock data removed - now using real backend data via useJenisPembelianKulit
+import useJenisPembelianKulit from './hooks/useJenisPembelianKulit';
 
 const AddEditPembelianKulitPage = () => {
     const { id } = useParams();
@@ -34,7 +32,13 @@ const AddEditPembelianKulitPage = () => {
         error: parameterError
     } = useParameterSelect(isEdit, { kategoriSupplier: 4 });
 
-    // Removed jenis pembelian fetching as it's not required
+    // Jenis Pembelian integration - similar to OVK
+    const {
+        jenisPembelianOptions,
+        loading: jenisPembelianLoading,
+        error: jenisPembelianError,
+        getLabelByValue: getJenisPembelianLabel
+    } = useJenisPembelianKulit();
 
     // Bank API integration for Syarat Pembelian
     const {
@@ -42,6 +46,13 @@ const AddEditPembelianKulitPage = () => {
         loading: bankLoading,
         error: bankError
     } = useBanksAPI();
+
+    // Tipe Pembayaran API integration
+    const {
+        tipePembayaranOptions,
+        loading: tipePembayaranLoading,
+        error: tipePembayaranError
+    } = useTipePembayaran();
 
     // Header form state - aligned with backend validation requirements
     const [headerData, setHeaderData] = useState({
@@ -56,7 +67,10 @@ const AddEditPembelianKulitPage = () => {
         total_kulit: '', // Will map to jumlah in backend
         file: '',
         fileName: '',
-        note: '' // Required field for backend
+        tipe_pembayaran: '', // Added: Tipe pembayaran
+        due_date: '', // Added: Jatuh tempo payment
+        note: '', // Required field for backend
+        tipe_pembelian: '' // Changed from jenis_pembelian to tipe_pembelian to match backend
     });
 
     // Detail items state
@@ -252,7 +266,7 @@ const AddEditPembelianKulitPage = () => {
                             let foundOffice = officeOptions.find(o => o.label === headerData.nama_office);
                             // If no exact match, try partial match (case insensitive)
                             if (!foundOffice) {
-                                foundOffice = officeOptions.find(o => 
+                                foundOffice = officeOptions.find(o =>
                                     o.label.toLowerCase().includes(headerData.nama_office.toLowerCase()) ||
                                     headerData.nama_office.toLowerCase().includes(o.label.toLowerCase())
                                 );
@@ -262,8 +276,21 @@ const AddEditPembelianKulitPage = () => {
                             }
                         }
                         
-
-                        // Removed jenis pembelian mapping as it's not required
+                        // Find jenis pembelian ID - similar to office and supplier mapping
+                        let jenisPembelianId = headerData.id_jenis_pembelian || headerData.jenis_pembelian || '';
+                        if (jenisPembelianId) {
+                            // If it's already a number/ID, keep it
+                            jenisPembelianId = parseInt(jenisPembelianId) || jenisPembelianId;
+                        } else if (headerData.nama_jenis_pembelian) {
+                            // Try to find by name if we have nama_jenis_pembelian
+                            const foundJenis = jenisPembelianOptions.find(j =>
+                                j.label === headerData.nama_jenis_pembelian ||
+                                j.label.toLowerCase().includes(headerData.nama_jenis_pembelian.toLowerCase())
+                            );
+                            if (foundJenis) {
+                                jenisPembelianId = foundJenis.value;
+                            }
+                        }
 
                         // Set header data using safe helper functions (like OVK pattern)
                         setHeaderData({
@@ -278,7 +305,10 @@ const AddEditPembelianKulitPage = () => {
                             total_kulit: safeGetNumber(headerData.jumlah),
                             file: safeGetString(headerData.file), // Keep as string for display purposes
                             fileName: safeGetString(headerData.file_name) || safeGetString(headerData.fileName),
-                            note: safeGetString(headerData.note) || safeGetString(headerData.catatan)
+                            note: safeGetString(headerData.note) || safeGetString(headerData.catatan),
+                            tipe_pembayaran: safeGetString(headerData.tipe_pembayaran),
+                            due_date: safeGetString(headerData.due_date),
+                            tipe_pembelian: jenisPembelianId || safeGetString(headerData.tipe_pembelian || headerData.jenis_pembelian)
                         });
 
                         // Set existing file name if available
@@ -803,6 +833,18 @@ const AddEditPembelianKulitPage = () => {
             errors.push('Catatan harus diisi');
         }
 
+        if (!headerData.tipe_pembayaran) {
+            errors.push('Tipe pembayaran harus dipilih');
+        }
+
+        if (!headerData.due_date) {
+            errors.push('Jatuh tempo harus diisi');
+        }
+
+        if (!headerData.tipe_pembelian) {
+            errors.push('Jenis pembelian harus dipilih');
+        }
+
         if (errors.length > 0) {
             setNotification({
                 type: 'error',
@@ -853,6 +895,9 @@ const AddEditPembelianKulitPage = () => {
                 nota_HO: headerData.nota_ho || '',
                 id_farm: headerData.farm ? parseInt(headerData.farm) : null,
                 id_syarat_pembelian: headerData.syarat_pembelian ? parseInt(headerData.syarat_pembelian) : null,
+                tipe_pembayaran: headerData.tipe_pembayaran ? parseInt(headerData.tipe_pembayaran) : null,
+                due_date: headerData.due_date,
+                tipe_pembelian: headerData.tipe_pembelian ? parseInt(headerData.tipe_pembelian) : null,
                 // Ensure file is properly passed - prioritize selectedFile over headerData.file
                 // Only pass file if it's a File object (new upload) or if we have existing file name but no new file
                 file: selectedFile || (headerData.file && headerData.file instanceof File ? headerData.file : null),
@@ -1058,9 +1103,28 @@ const AddEditPembelianKulitPage = () => {
                             />
                         </div>
 
-
-
-
+                        {/* Jenis Pembelian - Added like OVK */}
+                        <div>
+                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <Package className="w-4 h-4" />
+                                Jenis Pembelian *
+                            </label>
+                            <SearchableSelect
+                                value={headerData.tipe_pembelian}
+                                onChange={(value) => handleHeaderChange('tipe_pembelian', value)}
+                                options={jenisPembelianOptions}
+                                placeholder={jenisPembelianLoading ? 'Loading jenis pembelian...' : jenisPembelianError ? 'Error loading jenis pembelian' : 'Pilih Jenis Pembelian'}
+                                isLoading={jenisPembelianLoading}
+                                isDisabled={jenisPembelianLoading || jenisPembelianError}
+                                required={true}
+                                className="w-full"
+                            />
+                            {jenisPembelianError && (
+                                <p className="text-xs text-red-500 mt-1">
+                                    ⚠️ Error loading jenis pembelian: {jenisPembelianError}
+                                </p>
+                            )}
+                        </div>
 
 
 
@@ -1165,6 +1229,43 @@ const AddEditPembelianKulitPage = () => {
                                     笞・・Error loading banks: {bankError}
                                 </p>
                             )}
+                        </div>
+
+                        {/* Tipe Pembayaran & Jatuh Tempo */}
+                        <div className="col-span-full md:col-span-1">
+                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <DollarSign className="w-4 h-4" />
+                                Tipe Pembayaran *
+                            </label>
+                            <SearchableSelect
+                                options={tipePembayaranOptions}
+                                value={headerData.tipe_pembayaran}
+                                onChange={(value) => handleHeaderChange('tipe_pembayaran', value)}
+                                placeholder={tipePembayaranLoading ? 'Loading tipe pembayaran...' : tipePembayaranError ? 'Error loading tipe pembayaran' : 'Pilih tipe pembayaran'}
+                                isLoading={tipePembayaranLoading}
+                                isDisabled={tipePembayaranLoading || tipePembayaranError}
+                                required={true}
+                                className="w-full"
+                            />
+                            {tipePembayaranError && (
+                                <p className="text-xs text-red-500 mt-1">
+                                    ⚠️ Error loading tipe pembayaran: {tipePembayaranError}
+                                </p>
+                            )}
+                        </div>
+
+                        <div className="col-span-full md:col-span-1">
+                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <Calendar className="w-4 h-4" />
+                                Jatuh Tempo *
+                            </label>
+                            <input
+                                type="date"
+                                value={headerData.due_date}
+                                onChange={(e) => handleHeaderChange('due_date', e.target.value)}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                                required
+                            />
                         </div>
 
                         {/* Note Field - Required by Backend */}
