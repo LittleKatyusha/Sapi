@@ -236,7 +236,7 @@ const AddEditPembelianFeedmilPage = () => {
     useEffect(() => {
         // Wait for all required options to load first (like OVK pattern)
         // Also check if data has already been loaded to prevent multiple API calls
-        if (isEdit && id && supplierOptions.length > 0 && officeOptions.length > 0 && farmOptions.length > 0 && jenisPembelianOptions.length > 0 && !editDataLoaded.current) {
+        if (isEdit && id && supplierOptions.length > 0 && officeOptions.length > 0 && farmOptions.length > 0 && jenisPembelianOptions.length > 0 && tipePembayaranOptions.length > 0 && !editDataLoaded.current) {
             const loadEditData = async () => {
                 try {
                     // Set flag to prevent multiple calls
@@ -333,6 +333,19 @@ const AddEditPembelianFeedmilPage = () => {
                             }
                         }
 
+                        // Find tipe pembayaran ID - backend may send tipe_pembayaran as integer
+                        let tipePembayaranId = '';
+                        
+                        if (headerData.tipe_pembayaran !== undefined && headerData.tipe_pembayaran !== null) {
+                            // Backend sends tipe_pembayaran as integer, convert to string for matching
+                            const tipePembayaranValue = String(headerData.tipe_pembayaran);
+                            const foundTipePembayaran = tipePembayaranOptions.find(t => t.value === tipePembayaranValue);
+                            
+                            if (foundTipePembayaran) {
+                                tipePembayaranId = foundTipePembayaran.value;
+                            }
+                        }
+
                         // Set header data using safe helper functions (like OVK pattern)
                         setHeaderData({
                             nota: safeGetString(headerData.nota),
@@ -352,7 +365,7 @@ const AddEditPembelianFeedmilPage = () => {
                             total_feedmil: safeGetNumber(headerData.jumlah),
                             jumlah: safeGetNumber(headerData.jumlah),
                             biaya_total: safeGetNumber(headerData.biaya_total) || safeGetNumber(headerData.total_belanja),
-                            tipe_pembayaran: safeGetString(headerData.tipe_pembayaran),
+                            tipe_pembayaran: tipePembayaranId || (headerData.tipe_pembayaran ? String(headerData.tipe_pembayaran) : ''),
                             due_date: safeGetString(headerData.due_date),
                             file: safeGetString(headerData.file), // Keep as string for display purposes
                             fileName: safeGetString(headerData.file_name) || safeGetString(headerData.fileName),
@@ -368,9 +381,27 @@ const AddEditPembelianFeedmilPage = () => {
                         // Transform detail items from backend data (using optimized data)
                         if (detailResult.success && detailResult.data.length > 0) {
                             const transformedDetailItems = detailResult.data.map((item, index) => {
-                                // Find the item ID from itemFeedmilOptions if we have the item name
-                                const itemName = safeGetString(item.item_name) || `Feedmil Item ${index + 1}`;
-                                const foundItem = itemFeedmilOptions.find(option => option.label === itemName);
+                                // Handle item_name mapping - if backend returns null, try to find by id_item first
+                                let itemName = safeGetString(item.item_name);
+                                let foundItem = null;
+                                
+                                // If we have id_item from backend, try to find the item by ID first
+                                if (item.id_item) {
+                                    foundItem = itemFeedmilOptions.find(option => option.value === parseInt(item.id_item));
+                                    if (foundItem) {
+                                        itemName = foundItem.label;
+                                    }
+                                }
+                                
+                                // If still no item found and we have item_name, try to find by name
+                                if (!foundItem && itemName) {
+                                    foundItem = itemFeedmilOptions.find(option => option.label === itemName);
+                                }
+                                
+                                // If still no item found, use a placeholder but don't set item_name_id
+                                if (!foundItem) {
+                                    itemName = itemName || `Item ${index + 1}`;
+                                }
                                 
                                 return {
                                     id: index + 1,
@@ -416,7 +447,7 @@ const AddEditPembelianFeedmilPage = () => {
             
             loadEditData();
         }
-    }, [isEdit, id, supplierOptions.length, officeOptions.length, farmOptions.length, jenisPembelianOptions.length]);
+    }, [isEdit, id, supplierOptions.length, officeOptions.length, farmOptions.length, jenisPembelianOptions.length, tipePembayaranOptions.length]);
 
     // Reset edit data loaded flag when id changes
     useEffect(() => {
@@ -655,6 +686,14 @@ const AddEditPembelianFeedmilPage = () => {
                 hpp: hpp,
                 total_harga: totalHarga
             };
+
+            // Debug logging for item data
+            console.log('🔍 Debug item data before save:');
+            console.log('item.item_name_id:', item.item_name_id);
+            console.log('item.item_name:', item.item_name);
+            console.log('detailData.item_name_id:', detailData.item_name_id);
+            console.log('detailData.item_name:', detailData.item_name);
+
 
 
 
@@ -987,8 +1026,9 @@ const AddEditPembelianFeedmilPage = () => {
                 id_syarat_pembelian: headerData.syarat_pembelian ? parseInt(headerData.syarat_pembelian) : null,
                 jumlah: parseInt(headerData.jumlah),
                 biaya_total: parseFloat(headerData.biaya_total) || null,
-                tipe_pembayaran: parseInt(headerData.tipe_pembayaran),
-                due_date: headerData.due_date || '',
+                // Payment fields - ensure proper formatting for backend
+                tipe_pembayaran: headerData.tipe_pembayaran ? parseInt(headerData.tipe_pembayaran) : null,
+                due_date: headerData.due_date || null,
                 // Ensure file is properly passed - prioritize selectedFile over headerData.file
                 // Only pass file if it's a File object (new upload) or if we have existing file name but no new file
                 file: selectedFile || (headerData.file && headerData.file instanceof File ? headerData.file : null),
@@ -997,7 +1037,11 @@ const AddEditPembelianFeedmilPage = () => {
             };
 
             console.log('🔍 Final submissionData.file:', submissionData.file);
-
+            console.log('🔍 Payment Data Debug:');
+            console.log('headerData.tipe_pembayaran:', headerData.tipe_pembayaran);
+            console.log('submissionData.tipe_pembayaran:', submissionData.tipe_pembayaran);
+            console.log('headerData.due_date:', headerData.due_date);
+            console.log('submissionData.due_date:', submissionData.due_date);
 
             let result;
             if (isEdit) {

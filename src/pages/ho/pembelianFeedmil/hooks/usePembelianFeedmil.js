@@ -121,11 +121,16 @@ const usePembelianFeedmil = () => {
             const jsonData = await HttpClient.get(`${FEEDMIL_API_BASE}/data?${finalParams}`);
             
             if (jsonData && jsonData.data) {
+                // Debug: Log raw API response to check nota_sistem field
+                console.log('🔍 Feedmil API Response Sample:', jsonData.data[0]);
+                console.log('🔍 Feedmil nota_sistem field:', jsonData.data[0]?.nota_sistem);
+                
                 // Transform backend data to match frontend expectations
                 const transformedData = jsonData.data.map(item => ({
                     id: item.pid, // Use encrypted pid as id
                     encryptedPid: item.pid,
                     nota: item.nota,
+                    nota_sistem: item.nota_sistem,
                     nama_supplier: item.nama_supplier, // Can be null according to backend
                     nama_office: item.nama_office,
                     tgl_masuk: item.tgl_masuk,
@@ -565,6 +570,12 @@ const usePembelianFeedmil = () => {
                 hpp: parseFloat(detailData.hpp || 0),
                 total_harga: parseFloat(detailData.total_harga || detailData.hpp || 0)
             };
+
+            // Debug logging for backend request
+            console.log('🔍 Debug updateDetail request data:');
+            console.log('detailData.item_name_id:', detailData.item_name_id);
+            console.log('requestData.id_item:', requestData.id_item);
+            console.log('Full requestData:', requestData);
             
             // Add id_office for new detail creation (when pid is null)
             if (!encryptedPid) {

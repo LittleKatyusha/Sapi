@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import DataTable from 'react-data-table-component';
 import { PlusCircle, Search, ShoppingCart, X, Loader2, Calendar } from 'lucide-react';
@@ -179,6 +179,9 @@ const PembelianHOPage = () => {
     const [selectedPembelian, setSelectedPembelian] = useState(null);
     const [notification, setNotification] = useState(null);
     const [lastRefreshTime, setLastRefreshTime] = useState(Date.now());
+    const [isTableReady, setIsTableReady] = useState(false);
+    const fetchTimeoutRef = useRef(null);
+    const isFetchingRef = useRef(false);
     
     const {
         pembelian: filteredData,
@@ -221,28 +224,63 @@ const PembelianHOPage = () => {
     };
 
     useEffect(() => {
-        fetchPembelian();
-    }, []);
+        // Only fetch if not returning from edit page
+        if (!location.state?.fromEdit) {
+            fetchPembelian();
+        }
+        
+        // Mark table as ready after initial load
+        const timer = setTimeout(() => {
+            setIsTableReady(true);
+        }, 1000);
+        return () => clearTimeout(timer);
+    }, []); // Empty dependency array to run only once
 
     // Auto-refresh when user returns to the page (e.g., from edit page)
     useEffect(() => {
         const handleVisibilityChange = () => {
-            if (!document.hidden) {
+            if (!document.hidden && isTableReady && !isFetchingRef.current) {
                 // Check if it's been more than 30 seconds since last refresh
                 const timeSinceLastRefresh = Date.now() - lastRefreshTime;
                 if (timeSinceLastRefresh > 30000) { // 30 seconds
-                    fetchPembelian();
-                    setLastRefreshTime(Date.now());
+                    // Clear any existing timeout
+                    if (fetchTimeoutRef.current) {
+                        clearTimeout(fetchTimeoutRef.current);
+                    }
+                    
+                    // Set fetching flag
+                    isFetchingRef.current = true;
+                    
+                    // Debounce the fetch
+                    fetchTimeoutRef.current = setTimeout(async () => {
+                        await fetchPembelian();
+                        setLastRefreshTime(Date.now());
+                        isFetchingRef.current = false;
+                    }, 1000); // 1 second debounce
                 }
             }
         };
 
         const handleFocus = () => {
-            // Check if it's been more than 30 seconds since last refresh
-            const timeSinceLastRefresh = Date.now() - lastRefreshTime;
-            if (timeSinceLastRefresh > 30000) { // 30 seconds
-                fetchPembelian();
-                setLastRefreshTime(Date.now());
+            if (isTableReady && !isFetchingRef.current) {
+                // Check if it's been more than 30 seconds since last refresh
+                const timeSinceLastRefresh = Date.now() - lastRefreshTime;
+                if (timeSinceLastRefresh > 30000) { // 30 seconds
+                    // Clear any existing timeout
+                    if (fetchTimeoutRef.current) {
+                        clearTimeout(fetchTimeoutRef.current);
+                    }
+                    
+                    // Set fetching flag
+                    isFetchingRef.current = true;
+                    
+                    // Debounce the fetch
+                    fetchTimeoutRef.current = setTimeout(async () => {
+                        await fetchPembelian();
+                        setLastRefreshTime(Date.now());
+                        isFetchingRef.current = false;
+                    }, 1000); // 1 second debounce
+                }
             }
         };
 
@@ -257,19 +295,38 @@ const PembelianHOPage = () => {
             document.removeEventListener('visibilitychange', handleVisibilityChange);
             window.removeEventListener('focus', handleFocus);
         };
-    }, [fetchPembelian, lastRefreshTime]);
+    }, []); // Empty dependency array to prevent re-renders
 
     // Refresh data when returning from edit page
     useEffect(() => {
         // Check if we're returning from an edit page
-        if (location.state?.fromEdit) {
-            fetchPembelian();
-            setLastRefreshTime(Date.now());
+        if (location.state?.fromEdit && !isFetchingRef.current) {
+            // Clear any existing timeout
+            if (fetchTimeoutRef.current) {
+                clearTimeout(fetchTimeoutRef.current);
+            }
+            
+            // Set fetching flag
+            isFetchingRef.current = true;
+            
+            // Add delay to ensure update operation is complete
+            fetchTimeoutRef.current = setTimeout(async () => {
+                await fetchPembelian();
+                setLastRefreshTime(Date.now());
+                isFetchingRef.current = false;
+            }, 2000); // 2 seconds delay
             
             // Clear the state to prevent unnecessary refreshes
             window.history.replaceState({}, document.title);
+            
+            return () => {
+                if (fetchTimeoutRef.current) {
+                    clearTimeout(fetchTimeoutRef.current);
+                }
+                isFetchingRef.current = false;
+            };
         }
-    }, [location.state, fetchPembelian]);
+    }, [location.state]); // Only depend on location.state
 
     const handleEdit = (pembelian) => {
         const id = pembelian.encryptedPid; // Always use encrypted PID for API operations
@@ -325,6 +382,13 @@ const PembelianHOPage = () => {
             if (encryptedPid.startsWith('TEMP-')) {
                 throw new Error('Item ini adalah data sementara dan tidak dapat dihapus');
             }
+            
+            // Show loading notification
+            setNotification({
+                type: 'info',
+                message: 'Menghapus data pembelian...'
+            });
+            
             const result = await deletePembelian(encryptedPid, pembelian);
             
             if (result.success) {

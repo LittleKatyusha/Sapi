@@ -6,6 +6,7 @@ import usePembelianHO from './hooks/usePembelianHO';
 import useParameterSelect from './hooks/useParameterSelect';
 import useTipePembelian from './hooks/useTipePembelian';
 import useTipePembayaran from '../../../hooks/useTipePembayaran';
+import useBanksAPI from '../pembelianKulit/hooks/useBanksAPI';
 import SearchableSelect from '../../../components/shared/SearchableSelect';
 import { API_ENDPOINTS, API_BASE_URL } from '../../../config/api';
 
@@ -50,6 +51,7 @@ const AddEditPembelianPage = () => {
         // Tipe Pembayaran dan Jatuh Tempo fields
         purchase_type: '', // Required - 1 or 2
         due_date: '', // Required - tanggal jatuh tempo
+        syarat_pembelian: '', // Syarat Pembelian
         // markup removed - no longer needed in header
     });
 
@@ -66,6 +68,13 @@ const AddEditPembelianPage = () => {
         loading: tipePembayaranLoading,
         error: tipePembayaranError
     } = useTipePembayaran();
+
+    // Bank API integration for Syarat Pembelian
+    const {
+        bankOptions,
+        loading: bankLoading,
+        error: bankError
+    } = useBanksAPI();
 
     // Get master data from centralized parameter endpoint with supplier filter
     const {
@@ -334,7 +343,8 @@ const AddEditPembelianPage = () => {
                         totalSapi: totalSapiCount, // Always use calculated count
                         note: firstDetail.note || '', // Note field from backend
                         purchase_type: firstDetail.tipe_pembayaran || '',
-                        due_date: firstDetail.due_date || ''
+                        due_date: firstDetail.due_date || '',
+                        syarat_pembelian: firstDetail.syarat_pembelian || firstDetail.id_syarat_pembelian || ''
                     };
                     
                     console.log('📋 Final header data for edit:', {
@@ -463,6 +473,7 @@ const AddEditPembelianPage = () => {
                 note: cloneData.note || '', // Load note from clone data
                 purchase_type: cloneData.tipe_pembayaran || '',
                 due_date: cloneData.due_date || '',
+                syarat_pembelian: cloneData.syarat_pembelian || cloneData.id_syarat_pembelian || '',
                 // markup removed - no longer needed
             });
             
@@ -1263,6 +1274,11 @@ const AddEditPembelianPage = () => {
             errors.push('Tanggal jatuh tempo harus diisi');
         }
 
+        // Syarat Pembelian validation
+        if (!headerData.syarat_pembelian) {
+            errors.push('Syarat Pembelian harus dipilih');
+        }
+
         // File validation (optional) - sesuai backend
         if (selectedFile) {
             const maxSize = 2 * 1024 * 1024; // 2MB
@@ -1353,6 +1369,7 @@ const AddEditPembelianPage = () => {
                     tipePembelian: parseInt(updatedHeaderData.tipePembelian) || 1,
                     tipe_pembayaran: parseInt(updatedHeaderData.purchase_type) || 1,
                     due_date: updatedHeaderData.due_date,
+                    syarat_pembelian: parseInt(updatedHeaderData.syarat_pembelian) || null,
                     file: selectedFile, // Only send file if there's a new file upload
                     details: Array.isArray(detailItems) && detailItems.length > 0 
                         ? detailItems.map(item => ({ // Details are now required for all supplier types
@@ -1391,6 +1408,7 @@ const AddEditPembelianPage = () => {
                     tipePembelian: parseInt(updatedHeaderData.tipePembelian) || 1,
                     tipe_pembayaran: parseInt(updatedHeaderData.purchase_type) || 1,
                     due_date: updatedHeaderData.due_date,
+                    syarat_pembelian: parseInt(updatedHeaderData.syarat_pembelian) || null,
                     file: selectedFile, // Send actual file object
                     details: Array.isArray(detailItems) && detailItems.length > 0 
                         ? detailItems.map(item => ({ // Details are now required for all supplier types
@@ -1464,6 +1482,11 @@ const AddEditPembelianPage = () => {
         if (!headerData.due_date) {
             headerValidationErrors.push('Tanggal jatuh tempo harus diisi');
         }
+
+        // Syarat Pembelian validation for header-only save
+        if (!headerData.syarat_pembelian) {
+            headerValidationErrors.push('Syarat Pembelian harus dipilih');
+        }
         
         if (headerValidationErrors.length > 0) {
             setNotification({
@@ -1487,6 +1510,7 @@ const AddEditPembelianPage = () => {
                 tipePembelian: parseInt(headerData.tipePembelian) || 1,
                 tipe_pembayaran: parseInt(headerData.purchase_type) || 1,
                 due_date: headerData.due_date,
+                syarat_pembelian: parseInt(headerData.syarat_pembelian) || null,
                 file: selectedFile,
                 details: [] // Empty array for header-only save
             };
@@ -1516,6 +1540,7 @@ const AddEditPembelianPage = () => {
                     tipe_pembelian: headerOnlyData.tipePembelian,
                     tipe_pembayaran: headerOnlyData.purchase_type,
                     due_date: headerOnlyData.due_date,
+                    syarat_pembelian: headerOnlyData.syarat_pembelian,
                     file: headerOnlyData.file
                 };
                 result = await saveHeaderOnly(headerDataForAPI, filteredSupplierOptions);
@@ -2049,6 +2074,29 @@ const AddEditPembelianPage = () => {
                                     {tipePembayaranError && (
                                         <p className="text-xs text-red-500 mt-1">
                                             ⚠️ Error loading data: {tipePembayaranError}
+                                        </p>
+                                    )}
+                                </div>
+
+                                {/* Syarat Pembelian */}
+                                <div>
+                                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                        <Hash className="w-4 h-4" />
+                                        Syarat Pembelian *
+                                    </label>
+                                    <SearchableSelect
+                                        options={bankOptions}
+                                        value={headerData.syarat_pembelian}
+                                        onChange={(value) => handleHeaderChange('syarat_pembelian', value)}
+                                        placeholder={bankLoading ? 'Loading banks...' : bankError ? 'Error loading banks' : 'Pilih syarat pembelian'}
+                                        isLoading={bankLoading}
+                                        isDisabled={bankLoading || bankError}
+                                        required={true}
+                                        className="w-full"
+                                    />
+                                    {bankError && (
+                                        <p className="text-xs text-red-500 mt-1">
+                                            Error loading banks: {bankError}
                                         </p>
                                     )}
                                 </div>

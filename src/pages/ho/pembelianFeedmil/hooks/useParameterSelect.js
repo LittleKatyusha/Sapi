@@ -7,7 +7,8 @@ const useParameterSelect = (isEditMode = false, supplierFilters = {}) => {
         supplier: [],
         office: [],
         klasifikasifeedmil: [],
-        farm: []
+        farm: [],
+        itemfeedmil: []
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -28,7 +29,8 @@ const useParameterSelect = (isEditMode = false, supplierFilters = {}) => {
                     supplier: data.supplier || [],
                     office: data.office || [],
                     klasifikasifeedmil: data.klasifikasifeedmil || [],
-                    farm: data.farm || []
+                    farm: data.farm || [],
+                    itemfeedmil: data.itemfeedmil || []
                 });
                 console.log('✅ Parameter data loaded:', Object.keys(data).map(key => `${key}: ${data[key]?.length || 0} items`).join(', '));
             } else {
@@ -41,7 +43,8 @@ const useParameterSelect = (isEditMode = false, supplierFilters = {}) => {
                 supplier: [],
                 office: [],
                 klasifikasifeedmil: [],
-                farm: []
+                farm: [],
+                itemfeedmil: []
             });
         } finally {
             setLoading(false);
@@ -100,6 +103,13 @@ const useParameterSelect = (isEditMode = false, supplierFilters = {}) => {
         }));
     }, [parameterData.farm]);
 
+    const itemFeedmilOptions = useMemo(() => {
+        return parameterData.itemfeedmil.map(item => ({
+            value: item.id,
+            label: item.name
+        }));
+    }, [parameterData.itemfeedmil]);
+
     return {
         // Raw data
         parameterData,
@@ -109,6 +119,7 @@ const useParameterSelect = (isEditMode = false, supplierFilters = {}) => {
         officeOptions,
         klasifikasiFeedmilOptions,
         farmOptions,
+        itemFeedmilOptions,
         
         // State
         loading,

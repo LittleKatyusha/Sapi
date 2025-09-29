@@ -57,7 +57,7 @@ const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, data, loading, ty
                     <p className="text-gray-600 mb-6">{getMessage()}</p>
                     
                     {/* Data Preview */}
-                    {data && (
+                    {data && type !== 'detail-pembayaran' && (
                         <div className="bg-gray-50 rounded-xl p-4 mb-6">
                             <div className="space-y-2">
                                 <div className="flex justify-between">

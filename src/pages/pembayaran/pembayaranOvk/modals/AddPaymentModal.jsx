@@ -94,7 +94,7 @@ const AddPaymentModal = ({ isOpen, onClose, onSuccess, pembayaranId, pembayaranD
                 note: formData.note || ''
             };
 
-            const result = await HttpClient.post(API_ENDPOINTS.HO.PAYMENT.DETAIL_STORE, submitData);
+            const result = await HttpClient.post(API_ENDPOINTS.HO.PAYMENT.ADD_PAYMENT, submitData);
 
             console.log('Payment submission result:', result);
 

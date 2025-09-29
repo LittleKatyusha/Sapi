@@ -26,6 +26,7 @@ const validateAndMapPembelianItem = (item, index) => {
         pubid: item.pubid || `TEMP-${index + 1}`,
         encryptedPid: item.pid,
         nota: item.nota || '',
+        nota_sistem: item.nota_sistem || '',
         nama_supplier: item.nama_supplier || 'Supplier tidak tersedia',
         nama_office: item.nama_office || '',
         tgl_masuk: item.tgl_masuk || new Date().toISOString().split('T')[0],
@@ -76,6 +77,14 @@ const usePembelianHO = () => {
     // Refs for cleanup and optimization
     const searchTimeoutRef = useRef(null);
     const abortControllerRef = useRef(null);
+    
+    // Refs to hold current state values to avoid stale closures
+    const currentStateRef = useRef({
+        searchTerm: '',
+        filterStatus: 'all',
+        dateRange: { startDate: '', endDate: '' },
+        serverPagination: { currentPage: 1, totalPages: 1, totalItems: 0, perPage: DEFAULT_PER_PAGE }
+    });
 
     // Optimized fetch function with request cancellation
     const fetchPembelian = useCallback(async (
@@ -104,11 +113,11 @@ const usePembelianHO = () => {
         
         try {
             // Use current state if parameters not provided
-            const currentPage = page || serverPagination.currentPage;
-            const currentPerPage = perPage || serverPagination.perPage;
-            const currentSearch = search !== null ? search : searchTerm;
-            const currentFilter = filter !== null ? filter : filterStatus;
-            const currentDateRange = dateRangeFilter !== null ? dateRangeFilter : dateRange;
+            const currentPage = page || currentStateRef.current.serverPagination.currentPage;
+            const currentPerPage = perPage || currentStateRef.current.serverPagination.perPage;
+            const currentSearch = search !== null ? search : currentStateRef.current.searchTerm;
+            const currentFilter = filter !== null ? filter : currentStateRef.current.filterStatus;
+            const currentDateRange = dateRangeFilter !== null ? dateRangeFilter : currentStateRef.current.dateRange;
             
             // Build API parameters
             const start = (currentPage - 1) * currentPerPage;
@@ -194,7 +203,7 @@ const usePembelianHO = () => {
             setIsSearching(false);
             abortControllerRef.current = null;
         }
-    }, [searchTerm, filterStatus, dateRange, serverPagination.currentPage, serverPagination.perPage]);
+    }, []); // Remove dependencies to prevent stale closures and infinite loops
 
     // Optimized create function with better error handling
     const createPembelian = useCallback(async (pembelianData, supplierOptions = []) => {
@@ -230,6 +239,7 @@ const usePembelianHO = () => {
                 tipe_pembelian: parseInt(pembelianData.tipePembelian) || 1,
                 tipe_pembayaran: parseInt(pembelianData.tipe_pembayaran) || 1,
                 due_date: pembelianData.due_date || null,
+                id_syarat_pembelian: parseInt(pembelianData.syarat_pembelian) || null,
                 file: pembelianData.file || null,
                 note: pembelianData.note || null
             };
@@ -237,6 +247,10 @@ const usePembelianHO = () => {
             // Additional validation
             if (!headerData.biaya_truk || headerData.biaya_truk <= 0) {
                 throw new Error(`Biaya truck harus diisi dengan nilai numerik > 0. Nilai saat ini: ${headerData.biaya_truk}`);
+            }
+            
+            if (!headerData.id_syarat_pembelian || headerData.id_syarat_pembelian <= 0) {
+                throw new Error('Syarat pembelian harus dipilih');
             }
 
             // Handle file upload
@@ -263,8 +277,7 @@ const usePembelianHO = () => {
             
             const result = await HttpClient.post(`${API_ENDPOINTS.HO.PEMBELIAN}/store`, requestData);
             
-            // Refresh data on success
-            await fetchPembelian(1, serverPagination.perPage);
+            // Don't fetch here - let the page handle refresh via navigation state
             
             return {
                 success: result.status === 'ok' || result.success === true,
@@ -279,7 +292,7 @@ const usePembelianHO = () => {
         } finally {
             setLoading(false);
         }
-    }, [fetchPembelian, serverPagination.perPage]);
+    }, []);
 
     // Optimized update function
     const updatePembelian = useCallback(async (data, isHeaderUpdate = true, supplierOptions = []) => {
@@ -322,6 +335,7 @@ const usePembelianHO = () => {
                     tipe_pembelian: parseInt(data.tipePembelian || data.tipe_pembelian) || 1,
                     tipe_pembayaran: parseInt(data.tipe_pembayaran) || 1,
                     due_date: data.due_date || null,
+                    id_syarat_pembelian: parseInt(data.syarat_pembelian || data.id_syarat_pembelian) || null,
                     note: String(data.note || '')
                 };
                 
@@ -337,7 +351,8 @@ const usePembelianHO = () => {
                     { field: 'nama_supir', message: 'Nama supir harus diisi', condition: !requestData.nama_supir.trim() },
                     { field: 'plat_nomor', message: 'Plat nomor harus diisi', condition: !requestData.plat_nomor.trim() },
                     { field: 'biaya_truk', message: 'Biaya truk harus lebih dari 0', condition: requestData.biaya_truk <= 0 },
-                    { field: 'biaya_lain', message: 'Biaya lain tidak boleh negatif', condition: requestData.biaya_lain < 0 }
+                    { field: 'biaya_lain', message: 'Biaya lain tidak boleh negatif', condition: requestData.biaya_lain < 0 },
+                    { field: 'id_syarat_pembelian', message: 'Syarat pembelian harus dipilih', condition: !requestData.id_syarat_pembelian || requestData.id_syarat_pembelian <= 0 }
                 ];
                 
                 for (const { message, condition } of requiredFields) {
@@ -382,13 +397,7 @@ const usePembelianHO = () => {
             }
             
             if (result.status === 'ok' || result.success) {
-                // Refresh data after successful update
-                try {
-                    await fetchPembelian(serverPagination.currentPage, serverPagination.perPage);
-                } catch (refreshError) {
-                    console.warn('Refresh after update failed:', refreshError);
-                }
-                
+                // Don't fetch here - let the page handle refresh via navigation state
                 return {
                     status: 'ok',
                     success: true,
@@ -405,7 +414,7 @@ const usePembelianHO = () => {
         } finally {
             setLoading(false);
         }
-    }, [fetchPembelian, serverPagination.currentPage, serverPagination.perPage]);
+    }, []);
 
     // Optimized delete function with better error handling
     const deletePembelian = useCallback(async (encryptedPid, pembelianData = null) => {
@@ -444,14 +453,7 @@ const usePembelianHO = () => {
                     filteredItems: Math.max(0, prev.filteredItems - 1)
                 }));
                 
-                // Delayed refresh to ensure backend processing is complete
-                setTimeout(async () => {
-                    try {
-                        await fetchPembelian(serverPagination.currentPage, serverPagination.perPage);
-                    } catch (refreshError) {
-                        console.warn('Refresh after delete failed:', refreshError);
-                    }
-                }, 1000);
+                // Don't fetch here - optimistic update is enough for delete
                 
                 return {
                     success: true,
@@ -494,7 +496,7 @@ const usePembelianHO = () => {
             setDeleteLoading(null);
             setLoading(false);
         }
-    }, [fetchPembelian, serverPagination.currentPage, serverPagination.perPage]);
+    }, []);
 
     // Additional CRUD operations (simplified for brevity)
     const getPembelianDetail = useCallback(async (encryptedPid) => {
@@ -564,14 +566,14 @@ const usePembelianHO = () => {
         }
         
         if (!newSearchTerm.trim()) {
-            fetchPembelian(1, serverPagination.perPage, '', filterStatus, dateRange, false);
+            fetchPembelian(1, null, '', null, null, false);
             return;
         }
         
         searchTimeoutRef.current = setTimeout(() => {
-            fetchPembelian(1, serverPagination.perPage, newSearchTerm, filterStatus, dateRange, true);
+            fetchPembelian(1, null, newSearchTerm, null, null, true);
         }, SEARCH_DEBOUNCE_DELAY);
-    }, [fetchPembelian, serverPagination.perPage, filterStatus, dateRange]);
+    }, []);
     
     const clearSearch = useCallback(() => {
         setSearchTerm('');
@@ -581,36 +583,53 @@ const usePembelianHO = () => {
             clearTimeout(searchTimeoutRef.current);
         }
         
-        fetchPembelian(1, serverPagination.perPage, '', filterStatus, dateRange, false);
-    }, [fetchPembelian, serverPagination.perPage, filterStatus, dateRange]);
+        fetchPembelian(1, null, '', null, null, false);
+    }, []);
 
     // Filter and pagination handlers
     const handleFilter = useCallback((newFilter) => {
         setFilterStatus(newFilter);
         setSearchError(null);
-        fetchPembelian(1, serverPagination.perPage, searchTerm, newFilter, dateRange, false);
-    }, [fetchPembelian, serverPagination.perPage, searchTerm, dateRange]);
+        fetchPembelian(1, null, null, newFilter, null, false);
+    }, []);
     
     const handleDateRangeFilter = useCallback((newDateRange) => {
         setDateRange(newDateRange);
         setSearchError(null);
-        fetchPembelian(1, serverPagination.perPage, searchTerm, filterStatus, newDateRange, false);
-    }, [fetchPembelian, serverPagination.perPage, searchTerm, filterStatus]);
+        fetchPembelian(1, null, null, null, newDateRange, false);
+    }, []);
     
     const clearDateRange = useCallback(() => {
         const emptyDateRange = { startDate: '', endDate: '' };
         setDateRange(emptyDateRange);
         setSearchError(null);
-        fetchPembelian(1, serverPagination.perPage, searchTerm, filterStatus, emptyDateRange, false);
-    }, [fetchPembelian, serverPagination.perPage, searchTerm, filterStatus]);
+        fetchPembelian(1, null, null, null, emptyDateRange, false);
+    }, []);
 
     const handlePageChange = useCallback((newPage) => {
-        fetchPembelian(newPage, serverPagination.perPage, searchTerm, filterStatus, dateRange, false);
-    }, [fetchPembelian, serverPagination.perPage, searchTerm, filterStatus, dateRange]);
+        fetchPembelian(newPage, null, null, null, null, false);
+    }, []);
 
     const handlePerPageChange = useCallback((newPerPage) => {
-        fetchPembelian(1, newPerPage, searchTerm, filterStatus, dateRange, false);
-    }, [fetchPembelian, searchTerm, filterStatus, dateRange]);
+        fetchPembelian(1, newPerPage, null, null, null, false);
+    }, []);
+
+    // Update refs when state changes to avoid stale closures
+    useEffect(() => {
+        currentStateRef.current.searchTerm = searchTerm;
+    }, [searchTerm]);
+
+    useEffect(() => {
+        currentStateRef.current.filterStatus = filterStatus;
+    }, [filterStatus]);
+
+    useEffect(() => {
+        currentStateRef.current.dateRange = dateRange;
+    }, [dateRange]);
+
+    useEffect(() => {
+        currentStateRef.current.serverPagination = serverPagination;
+    }, [serverPagination]);
 
     // Cleanup effect
     useEffect(() => {
@@ -727,6 +746,10 @@ const usePembelianHO = () => {
             if (!headerData.nota || !headerData.id_supplier || !headerData.tgl_masuk) {
                 throw new Error('Data header tidak lengkap');
             }
+            
+            if (!headerData.syarat_pembelian && !headerData.id_syarat_pembelian) {
+                throw new Error('Syarat pembelian harus dipilih');
+            }
 
             const requestData = {
                 id_office: parseInt(headerData.id_office) || 1,
@@ -743,6 +766,7 @@ const usePembelianHO = () => {
                 tipe_pembelian: parseInt(headerData.tipe_pembelian) || 1,
                 tipe_pembayaran: parseInt(headerData.tipe_pembayaran) || 1,
                 due_date: headerData.due_date || null,
+                id_syarat_pembelian: parseInt(headerData.syarat_pembelian || headerData.id_syarat_pembelian) || null,
                 file: headerData.file || null,
                 note: headerData.note || null
             };
@@ -766,7 +790,8 @@ const usePembelianHO = () => {
             }
 
             if (result.status === 'ok' || result.success === true) {
-                await fetchPembelian(1, serverPagination.perPage);
+                // Don't fetch here - let the page handle refresh via navigation state
+                
                 return {
                     success: true,
                     message: 'Header pembelian berhasil disimpan!',
@@ -783,7 +808,7 @@ const usePembelianHO = () => {
         } finally {
             setLoading(false);
         }
-    }, [fetchPembelian, serverPagination.perPage]);
+    }, []);
 
     const saveDetailsOnly = useCallback(async (pid, detailsData) => {
         setLoading(true);
@@ -831,11 +856,8 @@ const usePembelianHO = () => {
             const result = await HttpClient.post(`${API_ENDPOINTS.HO.PEMBELIAN}/update`, requestData);
             
             if (result.status === 'ok' || result.success) {
-                try {
-                    await fetchPembelian(serverPagination.currentPage, serverPagination.perPage);
-                } catch (refreshError) {
-                    console.warn('Refresh after detail save failed:', refreshError);
-                }
+                // Don't fetch here - let the page handle refresh via navigation state
+                
                 return {
                     success: true,
                     message: 'Detail pembelian berhasil disimpan!',
@@ -852,7 +874,7 @@ const usePembelianHO = () => {
         } finally {
             setLoading(false);
         }
-    }, [fetchPembelian, serverPagination.currentPage, serverPagination.perPage]);
+    }, []);
 
     // Return all hook functions and state
     return {

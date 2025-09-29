@@ -50,6 +50,7 @@ const usePembelianOVK = () => {
             id: 1,
             encryptedPid: 'encrypted_1',
             nota: 'OVK-001-2024',
+            nota_sistem: 'PI1202509260013',
             nama_supplier: 'PT Farmasi Veteriner',
             tgl_masuk: '2024-01-15',
             nama_supir: 'Budi Santoso',
@@ -66,6 +67,7 @@ const usePembelianOVK = () => {
             id: 2,
             encryptedPid: 'encrypted_2',
             nota: 'OVK-002-2024',
+            nota_sistem: 'PI1202509260014',
             nama_supplier: 'CV Medikamen Ternak',
             tgl_masuk: '2024-01-16',
             nama_supir: 'Sukarno',
@@ -82,6 +84,7 @@ const usePembelianOVK = () => {
             id: 3,
             encryptedPid: 'encrypted_3',
             nota: 'OVK-003-2024',
+            nota_sistem: 'PI1202509260015',
             nama_supplier: 'PT Vitamin Ternak',
             tgl_masuk: '2024-01-17',
             nama_supir: 'Joko Widodo',
@@ -130,6 +133,10 @@ const usePembelianOVK = () => {
             });
             
             if (responseData.recordsTotal !== undefined) {
+                // Debug: Log raw API response to check nota_sistem field
+                console.log('🔍 OVK API Response Sample:', responseData.data[0]);
+                console.log('🔍 OVK nota_sistem field:', responseData.data[0]?.nota_sistem);
+                
                 // DataTable response format
                 const processedData = responseData.data.map(item => ({
                     ...item,

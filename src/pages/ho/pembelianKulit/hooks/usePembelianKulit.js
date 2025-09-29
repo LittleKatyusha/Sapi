@@ -71,11 +71,16 @@ const usePembelianKulit = () => {
             const jsonData = await HttpClient.get(apiUrl);
             
             if (jsonData && jsonData.data) {
+                // Debug: Log raw API response to check nota_sistem field
+                console.log('🔍 Kulit API Response Sample:', jsonData.data[0]);
+                console.log('🔍 Kulit nota_sistem field:', jsonData.data[0]?.nota_sistem);
+                
                 // Transform backend data to match frontend expectations
                 const transformedData = jsonData.data.map(item => ({
                     id: item.pid, // Use encrypted pid as id
                     encryptedPid: item.pid,
                     nota: item.nota,
+                    nota_sistem: item.nota_sistem,
                     nama_supplier: item.nama_supplier, // Can be null according to backend
                     nama_office: item.nama_office,
                     tgl_masuk: item.tgl_masuk,
