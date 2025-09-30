@@ -29,7 +29,9 @@ export const usePembayaranDetail = (id, getPembayaranDetail) => {
     updated_at: fallbackData?.updated_at || '',
     total_tagihan: fallbackData?.total_tagihan || 0,
     total_terbayar: fallbackData?.total_terbayar || 0,
-    pembelian: fallbackData?.pembelian || null
+    pembelian: fallbackData?.pembelian || null,
+    nota: fallbackData?.nota || '',
+    nota_sistem: fallbackData?.nota_sistem || ''
   });
 
   // Transform detail items for frontend structure
@@ -54,7 +56,9 @@ export const usePembayaranDetail = (id, getPembayaranDetail) => {
       // Use payment header data from hook response
       return createDefaultPaymentData(id, {
         ...paymentData,
-        encryptedPid: paymentData.encryptedPid || paymentData.pid || id
+        encryptedPid: paymentData.encryptedPid || paymentData.pid || id,
+        nota: paymentData.pembelian?.nota || '',
+        nota_sistem: paymentData.pembelian?.nota_sistem || ''
       });
     } else if (detailItems.length > 0) {
       // Fallback: use information from first detail item if header not available

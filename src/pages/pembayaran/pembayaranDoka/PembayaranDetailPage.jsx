@@ -257,6 +257,22 @@ const PembayaranDetailPage = () => {
           </h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Nota */}
+            <PaymentInfoCard
+              icon={Settings}
+              label="Nota"
+              value={pembayaranData?.nota || '-'}
+              gradientClass="bg-gradient-to-r from-blue-50 to-indigo-50"
+            />
+            
+            {/* Nota Sistem */}
+            <PaymentInfoCard
+              icon={Settings}
+              label="Nota Sistem"
+              value={pembayaranData?.nota_sistem || '-'}
+              gradientClass="bg-gradient-to-r from-purple-50 to-pink-50"
+            />
+            
             {/* Due Date */}
             <PaymentInfoCard
               icon={Calendar}

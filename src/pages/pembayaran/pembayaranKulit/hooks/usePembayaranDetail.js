@@ -36,7 +36,9 @@ export const usePembayaranDetail = (id, getPembayaranDetail) => {
                                 created_at: paymentData.created_at || '',
                                 updated_at: paymentData.updated_at || '',
                                 total_tagihan: paymentData.total_tagihan || 0,
-                                total_terbayar: paymentData.total_terbayar || 0
+                                total_terbayar: paymentData.total_terbayar || 0,
+                                nota: paymentData.pembelian?.nota || '',
+                                nota_sistem: paymentData.pembelian?.nota_sistem || ''
                             });
                         } else if (detailItems.length > 0) {
                             // Fallback: use info from first detail item if header not available
