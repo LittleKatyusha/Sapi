@@ -65,7 +65,7 @@ export const createPembayaranColumns = (
         center: true,
         wrap: true,
         cell: row => (
-            <div className="w-full flex items-center justify-center">
+            <div className="w-full flex items-center justify-center" style={{ wordWrap: 'break-word', wordBreak: 'break-word' }}>
                 <span className="font-mono text-sm bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200 text-gray-700" title={row.nota || row.id_pembelian}>
                     {row.nota || row.id_pembelian || '-'}
                 </span>
