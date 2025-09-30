@@ -87,8 +87,6 @@ const AddEditPembelianFeedmilPage = () => {
         berat_total: '',
         harga_total: '', // Will map to biaya_total in backend
         total_feedmil: '', // Will map to jumlah in backend
-        jumlah: '', // Added: Jumlah item
-        biaya_total: '', // Added: Total biaya keseluruhan
         tipe_pembayaran: '', // Added: Tipe pembayaran
         due_date: '', // Added: Jatuh tempo payment
         file: '',
@@ -363,8 +361,6 @@ const AddEditPembelianFeedmilPage = () => {
                             berat_total: safeGetNumber(headerData.berat_total),
                             harga_total: safeGetNumber(headerData.biaya_total) || safeGetNumber(headerData.total_belanja),
                             total_feedmil: safeGetNumber(headerData.jumlah),
-                            jumlah: safeGetNumber(headerData.jumlah),
-                            biaya_total: safeGetNumber(headerData.biaya_total) || safeGetNumber(headerData.total_belanja),
                             tipe_pembayaran: tipePembayaranId || (headerData.tipe_pembayaran ? String(headerData.tipe_pembayaran) : ''),
                             due_date: safeGetString(headerData.due_date),
                             file: safeGetString(headerData.file), // Keep as string for display purposes
@@ -932,8 +928,13 @@ const AddEditPembelianFeedmilPage = () => {
             errors.push('Tipe pembayaran harus diisi');
         }
 
-        if (!headerData.due_date) {
-            errors.push('Jatuh tempo harus diisi');
+        // Conditional validation for due date based on payment type
+        // If payment type is cash (assumed to be 1), due date is optional
+        // If payment type is credit (assumed to be 2), due date is required
+        if (headerData.tipe_pembayaran && parseInt(headerData.tipe_pembayaran) === 2) { // Credit payment
+            if (!headerData.due_date) {
+                errors.push('Jatuh tempo harus diisi untuk pembayaran kredit');
+            }
         }
 
         // nama_supir, plat_nomor, dan biaya_truck sekarang opsional (nullable)
@@ -1024,8 +1025,6 @@ const AddEditPembelianFeedmilPage = () => {
                 nota_ho: headerData.nota_ho || '',
                 id_farm: headerData.farm ? parseInt(headerData.farm) : null,
                 id_syarat_pembelian: headerData.syarat_pembelian ? parseInt(headerData.syarat_pembelian) : null,
-                jumlah: parseInt(headerData.jumlah),
-                biaya_total: parseFloat(headerData.biaya_total) || null,
                 // Payment fields - ensure proper formatting for backend
                 tipe_pembayaran: headerData.tipe_pembayaran ? parseInt(headerData.tipe_pembayaran) : null,
                 due_date: headerData.due_date || null,
@@ -1409,44 +1408,6 @@ const AddEditPembelianFeedmilPage = () => {
                             </p>
                         </div>
 
-                        {/* Jumlah */}
-                        <div>
-                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <Hash className="w-4 h-4" />
-                                Jumlah *
-                            </label>
-                            <input
-                                type="number"
-                                value={headerData.jumlah}
-                                onChange={(e) => handleHeaderChange('jumlah', e.target.value)}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                placeholder=""
-                                min="0"
-                                required
-                            />
-                            <p className="text-xs text-blue-600 mt-1">
-                                💡 Jumlah item dalam pembelian ini
-                            </p>
-                        </div>
-
-                        {/* Total Biaya */}
-                        <div>
-                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <DollarSign className="w-4 h-4" />
-                                Total Biaya (Rp) *
-                            </label>
-                            <input
-                                type="text"
-                                value={formatNumber(headerData.biaya_total)}
-                                onChange={(e) => handleHeaderChange('biaya_total', parseNumber(e.target.value))}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                placeholder=""
-                                required
-                            />
-                            <p className="text-xs text-blue-600 mt-1">
-                                💡 Total biaya keseluruhan pembelian
-                            </p>
-                        </div>
 
                         {/* Farm */}
                         <div>
@@ -1521,18 +1482,25 @@ const AddEditPembelianFeedmilPage = () => {
                         <div>
                             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                                 <Calendar className="w-4 h-4" />
-                                Jatuh Tempo *
+                                Jatuh Tempo {headerData.tipe_pembayaran && parseInt(headerData.tipe_pembayaran) === 2 ? ' *' : ''}
                             </label>
                             <input
                                 type="date"
                                 value={headerData.due_date}
                                 onChange={(e) => handleHeaderChange('due_date', e.target.value)}
                                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                required
+                                required={headerData.tipe_pembayaran && parseInt(headerData.tipe_pembayaran) === 2}
                             />
-                            <p className="text-xs text-blue-600 mt-1">
-                                💡 Tanggal jatuh tempo pembayaran
-                            </p>
+                            {headerData.tipe_pembayaran && parseInt(headerData.tipe_pembayaran) === 2 && (
+                                <p className="text-xs text-red-600 mt-1">
+                                    * Wajib diisi untuk pembayaran kredit
+                                </p>
+                            )}
+                            {headerData.tipe_pembayaran && parseInt(headerData.tipe_pembayaran) === 1 && (
+                                <p className="text-xs text-gray-600 mt-1">
+                                    Opsional untuk pembayaran cash
+                                </p>
+                            )}
                         </div>
 
                         {/* Note Field - Required by Backend */}

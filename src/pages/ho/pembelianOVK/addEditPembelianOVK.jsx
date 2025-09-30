@@ -980,8 +980,13 @@ const AddEditPembelianOVKPage = () => {
             errors.push('Tipe pembayaran harus diisi');
         }
 
-        if (!headerData.due_date) {
-            errors.push('Jatuh tempo harus diisi');
+        // Conditional validation for due date based on payment type
+        // If payment type is cash (assumed to be 1), due date is optional
+        // If payment type is credit (assumed to be 2), due date is required
+        if (headerData.tipe_pembayaran && parseInt(headerData.tipe_pembayaran) === 2) { // Credit payment
+            if (!headerData.due_date) {
+                errors.push('Jatuh tempo harus diisi untuk pembayaran kredit');
+            }
         }
 
         if (!headerData.note.trim()) {
@@ -1531,15 +1536,25 @@ const AddEditPembelianOVKPage = () => {
                         <div className="col-span-full md:col-span-1">
                             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                                 <Calendar className="w-4 h-4" />
-                                Jatuh Tempo *
+                                Jatuh Tempo {headerData.tipe_pembayaran && parseInt(headerData.tipe_pembayaran) === 2 ? ' *' : ''}
                             </label>
                             <input
                                 type="date"
                                 value={headerData.due_date}
                                 onChange={(e) => handleHeaderChange('due_date', e.target.value)}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                required
+                                className="w-full px-4 py-3 border border-gray-30 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                                required={headerData.tipe_pembayaran && parseInt(headerData.tipe_pembayaran) === 2}
                             />
+                            {headerData.tipe_pembayaran && parseInt(headerData.tipe_pembayaran) === 2 && (
+                                <p className="text-xs text-red-60 mt-1">
+                                    * Wajib diisi untuk pembayaran kredit
+                                </p>
+                            )}
+                            {headerData.tipe_pembayaran && parseInt(headerData.tipe_pembayaran) === 1 && (
+                                <p className="text-xs text-gray-60 mt-1">
+                                    Opsional untuk pembayaran cash
+                                </p>
+                            )}
                         </div>
 
                         {/* Note - Catatan */}

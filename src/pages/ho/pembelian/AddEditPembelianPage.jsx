@@ -1270,8 +1270,13 @@ const AddEditPembelianPage = () => {
             errors.push('Tipe Pembayaran harus 1 atau 2');
         }
         
-        if (!headerData.due_date) {
-            errors.push('Tanggal jatuh tempo harus diisi');
+        // Conditional validation for due date based on payment type
+        // If payment type is cash (assumed to be 1), due date is optional
+        // If payment type is credit (assumed to be 2), due date is required
+        if (headerData.purchase_type && parseInt(headerData.purchase_type) === 2) { // Credit payment
+            if (!headerData.due_date) {
+                errors.push('Tanggal jatuh tempo harus diisi untuk pembayaran kredit');
+            }
         }
 
         // Syarat Pembelian validation
@@ -1479,8 +1484,13 @@ const AddEditPembelianPage = () => {
             headerValidationErrors.push('Tipe Pembayaran harus 1 atau 2');
         }
         
-        if (!headerData.due_date) {
-            headerValidationErrors.push('Tanggal jatuh tempo harus diisi');
+        // Conditional validation for due date based on payment type
+        // If payment type is cash (assumed to be 1), due date is optional
+        // If payment type is credit (assumed to be 2), due date is required
+        if (headerData.purchase_type && parseInt(headerData.purchase_type) === 2) { // Credit payment
+            if (!headerData.due_date) {
+                headerValidationErrors.push('Tanggal jatuh tempo harus diisi untuk pembayaran kredit');
+            }
         }
 
         // Syarat Pembelian validation for header-only save
@@ -2056,7 +2066,7 @@ const AddEditPembelianPage = () => {
                                     <div className="flex items-center justify-between mb-2">
                                         <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
                                             <Calendar className="w-4 h-4" />
-                                            Tanggal Jatuh Tempo *
+                                            Tanggal Jatuh Tempo {headerData.purchase_type && parseInt(headerData.purchase_type) === 2 ? ' *' : ''}
                                         </label>
                                     </div>
                                     <input
@@ -2064,16 +2074,26 @@ const AddEditPembelianPage = () => {
                                         value={headerData.due_date}
                                         onChange={(e) => handleHeaderChange('due_date', e.target.value)}
                                         className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                        required
+                                        required={headerData.purchase_type && parseInt(headerData.purchase_type) === 2}
                                     />
                                     {tipePembayaranLoading && (
-                                        <p className="text-xs text-blue-600 mt-1">
+                                        <p className="text-xs text-blue-60 mt-1">
                                             Memuat data...
                                         </p>
                                     )}
                                     {tipePembayaranError && (
-                                        <p className="text-xs text-red-500 mt-1">
+                                        <p className="text-xs text-red-50 mt-1">
                                             ⚠️ Error loading data: {tipePembayaranError}
+                                        </p>
+                                    )}
+                                    {headerData.purchase_type && parseInt(headerData.purchase_type) === 2 && (
+                                        <p className="text-xs text-red-600 mt-1">
+                                            * Wajib diisi untuk pembayaran kredit
+                                        </p>
+                                    )}
+                                    {headerData.purchase_type && parseInt(headerData.purchase_type) === 1 && (
+                                        <p className="text-xs text-gray-600 mt-1">
+                                            Opsional untuk pembayaran cash
                                         </p>
                                     )}
                                 </div>

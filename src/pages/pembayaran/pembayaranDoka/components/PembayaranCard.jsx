@@ -1,23 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  Building2, 
-  User, 
-  Calendar, 
-  CreditCard, 
-  Hash, 
-  DollarSign, 
-  Edit, 
-  Trash2, 
+import {
+  Building2,
+  User,
+  Calendar,
+  CreditCard,
+  Hash,
+  DollarSign,
+  Edit,
   Eye,
   CheckCircle,
   XCircle,
-  MoreVertical 
+  MoreVertical
 } from 'lucide-react';
 
 const PembayaranCard = ({
     data,
     onEdit,
-    onDelete,
     onDetail,
     index
 }) => {
@@ -57,11 +55,6 @@ const PembayaranCard = ({
         setShowMenu(false);
     };
 
-    const handleDelete = () => {
-        onDelete(data);
-        setShowMenu(false);
-    };
-
     return (
         <div className="bg-white rounded-2xl p-5 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 relative overflow-hidden">
              {/* Background Accent */}
@@ -96,13 +89,6 @@ const PembayaranCard = ({
                             >
                                 <Eye className="w-4 h-4 text-blue-500" />
                                 Detail
-                            </button>
-                            <button
-                                onClick={handleDelete}
-                                className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors duration-150"
-                            >
-                                <Trash2 className="w-4 h-4" />
-                                Hapus
                             </button>
                         </div>
                     )}

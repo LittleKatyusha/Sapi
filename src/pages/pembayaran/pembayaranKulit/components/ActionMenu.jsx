@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Edit, Trash2, Eye } from 'lucide-react';
+import { Eye } from 'lucide-react';
 
 const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef }) => {
     const menuRef = useRef(null);
@@ -45,19 +45,6 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef }) => 
             bg: 'bg-blue-100',
             hoverBg: 'group-hover:bg-blue-200',
             text: 'text-blue-600',
-        },
-        {
-            divider: true
-        },
-        {
-            label: 'Hapus Pembayaran',
-            icon: Trash2,
-            onClick: () => onDelete(row),
-            className: 'text-red-600',
-            description: 'Hapus permanen',
-            bg: 'bg-red-100',
-            hoverBg: 'group-hover:bg-red-200',
-            text: 'text-red-600',
         }
     ];
 
@@ -91,8 +78,8 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef }) => 
                                 if (!action.disabled) {
                                     action.onClick(); 
                                     // onClose is handled individually in each action
-                                    if (action.label === 'Lihat Detail' || action.label === 'Edit Pembayaran' || action.label === 'Hapus Pembayaran') {
-                                        onClose(); 
+                                    if (action.label === 'Lihat Detail') {
+                                        onClose();
                                     }
                                 }
                             }}
