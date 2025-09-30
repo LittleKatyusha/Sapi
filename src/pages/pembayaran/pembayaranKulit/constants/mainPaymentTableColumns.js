@@ -13,21 +13,37 @@ export const createPembayaranColumns = (
         name: 'No',
         selector: (row, index) => index + 1,
         sortable: false,
-        width: '75px',
+        width: '60px',
         center: true,
         ignoreRowClick: true,
+        style: {
+            position: 'sticky',
+            left: 0,
+            zIndex: 999,
+            backgroundColor: '#ffffff',
+            borderRight: '2px solid #e5e7eb',
+            boxShadow: '2px 0 4px rgba(0, 0, 0, 0.1)',
+        },
         cell: (row, index) => (
-            <div className="font-semibold text-gray-600 w-full flex items-center justify-center">
+            <div className="font-semibold text-gray-600 w-full flex items-center justify-center sticky-column-content">
                 {(serverPagination.currentPage - 1) * serverPagination.perPage + index + 1}
             </div>
         )
     },
     {
         name: 'Aksi',
-        width: '90px',
+        width: '80px',
         center: true,
+        style: {
+            position: 'sticky',
+            left: '60px',
+            zIndex: 998,
+            backgroundColor: '#ffffff',
+            borderRight: '2px solid #e5e7eb',
+            boxShadow: '2px 0 4px rgba(0, 0, 0, 0.1)',
+        },
         cell: row => (
-            <div className="w-full flex items-center justify-center">
+            <div className="w-full flex items-center justify-center sticky-column-content">
                 <ActionButton
                     row={row}
                     openMenuId={openMenuId}

@@ -26,6 +26,8 @@ const customTableStyles = {
             // Custom scrollbar styling
             scrollbarWidth: 'thin',
             scrollbarColor: '#cbd5e1 #f1f5f9',
+            // Enable sticky positioning
+            isolation: 'isolate',
         },
     },
     header: {
@@ -114,10 +116,14 @@ const customTableStyles = {
     },
     pagination: {
         style: {
-            borderTop: '1px solid #f1f5f9',
-            padding: '1rem',
-            backgroundColor: '#ffffff',
-            borderRadius: '0 0 0.75rem 0.75rem',
+            borderTop: '1px solid #e2e8f0',
+            borderRadius: '0 0 12px 12px',
+            padding: '12px 16px',
+            backgroundColor: '#f8fafc',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            gap: '8px',
         },
     },
     noData: {
@@ -128,7 +134,9 @@ const customTableStyles = {
             minHeight: '400px',
             backgroundColor: '#ffffff',
             color: '#94a3b8',
-            fontSize: '1rem',
+            fontSize: '16px',
+            fontWeight: '500',
+            textAlign: 'center',
         },
     },
     progress: {

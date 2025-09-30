@@ -212,7 +212,7 @@ const PembayaranPage = () => {
                             className="pembayaran-table-scroll-container table-scroll-container"
                             onScroll={handleTableScroll}
                         >
-                            <div style={{ width: 'fit-content', minWidth: '100%' }}>
+                            <div style={{ minWidth: '1740px' }}>
                                 <DataTable
                                     key={`datatable-${serverPagination.currentPage}-${filteredData.length}`}
                                     columns={columns}
@@ -233,7 +233,7 @@ const PembayaranPage = () => {
                                         },
                                         table: {
                                             style: {
-                                                minWidth: '100%',
+                                                minWidth: '1480px',
                                                 position: 'relative',
                                                 borderCollapse: 'separate',
                                                 borderSpacing: 0,
@@ -253,7 +253,7 @@ const PembayaranPage = () => {
                                                 },
                                                 '&:nth-child(2)': {
                                                     position: 'sticky',
-                                                    left: '75px', // Updated to match new No column width
+                                                    left: '60px',
                                                     zIndex: 1001,
                                                     backgroundColor: '#f8fafc',
                                                     borderRight: '2px solid #e5e7eb',
@@ -275,7 +275,7 @@ const PembayaranPage = () => {
                                                 },
                                                 '&:nth-child(2)': {
                                                     position: 'sticky',
-                                                    left: '75px', // Updated to match new No column width
+                                                    left: '60px',
                                                     zIndex: 998,
                                                     backgroundColor: '#ffffff',
                                                     borderRight: '2px solid #e5e7eb',
@@ -302,8 +302,8 @@ const PembayaranPage = () => {
                                     responsive={false}
                                     highlightOnHover
                                     pointerOnHover
-                                    fixedHeader={true}
-                                    fixedHeaderScrollHeight="500px"
+                                    fixedHeader={false}
+                                    fixedHeaderScrollHeight="60vh"
                                 />
                             </div>
                         </div>
