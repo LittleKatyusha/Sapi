@@ -1,6 +1,6 @@
 import React from 'react';
 import { Package } from 'lucide-react';
-import ActionButton from '../components/ActionButton';
+import DetailActionButton from '../components/DetailActionButton';
 import { formatCurrency, formatDate } from '../utils/formatters';
 
 // Helper function for row number calculation
@@ -37,7 +37,7 @@ export const createDetailColumns = (
     center: true,
     cell: row => (
       <div className="w-full flex items-center justify-center">
-        <ActionButton
+        <DetailActionButton
           row={row}
           openMenuId={openMenuId}
           setOpenMenuId={setOpenMenuId}

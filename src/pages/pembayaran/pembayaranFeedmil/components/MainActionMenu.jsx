@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Eye } from 'lucide-react';
 
-const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef }) => {
+const MainActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef }) => {
     const menuRef = useRef(null);
     const [menuStyle, setMenuStyle] = useState(null);
 
@@ -105,4 +105,4 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef }) => 
     return createPortal(menuElement, document.body);
 };
 
-export default ActionMenu;
+export default MainActionMenu;

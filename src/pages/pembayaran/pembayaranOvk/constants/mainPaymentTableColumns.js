@@ -1,5 +1,5 @@
 import React from 'react';
-import ActionButton from '../components/ActionButton';
+import MainActionButton from '../components/MainActionButton';
 
 export const createPembayaranColumns = (
     serverPagination,
@@ -44,7 +44,7 @@ export const createPembayaranColumns = (
         },
         cell: row => (
             <div className="w-full flex items-center justify-center sticky-column-content">
-                <ActionButton
+                <MainActionButton
                     row={row}
                     openMenuId={openMenuId}
                     setOpenMenuId={setOpenMenuId}
