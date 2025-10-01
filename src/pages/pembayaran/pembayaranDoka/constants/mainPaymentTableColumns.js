@@ -17,25 +17,25 @@ export const createPembayaranColumns = (
   handleDetail
 ) => [
   {
-    name: 'No',
-    selector: (row, index) => index + 1,
-    sortable: false,
-    width: '60px',
-    center: true,
-    ignoreRowClick: true,
-    style: {
-      position: 'sticky',
-      left: 0,
-      zIndex: 999,
-      backgroundColor: '#ffffff',
-      borderRight: '2px solid #e5e7eb',
-      boxShadow: '2px 0 4px rgba(0, 0, 0, 0.1)',
-    },
-    cell: (row, index) => (
-      <div className="font-semibold text-gray-600 w-full flex items-center justify-center sticky-column-content">
-        {(serverPagination.currentPage - 1) * serverPagination.perPage + index + 1}
-      </div>
-    )
+      name: 'No',
+      selector: (row, index) => index + 1,
+      sortable: false,
+      width: '60px',
+      center: true,
+      ignoreRowClick: true,
+      style: {
+          position: 'sticky',
+          left: 0,
+          zIndex: 999,
+          backgroundColor: '#ffffff',
+          borderRight: '2px solid #e5e7eb',
+          boxShadow: '2px 0 4px rgba(0, 0, 0, 0.1)',
+      },
+      cell: (row, index) => (
+          <div className="flex items-center justify-center w-full h-full font-semibold text-gray-600">
+              {(serverPagination.currentPage - 1) * serverPagination.perPage + index + 1}
+          </div>
+      )
   },
   {
     name: 'Aksi',

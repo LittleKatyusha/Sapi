@@ -21,11 +21,13 @@ export const createPembayaranColumns = (
             left: 0,
             zIndex: 999,
             backgroundColor: '#ffffff',
-            borderRight: '2px solid #e5e7eb',
             boxShadow: '2px 0 4px rgba(0, 0, 0, 0.1)',
+            padding: 0,
+            margin: 0,
+            borderRight: 'none', // Menghapus borderRight untuk menghindari spasi
         },
         cell: (row, index) => (
-            <div className="font-semibold text-gray-600 w-full flex items-center justify-center sticky-column-content">
+            <div className="flex items-center justify-center w-full h-full font-semibold text-gray-600">
                 {(serverPagination.currentPage - 1) * serverPagination.perPage + index + 1}
             </div>
         )
@@ -39,8 +41,11 @@ export const createPembayaranColumns = (
             left: '60px',
             zIndex: 998,
             backgroundColor: '#ffffff',
-            borderRight: '2px solid #e5e7eb',
             boxShadow: '2px 0 4px rgba(0, 0, 0, 0.1)',
+            padding: 0,
+            margin: 0,
+            borderLeft: 'none', // Menghapus borderLeft untuk menghindari spasi
+            borderRight: 'none', // Menghapus borderRight untuk menghindari spasi
         },
         cell: row => (
             <div className="w-full flex items-center justify-center sticky-column-content">

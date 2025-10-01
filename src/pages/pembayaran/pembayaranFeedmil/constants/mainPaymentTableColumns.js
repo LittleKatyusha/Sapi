@@ -17,40 +17,46 @@ export const createPembayaranColumns = (
   handleDetail
 ) => [
   {
-    name: 'No',
-    selector: (row, index) => index + 1,
-    sortable: false,
-    width: '60px',
-    center: true,
-    ignoreRowClick: true,
-    style: {
-      position: 'sticky',
-      left: 0,
-      zIndex: 999,
-      backgroundColor: '#ffffff',
-      borderRight: '2px solid #e5e7eb',
-      boxShadow: '2px 0 4px rgba(0, 0, 0, 0.1)',
-    },
-    cell: (row, index) => (
-      <div className="font-semibold text-gray-600 w-full flex items-center justify-center sticky-column-content">
-        {(serverPagination.currentPage - 1) * serverPagination.perPage + index + 1}
-      </div>
-    )
+      name: 'No',
+      selector: (row, index) => index + 1,
+      sortable: false,
+      width: '60px',
+      center: true,
+      ignoreRowClick: true,
+      style: {
+          position: 'sticky',
+          left: 0,
+          zIndex: 999,
+          backgroundColor: '#ffffff',
+          boxShadow: '2px 0 4px rgba(0, 0, 0, 0.1)',
+          padding: 0,
+          margin: 0,
+          borderRight: 'none', // Remove right border to eliminate spacing
+          boxSizing: 'border-box', // Ensure proper width calculation
+      },
+      cell: (row, index) => (
+          <div className="flex items-center justify-center w-full h-full font-semibold text-gray-600">
+              {(serverPagination.currentPage - 1) * serverPagination.perPage + index + 1}
+          </div>
+      )
   },
   {
     name: 'Aksi',
     width: '80px',
     center: true,
     style: {
-      position: 'sticky',
-      left: '60px',
-      zIndex: 998,
-      backgroundColor: '#ffffff',
-      borderRight: '2px solid #e5e7eb',
-      boxShadow: '2px 0 4px rgba(0, 0, 0, 0.1)',
+        position: 'sticky',
+        left: '60px',
+        zIndex: 998,
+        backgroundColor: '#ffffff',
+        boxShadow: '2px 0 4px rgba(0, 0, 0, 0.1)',
+        padding: 0,
+        margin: 0,
+        borderLeft: 'none', // Remove left border to eliminate spacing
+        boxSizing: 'border-box', // Ensure proper width calculation
     },
     cell: row => (
-      <div className="w-full flex items-center justify-center sticky-column-content">
+      <div className="w-full flex items-center justify-center sticky-column-content" style={{ padding: 0, margin: 0 }}>
         <MainActionButton
           row={row}
           openMenuId={openMenuId}
@@ -72,7 +78,7 @@ export const createPembayaranColumns = (
     center: true,
     wrap: true,
     cell: row => (
-      <div className="w-full flex items-center justify-center px-2">
+      <div className="w-full flex items-center justify-center" style={{ padding: 0, margin: 0 }}>
         <span className="font-mono text-sm bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200 text-gray-700 whitespace-nowrap" title={row.nota}>
           {row.nota || '-'}
         </span>
@@ -102,7 +108,7 @@ export const createPembayaranColumns = (
     center: true,
     wrap: true,
     cell: row => (
-      <div className="w-full flex items-center justify-center px-2">
+      <div className="w-full flex items-center justify-center" style={{ padding: 0, margin: 0 }}>
         <span className="text-gray-900 font-medium text-sm whitespace-nowrap">
           {formatTableDate(row.tgl_masuk)}
         </span>
@@ -132,7 +138,7 @@ export const createPembayaranColumns = (
     center: true,
     wrap: true,
     cell: row => (
-      <div className="w-full flex items-center justify-center px-2">
+      <div className="w-full flex items-center justify-center" style={{ padding: 0, margin: 0 }}>
         <span className="text-gray-900 font-medium text-sm whitespace-nowrap">
           {formatTableDate(row.settlement_date)}
         </span>
@@ -165,7 +171,7 @@ export const createPembayaranColumns = (
     center: true,
     wrap: true,
     cell: row => (
-      <div className="w-full flex items-center justify-center px-2">
+      <div className="w-full flex items-center justify-center" style={{ padding: 0, margin: 0 }}>
         <span className="text-gray-900 font-medium text-sm whitespace-nowrap">
           {formatTableDate(row.created_at)}
         </span>
@@ -180,7 +186,7 @@ export const createPembayaranColumns = (
     center: true,
     wrap: true,
     cell: row => (
-      <div className="w-full flex items-center justify-center px-2">
+      <div className="w-full flex items-center justify-center" style={{ padding: 0, margin: 0 }}>
         <span className="text-gray-900 font-medium text-sm whitespace-nowrap">
           {formatTableDate(row.updated_at)}
         </span>
