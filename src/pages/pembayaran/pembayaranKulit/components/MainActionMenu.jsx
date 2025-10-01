@@ -37,7 +37,7 @@ const MainActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef })
 
     const actions = [
         {
-            label: 'Lihat Detail',
+            label: 'Bayar',
             icon: Eye,
             onClick: () => onDetail && onDetail(row),
             className: 'text-gray-700',
@@ -78,7 +78,7 @@ const MainActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef })
                                 if (!action.disabled) {
                                     action.onClick(); 
                                     // onClose is handled individually in each action
-                                    if (action.label === 'Lihat Detail') {
+                                    if (action.label === 'Bayar') {
                                         onClose();
                                     }
                                 }
