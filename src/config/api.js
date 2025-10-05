@@ -62,6 +62,7 @@ export const API_ENDPOINTS = {
     ITEM_OVK: '/api/master/itemovk',
     KLASIFIKASI_KULIT: '/api/master/klasifikasikulit',
     KLASIFIKASI_OVK: '/api/master/klasifikasiovk',
+    KLASIFIKASI_LAIN_LAIN: '/api/master/klasifikasilainlain',
     PARAMETER: '/api/master/parameter',
     PARAMETER_SELECT: '/api/master/parameter',
     BANK: '/api/master/bank'
@@ -79,6 +80,9 @@ export const API_ENDPOINTS = {
     },
     OVK: {
       PEMBELIAN: '/api/ho/ovk/pembelian'
+    },
+    LAINLAIN: {
+      PEMBELIAN: '/api/ho/lainlain/pembelian'
     },
     PAYMENT: {
       BASE: '/api/ho/payment',

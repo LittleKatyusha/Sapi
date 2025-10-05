@@ -11,6 +11,7 @@ export const pageTitleMap = {
   '/master-data/klasifikasi-hewan': 'Data Master: Klasifikasi Hewan',
   '/master-data/klasifikasi-ovk': 'Data Master: Klasifikasi OVK',
   '/master-data/klasifikasi-feedmil': 'Data Master: Klasifikasi Feedmil',
+  '/data-master/klasifikasi-lain-lain': 'Klasifikasi Lain-Lain',
   '/master-data/item-kulit': 'Data Master: Item Kulit',
   '/master-data/item-feedmil': 'Data Master: Item Feedmil',
   '/master-data/item-ovk': 'Data Master: Item OVK',
@@ -64,4 +65,8 @@ export const pageTitleMap = {
   '/ho/pembelian-ovk/add': 'Head Office: Tambah Pembelian OVK',
   '/ho/pembelian-ovk/edit/:id': 'Head Office: Edit Pembelian OVK',
   '/ho/pembelian-ovk/detail/:id': 'Head Office: Detail Pembelian OVK',
+  '/ho/pembelian-lain-lain': 'Head Office: Pembelian Lain Lain',
+  '/ho/pembelian-lain-lain/add': 'Head Office: Tambah Pembelian Lain Lain',
+  '/ho/pembelian-lain-lain/edit/:id': 'Head Office: Edit Pembelian Lain Lain',
+  '/ho/pembelian-lain-lain/detail/:id': 'Head Office: Detail Pembelian Lain Lain',
 };

@@ -27,6 +27,7 @@ const JenisHewanPage = lazy(() => import('./pages/dataMaster/JenisHewanPage'));
 const KlasifikasiHewanPage = lazy(() => import('./pages/dataMaster/KlasifikasiHewanPage'));
 const KlasifikasiOvkPage = lazy(() => import('./pages/dataMaster/KlasifikasiOvkPage'));
 const KlasifikasiFeedmilPage = lazy(() => import('./pages/dataMaster/KlasifikasiFeedmilPage'));
+const KlasifikasiLainLainPage = lazy(() => import('./pages/dataMaster/KlasifikasiLainLainPage'));
 const ItemKulitPage = lazy(() => import('./pages/dataMaster/ItemKulitPage'));
 const ItemFeedmilPage = lazy(() => import('./pages/dataMaster/ItemFeedmilPage'));
 const ItemOvkPage = lazy(() => import('./pages/dataMaster/ItemOvkPage'));
@@ -76,6 +77,11 @@ const PembelianOVKDetailPage = lazy(() => import('./pages/ho/pembelianOVK/Pembel
 const PembelianKulitPage = lazy(() => import('./pages/ho/pembelianKulit/PembelianKulitPage'));
 const AddEditPembelianKulitPage = lazy(() => import('./pages/ho/pembelianKulit/AddEditPembelianKulitPage'));
 const PembelianKulitDetailPage = lazy(() => import('./pages/ho/pembelianKulit/PembelianKulitDetailPage'));
+
+// Pembelian Lain Lain Pages - Lazy loaded
+const PembelianLainLainPage = lazy(() => import('./pages/ho/pembelianLainLain/PembelianLainLainPage'));
+const AddEditPembelianLainLainPage = lazy(() => import('./pages/ho/pembelianLainLain/addEditPembelianLainLain'));
+const PembelianLainLainDetailPage = lazy(() => import('./pages/ho/pembelianLainLain/PembelianLainLainDetailPage'));
 
 // Pembayaran Pages - Lazy loaded
 const PembayaranPage = lazy(() => import('./pages/pembayaran/pembayaranDoka/PembayaranPage'));
@@ -180,6 +186,7 @@ function AppSecure() {
               <Route path="/master-data/klasifikasi-hewan" element={<KlasifikasiHewanPage />} />
               <Route path="/master-data/klasifikasi-ovk" element={<KlasifikasiOvkPage />} />
               <Route path="/master-data/klasifikasi-feedmil" element={<KlasifikasiFeedmilPage />} />
+              <Route path="/data-master/klasifikasi-lain-lain" element={<KlasifikasiLainLainPage />} />
               <Route path="/master-data/item-kulit" element={<ItemKulitPage />} />
               <Route path="/master-data/item-feedmil" element={<ItemFeedmilPage />} />
               <Route path="/master-data/item-ovk" element={<ItemOvkPage />} />
@@ -220,6 +227,12 @@ function AppSecure() {
               <Route path="/ho/pembelian-kulit/add" element={<AddEditPembelianKulitPage />} />
               <Route path="/ho/pembelian-kulit/edit/:id" element={<AddEditPembelianKulitPage />} />
               <Route path="/ho/pembelian-kulit/detail/:id" element={<PembelianKulitDetailPage />} />
+            
+              {/* HO Pembelian Lain Lain Routes */}
+              <Route path="/ho/pembelian-lain-lain" element={<PembelianLainLainPage />} />
+              <Route path="/ho/pembelian-lain-lain/add" element={<AddEditPembelianLainLainPage />} />
+              <Route path="/ho/pembelian-lain-lain/edit/:id" element={<AddEditPembelianLainLainPage />} />
+              <Route path="/ho/pembelian-lain-lain/detail/:id" element={<PembelianLainLainDetailPage />} />
               
               {/* Pembayaran Doka Routes */}
               <Route path="/pembayaran/doka" element={<PembayaranPage />} />
