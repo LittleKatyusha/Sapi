@@ -3,20 +3,20 @@ import HttpClient from '../../../../services/httpClient';
 import { API_ENDPOINTS } from '../../../../config/api';
 
 // Global cache to prevent duplicate API calls
-let globalJenisPembelianOVK = null;
+let globalJenisPembelianLainLain = null;
 let globalLoading = false;
 let globalError = null;
 let fetchPromise = null;
 
-const useJenisPembelianOVK = () => {
-    const [jenisPembelianOVK, setJenisPembelianOVK] = useState(globalJenisPembelianOVK || []);
+const useJenisPembelianLainLain = () => {
+    const [jenisPembelianLainLain, setJenisPembelianLainLain] = useState(globalJenisPembelianLainLain || []);
     const [loading, setLoading] = useState(globalLoading);
     const [error, setError] = useState(globalError);
 
-    const fetchJenisPembelianOVK = async () => {
+    const fetchJenisPembelianLainLain = async () => {
         // If data is already cached, use it
-        if (globalJenisPembelianOVK) {
-            setJenisPembelianOVK(globalJenisPembelianOVK);
+        if (globalJenisPembelianLainLain) {
+            setJenisPembelianLainLain(globalJenisPembelianLainLain);
             setLoading(false);
             setError(null);
             return;
@@ -26,7 +26,7 @@ const useJenisPembelianOVK = () => {
         if (fetchPromise) {
             try {
                 await fetchPromise;
-                setJenisPembelianOVK(globalJenisPembelianOVK || []);
+                setJenisPembelianLainLain(globalJenisPembelianLainLain || []);
                 setLoading(globalLoading);
                 setError(globalError);
             } catch (err) {
@@ -44,36 +44,36 @@ const useJenisPembelianOVK = () => {
         
         fetchPromise = (async () => {
             try {
-                // Fetch parameters with group filter for jenis_pembelian_ovk using the correct endpoint
+                // Fetch parameters with group filter for jenis_pembelian_lainlain using the correct endpoint
                 const result = await HttpClient.post(`${API_ENDPOINTS.SYSTEM.PARAMETERS}/dataByGroup`, {
-                    group: 'jenis_pembelian_ovk' // Filter by group
+                    group: 'jenis_pembelian_lainlain' // Filter by group
                 });
                 
-                console.log('📦 Fetching jenis pembelian OVK:', result);
+                console.log('📦 Fetching jenis pembelian Lain-Lain:', result);
                 
                 // Handle API response format from ParameterController
                 if (result.status === 'ok' && result.data && Array.isArray(result.data)) {
-                    globalJenisPembelianOVK = result.data;
-                    setJenisPembelianOVK(result.data);
-                    console.log('✅ Jenis pembelian OVK loaded:', result.data.length, 'items');
+                    globalJenisPembelianLainLain = result.data;
+                    setJenisPembelianLainLain(result.data);
+                    console.log('✅ Jenis pembelian Lain-Lain loaded:', result.data.length, 'items');
                     
                 } else {
-                    throw new Error(result.message || 'Failed to fetch jenis pembelian OVK');
+                    throw new Error(result.message || 'Failed to fetch jenis pembelian Lain-Lain');
                 }
             } catch (err) {
-                console.error('❌ Error fetching jenis pembelian OVK:', err);
+                console.error('❌ Error fetching jenis pembelian Lain-Lain:', err);
                 globalError = err.message;
                 setError(err.message);
-                setJenisPembelianOVK([]);
+                setJenisPembelianLainLain([]);
                 
                 // Fallback to mock data if API fails
-                console.log('🔄 Using fallback mock data for jenis pembelian OVK');
+                console.log('🔄 Using fallback mock data for jenis pembelian Lain-Lain');
                 const mockData = [
                     {
                         pubid: 'mock-1',
                         name: 'INTERNAL',
                         value: '1',
-                        group: 'jenis_pembelian_ovk',
+                        group: 'jenis_pembelian_lainlain',
                         description: null,
                         order_no: 1,
                         pid: 'mock-pid-1'
@@ -82,7 +82,7 @@ const useJenisPembelianOVK = () => {
                         pubid: 'mock-2',
                         name: 'EXTERNAL',
                         value: '2',
-                        group: 'jenis_pembelian_ovk',
+                        group: 'jenis_pembelian_lainlain',
                         description: null,
                         order_no: 2,
                         pid: 'mock-pid-2'
@@ -91,14 +91,14 @@ const useJenisPembelianOVK = () => {
                         pubid: 'mock-3',
                         name: 'CONTRACT',
                         value: '3',
-                        group: 'jenis_pembelian_ovk',
+                        group: 'jenis_pembelian_lainlain',
                         description: null,
                         order_no: 3,
                         pid: 'mock-pid-3'
                     }
                 ];
-                globalJenisPembelianOVK = mockData;
-                setJenisPembelianOVK(mockData);
+                globalJenisPembelianLainLain = mockData;
+                setJenisPembelianLainLain(mockData);
             } finally {
                 globalLoading = false;
                 setLoading(false);
@@ -110,12 +110,12 @@ const useJenisPembelianOVK = () => {
     };
 
     useEffect(() => {
-        fetchJenisPembelianOVK();
+        fetchJenisPembelianLainLain();
     }, []);
 
     // Transform data to select options
     const jenisPembelianOptions = useMemo(() => {
-        return jenisPembelianOVK.map(item => ({
+        return jenisPembelianLainLain.map(item => ({
             value: item.value, // Keep as string since API returns string values
             label: item.name || item.description,
             rawId: item.pubid || item.id,
@@ -124,19 +124,19 @@ const useJenisPembelianOVK = () => {
             order_no: item.order_no,
             pid: item.pid
         }));
-    }, [jenisPembelianOVK]);
+    }, [jenisPembelianLainLain]);
 
     // Function to clear cache and refetch
     const refetch = () => {
-        globalJenisPembelianOVK = null;
+        globalJenisPembelianLainLain = null;
         globalLoading = false;
         globalError = null;
         fetchPromise = null;
-        fetchJenisPembelianOVK();
+        fetchJenisPembelianLainLain();
     };
 
     return {
-        jenisPembelianOVK,
+        jenisPembelianLainLain,
         jenisPembelianOptions,
         loading,
         error,
@@ -144,4 +144,4 @@ const useJenisPembelianOVK = () => {
     };
 };
 
-export default useJenisPembelianOVK;
+export default useJenisPembelianLainLain;

@@ -1,24 +1,20 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Save, Plus, Trash2, Building2, User, Calendar, Truck, Hash, Package, X, Settings, AlertCircle, Weight, DollarSign, Upload, FileText } from 'lucide-react';
-import usePembelianOVK from './hooks/usePembelianOVK';
+import { useParams, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Save, Plus, Trash2, Edit2, Building2, User, Calendar, Truck, Hash, Package, X, Settings, AlertCircle, Weight, DollarSign, Upload, FileText } from 'lucide-react';
+import usePembelianLainLain from './hooks/usePembelianLainLain';
 import useParameterSelect from '../pembelian/hooks/useParameterSelect';
-import useJenisPembelianOVK from './hooks/useJenisPembelianOVK';
+import useJenisPembelianLainLain from './hooks/useJenisPembelianLainLain';
 import useBanksAPI from '../pembelianFeedmil/hooks/useBanksAPI';
 import useTipePembayaran from '../../../hooks/useTipePembayaran';
 import SearchableSelect from '../../../components/shared/SearchableSelect';
 import HttpClient from '../../../services/httpClient';
 import { API_ENDPOINTS } from '../../../config/api';
+import AddEditDetailModal from './modals/AddEditDetailModal';
 
-
-
-
-const AddEditPembelianOVKPage = () => {
+const AddEditPembelianLainLainPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const location = useLocation();
     const isEdit = Boolean(id);
-    const cloneData = location.state?.cloneData;
     
     // Flag to prevent multiple API calls in edit mode
     const editDataLoaded = useRef(false);
@@ -29,7 +25,7 @@ const AddEditPembelianOVKPage = () => {
         updatePembelian,
         loading,
         error
-    } = usePembelianOVK();
+    } = usePembelianLainLain();
 
     // Parameter Select integration - centralized data from ParameterSelectController
     const {
@@ -43,12 +39,12 @@ const AddEditPembelianOVKPage = () => {
         error: parameterError
     } = useParameterSelect(isEdit, { kategoriSupplier: 3 });
 
-    // Jenis Pembelian OVK API integration
+    // Jenis Pembelian Lain-Lain API integration
     const {
         jenisPembelianOptions,
         loading: jenisPembelianLoading,
         error: jenisPembelianError
-    } = useJenisPembelianOVK();
+    } = useJenisPembelianLainLain();
 
     // Bank API integration for Syarat Pembelian
     const {
@@ -101,27 +97,20 @@ const AddEditPembelianOVKPage = () => {
     const [isFileModalOpen, setIsFileModalOpen] = useState(false);
     const [existingFileName, setExistingFileName] = useState(null); // Track existing file name
 
+    // Modal state for adding/editing detail items
+    const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+    const [editingDetailItem, setEditingDetailItem] = useState(null);
+    const [isDetailModalSubmitting, setIsDetailModalSubmitting] = useState(false);
+
     // Default data untuk batch operations
     const [defaultData, setDefaultData] = useState({
         item_name: '',
-        id_klasifikasi_ovk: null,
+        id_klasifikasi_lainlain: null,
         berat: '',
         harga: '',
         persentase: ''
     });
     const [batchCount, setBatchCount] = useState('');
-
-    // Use OVK suppliers only (kategori_supplier = 3)
-    const supplierOptionsToShow = supplierOptions;
-    
-    // Debug: Log supplier options to verify filtering
-    useEffect(() => {
-        console.log('📊 AddEditPembelianOVKPage: Supplier options received:', supplierOptionsToShow.length, 'suppliers');
-        if (supplierOptionsToShow.length > 0) {
-            console.log('📊 First supplier sample:', supplierOptionsToShow[0]);
-        }
-    }, [supplierOptionsToShow]);
-
 
 
     // Helper functions for number formatting
@@ -222,32 +211,17 @@ const AddEditPembelianOVKPage = () => {
                     // Get both header and detail data from /show endpoint only
                     console.log('🔍 Getting header and detail data from /show endpoint for PID:', id);
                     
-                    const showResponse = await HttpClient.post(`${API_ENDPOINTS.HO.OVK.PEMBELIAN}/show`, {
+                    const showResponse = await HttpClient.post(`${API_ENDPOINTS.HO.LAINLAIN.PEMBELIAN}/show`, {
                         pid: id
                     });
                     
                     if (!showResponse.data || showResponse.data.length === 0) {
-                        console.log('❌ No data from /show endpoint');
                         throw new Error('Data tidak ditemukan untuk pubid yang dipilih');
                     }
                     
-                    // Use the first record as header data (since /show returns detail records with header info)
-                    // All records have the same header data (nota, tgl_masuk, nama_supir, etc.)
-                    // So we only need the first record for header information
                     const headerData = showResponse.data[0];
                     const showResponseData = showResponse.data;
                     
-                    console.log('✅ Header and detail data found from /show endpoint:', {
-                        nota: headerData.nota,
-                        pid: headerData.pid,
-                        nama_supplier: headerData.nama_supplier,
-                        detailRecords: showResponseData.length
-                    });
-                    
-                    // Mark this as coming from show endpoint
-                    headerData.source = 'show';
-                    
-                    // Use detail data from the /show call
                     const detailResult = {
                         success: true,
                         data: showResponseData,
@@ -255,7 +229,6 @@ const AddEditPembelianOVKPage = () => {
                     };
                     
                     if (headerData) {
-                        // Debug: Log available options
                         
                         // Find supplier ID by name if we have nama_supplier but not id_supplier
                         let supplierId = headerData.id_supplier || '';
@@ -322,57 +295,6 @@ const AddEditPembelianOVKPage = () => {
                         }
                         
 
-                        // Determine data source and log accordingly
-                        // Data now comes from /show endpoint only
-                        const dataSource = 'Show Endpoint (Detail Model with Header Info)';
-                        
-                        // Debug field values before setting
-                        console.log('🔍 OVK Edit Data Loading Debug:', {
-                            dataSource,
-                            rawHeaderData: headerData,
-                            rawHeaderDataStringified: JSON.stringify(headerData, null, 2),
-                            allFieldsRaw: {
-                                nota: headerData.nota,
-                                nama_office: headerData.nama_office,
-                                jenis_pembelian: headerData.jenis_pembelian,
-                                nama_supplier: headerData.nama_supplier,
-                                tgl_masuk: headerData.tgl_masuk,
-                                nama_supir: headerData.nama_supir,
-                                plat_nomor: headerData.plat_nomor,
-                                jumlah: headerData.jumlah,
-                                biaya_truk: headerData.biaya_truk,
-                                biaya_lain: headerData.biaya_lain,
-                                biaya_total: headerData.biaya_total,
-                                total_belanja: headerData.total_belanja,
-                                berat_total: headerData.berat_total,
-                                file: headerData.file,
-                                note: headerData.note,
-                                // Check for alternative field names
-                                catatan: headerData.catatan
-                            },
-                            mappedValues: {
-                                nota: safeGetString(headerData.nota),
-                                officeId,
-                                tipePembelianId,
-                                supplierId,
-                                tgl_masuk: safeGetString(headerData.tgl_masuk),
-                                nama_supir: safeGetString(headerData.nama_supir),
-                                plat_nomor: safeGetString(headerData.plat_nomor),
-                                jumlah: safeGetNumber(headerData.jumlah),
-                                biaya_truck: safeGetNumber(headerData.biaya_truk) ?? safeGetNumber(headerData.biaya_truck),
-                                biaya_lain: safeGetNumber(headerData.biaya_lain),
-                                biaya_total: safeGetNumber(headerData.biaya_total) ?? safeGetNumber(headerData.total_belanja),
-                                berat_total: safeGetNumber(headerData.berat_total),
-                                file: safeGetString(headerData.file),
-                                note: safeGetString(headerData.note) || safeGetString(headerData.catatan)
-                            },
-                            availableOptions: {
-                                officeOptions: officeOptions.length,
-                                jenisPembelianOptions: jenisPembelianOptions.length,
-                                suppliers: supplierOptions.length
-                            }
-                        });
-                        
                         setHeaderData({
                             nota: safeGetString(headerData.nota),
                             nota_ho: safeGetString(headerData.nota_ho),
@@ -425,7 +347,7 @@ const AddEditPembelianOVKPage = () => {
                                 id_office: item.id_office || 'head-office',
                                 item_name: itemName, // Display name for UI
                                 item_name_id: foundItem ? foundItem.value : '', // ID for SearchableSelect
-                                id_klasifikasi_ovk: item.id_klasifikasi_ovk || null,
+                                id_klasifikasi_lainlain: item.id_klasifikasi_lainlain || item.id_klasifikasi_ovk || null,
                                 berat: parseFloat(item.berat) || 0,
                                 harga: parseFloat(item.harga) || 0,
                                 persentase: formatPersentaseFromBackend(item.persentase), // Format with comma for display
@@ -483,27 +405,70 @@ const AddEditPembelianOVKPage = () => {
         }));
     };
 
-    // Add new detail item
+    // Open modal for adding new detail item
     const addDetailItem = () => {
-        const newItem = {
-            id: Date.now(),
-            pubid: '', // Empty pubid for new items
-            id_pembelian: '', // Will be set when saving
-            idPembelian: '', // Will be set when saving (like Feedmil)
-            encryptedPid: '', // Will be set when saving
-            pubidDetail: '', // Alternative pubid field
-            id_office: headerData.idOffice || 'head-office', // Use selected office or fallback
-            item_name: defaultData.item_name_display || defaultData.item_name || '',
-            item_name_id: defaultData.item_name || null,
-            id_klasifikasi_ovk: defaultData.id_klasifikasi_ovk || null,
-            berat: defaultData.berat || '',
-            harga: defaultData.harga || '',
-            persentase: defaultData.persentase || '',
-            hpp: '', // Will be calculated
-            total_harga: '', // Added: total_harga field
-        };
+        setEditingDetailItem(null);
+        setIsDetailModalOpen(true);
+    };
+
+    // Open modal for editing existing detail item
+    const openEditDetailModal = (item) => {
+        setEditingDetailItem(item);
+        setIsDetailModalOpen(true);
+    };
+
+    // Close detail modal
+    const closeDetailModal = () => {
+        setIsDetailModalOpen(false);
+        setEditingDetailItem(null);
+    };
+
+    // Handle modal save
+    const handleDetailModalSave = async (itemData) => {
+        setIsDetailModalSubmitting(true);
         
-        setDetailItems(prev => [...prev, newItem]);
+        try {
+            if (editingDetailItem) {
+                // Edit existing item
+                if (isEdit) {
+                    // In edit mode, call API to save
+                    await saveDetailItem(editingDetailItem.id, itemData);
+                } else {
+                    // In add mode, update local state
+                    setDetailItems(prev => prev.map(item =>
+                        item.id === editingDetailItem.id
+                            ? { ...item, ...itemData }
+                            : item
+                    ));
+                }
+            } else {
+                // Add new item
+                const newItem = {
+                    id: Date.now(),
+                    pubid: '',
+                    id_pembelian: '',
+                    idPembelian: '',
+                    encryptedPid: '',
+                    pubidDetail: '',
+                    id_office: headerData.idOffice || 'head-office',
+                    ...itemData
+                };
+                setDetailItems(prev => [...prev, newItem]);
+            }
+            
+            closeDetailModal();
+            setNotification({
+                type: 'success',
+                message: editingDetailItem ? 'Detail item berhasil diperbarui' : 'Detail item berhasil ditambahkan'
+            });
+        } catch (error) {
+            setNotification({
+                type: 'error',
+                message: error.message || 'Gagal menyimpan detail item'
+            });
+        } finally {
+            setIsDetailModalSubmitting(false);
+        }
     };
 
     // Add multiple detail items (batch)
@@ -528,7 +493,7 @@ const AddEditPembelianOVKPage = () => {
                 id_office: headerData.idOffice || 'head-office', // Use selected office or fallback
                 item_name: defaultData.item_name_display || defaultData.item_name || '',
                 item_name_id: defaultData.item_name || null,
-                id_klasifikasi_ovk: defaultData.id_klasifikasi_ovk || null,
+                id_klasifikasi_lainlain: defaultData.id_klasifikasi_lainlain || null,
                 berat: defaultData.berat || '',
                 harga: defaultData.harga || '',
                 persentase: defaultData.persentase || '',
@@ -583,8 +548,8 @@ const AddEditPembelianOVKPage = () => {
                     message: 'Menghapus detail dari database...'
                 });
 
-                // Call OVK delete API
-                const result = await HttpClient.post(`${API_ENDPOINTS.HO.OVK.PEMBELIAN}/hapus`, {
+                // Call Lain-Lain delete API
+                const result = await HttpClient.post(`${API_ENDPOINTS.HO.LAINLAIN.PEMBELIAN}/hapus`, {
                     pid: detailPid
                 });
                 
@@ -601,7 +566,7 @@ const AddEditPembelianOVKPage = () => {
                     
                     setNotification({
                         type: 'success',
-                        message: result.data?.message || result.message || 'Detail OVK berhasil dihapus dari database'
+                        message: result.data?.message || result.message || 'Detail Lain-Lain berhasil dihapus dari database'
                     });
                 } else {
                     setNotification({
@@ -630,8 +595,8 @@ const AddEditPembelianOVKPage = () => {
     };
 
     // Save individual detail item
-    const saveDetailItem = async (itemId) => {
-        const item = detailItems.find(detail => detail.id === itemId);
+    const saveDetailItem = async (itemId, itemData = null) => {
+        const item = itemData ? { ...detailItems.find(detail => detail.id === itemId), ...itemData } : detailItems.find(detail => detail.id === itemId);
         if (!item) return;
 
         // Validate item data
@@ -643,10 +608,10 @@ const AddEditPembelianOVKPage = () => {
             return;
         }
 
-        if (!item.id_klasifikasi_ovk) {
+        if (!item.id_klasifikasi_lainlain) {
             setNotification({
                 type: 'error',
-                message: 'Klasifikasi OVK harus dipilih'
+                message: 'Klasifikasi Lain-Lain harus dipilih'
             });
             return;
         }
@@ -691,8 +656,8 @@ const AddEditPembelianOVKPage = () => {
                 idOffice: parseInt(headerData.idOffice) || 1, // Use selected office ID
                 item_name: String(item.item_name || ''),
                 item_name_id: item.item_name_id || null, // Include item ID for backend reference
-                id_klasifikasi_ovk: (() => {
-                    const rawValue = item.id_klasifikasi_ovk;
+                id_klasifikasi_lain_lain: (() => {
+                    const rawValue = item.id_klasifikasi_lain_lain;
                     
                     if (rawValue === null || rawValue === undefined || rawValue === '') {
                         return null;
@@ -721,7 +686,6 @@ const AddEditPembelianOVKPage = () => {
                 return;
             }
 
-            // Debug log
 
             // Call API to update individual item using the correct endpoint
             let result;
@@ -735,7 +699,7 @@ const AddEditPembelianOVKPage = () => {
                     id_pembelian: detailData.idPembelian, // Always required by backend validator
                     item_name: detailData.item_name,
                     id_item: detailData.item_name_id ? parseInt(detailData.item_name_id) : null, // Send item ID to backend
-                    id_klasifikasi_ovk: detailData.id_klasifikasi_ovk,
+                    id_klasifikasi_lainlain: detailData.id_klasifikasi_lainlain,
                     harga: detailData.harga,
                     persentase: detailData.persentase,
                     berat: detailData.berat,
@@ -743,7 +707,7 @@ const AddEditPembelianOVKPage = () => {
                     total_harga: detailData.total_harga
                 };
                 
-                result = await HttpClient.post(`${API_ENDPOINTS.HO.OVK.PEMBELIAN}/update`, requestData);
+                result = await HttpClient.post(`${API_ENDPOINTS.HO.LAINLAIN.PEMBELIAN}/update`, requestData);
             } else {
                 // This is a new item created in frontend - use updateDetail with null pid to create new detail
                 // Get id_pembelian from existing detail items
@@ -770,7 +734,7 @@ const AddEditPembelianOVKPage = () => {
                     id_office: detailData.idOffice, // Required for new items
                     item_name: detailData.item_name,
                     id_item: detailData.item_name_id ? parseInt(detailData.item_name_id) : null, // Send item ID to backend
-                    id_klasifikasi_ovk: detailData.id_klasifikasi_ovk,
+                    id_klasifikasi_lainlain: detailData.id_klasifikasi_lainlain,
                     harga: detailData.harga,
                     persentase: detailData.persentase,
                     berat: detailData.berat,
@@ -778,10 +742,9 @@ const AddEditPembelianOVKPage = () => {
                     total_harga: detailData.total_harga
                 };
                 
-                result = await HttpClient.post(`${API_ENDPOINTS.HO.OVK.PEMBELIAN}/update`, requestData);
+                result = await HttpClient.post(`${API_ENDPOINTS.HO.LAINLAIN.PEMBELIAN}/update`, requestData);
             }
 
-            // Debug API response
 
             // Check response success with multiple possible formats
             const isSuccess = (result.data && result.data.success) || 
@@ -973,8 +936,19 @@ const AddEditPembelianOVKPage = () => {
             errors.push('Tanggal masuk harus diisi');
         }
 
-        // nama_supir, plat_nomor, dan biaya_truck sekarang opsional (nullable)
-        // Validasi dihapus sesuai permintaan client
+        // Validate required fields: nama_supir, plat_nomor, biaya_truk
+        if (!headerData.nama_supir || !headerData.nama_supir.trim()) {
+            errors.push('Nama Sopir harus diisi');
+        }
+
+        if (!headerData.plat_nomor || !headerData.plat_nomor.trim()) {
+            errors.push('Plat Nomor harus diisi');
+        }
+
+        const biayaTruk = parseFloat(headerData.biaya_truck);
+        if (headerData.biaya_truck === null || headerData.biaya_truck === undefined || headerData.biaya_truck === '' || isNaN(biayaTruk)) {
+            errors.push('Biaya Ongkos Kirim harus diisi (minimal 0)');
+        }
 
         if (!headerData.tipe_pembayaran) {
             errors.push('Tipe pembayaran harus diisi');
@@ -994,15 +968,14 @@ const AddEditPembelianOVKPage = () => {
         }
 
         if (detailItems.length === 0) {
-            errors.push('Minimal harus ada 1 item OVK');
+            errors.push('Minimal harus ada 1 item Lain-Lain');
         }
 
         detailItems.forEach((item, index) => {
             if (!item.item_name || item.item_name.trim() === '') {
                 errors.push(`Item ${index + 1}: Nama item harus diisi`);
             }
-            // id_klasifikasi_ovk is nullable according to backend rules - no validation needed (like Feedmil)
-            // Remove required validation for klasifikasi OVK to match Feedmil implementation
+            // id_klasifikasi_lainlain is nullable according to backend rules - no validation needed
             const berat = parseFloat(item.berat);
             if (isNaN(berat) || berat <= 0) {
                 errors.push(`Item ${index + 1}: Berat harus lebih dari 0`);
@@ -1053,8 +1026,8 @@ const AddEditPembelianOVKPage = () => {
                 nota: headerData.nota,
                 id_supplier: parseInt(headerData.idSupplier),
                 tgl_masuk: headerData.tgl_masuk,
-                nama_supir: headerData.nama_supir || '-',
-                plat_nomor: headerData.plat_nomor || '-',
+                nama_supir: headerData.nama_supir || '',
+                plat_nomor: headerData.plat_nomor || '',
                 jumlah: parseInt(headerData.jumlah) || null,
                 biaya_truk: headerData.biaya_truck !== null && headerData.biaya_truck !== undefined && headerData.biaya_truck !== '' ? parseFloat(headerData.biaya_truck) : 0,
                 biaya_lain: headerData.biaya_lain !== null && headerData.biaya_lain !== undefined && headerData.biaya_lain !== '' ? parseFloat(headerData.biaya_lain) : 0,
@@ -1077,7 +1050,7 @@ const AddEditPembelianOVKPage = () => {
                 details: detailItems.map(item => ({
                     id_office: parseInt(headerData.idOffice) || 1, // Use selected office ID
                     item_name: item.item_name || null,
-                    id_klasifikasi_ovk: item.id_klasifikasi_ovk ? parseInt(item.id_klasifikasi_ovk) || null : null, // Use selected ID directly from dropdown
+                    id_klasifikasi_lainlain: item.id_klasifikasi_lainlain ? parseInt(item.id_klasifikasi_lainlain) || null : null, // Use selected ID directly from dropdown
                     harga: parseFloat(item.harga) || null,
                     persentase: getParsedPersentase(item.persentase) || null, // Use comma-aware parsing
                     berat: parseFloat(item.berat) || null,
@@ -1090,7 +1063,7 @@ const AddEditPembelianOVKPage = () => {
                 totalBerat: totals.totalBerat,
                 totalHPP: totals.totalHPP,
                 totalHargaItems: totals.totalHargaItems,
-                jenis_pembelian: 'OVK',
+                jenis_pembelian: 'Lain-Lain',
                 supplier: selectedSupplier ? selectedSupplier.label : '',
                 nama_supplier: selectedSupplier ? selectedSupplier.label : '',
                 jenis_supplier: selectedSupplier ? selectedSupplier.jenis_supplier : ''
@@ -1115,10 +1088,10 @@ const AddEditPembelianOVKPage = () => {
                 
                 setTimeout(() => {
                     // Set sessionStorage flag as backup
-                    sessionStorage.setItem('ovk-should-refresh', 'true');
+                    sessionStorage.setItem('lainlain-should-refresh', 'true');
                     // Dispatch custom event
-                    window.dispatchEvent(new CustomEvent('ovk-data-updated'));
-                    navigate('/ho/pembelian-ovk', { state: { fromEdit: true } });
+                    window.dispatchEvent(new CustomEvent('lainlain-data-updated'));
+                    navigate('/ho/pembelian-lain-lain', { state: { fromEdit: true } });
                 }, 1500);
             } else {
                 setNotification({
@@ -1139,10 +1112,10 @@ const AddEditPembelianOVKPage = () => {
     // Handle back navigation
     const handleBack = () => {
         // Set sessionStorage flag as backup
-        sessionStorage.setItem('ovk-should-refresh', 'true');
+        sessionStorage.setItem('lainlain-should-refresh', 'true');
         // Dispatch custom event
-        window.dispatchEvent(new CustomEvent('ovk-data-updated'));
-        navigate('/ho/pembelian-ovk', { state: { fromEdit: true } });
+        window.dispatchEvent(new CustomEvent('lainlain-data-updated'));
+        navigate('/ho/pembelian-lain-lain', { state: { fromEdit: true } });
     };
 
     // Auto-hide notification
@@ -1173,10 +1146,10 @@ const AddEditPembelianOVKPage = () => {
                             <div>
                                 <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 flex items-center gap-3">
                                     <Package className="w-8 h-8 text-blue-500" />
-                                    {isEdit ? 'Edit Pembelian OVK' : 'Tambah Pembelian OVK'}
+                                    {isEdit ? 'Edit Pembelian Lain-Lain' : 'Tambah Pembelian Lain-Lain'}
                                 </h1>
                                 <p className="text-gray-600 mt-1">
-                                    {isEdit ? 'Perbarui data pembelian OVK' : 'Tambahkan data pembelian OVK baru'}
+                                    {isEdit ? 'Perbarui data pembelian Lain-Lain' : 'Tambahkan data pembelian Lain-Lain baru'}
                                 </p>
                             </div>
                         </div>
@@ -1308,7 +1281,7 @@ const AddEditPembelianOVKPage = () => {
                             <SearchableSelect
                                 value={headerData.idSupplier}
                                 onChange={(value) => handleHeaderChange('idSupplier', value)}
-                                options={supplierOptionsToShow}
+                                options={supplierOptions}
                                 placeholder={parameterLoading ? "Memuat supplier..." : parameterError ? "Error loading supplier" : "Pilih Supplier"}
                                 className="w-full"
                                 disabled={parameterLoading || parameterError}
@@ -1343,7 +1316,7 @@ const AddEditPembelianOVKPage = () => {
                         <div>
                             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                                 <User className="w-4 h-4" />
-                                Nama Sopir
+                                Nama Sopir *
                             </label>
                             <input
                                 type="text"
@@ -1351,6 +1324,7 @@ const AddEditPembelianOVKPage = () => {
                                 onChange={(e) => handleHeaderChange('nama_supir', e.target.value)}
                                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
                                 placeholder="Masukkan nama supir"
+                                required
                             />
                         </div>
 
@@ -1358,7 +1332,7 @@ const AddEditPembelianOVKPage = () => {
                         <div>
                             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                                 <Truck className="w-4 h-4" />
-                                Plat Nomor
+                                Plat Nomor *
                             </label>
                             <input
                                 type="text"
@@ -1367,6 +1341,7 @@ const AddEditPembelianOVKPage = () => {
                                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
                                 placeholder="B1234XX"
                                 style={{ textTransform: 'uppercase' }}
+                                required
                             />
                         </div>
 
@@ -1374,7 +1349,7 @@ const AddEditPembelianOVKPage = () => {
                         <div>
                             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                                 <DollarSign className="w-4 h-4" />
-                                Biaya Ongkos Kirim (Rp)
+                                Biaya Ongkos Kirim (Rp) *
                             </label>
                             <input
                                 type="text"
@@ -1382,9 +1357,10 @@ const AddEditPembelianOVKPage = () => {
                                 onChange={(e) => handleHeaderChange('biaya_truck', parseNumber(e.target.value))}
                                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
                                 placeholder="1.000.000"
+                                required
                             />
                             <p className="text-xs text-gray-500 mt-1">
-                                💡 Biaya transportasi truck untuk pengiriman (opsional)
+                                💡 Biaya transportasi truck untuk pengiriman (wajib diisi, minimal 0)
                             </p>
                         </div>
 
@@ -1673,13 +1649,13 @@ const AddEditPembelianOVKPage = () => {
                         {/* Klasifikasi OVK Default */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Klasifikasi OVK Default
+                                Klasifikasi Lain-Lain Default
                             </label>
                             <SearchableSelect
-                                value={defaultData.id_klasifikasi_ovk}
-                                onChange={(value) => handleDefaultDataChange('id_klasifikasi_ovk', value)}
+                                value={defaultData.id_klasifikasi_lainlain}
+                                onChange={(value) => handleDefaultDataChange('id_klasifikasi_lainlain', value)}
                                 options={klasifikasiOVKOptions}
-                                placeholder={parameterLoading ? "Loading..." : "Pilih Klasifikasi OVK"}
+                                placeholder={parameterLoading ? "Loading..." : "Pilih Klasifikasi Lain-Lain"}
                                 className="w-full"
                                 disabled={parameterLoading}
                             />
@@ -1771,7 +1747,7 @@ const AddEditPembelianOVKPage = () => {
                     <div className="flex items-center justify-between mb-6">
                         <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                             <Package className="w-6 h-6 text-green-600" />
-                            Detail Item OVK ({detailItems.length} items)
+                            Detail Item Lain-Lain ({detailItems.length} items)
                         </h2>
                         <button
                             onClick={addDetailItem}
@@ -1785,7 +1761,7 @@ const AddEditPembelianOVKPage = () => {
                     {detailItems.length === 0 ? (
                         <div className="text-center py-12 bg-gray-50 rounded-xl">
                             <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                            <p className="text-gray-500 text-lg">Belum ada item OVK</p>
+                            <p className="text-gray-500 text-lg">Belum ada item Lain-Lain</p>
                             <p className="text-gray-400 text-sm mt-1">Klik "Tambah Item" untuk menambahkan detail</p>
                         </div>
                     ) : (
@@ -1796,7 +1772,7 @@ const AddEditPembelianOVKPage = () => {
                                     <tr className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b-2 border-blue-200">
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 w-12">No</th>
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[180px]">Nama Item</th>
-                                        <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[120px]">Klasifikasi OVK</th>
+                                        <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[120px]">Klasifikasi Lain-Lain</th>
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 w-24">Berat (kg)</th>
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[120px]">Harga (Rp)</th>
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 w-20">Persentase (%)</th>
@@ -1826,98 +1802,76 @@ const AddEditPembelianOVKPage = () => {
                                             <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50">
                                                 <td className="p-2 sm:p-3 text-xs sm:text-sm text-gray-700">{index + 1}</td>
                                                 
-                                                {/* Nama Item */}
+                                                {/* Nama Item - Read Only */}
                                                 <td className="p-2 sm:p-3">
-                                                    <SearchableSelect
-                                                        value={item.item_name_id || item.item_name}
-                                                        onChange={(value) => handleDetailChange(item.id, 'item_name', value)}
-                                                        options={itemOvkOptions}
-                                                        placeholder={parameterLoading ? 'Loading...' : 'Pilih Item'}
-                                                        isLoading={parameterLoading}
-                                                        isDisabled={parameterLoading || parameterError}
-                                                        className="w-full text-xs sm:text-sm"
-                                                    />
+                                                    <div className="text-xs sm:text-sm text-gray-900 font-medium">
+                                                        {item.item_name || '-'}
+                                                    </div>
                                                 </td>
                                                 
-                                                {/* Klasifikasi OVK */}
+                                                {/* Klasifikasi OVK - Read Only */}
                                                 <td className="p-2 sm:p-3">
-                                                    <SearchableSelect
-                                                        value={item.id_klasifikasi_ovk}
-                                                        onChange={(value) => handleDetailChange(item.id, 'id_klasifikasi_ovk', value)}
-                                                        options={klasifikasiOVKOptions}
-                                                        placeholder={parameterLoading ? "Loading..." : "Pilih Klasifikasi"}
-                                                        className="w-full text-xs sm:text-sm"
-                                                        disabled={parameterLoading}
-                                                    />
+                                                    <div className="text-xs sm:text-sm text-gray-700">
+                                                        {(() => {
+                                                            const klasifikasi = klasifikasiOVKOptions.find(k => k.value === item.id_klasifikasi_lainlain);
+                                                            return klasifikasi ? klasifikasi.label : '-';
+                                                        })()}
+                                                    </div>
                                                 </td>
                                                 
-                                                {/* Berat */}
+                                                {/* Berat - Read Only */}
                                                 <td className="p-2 sm:p-3">
-                                                    <input
-                                                        type="number"
-                                                        value={item.berat}
-                                                        onChange={(e) => handleDetailChange(item.id, 'berat', e.target.value)}
-                                                        className="w-full px-1 sm:px-2 py-1 border border-gray-300 rounded text-xs sm:text-sm"
-                                                        min="0"
-                                                        step="0.1"
-                                                    />
+                                                    <div className="text-xs sm:text-sm text-gray-900">
+                                                        {item.berat || '-'}
+                                                    </div>
                                                 </td>
                                                 
-                                                {/* Harga */}
+                                                {/* Harga - Read Only */}
                                                 <td className="p-2 sm:p-3">
-                                                    <input
-                                                        type="text"
-                                                        value={formatNumber(item.harga)}
-                                                        onChange={(e) => handleDetailChange(item.id, 'harga', parseNumber(e.target.value))}
-                                                        className="w-full px-1 sm:px-2 py-1 border border-gray-300 rounded text-xs sm:text-sm"
-                                                    />
+                                                    <div className="text-xs sm:text-sm text-gray-900">
+                                                        {formatNumber(item.harga) || '-'}
+                                                    </div>
                                                 </td>
                                                 
-                                                {/* Persentase */}
+                                                {/* Persentase - Read Only */}
                                                 <td className="p-2 sm:p-3">
-                                                    <input
-                                                        type="text"
-                                                        value={item.persentase || ''}
-                                                        onChange={(e) => handlePersentaseChange(item.id, e.target.value)}
-                                                        className="w-full px-1 sm:px-2 py-1 border border-gray-300 rounded text-xs sm:text-sm"
-                                                        placeholder="15,5"
-                                                    />
+                                                    <div className="text-xs sm:text-sm text-gray-900">
+                                                        {item.persentase || '-'}
+                                                    </div>
                                                 </td>
                                                 
-                                                {/* HPP (calculated) */}
+                                                {/* HPP (calculated) - Read Only */}
                                                 <td className="p-2 sm:p-3">
-                                                    <div className="w-full px-1 sm:px-2 py-1 border border-gray-300 rounded text-xs sm:text-sm bg-white text-gray-900">
+                                                    <div className="text-xs sm:text-sm text-gray-900 font-medium">
                                                         {formatNumber(hpp)}
                                                     </div>
                                                 </td>
                                                 
-                                                {/* Total Harga (calculated) */}
+                                                {/* Total Harga (calculated) - Read Only */}
                                                 <td className="p-2 sm:p-3">
-                                                    <div className="w-full px-1 sm:px-2 py-1 border border-gray-300 rounded text-xs sm:text-sm bg-blue-50 text-blue-900 font-semibold">
+                                                    <div className="text-xs sm:text-sm text-blue-900 font-semibold">
                                                         {formatNumber(totalHarga)}
                                                     </div>
                                                 </td>
                                                 
-                                                {/* Aksi */}
+                                                {/* Aksi - Edit and Delete buttons */}
                                                 <td className="p-2 sm:p-3 text-center">
                                                     <div className="flex items-center justify-center gap-1">
-                                                        {isEdit && (
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => saveDetailItem(item.id)}
-                                                                className="p-1 text-green-600 hover:text-green-700 hover:bg-green-50 rounded"
-                                                                title="Simpan perubahan item"
-                                                            >
-                                                                <Save className="w-4 h-4" />
-                                                            </button>
-                                                        )}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => openEditDetailModal(item)}
+                                                            className="p-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded"
+                                                            title="Edit item"
+                                                        >
+                                                            <Edit2 className="w-4 h-4" />
+                                                        </button>
                                                         <button
                                                             type="button"
                                                             onClick={() => removeDetailItem(item.id)}
                                                             disabled={deletingItemId === item.id}
                                                             className={`p-1 rounded transition-colors ${
-                                                                deletingItemId === item.id 
-                                                                    ? 'text-gray-400 cursor-not-allowed' 
+                                                                deletingItemId === item.id
+                                                                    ? 'text-gray-400 cursor-not-allowed'
                                                                     : 'text-red-600 hover:text-red-700 hover:bg-red-50'
                                                             }`}
                                                             title={deletingItemId === item.id ? "Menghapus..." : "Hapus item"}
@@ -2011,10 +1965,10 @@ const AddEditPembelianOVKPage = () => {
                                         </div>
                                         <div>
                                             <h3 className="text-lg font-bold text-white">
-                                                Upload File Dokumen OVK (Opsional)
+                                                Upload File Dokumen Lain-Lain (Opsional)
                                             </h3>
                                             <p className="text-green-100 text-sm">
-                                                Pilih file dokumen terkait pembelian OVK (tidak wajib)
+                                                Pilih file dokumen terkait pembelian Lain-Lain (tidak wajib)
                                             </p>
                                         </div>
                                     </div>
@@ -2106,7 +2060,7 @@ const AddEditPembelianOVKPage = () => {
                                                 <h3 className={`text-xl font-bold transition-all duration-500 ${
                                                     isDragOver ? 'text-white drop-shadow-lg' : 'text-gray-800'
                                                 }`}>
-                                                    {isDragOver ? '🎉 Drop file di sini!' : '📁 Upload File Dokumen OVK'}
+                                                    {isDragOver ? '🎉 Drop file di sini!' : '📁 Upload File Dokumen Lain-Lain'}
                                                 </h3>
                                                 <p className={`text-sm transition-all duration-500 ${
                                                     isDragOver ? 'text-green-100 drop-shadow-md' : 'text-gray-600'
@@ -2320,8 +2274,24 @@ const AddEditPembelianOVKPage = () => {
                     `}</style>
                 </div>
             )}
+
+            {/* Detail Modal */}
+            <AddEditDetailModal
+                isOpen={isDetailModalOpen}
+                onClose={closeDetailModal}
+                onSave={handleDetailModalSave}
+                editingItem={editingDetailItem}
+                itemOvkOptions={itemOvkOptions}
+                klasifikasiOVKOptions={klasifikasiOVKOptions}
+                formatNumber={formatNumber}
+                parseNumber={parseNumber}
+                getParsedPersentase={getParsedPersentase}
+                parameterLoading={parameterLoading}
+                parameterError={parameterError}
+                isSubmitting={isDetailModalSubmitting}
+            />
         </div>
     );
 };
 
-export default AddEditPembelianOVKPage;
+export default AddEditPembelianLainLainPage;

@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Building2, User, Calendar, Truck, Hash, Package, Eye, Weight, DollarSign } from 'lucide-react';
-import usePembelianOVK from './hooks/usePembelianOVK';
+import usePembelianLainLain from './hooks/usePembelianLainLain';
 import useFarmAPI from './hooks/useFarmAPI';
 import useBanksAPI from '../pembelianFeedmil/hooks/useBanksAPI';
-import { enhancedOVKTableStyles } from './constants/tableStyles';
+import enhancedLainLainTableStyles from './constants/tableStyles';
 import DataTable from 'react-data-table-component';
 import { StyleSheetManager } from 'styled-components';
 
@@ -15,14 +15,14 @@ const shouldForwardProp = (prop) => {
   return !invalidProps.includes(prop);
 };
 
-const PembelianOVKDetailPage = () => {
+const PembelianLainLainDetailPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const {
         getPembelianDetail,
         loading,
         error
-    } = usePembelianOVK();
+    } = usePembelianLainLain();
 
     // Farm and Bank API hooks for ID to name conversion
     const { farmData } = useFarmAPI();
@@ -147,7 +147,7 @@ const PembelianOVKDetailPage = () => {
                 try {
                     const result = await getPembelianDetail(id);
                     if (result.success && result.data && result.data.length > 0) {
-                        // Detail items dari view dt_pembelian_ho_ovk_detail
+                        // Detail items dari view dt_pembelian_ho_lain_lain_detail
                         const detailItems = result.data;
 
                         // Get header data directly from /show endpoint
@@ -221,7 +221,7 @@ const PembelianOVKDetailPage = () => {
 
                         setDetailData(transformedDetailItems);
                     } else {
-                        console.warn('No detail data found for pembelian OVK:', id);
+                        console.warn('No detail data found for pembelian Lain-Lain:', id);
                         setPembelianData({
                             encryptedPid: id,
                             nota: '',
@@ -240,10 +240,10 @@ const PembelianOVKDetailPage = () => {
                         setDetailData([]);
                     }
                 } catch (err) {
-                    console.error('Error fetching pembelian OVK detail:', err);
+                    console.error('Error fetching pembelian Lain-Lain detail:', err);
                     setNotification({
                         type: 'error',
-                        message: err.message || 'Gagal memuat detail pembelian OVK'
+                        message: err.message || 'Gagal memuat detail pembelian Lain-Lain'
                     });
                     setPembelianData(null);
                     setDetailData([]);
@@ -280,7 +280,7 @@ const PembelianOVKDetailPage = () => {
     }, [pembelianData?.id_farm, pembelianData?.id_syarat_pembelian, farmData, banks, getFarmName, getBankName]);
 
     const handleBack = () => {
-        navigate('/ho/pembelian-ovk');
+        navigate('/ho/pembelian-lain-lain');
     };
 
     // Auto hide notification
@@ -440,7 +440,7 @@ const PembelianOVKDetailPage = () => {
             <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                    <p className="text-gray-500 text-lg mt-4">Memuat detail pembelian OVK...</p>
+                    <p className="text-gray-500 text-lg mt-4">Memuat detail pembelian Lain-Lain...</p>
                 </div>
             </div>
         );
@@ -454,7 +454,7 @@ const PembelianOVKDetailPage = () => {
                         <Package size={48} className="mx-auto" />
                     </div>
                     <h2 className="text-xl font-semibold text-gray-900 mb-2">Data Tidak Ditemukan</h2>
-                    <p className="text-gray-600 mb-4">{error || 'Detail pembelian OVK tidak dapat dimuat'}</p>
+                    <p className="text-gray-600 mb-4">{error || 'Detail pembelian Lain-Lain tidak dapat dimuat'}</p>
                     <button
                         onClick={handleBack}
                         className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
@@ -557,10 +557,10 @@ const PembelianOVKDetailPage = () => {
                             <div>
                                 <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-1 sm:mb-2 flex items-center gap-2">
                                     <Eye size={28} className="text-blue-500" />
-                                    Detail Pembelian OVK
+                                    Detail Pembelian Lain-Lain
                                 </h1>
                                 <p className="text-gray-600 text-sm sm:text-base">
-                                    Informasi lengkap pembelian OVK (Obat, Vitamin, Kimia) dan detail produk
+                                    Informasi lengkap pembelian Lain-Lain dan detail produk
                                 </p>
                             </div>
                         </div>
@@ -571,7 +571,7 @@ const PembelianOVKDetailPage = () => {
                 <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-xl border border-gray-100 w-full">
                     <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
                         <Building2 className="w-6 h-6 text-blue-600" />
-                        Informasi Pembelian OVK
+                        Informasi Pembelian Lain-Lain
                     </h2>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -746,9 +746,9 @@ const PembelianOVKDetailPage = () => {
                         <div className="flex items-center gap-3">
                             <Package className="w-5 h-5 text-green-600" />
                             <div>
-                                <h2 className="text-lg font-bold text-gray-900">Detail Item OVK</h2>
+                                <h2 className="text-lg font-bold text-gray-900">Detail Item Lain-Lain</h2>
                                 <p className="text-gray-500 text-xs mt-1">
-                                    Rincian setiap item OVK dalam pembelian ini
+                                    Rincian setiap item Lain-Lain dalam pembelian ini
                                 </p>
                             </div>
                         </div>
@@ -778,20 +778,20 @@ const PembelianOVKDetailPage = () => {
                                 data={getPaginatedData()}
                                 pagination={false}
                                 customStyles={{
-                                    ...enhancedOVKTableStyles,
+                                    ...enhancedLainLainTableStyles,
                                     table: {
-                                        ...enhancedOVKTableStyles.table,
+                                        ...enhancedLainLainTableStyles.table,
                                         style: {
-                                            ...enhancedOVKTableStyles.table.style,
+                                            ...enhancedLainLainTableStyles.table.style,
                                             width: '100%',
                                             minWidth: '100%',
                                             tableLayout: 'auto',
                                         }
                                     },
                                     tableWrapper: {
-                                        ...enhancedOVKTableStyles.tableWrapper,
+                                        ...enhancedLainLainTableStyles.tableWrapper,
                                         style: {
-                                            ...enhancedOVKTableStyles.tableWrapper.style,
+                                            ...enhancedLainLainTableStyles.tableWrapper.style,
                                             overflowX: 'visible',
                                             overflowY: 'visible',
                                             width: '100%',
@@ -803,9 +803,9 @@ const PembelianOVKDetailPage = () => {
                                         }
                                     },
                                     headCells: {
-                                        ...enhancedOVKTableStyles.headCells,
+                                        ...enhancedLainLainTableStyles.headCells,
                                         style: {
-                                            ...enhancedOVKTableStyles.headCells.style,
+                                            ...enhancedLainLainTableStyles.headCells.style,
                                             textAlign: 'center !important',
                                             // Only keep first column (No) sticky
                                             '&:first-child': {
@@ -836,9 +836,9 @@ const PembelianOVKDetailPage = () => {
                                         },
                                     },
                                     cells: {
-                                        ...enhancedOVKTableStyles.cells,
+                                        ...enhancedLainLainTableStyles.cells,
                                         style: {
-                                            ...enhancedOVKTableStyles.cells.style,
+                                            ...enhancedLainLainTableStyles.cells.style,
                                             textAlign: 'center !important',
                                             display: 'flex !important',
                                             alignItems: 'center !important',
@@ -904,7 +904,7 @@ const PembelianOVKDetailPage = () => {
                                 )}
                             </span>
                             <span className="text-gray-400">
-                                {detailData.length} item detail OVK
+                                {detailData.length} item detail Lain-Lain
                             </span>
                         </div>
                     </div>
@@ -1011,4 +1011,4 @@ const PembelianOVKDetailPage = () => {
     );
 };
 
-export default PembelianOVKDetailPage;
+export default PembelianLainLainDetailPage;

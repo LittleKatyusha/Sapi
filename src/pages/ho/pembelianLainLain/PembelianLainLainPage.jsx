@@ -3,19 +3,17 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import DataTable from 'react-data-table-component';
 import { PlusCircle, Search, Filter, Package, Building2, Truck, User, X, Loader2 } from 'lucide-react';
 
-import usePembelianOVK from './hooks/usePembelianOVK';
-import useFarmAPI from './hooks/useFarmAPI';
-import useBanksAPI from '../pembelianFeedmil/hooks/useBanksAPI';
+import usePembelianLainLain from './hooks/usePembelianLainLain';
 import ActionButton from '../pembelian/components/ActionButton';
 import PembelianFeedmilCard from '../pembelianFeedmil/components/PembelianFeedmilCard';
 import CustomPagination from '../pembelianFeedmil/components/CustomPagination';
-import { enhancedOVKTableStyles } from './constants/tableStyles';
+import enhancedLainLainTableStyles from './constants/tableStyles';
 import { API_ENDPOINTS } from '../../../config/api';
 
 // Import modals
 import DeleteConfirmationModal from '../pembelianFeedmil/modals/DeleteConfirmationModal';
 
-const PembelianOVKPage = () => {
+const PembelianLainLainPage = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const [openMenuId, setOpenMenuId] = useState(null);
@@ -45,28 +43,7 @@ const PembelianOVKPage = () => {
         createPembelian,
         updatePembelian,
         deletePembelian,
-    } = usePembelianOVK();
-
-    // Farm and Bank API hooks for ID to name conversion
-    const { farmData } = useFarmAPI();
-    const { banks } = useBanksAPI();
-
-    // Helper functions to convert ID to name
-    const getFarmName = useCallback((id) => {
-        if (!id || !farmData.length) return '';
-        // Convert ID to number for comparison
-        const numericId = parseInt(id);
-        const farm = farmData.find(f => f.id === numericId || f.id === id);
-        return farm ? farm.name : '';
-    }, [farmData]);
-
-    const getBankName = useCallback((id) => {
-        if (!id || !banks.length) return '';
-        // Convert ID to number for comparison
-        const numericId = parseInt(id);
-        const bank = banks.find(b => b.id === numericId || b.id === id);
-        return bank ? bank.nama : '';
-    }, [banks]);
+    } = usePembelianLainLain();
 
     useEffect(() => {
         fetchPembelian();
@@ -111,7 +88,7 @@ const PembelianOVKPage = () => {
     useEffect(() => {
         // Check if we're returning from an edit page
         if (location.state?.fromEdit) {
-            console.log('🔄 OVK: Auto-refreshing data after returning from edit page');
+            console.log('🔄 Lain-Lain: Auto-refreshing data after returning from edit page');
             fetchPembelian(serverPagination.currentPage, serverPagination.perPage, searchTerm, filterJenisPembelian, false, true);
             setLastRefreshTime(Date.now());
             
@@ -130,7 +107,7 @@ const PembelianOVKPage = () => {
             });
             return;
         }
-        navigate(`/ho/pembelian-ovk/edit/${encodeURIComponent(id)}`);
+        navigate(`/ho/pembelian-lain-lain/edit/${encodeURIComponent(id)}`);
         setOpenMenuId(null);
     };
 
@@ -143,7 +120,7 @@ const PembelianOVKPage = () => {
             });
             return;
         }
-        navigate(`/ho/pembelian-ovk/detail/${encodeURIComponent(id)}`);
+        navigate(`/ho/pembelian-lain-lain/detail/${encodeURIComponent(id)}`);
         setOpenMenuId(null);
     };
 
@@ -176,12 +153,12 @@ const PembelianOVKPage = () => {
             if (result.success) {
                 setNotification({
                     type: 'success',
-                    message: result.message || 'Data pembelian OVK berhasil dihapus'
+                    message: result.message || 'Data pembelian Lain-Lain berhasil dihapus'
                 });
                 
                 handleCloseDeleteModal();
             } else {
-                let errorMessage = result.message || 'Gagal menghapus data pembelian OVK';
+                let errorMessage = result.message || 'Gagal menghapus data pembelian Lain-Lain';
                 
                 setNotification({
                     type: 'error',
@@ -191,7 +168,7 @@ const PembelianOVKPage = () => {
         } catch (error) {
             setNotification({
                 type: 'error',
-                message: error.message || 'Terjadi kesalahan saat menghapus data pembelian OVK'
+                message: error.message || 'Terjadi kesalahan saat menghapus data pembelian Lain-Lain'
             });
         }
     }, [deletePembelian]);
@@ -240,7 +217,7 @@ const PembelianOVKPage = () => {
                     onDelete={handleDelete}
                     onDetail={handleDetail}
                     isActive={openMenuId === (row.id || row.encryptedPid)}
-                    apiEndpoint={API_ENDPOINTS.HO.OVK.PEMBELIAN}
+                    apiEndpoint={API_ENDPOINTS.HO.LAINLAIN.PEMBELIAN}
                 />
             ),
             ignoreRowClick: true,
@@ -296,7 +273,7 @@ const PembelianOVKPage = () => {
                     <div className="text-center font-medium text-gray-800 no-wrap">
                         {row.tgl_masuk ? new Date(row.tgl_masuk).toLocaleDateString('id-ID', {
                             day: '2-digit',
-                            month: '2-digit', 
+                            month: '2-digit',
                             year: 'numeric'
                         }) : '-'}
                     </div>
@@ -341,21 +318,21 @@ const PembelianOVKPage = () => {
                 <div className="flex items-center justify-center w-full h-full min-h-[40px]">
                     <div className="bg-indigo-50 text-indigo-700 px-3 py-2 rounded-lg font-semibold text-center min-w-[80px]">
                         {row.jumlah || 0}<br/>
-                        <span className="text-xs text-indigo-500">{row.satuan || 'sak'}</span>
+                        <span className="text-xs text-indigo-500">item</span>
                     </div>
                 </div>
             )
         },
         {
             name: 'Nama Supplier',
-            selector: row => row.nama_supplier || row.supplier,
+            selector: row => row.nama_supplier,
             sortable: true,
             width: '260px',
             wrap: true,
             cell: row => (
                 <div className="flex items-center justify-center w-full h-full min-h-[40px] px-2">
                     <div className="text-center font-medium text-gray-800 leading-tight force-wrap">
-                        {row.nama_supplier || row.supplier || '-'}
+                        {row.nama_supplier || '-'}
                     </div>
                 </div>
             )
@@ -368,7 +345,7 @@ const PembelianOVKPage = () => {
             wrap: true,
             cell: row => (
                 <span className="inline-flex px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-100 text-blue-800">
-                    {row.farm || getFarmName(row.id_farm) || '-'}
+                    {row.farm || '-'}
                 </span>
             )
         },
@@ -380,8 +357,27 @@ const PembelianOVKPage = () => {
             wrap: true,
             cell: row => (
                 <span className="inline-flex px-3 py-1.5 text-xs font-medium rounded-lg bg-green-100 text-green-800">
-                    {row.syarat_pembelian || getBankName(row.id_syarat_pembelian) || '-'}
+                    {row.syarat_pembelian || '-'}
                 </span>
+            )
+        },
+        {
+            name: 'Total Belanja',
+            selector: row => row.total_belanja,
+            sortable: true,
+            width: '200px',
+            wrap: true,
+            cell: row => (
+                <div className="flex items-center justify-center w-full h-full min-h-[40px] px-1">
+                    <div className="bg-purple-50 text-purple-700 px-3 py-2 rounded-lg font-semibold text-center text-xs leading-tight">
+                        {row.total_belanja ? new Intl.NumberFormat('id-ID', {
+                            style: 'currency',
+                            currency: 'IDR',
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 0
+                        }).format(row.total_belanja) : 'Rp 0'}
+                    </div>
+                </div>
             )
         },
         {
@@ -400,7 +396,7 @@ const PembelianOVKPage = () => {
             )
         },
         {
-            name: 'Biaya Total',
+            name: 'Grand Total',
             selector: row => row.biaya_total,
             sortable: true,
             width: '200px',
@@ -470,7 +466,7 @@ const PembelianOVKPage = () => {
                 </div>
             )
         },
-    ], [openMenuId, filteredData, getFarmName, getBankName]);
+    ], [openMenuId, filteredData]);
 
     return (
         <>
@@ -555,15 +551,15 @@ const PembelianOVKPage = () => {
                         <div>
                             <h1 className="text-2xl sm:text-4xl font-bold text-gray-800 mb-1 sm:mb-2 flex items-center gap-3">
                                 <Package size={32} className="text-blue-500" />
-                                Pembelian OVK
+                                Pembelian Lain-Lain
                             </h1>
                             <p className="text-gray-600 text-sm sm:text-base">
-                                Kelola data pembelian OVK (Obat, Vitamin, Kimia) untuk ternak
+                                Kelola data pembelian Lain-Lain untuk ternak
                             </p>
                         </div>
                         <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 md:gap-6">
                             <button
-                                onClick={() => navigate('/ho/pembelian-ovk/add')}
+                                onClick={() => navigate('/ho/pembelian-lain-lain/add')}
                                 className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white px-4 py-2 sm:px-6 sm:py-3 md:px-7 md:py-4 lg:px-8 lg:py-4 rounded-xl sm:rounded-2xl hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 flex items-center gap-3 font-medium shadow-lg hover:shadow-xl text-sm sm:text-base"
                             >
                                 <PlusCircle className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -579,8 +575,8 @@ const PembelianOVKPage = () => {
                         <p className="text-2xl sm:text-3xl lg:text-4xl font-bold">{stats.total}</p>
                     </div>
                     <div className="bg-gradient-to-br from-emerald-400 to-emerald-500 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
-                        <h3 className="text-sm sm:text-base font-medium opacity-90 mb-2">Total OVK</h3>
-                        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold">{stats.totalOVK}</p>
+                        <h3 className="text-sm sm:text-base font-medium opacity-90 mb-2">Total Item</h3>
+                        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold">{stats.totalLainLain}</p>
                     </div>
                     <div className="bg-gradient-to-br from-amber-400 to-orange-500 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
                         <h3 className="text-sm sm:text-base font-medium opacity-90 mb-2">Hari Ini</h3>
@@ -613,7 +609,7 @@ const PembelianOVKPage = () => {
                             
                             <input
                                 type="text"
-                                placeholder="Cari berdasarkan nota, supplier, supir, atau plat nomor OVK..."
+                                placeholder="Cari berdasarkan nota, supplier, supir, atau plat nomor..."
                                 value={searchTerm}
                                 onChange={(e) => handleSearch(e.target.value)}
                                 className={`w-full pl-12 ${searchTerm || isSearching ? 'pr-12' : 'pr-4'} py-2.5 sm:py-3 md:py-4 border ${searchError ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'} rounded-full transition-all duration-200 text-sm sm:text-base shadow-sm hover:shadow-md`}
@@ -635,9 +631,9 @@ const PembelianOVKPage = () => {
                                     className="px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm sm:text-base shadow-sm hover:shadow-md transition-all duration-200"
                                 >
                                     <option value="all">Semua Jenis</option>
-                                    <option value="Obat">Obat</option>
-                                    <option value="Vitamin">Vitamin</option>
-                                    <option value="Kimia">Kimia</option>
+                                    <option value="Peralatan">Peralatan</option>
+                                    <option value="Perlengkapan">Perlengkapan</option>
+                                    <option value="Lainnya">Lainnya</option>
                                 </select>
                             </div>
                         </div>
@@ -670,7 +666,7 @@ const PembelianOVKPage = () => {
                             columns={columns}
                             data={filteredData}
                             pagination={false}
-                            customStyles={enhancedOVKTableStyles}
+                            customStyles={enhancedLainLainTableStyles}
                             progressPending={loading}
                             progressComponent={
                                 <div className="text-center py-12">
@@ -697,7 +693,7 @@ const PembelianOVKPage = () => {
                                             </button>
                                         </div>
                                     ) : (
-                                        <p className="text-gray-500 text-lg">Tidak ada data pembelian OVK ditemukan</p>
+                                        <p className="text-gray-500 text-lg">Tidak ada data pembelian Lain-Lain ditemukan</p>
                                     )}
                                 </div>
                             }
@@ -825,7 +821,7 @@ const PembelianOVKPage = () => {
                                         </button>
                                     </div>
                                 ) : (
-                                    <p className="text-gray-500 text-lg">Tidak ada data pembelian OVK ditemukan</p>
+                                    <p className="text-gray-500 text-lg">Tidak ada data pembelian Lain-Lain ditemukan</p>
                                 )}
                             </div>
                         </div>
@@ -841,7 +837,7 @@ const PembelianOVKPage = () => {
                                         onEdit={handleEdit}
                                         onDelete={handleDelete}
                                         onDetail={handleDetail}
-                                        cardType="ovk"
+                                        cardType="lainlain"
                                     />
                                 ))}
                             </div>
@@ -931,4 +927,4 @@ const PembelianOVKPage = () => {
     );
 };
 
-export default PembelianOVKPage;
+export default PembelianLainLainPage;
