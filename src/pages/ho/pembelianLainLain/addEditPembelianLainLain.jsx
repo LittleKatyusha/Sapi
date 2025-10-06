@@ -35,9 +35,10 @@ const AddEditPembelianLainLainPage = () => {
         klasifikasiOVKOptions,
         itemOvkOptions,
         farmOptions,
+        farmLainLainOptions,
         loading: parameterLoading,
         error: parameterError
-    } = useParameterSelect(isEdit, { kategoriSupplier: 3 });
+    } = useParameterSelect(isEdit, { kategoriSupplier: 5 });
 
     // Jenis Pembelian Lain-Lain API integration
     const {
@@ -200,7 +201,7 @@ const AddEditPembelianLainLainPage = () => {
 
     // Load data untuk edit mode - using /show endpoint for both header and detail data
     useEffect(() => {
-        if (isEdit && id && supplierOptions.length > 0 && officeOptions.length > 0 && farmOptions.length > 0 && jenisPembelianOptions.length > 0 && !editDataLoaded.current) { // Wait for all options to load first
+        if (isEdit && id && supplierOptions.length > 0 && officeOptions.length > 0 && (farmLainLainOptions?.length > 0 || farmOptions.length > 0) && jenisPembelianOptions.length > 0 && !editDataLoaded.current) { // Wait for all options to load first
             const loadEditData = async () => {
                 try {
                     // Set flag to prevent multiple calls
@@ -369,7 +370,7 @@ const AddEditPembelianLainLainPage = () => {
             
             loadEditData();
         }
-    }, [isEdit, id, supplierOptions.length, officeOptions.length, farmOptions.length, jenisPembelianOptions.length, itemOvkOptions.length]);
+    }, [isEdit, id, supplierOptions.length, officeOptions.length, farmLainLainOptions?.length, farmOptions.length, jenisPembelianOptions.length, itemOvkOptions.length]);
 
     // Reset edit data loaded flag when id changes
     useEffect(() => {
@@ -1446,7 +1447,7 @@ const AddEditPembelianLainLainPage = () => {
                                 Farm *
                             </label>
                             <SearchableSelect
-                                options={farmOptions}
+                                options={farmLainLainOptions || farmOptions}
                                 value={headerData.farm}
                                 onChange={(value) => handleHeaderChange('farm', value)}
                                 placeholder={parameterLoading ? 'Loading farms...' : parameterError ? 'Error loading farms' : 'Pilih farm'}
