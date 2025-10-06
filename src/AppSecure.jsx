@@ -31,6 +31,7 @@ const KlasifikasiLainLainPage = lazy(() => import('./pages/dataMaster/Klasifikas
 const ItemKulitPage = lazy(() => import('./pages/dataMaster/ItemKulitPage'));
 const ItemFeedmilPage = lazy(() => import('./pages/dataMaster/ItemFeedmilPage'));
 const ItemOvkPage = lazy(() => import('./pages/dataMaster/ItemOvkPage'));
+const ItemLainLainPage = lazy(() => import('./pages/dataMaster/ItemLainLainPage'));
 const SupplierPage = lazy(() => import('./pages/dataMaster/SupplierPage'));
 const PelangganPage = lazy(() => import('./pages/dataMaster/PelangganPage'));
 const OutletPage = lazy(() => import('./pages/dataMaster/OutletPage'));
@@ -190,6 +191,7 @@ function AppSecure() {
               <Route path="/master-data/item-kulit" element={<ItemKulitPage />} />
               <Route path="/master-data/item-feedmil" element={<ItemFeedmilPage />} />
               <Route path="/master-data/item-ovk" element={<ItemOvkPage />} />
+              <Route path="/master-data/item-lain-lain" element={<ItemLainLainPage />} />
               <Route path="/master-data/supplier" element={<SupplierPage />} />
               <Route path="/master-data/pelanggan" element={<PelangganPage />} />
               <Route path="/master-data/outlet" element={<OutletPage />} />

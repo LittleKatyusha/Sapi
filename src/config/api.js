@@ -60,6 +60,7 @@ export const API_ENDPOINTS = {
     ITEM_KULIT: '/api/master/itemkulit',
     ITEM_FEEDMIL: '/api/master/itemfeedmil',
     ITEM_OVK: '/api/master/itemovk',
+    ITEM_LAIN_LAIN: '/api/master/itemlainlain',
     KLASIFIKASI_KULIT: '/api/master/klasifikasikulit',
     KLASIFIKASI_OVK: '/api/master/klasifikasiovk',
     KLASIFIKASI_LAIN_LAIN: '/api/master/klasifikasilainlain',
