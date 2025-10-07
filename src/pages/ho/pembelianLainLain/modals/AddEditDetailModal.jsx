@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, Save, Package, Weight, DollarSign, TrendingUp } from 'lucide-react';
+import { X, Save, Package, Weight, DollarSign, TrendingUp, FileText } from 'lucide-react';
 import SearchableSelect from '../../../../components/shared/SearchableSelect';
 
 const AddEditDetailModal = ({
@@ -8,13 +8,13 @@ const AddEditDetailModal = ({
     onClose,
     onSave,
     editingItem,
-    itemOvkOptions,
-    klasifikasiOVKOptions,
+    itemLainLainOptions,
+    klasifikasiLainLainOptions,
     formatNumber,
     parseNumber,
     getParsedPersentase,
-    parameterLoading,
-    parameterError,
+    klasifikasiLoading,
+    klasifikasiError,
     isSubmitting
 }) => {
     const isEditMode = Boolean(editingItem);
@@ -25,7 +25,9 @@ const AddEditDetailModal = ({
         id_klasifikasi_lainlain: null,
         berat: '',
         harga: '',
-        persentase: ''
+        persentase: '',
+        peruntukan: '',
+        catatan: ''
     });
     
     const [errors, setErrors] = useState({});
@@ -33,13 +35,27 @@ const AddEditDetailModal = ({
 
     useEffect(() => {
         if (editingItem) {
+            // When editing, ensure all fields are properly loaded
+            // First check if we have item_name_id, if not try to find it from item_name
+            let itemNameId = editingItem.item_name_id;
+            if (!itemNameId && editingItem.item_name && itemLainLainOptions.length > 0) {
+                const foundItem = itemLainLainOptions.find(
+                    option => option.label === editingItem.item_name
+                );
+                if (foundItem) {
+                    itemNameId = foundItem.value;
+                }
+            }
+            
             setFormData({
                 item_name: editingItem.item_name || '',
-                item_name_id: editingItem.item_name_id || null,
+                item_name_id: itemNameId || null,
                 id_klasifikasi_lainlain: editingItem.id_klasifikasi_lainlain || null,
                 berat: editingItem.berat || '',
                 harga: editingItem.harga || '',
-                persentase: editingItem.persentase || ''
+                persentase: editingItem.persentase || '',
+                peruntukan: editingItem.peruntukan || '',
+                catatan: editingItem.catatan || editingItem.keterangan || '' // Handle both field names
             });
         } else {
             setFormData({
@@ -48,12 +64,14 @@ const AddEditDetailModal = ({
                 id_klasifikasi_lainlain: null,
                 berat: '',
                 harga: '',
-                persentase: ''
+                persentase: '',
+                peruntukan: '',
+                catatan: ''
             });
         }
         setErrors({});
         setTouched({});
-    }, [editingItem, isOpen]);
+    }, [editingItem, isOpen, itemLainLainOptions]);
 
     const calculations = useMemo(() => {
         const harga = parseFloat(formData.harga) || 0;
@@ -71,20 +89,23 @@ const AddEditDetailModal = ({
             case 'item_name_id':
                 return !value ? 'Nama item harus dipilih' : '';
             case 'berat':
-                const beratNum = parseFloat(value);
-                if (!value || value === '') return 'Berat harus diisi';
-                if (isNaN(beratNum) || beratNum <= 0) return 'Berat harus lebih dari 0';
-                return '';
+                if (value !== null && value !== undefined && value !== '') {
+                    const beratNum = parseFloat(value);
+                    if (isNaN(beratNum) || beratNum < 0) return 'Berat tidak boleh negatif';
+                }
+                return ''; // Allow empty/null
             case 'harga':
-                const hargaNum = parseFloat(value);
-                if (!value || value === '') return 'Harga harus diisi';
-                if (isNaN(hargaNum) || hargaNum <= 0) return 'Harga harus lebih dari 0';
-                return '';
+                if (value !== null && value !== undefined && value !== '') {
+                    const hargaNum = parseFloat(value);
+                    if (isNaN(hargaNum) || hargaNum < 0) return 'Harga tidak boleh negatif';
+                }
+                return ''; // Allow empty/null
             case 'persentase':
-                const persentaseNum = getParsedPersentase(value);
-                if (!value || value === '') return 'Persentase harus diisi';
-                if (isNaN(persentaseNum) || persentaseNum < 0) return 'Persentase harus >= 0';
-                return '';
+                if (value !== null && value !== undefined && value !== '') {
+                    const persentaseNum = getParsedPersentase(value);
+                    if (isNaN(persentaseNum) || persentaseNum < 0) return 'Persentase tidak boleh negatif';
+                }
+                return ''; // Allow empty/null
             default:
                 return '';
         }
@@ -93,9 +114,10 @@ const AddEditDetailModal = ({
     const validateForm = () => {
         const newErrors = {};
         newErrors.item_name_id = validateField('item_name_id', formData.item_name_id);
-        newErrors.berat = validateField('berat', formData.berat);
-        newErrors.harga = validateField('harga', formData.harga);
-        newErrors.persentase = validateField('persentase', formData.persentase);
+        // Only validate if values are provided
+        if (formData.berat) newErrors.berat = validateField('berat', formData.berat);
+        if (formData.harga) newErrors.harga = validateField('harga', formData.harga);
+        if (formData.persentase) newErrors.persentase = validateField('persentase', formData.persentase);
         
         setErrors(newErrors);
         return !Object.values(newErrors).some(error => error);
@@ -103,7 +125,7 @@ const AddEditDetailModal = ({
 
     const handleChange = (field, value) => {
         if (field === 'item_name_id') {
-            const selectedItem = itemOvkOptions.find(option => option.value === value);
+            const selectedItem = itemLainLainOptions.find(option => option.value === value);
             setFormData(prev => ({
                 ...prev,
                 item_name: selectedItem ? selectedItem.label : '',
@@ -146,15 +168,28 @@ const AddEditDetailModal = ({
             return;
         }
 
+        // Parse IDs to ensure they're numeric (not encrypted PIDs)
+        const parseIdValue = (value) => {
+            if (!value) return null;
+            const parsed = parseInt(value);
+            // Return parsed value only if it's a valid number, otherwise null
+            return !isNaN(parsed) ? parsed : null;
+        };
+
         const dataToSave = {
             item_name: formData.item_name,
-            item_name_id: formData.item_name_id,
-            id_klasifikasi_lainlain: formData.id_klasifikasi_lainlain,
-            berat: parseFloat(formData.berat),
-            harga: parseFloat(formData.harga),
-            persentase: formData.persentase,
+            // Ensure item_name_id is numeric or null
+            item_name_id: parseIdValue(formData.item_name_id),
+            // Ensure id_klasifikasi_lainlain is numeric or null
+            id_klasifikasi_lainlain: parseIdValue(formData.id_klasifikasi_lainlain),
+            berat: parseFloat(formData.berat) || 0,
+            harga: parseFloat(formData.harga) || 0,
+            persentase: formData.persentase || '',
             hpp: calculations.hpp,
-            total_harga: calculations.totalHarga
+            total_harga: calculations.totalHarga,
+            peruntukan: formData.peruntukan || '',
+            catatan: formData.catatan || '', // Keep as catatan for internal use
+            keterangan: formData.catatan || '' // Also set keterangan for backend
         };
 
         onSave(dataToSave);
@@ -218,10 +253,9 @@ const AddEditDetailModal = ({
                                     value={formData.item_name_id}
                                     onChange={(value) => handleChange('item_name_id', value)}
                                     onBlur={() => handleBlur('item_name_id')}
-                                    options={itemOvkOptions}
-                                    placeholder={parameterLoading ? 'Loading...' : 'Pilih Item Lain-Lain'}
-                                    isLoading={parameterLoading}
-                                    isDisabled={parameterLoading || parameterError || isSubmitting}
+                                    options={itemLainLainOptions}
+                                    placeholder={'Pilih Item Lain-Lain'}
+                                    isDisabled={isSubmitting}
                                     className="w-full"
                                 />
                                 {touched.item_name_id && errors.item_name_id && (
@@ -237,10 +271,10 @@ const AddEditDetailModal = ({
                                 <SearchableSelect
                                     value={formData.id_klasifikasi_lainlain}
                                     onChange={(value) => handleChange('id_klasifikasi_lainlain', value)}
-                                    options={klasifikasiOVKOptions}
-                                    placeholder={parameterLoading ? "Loading..." : "Pilih Klasifikasi Lain-Lain"}
+                                    options={klasifikasiLainLainOptions}
+                                    placeholder={klasifikasiLoading ? "Loading..." : "Pilih Klasifikasi Lain-Lain"}
                                     className="w-full"
-                                    disabled={parameterLoading || isSubmitting}
+                                    disabled={klasifikasiLoading || isSubmitting}
                                 />
                                 <p className="text-xs text-gray-500 mt-1">💡 Opsional</p>
                             </div>
@@ -303,6 +337,38 @@ const AddEditDetailModal = ({
                                     <p className="text-xs text-red-600 mt-1">⚠️ {errors.persentase}</p>
                                 )}
                                 <p className="text-xs text-gray-500 mt-1">💡 Gunakan koma untuk desimal (contoh: 15,5)</p>
+                            </div>
+
+                            <div>
+                                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                    <FileText className="w-4 h-4" />
+                                    Peruntukan
+                                </label>
+                                <input
+                                    type="text"
+                                    value={formData.peruntukan}
+                                    onChange={(e) => handleChange('peruntukan', e.target.value)}
+                                    disabled={isSubmitting}
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 disabled:bg-gray-100"
+                                    placeholder="Masukkan peruntukan..."
+                                />
+                                <p className="text-xs text-gray-500 mt-1">💡 Informasi peruntukan item (opsional)</p>
+                            </div>
+
+                            <div>
+                                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                    <FileText className="w-4 h-4" />
+                                    Catatan
+                                </label>
+                                <textarea
+                                    value={formData.catatan}
+                                    onChange={(e) => handleChange('catatan', e.target.value)}
+                                    disabled={isSubmitting}
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 disabled:bg-gray-100"
+                                    placeholder="Masukkan catatan..."
+                                    rows="2"
+                                />
+                                <p className="text-xs text-gray-500 mt-1">💡 Catatan tambahan untuk item ini (opsional)</p>
                             </div>
 
                             <div className="md:col-span-2 mt-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">

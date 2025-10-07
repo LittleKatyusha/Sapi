@@ -208,8 +208,8 @@ const PembelianLainLainDetailPage = () => {
                             id: index + 1,
                             pubid: item.pubid || '',
                             item_name: item.item_name || '',
-                            id_klasifikasi_ovk: item.id_klasifikasi_ovk || '',
-                            nama_klasifikasi_ovk: item.nama_klasifikasi_ovk || '',
+                            id_klasifikasi_lainlain: item.id_klasifikasi_lainlain || item.id_klasifikasi_ovk || '',
+                            nama_klasifikasi_lainlain: item.nama_klasifikasi_lainlain || item.nama_klasifikasi_ovk || '',
                             harga: parseFloat(item.harga) || 0,
                             persentase: parseFloat(item.persentase) || 0,
                             berat: parseFloat(item.berat) || 0,
@@ -240,7 +240,6 @@ const PembelianLainLainDetailPage = () => {
                         setDetailData([]);
                     }
                 } catch (err) {
-                    console.error('Error fetching pembelian Lain-Lain detail:', err);
                     setNotification({
                         type: 'error',
                         message: err.message || 'Gagal memuat detail pembelian Lain-Lain'
@@ -293,7 +292,7 @@ const PembelianLainLainDetailPage = () => {
         }
     }, [notification]);
 
-    // Columns for detail table - Sesuai dengan struktur database tr_pembelian_ho_ovk_detail
+    // Columns for detail table - Sesuai dengan struktur database tr_pembelian_ho_lainlain_detail
     const detailColumns = [
         {
             name: 'No',
@@ -324,15 +323,15 @@ const PembelianLainLainDetailPage = () => {
             )
         },
         {
-            name: 'Klasifikasi OVK',
-            selector: row => row.nama_klasifikasi_ovk,
+            name: 'Klasifikasi Lain-Lain',
+            selector: row => row.nama_klasifikasi_lainlain || row.nama_klasifikasi_ovk,
             sortable: true,
             width: '160px',
             wrap: true,
             center: true,
             cell: row => {
-                // Use nama_klasifikasi_ovk directly from API response
-                const klasifikasiName = row.nama_klasifikasi_ovk;
+                // Use nama_klasifikasi_lainlain directly from API response
+                const klasifikasiName = row.nama_klasifikasi_lainlain || row.nama_klasifikasi_ovk;
                 return (
                     <div className="w-full flex items-center justify-center">
                         <span className="inline-flex px-3 py-1.5 text-xs font-medium rounded-lg bg-green-100 text-green-800">
@@ -773,7 +772,7 @@ const PembelianLainLainDetailPage = () => {
                         <div className="min-w-full">
                             <StyleSheetManager shouldForwardProp={shouldForwardProp}>
                                 <DataTable
-                                title="Daftar Detail Item OVK"
+                                title="Daftar Detail Item Lain-Lain"
                                 columns={detailColumns}
                                 data={getPaginatedData()}
                                 pagination={false}
@@ -878,7 +877,7 @@ const PembelianLainLainDetailPage = () => {
                                 noDataComponent={
                                     <div className="text-center py-12">
                                         <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                                        <p className="text-gray-500 text-lg">Tidak ada detail item OVK ditemukan</p>
+                                        <p className="text-gray-500 text-lg">Tidak ada detail item Lain-Lain ditemukan</p>
                                     </div>
                                 }
                                 responsive={false}

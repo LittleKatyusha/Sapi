@@ -1,4 +1,4 @@
-const customTableStyles = {
+const enhancedLainLainTableStyles = {
     table: {
         style: {
             backgroundColor: '#fff',
@@ -150,4 +150,5 @@ const customTableStyles = {
     },
 };
 
-export default customTableStyles;
+// Export the enhanced styles
+export default enhancedLainLainTableStyles;

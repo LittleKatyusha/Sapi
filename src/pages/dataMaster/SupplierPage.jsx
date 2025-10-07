@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import DataTable from 'react-data-table-component';
 import { Search, Filter, PlusCircle, AlertCircle, CheckCircle, XCircle, Building2, Hash, Activity, LayoutGrid, List } from 'lucide-react';
 
@@ -18,6 +18,9 @@ import CardView from './supplier/components/CardView';
 // Import constants yang sudah dipisahkan
 import customTableStyles from './supplier/constants/tableStyles';
 
+// Import useParameters untuk fetch kategori_supplier
+import useParameters from '../system/hooks/useParameters';
+
 const SupplierPage = () => {
     // State management
     const [showAddModal, setShowAddModal] = useState(false);
@@ -31,6 +34,10 @@ const SupplierPage = () => {
     const [viewMode, setViewMode] = useState('table'); // 'table' atau 'card'
     const [notification, setNotification] = useState({ show: false, message: '', type: '' });
     
+    // Use useRef to persist kategori options across re-renders and modal opens
+    const kategoriSupplierOptionsRef = useRef(null);
+    const [kategoriSupplierOptions, setKategoriSupplierOptions] = useState([]);
+    
     // State untuk pagination
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -38,6 +45,9 @@ const SupplierPage = () => {
     // State untuk pagination card view
     const [cardCurrentPage, setCardCurrentPage] = useState(1);
     const [cardItemsPerPage, setCardItemsPerPage] = useState(12);
+
+    // Hook untuk fetch parameters
+    const { fetchParametersByGroup } = useParameters();
     
     // Custom hook untuk data management
     const {
@@ -65,6 +75,46 @@ const SupplierPage = () => {
     useEffect(() => {
         fetchSuppliers(1, 100); // Fetch page 1 dengan 100 items per page
     }, [fetchSuppliers]);
+
+    // Load kategori supplier options only once
+    const loadKategoriSupplierOptions = useCallback(async () => {
+        // Check if already loaded and stored in ref
+        if (kategoriSupplierOptionsRef.current) {
+            setKategoriSupplierOptions(kategoriSupplierOptionsRef.current);
+            return;
+        }
+        
+        try {
+            const data = await fetchParametersByGroup('kategori_supplier');
+            const options = data.map(item => ({
+                value: item.name, // Use name for filter value to match with existing data
+                label: item.name,
+                numericValue: item.value // Keep numeric value for reference
+            }));
+            kategoriSupplierOptionsRef.current = options; // Store in ref
+            setKategoriSupplierOptions(options);
+        } catch (error) {
+            console.error('Error loading kategori supplier:', error);
+            // Fallback options
+            const fallbackOptions = [
+                { value: 'Ternak', label: 'Ternak', numericValue: '1' },
+                { value: 'Feedmil', label: 'Feedmil', numericValue: '2' },
+                { value: 'Ovk', label: 'Ovk', numericValue: '3' },
+                { value: 'Kulit', label: 'Kulit', numericValue: '4' },
+                { value: 'Lain-lain', label: 'Lain-lain', numericValue: '5' }
+            ];
+            kategoriSupplierOptionsRef.current = fallbackOptions; // Store fallback in ref
+            setKategoriSupplierOptions(fallbackOptions);
+        }
+    }, [fetchParametersByGroup]);
+
+    // Load kategori options when modal is about to open
+    useEffect(() => {
+        if ((showAddModal || showEditModal)) {
+            // Always call loadKategoriSupplierOptions - it will check internally if already loaded
+            loadKategoriSupplierOptions();
+        }
+    }, [showAddModal, showEditModal, loadKategoriSupplierOptions]);
 
     // Show notification
     const showNotification = useCallback((message, type = 'success') => {
@@ -344,7 +394,7 @@ const SupplierPage = () => {
             minWidth: '200px',
             cell: row => {
                 const getKategoriSupplierBadge = (kategori) => {
-                    // Handle both string and numeric formats  
+                    // Handle both string and numeric formats
                     if (kategori === '1' || kategori === 1 || kategori === 'Ternak' || kategori === 'TERNAK') {
                         return (
                             <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
@@ -364,6 +414,20 @@ const SupplierPage = () => {
                             <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
                                 <Activity className="w-3 h-3 mr-1" />
                                 OVK
+                            </span>
+                        );
+                    } else if (kategori === '4' || kategori === 4 || kategori === 'Kulit' || kategori === 'KULIT') {
+                        return (
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                                <Activity className="w-3 h-3 mr-1" />
+                                KULIT
+                            </span>
+                        );
+                    } else if (kategori === '5' || kategori === 5 || kategori === 'Lain-lain' || kategori === 'LAIN-LAIN') {
+                        return (
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-teal-100 text-teal-800">
+                                <Activity className="w-3 h-3 mr-1" />
+                                LAIN-LAIN
                             </span>
                         );
                     } else {
@@ -495,9 +559,11 @@ const SupplierPage = () => {
                                     className="px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 text-xs sm:text-sm"
                                 >
                                     <option value="all">Semua Kategori</option>
-                                    <option value="Ternak">Ternak</option>
-                                    <option value="Feedmil">Feedmil</option>
-                                    <option value="Ovk">Ovk</option>
+                                    {kategoriSupplierOptions.map(option => (
+                                        <option key={option.value} value={option.value}>
+                                            {option.label}
+                                        </option>
+                                    ))}
                                 </select>
                             </div>
 
@@ -732,6 +798,7 @@ const SupplierPage = () => {
                 onSave={handleSave}
                 editData={editData}
                 loading={loading}
+                kategoriOptions={kategoriSupplierOptions}
             />
 
             <SupplierDetailModal

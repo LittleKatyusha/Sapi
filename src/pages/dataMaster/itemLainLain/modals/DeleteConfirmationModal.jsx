@@ -23,7 +23,7 @@ const DeleteConfirmationModal = ({
         document.removeEventListener('keydown', handleKeyPress);
       };
     }
-  }, [isOpen]);
+  }, [isOpen, handleKeyPress]);
 
   if (!isOpen || !item) return null;
 

@@ -22,7 +22,7 @@ const ItemLainLainDetailModal = ({
     return () => {
       document.removeEventListener('keydown', handleKeyPress);
     };
-  }, []);
+  }, [handleKeyPress]);
 
   if (!item) return null;
 

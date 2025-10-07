@@ -53,7 +53,13 @@ const useKlasifikasiLainLain = () => {
       
       if (result.status === 'ok' && result.data && Array.isArray(result.data)) {
         const validatedData = result.data.map((item, index) => {
+          // Debug log to see actual data structure
+          if (index === 0) {
+            console.log('🔍 First Klasifikasi Lain-Lain raw data:', item);
+          }
+          
           return {
+            id: item.id, // Keep numeric ID
             pubid: item.pubid || `TEMP-${index + 1}`,
             pid: item.pid || item.pubid, // encrypted PID from backend
             name: item.name || 'Nama tidak tersedia',
@@ -63,6 +69,9 @@ const useKlasifikasiLainLain = () => {
         });
         
         setKlasifikasiLainLain(validatedData);
+        if (validatedData.length > 0) {
+          console.log('📊 Sample Klasifikasi Lain-Lain:', validatedData[0]);
+        }
         setLastFetch(Date.now());
         return { success: true, data: validatedData };
       } else {

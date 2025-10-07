@@ -2,26 +2,26 @@ import { useState, useEffect, useMemo } from 'react';
 import HttpClient from '../../../../services/httpClient';
 import { API_ENDPOINTS } from '../../../../config/api';
 
-const useKlasifikasiOVK = () => {
-    const [klasifikasiOVK, setKlasifikasiOVK] = useState([]);
+const useKlasifikasiLainLain = () => {
+    const [klasifikasiLainLain, setKlasifikasiLainLain] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    const fetchKlasifikasiOVK = async () => {
+    const fetchKlasifikasiLainLain = async () => {
         setLoading(true);
         setError(null);
         
         try {
-            // Use dedicated klasifikasi OVK endpoint to avoid loading unnecessary eartag data
-            const jsonData = await HttpClient.get(`${API_ENDPOINTS.MASTER.KLASIFIKASI_OVK}/data`);
-            
-            // Handle direct klasifikasi OVK response format
+            // Use dedicated klasifikasi Lain-Lain endpoint to avoid loading unnecessary data
+            const jsonData = await HttpClient.get(`${API_ENDPOINTS.MASTER.KLASIFIKASI_LAINLAIN}/data`);
+
+            // Handle direct klasifikasi Lain-Lain response format
             if (jsonData && jsonData.data && Array.isArray(jsonData.data)) {
                 const klasifikasiData = jsonData.data;
                 
-                console.log('📦 Fetching klasifikasi OVK from dedicated endpoint:', klasifikasiData.length, 'items');
-                
-                // Map the data to OVK format with proper ID field
+                console.log('📦 Fetching klasifikasi Lain-Lain from dedicated endpoint:', klasifikasiData.length, 'items');
+
+                // Map the data to Lain-Lain format with proper ID field
                 const mappedData = klasifikasiData.map((item, index) => ({
                     id: item.id || item.pid, // Use id or pid as fallback
                     pubid: item.pubid || `temp_pubid_${index}`,
@@ -29,21 +29,21 @@ const useKlasifikasiOVK = () => {
                     description: item.description || item.name || item.nama,
                     pid: item.pid || `temp_pid_${index}`
                 }));
-                
-                setKlasifikasiOVK(mappedData);
-                console.log('✅ Klasifikasi OVK loaded from dedicated endpoint:', mappedData.length, 'items');
+                setKlasifikasiLainLain(mappedData);
+                console.log('✅ Klasifikasi Lain-Lain loaded from dedicated endpoint:', mappedData.length, 'items');
+
                 
             } else {
                 throw new Error('Failed to fetch parameter data');
             }
         } catch (err) {
-            console.error('❌ Error fetching klasifikasi OVK:', err);
+            console.error('❌ Error fetching klasifikasi Lain-Lain:', err);
             setError(err.message);
-            setKlasifikasiOVK([]);
-            
+            setKlasifikasiLainLain([]);
+
             // Fallback to mock data if API fails
-            console.log('🔄 Using fallback mock data for klasifikasi OVK');
-            setKlasifikasiOVK([
+            console.log('🔄 Using fallback mock data for klasifikasi Lain-Lain');
+            setKlasifikasiLainLain([
                 {
                     id: 1,
                     pid: 'encrypted_1',
@@ -81,18 +81,18 @@ const useKlasifikasiOVK = () => {
     };
 
     useEffect(() => {
-        fetchKlasifikasiOVK();
+        fetchKlasifikasiLainLain();
     }, []);
 
     // Transform data untuk SearchableSelect options
     const klasifikasiOptions = useMemo(() => {
-        const options = klasifikasiOVK.map(item => {
+        const options = klasifikasiLainLain.map(item => {
             // ParameterSelectController provides proper integer ID field
             let rawId = item.id;
             
             // Validate that we have a proper integer ID
             if (!rawId || typeof rawId !== 'number') {
-                rawId = klasifikasiOVK.indexOf(item) + 1;
+                rawId = klasifikasiLainLain.indexOf(item) + 1;
             }
             
             return {
@@ -106,18 +106,18 @@ const useKlasifikasiOVK = () => {
             };
         });
         
-        console.log('🔧 Klasifikasi OVK options processed:', options);
-        
+        console.log('🔧 Klasifikasi Lain-Lain options processed:', options);
+
         return options;
-    }, [klasifikasiOVK]);
+    }, [klasifikasiLainLain]);
 
     return {
-        klasifikasiOVK,
+        klasifikasiLainLain,
         klasifikasiOptions,
         loading,
         error,
-        refetch: fetchKlasifikasiOVK
+        refetch: fetchKlasifikasiLainLain
     };
 };
 
-export default useKlasifikasiOVK;
+export default useKlasifikasiLainLain;

@@ -4,8 +4,10 @@ import { ArrowLeft, Save, Plus, Trash2, Edit2, Building2, User, Calendar, Truck,
 import usePembelianLainLain from './hooks/usePembelianLainLain';
 import useParameterSelect from '../pembelian/hooks/useParameterSelect';
 import useJenisPembelianLainLain from './hooks/useJenisPembelianLainLain';
+import useItemLainLainSelect from './hooks/useItemLainLainSelect';
 import useBanksAPI from '../pembelianFeedmil/hooks/useBanksAPI';
 import useTipePembayaran from '../../../hooks/useTipePembayaran';
+import useKlasifikasiLainLain from '../../dataMaster/klasifikasiLainLain/hooks/useKlasifikasiLainLain';
 import SearchableSelect from '../../../components/shared/SearchableSelect';
 import HttpClient from '../../../services/httpClient';
 import { API_ENDPOINTS } from '../../../config/api';
@@ -20,25 +22,26 @@ const AddEditPembelianLainLainPage = () => {
     const editDataLoaded = useRef(false);
     
     const {
-        getPembelianDetail,
         createPembelian,
-        updatePembelian,
-        loading,
-        error
+        updatePembelian
     } = usePembelianLainLain();
 
     // Parameter Select integration - centralized data from ParameterSelectController
     const {
-        parameterData,
         supplierOptions,
         officeOptions,
-        klasifikasiOVKOptions,
-        itemOvkOptions,
         farmOptions,
         farmLainLainOptions,
         loading: parameterLoading,
         error: parameterError
     } = useParameterSelect(isEdit, { kategoriSupplier: 5 });
+
+    // Item Lain-Lain data integration
+    const {
+        itemLainLainOptions,
+        loading: itemLainLainLoading,
+        error: itemLainLainError
+    } = useItemLainLainSelect();
 
     // Jenis Pembelian Lain-Lain API integration
     const {
@@ -60,6 +63,34 @@ const AddEditPembelianLainLainPage = () => {
         loading: tipePembayaranLoading,
         error: tipePembayaranError
     } = useTipePembayaran();
+
+    // Klasifikasi Lain Lain API integration
+    const {
+        klasifikasiLainLain,
+        loading: klasifikasiLoading,
+        error: klasifikasiError,
+        fetchKlasifikasiLainLain
+    } = useKlasifikasiLainLain();
+
+    // Transform klasifikasi lain lain data to options format
+    const klasifikasiLainLainOptions = useMemo(() => {
+        const options = (klasifikasiLainLain || []).map(item => ({
+            // Use numeric id as value for backend
+            value: item.id || item.pid || item.pubid,
+            label: item.name || item.nama || '',
+            // Keep numeric ID explicitly
+            numericId: item.id,
+            // Keep encrypted pid for other operations if needed
+            pid: item.pid || item.pubid
+        }));
+        
+        return options;
+    }, [klasifikasiLainLain]);
+
+    // Fetch klasifikasi lain lain data on component mount
+    useEffect(() => {
+        fetchKlasifikasiLainLain();
+    }, [fetchKlasifikasiLainLain]);
 
     // Header form state
     const [headerData, setHeaderData] = useState({
@@ -102,6 +133,7 @@ const AddEditPembelianLainLainPage = () => {
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [editingDetailItem, setEditingDetailItem] = useState(null);
     const [isDetailModalSubmitting, setIsDetailModalSubmitting] = useState(false);
+    const [savingDetailId, setSavingDetailId] = useState(null); // Track which detail is being saved
 
     // Default data untuk batch operations
     const [defaultData, setDefaultData] = useState({
@@ -129,32 +161,6 @@ const AddEditPembelianLainLainPage = () => {
         return parseFloat(cleanValue) || 0;
     };
 
-    // Helper functions for decimal formatting (for persentase field) - like Feedmil
-    const formatDecimal = (value) => {
-        if (!value && value !== 0) return '';
-        const numValue = parseFloat(value);
-        if (isNaN(numValue)) return '';
-        // Format with comma as decimal separator (Indonesian style)
-        return numValue.toString().replace('.', ',');
-    };
-
-    const parseDecimal = (value) => {
-        if (!value) return 0;
-        // Replace comma with dot for parsing, then convert to float
-        const cleanValue = value.toString().replace(',', '.');
-        return parseFloat(cleanValue) || 0;
-    };
-
-    // Special handler for persentase input to allow comma typing - like Feedmil
-    const handlePersentaseChange = (itemId, inputValue) => {
-        // Allow comma in input, don't convert immediately
-        setDetailItems(prev => prev.map(item => {
-            if (item.id === itemId) {
-                return { ...item, persentase: inputValue };
-            }
-            return item;
-        }));
-    };
 
     // Parse persentase value when needed (for calculations) - like Feedmil
     const getParsedPersentase = (value) => {
@@ -201,17 +207,13 @@ const AddEditPembelianLainLainPage = () => {
 
     // Load data untuk edit mode - using /show endpoint for both header and detail data
     useEffect(() => {
-        if (isEdit && id && supplierOptions.length > 0 && officeOptions.length > 0 && (farmLainLainOptions?.length > 0 || farmOptions.length > 0) && jenisPembelianOptions.length > 0 && !editDataLoaded.current) { // Wait for all options to load first
+        if (isEdit && id && supplierOptions.length > 0 && officeOptions.length > 0 && (farmLainLainOptions?.length > 0 || farmOptions.length > 0) && jenisPembelianOptions.length > 0 && itemLainLainOptions.length > 0 && klasifikasiLainLainOptions.length > 0 && !editDataLoaded.current) { // Wait for all options to load first
             const loadEditData = async () => {
                 try {
                     // Set flag to prevent multiple calls
                     editDataLoaded.current = true;
                     
-                    const decodedId = decodeURIComponent(id);
-                    
                     // Get both header and detail data from /show endpoint only
-                    console.log('🔍 Getting header and detail data from /show endpoint for PID:', id);
-                    
                     const showResponse = await HttpClient.post(`${API_ENDPOINTS.HO.LAINLAIN.PEMBELIAN}/show`, {
                         pid: id
                     });
@@ -312,9 +314,6 @@ const AddEditPembelianLainLainPage = () => {
                             biaya_lain: safeGetNumber(headerData.biaya_lain),
                             biaya_total: safeGetNumber(headerData.biaya_total) ?? safeGetNumber(headerData.total_belanja),
                             berat_total: safeGetNumber(headerData.berat_total),
-                            farm: headerData.id_farm ? parseInt(headerData.id_farm) : (headerData.farm ? parseInt(headerData.farm) : null),
-                            syarat_pembelian: safeGetString(headerData.syarat_pembelian) || safeGetString(headerData.id_syarat_pembelian),
-                            nota_ho: safeGetString(headerData.nota_ho),
                             file: safeGetString(headerData.file), // Keep as string for display purposes
                             fileName: headerData.file ? headerData.file.split('/').pop() : '',
                             tipe_pembayaran: safeGetString(headerData.tipe_pembayaran),
@@ -333,9 +332,9 @@ const AddEditPembelianLainLainPage = () => {
                     if (detailResult.success && detailResult.data.length > 0) {
                         // Load detail items from detail API response
                         const processedDetailItems = detailResult.data.map((item, index) => {
-                            // Find the item ID from itemOvkOptions if we have the item name
-                            const itemName = item.item_name || `OVK Item ${index + 1}`;
-                            const foundItem = itemOvkOptions.find(option => option.label === itemName);
+                            // Find the item ID from itemLainLainOptions if we have the item name
+                            const itemName = item.item_name || `Item Lain-Lain ${index + 1}`;
+                            const foundItem = itemLainLainOptions.find(option => option.label === itemName);
                             
                             return {
                                 id: item.id || index + 1,
@@ -347,20 +346,24 @@ const AddEditPembelianLainLainPage = () => {
                                 pubidDetail: item.pubid_detail, // Alternative pubid field
                                 id_office: item.id_office || 'head-office',
                                 item_name: itemName, // Display name for UI
-                                item_name_id: foundItem ? foundItem.value : '', // ID for SearchableSelect
-                                id_klasifikasi_lainlain: item.id_klasifikasi_lainlain || item.id_klasifikasi_ovk || null,
-                                berat: parseFloat(item.berat) || 0,
-                                harga: parseFloat(item.harga) || 0,
+                                item_name_id: foundItem ? foundItem.value : null, // ID for SearchableSelect - use null instead of empty string
+                                id_klasifikasi_lainlain: item.id_klasifikasi_lainlain || null,
+                                nama_klasifikasi_lainlain: item.nama_klasifikasi_lainlain || null, // Keep klasifikasi name from backend
+                                berat: item.berat !== null && item.berat !== undefined ? parseFloat(item.berat) : 0,
+                                harga: item.harga !== null && item.harga !== undefined ? parseFloat(item.harga) : 0,
                                 persentase: formatPersentaseFromBackend(item.persentase), // Format with comma for display
-                                hpp: parseFloat(item.hpp) || 0,
-                                total_harga: parseFloat(item.total_harga) || 0,
+                                hpp: item.hpp !== null && item.hpp !== undefined ? parseFloat(item.hpp) : 0,
+                                total_harga: item.total_harga !== null && item.total_harga !== undefined ? parseFloat(item.total_harga) : 0,
+                                peruntukan: item.peruntukan || '',
+                                // Store both catatan and keterangan for compatibility
+                                catatan: item.keterangan || item.catatan || '',
+                                keterangan: item.keterangan || item.catatan || ''
                             };
                         });
                         
                         setDetailItems(processedDetailItems);
                     }
                 } catch (error) {
-                    console.error('Error loading edit data:', error);
                     setNotification({
                         type: 'error',
                         message: 'Gagal memuat data untuk edit'
@@ -370,7 +373,7 @@ const AddEditPembelianLainLainPage = () => {
             
             loadEditData();
         }
-    }, [isEdit, id, supplierOptions.length, officeOptions.length, farmLainLainOptions?.length, farmOptions.length, jenisPembelianOptions.length, itemOvkOptions.length]);
+    }, [isEdit, id, supplierOptions, officeOptions, farmLainLainOptions, farmOptions, jenisPembelianOptions, itemLainLainOptions, klasifikasiLainLainOptions]);
 
     // Reset edit data loaded flag when id changes
     useEffect(() => {
@@ -392,7 +395,7 @@ const AddEditPembelianLainLainPage = () => {
             if (item.id === itemId) {
                 if (field === 'item_name') {
                     // Find the display name for the selected item
-                    const selectedItem = itemOvkOptions.find(option => option.value === value);
+                    const selectedItem = itemLainLainOptions.find(option => option.value === value);
                     return {
                         ...item,
                         item_name: selectedItem ? selectedItem.label : '',
@@ -414,7 +417,19 @@ const AddEditPembelianLainLainPage = () => {
 
     // Open modal for editing existing detail item
     const openEditDetailModal = (item) => {
-        setEditingDetailItem(item);
+        // Ensure all fields are properly mapped for the modal
+        const editData = {
+            ...item,
+            // Ensure item_name_id is set for the SearchableSelect
+            item_name_id: item.item_name_id || null,
+            // Ensure id_klasifikasi_lainlain is set
+            id_klasifikasi_lainlain: item.id_klasifikasi_lainlain || null,
+            // Map keterangan back to catatan for the modal (modal uses catatan internally)
+            catatan: item.catatan || item.keterangan || '',
+            // Keep other fields as is
+            peruntukan: item.peruntukan || ''
+        };
+        setEditingDetailItem(editData);
         setIsDetailModalOpen(true);
     };
 
@@ -429,16 +444,56 @@ const AddEditPembelianLainLainPage = () => {
         setIsDetailModalSubmitting(true);
         
         try {
+            // Ensure proper data formatting for the item
+            const formattedItemData = {
+                ...itemData,
+                // Ensure id_office is properly set as integer
+                id_office: parseInt(headerData.idOffice) || 1,
+                // Keep item_name_id as is (modal already sends numeric or null)
+                item_name_id: itemData.item_name_id,
+                // Ensure numeric fields are properly formatted
+                berat: parseFloat(itemData.berat) || 0,
+                harga: parseFloat(itemData.harga) || 0,
+                persentase: getParsedPersentase(itemData.persentase) || 0,
+                hpp: parseFloat(itemData.hpp) || 0,
+                total_harga: parseFloat(itemData.total_harga) || 0,
+                // Keep id_klasifikasi_lainlain as is (modal already sends numeric or null)
+                id_klasifikasi_lainlain: itemData.id_klasifikasi_lainlain,
+                // Store both catatan and keterangan for compatibility
+                catatan: itemData.catatan || itemData.keterangan || '',
+                keterangan: itemData.keterangan || itemData.catatan || '',
+                peruntukan: itemData.peruntukan || '',
+                // Ensure nama_klasifikasi_lainlain is set for display
+                nama_klasifikasi_lainlain: (() => {
+                    if (itemData.id_klasifikasi_lainlain) {
+                        const klasifikasi = klasifikasiLainLainOptions.find(k =>
+                            // Compare as numbers since both should be numeric now
+                            parseInt(k.value) === parseInt(itemData.id_klasifikasi_lainlain)
+                        );
+                        return klasifikasi ? klasifikasi.label : null;
+                    }
+                    return null;
+                })()
+            };
+            
             if (editingDetailItem) {
                 // Edit existing item
                 if (isEdit) {
-                    // In edit mode, call API to save
-                    await saveDetailItem(editingDetailItem.id, itemData);
+                    // In edit mode, call API to save the detail item
+                    try {
+                        // Call saveDetailItem which will handle the API call
+                        await saveDetailItem(editingDetailItem.id, formattedItemData);
+                        // No need to close modal here, saveDetailItem will handle it if successful
+                        return; // Exit early as saveDetailItem handles everything
+                    } catch (error) {
+                        // Error is already handled in saveDetailItem
+                        throw error;
+                    }
                 } else {
                     // In add mode, update local state
                     setDetailItems(prev => prev.map(item =>
                         item.id === editingDetailItem.id
-                            ? { ...item, ...itemData }
+                            ? { ...item, ...formattedItemData }
                             : item
                     ));
                 }
@@ -451,8 +506,7 @@ const AddEditPembelianLainLainPage = () => {
                     idPembelian: '',
                     encryptedPid: '',
                     pubidDetail: '',
-                    id_office: headerData.idOffice || 'head-office',
-                    ...itemData
+                    ...formattedItemData
                 };
                 setDetailItems(prev => [...prev, newItem]);
             }
@@ -484,22 +538,39 @@ const AddEditPembelianLainLainPage = () => {
 
         const newItems = [];
         for (let i = 0; i < (batchCount || 0); i++) {
+            // Get klasifikasi name if selected
+            const klasifikasiName = (() => {
+                if (defaultData.id_klasifikasi_lainlain) {
+                    const klasifikasi = klasifikasiLainLainOptions.find(k =>
+                        k.value === defaultData.id_klasifikasi_lainlain ||
+                        k.value === String(defaultData.id_klasifikasi_lainlain)
+                    );
+                    return klasifikasi ? klasifikasi.label : null;
+                }
+                return null;
+            })();
+            
             newItems.push({
                 id: Date.now() + i,
-                pubid: '', // Empty pubid for new items
-                id_pembelian: '', // Will be set when saving
-                idPembelian: '', // Will be set when saving (like Feedmil)
-                encryptedPid: '', // Will be set when saving
-                pubidDetail: '', // Alternative pubid field
-                id_office: headerData.idOffice || 'head-office', // Use selected office or fallback
+                pubid: '',
+                id_pembelian: '',
+                idPembelian: '',
+                encryptedPid: '',
+                pubidDetail: '',
+                id_office: parseInt(headerData.idOffice) || 1, // Ensure integer
                 item_name: defaultData.item_name_display || defaultData.item_name || '',
                 item_name_id: defaultData.item_name || null,
-                id_klasifikasi_lainlain: defaultData.id_klasifikasi_lainlain || null,
-                berat: defaultData.berat || '',
-                harga: defaultData.harga || '',
-                persentase: defaultData.persentase || '',
-                hpp: '', // Will be calculated
-                total_harga: '', // Added: total_harga field
+                // Use numeric ID for batch items
+                id_klasifikasi_lainlain: defaultData.id_klasifikasi_lainlain ? parseInt(defaultData.id_klasifikasi_lainlain) : null,
+                nama_klasifikasi_lainlain: klasifikasiName, // Add klasifikasi name
+                berat: parseFloat(defaultData.berat) || 0, // Parse as float with 0 fallback
+                harga: parseFloat(defaultData.harga) || 0, // Parse as float with 0 fallback
+                persentase: defaultData.persentase || 0, // Keep original format for display
+                hpp: 0, // Initialize with 0
+                total_harga: 0, // Initialize with 0
+                peruntukan: '',
+                catatan: '',
+                keterangan: '' // Add keterangan field for backend compatibility
             });
         }
         setDetailItems(prev => [...prev, ...newItems]);
@@ -600,82 +671,148 @@ const AddEditPembelianLainLainPage = () => {
         const item = itemData ? { ...detailItems.find(detail => detail.id === itemId), ...itemData } : detailItems.find(detail => detail.id === itemId);
         if (!item) return;
 
+        // Set loading state for specific item
+        setSavingDetailId(itemId);
+
         // Validate item data
         if (!item.item_name || !item.item_name.trim()) {
             setNotification({
                 type: 'error',
                 message: 'Nama item harus diisi'
             });
+            setSavingDetailId(null);
             return;
         }
 
-        if (!item.id_klasifikasi_lainlain) {
-            setNotification({
-                type: 'error',
-                message: 'Klasifikasi Lain-Lain harus dipilih'
-            });
-            return;
+        // id_klasifikasi_lainlain is optional, don't validate as required
+
+        // Make detail fields optional - only validate if provided
+        if (item.berat !== null && item.berat !== undefined && item.berat !== '') {
+            const berat = parseFloat(item.berat);
+            if (isNaN(berat) || berat < 0) {
+                setNotification({
+                    type: 'error',
+                    message: 'Berat tidak boleh negatif'
+                });
+                setSavingDetailId(null);
+                return;
+            }
         }
 
-        const berat = parseFloat(item.berat);
-        if (isNaN(berat) || berat <= 0) {
-            setNotification({
-                type: 'error',
-                message: 'Berat harus lebih dari 0'
-            });
-            return;
-        }
-
-        const harga = parseFloat(item.harga);
-        if (isNaN(harga) || harga <= 0) {
-            setNotification({
-                type: 'error',
-                message: 'Harga harus lebih dari 0'
-            });
-            return;
+        if (item.harga !== null && item.harga !== undefined && item.harga !== '') {
+            const harga = parseFloat(item.harga);
+            if (isNaN(harga) || harga < 0) {
+                setNotification({
+                    type: 'error',
+                    message: 'Harga tidak boleh negatif'
+                });
+                setSavingDetailId(null);
+                return;
+            }
         }
 
         try {
-            setIsSubmitting(true);
             setNotification({
                 type: 'info',
-                message: 'Menyimpan perubahan item...'
+                message: 'Menyimpan detail item...'
             });
 
             // Check if this is an existing item from database or a new frontend-only item
             const hasDetailIdentifier = !!(item.encryptedPid || item.pid || item.pubid || item.pubidDetail);
-            const isTimestampId = typeof item.id === 'number' && item.id > 1000000000; // Timestamp-based IDs are > 1B
-            const isSequentialId = typeof item.id === 'number' && item.id < 1000; // Sequential IDs from database are usually small
             
             // An item is existing if it has a detail identifier (encrypted pid, pid, pubid, or pubidDetail)
             // This is the primary indicator that the item came from the database
             const isExistingItem = hasDetailIdentifier;
 
-            // Prepare detail data for save - use structure like Feedmil
+            // Prepare detail data for save with proper field mapping
             const detailData = {
-                idPembelian: item.idPembelian || null, // Use item's id_pembelian if available (for existing items)
-                idOffice: parseInt(headerData.idOffice) || 1, // Use selected office ID
-                item_name: String(item.item_name || ''),
-                item_name_id: item.item_name_id || null, // Include item ID for backend reference
-                id_klasifikasi_lain_lain: (() => {
-                    const rawValue = item.id_klasifikasi_lain_lain;
-                    
-                    if (rawValue === null || rawValue === undefined || rawValue === '') {
-                        return null;
+                idPembelian: item.idPembelian || null,
+                idOffice: parseInt(headerData.idOffice) || 1,
+                item_name: String(item.item_name || '').trim(),
+                // Get id_item - ensure we use numeric ID
+                id_item: (() => {
+                    // First check if item_name_id is already numeric
+                    if (item.item_name_id) {
+                        const parsed = parseInt(item.item_name_id);
+                        if (!isNaN(parsed)) {
+                            return parsed;
+                        }
                     }
                     
-                    const parsed = parseInt(rawValue);
-                    if (isNaN(parsed)) {
-                        return null;
+                    // If not numeric, find the item option to get numeric ID
+                    if (item.item_name_id && itemLainLainOptions.length > 0) {
+                        const foundItem = itemLainLainOptions.find(option =>
+                            option.value === item.item_name_id ||
+                            option.pid === item.item_name_id
+                        );
+                        if (foundItem) {
+                            // Try to get numeric ID from option
+                            const numericId = foundItem.numericId || foundItem.value;
+                            const parsed = parseInt(numericId);
+                            if (!isNaN(parsed)) {
+                                return parsed;
+                            }
+                        }
                     }
                     
-                    return parsed;
+                    // Last resort: try to find by item name
+                    if (item.item_name && itemLainLainOptions.length > 0) {
+                        const foundItem = itemLainLainOptions.find(option =>
+                            option.label === item.item_name
+                        );
+                        if (foundItem) {
+                            const numericId = foundItem.numericId || foundItem.value;
+                            const parsed = parseInt(numericId);
+                            if (!isNaN(parsed)) {
+                                return parsed;
+                            }
+                        }
+                    }
+                    
+                    return null;
+                })(),
+                // Get id_klasifikasi_lainlain - ensure we use numeric ID
+                id_klasifikasi_lainlain: (() => {
+                    if (item.id_klasifikasi_lainlain) {
+                        // First check if it's already numeric
+                        const parsed = parseInt(item.id_klasifikasi_lainlain);
+                        if (!isNaN(parsed)) {
+                            return parsed;
+                        }
+                        
+                        // If not numeric, find the klasifikasi option
+                        const foundKlasifikasi = klasifikasiLainLainOptions.find(k =>
+                            k.value === item.id_klasifikasi_lainlain ||
+                            k.pid === item.id_klasifikasi_lainlain
+                        );
+                        
+                        if (foundKlasifikasi) {
+                            const numericId = foundKlasifikasi.numericId || foundKlasifikasi.value;
+                            const parsed = parseInt(numericId);
+                            if (!isNaN(parsed)) {
+                                return parsed;
+                            }
+                        }
+                    }
+                    
+                    return null;
+                })(),
+                nama_klasifikasi_lainlain: (() => {
+                    if (item.id_klasifikasi_lainlain) {
+                        const klasifikasi = klasifikasiLainLainOptions.find(k =>
+                            String(k.value) === String(item.id_klasifikasi_lainlain)
+                        );
+                        return klasifikasi ? klasifikasi.label : null;
+                    }
+                    return null;
                 })(),
                 harga: parseFloat(item.harga) || 0,
-                berat: parseInt(item.berat) || 0,
-                persentase: getParsedPersentase(item.persentase), // Use comma-aware parsing
+                berat: parseFloat(item.berat) || 0,
+                persentase: getParsedPersentase(item.persentase) || 0,
                 hpp: parseFloat(item.hpp) || 0,
-                total_harga: parseFloat(item.total_harga) || 0
+                total_harga: parseFloat(item.total_harga) || 0,
+                peruntukan: String(item.peruntukan || '').trim(),
+                keterangan: String(item.catatan || item.keterangan || '').trim()
             };
 
             // Validate that we have a valid pembelian ID for existing items only
@@ -684,6 +821,7 @@ const AddEditPembelianLainLainPage = () => {
                     type: 'error',
                     message: 'ID Pembelian tidak ditemukan untuk detail existing. Data mungkin tidak lengkap.'
                 });
+                setSavingDetailId(null);
                 return;
             }
 
@@ -699,13 +837,16 @@ const AddEditPembelianLainLainPage = () => {
                     pid: detailPid, // Backend expects encrypted PID for existing items
                     id_pembelian: detailData.idPembelian, // Always required by backend validator
                     item_name: detailData.item_name,
-                    id_item: detailData.item_name_id ? parseInt(detailData.item_name_id) : null, // Send item ID to backend
+                    id_item: detailData.id_item, // Use the already parsed id_item
                     id_klasifikasi_lainlain: detailData.id_klasifikasi_lainlain,
+                    nama_klasifikasi_lainlain: detailData.nama_klasifikasi_lainlain,
                     harga: detailData.harga,
                     persentase: detailData.persentase,
                     berat: detailData.berat,
                     hpp: detailData.hpp,
-                    total_harga: detailData.total_harga
+                    total_harga: detailData.total_harga,
+                    peruntukan: item.peruntukan || '',
+                    keterangan: item.catatan || ''
                 };
                 
                 result = await HttpClient.post(`${API_ENDPOINTS.HO.LAINLAIN.PEMBELIAN}/update`, requestData);
@@ -723,6 +864,7 @@ const AddEditPembelianLainLainPage = () => {
                         type: 'error',
                         message: 'Tidak dapat menambah detail baru: ID pembelian tidak ditemukan. Pastikan header pembelian sudah disimpan dan detail lain sudah ada.'
                     });
+                    setSavingDetailId(null);
                     return;
                 }
                 
@@ -734,13 +876,16 @@ const AddEditPembelianLainLainPage = () => {
                     id_pembelian: detailData.idPembelian, // Always required by backend validator
                     id_office: detailData.idOffice, // Required for new items
                     item_name: detailData.item_name,
-                    id_item: detailData.item_name_id ? parseInt(detailData.item_name_id) : null, // Send item ID to backend
+                    id_item: detailData.id_item, // Use the already parsed id_item
                     id_klasifikasi_lainlain: detailData.id_klasifikasi_lainlain,
+                    nama_klasifikasi_lainlain: detailData.nama_klasifikasi_lainlain,
                     harga: detailData.harga,
                     persentase: detailData.persentase,
                     berat: detailData.berat,
                     hpp: detailData.hpp,
-                    total_harga: detailData.total_harga
+                    total_harga: detailData.total_harga,
+                    peruntukan: item.peruntukan || '',
+                    keterangan: item.catatan || ''
                 };
                 
                 result = await HttpClient.post(`${API_ENDPOINTS.HO.LAINLAIN.PEMBELIAN}/update`, requestData);
@@ -755,6 +900,11 @@ const AddEditPembelianLainLainPage = () => {
                              (result && result.status === 'success');
 
             if (isSuccess) {
+                // Close the modal first if it's open
+                if (isDetailModalOpen) {
+                    closeDetailModal();
+                }
+                
                 setNotification({
                     type: 'success',
                     message: 'Detail item berhasil disimpan!'
@@ -763,16 +913,16 @@ const AddEditPembelianLainLainPage = () => {
                 // Update the saved item with new encrypted PID if it was a new item
                 if (!isExistingItem && (result.data?.pid || result.data?.data?.pid)) {
                     const newPid = result.data?.pid || result.data?.data?.pid;
-                    setDetailItems(prevItems => 
-                        prevItems.map(prevItem => 
-                            prevItem.id === item.id 
+                    setDetailItems(prevItems =>
+                        prevItems.map(prevItem =>
+                            prevItem.id === item.id
                                 ? { ...prevItem, encryptedPid: newPid, pubid: newPid }
                                 : prevItem
                         )
                     );
                 }
                 
-                // Auto hard refresh setelah save berhasil dalam mode edit (like Feedmil)
+                // Auto refresh after successful save
                 setTimeout(() => {
                     window.location.reload();
                 }, 1500); // Delay 1.5 detik untuk memberi waktu user melihat notification
@@ -788,7 +938,7 @@ const AddEditPembelianLainLainPage = () => {
                 message: 'Terjadi kesalahan saat menyimpan item'
             });
         } finally {
-            setIsSubmitting(false);
+            setSavingDetailId(null);
         }
     };
 
@@ -796,7 +946,7 @@ const AddEditPembelianLainLainPage = () => {
     const handleDefaultDataChange = (field, value) => {
         if (field === 'item_name') {
             // Find the display name for the selected item
-            const selectedItem = itemOvkOptions.find(item => item.value === value);
+            const selectedItem = itemLainLainOptions.find(item => item.value === value);
             setDefaultData(prev => ({
                 ...prev,
                 item_name: value,
@@ -912,6 +1062,11 @@ const AddEditPembelianLainLainPage = () => {
         if (!headerData.nota.trim()) {
             errors.push('Nomor Nota Supplier harus diisi');
         }
+        
+        // Add max length validation for nota (50 chars)
+        if (headerData.nota && headerData.nota.length > 50) {
+            errors.push('Nomor Nota Supplier maksimal 50 karakter');
+        }
 
         if (!headerData.tipePembelian) {
             errors.push('Tipe Pembelian harus dipilih');
@@ -929,8 +1084,13 @@ const AddEditPembelianLainLainPage = () => {
             errors.push('Syarat Pembelian harus dipilih');
         }
 
-        if (!headerData.nota_ho) {
-            errors.push('Nomor Nota HO harus diisi');
+        if (!headerData.nota_ho || !headerData.nota_ho.trim()) {
+            errors.push('Nomor Nota CV. Puput Bersaudara harus diisi');
+        }
+        
+        // Add max length validation for nota_ho (50 chars)
+        if (headerData.nota_ho && headerData.nota_ho.length > 50) {
+            errors.push('Nomor Nota CV. Puput Bersaudara maksimal 50 karakter');
         }
 
         if (!headerData.tgl_masuk) {
@@ -941,14 +1101,30 @@ const AddEditPembelianLainLainPage = () => {
         if (!headerData.nama_supir || !headerData.nama_supir.trim()) {
             errors.push('Nama Sopir harus diisi');
         }
+        
+        // Add max length validation for nama_supir (50 chars)
+        if (headerData.nama_supir && headerData.nama_supir.length > 50) {
+            errors.push('Nama Sopir maksimal 50 karakter');
+        }
 
         if (!headerData.plat_nomor || !headerData.plat_nomor.trim()) {
             errors.push('Plat Nomor harus diisi');
+        }
+        
+        // Add max length validation for plat_nomor (20 chars)
+        if (headerData.plat_nomor && headerData.plat_nomor.length > 20) {
+            errors.push('Plat Nomor maksimal 20 karakter');
         }
 
         const biayaTruk = parseFloat(headerData.biaya_truck);
         if (headerData.biaya_truck === null || headerData.biaya_truck === undefined || headerData.biaya_truck === '' || isNaN(biayaTruk)) {
             errors.push('Biaya Ongkos Kirim harus diisi (minimal 0)');
+        }
+
+        // Add biaya_lain validation - make it required as per backend
+        const biayaLain = parseFloat(headerData.biaya_lain);
+        if (headerData.biaya_lain === null || headerData.biaya_lain === undefined || headerData.biaya_lain === '' || isNaN(biayaLain)) {
+            errors.push('Biaya Lain-lain harus diisi (minimal 0)');
         }
 
         if (!headerData.tipe_pembayaran) {
@@ -977,17 +1153,24 @@ const AddEditPembelianLainLainPage = () => {
                 errors.push(`Item ${index + 1}: Nama item harus diisi`);
             }
             // id_klasifikasi_lainlain is nullable according to backend rules - no validation needed
-            const berat = parseFloat(item.berat);
-            if (isNaN(berat) || berat <= 0) {
-                errors.push(`Item ${index + 1}: Berat harus lebih dari 0`);
+            // Make detail fields optional - only validate if provided
+            if (item.berat !== null && item.berat !== undefined && item.berat !== '') {
+                const berat = parseFloat(item.berat);
+                if (isNaN(berat) || berat < 0) {
+                    errors.push(`Item ${index + 1}: Berat tidak boleh negatif`);
+                }
             }
-            const harga = parseFloat(item.harga);
-            if (isNaN(harga) || harga <= 0) {
-                errors.push(`Item ${index + 1}: Harga harus lebih dari 0`);
+            if (item.harga !== null && item.harga !== undefined && item.harga !== '') {
+                const harga = parseFloat(item.harga);
+                if (isNaN(harga) || harga < 0) {
+                    errors.push(`Item ${index + 1}: Harga tidak boleh negatif`);
+                }
             }
-            const persentase = getParsedPersentase(item.persentase); // Use comma-aware parsing
-            if (isNaN(persentase) || persentase < 0) {
-                errors.push(`Item ${index + 1}: Persentase harus lebih dari atau sama dengan 0`);
+            if (item.persentase !== null && item.persentase !== undefined && item.persentase !== '') {
+                const persentase = getParsedPersentase(item.persentase);
+                if (isNaN(persentase) || persentase < 0) {
+                    errors.push(`Item ${index + 1}: Persentase tidak boleh negatif`);
+                }
             }
         });
 
@@ -1047,17 +1230,58 @@ const AddEditPembelianLainLainPage = () => {
                 // Pass existing file name for backend to know if file should be kept
                 existingFileName: existingFileName,
 
-                // Detail items mapping
-                details: detailItems.map(item => ({
-                    id_office: parseInt(headerData.idOffice) || 1, // Use selected office ID
-                    item_name: item.item_name || null,
-                    id_klasifikasi_lainlain: item.id_klasifikasi_lainlain ? parseInt(item.id_klasifikasi_lainlain) || null : null, // Use selected ID directly from dropdown
-                    harga: parseFloat(item.harga) || null,
-                    persentase: getParsedPersentase(item.persentase) || null, // Use comma-aware parsing
-                    berat: parseFloat(item.berat) || null,
-                    hpp: parseFloat(item.hpp) || null,
-                    total_harga: parseFloat(item.total_harga) || null
-                })),
+                // Detail items mapping with proper formatting - ensure all fields are correctly formatted
+                details: detailItems.map(item => {
+                    // Get klasifikasi name for the selected id
+                    const klasifikasiName = (() => {
+                        if (item.id_klasifikasi_lainlain) {
+                            const klasifikasi = klasifikasiLainLainOptions.find(k =>
+                                String(k.value) === String(item.id_klasifikasi_lainlain)
+                            );
+                            return klasifikasi ? klasifikasi.label : null;
+                        }
+                        return null;
+                    })();
+                    
+                    // Calculate HPP and total_harga if not already calculated
+                    const harga = parseFloat(item.harga) || 0;
+                    const berat = parseFloat(item.berat) || 0;
+                    const persentase = getParsedPersentase(item.persentase) || 0;
+                    const hpp = item.hpp ? parseFloat(item.hpp) : (harga + (harga * persentase / 100));
+                    const total_harga = item.total_harga ? parseFloat(item.total_harga) : (hpp * berat);
+                    
+                    // Handle keterangan - use catatan or keterangan
+                    const keteranganValue = item.catatan || item.keterangan || '';
+                    
+                    // Ensure item_name is not empty
+                    const itemName = String(item.item_name || '').trim();
+                    
+                    return {
+                        // Required fields - ensure correct data types
+                        id_office: parseInt(headerData.idOffice) || 1,
+                        item_name: itemName || 'Item Lain-Lain', // Fallback if empty
+                        id_item: item.item_name_id ? parseInt(item.item_name_id) : null, // Include id_item
+                        
+                        // Klasifikasi fields - ensure both id and name are included
+                        // Send both field names for backend compatibility
+                        id_klasifikasi_lainlain: item.id_klasifikasi_lainlain ? parseInt(item.id_klasifikasi_lainlain) : null,
+                        nama_klasifikasi_lainlain: klasifikasiName,
+                        // Also send with OVK field name for backend compatibility
+                        id_klasifikasi_ovk: item.id_klasifikasi_lainlain ? parseInt(item.id_klasifikasi_lainlain) : null,
+                        nama_klasifikasi_ovk: klasifikasiName,
+                        
+                        // Numeric fields with proper parsing and validation
+                        berat: berat,
+                        harga: harga,
+                        persentase: persentase,
+                        hpp: Math.round(hpp * 100) / 100, // Round to 2 decimal places
+                        total_harga: Math.round(total_harga * 100) / 100, // Round to 2 decimal places
+                        
+                        // String fields - don't convert to null, keep as empty string if empty
+                        peruntukan: String(item.peruntukan || '').trim(),
+                        keterangan: keteranganValue.trim()
+                    };
+                }),
 
                 // Additional data for compatibility
                 totalJumlah: totals.totalJumlah,
@@ -1069,7 +1293,6 @@ const AddEditPembelianLainLainPage = () => {
                 nama_supplier: selectedSupplier ? selectedSupplier.label : '',
                 jenis_supplier: selectedSupplier ? selectedSupplier.jenis_supplier : ''
             };
-
 
             let result;
             if (isEdit) {
@@ -1266,7 +1489,7 @@ const AddEditPembelianLainLainPage = () => {
                             )}
                             {!jenisPembelianLoading && !jenisPembelianError && (
                                 <p className="text-xs text-orange-600 mt-1">
-                                    💡 Jenis pembelian untuk klasifikasi OVK
+                                    💡 Jenis pembelian untuk klasifikasi Lain-Lain
                                 </p>
                             )}
                         </div>
@@ -1399,7 +1622,7 @@ const AddEditPembelianLainLainPage = () => {
                                 step="0.1"
                             />
                             <p className="text-xs text-blue-600 mt-1">
-                                💡 Total berat semua OVK dalam pembelian ini
+                                💡 Total berat semua item Lain-Lain dalam pembelian ini
                             </p>
                         </div>
 
@@ -1544,7 +1767,7 @@ const AddEditPembelianLainLainPage = () => {
                                 value={headerData.note}
                                 onChange={(e) => handleHeaderChange('note', e.target.value)}
                                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                placeholder="Masukkan catatan pembelian OVK..."
+                                placeholder="Masukkan catatan pembelian..."
                                 rows="3"
                             />
                         </div>
@@ -1634,20 +1857,20 @@ const AddEditPembelianLainLainPage = () => {
                             <SearchableSelect
                                 value={defaultData.item_name}
                                 onChange={(value) => handleDefaultDataChange('item_name', value)}
-                                options={itemOvkOptions}
-                                placeholder={parameterLoading ? 'Loading items...' : parameterError ? 'Error loading items' : 'Pilih Item OVK'}
-                                isLoading={parameterLoading}
-                                isDisabled={parameterLoading || parameterError}
+                                options={itemLainLainOptions}
+                                placeholder={itemLainLainLoading ? 'Loading items...' : itemLainLainError ? 'Error loading items' : 'Pilih Item Lain-Lain'}
+                                isLoading={itemLainLainLoading}
+                                isDisabled={itemLainLainLoading || itemLainLainError}
                                 className="w-full"
                             />
-                            {parameterError && (
+                            {itemLainLainError && (
                                 <p className="text-xs text-red-500 mt-1">
-                                    ⚠️ Error loading items: {parameterError}
+                                    ⚠️ Error loading items: {itemLainLainError}
                                 </p>
                             )}
                         </div>
 
-                        {/* Klasifikasi OVK Default */}
+                        {/* Klasifikasi Lain-Lain Default */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Klasifikasi Lain-Lain Default
@@ -1655,16 +1878,16 @@ const AddEditPembelianLainLainPage = () => {
                             <SearchableSelect
                                 value={defaultData.id_klasifikasi_lainlain}
                                 onChange={(value) => handleDefaultDataChange('id_klasifikasi_lainlain', value)}
-                                options={klasifikasiOVKOptions}
-                                placeholder={parameterLoading ? "Loading..." : "Pilih Klasifikasi Lain-Lain"}
+                                options={klasifikasiLainLainOptions}
+                                placeholder={klasifikasiLoading ? "Loading..." : "Pilih Klasifikasi Lain-Lain"}
                                 className="w-full"
-                                disabled={parameterLoading}
+                                disabled={klasifikasiLoading}
                             />
-                            {parameterLoading && (
-                                <p className="text-xs text-blue-600 mt-1">🔄 Memuat klasifikasi OVK...</p>
+                            {klasifikasiLoading && (
+                                <p className="text-xs text-blue-600 mt-1">🔄 Memuat klasifikasi lain-lain...</p>
                             )}
-                            {parameterError && (
-                                <p className="text-xs text-red-600 mt-1">❌ Error: {parameterError}</p>
+                            {klasifikasiError && (
+                                <p className="text-xs text-red-600 mt-1">❌ Error: {klasifikasiError}</p>
                             )}
                         </div>
 
@@ -1779,7 +2002,7 @@ const AddEditPembelianLainLainPage = () => {
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 w-20">Persentase (%)</th>
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[120px]">HPP (Rp)</th>
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[120px]">Total Harga (Rp)</th>
-                                        <th className="p-2 sm:p-3 text-center text-xs sm:text-sm font-semibold text-blue-800 w-20">Aksi</th>
+                                        <th className="p-2 sm:p-3 text-center text-xs sm:text-sm font-semibold text-blue-800 w-28">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -1808,13 +2031,18 @@ const AddEditPembelianLainLainPage = () => {
                                                     <div className="text-xs sm:text-sm text-gray-900 font-medium">
                                                         {item.item_name || '-'}
                                                     </div>
+                                                    {item.peruntukan && (
+                                                       <div className="text-xs text-gray-500 mt-1">
+                                                           📌 {item.peruntukan}
+                                                       </div>
+                                                   )}
                                                 </td>
                                                 
-                                                {/* Klasifikasi OVK - Read Only */}
+                                                {/* Klasifikasi Lain-Lain - Read Only */}
                                                 <td className="p-2 sm:p-3">
                                                     <div className="text-xs sm:text-sm text-gray-700">
                                                         {(() => {
-                                                            const klasifikasi = klasifikasiOVKOptions.find(k => k.value === item.id_klasifikasi_lainlain);
+                                                            const klasifikasi = klasifikasiLainLainOptions.find(k => k.value === item.id_klasifikasi_lainlain);
                                                             return klasifikasi ? klasifikasi.label : '-';
                                                         })()}
                                                     </div>
@@ -2282,13 +2510,13 @@ const AddEditPembelianLainLainPage = () => {
                 onClose={closeDetailModal}
                 onSave={handleDetailModalSave}
                 editingItem={editingDetailItem}
-                itemOvkOptions={itemOvkOptions}
-                klasifikasiOVKOptions={klasifikasiOVKOptions}
+                itemLainLainOptions={itemLainLainOptions}
+                klasifikasiLainLainOptions={klasifikasiLainLainOptions}
                 formatNumber={formatNumber}
                 parseNumber={parseNumber}
                 getParsedPersentase={getParsedPersentase}
-                parameterLoading={parameterLoading}
-                parameterError={parameterError}
+                klasifikasiLoading={klasifikasiLoading}
+                klasifikasiError={klasifikasiError}
                 isSubmitting={isDetailModalSubmitting}
             />
         </div>

@@ -64,7 +64,7 @@ const useItemLainLain = () => {
     } finally {
       setLoading(false);
     }
-  }, [fetchItemLainLain]);
+  }, []);
 
   // Update item lain-lain
   const updateItemLainLain = useCallback(async (pid, data) => {
@@ -87,7 +87,7 @@ const useItemLainLain = () => {
     } finally {
       setLoading(false);
     }
-  }, [fetchItemLainLain]);
+  }, []);
 
   // Delete item lain-lain
   const deleteItemLainLain = useCallback(async (pid) => {

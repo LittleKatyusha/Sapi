@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { X, Save, AlertCircle } from 'lucide-react';
 import SearchableSelect from '../../../../components/shared/SearchableSelect';
 import useParameters from '../../../system/hooks/useParameters';
@@ -8,7 +8,8 @@ const AddEditSupplierModal = ({
     onClose,
     onSave,
     editData = null,
-    loading = false
+    loading = false,
+    kategoriOptions = []
 }) => {
     const [formData, setFormData] = useState({
         name: '',
@@ -19,34 +20,57 @@ const AddEditSupplierModal = ({
     });
     const [errors, setErrors] = useState({});
     const { fetchParametersByGroup } = useParameters();
-    const [jenisSupplierOptions, setJenisSupplierOptions] = useState([]);
     const [loadingParameters, setLoadingParameters] = useState(false);
 
-    // Kategori supplier options
-    const kategoriSupplierOptions = [
-        { value: '1', label: 'Ternak' },
-        { value: '2', label: 'Feedmil' },
-        { value: '3', label: 'Ovk' }
-    ];
+    // Static storage for jenis supplier options - persists across modal opens
+    const jenisSupplierOptionsRef = React.useRef(null);
+    const [jenisSupplierOptions, setJenisSupplierOptions] = useState([]);
 
-    // Fetch jenis supplier parameters on component mount
+    // Convert kategoriOptions from parent to the format needed for SearchableSelect
+    const kategoriSupplierOptions = useMemo(() => {
+        if (kategoriOptions && kategoriOptions.length > 0) {
+            return kategoriOptions.map(item => ({
+                value: item.numericValue || item.value, // Use numeric value for saving
+                label: item.label || item.name
+            }));
+        }
+        // Fallback options
+        return [
+            { value: '1', label: 'Ternak' },
+            { value: '2', label: 'Feedmil' },
+            { value: '3', label: 'Ovk' },
+            { value: '4', label: 'Kulit' },
+            { value: '5', label: 'Lain-lain' }
+        ];
+    }, [kategoriOptions]);
+
+    // Fetch jenis supplier only once on first modal open
     useEffect(() => {
         const loadJenisSupplierData = async () => {
+            // Check if already fetched and stored in ref
+            if (jenisSupplierOptionsRef.current) {
+                setJenisSupplierOptions(jenisSupplierOptionsRef.current);
+                return;
+            }
+            
             setLoadingParameters(true);
             try {
-                const data = await fetchParametersByGroup('jenis_supplier');
-                const options = data.map(item => ({
+                const jenisData = await fetchParametersByGroup('jenis_supplier');
+                const jenisOptions = jenisData.map(item => ({
                     value: item.value,
                     label: item.name
                 }));
-                setJenisSupplierOptions(options);
+                jenisSupplierOptionsRef.current = jenisOptions; // Store in ref
+                setJenisSupplierOptions(jenisOptions);
             } catch (error) {
                 console.error('Error loading jenis supplier data:', error);
                 // Fallback options if API fails
-                setJenisSupplierOptions([
+                const fallbackOptions = [
                     { value: '1', label: 'Perusahaan' },
                     { value: '2', label: 'Perorangan' }
-                ]);
+                ];
+                jenisSupplierOptionsRef.current = fallbackOptions; // Store fallback in ref
+                setJenisSupplierOptions(fallbackOptions);
             } finally {
                 setLoadingParameters(false);
             }
@@ -54,6 +78,8 @@ const AddEditSupplierModal = ({
 
         if (isOpen) {
             loadJenisSupplierData();
+            // Parent already handles kategori loading when modal opens
+            // No need to trigger it here to avoid duplicate fetching
         }
     }, [isOpen, fetchParametersByGroup]);
 
@@ -76,6 +102,10 @@ const AddEditSupplierModal = ({
                     return '2';
                 } else if (kategoriValue === 'Ovk' || kategoriValue === 'OVK' || kategoriValue === '3' || kategoriValue === 3) {
                     return '3';
+                } else if (kategoriValue === 'Kulit' || kategoriValue === 'KULIT' || kategoriValue === '4' || kategoriValue === 4) {
+                    return '4';
+                } else if (kategoriValue === 'Lain-lain' || kategoriValue === 'LAIN-LAIN' || kategoriValue === '5' || kategoriValue === 5) {
+                    return '5';
                 }
                 return kategoriValue; // Keep original value if no conversion needed
             };
@@ -293,22 +323,15 @@ const AddEditSupplierModal = ({
                         <label className="block text-sm font-semibold text-gray-700 mb-2">
                             Kategori Supplier *
                         </label>
-                        <select
-                            name="kategori_supplier"
+                        <SearchableSelect
+                            options={kategoriSupplierOptions}
                             value={formData.kategori_supplier}
-                            onChange={handleChange}
-                            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                                errors.kategori_supplier ? 'border-red-500' : 'border-gray-300'
-                            }`}
-                            disabled={loading}
-                        >
-                            <option value="">Pilih kategori supplier</option>
-                            {kategoriSupplierOptions.map(option => (
-                                <option key={option.value} value={option.value}>
-                                    {option.label}
-                                </option>
-                            ))}
-                        </select>
+                            onChange={(value) => handleSelectChange('kategori_supplier', value)}
+                            placeholder="Pilih kategori supplier"
+                            isLoading={loadingParameters}
+                            isDisabled={loading || loadingParameters}
+                            className={errors.kategori_supplier ? 'border-red-500' : ''}
+                        />
                         {errors.kategori_supplier && (
                             <div className="flex items-center mt-2 text-red-600">
                                 <AlertCircle className="w-4 h-4 mr-1" />

@@ -1,11 +1,11 @@
-// Enhanced table styles optimized for PembelianOVK with perfect UX
-const enhancedOVKTableStyles = {
+// Enhanced table styles optimized for PembelianLainLain with perfect UX
+const enhancedLainLainTableStyles = {
     table: {
         style: {
             backgroundColor: '#fff',
             borderRadius: '0px', // Remove border radius from table itself
             width: '100%',
-            minWidth: '1440px', // Optimized for OVK detail table columns (10 columns)
+            minWidth: '1440px', // Optimized for Lain-Lain detail table columns (10 columns)
             maxWidth: '100%',
             tableLayout: 'fixed',
             borderCollapse: 'separate',
@@ -265,4 +265,4 @@ const customTableStyles = {
 };
 
 export default customTableStyles;
-export { enhancedOVKTableStyles };
+export { enhancedLainLainTableStyles };

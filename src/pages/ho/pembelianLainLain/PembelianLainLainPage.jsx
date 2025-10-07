@@ -88,7 +88,6 @@ const PembelianLainLainPage = () => {
     useEffect(() => {
         // Check if we're returning from an edit page
         if (location.state?.fromEdit) {
-            console.log('🔄 Lain-Lain: Auto-refreshing data after returning from edit page');
             fetchPembelian(serverPagination.currentPage, serverPagination.perPage, searchTerm, filterJenisPembelian, false, true);
             setLastRefreshTime(Date.now());
             
@@ -199,8 +198,25 @@ const PembelianLainLainPage = () => {
             sortable: false,
             width: '60px',
             ignoreRowClick: true,
+            // Add sticky positioning for No column
+            style: {
+                position: 'sticky',
+                left: 0,
+                backgroundColor: '#fff',
+                zIndex: 100,
+                borderRight: '2px solid #e2e8f0',
+                boxShadow: '2px 0 4px rgba(0,0,0,0.05)',
+            },
+            cellStyle: {
+                position: 'sticky',
+                left: 0,
+                backgroundColor: '#fff',
+                zIndex: 100,
+                borderRight: '2px solid #e2e8f0',
+                boxShadow: '2px 0 4px rgba(0,0,0,0.05)',
+            },
             cell: (row, index) => (
-                <div className="flex items-center justify-center w-full h-full font-semibold text-gray-600">
+                <div className="sticky-column-no flex items-center justify-center w-full h-full font-semibold text-gray-600">
                     {(serverPagination.currentPage - 1) * serverPagination.perPage + index + 1}
                 </div>
             )
@@ -208,17 +224,36 @@ const PembelianLainLainPage = () => {
         {
             name: 'Aksi',
             width: '80px',
+            // Add sticky positioning for Aksi column
+            style: {
+                position: 'sticky',
+                left: '60px', // Position after No column (60px width)
+                backgroundColor: '#fff',
+                zIndex: 100,
+                borderRight: '2px solid #e2e8f0',
+                boxShadow: '2px 0 4px rgba(0,0,0,0.05)',
+            },
+            cellStyle: {
+                position: 'sticky',
+                left: '60px', // Position after No column (60px width)
+                backgroundColor: '#fff',
+                zIndex: 100,
+                borderRight: '2px solid #e2e8f0',
+                boxShadow: '2px 0 4px rgba(0,0,0,0.05)',
+            },
             cell: row => (
-                <ActionButton
-                    row={row}
-                    openMenuId={openMenuId}
-                    setOpenMenuId={setOpenMenuId}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                    onDetail={handleDetail}
-                    isActive={openMenuId === (row.id || row.encryptedPid)}
-                    apiEndpoint={API_ENDPOINTS.HO.LAINLAIN.PEMBELIAN}
-                />
+                <div className="sticky-column-aksi">
+                    <ActionButton
+                        row={row}
+                        openMenuId={openMenuId}
+                        setOpenMenuId={setOpenMenuId}
+                        onEdit={handleEdit}
+                        onDelete={handleDelete}
+                        onDetail={handleDetail}
+                        isActive={openMenuId === (row.id || row.encryptedPid)}
+                        apiEndpoint={API_ENDPOINTS.HO.LAINLAIN.PEMBELIAN}
+                    />
+                </div>
             ),
             ignoreRowClick: true,
         },
@@ -542,6 +577,53 @@ const PembelianLainLainPage = () => {
                 
                 .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol span {
                     text-align: center !important;
+                }
+                
+                /* Sticky columns styling for No and Aksi */
+                .rdt_Table .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol:nth-child(1),
+                .rdt_Table .rdt_TableBody .rdt_TableRow .rdt_TableCell:nth-child(1) {
+                    position: sticky !important;
+                    left: 0 !important;
+                    background-color: #fff !important;
+                    z-index: 101 !important;
+                    border-right: 2px solid #e2e8f0 !important;
+                    box-shadow: 2px 0 4px rgba(0,0,0,0.05) !important;
+                }
+                
+                .rdt_Table .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol:nth-child(2),
+                .rdt_Table .rdt_TableBody .rdt_TableRow .rdt_TableCell:nth-child(2) {
+                    position: sticky !important;
+                    left: 60px !important;
+                    background-color: #fff !important;
+                    z-index: 100 !important;
+                    border-right: 2px solid #e2e8f0 !important;
+                    box-shadow: 2px 0 4px rgba(0,0,0,0.05) !important;
+                }
+                
+                /* Ensure sticky headers have higher z-index */
+                .rdt_Table .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol:nth-child(1),
+                .rdt_Table .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol:nth-child(2) {
+                    background-color: #f8fafc !important;
+                    z-index: 1001 !important;
+                }
+                
+                /* Hover effect for sticky columns */
+                .rdt_Table .rdt_TableBody .rdt_TableRow:hover .rdt_TableCell:nth-child(1),
+                .rdt_Table .rdt_TableBody .rdt_TableRow:hover .rdt_TableCell:nth-child(2) {
+                    background-color: #f8fafc !important;
+                }
+                
+                /* Fix for action button dropdown in sticky column */
+                .sticky-column-aksi {
+                    position: relative;
+                    z-index: 102;
+                }
+                
+                /* Ensure sticky columns are visible during scroll */
+                .rdt_TableWrapper {
+                    position: relative;
+                    overflow-x: auto;
+                    overflow-y: visible;
                 }
             `}</style>
             <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-2 sm:p-4 md:p-6">

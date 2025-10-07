@@ -150,13 +150,23 @@ const usePembelianLainLain = () => {
                     if (key === 'file') {
                         requestData.append('file', pembelianData.file);
                     } else if (key === 'details') {
-                        // Ensure details have correct field names
-                        const details = (pembelianData.details || []).map(detail => ({
-                            ...detail,
-                            id_klasifikasi_lainlain: detail.id_klasifikasi_lainlain || detail.id_klasifikasi_ovk || null,
-                            item_name: detail.item_name || null // Ensure item_name is included
-                        }));
-                        requestData.append('details', JSON.stringify(details));
+                        // Ensure details have proper field mapping for backend
+                        const enhancedDetails = pembelianData.details.map(detail => {
+                            console.log('📤 Processing detail for FormData:', detail);
+                            
+                            return {
+                                ...detail,
+                                // Ensure numeric IDs are properly included
+                                id_item: detail.id_item || null,
+                                id_klasifikasi_lainlain: detail.id_klasifikasi_lainlain || null,
+                                // Include OVK field names for backward compatibility
+                                id_klasifikasi_ovk: detail.id_klasifikasi_lainlain,
+                                nama_klasifikasi_ovk: detail.nama_klasifikasi_lainlain
+                            };
+                        });
+                        
+                        console.log('📦 Enhanced details for backend:', enhancedDetails);
+                        requestData.append('details', JSON.stringify(enhancedDetails));
                     } else {
                         requestData.append(key, pembelianData[key]);
                     }
@@ -164,16 +174,26 @@ const usePembelianLainLain = () => {
                 
             } else {
                 // No file upload, use regular JSON format
-                // Ensure details have correct field names
-                const details = (pembelianData.details || []).map(detail => ({
-                    ...detail,
-                    id_klasifikasi_lainlain: detail.id_klasifikasi_lainlain || detail.id_klasifikasi_ovk || null,
-                    item_name: detail.item_name || null // Ensure item_name is included
-                }));
+                // Enhance details with proper field mapping for backend
+                const enhancedDetails = pembelianData.details.map(detail => {
+                    console.log('📤 Processing detail for JSON:', detail);
+                    
+                    return {
+                        ...detail,
+                        // Ensure numeric IDs are properly included
+                        id_item: detail.id_item || null,
+                        id_klasifikasi_lainlain: detail.id_klasifikasi_lainlain || null,
+                        // Include OVK field names for backward compatibility
+                        id_klasifikasi_ovk: detail.id_klasifikasi_lainlain,
+                        nama_klasifikasi_ovk: detail.nama_klasifikasi_lainlain
+                    };
+                });
+                
+                console.log('📦 Enhanced details for backend:', enhancedDetails);
                 
                 requestData = {
                     ...pembelianData,
-                    details: details
+                    details: enhancedDetails
                 };
                 
                 // Remove file field if null to avoid validation issues
@@ -252,13 +272,23 @@ const usePembelianLainLain = () => {
                     if (key === 'file') {
                         requestData.append('file', data.file);
                     } else if (key === 'details') {
-                        // Ensure details have correct field names
-                        const details = (data.details || []).map(detail => ({
-                            ...detail,
-                            id_klasifikasi_lainlain: detail.id_klasifikasi_lainlain || detail.id_klasifikasi_ovk || null,
-                            item_name: detail.item_name || null // Ensure item_name is included
-                        }));
-                        requestData.append('details', JSON.stringify(details));
+                        // Ensure details have proper field mapping for backend
+                        const enhancedDetails = data.details.map(detail => {
+                            console.log('📤 [UPDATE] Processing detail for FormData:', detail);
+                            
+                            return {
+                                ...detail,
+                                // Ensure numeric IDs are properly included
+                                id_item: detail.id_item || null,
+                                id_klasifikasi_lainlain: detail.id_klasifikasi_lainlain || null,
+                                // Include OVK field names for backward compatibility
+                                id_klasifikasi_ovk: detail.id_klasifikasi_lainlain,
+                                nama_klasifikasi_ovk: detail.nama_klasifikasi_lainlain
+                            };
+                        });
+                        
+                        console.log('📦 [UPDATE] Enhanced details for backend:', enhancedDetails);
+                        requestData.append('details', JSON.stringify(enhancedDetails));
                     } else {
                         requestData.append(key, data[key]);
                     }
@@ -266,16 +296,26 @@ const usePembelianLainLain = () => {
                 
             } else {
                 // No file upload, use regular JSON format
-                // Ensure details have correct field names
-                const details = (data.details || []).map(detail => ({
-                    ...detail,
-                    id_klasifikasi_lainlain: detail.id_klasifikasi_lainlain || detail.id_klasifikasi_ovk || null,
-                    item_name: detail.item_name || null // Ensure item_name is included
-                }));
+                // Enhance details with proper field mapping for backend
+                const enhancedDetails = data.details.map(detail => {
+                    console.log('📤 [UPDATE] Processing detail for JSON:', detail);
+                    
+                    return {
+                        ...detail,
+                        // Ensure numeric IDs are properly included
+                        id_item: detail.id_item || null,
+                        id_klasifikasi_lainlain: detail.id_klasifikasi_lainlain || null,
+                        // Include OVK field names for backward compatibility
+                        id_klasifikasi_ovk: detail.id_klasifikasi_lainlain,
+                        nama_klasifikasi_ovk: detail.nama_klasifikasi_lainlain
+                    };
+                });
+                
+                console.log('📦 [UPDATE] Enhanced details for backend:', enhancedDetails);
                 
                 requestData = {
                     ...data,
-                    details: details
+                    details: enhancedDetails
                 };
                 
                 // Remove file field if null to avoid validation issues
