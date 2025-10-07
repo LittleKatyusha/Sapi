@@ -7,6 +7,8 @@ import useBanksAPI from '../pembelianFeedmil/hooks/useBanksAPI';
 import enhancedLainLainTableStyles from './constants/tableStyles';
 import DataTable from 'react-data-table-component';
 import { StyleSheetManager } from 'styled-components';
+import ViewDetailModal from './modals/ViewDetailModal';
+import DetailActionButton from './components/DetailActionButton';
 
 // Custom function to filter out invalid props that shouldn't be passed to DOM
 const shouldForwardProp = (prop) => {
@@ -53,6 +55,9 @@ const PembelianLainLainDetailPage = () => {
     const [detailData, setDetailData] = useState([]);
     const [notification, setNotification] = useState(null);
     const [scrollPosition, setScrollPosition] = useState({ canScrollLeft: false, canScrollRight: false });
+    const [showDetailModal, setShowDetailModal] = useState(false);
+    const [selectedDetailItem, setSelectedDetailItem] = useState(null);
+    const [openMenuId, setOpenMenuId] = useState(null);
     
     // Pagination state
     const [pagination, setPagination] = useState({
@@ -109,6 +114,19 @@ const PembelianLainLainDetailPage = () => {
             minimumFractionDigits: 0,
             maximumFractionDigits: 0
         }).format(amount) : 'Rp 0';
+    };
+
+    // Helper function for number formatting
+    const formatNumber = (value) => {
+        if (!value && value !== 0) return '';
+        return new Intl.NumberFormat('id-ID').format(value);
+    };
+
+    // Handle view detail
+    const handleViewDetail = (row) => {
+        setSelectedDetailItem(row);
+        setShowDetailModal(true);
+        setOpenMenuId(null);
     };
 
     // Helper function for row number calculation
@@ -216,7 +234,9 @@ const PembelianLainLainDetailPage = () => {
                             hpp: parseFloat(item.hpp) || 0,
                             total_harga: parseFloat(item.total_harga) || 0,
                             status: item.status || 1,
-                            tgl_masuk_rph: item.tgl_masuk_rph || null
+                            tgl_masuk_rph: item.tgl_masuk_rph || null,
+                            peruntukan: item.peruntukan || '',
+                            keterangan: item.keterangan || ''
                         }));
 
                         setDetailData(transformedDetailItems);
@@ -306,6 +326,21 @@ const PembelianLainLainDetailPage = () => {
                 <div className="font-semibold text-gray-600 w-full flex items-center justify-center">
                     {getRowNumber(index)}
                 </div>
+            )
+        },
+        {
+            name: 'Aksi',
+            minWidth: '80px',
+            maxWidth: '100px',
+            center: true,
+            ignoreRowClick: true,
+            cell: (row) => (
+                <DetailActionButton
+                    row={row}
+                    openMenuId={openMenuId}
+                    setOpenMenuId={setOpenMenuId}
+                    onDetail={handleViewDetail}
+                />
             )
         },
         {
@@ -815,8 +850,17 @@ const PembelianLainLainDetailPage = () => {
                                                 borderRight: '2px solid #e5e7eb',
                                                 boxShadow: '1px 0 2px rgba(0, 0, 0, 0.05)',
                                             },
-                                            // Override untuk menghapus sticky pada kolom kedua (Nama Item) di detail page
+                                            // Keep second column (Aksi) sticky next to No
                                             '&:nth-child(2)': {
+                                                position: 'sticky',
+                                                left: '80px', // Width of No column
+                                                zIndex: 1001,
+                                                backgroundColor: '#f8fafc',
+                                                borderRight: '2px solid #e5e7eb',
+                                                boxShadow: '1px 0 2px rgba(0, 0, 0, 0.05)',
+                                            },
+                                            // Override untuk kolom ketiga (Nama Item) di detail page
+                                            '&:nth-child(3)': {
                                                 position: 'static',
                                                 left: 'auto',
                                                 zIndex: 'auto',
@@ -854,8 +898,20 @@ const PembelianLainLainDetailPage = () => {
                                                 alignItems: 'center !important',
                                                 justifyContent: 'center !important',
                                             },
-                                            // Override untuk menghapus sticky pada kolom kedua (Nama Item) di detail page
+                                            // Keep second column (Aksi) sticky
                                             '&:nth-child(2)': {
+                                                position: 'sticky',
+                                                left: '80px', // Width of No column
+                                                zIndex: 999,
+                                                backgroundColor: '#ffffff !important',
+                                                borderRight: '2px solid #e5e7eb',
+                                                boxShadow: '1px 0 2px rgba(0, 0, 0, 0.05)',
+                                                display: 'flex !important',
+                                                alignItems: 'center !important',
+                                                justifyContent: 'center !important',
+                                            },
+                                            // Override untuk kolom ketiga (Nama Item) di detail page
+                                            '&:nth-child(3)': {
                                                 position: 'static',
                                                 left: 'auto',
                                                 zIndex: 'auto',
@@ -1004,6 +1060,17 @@ const PembelianLainLainDetailPage = () => {
                         <p className="text-sm font-medium">{notification.message}</p>
                     </div>
                 )}
+
+                {/* View Detail Modal */}
+                <ViewDetailModal
+                    isOpen={showDetailModal}
+                    onClose={() => {
+                        setShowDetailModal(false);
+                        setSelectedDetailItem(null);
+                    }}
+                    detailItem={selectedDetailItem}
+                    formatNumber={formatNumber}
+                />
             </div>
         </div>
         </>
