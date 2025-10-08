@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, Plus, Trash2, Edit2, Building2, User, Calendar, Truck, Hash, Package, X, Settings, AlertCircle, Weight, DollarSign, Upload, FileText } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Trash2, Edit2, Building2, User, Calendar, Truck, Hash, Package, X, AlertCircle, Weight, DollarSign, Upload, FileText } from 'lucide-react';
 import usePembelianLainLain from './hooks/usePembelianLainLain';
 import useParameterSelect from '../pembelian/hooks/useParameterSelect';
 import useJenisPembelianLainLain from './hooks/useJenisPembelianLainLain';
@@ -134,16 +134,6 @@ const AddEditPembelianLainLainPage = () => {
     const [editingDetailItem, setEditingDetailItem] = useState(null);
     const [isDetailModalSubmitting, setIsDetailModalSubmitting] = useState(false);
     const [savingDetailId, setSavingDetailId] = useState(null); // Track which detail is being saved
-
-    // Default data untuk batch operations
-    const [defaultData, setDefaultData] = useState({
-        item_name: '',
-        id_klasifikasi_lainlain: null,
-        berat: '',
-        harga: '',
-        persentase: ''
-    });
-    const [batchCount, setBatchCount] = useState('');
 
 
     // Helper functions for number formatting
@@ -527,61 +517,6 @@ const AddEditPembelianLainLainPage = () => {
         }
     };
 
-    // Add multiple detail items (batch)
-    const addBatchDetailItems = () => {
-        if (!batchCount || batchCount < 1) {
-            setNotification({
-                type: 'error',
-                message: 'Jumlah batch minimal 1 item'
-            });
-            return;
-        }
-
-        const newItems = [];
-        for (let i = 0; i < (batchCount || 0); i++) {
-            // Get klasifikasi name if selected
-            const klasifikasiName = (() => {
-                if (defaultData.id_klasifikasi_lainlain) {
-                    const klasifikasi = klasifikasiLainLainOptions.find(k =>
-                        k.value === defaultData.id_klasifikasi_lainlain ||
-                        k.value === String(defaultData.id_klasifikasi_lainlain)
-                    );
-                    return klasifikasi ? klasifikasi.label : null;
-                }
-                return null;
-            })();
-            
-            newItems.push({
-                id: Date.now() + i,
-                pubid: '',
-                id_pembelian: '',
-                idPembelian: '',
-                encryptedPid: '',
-                pubidDetail: '',
-                id_office: parseInt(headerData.idOffice) || 1, // Ensure integer
-                item_name: defaultData.item_name_display || defaultData.item_name || '',
-                item_name_id: defaultData.item_name || null,
-                // Use numeric ID for batch items
-                id_klasifikasi_lainlain: defaultData.id_klasifikasi_lainlain ? parseInt(defaultData.id_klasifikasi_lainlain) : null,
-                nama_klasifikasi_lainlain: klasifikasiName, // Add klasifikasi name
-                berat: parseFloat(defaultData.berat) || 0, // Parse as float with 0 fallback
-                harga: parseFloat(defaultData.harga) || 0, // Parse as float with 0 fallback
-                persentase: defaultData.persentase || 0, // Keep original format for display
-                hpp: 0, // Initialize with 0
-                total_harga: 0, // Initialize with 0
-                peruntukan: '',
-                catatan: '',
-                keterangan: '' // Add keterangan field for backend compatibility
-            });
-        }
-        setDetailItems(prev => [...prev, ...newItems]);
-        
-        // Show success notification
-        setNotification({
-            type: 'success',
-            message: `Berhasil menambahkan ${batchCount || 0} item dengan data default`
-        });
-    };
 
     // Remove detail item - enhanced for edit mode (like Feedmil)
     const removeDetailItem = async (itemId) => {
@@ -943,23 +878,6 @@ const AddEditPembelianLainLainPage = () => {
         }
     };
 
-    // Handle default data changes
-    const handleDefaultDataChange = (field, value) => {
-        if (field === 'item_name') {
-            // Find the display name for the selected item
-            const selectedItem = itemLainLainOptions.find(item => item.value === value);
-            setDefaultData(prev => ({
-                ...prev,
-                item_name: value,
-                item_name_display: selectedItem ? selectedItem.label : ''
-            }));
-        } else {
-            setDefaultData(prev => ({
-                ...prev,
-                [field]: value
-            }));
-        }
-    };
 
     // Handle file upload - sesuai dengan validasi backend (max 2MB, jpg,jpeg,png,pdf)
     const handleFileUpload = (file) => {
@@ -1589,7 +1507,7 @@ const AddEditPembelianLainLainPage = () => {
                         <div>
                             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                                 <Weight className="w-4 h-4" />
-                                Jumlah Total (Kg)
+                                Jumlah Total
                             </label>
                             <input
                                 type="number"
@@ -1820,131 +1738,6 @@ const AddEditPembelianLainLainPage = () => {
                     </div>
                 </div>
 
-                {/* Default Data & Batch Add */}
-                <div className="bg-white rounded-none sm:rounded-none p-4 sm:p-6 shadow-xl border border-gray-100">
-                    <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                        <Settings className="w-6 h-6 text-orange-600" />
-                        Data Default & Batch Add
-                    </h2>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6 mb-6">
-                        {/* Nama Item Default */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Nama Item Default
-                            </label>
-                            <SearchableSelect
-                                value={defaultData.item_name}
-                                onChange={(value) => handleDefaultDataChange('item_name', value)}
-                                options={itemLainLainOptions}
-                                placeholder={itemLainLainLoading ? 'Loading items...' : itemLainLainError ? 'Error loading items' : 'Pilih Item Lain-Lain'}
-                                isLoading={itemLainLainLoading}
-                                isDisabled={itemLainLainLoading || itemLainLainError}
-                                className="w-full"
-                            />
-                            {itemLainLainError && (
-                                <p className="text-xs text-red-500 mt-1">
-                                    ⚠️ Error loading items: {itemLainLainError}
-                                </p>
-                            )}
-                        </div>
-
-                        {/* Klasifikasi Lain-Lain Default */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Klasifikasi Lain-Lain Default
-                            </label>
-                            <SearchableSelect
-                                value={defaultData.id_klasifikasi_lainlain}
-                                onChange={(value) => handleDefaultDataChange('id_klasifikasi_lainlain', value)}
-                                options={klasifikasiLainLainOptions}
-                                placeholder={klasifikasiLoading ? "Loading..." : "Pilih Klasifikasi Lain-Lain"}
-                                className="w-full"
-                                disabled={klasifikasiLoading}
-                            />
-                            {klasifikasiLoading && (
-                                <p className="text-xs text-blue-600 mt-1">🔄 Memuat klasifikasi lain-lain...</p>
-                            )}
-                            {klasifikasiError && (
-                                <p className="text-xs text-red-600 mt-1">❌ Error: {klasifikasiError}</p>
-                            )}
-                        </div>
-
-                        {/* Berat Default */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Berat Default (kg)
-                            </label>
-                            <input
-                                type="number"
-                                value={defaultData.berat}
-                                onChange={(e) => handleDefaultDataChange('berat', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                                placeholder="5"
-                                min="0"
-                                step="0.1"
-                            />
-                        </div>
-
-                        {/* Harga Default */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Harga Default (Rp)
-                            </label>
-                            <input
-                                type="text"
-                                value={formatNumber(defaultData.harga)}
-                                onChange={(e) => handleDefaultDataChange('harga', parseNumber(e.target.value))}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                                placeholder="50000"
-                            />
-                        </div>
-
-                        {/* Persentase Default */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Persentase Default (%)
-                            </label>
-                            <input
-                                type="text"
-                                value={defaultData.persentase || ''}
-                                onChange={(e) => handleDefaultDataChange('persentase', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                                placeholder="15,5"
-                            />
-                        </div>
-                    </div>
-
-                    {/* Batch Add Section */}
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-lg border border-orange-200">
-                        <div className="flex items-center gap-2">
-                            <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
-                                Jumlah Batch:
-                            </label>
-                            <input
-                                type="text"
-                                value={formatNumber(batchCount)}
-                                onChange={(e) => setBatchCount(parseNumber(e.target.value) || '')}
-                                className="w-20 px-2 py-1 border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                            />
-                        </div>
-                        
-                        <button
-                            onClick={addBatchDetailItems}
-                            className="bg-gradient-to-r from-orange-500 to-amber-600 text-white px-4 py-2 rounded-lg hover:from-orange-600 hover:to-amber-700 transition-all duration-300 flex items-center gap-2 text-sm font-medium shadow-md hover:shadow-lg"
-                        >
-                            <Plus className="w-4 h-4" />
-                            Tambah {batchCount || 0} Item Batch
-                        </button>
-
-                        {/* Info Text */}
-                        <div className="text-xs text-gray-600 ml-auto">
-                            <p>💡 Isi data default untuk mempercepat input batch</p>
-                            <p>📝 Item baru akan menggunakan data default ini</p>
-                        </div>
-                    </div>
-                </div>
-
                 {/* Detail Items Table */}
                 <div className="bg-white rounded-none sm:rounded-none p-4 sm:p-6 shadow-xl border border-gray-100">
                     <div className="flex items-center justify-between mb-6">
@@ -1976,7 +1769,7 @@ const AddEditPembelianLainLainPage = () => {
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 w-12">No</th>
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[180px]">Nama Item</th>
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[120px]">Klasifikasi Lain-Lain</th>
-                                        <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 w-24">Berat (kg)</th>
+                                        <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 w-24"> Jumlah Total </th>
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[120px]">Harga (Rp)</th>
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[120px]">Total Harga (Rp)</th>
                                         <th className="p-2 sm:p-3 text-center text-xs sm:text-sm font-semibold text-blue-800 w-28">Aksi</th>

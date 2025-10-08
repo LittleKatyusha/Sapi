@@ -380,7 +380,7 @@ const PembelianLainLainDetailPage = () => {
             }
         },
         {
-            name: 'Berat (kg)',
+            name: 'Jumlah Total',
             selector: row => row.berat,
             sortable: true,
             width: '130px',
