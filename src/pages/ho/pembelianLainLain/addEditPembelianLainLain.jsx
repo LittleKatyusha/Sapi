@@ -480,15 +480,10 @@ const AddEditPembelianLainLainPage = () => {
                 // Edit existing item
                 if (isEdit) {
                     // In edit mode, call API to save the detail item
-                    try {
-                        // Call saveDetailItem which will handle the API call
-                        await saveDetailItem(editingDetailItem.id, formattedItemData);
-                        // No need to close modal here, saveDetailItem will handle it if successful
-                        return; // Exit early as saveDetailItem handles everything
-                    } catch (error) {
-                        // Error is already handled in saveDetailItem
-                        throw error;
-                    }
+                    // saveDetailItem will handle everything including modal close and notifications
+                    await saveDetailItem(editingDetailItem.id, formattedItemData);
+                    // Return early - saveDetailItem handles everything
+                    return;
                 } else {
                     // In add mode, update local state
                     setDetailItems(prev => prev.map(item =>
@@ -496,9 +491,15 @@ const AddEditPembelianLainLainPage = () => {
                             ? { ...item, ...formattedItemData }
                             : item
                     ));
+                    // Close modal and show notification for add mode edit
+                    closeDetailModal();
+                    setNotification({
+                        type: 'success',
+                        message: 'Detail item berhasil diperbarui'
+                    });
                 }
             } else {
-                // Add new item
+                // Add new item (in both add and edit modes when adding new detail)
                 const newItem = {
                     id: Date.now(),
                     pubid: '',
@@ -509,13 +510,13 @@ const AddEditPembelianLainLainPage = () => {
                     ...formattedItemData
                 };
                 setDetailItems(prev => [...prev, newItem]);
+                // Close modal and show notification for new item
+                closeDetailModal();
+                setNotification({
+                    type: 'success',
+                    message: 'Detail item berhasil ditambahkan'
+                });
             }
-            
-            closeDetailModal();
-            setNotification({
-                type: 'success',
-                message: editingDetailItem ? 'Detail item berhasil diperbarui' : 'Detail item berhasil ditambahkan'
-            });
         } catch (error) {
             setNotification({
                 type: 'error',
@@ -1084,14 +1085,6 @@ const AddEditPembelianLainLainPage = () => {
             errors.push('Syarat Pembelian harus dipilih');
         }
 
-        if (!headerData.nota_ho || !headerData.nota_ho.trim()) {
-            errors.push('Nomor Nota CV. Puput Bersaudara harus diisi');
-        }
-        
-        // Add max length validation for nota_ho (50 chars)
-        if (headerData.nota_ho && headerData.nota_ho.length > 50) {
-            errors.push('Nomor Nota CV. Puput Bersaudara maksimal 50 karakter');
-        }
 
         if (!headerData.tgl_masuk) {
             errors.push('Tanggal masuk harus diisi');
@@ -1425,20 +1418,6 @@ const AddEditPembelianLainLainPage = () => {
                             />
                         </div>
 
-                        {/* Nomor Nota CV. Puput Bersaudara */}
-                        <div>
-                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <Hash className="w-4 h-4" />
-                                Nomor Nota CV. Puput Bersaudara
-                            </label>
-                            <input
-                                type="text"
-                                value={headerData.nota_ho}
-                                onChange={(e) => handleHeaderChange('nota_ho', e.target.value)}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                placeholder="Masukkan nomor nota CV"
-                            />
-                        </div>
 
                         {/* Office */}
                         <div>
@@ -1606,11 +1585,11 @@ const AddEditPembelianLainLainPage = () => {
                             </p>
                         </div>
 
-                        {/* Berat Total */}
+                        {/* Jumlah Total */}
                         <div>
                             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                                 <Weight className="w-4 h-4" />
-                                Berat Total (Kg)
+                                Jumlah Total (Kg)
                             </label>
                             <input
                                 type="number"
@@ -1622,7 +1601,7 @@ const AddEditPembelianLainLainPage = () => {
                                 step="0.1"
                             />
                             <p className="text-xs text-blue-600 mt-1">
-                                💡 Total berat semua item Lain-Lain dalam pembelian ini
+                                💡 Jumlah total semua item Lain-Lain dalam pembelian ini
                             </p>
                         </div>
 
@@ -1644,11 +1623,11 @@ const AddEditPembelianLainLainPage = () => {
                             </p>
                         </div>
 
-                        {/* Jumlah Item */}
+                        {/* Jumlah PerJenis */}
                         <div>
                             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                                 <Hash className="w-4 h-4" />
-                                Jumlah Item
+                                Jumlah PerJenis
                             </label>
                             <input
                                 type="number"
@@ -1659,7 +1638,7 @@ const AddEditPembelianLainLainPage = () => {
                                 min="0"
                             />
                             <p className="text-xs text-gray-500 mt-1">
-                                💡 Jumlah item dalam pembelian
+                                💡 Jumlah item per jenis dalam pembelian
                             </p>
                         </div>
 
@@ -1999,8 +1978,6 @@ const AddEditPembelianLainLainPage = () => {
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[120px]">Klasifikasi Lain-Lain</th>
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 w-24">Berat (kg)</th>
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[120px]">Harga (Rp)</th>
-                                        <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 w-20">Persentase (%)</th>
-                                        <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[120px]">HPP (Rp)</th>
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[120px]">Total Harga (Rp)</th>
                                         <th className="p-2 sm:p-3 text-center text-xs sm:text-sm font-semibold text-blue-800 w-28">Aksi</th>
                                     </tr>
@@ -2062,20 +2039,6 @@ const AddEditPembelianLainLainPage = () => {
                                                     </div>
                                                 </td>
                                                 
-                                                {/* Persentase - Read Only */}
-                                                <td className="p-2 sm:p-3">
-                                                    <div className="text-xs sm:text-sm text-gray-900">
-                                                        {item.persentase || '-'}
-                                                    </div>
-                                                </td>
-                                                
-                                                {/* HPP (calculated) - Read Only */}
-                                                <td className="p-2 sm:p-3">
-                                                    <div className="text-xs sm:text-sm text-gray-900 font-medium">
-                                                        {formatNumber(hpp)}
-                                                    </div>
-                                                </td>
-                                                
                                                 {/* Total Harga (calculated) - Read Only */}
                                                 <td className="p-2 sm:p-3">
                                                     <div className="text-xs sm:text-sm text-blue-900 font-semibold">
@@ -2126,18 +2089,14 @@ const AddEditPembelianLainLainPage = () => {
                     {detailItems.length > 0 && (
                         <div className="mt-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-200">
                             <h3 className="text-lg font-semibold text-blue-800 mb-3">Total Keseluruhan</h3>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4 sm:gap-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 sm:gap-6">
                                 <div className="text-center">
                                     <p className="text-sm text-blue-600">Total Items</p>
                                     <p className="text-xl font-bold text-blue-800">{totals.totalJumlah} items</p>
                                 </div>
                                 <div className="text-center">
-                                    <p className="text-sm text-blue-600">Total Berat</p>
+                                    <p className="text-sm text-blue-600">Jumlah Total</p>
                                     <p className="text-xl font-bold text-blue-800">{totals.totalBerat.toFixed(1)} kg</p>
-                                </div>
-                                <div className="text-center">
-                                    <p className="text-sm text-blue-600">Total HPP</p>
-                                    <p className="text-xl font-bold text-blue-800">Rp {formatNumber(totals.totalHPP)}</p>
                                 </div>
                                 <div className="text-center">
                                     <p className="text-sm text-green-600">Total Harga Items</p>

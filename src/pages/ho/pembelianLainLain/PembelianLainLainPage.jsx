@@ -286,18 +286,6 @@ const PembelianLainLainPage = () => {
             )
         },
         {
-            name: 'Nota HO',
-            selector: row => row.nota_ho,
-            sortable: true,
-            width: '150px',
-            wrap: true,
-            cell: row => (
-                <span className="font-mono text-sm bg-gray-100 px-3 py-1.5 rounded-lg" title={row.nota_ho}>
-                    {row.nota_ho || '-'}
-                </span>
-            )
-        },
-        {
             name: 'Tanggal Masuk',
             selector: row => row.tgl_masuk,
             sortable: true,
@@ -344,10 +332,10 @@ const PembelianLainLainPage = () => {
             )
         },
         {
-            name: 'Jumlah',
+            name: 'Jumlah PerJenis',
             selector: row => row.jumlah,
             sortable: true,
-            width: '100px',
+            width: '130px',
             wrap: true,
             cell: row => (
                 <div className="flex items-center justify-center w-full h-full min-h-[40px]">
@@ -416,7 +404,7 @@ const PembelianLainLainPage = () => {
             )
         },
         {
-            name: 'Berat Total',
+            name: 'Jumlah Total',
             selector: row => row.berat_total,
             sortable: true,
             width: '140px',

@@ -25,7 +25,6 @@ const AddEditDetailModal = ({
         id_klasifikasi_lainlain: null,
         berat: '',
         harga: '',
-        persentase: '',
         peruntukan: '',
         catatan: ''
     });
@@ -53,7 +52,6 @@ const AddEditDetailModal = ({
                 id_klasifikasi_lainlain: editingItem.id_klasifikasi_lainlain || null,
                 berat: editingItem.berat || '',
                 harga: editingItem.harga || '',
-                persentase: editingItem.persentase || '',
                 peruntukan: editingItem.peruntukan || '',
                 catatan: editingItem.catatan || editingItem.keterangan || '' // Handle both field names
             });
@@ -64,7 +62,6 @@ const AddEditDetailModal = ({
                 id_klasifikasi_lainlain: null,
                 berat: '',
                 harga: '',
-                persentase: '',
                 peruntukan: '',
                 catatan: ''
             });
@@ -75,14 +72,12 @@ const AddEditDetailModal = ({
 
     const calculations = useMemo(() => {
         const harga = parseFloat(formData.harga) || 0;
-        const persentase = getParsedPersentase(formData.persentase);
         const berat = parseFloat(formData.berat) || 0;
         
-        const hpp = harga && persentase ? harga + (harga * persentase / 100) : harga;
-        const totalHarga = hpp * berat;
+        const totalHarga = harga * berat;
         
-        return { hpp, totalHarga };
-    }, [formData.harga, formData.persentase, formData.berat, getParsedPersentase]);
+        return { totalHarga };
+    }, [formData.harga, formData.berat]);
 
     const validateField = (name, value) => {
         switch (name) {
@@ -100,12 +95,6 @@ const AddEditDetailModal = ({
                     if (isNaN(hargaNum) || hargaNum < 0) return 'Harga tidak boleh negatif';
                 }
                 return ''; // Allow empty/null
-            case 'persentase':
-                if (value !== null && value !== undefined && value !== '') {
-                    const persentaseNum = getParsedPersentase(value);
-                    if (isNaN(persentaseNum) || persentaseNum < 0) return 'Persentase tidak boleh negatif';
-                }
-                return ''; // Allow empty/null
             default:
                 return '';
         }
@@ -117,7 +106,6 @@ const AddEditDetailModal = ({
         // Only validate if values are provided
         if (formData.berat) newErrors.berat = validateField('berat', formData.berat);
         if (formData.harga) newErrors.harga = validateField('harga', formData.harga);
-        if (formData.persentase) newErrors.persentase = validateField('persentase', formData.persentase);
         
         setErrors(newErrors);
         return !Object.values(newErrors).some(error => error);
@@ -160,8 +148,7 @@ const AddEditDetailModal = ({
         setTouched({
             item_name_id: true,
             berat: true,
-            harga: true,
-            persentase: true
+            harga: true
         });
         
         if (!validateForm()) {
@@ -184,8 +171,6 @@ const AddEditDetailModal = ({
             id_klasifikasi_lainlain: parseIdValue(formData.id_klasifikasi_lainlain),
             berat: parseFloat(formData.berat) || 0,
             harga: parseFloat(formData.harga) || 0,
-            persentase: formData.persentase || '',
-            hpp: calculations.hpp,
             total_harga: calculations.totalHarga,
             peruntukan: formData.peruntukan || '',
             catatan: formData.catatan || '', // Keep as catatan for internal use
@@ -318,28 +303,8 @@ const AddEditDetailModal = ({
                                     <p className="text-xs text-red-600 mt-1">⚠️ {errors.harga}</p>
                                 )}
                             </div>
-
-                            <div className="md:col-span-2">
-                                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                    <TrendingUp className="w-4 h-4" />
-                                    Persentase (%) *
-                                </label>
-                                <input
-                                    type="text"
-                                    value={formData.persentase}
-                                    onChange={(e) => handleChange('persentase', e.target.value)}
-                                    onBlur={() => handleBlur('persentase')}
-                                    disabled={isSubmitting}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 disabled:bg-gray-100"
-                                    placeholder="15,5"
-                                />
-                                {touched.persentase && errors.persentase && (
-                                    <p className="text-xs text-red-600 mt-1">⚠️ {errors.persentase}</p>
-                                )}
-                                <p className="text-xs text-gray-500 mt-1">💡 Gunakan koma untuk desimal (contoh: 15,5)</p>
-                            </div>
-
-                            <div>
+    
+                                <div>
                                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                                     <FileText className="w-4 h-4" />
                                     Peruntukan
@@ -373,11 +338,7 @@ const AddEditDetailModal = ({
 
                             <div className="md:col-span-2 mt-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
                                 <h4 className="text-sm font-semibold text-blue-800 mb-3">📊 Perhitungan Otomatis</h4>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <p className="text-xs text-blue-600 mb-1">HPP (Harga Pokok Penjualan)</p>
-                                        <p className="text-lg font-bold text-blue-900">Rp {formatNumber(calculations.hpp)}</p>
-                                    </div>
+                                <div className="grid grid-cols-1 gap-4">
                                     <div>
                                         <p className="text-xs text-green-600 mb-1">Total Harga</p>
                                         <p className="text-lg font-bold text-green-900">Rp {formatNumber(calculations.totalHarga)}</p>

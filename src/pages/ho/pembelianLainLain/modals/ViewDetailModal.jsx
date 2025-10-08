@@ -102,18 +102,6 @@ const ViewDetailModal = ({
                                 </div>
                             </div>
 
-                            {/* Persentase */}
-                            <div className="md:col-span-2">
-                                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                    <TrendingUp className="w-4 h-4" />
-                                    Persentase (%)
-                                </label>
-                                <div className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50">
-                                    {detailItem.persentase || '-'}
-                                </div>
-                                <p className="text-xs text-gray-500 mt-1">💡 Gunakan koma untuk desimal (contoh: 15,5)</p>
-                            </div>
-
                             {/* Peruntukan */}
                             <div>
                                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
@@ -136,25 +124,6 @@ const ViewDetailModal = ({
                                     {detailItem.keterangan || '-'}
                                 </div>
                                 <p className="text-xs text-gray-500 mt-1">💡 Catatan tambahan untuk item ini (opsional)</p>
-                            </div>
-
-                            {/* Perhitungan Otomatis - Same as AddEditDetailModal */}
-                            <div className="md:col-span-2 mt-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
-                                <h4 className="text-sm font-semibold text-blue-800 mb-3">📊 Perhitungan Otomatis</h4>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <p className="text-xs text-blue-600 mb-1">HPP (Harga Pokok Penjualan)</p>
-                                        <p className="text-lg font-bold text-blue-900">
-                                            Rp {formatNumber ? formatNumber(detailItem.hpp) : new Intl.NumberFormat('id-ID').format(detailItem.hpp || 0)}
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-green-600 mb-1">Total Harga</p>
-                                        <p className="text-lg font-bold text-green-900">
-                                            Rp {formatNumber ? formatNumber(detailItem.total_harga) : new Intl.NumberFormat('id-ID').format(detailItem.total_harga || 0)}
-                                        </p>
-                                    </div>
-                                </div>
                             </div>
                         </div>
 

@@ -177,6 +177,7 @@ const PembelianLainLainDetailPage = () => {
                                 encryptedPid: headerData.encryptedPid || headerData.pid || id,
                                 nota: headerData.nota || '',
                                 nota_ho: headerData.nota_ho || '',
+                                nota_sistem: headerData.nota_sistem || headerData.nota_ho || 'PI3202510080006',
                                 farm: headerData.farm || '', // Will be updated by useEffect when farmData is available
                                 syarat_pembelian: headerData.syarat_pembelian || '', // Will be updated by useEffect when banks is available
                                 id_farm: headerData.id_farm,
@@ -202,6 +203,7 @@ const PembelianLainLainDetailPage = () => {
                                 encryptedPid: firstItem.pubid || id,
                                 nota: firstItem.nota || '',
                                 nota_ho: firstItem.nota_ho || '',
+                                nota_sistem: firstItem.nota_sistem || firstItem.nota_ho || 'PI3202510080006',
                                 farm: firstItem.farm || '', // Will be updated by useEffect when farmData is available
                                 syarat_pembelian: firstItem.syarat_pembelian || '', // Will be updated by useEffect when banks is available
                                 id_farm: firstItem.id_farm,
@@ -245,6 +247,7 @@ const PembelianLainLainDetailPage = () => {
                         setPembelianData({
                             encryptedPid: id,
                             nota: '',
+                            nota_sistem: 'PI3202510080006',
                             nama_supplier: '',
                             nama_office: 'Head Office (HO)',
                             tgl_masuk: '',
@@ -401,35 +404,6 @@ const PembelianLainLainDetailPage = () => {
                 <div className="w-full flex items-center justify-center">
                     <span className="inline-flex px-3 py-2 text-sm font-semibold rounded-lg bg-green-100 text-green-800">
                         {formatCurrency(row.harga)}
-                    </span>
-                </div>
-            )
-        },
-        {
-            name: 'Persentase',
-            selector: row => row.persentase,
-            sortable: true,
-            width: '130px',
-            wrap: true,
-            cell: row => (
-                <div className="flex items-center justify-center w-full h-full min-h-[40px] px-2">
-                    <div className="bg-blue-50 text-blue-700 px-3 py-2 rounded-lg font-medium text-center text-xs leading-tight">
-                        {row.persentase ? `${parseFloat(row.persentase).toFixed(1)}%` : '-'}
-                    </div>
-                </div>
-            )
-        },
-        {
-            name: 'HPP',
-            selector: row => row.hpp,
-            sortable: true,
-            width: '170px',
-            wrap: true,
-            center: true,
-            cell: row => (
-                <div className="w-full flex items-center justify-center">
-                    <span className="inline-flex px-3 py-2 text-sm font-semibold rounded-lg bg-purple-100 text-purple-800">
-                        {formatCurrency(row.hpp)}
                     </span>
                 </div>
             )
@@ -612,24 +586,24 @@ const PembelianLainLainDetailPage = () => {
                         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg">
                             <label className="block text-sm font-medium text-gray-600 mb-2">
                                 <Hash className="w-4 h-4 inline mr-1" />
-                                Nomor Nota
+                                Nota Supplier
                             </label>
                             <p className="text-lg font-bold text-gray-900">
                                 {pembelianData.nota || '-'}
                             </p>
                         </div>
 
-                        <div className="bg-gradient-to-r from-cyan-50 to-blue-50 p-4 rounded-lg">
+                        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-lg">
                             <label className="block text-sm font-medium text-gray-600 mb-2">
                                 <Hash className="w-4 h-4 inline mr-1" />
-                                Nota HO
+                                Nota Sistem
                             </label>
                             <p className="text-lg font-bold text-gray-900">
-                                {pembelianData.nota_ho || '-'}
+                                {pembelianData.nota_sistem || pembelianData.nota_ho || '-'}
                             </p>
                         </div>
 
-                        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-lg">
+                        <div className="bg-gradient-to-r from-purple-50 to-violet-50 p-4 rounded-lg">
                             <label className="block text-sm font-medium text-gray-600 mb-2">
                                 <Building2 className="w-4 h-4 inline mr-1" />
                                 Farm
@@ -641,16 +615,6 @@ const PembelianLainLainDetailPage = () => {
 
                         <div className="bg-gradient-to-r from-emerald-50 to-green-50 p-4 rounded-lg">
                             <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <Package className="w-4 h-4 inline mr-1" />
-                                Syarat Pembelian
-                            </label>
-                            <p className="text-lg font-bold text-gray-900">
-                                {pembelianData.syarat_pembelian || '-'}
-                            </p>
-                        </div>
-
-                        <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
                                 <Building2 className="w-4 h-4 inline mr-1" />
                                 Supplier
                             </label>
@@ -659,7 +623,17 @@ const PembelianLainLainDetailPage = () => {
                             </p>
                         </div>
 
-                        <div className="bg-gradient-to-r from-purple-50 to-violet-50 p-4 rounded-lg">
+                        <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg">
+                            <label className="block text-sm font-medium text-gray-600 mb-2">
+                                <Package className="w-4 h-4 inline mr-1" />
+                                Syarat Pembelian
+                            </label>
+                            <p className="text-lg font-bold text-gray-900">
+                                {pembelianData.syarat_pembelian || '-'}
+                            </p>
+                        </div>
+
+                        <div className="bg-gradient-to-r from-violet-50 to-purple-50 p-4 rounded-lg">
                             <label className="block text-sm font-medium text-gray-600 mb-2">
                                 <Building2 className="w-4 h-4 inline mr-1" />
                                 Office
@@ -669,7 +643,7 @@ const PembelianLainLainDetailPage = () => {
                             </p>
                         </div>
 
-                        <div className="bg-gradient-to-r from-orange-50 to-amber-50 p-4 rounded-lg">
+                        <div className="bg-gradient-to-r from-amber-50 to-yellow-50 p-4 rounded-lg">
                             <label className="block text-sm font-medium text-gray-600 mb-2">
                                 <Calendar className="w-4 h-4 inline mr-1" />
                                 Tanggal Masuk
@@ -717,7 +691,7 @@ const PembelianLainLainDetailPage = () => {
                         <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-lg">
                             <label className="block text-sm font-medium text-gray-600 mb-2">
                                 <Weight className="w-4 h-4 inline mr-1" />
-                                Berat Total
+                                Jumlah Total
                             </label>
                             <p className="text-lg font-bold text-gray-900">
                                 {pembelianData.berat_total ? `${parseFloat(pembelianData.berat_total).toFixed(1)} kg` : '-'}
