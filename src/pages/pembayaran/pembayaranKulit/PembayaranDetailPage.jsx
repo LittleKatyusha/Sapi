@@ -231,16 +231,16 @@ const PembayaranDetailPage = () => {
             <div className="flex items-center gap-4">
               <button
                 onClick={handleBack}
-                className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                className="p-3 text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all duration-200 hover:shadow-md"
               >
-                <ArrowLeft size={24} />
+                <ArrowLeft size={26} />
               </button>
               <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-1 sm:mb-2 flex items-center gap-2">
-                  <CreditCard size={28} className="text-blue-500" />
+                <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent mb-2 flex items-center gap-3">
+                  <CreditCard size={36} className="text-blue-600" />
                   Detail Pembayaran Kulit
                 </h1>
-                <p className="text-gray-600 text-sm sm:text-base">
+                <p className="text-gray-700 text-base sm:text-lg font-medium">
                   Informasi lengkap pembayaran dan detail pembayaran
                 </p>
               </div>
@@ -249,88 +249,122 @@ const PembayaranDetailPage = () => {
         </div>
 
         {/* Payment Information Section */}
-        <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-xl border border-gray-100">
-          <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-            <Settings className="w-6 h-6 text-blue-600" />
-            Informasi Pembayaran
+        <div className="bg-white rounded-2xl sm:rounded-3xl p-6 sm:p-8 shadow-xl border border-gray-100">
+          <h2 className="text-2xl font-bold text-gray-900 mb-8 flex items-center gap-3 pb-4 border-b border-gray-200">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <Settings className="w-7 h-7 text-blue-700" />
+            </div>
+            <span className="bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+              Informasi Pembayaran
+            </span>
           </h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Nota */}
-            <PaymentInfoCard
-              icon={Settings}
-              label="Nota"
-              value={pembayaranData?.nota || '-'}
-              gradientClass="bg-gradient-to-r from-blue-50 to-indigo-50"
-            />
+            <div className="transform hover:scale-105 transition-transform duration-200">
+              <PaymentInfoCard
+                icon={Settings}
+                label="Nota"
+                value={pembayaranData?.nota || '-'}
+                gradientClass="bg-gradient-to-br from-blue-50 via-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 border border-blue-200"
+                labelClass="text-sm font-semibold text-gray-700 mb-2"
+                valueClass="text-xl font-bold text-gray-900"
+              />
+            </div>
             
             {/* Nota Sistem */}
-            <PaymentInfoCard
-              icon={Settings}
-              label="Nota Sistem"
-              value={pembayaranData?.nota_sistem || '-'}
-              gradientClass="bg-gradient-to-r from-purple-50 to-pink-50"
-            />
+            <div className="transform hover:scale-105 transition-transform duration-200">
+              <PaymentInfoCard
+                icon={Settings}
+                label="Nota Sistem"
+                value={pembayaranData?.nota_sistem || '-'}
+                gradientClass="bg-gradient-to-br from-purple-50 via-purple-50 to-pink-50 hover:from-purple-100 hover:to-pink-100 border border-purple-200"
+                labelClass="text-sm font-semibold text-gray-700 mb-2"
+                valueClass="text-xl font-bold text-gray-900"
+              />
+            </div>
             
             {/* Due Date */}
-            <PaymentInfoCard
-              icon={Calendar}
-              label="Tanggal Jatuh Tempo"
-              value={formatDate(pembayaranData.due_date)}
-              gradientClass="bg-gradient-to-r from-emerald-50 to-green-50"
-            />
+            <div className="transform hover:scale-105 transition-transform duration-200">
+              <PaymentInfoCard
+                icon={Calendar}
+                label="Tanggal Jatuh Tempo"
+                value={formatDate(pembayaranData.due_date)}
+                gradientClass="bg-gradient-to-br from-emerald-50 via-emerald-50 to-green-50 hover:from-emerald-100 hover:to-green-100 border border-emerald-200"
+                labelClass="text-sm font-semibold text-gray-700 mb-2"
+                valueClass="text-xl font-bold text-gray-900"
+              />
+            </div>
 
             {/* Settlement Date */}
-            <PaymentInfoCard
-              icon={Calendar}
-              label="Tanggal Pelunasan"
-              value={formatDate(pembayaranData.settlement_date)}
-              gradientClass="bg-gradient-to-r from-green-50 to-emerald-50"
-            />
+            <div className="transform hover:scale-105 transition-transform duration-200">
+              <PaymentInfoCard
+                icon={Calendar}
+                label="Tanggal Pelunasan"
+                value={formatDate(pembayaranData.settlement_date)}
+                gradientClass="bg-gradient-to-br from-green-50 via-green-50 to-emerald-50 hover:from-green-100 hover:to-emerald-100 border border-green-200"
+                labelClass="text-sm font-semibold text-gray-700 mb-2"
+                valueClass="text-xl font-bold text-gray-900"
+              />
+            </div>
 
             {/* Payment Status */}
-            <PaymentInfoCard
-              icon={CheckCircle}
-              label="Status Pembayaran"
-              gradientClass="bg-gradient-to-r from-purple-50 to-violet-50"
-            >
-              <div className="flex items-center gap-2">
-                <span className={`inline-flex px-3 py-1.5 text-sm font-medium rounded-lg border ${paymentStatusInfo.className}`}>
-                  {paymentStatusInfo.text}
-                </span>
-              </div>
-            </PaymentInfoCard>
+            <div className="transform hover:scale-105 transition-transform duration-200">
+              <PaymentInfoCard
+                icon={CheckCircle}
+                label="Status Pembayaran"
+                gradientClass="bg-gradient-to-br from-purple-50 via-purple-50 to-violet-50 hover:from-purple-100 hover:to-violet-100 border border-purple-200"
+                labelClass="text-sm font-semibold text-gray-700 mb-2"
+              >
+                <div className="flex items-center gap-2">
+                  <span className={`inline-flex px-4 py-2 text-base font-semibold rounded-xl border-2 ${paymentStatusInfo.className} shadow-sm`}>
+                    {paymentStatusInfo.text}
+                  </span>
+                </div>
+              </PaymentInfoCard>
+            </div>
 
             {/* Total Payment */}
-            <PaymentInfoCard
-              icon={DollarSign}
-              label="Total Pembayaran"
-              value={formatCurrency(totalAmount)}
-              gradientClass="bg-gradient-to-r from-orange-50 to-amber-50"
-            />
+            <div className="transform hover:scale-105 transition-transform duration-200">
+              <PaymentInfoCard
+                icon={DollarSign}
+                label="Total Pembayaran"
+                value={formatCurrency(totalAmount)}
+                gradientClass="bg-gradient-to-br from-orange-50 via-orange-50 to-amber-50 hover:from-orange-100 hover:to-amber-100 border border-orange-200"
+                labelClass="text-sm font-semibold text-gray-700 mb-2"
+                valueClass="text-xl font-bold text-gray-900"
+              />
+            </div>
 
             {/* Total Bill */}
-            <PaymentInfoCard
-              icon={CreditCard}
-              label="Total yang Harus Dibayar"
-              value={formatCurrency(paymentInfo.totalBiaya)}
-              gradientClass="bg-gradient-to-r from-indigo-50 to-blue-50"
-            />
+            <div className="transform hover:scale-105 transition-transform duration-200">
+              <PaymentInfoCard
+                icon={CreditCard}
+                label="Total yang Harus Dibayar"
+                value={formatCurrency(paymentInfo.totalBiaya)}
+                gradientClass="bg-gradient-to-br from-indigo-50 via-indigo-50 to-blue-50 hover:from-indigo-100 hover:to-blue-100 border border-indigo-200"
+                labelClass="text-sm font-semibold text-gray-700 mb-2"
+                valueClass="text-xl font-bold text-gray-900"
+              />
+            </div>
 
             {/* Remaining Payment */}
-            <PaymentInfoCard
-              icon={paymentInfo.sisaPembayaran > 0 ? XCircle : paymentInfo.sisaPembayaran < 0 ? Settings : CheckCircle}
-              label="Sisa Pembayaran"
-              gradientClass={remainingPaymentStyle.containerClass}
-              iconColor={remainingPaymentStyle.iconColor}
-            >
-              <p className={`text-lg font-bold ${remainingPaymentStyle.textClass}`}>
-                {formatCurrency(paymentInfo.sisaPembayaran)}
-              </p>
-              <p className={`text-xs mt-1 ${remainingPaymentStyle.iconColor}`}>
-                {remainingPaymentStyle.statusText}
-              </p>
-            </PaymentInfoCard>
+            <div className="transform hover:scale-105 transition-transform duration-200">
+              <PaymentInfoCard
+                icon={paymentInfo.sisaPembayaran > 0 ? XCircle : paymentInfo.sisaPembayaran < 0 ? Settings : CheckCircle}
+                label="Sisa Pembayaran"
+                gradientClass={`${remainingPaymentStyle.containerClass} border ${paymentInfo.sisaPembayaran > 0 ? 'border-red-200' : paymentInfo.sisaPembayaran < 0 ? 'border-yellow-200' : 'border-green-200'}`}
+                iconColor={remainingPaymentStyle.iconColor}
+                labelClass="text-sm font-semibold text-gray-700 mb-2"
+              >
+                <p className={`text-2xl font-bold ${remainingPaymentStyle.textClass}`}>
+                  {formatCurrency(paymentInfo.sisaPembayaran)}
+                </p>
+                <p className={`text-sm mt-2 font-medium ${remainingPaymentStyle.iconColor}`}>
+                  {remainingPaymentStyle.statusText}
+                </p>
+              </PaymentInfoCard>
+            </div>
           </div>
         </div>
 
