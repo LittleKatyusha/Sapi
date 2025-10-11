@@ -80,9 +80,9 @@ const PembayaranPage = () => {
     const handleEdit = (pembayaranItem) => {
         const encryptedPid = pembayaranItem.encryptedPid;
         
-        console.log('🔍 Edit - pembayaranItem:', pembayaranItem);
-        console.log('🔍 Edit - has database id:', pembayaranItem.id);
-        console.log('🔍 Edit - has encryptedPid:', encryptedPid);
+        console.log('🔍 Lain-Lain Edit - pembayaranItem:', pembayaranItem);
+        console.log('🔍 Lain-Lain Edit - has database id:', pembayaranItem.id);
+        console.log('🔍 Lain-Lain Edit - has encryptedPid:', encryptedPid);
         
         if (!encryptedPid) {
             console.error('❌ No encryptedPid found for pembayaran item');
@@ -90,17 +90,17 @@ const PembayaranPage = () => {
             return;
         }
         
-        console.log('🔍 Edit - using encryptedPid:', encryptedPid);
-        navigate(`/pembayaran/feedmill/edit/${encodeURIComponent(encryptedPid)}`);
+        console.log('🔍 Lain-Lain Edit - using encryptedPid:', encryptedPid);
+        navigate(`/pembayaran/lain-lain/edit/${encodeURIComponent(encryptedPid)}`);
         setOpenMenuId(null);
     };
 
     const handleDetail = (pembayaranItem) => {
         const encryptedPid = pembayaranItem.encryptedPid;
         
-        console.log('🔍 Detail - pembayaranItem:', pembayaranItem);
-        console.log('🔍 Detail - has database id:', pembayaranItem.id);
-        console.log('🔍 Detail - has encryptedPid:', encryptedPid);
+        console.log('🔍 Lain-Lain Detail - pembayaranItem:', pembayaranItem);
+        console.log('🔍 Lain-Lain Detail - has database id:', pembayaranItem.id);
+        console.log('🔍 Lain-Lain Detail - has encryptedPid:', encryptedPid);
         
         if (!encryptedPid) {
             console.error('❌ No encryptedPid found for pembayaran item');
@@ -108,8 +108,8 @@ const PembayaranPage = () => {
             return;
         }
         
-        console.log('🔍 Detail - using encryptedPid:', encryptedPid);
-        navigate(`/pembayaran/feedmill/detail/${encodeURIComponent(encryptedPid)}`);
+        console.log('🔍 Lain-Lain Detail - using encryptedPid:', encryptedPid);
+        navigate(`/pembayaran/lain-lain/detail/${encodeURIComponent(encryptedPid)}`);
         setOpenMenuId(null);
     };
 
@@ -175,7 +175,7 @@ const PembayaranPage = () => {
                             <div>
                                 <h1 className="text-2xl sm:text-4xl font-bold text-gray-800 mb-1 sm:mb-2 flex items-center gap-3">
                                     <CreditCard size={32} className="text-blue-500" />
-                                    Pembayaran Feedmill
+                                    Pembayaran Lain-Lain
                                 </h1>
                                 <p className="text-gray-600 text-sm sm:text-base">
                                     Kelola data pembayaran
@@ -205,7 +205,7 @@ const PembayaranPage = () => {
                             <div className="flex items-center justify-between text-sm text-gray-600">
                                 <span className="flex items-center gap-2">
                                     <CreditCard className="w-4 h-4" />
-                                    Data Pembayaran Feedmill
+                                    Data Pembayaran Lain-Lain
                                 </span>
                                 <div className="flex items-center gap-2 text-xs">
                                     <span className={getScrollIndicatorStyle()}>

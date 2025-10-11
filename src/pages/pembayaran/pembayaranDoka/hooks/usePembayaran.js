@@ -287,7 +287,7 @@ const usePembayaran = () => {
         
         try {
             const jsonData = await HttpClient.post(API_ENDPOINTS.HO.PAYMENT.SHOW, {
-                id: encryptedPid
+                pid: encryptedPid  // Fixed: Changed from 'id' to 'pid' to match backend expectation
             }, {
                 skipCsrf: true
             });

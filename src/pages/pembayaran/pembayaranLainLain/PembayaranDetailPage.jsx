@@ -74,8 +74,8 @@ const PembayaranDetailPage = () => {
   const [openMenuId, setOpenMenuId] = useState(null);
 
   // Navigation handlers
-  const handleBack = () => navigate('/pembayaran/ovk');
-  const handleEdit = () => navigate(`/pembayaran/ovk/edit/${id}`);
+  const handleBack = () => navigate('/pembayaran/lain-lain');
+  const handleEdit = () => navigate(`/pembayaran/lain-lain/edit/${id}`);
 
   // Delete handlers
   const handleDelete = () => setIsDeleteModalOpen(true);
@@ -90,7 +90,7 @@ const PembayaranDetailPage = () => {
           message: result.message || 'Pembayaran berhasil dihapus'
         });
         
-        setTimeout(() => navigate('/pembayaran/ovk'), 1500);
+        setTimeout(() => navigate('/pembayaran/lain-lain'), 1500);
       } else {
         throw new Error(result.message || 'Gagal menghapus pembayaran');
       }
@@ -106,7 +106,16 @@ const PembayaranDetailPage = () => {
   };
 
   // Payment handlers
-  const handleAddPayment = () => setIsAddPaymentModalOpen(true);
+  const handleAddPayment = () => {
+    if (!pembayaranData || !pembayaranData.id) {
+      setNotification({
+        type: 'error',
+        message: 'Data pembayaran belum dimuat. Silakan refresh halaman.'
+      });
+      return;
+    }
+    setIsAddPaymentModalOpen(true);
+  };
   
   const handleAddPaymentSuccess = () => {
     setIsAddPaymentModalOpen(false);
@@ -238,7 +247,7 @@ const PembayaranDetailPage = () => {
               <div>
                 <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent mb-2 flex items-center gap-3">
                   <CreditCard size={36} className="text-blue-600" />
-                  Detail Pembayaran OVK
+                  Detail Pembayaran Lain-Lain
                 </h1>
                 <p className="text-gray-700 text-base sm:text-lg font-medium">
                   Informasi lengkap pembayaran dan detail pembayaran
@@ -376,7 +385,7 @@ const PembayaranDetailPage = () => {
               <div className="flex items-center gap-3">
                 <DollarSign className="w-5 h-5 text-green-600" />
                 <div>
-                  <h2 className="text-lg font-bold text-gray-900">Detail Pembayaran OVK</h2>
+                  <h2 className="text-lg font-bold text-gray-900">Detail Pembayaran Lain-Lain</h2>
                   <p className="text-gray-500 text-sm">
                     Rincian setiap pembayaran dalam transaksi ini
                   </p>
@@ -513,14 +522,16 @@ const PembayaranDetailPage = () => {
         type="pembayaran"
       />
 
-      {/* Add Payment Modal */}
-      <AddPaymentModal
-        isOpen={isAddPaymentModalOpen}
-        onClose={() => setIsAddPaymentModalOpen(false)}
-        onSuccess={handleAddPaymentSuccess}
-        pembayaranId={pembayaranData?.id}  // Use actual database ID from pembayaranData
-        pembayaranData={pembayaranData}
-      />
+      {/* Add Payment Modal - Only render when pembayaranData is available */}
+      {pembayaranData && pembayaranData.id && (
+        <AddPaymentModal
+          isOpen={isAddPaymentModalOpen}
+          onClose={() => setIsAddPaymentModalOpen(false)}
+          onSuccess={handleAddPaymentSuccess}
+          pembayaranId={pembayaranData.id}  // Use actual database ID from pembayaranData
+          pembayaranData={pembayaranData}
+        />
+      )}
 
       {/* Delete Detail Confirmation Modal */}
       <DeleteConfirmationModal

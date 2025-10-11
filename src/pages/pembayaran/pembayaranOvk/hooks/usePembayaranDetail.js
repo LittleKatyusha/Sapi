@@ -27,6 +27,7 @@ export const usePembayaranDetail = (id, getPembayaranDetail) => {
                         if (paymentData) {
                             // Use payment header data from hook response
                             setPembayaranData({
+                                id: paymentData.id || paymentData.encryptedPid || paymentData.pid || id,  // Add id field
                                 encryptedPid: paymentData.encryptedPid || paymentData.pid || id,
                                 id_pembelian: paymentData.id_pembelian || '',
                                 purchase_type: paymentData.purchase_type || 1,
@@ -44,6 +45,7 @@ export const usePembayaranDetail = (id, getPembayaranDetail) => {
                             // Fallback: use info from first detail item if header not available
                             const firstItem = detailItems[0];
                             setPembayaranData({
+                                id: firstItem.id_pembayaran || firstItem.pid || id,  // Add id field
                                 encryptedPid: firstItem.pid || id,
                                 id_pembelian: firstItem.id_pembelian || '',
                                 purchase_type: firstItem.purchase_type || 1,
@@ -58,6 +60,7 @@ export const usePembayaranDetail = (id, getPembayaranDetail) => {
                         } else {
                             // If no data at all
                             setPembayaranData({
+                                id: id,  // Add id field
                                 encryptedPid: id,
                                 id_pembelian: '',
                                 purchase_type: 1,
@@ -86,6 +89,7 @@ export const usePembayaranDetail = (id, getPembayaranDetail) => {
                     } else if (isMounted) {
                         console.warn('No detail data found for pembayaran:', id);
                         setPembayaranData({
+                            id: id,  // Add id field
                             encryptedPid: id,
                             id_pembelian: '',
                             purchase_type: 1,

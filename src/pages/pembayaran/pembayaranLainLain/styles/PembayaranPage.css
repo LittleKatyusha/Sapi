@@ -71,8 +71,6 @@
     max-height: 60vh;
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
-    position: relative;
-    contain: layout style paint;
 }
 
 /* Custom Scrollbar */
@@ -321,6 +319,12 @@
     justify-content: center;
 }
 
+/* Ensure sticky columns maintain their position during scroll */
+.pembayaran-table-scroll-container {
+    position: relative;
+    contain: layout style paint;
+}
+
 /* Force hardware acceleration for smooth scrolling */
 .pembayaran-table [class*="rdt_TableCol"]:nth-child(1),
 .pembayaran-table [class*="rdt_TableCol"]:nth-child(2),
@@ -376,7 +380,7 @@
 }
 
 .pembayaran-pagination-button:hover:not(:disabled) {
-    background: #f9fafb;
+    background-color: #f9fafb;
 }
 
 .pembayaran-pagination-button:disabled {

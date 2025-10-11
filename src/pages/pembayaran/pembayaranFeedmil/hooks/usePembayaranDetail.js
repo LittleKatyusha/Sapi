@@ -19,6 +19,7 @@ export const usePembayaranDetail = (id, getPembayaranDetail) => {
 
   // Create default payment data structure
   const createDefaultPaymentData = (id, fallbackData = null) => ({
+    id: fallbackData?.id || fallbackData?.encryptedPid || fallbackData?.pid || id,  // Add id field
     encryptedPid: fallbackData?.pid || id,
     id_pembelian: fallbackData?.id_pembelian || '',
     purchase_type: fallbackData?.purchase_type || 2,

@@ -78,26 +78,38 @@ const PembayaranPage = () => {
 
     // Action handlers
     const handleEdit = (pembayaranItem) => {
-        const id = pembayaranItem.id;
-        if (!id || id.toString().startsWith('TEMP-')) {
-            showError('Data ini tidak dapat diedit karena belum tersimpan dengan benar');
+        const encryptedPid = pembayaranItem.encryptedPid;
+        
+        console.log('🔍 Kulit Edit - pembayaranItem:', pembayaranItem);
+        console.log('🔍 Kulit Edit - has database id:', pembayaranItem.id);
+        console.log('🔍 Kulit Edit - has encryptedPid:', encryptedPid);
+        
+        if (!encryptedPid) {
+            console.error('❌ No encryptedPid found for pembayaran item');
+            showError('Data ini tidak dapat diedit karena PID tidak tersedia');
             return;
         }
-        console.log('🔍 Kulit Edit - pembayaranItem:', pembayaranItem);
-        console.log('🔍 Kulit Edit - using database id:', id);
-        navigate(`/pembayaran/kulit/edit/${encodeURIComponent(id)}`);
+        
+        console.log('🔍 Kulit Edit - using encryptedPid:', encryptedPid);
+        navigate(`/pembayaran/kulit/edit/${encodeURIComponent(encryptedPid)}`);
         setOpenMenuId(null);
     };
 
     const handleDetail = (pembayaranItem) => {
-        const id = pembayaranItem.id;
-        if (!id || id.toString().startsWith('TEMP-')) {
-            showError('Data ini tidak dapat dilihat detailnya karena belum tersimpan dengan benar');
+        const encryptedPid = pembayaranItem.encryptedPid;
+        
+        console.log('🔍 Kulit Detail - pembayaranItem:', pembayaranItem);
+        console.log('🔍 Kulit Detail - has database id:', pembayaranItem.id);
+        console.log('🔍 Kulit Detail - has encryptedPid:', encryptedPid);
+        
+        if (!encryptedPid) {
+            console.error('❌ No encryptedPid found for pembayaran item');
+            showError('Data ini tidak dapat dilihat detailnya karena PID tidak tersedia');
             return;
         }
-        console.log('🔍 Kulit Detail - pembayaranItem:', pembayaranItem);
-        console.log('🔍 Kulit Detail - using database id:', id);
-        navigate(`/pembayaran/kulit/detail/${encodeURIComponent(id)}`);
+        
+        console.log('🔍 Kulit Detail - using encryptedPid:', encryptedPid);
+        navigate(`/pembayaran/kulit/detail/${encodeURIComponent(encryptedPid)}`);
         setOpenMenuId(null);
     };
 
@@ -115,17 +127,13 @@ const PembayaranPage = () => {
 
     const handleDeletePembayaran = useCallback(async (pembayaran) => {
         try {
-            const id = pembayaran.id;
+            const encryptedPid = pembayaran.encryptedPid;
             
-            if (!id) {
-                throw new Error('ID pembayaran tidak tersedia untuk penghapusan');
-            }
-            
-            if (id.toString().startsWith('TEMP-')) {
-                throw new Error('Item ini adalah data sementara dan tidak dapat dihapus');
+            if (!encryptedPid) {
+                throw new Error('PID pembayaran tidak tersedia untuk penghapusan');
             }
 
-            const result = await deletePembayaran(id, pembayaran);
+            const result = await deletePembayaran(encryptedPid, pembayaran);
             
             if (result.success) {
                 showSuccess(result.message || 'Data pembayaran berhasil dihapus');

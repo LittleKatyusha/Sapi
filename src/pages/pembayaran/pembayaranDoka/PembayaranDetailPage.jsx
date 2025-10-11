@@ -523,7 +523,7 @@ const PembayaranDetailPage = () => {
         isOpen={isAddPaymentModalOpen}
         onClose={() => setIsAddPaymentModalOpen(false)}
         onSuccess={handleAddPaymentSuccess}
-        pembayaranId={id}
+        pembayaranId={pembayaranData?.id}  // Use actual database ID from pembayaranData
         pembayaranData={pembayaranData}
       />
 

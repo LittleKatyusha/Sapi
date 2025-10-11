@@ -30,7 +30,7 @@ export const usePembayaranDetail = (id, getPembayaranDetail) => {
                                 id: paymentData.id || paymentData.encryptedPid || paymentData.pid || id,  // Add id field
                                 encryptedPid: paymentData.encryptedPid || paymentData.pid || id,
                                 id_pembelian: paymentData.id_pembelian || '',
-                                purchase_type: paymentData.purchase_type || 1,
+                                purchase_type: paymentData.purchase_type || 5,
                                 due_date: paymentData.due_date || '',
                                 settlement_date: paymentData.settlement_date || '',
                                 payment_status: paymentData.payment_status || 0,
@@ -48,7 +48,7 @@ export const usePembayaranDetail = (id, getPembayaranDetail) => {
                                 id: firstItem.id_pembayaran || firstItem.pid || id,  // Add id field
                                 encryptedPid: firstItem.pid || id,
                                 id_pembelian: firstItem.id_pembelian || '',
-                                purchase_type: firstItem.purchase_type || 1,
+                                purchase_type: firstItem.purchase_type || 5,
                                 due_date: firstItem.due_date || '',
                                 settlement_date: firstItem.settlement_date || '',
                                 payment_status: firstItem.payment_status || 0,
@@ -63,7 +63,7 @@ export const usePembayaranDetail = (id, getPembayaranDetail) => {
                                 id: id,  // Add id field
                                 encryptedPid: id,
                                 id_pembelian: '',
-                                purchase_type: 1,
+                                purchase_type: 5,
                                 due_date: '',
                                 settlement_date: '',
                                 payment_status: 0,
@@ -92,7 +92,7 @@ export const usePembayaranDetail = (id, getPembayaranDetail) => {
                             id: id,  // Add id field
                             encryptedPid: id,
                             id_pembelian: '',
-                            purchase_type: 1,
+                            purchase_type: 5,
                             due_date: '',
                             settlement_date: '',
                             payment_status: 0,
