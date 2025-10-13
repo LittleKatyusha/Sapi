@@ -1,10 +1,65 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 export const usePembayaranDetail = (id, getPembayaranDetail) => {
     const [pembayaranData, setPembayaranData] = useState(null);
     const [detailData, setDetailData] = useState([]);
     const [notification, setNotification] = useState(null);
     const hasFetchedData = useRef(false);
+
+    // Refresh function to force re-fetch data from server
+    const refreshData = useCallback(async () => {
+        if (!id) return { success: false, message: 'No ID provided' };
+        
+        try {
+            // Call getPembayaranDetail to get fresh data from server
+            const result = await getPembayaranDetail(id);
+            
+            if (result.success) {
+                // Use data from hook response structure
+                const paymentData = result.header || {};  // Header data from hook
+                const detailItems = result.data || [];     // Detail data from hook
+
+                if (paymentData) {
+                    // Use payment header data from hook response
+                    setPembayaranData({
+                        id: paymentData.id || paymentData.encryptedPid || paymentData.pid || id,
+                        encryptedPid: paymentData.encryptedPid || paymentData.pid || id,
+                        id_pembelian: paymentData.id_pembelian || '',
+                        purchase_type: paymentData.purchase_type || 5,
+                        due_date: paymentData.due_date || '',
+                        settlement_date: paymentData.settlement_date || '',
+                        payment_status: paymentData.payment_status || 0,
+                        created_at: paymentData.created_at || '',
+                        updated_at: paymentData.updated_at || '',
+                        total_tagihan: paymentData.total_tagihan || 0,
+                        total_terbayar: paymentData.total_terbayar || 0,
+                        nota: paymentData.pembelian?.nota || '',
+                        nota_sistem: paymentData.pembelian?.nota_sistem || ''
+                    });
+                }
+
+                // Transform detail items for frontend structure
+                const transformedDetailItems = detailItems.map((item, index) => ({
+                    id: item.id,
+                    rowNumber: index + 1,
+                    amount: parseFloat(item.amount) || 0,
+                    payment_date: item.payment_date || '',
+                    note: item.note || item.description || '',
+                    created_at: item.created_at || '',
+                    updated_at: item.updated_at || ''
+                }));
+
+                setDetailData(transformedDetailItems);
+                
+                return { success: true, data: transformedDetailItems, header: paymentData };
+            }
+            
+            return { success: false, message: 'Failed to refresh data' };
+        } catch (err) {
+            console.error('Error refreshing pembayaran detail:', err);
+            return { success: false, message: err.message || 'Failed to refresh data' };
+        }
+    }, [id, getPembayaranDetail]);
 
     // Load payment detail data
     useEffect(() => {
@@ -145,7 +200,8 @@ export const usePembayaranDetail = (id, getPembayaranDetail) => {
         detailData,
         setDetailData,
         notification,
-        setNotification
+        setNotification,
+        refreshData  // Export the refresh function
     };
 };
 

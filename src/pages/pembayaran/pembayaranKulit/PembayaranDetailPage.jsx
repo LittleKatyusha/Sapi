@@ -153,11 +153,11 @@ const PembayaranDetailPage = () => {
           message: result.message || 'Detail pembayaran berhasil dihapus'
         });
         
-        setDetailData(prevData => 
-          prevData.filter(item => item.id !== selectedDetail.id)
-        );
-        
-        updatePaginationAfterDelete();
+        // Hard refresh - fetch fresh data from server after delete
+        // This ensures server-calculated totals and fresh data
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
       } else {
         throw new Error(result.message || 'Gagal menghapus detail pembayaran');
       }

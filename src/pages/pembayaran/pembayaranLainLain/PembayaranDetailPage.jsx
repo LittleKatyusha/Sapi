@@ -55,7 +55,8 @@ const PembayaranDetailPage = () => {
     detailData,
     setDetailData,
     notification,
-    setNotification
+    setNotification,
+    refreshData
   } = usePembayaranDetail(id, getPembayaranDetail);
 
   const {
@@ -117,14 +118,28 @@ const PembayaranDetailPage = () => {
     setIsAddPaymentModalOpen(true);
   };
   
-  const handleAddPaymentSuccess = () => {
+  const handleAddPaymentSuccess = async () => {
     setIsAddPaymentModalOpen(false);
     setNotification({
       type: 'success',
       message: 'Pembayaran berhasil ditambahkan'
     });
     
-    setTimeout(() => window.location.reload(), 1500);
+    // Wait a moment for backend to fully process, then refresh
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    try {
+      const refreshResult = await refreshData();
+      if (!refreshResult.success) {
+        console.warn('Failed to refresh data after adding payment:', refreshResult.message);
+        // Fallback to reload if refresh fails
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error('Error refreshing data after adding payment:', error);
+      // Fallback to reload if refresh fails
+      window.location.reload();
+    }
   };
 
   // Detail action handlers
@@ -162,11 +177,11 @@ const PembayaranDetailPage = () => {
           message: result.message || 'Detail pembayaran berhasil dihapus'
         });
         
-        setDetailData(prevData => 
-          prevData.filter(item => item.id !== selectedDetail.id)
-        );
-        
-        updatePaginationAfterDelete();
+        // Hard refresh - fetch fresh data from server after delete
+        // This ensures server-calculated totals and fresh data
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
       } else {
         throw new Error(result.message || 'Gagal menghapus detail pembayaran');
       }
