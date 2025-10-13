@@ -84,7 +84,7 @@ const ViewDetailModal = ({
                             <div>
                                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                                     <Weight className="w-4 h-4" />
-                                    Berat (kg)
+                                    Jumlah Total
                                 </label>
                                 <div className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50">
                                     {detailItem.berat || '-'}
