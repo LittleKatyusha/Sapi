@@ -658,26 +658,6 @@ const PembelianLainLainDetailPage = () => {
                             </p>
                         </div>
 
-                        <div className="bg-gradient-to-r from-teal-50 to-cyan-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <User className="w-4 h-4 inline mr-1" />
-                                Nama Sopir
-                            </label>
-                            <p className="text-lg font-bold text-gray-900">
-                                {pembelianData.nama_supir || '-'}
-                            </p>
-                        </div>
-
-                        <div className="bg-gradient-to-r from-red-50 to-rose-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <Truck className="w-4 h-4 inline mr-1" />
-                                Plat Nomor
-                            </label>
-                            <p className="text-lg font-bold text-gray-900 font-mono">
-                                {pembelianData.plat_nomor || '-'}
-                            </p>
-                        </div>
-
                         <div className="bg-gradient-to-r from-yellow-50 to-orange-50 p-4 rounded-lg">
                             <label className="block text-sm font-medium text-gray-600 mb-2">
                                 <Package className="w-4 h-4 inline mr-1" />
@@ -695,21 +675,6 @@ const PembelianLainLainDetailPage = () => {
                             </label>
                             <p className="text-lg font-bold text-gray-900">
                                 {pembelianData.berat_total ? `${parseFloat(pembelianData.berat_total).toFixed(1)} kg` : '-'}
-                            </p>
-                        </div>
-
-                        <div className="bg-gradient-to-r from-pink-50 to-rose-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <DollarSign className="w-4 h-4 inline mr-1" />
-                                Biaya Truk
-                            </label>
-                            <p className="text-lg font-bold text-gray-900">
-                                {pembelianData.biaya_truk ? new Intl.NumberFormat('id-ID', {
-                                    style: 'currency',
-                                    currency: 'IDR',
-                                    minimumFractionDigits: 0,
-                                    maximumFractionDigits: 0
-                                }).format(pembelianData.biaya_truk) : 'Rp 0'}
                             </p>
                         </div>
 

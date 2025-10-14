@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, Plus, Trash2, Edit2, Building2, User, Calendar, Truck, Hash, Package, X, AlertCircle, Weight, DollarSign, Upload, FileText } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Trash2, Edit2, Building2, Calendar, Hash, Package, X, AlertCircle, Weight, DollarSign, Upload, FileText } from 'lucide-react';
 import usePembelianLainLain from './hooks/usePembelianLainLain';
 import useParameterSelect from '../pembelian/hooks/useParameterSelect';
 import useJenisPembelianLainLain from './hooks/useJenisPembelianLainLain';
@@ -99,10 +99,7 @@ const AddEditPembelianLainLainPage = () => {
         tipePembelian: '',
         idSupplier: '',
         tgl_masuk: '',
-        nama_supir: '',
-        plat_nomor: '',
         jumlah: '', // Added: Jumlah item
-        biaya_truck: '',
         biaya_lain: '',
         biaya_total: '', // Added: Total biaya keseluruhan
         berat_total: '',
@@ -223,22 +220,8 @@ const AddEditPembelianLainLainPage = () => {
                     
                     if (headerData) {
                         
-                        // Find supplier ID by name if we have nama_supplier but not id_supplier
-                        let supplierId = headerData.id_supplier || '';
-                        if (!supplierId && headerData.nama_supplier) {
-                            // Try exact match first
-                            let foundSupplier = supplierOptions.find(s => s.label === headerData.nama_supplier);
-                            // If no exact match, try partial match (case insensitive)
-                            if (!foundSupplier) {
-                                foundSupplier = supplierOptions.find(s => 
-                                    s.label.toLowerCase().includes(headerData.nama_supplier.toLowerCase()) ||
-                                    headerData.nama_supplier.toLowerCase().includes(s.label.toLowerCase())
-                                );
-                            }
-                            if (foundSupplier) {
-                                supplierId = foundSupplier.value;
-                            }
-                        }
+                        // Use supplier name directly as text
+                        let supplierId = headerData.nama_supplier || headerData.id_supplier || '';
 
                         // Find office ID - handle both direct ID and name matching (like Feedmil pattern)
                         let officeId = headerData.id_office || '';
@@ -295,12 +278,9 @@ const AddEditPembelianLainLainPage = () => {
                             syarat_pembelian: safeGetString(headerData.syarat_pembelian) || safeGetString(headerData.id_syarat_pembelian),
                             idOffice: officeId || (headerData.id_office ? parseInt(headerData.id_office) : null),
                             tipePembelian: tipePembelianId || (headerData.tipe_pembelian ? parseInt(headerData.tipe_pembelian) : null),
-                            idSupplier: supplierId || (headerData.id_supplier ? parseInt(headerData.id_supplier) : null),
+                            idSupplier: supplierId || safeGetString(headerData.nama_supplier),
                             tgl_masuk: safeGetString(headerData.tgl_masuk),
-                            nama_supir: safeGetString(headerData.nama_supir),
-                            plat_nomor: safeGetString(headerData.plat_nomor),
                             jumlah: safeGetNumber(headerData.jumlah),
-                            biaya_truck: safeGetNumber(headerData.biaya_truk) ?? safeGetNumber(headerData.biaya_truck),
                             biaya_lain: safeGetNumber(headerData.biaya_lain),
                             biaya_total: safeGetNumber(headerData.biaya_total) ?? safeGetNumber(headerData.total_belanja),
                             berat_total: safeGetNumber(headerData.berat_total),
@@ -991,9 +971,7 @@ const AddEditPembelianLainLainPage = () => {
             errors.push('Tipe Pembelian harus dipilih');
         }
 
-        if (!headerData.idSupplier) {
-            errors.push('Supplier harus dipilih');
-        }
+        // Supplier validation removed as per request - backend will handle it
 
         if (!headerData.farm) {
             errors.push('Farm harus dipilih');
@@ -1006,30 +984,6 @@ const AddEditPembelianLainLainPage = () => {
 
         if (!headerData.tgl_masuk) {
             errors.push('Tanggal masuk harus diisi');
-        }
-
-        // Validate required fields: nama_supir, plat_nomor, biaya_truk
-        if (!headerData.nama_supir || !headerData.nama_supir.trim()) {
-            errors.push('Nama Sopir harus diisi');
-        }
-        
-        // Add max length validation for nama_supir (50 chars)
-        if (headerData.nama_supir && headerData.nama_supir.length > 50) {
-            errors.push('Nama Sopir maksimal 50 karakter');
-        }
-
-        if (!headerData.plat_nomor || !headerData.plat_nomor.trim()) {
-            errors.push('Plat Nomor harus diisi');
-        }
-        
-        // Add max length validation for plat_nomor (20 chars)
-        if (headerData.plat_nomor && headerData.plat_nomor.length > 20) {
-            errors.push('Plat Nomor maksimal 20 karakter');
-        }
-
-        const biayaTruk = parseFloat(headerData.biaya_truck);
-        if (headerData.biaya_truck === null || headerData.biaya_truck === undefined || headerData.biaya_truck === '' || isNaN(biayaTruk)) {
-            errors.push('Biaya Ongkos Kirim harus diisi (minimal 0)');
         }
 
         // Add biaya_lain validation - make it required as per backend
@@ -1111,20 +1065,14 @@ const AddEditPembelianLainLainPage = () => {
         });
 
         try {
-            // Get selected supplier details
-            const selectedSupplier = supplierOptions.find(s => s.value === headerData.idSupplier);
-            
             // Map frontend fields to backend expected format
             const submissionData = {
                 // Header data mapping to backend format
                 id_office: parseInt(headerData.idOffice) || 1, // Use selected office ID
                 nota: headerData.nota,
-                id_supplier: parseInt(headerData.idSupplier),
+                nama_supplier: headerData.idSupplier, // Now using text directly
                 tgl_masuk: headerData.tgl_masuk,
-                nama_supir: headerData.nama_supir || '',
-                plat_nomor: headerData.plat_nomor || '',
                 jumlah: parseInt(headerData.jumlah) || null,
-                biaya_truk: headerData.biaya_truck !== null && headerData.biaya_truck !== undefined && headerData.biaya_truck !== '' ? parseFloat(headerData.biaya_truck) : 0,
                 biaya_lain: headerData.biaya_lain !== null && headerData.biaya_lain !== undefined && headerData.biaya_lain !== '' ? parseFloat(headerData.biaya_lain) : 0,
                 id_farm: headerData.farm ? parseInt(headerData.farm) : null,
                 id_syarat_pembelian: headerData.syarat_pembelian ? parseInt(headerData.syarat_pembelian) : null,
@@ -1200,9 +1148,9 @@ const AddEditPembelianLainLainPage = () => {
                 totalHPP: totals.totalHPP,
                 totalHargaItems: totals.totalHargaItems,
                 jenis_pembelian: 'Lain-Lain',
-                supplier: selectedSupplier ? selectedSupplier.label : '',
-                nama_supplier: selectedSupplier ? selectedSupplier.label : '',
-                jenis_supplier: selectedSupplier ? selectedSupplier.jenis_supplier : ''
+                supplier: headerData.idSupplier,
+                nama_supplier: headerData.idSupplier,
+                jenis_supplier: ''
             };
 
             let result;
@@ -1393,30 +1341,17 @@ const AddEditPembelianLainLainPage = () => {
 
                         {/* Supplier */}
                         <div>
-                            <div className="flex items-center justify-between mb-2">
-                                <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
-                                    <Building2 className="w-4 h-4" />
-                                    Supplier *
-                                </label>
-                            </div>
-                            <SearchableSelect
+                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <Building2 className="w-4 h-4" />
+                                Supplier *
+                            </label>
+                            <input
+                                type="text"
                                 value={headerData.idSupplier}
-                                onChange={(value) => handleHeaderChange('idSupplier', value)}
-                                options={supplierOptions}
-                                placeholder={parameterLoading ? "Memuat supplier..." : parameterError ? "Error loading supplier" : "Pilih Supplier"}
-                                className="w-full"
-                                disabled={parameterLoading || parameterError}
+                                onChange={(e) => handleHeaderChange('idSupplier', e.target.value)}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                                placeholder="Masukkan nama supplier"
                             />
-                            {parameterLoading && (
-                                <p className="text-xs text-blue-600 mt-1">
-                                    🔄 Memuat data supplier...
-                                </p>
-                            )}
-                            {parameterError && (
-                                <p className="text-xs text-red-600 mt-1">
-                                    ❌ Error: {parameterError}
-                                </p>
-                            )}
                         </div>
 
                         {/* Tanggal Masuk */}
@@ -1433,57 +1368,6 @@ const AddEditPembelianLainLainPage = () => {
                             />
                         </div>
 
-                        {/* Nama Supir */}
-                        <div>
-                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <User className="w-4 h-4" />
-                                Nama Sopir *
-                            </label>
-                            <input
-                                type="text"
-                                value={headerData.nama_supir}
-                                onChange={(e) => handleHeaderChange('nama_supir', e.target.value)}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                placeholder="Masukkan nama supir"
-                                required
-                            />
-                        </div>
-
-                        {/* Plat Nomor */}
-                        <div>
-                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <Truck className="w-4 h-4" />
-                                Plat Nomor *
-                            </label>
-                            <input
-                                type="text"
-                                value={headerData.plat_nomor}
-                                onChange={(e) => handleHeaderChange('plat_nomor', e.target.value.toUpperCase())}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                placeholder="B1234XX"
-                                style={{ textTransform: 'uppercase' }}
-                                required
-                            />
-                        </div>
-
-                        {/* Biaya Truck */}
-                        <div>
-                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <DollarSign className="w-4 h-4" />
-                                Biaya Ongkos Kirim (Rp) *
-                            </label>
-                            <input
-                                type="text"
-                                value={formatNumber(headerData.biaya_truck)}
-                                onChange={(e) => handleHeaderChange('biaya_truck', parseNumber(e.target.value))}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                placeholder="1.000.000"
-                                required
-                            />
-                            <p className="text-xs text-gray-500 mt-1">
-                                💡 Biaya transportasi truck untuk pengiriman (wajib diisi, minimal 0)
-                            </p>
-                        </div>
 
                         {/* Biaya Lain */}
                         <div>

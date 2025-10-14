@@ -304,34 +304,6 @@ const PembelianLainLainPage = () => {
             )
         },
         {
-            name: 'Nama Sopir',
-            selector: row => row.nama_supir,
-            sortable: true,
-            width: '200px',
-            wrap: true,
-            cell: row => (
-                <div className="flex items-center justify-center w-full h-full min-h-[40px] px-2">
-                    <div className="text-center font-medium text-gray-800 force-wrap">
-                        {row.nama_supir || '-'}
-                    </div>
-                </div>
-            )
-        },
-        {
-            name: 'Plat Nomor',
-            selector: row => row.plat_nomor,
-            sortable: true,
-            width: '140px',
-            wrap: true,
-            cell: row => (
-                <div className="flex items-center justify-center w-full h-full min-h-[40px]">
-                    <div className="font-mono text-sm bg-gray-50 px-3 py-2 rounded-lg inline-block whitespace-nowrap">
-                        {row.plat_nomor || '-'}
-                    </div>
-                </div>
-            )
-        },
-        {
             name: 'Jumlah PerJenis',
             selector: row => row.jumlah,
             sortable: true,
@@ -452,25 +424,6 @@ const PembelianLainLainPage = () => {
                             minimumFractionDigits: 0,
                             maximumFractionDigits: 0
                         }).format(row.biaya_lain) : 'Rp 0'}
-                    </div>
-                </div>
-            )
-        },
-        {
-            name: 'Biaya Ongkir',
-            selector: row => row.biaya_truk,
-            sortable: true,
-            width: '180px',
-            wrap: true,
-            cell: row => (
-                <div className="flex items-center justify-center w-full h-full min-h-[40px] px-1">
-                    <div className="bg-cyan-50 text-cyan-700 px-3 py-2 rounded-lg font-semibold text-center text-xs leading-tight">
-                        {row.biaya_truk ? new Intl.NumberFormat('id-ID', {
-                            style: 'currency',
-                            currency: 'IDR',
-                            minimumFractionDigits: 0,
-                            maximumFractionDigits: 0
-                        }).format(row.biaya_truk) : 'Rp 0'}
                     </div>
                 </div>
             )
@@ -679,7 +632,7 @@ const PembelianLainLainPage = () => {
                             
                             <input
                                 type="text"
-                                placeholder="Cari berdasarkan nota, supplier, supir, atau plat nomor..."
+                                placeholder="Cari berdasarkan nota atau supplier..."
                                 value={searchTerm}
                                 onChange={(e) => handleSearch(e.target.value)}
                                 className={`w-full pl-12 ${searchTerm || isSearching ? 'pr-12' : 'pr-4'} py-2.5 sm:py-3 md:py-4 border ${searchError ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'} rounded-full transition-all duration-200 text-sm sm:text-base shadow-sm hover:shadow-md`}

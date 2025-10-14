@@ -120,23 +120,8 @@ const usePembelianLainLain = () => {
         setError(null);
         
         try {
-            // Validate required fields before sending
-            if (!pembelianData.id_supplier || pembelianData.id_supplier <= 0) {
-                throw new Error('Supplier harus dipilih sebelum menyimpan data');
-            }
-            
-            if (pembelianData.biaya_truk === null || pembelianData.biaya_truk === undefined || isNaN(pembelianData.biaya_truk) || pembelianData.biaya_truk < 0) {
-                throw new Error('Biaya truck harus diisi dengan nilai numerik >= 0');
-            }
-
-            // Validate required fields
-            if (!pembelianData.nama_supir || !pembelianData.nama_supir.trim()) {
-                throw new Error('Nama sopir harus diisi');
-            }
-
-            if (!pembelianData.plat_nomor || !pembelianData.plat_nomor.trim()) {
-                throw new Error('Plat nomor harus diisi');
-            }
+            // Supplier validation removed - now handled as nama_supplier text field
+            // biaya_truk, nama_supir, plat_nomor validations removed as fields are removed
 
             // Prepare request data - handle file upload with FormData
             let requestData;
@@ -238,27 +223,12 @@ const usePembelianLainLain = () => {
                 throw new Error('PID is required for update operation');
             }
 
-            // Validate required fields for update
-            if (!data.id_supplier || data.id_supplier <= 0) {
-                throw new Error('Supplier harus dipilih');
-            }
+            // Supplier validation removed - now handled as nama_supplier text field
             if (!data.nota || data.nota.trim() === '') {
                 throw new Error('Nomor nota harus diisi');
             }
 
-            // Validate required fields for update
-            if (!data.nama_supir || !data.nama_supir.trim()) {
-                throw new Error('Nama sopir harus diisi');
-            }
-
-            if (!data.plat_nomor || !data.plat_nomor.trim()) {
-                throw new Error('Plat nomor harus diisi');
-            }
-
-            const biayaTruk = parseFloat(data.biaya_truk);
-            if (data.biaya_truk === null || data.biaya_truk === undefined || data.biaya_truk === '' || isNaN(biayaTruk)) {
-                throw new Error('Biaya ongkos kirim harus diisi (minimal 0)');
-            }
+            // nama_supir, plat_nomor, biaya_truk validations removed as fields are removed
 
             // Prepare request data - handle file upload with FormData
             let requestData;

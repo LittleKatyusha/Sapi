@@ -267,7 +267,7 @@ const AddEditDetailModal = ({
                             <div>
                                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                                     <Weight className="w-4 h-4" />
-                                    Berat (kg) *
+                                    Jumlah Item
                                 </label>
                                 <input
                                     type="number"
