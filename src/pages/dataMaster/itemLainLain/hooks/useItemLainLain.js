@@ -7,25 +7,37 @@ const useItemLainLain = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [totalRecords, setTotalRecords] = useState(0);
 
-  // Fetch data dari API dengan encrypted PID dari backend
-  const fetchItemLainLain = useCallback(async () => {
+  // Fetch data dari API dengan DataTables format
+  const fetchItemLainLain = useCallback(async (searchValue = '') => {
     setLoading(true);
     setError(null);
     
     try {
-      // Add cache busting parameter to force fresh data from server
-      const cacheBuster = `?t=${Date.now()}`;
-      const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.ITEM_LAIN_LAIN}/data${cacheBuster}`);
+      // Use DataTables format to fetch all records
+      const params = {
+        draw: 1,
+        start: 0,
+        length: 10000, // Large number to get all records
+        'search[value]': searchValue || '',
+        'order[0][column]': 0,
+        'order[0][dir]': 'asc',
+        t: Date.now() // Cache busting
+      };
+      
+      const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.ITEM_LAIN_LAIN}/data`, { params });
 
-      // Handle berbagai bentuk respons (DataTables atau sendResponse)
+      // Handle DataTables response format
       let dataArray = [];
-      if (Array.isArray(result)) {
+      let total = 0;
+      
+      if (result?.data) {
+        dataArray = result.data;
+        total = result.recordsTotal || result.recordsFiltered || dataArray.length;
+      } else if (Array.isArray(result)) {
         dataArray = result;
-      } else if (Array.isArray(result?.data)) {
-        dataArray = result.data;
-      } else if (result?.status === 'ok' && Array.isArray(result?.data)) {
-        dataArray = result.data;
+        total = dataArray.length;
       }
 
       const validatedData = dataArray.map((item, index) => ({
@@ -38,9 +50,12 @@ const useItemLainLain = () => {
       }));
 
       setItemLainLain(validatedData);
+      setTotalRecords(total);
+      console.log(`✅ Fetched ${validatedData.length} of ${total} total item lain-lain records`);
     } catch (err) {
       setError(`API Error: ${err.message}`);
       setItemLainLain([]);
+      setTotalRecords(0);
     } finally {
       setLoading(false);
     }
@@ -54,6 +69,8 @@ const useItemLainLain = () => {
     try {
       const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.ITEM_LAIN_LAIN}/store`, data);
       if (result?.status === 'ok' || result?.data) {
+        // Refresh data after successful creation
+        await fetchItemLainLain();
         return result;
       }
       throw new Error(result?.message || 'Gagal membuat data');
@@ -64,7 +81,7 @@ const useItemLainLain = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fetchItemLainLain]);
 
   // Update item lain-lain
   const updateItemLainLain = useCallback(async (pid, data) => {
@@ -87,7 +104,7 @@ const useItemLainLain = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fetchItemLainLain]);
 
   // Delete item lain-lain
   const deleteItemLainLain = useCallback(async (pid) => {
@@ -97,6 +114,8 @@ const useItemLainLain = () => {
     try {
       const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.ITEM_LAIN_LAIN}/hapus`, { pid });
       if (result?.status === 'ok' || result?.data === null) {
+        // Refresh data after successful deletion
+        await fetchItemLainLain();
         return result;
       }
       throw new Error(result?.message || 'Gagal menghapus data');
@@ -111,8 +130,9 @@ const useItemLainLain = () => {
 
   // Computed values
   const stats = useMemo(() => ({
-    total: itemLainLain.length,
-  }), [itemLainLain]);
+    total: totalRecords || itemLainLain.length,
+    displayed: itemLainLain.length,
+  }), [itemLainLain, totalRecords]);
 
   return {
     // Data - return raw data, filtering will be done in component
@@ -120,6 +140,7 @@ const useItemLainLain = () => {
     loading,
     error,
     stats,
+    totalRecords,
 
     // Search
     searchTerm,
