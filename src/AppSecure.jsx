@@ -37,6 +37,9 @@ const PelangganPage = lazy(() => import('./pages/dataMaster/PelangganPage'));
 const OutletPage = lazy(() => import('./pages/dataMaster/OutletPage'));
 const ProdukGDSPage = lazy(() => import('./pages/dataMaster/ProdukGDSPage'));
 const EartagPage = lazy(() => import('./pages/dataMaster/EartagPage'));
+const PersetujuanHoPage = lazy(() => import('./pages/dataMaster/PersetujuanHoPage'));
+const PersetujuanFeedmilPage = lazy(() => import('./pages/dataMaster/PersetujuanFeedmilPage'));
+const PersetujuanRphPage = lazy(() => import('./pages/dataMaster/PersetujuanRphPage'));
 
 // Boning Pages - Lazy loaded
 const BoningLayout = lazy(() => import('./pages/boning/BoningLayout'));
@@ -57,9 +60,17 @@ const UsersPage = lazy(() => import('./pages/system/UsersPage'));
 const PembelianHOPage = lazy(() => import('./pages/ho/pembelian/PembelianHOPage'));
 const PembelianDetailPage = lazy(() => import('./pages/ho/pembelian/PembelianDetailPage'));
 const AddEditPembelianPage = lazy(() => import('./pages/ho/pembelian/AddEditPembelianPage'));
-const PenjualanHOPage = lazy(() => import('./pages/ho/penjualan/PenjualanHOPage'));
-const AddEditPenjualanPage = lazy(() => import('./pages/ho/penjualan/AddEditPenjualanPage'));
-const PenjualanDetailPage = lazy(() => import('./pages/ho/penjualan/PenjualanDetailPage'));
+// const PenjualanHOPage = lazy(() => import('./pages/ho/penjualan/PenjualanHOPage'));
+// const AddEditPenjualanPage = lazy(() => import('./pages/ho/penjualan/AddEditPenjualanPage'));
+// const PenjualanDetailPage = lazy(() => import('./pages/ho/penjualan/PenjualanDetailPage'));
+
+// HO Penjualan Sapi Pages - Lazy loaded
+const PenjualanSapiHOPage = lazy(() => import('./pages/ho/penjualan/penjualanSapi/PenjualanSapiHOPage'));
+// Removed AddEditPenjualanSapiPage and PenjualanSapiDetailPage as they are not needed
+
+// RPH Pembelian Sapi Pages - Lazy loaded
+const PembelianSapi = lazy(() => import('./pages/RPH/Pembelian/Pembelian Sapi/PembelianSapi'));
+const PembelianSapiDetailPage = lazy(() => import('./pages/RPH/Pembelian/Pembelian Sapi/PembelianDetailPage'));
 
 // Reporting Pages - Lazy loaded
 const LaporanNotaSupplierPage = lazy(() => import('./pages/reporting/LaporanNotaSupplierPage'));
@@ -201,6 +212,9 @@ function AppSecure() {
               <Route path="/master-data/outlet" element={<OutletPage />} />
               <Route path="/master-data/produk-gds" element={<ProdukGDSPage />} />
               <Route path="/master-data/eartag" element={<EartagPage />} />
+              <Route path="/master-data/persetujuan-ho" element={<PersetujuanHoPage />} />
+              <Route path="/master-data/persetujuan-feedmil" element={<PersetujuanFeedmilPage />} />
+              <Route path="/master-data/persetujuan-rph" element={<PersetujuanRphPage />} />
 
               {/* Boning Routes */}
               <Route path="/boning/*" element={<BoningLayout />}>
@@ -217,6 +231,10 @@ function AppSecure() {
               <Route path="/ho/pembelian/add" element={<AddEditPembelianPage />} />
               <Route path="/ho/pembelian/edit/:id" element={<AddEditPembelianPage />} />
               <Route path="/ho/pembelian/detail/:id" element={<PembelianDetailPage />} />
+              
+              {/* RPH Pembelian Sapi Routes */}
+              <Route path="/rph/pembelian-sapi" element={<PembelianSapi />} />
+              <Route path="/rph/pembelian-sapi/detail/:id" element={<PembelianSapiDetailPage />} />
               
               {/* HO Feedmil and OVK Routes */}
               <Route path="/ho/pembelian-feedmil" element={<PembelianFeedmilPage />} />
@@ -261,11 +279,15 @@ function AppSecure() {
               <Route path="/pembayaran/lain-lain/edit/:id" element={<PembayaranLainLainPage />} />
               <Route path="/pembayaran/lain-lain/detail/:id" element={<PembayaranLainLainDetailPage />} />
               
-              {/* HO Sales Routes */}
-              <Route path="/ho/penjualan" element={<PenjualanHOPage />} />
+              {/* HO Sales Routes - Commented out as files don't exist */}
+              {/* <Route path="/ho/penjualan" element={<PenjualanHOPage />} />
               <Route path="/ho/penjualan/add" element={<AddEditPenjualanPage />} />
               <Route path="/ho/penjualan/edit/:id" element={<AddEditPenjualanPage />} />
-              <Route path="/ho/penjualan/detail/:id" element={<PenjualanDetailPage />} />
+              <Route path="/ho/penjualan/detail/:id" element={<PenjualanDetailPage />} /> */}
+              
+              {/* HO Penjualan Sapi Routes */}
+              <Route path="/ho/penjualan-sapi" element={<PenjualanSapiHOPage />} />
+              {/* Add and Edit routes removed - handled by modals in the main page */}
 
               {/* System Routes */}
               <Route path="/system/permission-management" element={<PermissionManagementPage />} />
