@@ -7,25 +7,37 @@ const useItemKulit = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [totalRecords, setTotalRecords] = useState(0);
 
-  // Fetch data dari API dengan encrypted PID dari backend
-  const fetchItemKulit = useCallback(async () => {
+  // Fetch data dari API dengan DataTables format
+  const fetchItemKulit = useCallback(async (searchValue = '') => {
     setLoading(true);
     setError(null);
     
     try {
-      // Add cache busting parameter to force fresh data from server
-      const cacheBuster = `?t=${Date.now()}`;
-      const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.ITEM_KULIT}/data${cacheBuster}`);
+      // Use DataTables format to fetch all records
+      const params = {
+        draw: 1,
+        start: 0,
+        length: 10000, // Large number to get all records
+        'search[value]': searchValue || '',
+        'order[0][column]': 0,
+        'order[0][dir]': 'asc',
+        t: Date.now() // Cache busting
+      };
+      
+      const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.ITEM_KULIT}/data`, { params });
 
-      // Handle berbagai bentuk respons (DataTables atau sendResponse)
+      // Handle DataTables response format
       let dataArray = [];
-      if (Array.isArray(result)) {
+      let total = 0;
+      
+      if (result?.data) {
+        dataArray = result.data;
+        total = result.recordsTotal || result.recordsFiltered || dataArray.length;
+      } else if (Array.isArray(result)) {
         dataArray = result;
-      } else if (Array.isArray(result?.data)) {
-        dataArray = result.data;
-      } else if (result?.status === 'ok' && Array.isArray(result?.data)) {
-        dataArray = result.data;
+        total = dataArray.length;
       }
 
       const validatedData = dataArray.map((item, index) => ({
@@ -38,9 +50,12 @@ const useItemKulit = () => {
       }));
 
       setItemKulit(validatedData);
+      setTotalRecords(total);
+      console.log(`✅ Fetched ${validatedData.length} of ${total} total item kulit records`);
     } catch (err) {
       setError(`API Error: ${err.message}`);
       setItemKulit([]);
+      setTotalRecords(0);
     } finally {
       setLoading(false);
     }
@@ -54,6 +69,8 @@ const useItemKulit = () => {
     try {
       const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.ITEM_KULIT}/store`, data);
       if (result?.status === 'ok' || result?.data) {
+        // Refresh data after successful creation
+        await fetchItemKulit();
         return result;
       }
       throw new Error(result?.message || 'Gagal membuat data');
@@ -64,7 +81,7 @@ const useItemKulit = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fetchItemKulit]);
 
   // Update item kulit
   const updateItemKulit = useCallback(async (pid, data) => {
@@ -75,6 +92,8 @@ const useItemKulit = () => {
       const payload = { pid, ...data };
       const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.ITEM_KULIT}/update`, payload);
       if (result?.status === 'ok' || result?.data) {
+        // Refresh data after successful update
+        await fetchItemKulit();
         return result;
       }
       throw new Error(result?.message || 'Gagal memperbarui data');
@@ -85,7 +104,7 @@ const useItemKulit = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fetchItemKulit]);
 
   // Delete item kulit
   const deleteItemKulit = useCallback(async (pid) => {
@@ -95,6 +114,8 @@ const useItemKulit = () => {
     try {
       const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.ITEM_KULIT}/hapus`, { pid });
       if (result?.status === 'ok' || result?.data === null) {
+        // Refresh data after successful deletion
+        await fetchItemKulit();
         return result;
       }
       throw new Error(result?.message || 'Gagal menghapus data');
@@ -105,12 +126,13 @@ const useItemKulit = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fetchItemKulit]);
 
   // Computed values
   const stats = useMemo(() => ({
-    total: itemKulit.length,
-  }), [itemKulit]);
+    total: totalRecords || itemKulit.length,
+    displayed: itemKulit.length,
+  }), [itemKulit, totalRecords]);
 
   return {
     // Data - return raw data, filtering will be done in component
@@ -118,6 +140,7 @@ const useItemKulit = () => {
     loading,
     error,
     stats,
+    totalRecords,
 
     // Search
     searchTerm,

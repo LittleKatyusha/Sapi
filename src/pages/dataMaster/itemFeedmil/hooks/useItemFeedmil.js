@@ -7,25 +7,37 @@ const useItemFeedmil = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [totalRecords, setTotalRecords] = useState(0);
 
-  // Fetch data dari API dengan encrypted PID dari backend
-  const fetchItemFeedmil = useCallback(async () => {
+  // Fetch data dari API dengan DataTables format
+  const fetchItemFeedmil = useCallback(async (searchValue = '') => {
     setLoading(true);
     setError(null);
     
     try {
-      // Add cache busting parameter to force fresh data from server
-      const cacheBuster = `?t=${Date.now()}`;
-      const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.ITEM_FEEDMIL}/data${cacheBuster}`);
+      // Use DataTables format to fetch all records
+      const params = {
+        draw: 1,
+        start: 0,
+        length: 10000, // Large number to get all records
+        'search[value]': searchValue || '',
+        'order[0][column]': 0,
+        'order[0][dir]': 'asc',
+        t: Date.now() // Cache busting
+      };
+      
+      const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.ITEM_FEEDMIL}/data`, { params });
 
-      // Handle berbagai bentuk respons (DataTables atau sendResponse)
+      // Handle DataTables response format
       let dataArray = [];
-      if (Array.isArray(result)) {
+      let total = 0;
+      
+      if (result?.data) {
+        dataArray = result.data;
+        total = result.recordsTotal || result.recordsFiltered || dataArray.length;
+      } else if (Array.isArray(result)) {
         dataArray = result;
-      } else if (Array.isArray(result?.data)) {
-        dataArray = result.data;
-      } else if (result?.status === 'ok' && Array.isArray(result?.data)) {
-        dataArray = result.data;
+        total = dataArray.length;
       }
 
       const validatedData = dataArray.map((item, index) => ({
@@ -38,9 +50,12 @@ const useItemFeedmil = () => {
       }));
 
       setItemFeedmil(validatedData);
+      setTotalRecords(total);
+      console.log(`✅ Fetched ${validatedData.length} of ${total} total item feedmil records`);
     } catch (err) {
       setError(`API Error: ${err.message}`);
       setItemFeedmil([]);
+      setTotalRecords(0);
     } finally {
       setLoading(false);
     }
@@ -54,6 +69,8 @@ const useItemFeedmil = () => {
     try {
       const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.ITEM_FEEDMIL}/store`, data);
       if (result?.status === 'ok' || result?.data) {
+        // Refresh data after successful creation
+        await fetchItemFeedmil();
         return result;
       }
       throw new Error(result?.message || 'Gagal membuat data');
@@ -64,7 +81,7 @@ const useItemFeedmil = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fetchItemFeedmil]);
 
   // Update item feedmil
   const updateItemFeedmil = useCallback(async (pid, data) => {
@@ -76,6 +93,8 @@ const useItemFeedmil = () => {
       const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.ITEM_FEEDMIL}/update`, payload);
       
       if (result?.status === 'ok' || result?.data) {
+        // Refresh data after successful update
+        await fetchItemFeedmil();
         return result;
       }
       throw new Error(result?.message || 'Gagal memperbarui data');
@@ -86,7 +105,7 @@ const useItemFeedmil = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fetchItemFeedmil]);
 
   // Delete item feedmil
   const deleteItemFeedmil = useCallback(async (pid) => {
@@ -96,6 +115,8 @@ const useItemFeedmil = () => {
     try {
       const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.ITEM_FEEDMIL}/hapus`, { pid });
       if (result?.status === 'ok' || result?.data === null) {
+        // Refresh data after successful deletion
+        await fetchItemFeedmil();
         return result;
       }
       throw new Error(result?.message || 'Gagal menghapus data');
@@ -106,12 +127,13 @@ const useItemFeedmil = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fetchItemFeedmil]);
 
   // Computed values
   const stats = useMemo(() => ({
-    total: itemFeedmil.length,
-  }), [itemFeedmil]);
+    total: totalRecords || itemFeedmil.length,
+    displayed: itemFeedmil.length,
+  }), [itemFeedmil, totalRecords]);
 
   return {
     // Data - return raw data, filtering will be done in component
@@ -119,6 +141,7 @@ const useItemFeedmil = () => {
     loading,
     error,
     stats,
+    totalRecords,
 
     // Search
     searchTerm,

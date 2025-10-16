@@ -44,6 +44,16 @@ const ItemFeedmilPage = () => {
     fetchItemFeedmil();
   }, [fetchItemFeedmil]);
 
+  // Handle search with debounce
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      // Fetch data with search term from server
+      fetchItemFeedmil(searchTerm);
+    }, 500); // 500ms delay for debounce
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm, fetchItemFeedmil]);
+
   // Auto-refresh when user returns to the page
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -112,13 +122,12 @@ const ItemFeedmilPage = () => {
       setShowEditModal(false);
       setEditData(null);
       
-      // Force refresh data directly (following PembelianFeedmilPage pattern)
-      await fetchItemFeedmil();
+      // Data refresh is now handled in the hook
       setLastRefreshTime(Date.now());
     } catch (err) {
       console.error('❌ Error saving data:', err);
     }
-  }, [editData, updateItemFeedmil, createItemFeedmil, fetchItemFeedmil]);
+  }, [editData, updateItemFeedmil, createItemFeedmil]);
 
   const handleConfirmDelete = useCallback(async () => {
     if (!deleteData) return;
@@ -128,15 +137,14 @@ const ItemFeedmilPage = () => {
       await deleteItemFeedmil(deleteData.pid || deleteData.pubid);
       setDeleteData(null);
       
-      // Force refresh data directly (following PembelianFeedmilPage pattern)
-      await fetchItemFeedmil();
+      // Data refresh is now handled in the hook
       setLastRefreshTime(Date.now());
     } catch (err) {
       console.error('❌ Error deleting data:', err);
     } finally {
       setIsDeleting(false);
     }
-  }, [deleteData, deleteItemFeedmil, fetchItemFeedmil]);
+  }, [deleteData, deleteItemFeedmil]);
 
   // Toggle menu untuk mobile
   const toggleMenu = useCallback((id) => {
@@ -190,31 +198,17 @@ const ItemFeedmilPage = () => {
     }
   ], [openMenuId, handleEdit, handleDelete, handleDetail, toggleMenu]);
 
-  // Filter data berdasarkan search term dan tambahkan order_no
+  // Add order_no to data (server-side search is already applied)
   const filteredData = useMemo(() => {
-    console.log('🔄 Computing filteredData, itemFeedmil length:', itemFeedmil.length);
-    console.log('📋 Raw itemFeedmil data:', itemFeedmil);
-    
-    let filtered = itemFeedmil;
-    
-    if (searchTerm) {
-      filtered = itemFeedmil.filter(item =>
-        item.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.description?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-      console.log('🔍 After search filter, length:', filtered.length);
-    }
-    
-    // Tambahkan order_no untuk semua data (filtered atau tidak)
-    const result = filtered.map((item, idx) => ({
+    // Server already handles the search, just add order_no
+    const result = itemFeedmil.map((item, idx) => ({
       order_no: idx + 1,
       ...item
     }));
     
-    console.log('📊 ItemFeedmil filteredData updated:', result.length, 'items');
-    console.log('📋 Final filteredData:', result);
+    console.log('📊 ItemFeedmil data:', result.length, 'items');
     return result;
-  }, [itemFeedmil, searchTerm]);
+  }, [itemFeedmil]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-2 sm:p-4 md:p-6">
@@ -247,6 +241,9 @@ const ItemFeedmilPage = () => {
           <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg">
             <h3 className="text-xs sm:text-sm font-medium opacity-90">Total Item Feedmil</h3>
             <p className="text-xl sm:text-3xl font-bold">{stats.total}</p>
+            {stats.displayed < stats.total && (
+              <p className="text-xs opacity-75 mt-1">Menampilkan {stats.displayed} data</p>
+            )}
           </div>
         </div>
 
@@ -300,8 +297,8 @@ const ItemFeedmilPage = () => {
                   columns={columns}
                   data={filteredData}
                   pagination
-                  paginationPerPage={10}
-                  paginationRowsPerPageOptions={[5, 10, 15, 20]}
+                  paginationPerPage={20}
+                  paginationRowsPerPageOptions={[10, 20, 30, 50, 100]}
                   customStyles={customTableStyles}
                   noDataComponent={
                     <div className="text-center py-12">
@@ -312,15 +309,6 @@ const ItemFeedmilPage = () => {
                   responsive={true}
                   highlightOnHover={true}
                   pointerOnHover={true}
-                  onRowClicked={(row) => {
-                    console.log('🖱️ DataTable row clicked:', row);
-                  }}
-                  onChangePage={(page) => {
-                    console.log('📄 DataTable page changed to:', page);
-                  }}
-                  onChangeRowsPerPage={(currentRowsPerPage, currentPage) => {
-                    console.log('📊 DataTable rows per page changed:', currentRowsPerPage, 'page:', currentPage);
-                  }}
                 />
               </div>
             ) : (

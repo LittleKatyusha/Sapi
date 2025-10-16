@@ -7,25 +7,37 @@ const useItemOvk = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [totalRecords, setTotalRecords] = useState(0);
 
-  // Fetch data dari API dengan encrypted PID dari backend
-  const fetchItemOvk = useCallback(async () => {
+  // Fetch data dari API dengan DataTables format
+  const fetchItemOvk = useCallback(async (searchValue = '') => {
     setLoading(true);
     setError(null);
     
     try {
-      // Add cache busting parameter to force fresh data from server
-      const cacheBuster = `?t=${Date.now()}`;
-      const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.ITEM_OVK}/data${cacheBuster}`);
+      // Use DataTables format to fetch all records
+      const params = {
+        draw: 1,
+        start: 0,
+        length: 10000, // Large number to get all records
+        'search[value]': searchValue || '',
+        'order[0][column]': 0,
+        'order[0][dir]': 'asc',
+        t: Date.now() // Cache busting
+      };
+      
+      const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.ITEM_OVK}/data`, { params });
 
-      // Handle berbagai bentuk respons (DataTables atau sendResponse)
+      // Handle DataTables response format
       let dataArray = [];
-      if (Array.isArray(result)) {
+      let total = 0;
+      
+      if (result?.data) {
+        dataArray = result.data;
+        total = result.recordsTotal || result.recordsFiltered || dataArray.length;
+      } else if (Array.isArray(result)) {
         dataArray = result;
-      } else if (Array.isArray(result?.data)) {
-        dataArray = result.data;
-      } else if (result?.status === 'ok' && Array.isArray(result?.data)) {
-        dataArray = result.data;
+        total = dataArray.length;
       }
 
       const validatedData = dataArray.map((item, index) => ({
@@ -38,9 +50,12 @@ const useItemOvk = () => {
       }));
 
       setItemOvk(validatedData);
+      setTotalRecords(total);
+      console.log(`✅ Fetched ${validatedData.length} of ${total} total item OVK records`);
     } catch (err) {
       setError(`API Error: ${err.message}`);
       setItemOvk([]);
+      setTotalRecords(0);
     } finally {
       setLoading(false);
     }
@@ -54,6 +69,8 @@ const useItemOvk = () => {
     try {
       const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.ITEM_OVK}/store`, data);
       if (result?.status === 'ok' || result?.data) {
+        // Refresh data after successful creation
+        await fetchItemOvk();
         return result;
       }
       throw new Error(result?.message || 'Gagal membuat data');
@@ -75,7 +92,7 @@ const useItemOvk = () => {
       const payload = { pid, ...data };
       const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.ITEM_OVK}/update`, payload);
       if (result?.status === 'ok' || result?.data) {
-        // Refresh data untuk mendapatkan data yang telah diupdate dari server
+        // Refresh data after successful update
         await fetchItemOvk();
         return result;
       }
@@ -97,6 +114,8 @@ const useItemOvk = () => {
     try {
       const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.ITEM_OVK}/hapus`, { pid });
       if (result?.status === 'ok' || result?.data === null) {
+        // Refresh data after successful deletion
+        await fetchItemOvk();
         return result;
       }
       throw new Error(result?.message || 'Gagal menghapus data');
@@ -111,8 +130,9 @@ const useItemOvk = () => {
 
   // Computed values
   const stats = useMemo(() => ({
-    total: itemOvk.length,
-  }), [itemOvk]);
+    total: totalRecords || itemOvk.length,
+    displayed: itemOvk.length,
+  }), [itemOvk, totalRecords]);
 
   return {
     // Data - return raw data, filtering will be done in component
@@ -120,6 +140,7 @@ const useItemOvk = () => {
     loading,
     error,
     stats,
+    totalRecords,
 
     // Search
     searchTerm,

@@ -44,6 +44,16 @@ const ItemKulitPage = () => {
     fetchItemKulit();
   }, [fetchItemKulit]);
 
+  // Handle search with debounce
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      // Fetch data with search term from server
+      fetchItemKulit(searchTerm);
+    }, 500); // 500ms delay for debounce
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm, fetchItemKulit]);
+
   // Auto-refresh on visibility change and window focus (following PembelianFeedmilPage pattern)
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -104,13 +114,12 @@ const ItemKulitPage = () => {
       setShowEditModal(false);
       setEditData(null);
       
-      // Force refresh data directly (following PembelianFeedmilPage pattern)
-      await fetchItemKulit();
+      // Data refresh is now handled in the hook
       setLastRefreshTime(Date.now());
     } catch (err) {
       console.error('Error saving data:', err);
     }
-  }, [editData, updateItemKulit, createItemKulit, fetchItemKulit]);
+  }, [editData, updateItemKulit, createItemKulit]);
 
   const handleConfirmDelete = useCallback(async () => {
     if (!deleteData) return;
@@ -120,15 +129,14 @@ const ItemKulitPage = () => {
       await deleteItemKulit(deleteData.pid || deleteData.pubid);
       setDeleteData(null);
       
-      // Force refresh data directly (following PembelianFeedmilPage pattern)
-      await fetchItemKulit();
+      // Data refresh is now handled in the hook
       setLastRefreshTime(Date.now());
     } catch (err) {
       console.error('Error deleting data:', err);
     } finally {
       setIsDeleting(false);
     }
-  }, [deleteData, deleteItemKulit, fetchItemKulit]);
+  }, [deleteData, deleteItemKulit]);
 
   // Toggle menu untuk mobile
   const toggleMenu = useCallback((id) => {
@@ -182,25 +190,17 @@ const ItemKulitPage = () => {
     }
   ], [openMenuId, handleEdit, handleDelete, handleDetail, toggleMenu]);
 
-  // Filter data berdasarkan search term
+  // Add order_no to data (server-side search is already applied)
   const filteredData = useMemo(() => {
-    if (!searchTerm) {
-      return itemKulit.map((item, idx) => ({
-        // Tambahkan order_no untuk tampilan tabel
-        order_no: idx + 1,
-        ...item
-      }));
-    }
-    
-    return itemKulit.filter(item =>
-      item.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.description?.toLowerCase().includes(searchTerm.toLowerCase())
-    ).map((item, idx) => ({
-      // Tambahkan order_no untuk tampilan tabel
+    // Server already handles the search, just add order_no
+    const result = itemKulit.map((item, idx) => ({
       order_no: idx + 1,
       ...item
     }));
-  }, [itemKulit, searchTerm]);
+    
+    console.log('📊 ItemKulit data:', result.length, 'items');
+    return result;
+  }, [itemKulit]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-2 sm:p-4 md:p-6">
@@ -233,6 +233,9 @@ const ItemKulitPage = () => {
           <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg">
             <h3 className="text-xs sm:text-sm font-medium opacity-90">Total Item Kulit</h3>
             <p className="text-xl sm:text-3xl font-bold">{stats.total}</p>
+            {stats.displayed < stats.total && (
+              <p className="text-xs opacity-75 mt-1">Menampilkan {stats.displayed} data</p>
+            )}
           </div>
         </div>
 
@@ -285,8 +288,8 @@ const ItemKulitPage = () => {
                   columns={columns}
                   data={filteredData}
                   pagination
-                  paginationPerPage={10}
-                  paginationRowsPerPageOptions={[5, 10, 15, 20]}
+                  paginationPerPage={20}
+                  paginationRowsPerPageOptions={[10, 20, 30, 50, 100]}
                   customStyles={customTableStyles}
                   noDataComponent={
                     <div className="text-center py-12">
