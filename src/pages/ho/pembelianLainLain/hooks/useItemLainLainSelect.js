@@ -19,12 +19,39 @@ const useItemLainLainSelect = () => {
         try {
             console.log('🔄 Fetching Item Lain-Lain data...');
             
-            // Add cache busting parameter to force fresh data
-            const cacheBuster = `?t=${Date.now()}`;
-            const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.ITEM_LAIN_LAIN}/data${cacheBuster}`);
+            // First, make a request to get the total count
+            const countParams = new URLSearchParams({
+                start: '0',
+                length: '1',     // Request just 1 item to get total count
+                draw: '1',
+                't': Date.now()  // Cache buster
+            });
+            
+            const countResult = await HttpClient.get(`${API_ENDPOINTS.MASTER.ITEM_LAIN_LAIN}/data?${countParams.toString()}`);
+            
+            // Get total records from the response
+            let totalRecords = 0;
+            if (countResult?.recordsTotal) {
+                totalRecords = countResult.recordsTotal;
+            } else if (countResult?.data?.length) {
+                totalRecords = countResult.data.length;
+            }
+            
+            console.log(`📊 Total Item Lain-Lain records available: ${totalRecords}`);
+            
+            // Now fetch all records using the total count (or use a very large number as fallback)
+            const params = new URLSearchParams({
+                start: '0',
+                length: totalRecords > 0 ? String(totalRecords) : '999999',  // Request all records
+                draw: '1',
+                't': Date.now()
+            });
+            
+            const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.ITEM_LAIN_LAIN}/data?${params.toString()}`);
 
             // Handle various response formats
             let dataArray = [];
+            
             if (Array.isArray(result)) {
                 dataArray = result;
             } else if (Array.isArray(result?.data)) {
@@ -32,6 +59,8 @@ const useItemLainLainSelect = () => {
             } else if (result?.status === 'ok' && Array.isArray(result?.data)) {
                 dataArray = result.data;
             }
+            
+            console.log(`✅ Successfully fetched ${dataArray.length} Item Lain-Lain records`);
 
             // Validate and transform data
             const validatedData = dataArray.map((item, index) => {

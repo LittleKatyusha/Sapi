@@ -42,17 +42,65 @@ const useKlasifikasiLainLain = () => {
         clearKlasifikasiCache();
       }
 
-      // Add timestamp to prevent caching when force refreshing
-      const endpoint = forceRefresh
-        ? `${API_ENDPOINTS.MASTER.KLASIFIKASI_LAIN_LAIN}/data?_t=${Date.now()}`
-        : `${API_ENDPOINTS.MASTER.KLASIFIKASI_LAIN_LAIN}/data`;
-      
-      const result = await HttpClient.get(endpoint, {
-        cache: !forceRefresh // Disable cache if force refreshing
+      // First, make a request to get the total count
+      const countParams = new URLSearchParams({
+        start: '0',
+        length: '1',     // Request just 1 item to get total count
+        draw: '1',
       });
       
+      if (forceRefresh) {
+        countParams.append('_t', Date.now().toString());
+      }
+      
+      const countEndpoint = `${API_ENDPOINTS.MASTER.KLASIFIKASI_LAIN_LAIN}/data?${countParams.toString()}`;
+      const countResult = await HttpClient.get(countEndpoint, {
+        cache: !forceRefresh
+      });
+      
+      // Get total records from the response
+      let totalRecords = 0;
+      if (countResult?.recordsTotal) {
+        totalRecords = countResult.recordsTotal;
+      } else if (countResult?.data?.length) {
+        totalRecords = countResult.data.length;
+      }
+      
+      console.log(`📊 Total Klasifikasi Lain-Lain records available: ${totalRecords}`);
+      
+      // Now fetch all records using the total count (or use a very large number as fallback)
+      const params = new URLSearchParams({
+        start: '0',
+        length: totalRecords > 0 ? String(totalRecords) : '999999',  // Request all records
+        draw: '1',
+      });
+      
+      if (forceRefresh) {
+        params.append('_t', Date.now().toString());
+      }
+
+      const endpoint = `${API_ENDPOINTS.MASTER.KLASIFIKASI_LAIN_LAIN}/data?${params.toString()}`;
+      
+      const result = await HttpClient.get(endpoint, {
+        cache: !forceRefresh
+      });
+      
+      // Handle response format
+      let dataArray = [];
+      
       if (result.status === 'ok' && result.data && Array.isArray(result.data)) {
-        const validatedData = result.data.map((item, index) => {
+        dataArray = result.data;
+      } else if (Array.isArray(result)) {
+        dataArray = result;
+      } else if (result.draw && Array.isArray(result.data)) {
+        // DataTables response format
+        dataArray = result.data;
+      }
+      
+      console.log(`✅ Successfully fetched ${dataArray.length} Klasifikasi Lain-Lain records`);
+      
+      if (dataArray.length > 0) {
+        const validatedData = dataArray.map((item, index) => {
           // Debug log to see actual data structure
           if (index === 0) {
             console.log('🔍 First Klasifikasi Lain-Lain raw data:', item);
