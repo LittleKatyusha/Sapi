@@ -1802,7 +1802,7 @@ const AddEditPembelianOVKPage = () => {
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 w-20">Persentase (%)</th>
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[120px]">HPP (Rp)</th>
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[120px]">Total Harga (Rp)</th>
-                                        <th className="p-2 sm:p-3 text-center text-xs sm:text-sm font-semibold text-blue-800 w-20">Aksi</th>
+                                        <th className="p-2 sm:p-3 text-center text-xs sm:text-sm font-semibold text-blue-800 w-20">Pilih</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -1898,7 +1898,7 @@ const AddEditPembelianOVKPage = () => {
                                                     </div>
                                                 </td>
                                                 
-                                                {/* Aksi */}
+                                                {/* Pilih */}
                                                 <td className="p-2 sm:p-3 text-center">
                                                     <div className="flex items-center justify-center gap-1">
                                                         {isEdit && (

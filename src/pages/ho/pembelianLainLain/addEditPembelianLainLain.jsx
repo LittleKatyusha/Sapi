@@ -1656,7 +1656,7 @@ const AddEditPembelianLainLainPage = () => {
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 w-24"> Jumlah Total </th>
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[120px]">Harga (Rp)</th>
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[120px]">Total Harga (Rp)</th>
-                                        <th className="p-2 sm:p-3 text-center text-xs sm:text-sm font-semibold text-blue-800 w-28">Aksi</th>
+                                        <th className="p-2 sm:p-3 text-center text-xs sm:text-sm font-semibold text-blue-800 w-28">Pilih</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -1723,7 +1723,7 @@ const AddEditPembelianLainLainPage = () => {
                                                     </div>
                                                 </td>
                                                 
-                                                {/* Aksi - Edit and Delete buttons */}
+                                                {/* Pilih - Edit and Delete buttons */}
                                                 <td className="p-2 sm:p-3 text-center">
                                                     <div className="flex items-center justify-center gap-1">
                                                         <button

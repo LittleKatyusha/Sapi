@@ -321,7 +321,7 @@ const enhancedTableStyles = {
                 justifyContent: 'center',
                 textAlign: 'center !important',
             },
-            // Sticky "Aksi" column styling - now second column (nth-child(2))
+            // Sticky "Pilih" column styling - now second column (nth-child(2))
             '&:nth-child(2)': {
                 position: 'sticky',
                 left: '60px', // Position after the No column width
@@ -384,7 +384,7 @@ const enhancedTableStyles = {
                 minWidth: '60px',
                 maxWidth: '60px',
             },
-            // Sticky "Aksi" column styling - now second column (nth-child(2))
+            // Sticky "Pilih" column styling - now second column (nth-child(2))
             '&:nth-child(2)': {
                 position: 'sticky',
                 left: '60px', // Position after the No column width

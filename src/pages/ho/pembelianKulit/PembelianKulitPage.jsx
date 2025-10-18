@@ -259,7 +259,7 @@ const PembelianKulitPage = () => {
             )
         },
         {
-            name: 'Aksi',
+            name: 'Pilih',
             width: '80px',
             cell: row => (
                 <ActionButton

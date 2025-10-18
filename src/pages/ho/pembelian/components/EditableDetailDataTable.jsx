@@ -315,7 +315,7 @@ const EditableDetailDataTable = ({
       sortable: false,
     },
     {
-      name: 'Aksi',
+      name: 'Pilih',
       cell: (row) => (
         <div className="flex justify-center items-center gap-1 h-full group">
           <button

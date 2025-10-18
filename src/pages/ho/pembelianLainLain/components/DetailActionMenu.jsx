@@ -65,7 +65,7 @@ const DetailActionMenu = ({ row, onDetail, onClose, buttonRef }) => {
             }}
             className={`w-48 bg-white/95 backdrop-blur-lg rounded-xl shadow-xl border border-gray-200/50 overflow-hidden transition-all duration-150 animate-in slide-in-from-top-2 fade-in-0`}
             role="menu"
-            aria-label="Menu Aksi Detail"
+            aria-label="Menu Pilih Detail"
         >
             <div className="px-3 py-2 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200/50">
                 <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Menu Detail</p>

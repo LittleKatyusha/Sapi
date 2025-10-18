@@ -222,9 +222,9 @@ const PembelianLainLainPage = () => {
             )
         },
         {
-            name: 'Aksi',
+            name: 'Pilih',
             width: '80px',
-            // Add sticky positioning for Aksi column
+            // Add sticky positioning for Pilih column
             style: {
                 position: 'sticky',
                 left: '60px', // Position after No column (60px width)
@@ -385,7 +385,7 @@ const PembelianLainLainPage = () => {
                 <div className="flex items-center justify-center w-full h-full min-h-[40px]">
                     <div className="bg-gray-50 text-gray-700 px-3 py-2 rounded-lg font-semibold text-center">
                         {row.berat_total ? `${parseFloat(row.berat_total).toFixed(1)}` : '-'}<br/>
-                        <span className="text-xs text-gray-500">kg</span>
+                        <span className="text-xs text-gray-500">item</span>
                     </div>
                 </div>
             )
@@ -520,7 +520,7 @@ const PembelianLainLainPage = () => {
                     text-align: center !important;
                 }
                 
-                /* Sticky columns styling for No and Aksi */
+                /* Sticky columns styling for No and Pilih */
                 .rdt_Table .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol:nth-child(1),
                 .rdt_Table .rdt_TableBody .rdt_TableRow .rdt_TableCell:nth-child(1) {
                     position: sticky !important;
@@ -577,7 +577,7 @@ const PembelianLainLainPage = () => {
                                 Pembelian Lain-Lain
                             </h1>
                             <p className="text-gray-600 text-sm sm:text-base">
-                                Kelola data pembelian Lain-Lain untuk ternak
+                                Kelola data pembelian Lain-Lain (Aset / Beban)
                             </p>
                         </div>
                         <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 md:gap-6">

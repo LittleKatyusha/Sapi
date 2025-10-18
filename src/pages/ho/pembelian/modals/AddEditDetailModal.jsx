@@ -84,9 +84,10 @@ const AddEditDetailModal = ({
         const persentase = parseFloat(formData.persentase) || 0;
         
         if (harga > 0) {
-            // Calculate HPP with persentase
+            // Calculate HPP with persentase (simplified in modal)
+            // Note: Accurate HPP with biaya truck/lain will be calculated in main form
             const markupAmount = harga * (persentase / 100);
-            const calculatedHpp = harga + markupAmount;
+            const calculatedHpp = Math.round(harga + markupAmount);
             const calculatedTotal = calculatedHpp * berat;
             
             setFormData(prev => ({
@@ -317,7 +318,7 @@ const AddEditDetailModal = ({
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50"
                                 placeholder="Otomatis dihitung"
                             />
-                            <p className="text-xs text-gray-500 mt-1">Otomatis: Harga + (Harga × Persentase/100)</p>
+                            <p className="text-xs text-gray-500 mt-1">Preview HPP (Final akan dihitung dengan biaya operasional)</p>
                         </div>
 
                         {/* Total Harga (Read-only, calculated) */}
@@ -333,7 +334,7 @@ const AddEditDetailModal = ({
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 font-bold"
                                 placeholder="Otomatis dihitung"
                             />
-                            <p className="text-xs text-gray-500 mt-1">Otomatis: HPP × Berat</p>
+                            <p className="text-xs text-gray-500 mt-1">Otomatis: HPP × Berat (Final HPP akan dihitung dengan biaya operasional)</p>
                         </div>
 
                         {/* Status */}
@@ -388,7 +389,11 @@ const AddEditDetailModal = ({
                     <div className="bg-green-50 p-4 rounded-lg">
                         <p className="text-sm text-green-700">
                             <strong>Info:</strong> Data Eartag dan Klasifikasi Hewan dimuat dari master data melalui endpoint parameter terpusat.
-                            HPP dan Total Harga akan dihitung otomatis berdasarkan harga dan persentase.
+                            <br/>
+                            <strong>HPP Final Formula:</strong>
+                            <code className="text-xs bg-green-100 px-1 py-0.5 rounded ml-1">
+                                ((Biaya Truck + Biaya Lain + (Harga × Berat Total × %/100) + (Harga × Berat Total)) / Berat Total)
+                            </code>
                         </p>
                     </div>
 

@@ -69,4 +69,8 @@ export const pageTitleMap = {
   '/ho/pembelian-lain-lain/add': 'Head Office: Tambah Pembelian Lain Lain',
   '/ho/pembelian-lain-lain/edit/:id': 'Head Office: Edit Pembelian Lain Lain',
   '/ho/pembelian-lain-lain/detail/:id': 'Head Office: Detail Pembelian Lain Lain',
+  '/ho/penjualan-sapi': 'Head Office: Penjualan Sapi',
+  '/ho/penjualan-sapi/add': 'Head Office: Tambah Penjualan Sapi',
+  '/ho/penjualan-sapi/edit/:id': 'Head Office: Edit Penjualan Sapi',
+  '/ho/penjualan-sapi/detail/:id': 'Head Office: Detail Penjualan Sapi',
 };

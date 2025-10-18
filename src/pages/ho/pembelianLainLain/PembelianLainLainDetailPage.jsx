@@ -332,7 +332,7 @@ const PembelianLainLainDetailPage = () => {
             )
         },
         {
-            name: 'Aksi',
+            name: 'Pilih',
             minWidth: '80px',
             maxWidth: '100px',
             center: true,
@@ -789,7 +789,7 @@ const PembelianLainLainDetailPage = () => {
                                                 borderRight: '2px solid #e5e7eb',
                                                 boxShadow: '1px 0 2px rgba(0, 0, 0, 0.05)',
                                             },
-                                            // Keep second column (Aksi) sticky next to No
+                                            // Keep second column (Pilih) sticky next to No
                                             '&:nth-child(2)': {
                                                 position: 'sticky',
                                                 left: '80px', // Width of No column
@@ -837,7 +837,7 @@ const PembelianLainLainDetailPage = () => {
                                                 alignItems: 'center !important',
                                                 justifyContent: 'center !important',
                                             },
-                                            // Keep second column (Aksi) sticky
+                                            // Keep second column (Pilih) sticky
                                             '&:nth-child(2)': {
                                                 position: 'sticky',
                                                 left: '80px', // Width of No column

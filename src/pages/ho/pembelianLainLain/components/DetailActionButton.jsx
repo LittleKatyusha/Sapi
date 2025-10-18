@@ -36,7 +36,7 @@ const DetailActionButton = ({ row, openMenuId, setOpenMenuId, onDetail }) => {
                 className={`p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-all duration-150 rounded-lg hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 group ${
                     openMenuId === (row.id || row.pubid) ? 'bg-blue-50 text-blue-600 scale-105' : ''
                 } ${isAnimating ? 'animate-pulse' : ''}`}
-                aria-label="Menu Aksi"
+                aria-label="Menu Pilih"
                 aria-expanded={openMenuId === (row.id || row.pubid)}
             >
                 <MoreVertical

@@ -35,7 +35,7 @@ const DetailActionButton = ({ row, rowIndex, openMenuIndex, onOpenMenu, onEdit, 
                 className={`p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all duration-150 rounded-lg hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 group ${
                     openMenuIndex === rowIndex ? 'bg-red-50 text-red-600 scale-105' : ''
                 } ${isAnimating ? 'animate-pulse' : ''}`}
-                aria-label="Menu Aksi"
+                aria-label="Menu Pilih"
                 aria-expanded={openMenuIndex === rowIndex}
             >
                 <MoreVertical

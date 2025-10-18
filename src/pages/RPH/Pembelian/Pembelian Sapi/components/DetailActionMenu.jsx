@@ -1,8 +1,8 @@
-import React, { useRef, useEffect, useState, useLayoutEffect } from 'react';
+import React, { useRef, useLayoutEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Eye, Edit, Copy, Trash2 } from 'lucide-react';
+import { Edit, Copy, Trash2 } from 'lucide-react';
 
-const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef, showDistribusi = false }) => {
+const DetailActionMenu = ({ row, onEdit, onDelete, onClone, onClose, buttonRef }) => {
     const menuRef = useRef(null);
     const [menuStyle, setMenuStyle] = useState(null);
 
@@ -10,11 +10,22 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef, showD
         function updatePosition() {
             if (buttonRef?.current) {
                 const btnRect = buttonRef.current.getBoundingClientRect();
+                const menuWidth = 220; // px, lebar menu
+                const padding = 8; // px, jarak dari tepi layar
+                let left = btnRect.left + window.scrollX;
+                // Jika menu akan keluar layar kanan, geser ke kiri
+                if (left + menuWidth + padding > window.innerWidth) {
+                    left = window.innerWidth - menuWidth - padding;
+                }
+                // Jika terlalu kiri, tetap padding
+                if (left < padding) left = padding;
                 setMenuStyle({
                     position: 'absolute',
-                    left: btnRect.left + window.scrollX,
+                    left,
                     top: btnRect.bottom + window.scrollY + 8,
-                    zIndex: 9999
+                    zIndex: 1500,
+                    minWidth: menuWidth,
+                    maxWidth: '90vw',
                 });
             }
         }
@@ -22,8 +33,12 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef, showD
         window.addEventListener('scroll', updatePosition, true);
         window.addEventListener('resize', updatePosition);
         const handleClickOutside = (event) => {
-            if (menuRef.current && !menuRef.current.contains(event.target) &&
-                buttonRef.current && !buttonRef.current.contains(event.target)) {
+            if (
+                menuRef.current &&
+                !menuRef.current.contains(event.target) &&
+                buttonRef.current &&
+                !buttonRef.current.contains(event.target)
+            ) {
                 onClose();
             }
         };
@@ -36,42 +51,42 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef, showD
     }, [onClose, buttonRef]);
 
     const actions = [
-        {
-            label: 'Lihat Detail',
-            icon: Eye,
-            onClick: () => onDetail(row),
-            className: 'text-gray-700',
-            description: 'Informasi lengkap',
-            bg: 'bg-blue-100',
-            hoverBg: 'group-hover:bg-blue-200',
-            text: 'text-blue-600',
-        },
-        {
-            label: 'Edit Penjualan',
+        onEdit && {
+            label: 'Edit Detail',
             icon: Edit,
             onClick: () => onEdit(row),
             className: 'text-gray-700',
-            description: 'Ubah informasi',
+            description: 'Ubah data ternak',
             bg: 'bg-amber-100',
             hoverBg: 'group-hover:bg-amber-200',
             text: 'text-amber-600',
         },
-        {
+        onClone && {
+            label: 'Clone Detail',
+            icon: Copy,
+            onClick: () => onClone(row),
+            className: 'text-gray-700',
+            description: 'Duplikasi ternak',
+            bg: 'bg-emerald-100',
+            hoverBg: 'group-hover:bg-emerald-200',
+            text: 'text-emerald-600',
+        },
+        (onEdit || onClone) && onDelete && {
             divider: true
         },
-        {
-            label: 'Hapus Penjualan',
+        onDelete && {
+            label: 'Hapus Detail',
             icon: Trash2,
             onClick: () => onDelete(row),
             className: 'text-red-600',
-            description: 'Hapus permanen',
+            description: 'Hapus data ternak',
             bg: 'bg-red-100',
             hoverBg: 'group-hover:bg-red-200',
             text: 'text-red-600',
         }
-    ];
+    ].filter(Boolean);
 
-    // Render menu hanya jika posisi sudah didapat
+    // Only render if position is available
     if (!menuStyle) return null;
 
     const menuElement = (
@@ -81,13 +96,19 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef, showD
                 ...menuStyle,
                 visibility: 'visible',
                 pointerEvents: 'auto',
-                zIndex: 99999
+                zIndex: 1500,
+                boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.18)',
+                borderRadius: 14,
+                padding: 0,
+                background: 'rgba(255,255,255,0.98)',
+                border: '1px solid #e5e7eb',
+                animation: 'fadeInMenu 0.18s cubic-bezier(.4,0,.2,1)',
             }}
-            className={`w-48 bg-white/95 backdrop-blur-lg rounded-xl shadow-xl border border-gray-200/50 overflow-hidden transition-all duration-150 animate-in slide-in-from-top-2 fade-in-0`}
+            className={`bg-white/95 backdrop-blur-lg overflow-hidden animate-in slide-in-from-top-2 fade-in-0`}
             role="menu"
-            aria-label="Menu Aksi"
+            aria-label="Menu Aksi Detail"
         >
-            <div className="px-3 py-2 bg-gradient-to-r from-gray-50 to-emerald-100 border-b border-gray-200/50">
+            <div className="px-3 py-2 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200/50">
                 <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Menu Aksi</p>
             </div>
             <div className="p-1">
@@ -113,10 +134,16 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef, showD
                     )
                 )}
             </div>
+            <style>{`
+                @keyframes fadeInMenu {
+                    from { opacity: 0; transform: translateY(-8px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+            `}</style>
         </div>
     );
 
     return createPortal(menuElement, document.body);
 };
 
-export default ActionMenu;
+export default DetailActionMenu;

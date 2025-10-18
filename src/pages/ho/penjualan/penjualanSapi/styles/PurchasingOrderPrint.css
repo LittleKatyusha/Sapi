@@ -1,0 +1,111 @@
+/* Print styles for Purchasing Order Modal */
+@media print {
+    /* Hide everything except the modal content */
+    body * {
+        visibility: hidden;
+    }
+    
+    /* Show only the modal content */
+    .purchasing-order-print-content,
+    .purchasing-order-print-content * {
+        visibility: visible;
+    }
+    
+    /* Position the content properly */
+    .purchasing-order-print-content {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        background: white;
+    }
+    
+    /* Hide modal background and controls */
+    .modal-backdrop,
+    .modal-header-controls,
+    .modal-footer-actions {
+        display: none !important;
+    }
+    
+    /* Adjust page margins */
+    @page {
+        margin: 1cm;
+        size: A4;
+    }
+    
+    /* Ensure table fits on page */
+    table {
+        font-size: 12px;
+        page-break-inside: avoid;
+    }
+    
+    /* Adjust spacing for print */
+    .print-spacing {
+        margin-bottom: 20px;
+    }
+    
+    /* Ensure signatures section stays at bottom */
+    .signature-section {
+        page-break-inside: avoid;
+        margin-top: 50px;
+    }
+    
+    /* Make borders more visible in print */
+    .border,
+    .border-gray-300 {
+        border-color: #000 !important;
+    }
+    
+    /* Ensure text is black for better print quality */
+    .text-gray-600,
+    .text-gray-700,
+    .text-gray-800,
+    .text-gray-900 {
+        color: #000 !important;
+    }
+    
+    /* Remove shadows and rounded corners for print */
+    .shadow-lg,
+    .shadow-xl,
+    .shadow-2xl {
+        box-shadow: none !important;
+    }
+    
+    .rounded-lg,
+    .rounded-xl,
+    .rounded-2xl {
+        border-radius: 0 !important;
+    }
+    
+    /* Hide scrollbars in print */
+    .overflow-y-auto,
+    .overflow-x-auto {
+        overflow: visible !important;
+    }
+}
+
+/* Custom scrollbar styling for the table */
+.purchasing-order-table-scroll::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.purchasing-order-table-scroll::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.purchasing-order-table-scroll::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+.purchasing-order-table-scroll::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Firefox scrollbar */
+.purchasing-order-table-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: #888 #f1f1f1;
+}

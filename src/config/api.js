@@ -66,13 +66,17 @@ export const API_ENDPOINTS = {
     KLASIFIKASI_LAIN_LAIN: '/api/master/klasifikasilainlain',
     PARAMETER: '/api/master/parameter',
     PARAMETER_SELECT: '/api/master/parameter',
-    BANK: '/api/master/bank'
+    BANK: '/api/master/bank',
+    PERSETUJUAN_HO: '/api/master/persetujuanho',
+    PERSETUJUAN_FEEDMIL: '/api/master/persetujuanfeedmil',
+    PERSETUJUAN_RPH: '/api/master/persetujuanrph'
   },
 
   // Head Office (HO)
   HO: {
     PEMBELIAN: '/api/ho/pembelian',
     PENJUALAN: '/api/ho/penjualan',
+    PENJUALAN_DOKA_SAPI: '/api/ho/penjualandokasapi', // Updated endpoint for Penjualan Doka Sapi
     FEEDMIL: {
       PEMBELIAN: '/api/ho/feedmil/pembelian'
     },
@@ -99,6 +103,24 @@ export const API_ENDPOINTS = {
       DETAIL_UPDATE: '/api/ho/payment/detail/update',
       DETAIL_DELETE: '/api/ho/payment/detail/hapus',
       ADD_PAYMENT: '/api/ho/payment/add-payment'
+    }
+  },
+
+  // RPH (Rumah Potong Hewan)
+  RPH: {
+    PO: {
+      BASE: '/api/rph/po',
+      NOTA: '/api/rph/po/getnota',
+      DATA: '/api/rph/po/data',
+      SHOW: '/api/rph/po/show',
+      STORE: '/api/rph/po/store',
+      UPDATE: '/api/rph/po/update',
+      DELETE: '/api/rph/po/delete',
+      EXPORT: '/api/rph/po/export'
+    },
+    PEMBELIAN: {
+      BASE: '/api/rph/pembelian',
+      SAPI: '/api/rph/pembelian/sapi'
     }
   },
 
