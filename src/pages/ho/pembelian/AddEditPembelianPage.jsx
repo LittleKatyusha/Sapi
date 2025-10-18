@@ -623,11 +623,11 @@ const AddEditPembelianPage = () => {
             const harga = parseFloat(item.harga) || 0;
             const persentase = parseFloat(item.persentase) || 0;
             
-            // Apply the new HPP formula
-            const markupAmount = harga * totalBerat * (persentase / 100);
-            const hargaTotal = harga * totalBerat;
-            const totalCost = biayaTruck + biayaLain + markupAmount + hargaTotal;
-            const newHpp = Math.round(totalCost / totalBerat);
+            // Apply the new HPP formula:
+            // ROUND(((biaya_truk + biaya_lain + (harga * berat_total)) / berat_total) + (((biaya_truk + biaya_lain + (harga * berat_total)) / berat_total) * persentase / 100), 0)
+            const baseCostPerKg = (biayaTruck + biayaLain + (harga * totalBerat)) / totalBerat;
+            const markupAmount = baseCostPerKg * (persentase / 100);
+            const newHpp = Math.round(baseCostPerKg + markupAmount);
             
             return {
                 ...item,
@@ -908,8 +908,7 @@ const AddEditPembelianPage = () => {
                 }
                 
                 // HPP calculation dengan formula baru:
-                // ROUND(((biaya_truk + biaya_lain + (harga * berat_total * persentase / 100))
-                //        + (harga * berat_total)) / berat_total, 0)
+                // ROUND(((biaya_truk + biaya_lain + (harga * berat_total)) / berat_total) + (((biaya_truk + biaya_lain + (harga * berat_total)) / berat_total) * persentase / 100), 0)
                 if (field === 'harga' || field === 'persentase' || field === 'berat') {
                     const harga = parseFloat(field === 'harga' ? value : updatedItem.harga) || 0;
                     const persentase = parseFloat(field === 'persentase' ? value : updatedItem.persentase) || 0;
@@ -927,10 +926,9 @@ const AddEditPembelianPage = () => {
                     
                     if (totalBerat > 0) {
                         // Apply the new HPP formula
-                        const markupAmount = harga * totalBerat * (persentase / 100);
-                        const hargaTotal = harga * totalBerat;
-                        const totalCost = biayaTruk + biayaLain + markupAmount + hargaTotal;
-                        updatedItem.hpp = Math.round(totalCost / totalBerat);
+                        const baseCostPerKg = (biayaTruk + biayaLain + (harga * totalBerat)) / totalBerat;
+                        const markupAmount = baseCostPerKg * (persentase / 100);
+                        updatedItem.hpp = Math.round(baseCostPerKg + markupAmount);
                     } else {
                         // Fallback to simple calculation if no total berat
                         const markupAmount = harga * (persentase / 100);
@@ -982,10 +980,9 @@ const AddEditPembelianPage = () => {
         let hpp;
         if (totalBerat > 0) {
             // Apply the new HPP formula
-            const markupAmount = harga * totalBerat * (persentase / 100);
-            const hargaTotal = harga * totalBerat;
-            const totalCost = biayaTruk + biayaLain + markupAmount + hargaTotal;
-            hpp = Math.round(totalCost / totalBerat);
+            const baseCostPerKg = (biayaTruk + biayaLain + (harga * totalBerat)) / totalBerat;
+            const markupAmount = baseCostPerKg * (persentase / 100);
+            hpp = Math.round(baseCostPerKg + markupAmount);
         } else {
             // Fallback to simple calculation
             const markupAmount = harga * (persentase / 100);
@@ -1038,10 +1035,9 @@ const AddEditPembelianPage = () => {
         let hpp;
         if (totalBerat > 0) {
             // Apply the new HPP formula
-            const markupAmount = harga * totalBerat * (persentase / 100);
-            const hargaTotal = harga * totalBerat;
-            const totalCost = biayaTruk + biayaLain + markupAmount + hargaTotal;
-            hpp = Math.round(totalCost / totalBerat);
+            const baseCostPerKg = (biayaTruk + biayaLain + (harga * totalBerat)) / totalBerat;
+            const markupAmount = baseCostPerKg * (persentase / 100);
+            hpp = Math.round(baseCostPerKg + markupAmount);
         } else {
             // Fallback to simple calculation
             const markupAmount = harga * (persentase / 100);
@@ -2488,7 +2484,7 @@ const AddEditPembelianPage = () => {
                                 step="0.1"
                             />
                             <p className="text-xs text-green-600 mt-1">
-                                HPP = ((Biaya Truck + Biaya Lain + Markup) + Harga Total) / Berat Total
+                                HPP = ((Biaya Truck + Biaya Lain + (Harga × Berat Total)) / Berat Total) × (1 + Persentase/100)
                             </p>
                         </div>
                     </div>
