@@ -1,13 +1,11 @@
 import React, { useRef, useEffect, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Eye, Edit, Copy, Trash2, Download, Loader2, FileText } from 'lucide-react';
-import LaporanPembelianService from '../../../../services/laporanPembelianService';
 import { API_ENDPOINTS, API_BASE_URL } from '../../../../config/api';
 
 const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef, apiEndpoint = API_ENDPOINTS.HO.PEMBELIAN }) => {
     const menuRef = useRef(null);
     const [menuStyle, setMenuStyle] = useState(null);
-    const [downloadLoading, setDownloadLoading] = useState(false);
     const [fileLoading, setFileLoading] = useState(false);
 
     useLayoutEffect(() => {
@@ -169,61 +167,6 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef, apiEn
         }
     };
 
-    // Handle download functionality
-    const handleDownload = async (row) => {
-        // Use id if available, otherwise fallback to encryptedPid
-        const reportId = row.id || row.encryptedPid;
-        
-        if (!reportId) {
-            alert('ID pembelian tidak tersedia');
-            return;
-        }
-
-        setDownloadLoading(true);
-        try {
-            let blob;
-            
-            // Determine report type based on API endpoint
-            if (apiEndpoint && apiEndpoint.includes('feedmil')) {
-                blob = await LaporanPembelianService.downloadReportNotaFeedmil(reportId);
-            } else if (apiEndpoint && apiEndpoint.includes('ovk')) {
-                blob = await LaporanPembelianService.downloadReportNotaOvk(reportId);
-            } else {
-                // Default to regular supplier report
-                blob = await LaporanPembelianService.downloadReportNotaSupplier(reportId);
-            }
-            
-            // Create download link
-            const url = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            
-            // Generate appropriate filename based on purchase type
-            let filename = 'Laporan_Pembelian';
-            if (apiEndpoint && apiEndpoint.includes('feedmil')) {
-                filename = 'Laporan_Pembelian_Feedmil';
-            } else if (apiEndpoint && apiEndpoint.includes('ovk')) {
-                filename = 'Laporan_Pembelian_OVK';
-            }
-            filename += `_${row.nota || 'Report'}.pdf`;
-            
-            link.download = filename;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
-            
-            // Close menu after successful download
-            onClose();
-            
-        } catch (error) {
-            console.error('Error downloading report:', error);
-            alert(error.message || 'Terjadi kesalahan saat mengunduh laporan');
-        } finally {
-            setDownloadLoading(false);
-        }
-    };
-
     const actions = [
         {
             label: 'Lihat Detail',
@@ -257,18 +200,7 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef, apiEn
             disabled: fileLoading,
             isLoading: fileLoading,
         }] : []),
-        {
-            label: 'Unduh Laporan',
-            icon: downloadLoading ? Loader2 : Download,
-            onClick: () => handleDownload(row),
-            className: downloadLoading ? 'text-gray-400' : 'text-gray-700',
-            description: downloadLoading ? 'Mengunduh...' : 'Download PDF',
-            bg: 'bg-green-100',
-            hoverBg: 'group-hover:bg-green-200',
-            text: 'text-green-600',
-            disabled: downloadLoading,
-            isLoading: downloadLoading,
-        },
+        // "Unduh Laporan" menu item has been removed as requested
         {
             divider: true
         },

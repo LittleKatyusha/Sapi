@@ -88,6 +88,29 @@ class LaporanPembelianService {
   }
 
   /**
+   * Get laporan pembelian lain-lain (Other HO)
+   * @param {string} startDate - Tanggal mulai (YYYY-MM-DD)
+   * @param {string} endDate - Tanggal akhir (YYYY-MM-DD)
+   * @param {number} idTipePembelian - ID tipe pembelian
+   * @returns {Promise} - Response dari API
+   */
+  static async getReportOtherHo(startDate, endDate, idTipePembelian) {
+    try {
+      const response = await HttpClient.get('/api/report/pembelian/getReportOtherHo', {
+        params: {
+          start_date: startDate,
+          end_date: endDate,
+          id_tipe_pembelian: idTipePembelian
+        }
+      });
+      return response;
+    } catch (error) {
+      console.error('Error getting report other HO:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get all available nota numbers for dropdown selection
    * @returns {Promise} - Response dari API containing list of nota numbers
    */
@@ -325,6 +348,21 @@ class LaporanPembelianService {
     return await this.downloadPdfReport('getReportSupplierTax', { 
       start_date: startDate, 
       end_date: endDate 
+    });
+  }
+
+  /**
+   * Download PDF report for pembelian lain-lain (Other HO)
+   * @param {string} startDate - Start date (YYYY-MM-DD)
+   * @param {string} endDate - End date (YYYY-MM-DD)
+   * @param {number} idTipePembelian - ID tipe pembelian
+   * @returns {Promise} - Blob response
+   */
+  static async downloadReportOtherHo(startDate, endDate, idTipePembelian) {
+    return await this.downloadPdfReport('getReportOtherHo', {
+      start_date: startDate,
+      end_date: endDate,
+      id_tipe_pembelian: idTipePembelian
     });
   }
 
