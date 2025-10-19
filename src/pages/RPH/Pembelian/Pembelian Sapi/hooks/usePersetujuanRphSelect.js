@@ -1,100 +1,62 @@
-/**
- * Hook for fetching Persetujuan RPH data for select/dropdown
- * Used in PO RPH creation and editing
- */
-
-import { useState, useEffect, useCallback } from 'react';
-import HttpClient from '../../../../../services/httpClient';
-import { API_ENDPOINTS } from '../../../../../config/api';
+import { useState, useEffect, useMemo } from 'react';
 
 const usePersetujuanRphSelect = () => {
-  const [persetujuanOptions, setPersetujuanOptions] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+    const [persetujuanList, setPersetujuanList] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
 
-  const fetchPersetujuanRph = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+    useEffect(() => {
+        fetchPersetujuan();
+    }, []);
 
-    try {
-      // Fetch persetujuan RPH data
-      const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.PERSETUJUAN_RPH}/data`, {
-        cache: true // Enable caching for master data
-      });
+    const fetchPersetujuan = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            // Mock data for persetujuan RPH
+            const mockPersetujuan = [
+                { id: 1, name: 'Manager RPH', code: 'MGR01', level: 1 },
+                { id: 2, name: 'Supervisor RPH', code: 'SPV01', level: 2 },
+                { id: 3, name: 'Kepala Bagian RPH', code: 'KBG01', level: 3 },
+                { id: 4, name: 'Direktur RPH', code: 'DIR01', level: 4 }
+            ];
+            
+            // Simulate API delay
+            await new Promise(resolve => setTimeout(resolve, 500));
+            setPersetujuanList(mockPersetujuan);
+        } catch (err) {
+            setError(err.message || 'Failed to fetch persetujuan list');
+            setPersetujuanList([]);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-      let dataArray = [];
-      if (result?.data) {
-        dataArray = result.data;
-      } else if (Array.isArray(result)) {
-        dataArray = result;
-      }
+    // Convert to options format for dropdown
+    const persetujuanOptions = useMemo(() => {
+        const options = [
+            { value: '', label: 'Pilih Persetujuan...', disabled: true }
+        ];
+        
+        if (persetujuanList && persetujuanList.length > 0) {
+            persetujuanList.forEach(persetujuan => {
+                options.push({
+                    value: persetujuan.id,
+                    label: `${persetujuan.name} (${persetujuan.code})`
+                });
+            });
+        }
+        
+        return options;
+    }, [persetujuanList]);
 
-      // Transform data for select options
-      const options = dataArray.map(item => ({
-        value: item.id || item.pubid,
-        label: item.name || 'Nama tidak tersedia',
-        description: item.description || '',
-        rawData: item
-      }));
-
-      // Sort by name
-      options.sort((a, b) => a.label.localeCompare(b.label));
-
-      // Add default option
-      const optionsWithDefault = [
-        { value: '', label: 'Pilih Persetujuan RPH...', disabled: true },
-        ...options
-      ];
-
-      setPersetujuanOptions(optionsWithDefault);
-      
-      console.log(`✅ Loaded ${options.length} persetujuan RPH options`);
-      return optionsWithDefault;
-    } catch (err) {
-      console.error('Error fetching persetujuan RPH:', err);
-      setError(err.message || 'Gagal memuat data persetujuan RPH');
-      
-      // Return default options on error
-      const defaultOptions = [
-        { value: '', label: 'Pilih Persetujuan RPH...', disabled: true },
-        { value: 1, label: 'Kepala RPH' },
-        { value: 2, label: 'Manager RPH' },
-        { value: 3, label: 'Supervisor RPH' },
-        { value: 4, label: 'Admin RPH' },
-        { value: 5, label: 'Petugas RPH' }
-      ];
-      setPersetujuanOptions(defaultOptions);
-      return defaultOptions;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  // Fetch on mount
-  useEffect(() => {
-    fetchPersetujuanRph();
-  }, [fetchPersetujuanRph]);
-
-  // Helper function to get persetujuan name by ID
-  const getPersetujuanName = useCallback((id) => {
-    const option = persetujuanOptions.find(opt => opt.value === id);
-    return option ? option.label : `ID: ${id}`;
-  }, [persetujuanOptions]);
-
-  // Helper function to validate if ID exists
-  const isValidPersetujuan = useCallback((id) => {
-    if (!id) return false;
-    return persetujuanOptions.some(opt => opt.value === id);
-  }, [persetujuanOptions]);
-
-  return {
-    persetujuanOptions,
-    loading,
-    error,
-    fetchPersetujuanRph,
-    getPersetujuanName,
-    isValidPersetujuan
-  };
+    return {
+        persetujuanList,
+        persetujuanOptions,
+        loading,
+        error,
+        refetch: fetchPersetujuan
+    };
 };
 
 export default usePersetujuanRphSelect;

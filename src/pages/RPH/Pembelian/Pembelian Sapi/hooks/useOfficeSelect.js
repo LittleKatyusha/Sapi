@@ -1,100 +1,62 @@
-/**
- * Hook for fetching Office data for select/dropdown
- * Used in PO RPH creation and editing
- */
-
-import { useState, useEffect, useCallback } from 'react';
-import HttpClient from '../../../../../services/httpClient';
-import { API_ENDPOINTS } from '../../../../../config/api';
+import { useState, useEffect, useMemo } from 'react';
 
 const useOfficeSelect = () => {
-  const [officeOptions, setOfficeOptions] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+    const [offices, setOffices] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
 
-  const fetchOffices = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+    useEffect(() => {
+        fetchOffices();
+    }, []);
 
-    try {
-      // Fetch office data
-      const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.OFFICE}/data`);
+    const fetchOffices = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            // Mock data for offices
+            const mockOffices = [
+                { id: 1, name: 'RPH Pusat', code: 'RPH01' },
+                { id: 2, name: 'RPH Cabang Jakarta', code: 'RPH02' },
+                { id: 3, name: 'RPH Cabang Surabaya', code: 'RPH03' },
+                { id: 4, name: 'RPH Cabang Bandung', code: 'RPH04' }
+            ];
+            
+            // Simulate API delay
+            await new Promise(resolve => setTimeout(resolve, 500));
+            setOffices(mockOffices);
+        } catch (err) {
+            setError(err.message || 'Failed to fetch offices');
+            setOffices([]);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-      let dataArray = [];
-      if (result?.data) {
-        dataArray = result.data;
-      } else if (Array.isArray(result)) {
-        dataArray = result;
-      }
+    // Convert to options format for dropdown
+    const officeOptions = useMemo(() => {
+        const options = [
+            { value: '', label: 'Pilih Office...', disabled: true }
+        ];
+        
+        if (offices && offices.length > 0) {
+            offices.forEach(office => {
+                options.push({
+                    value: office.id,
+                    label: `${office.name} (${office.code})`
+                });
+            });
+        }
+        
+        return options;
+    }, [offices]);
 
-      // Transform data for select options
-      const options = dataArray.map(item => ({
-        value: item.id || item.pubid,
-        label: item.name || 'Office tidak tersedia',
-        description: item.description || '',
-        location: item.location || '',
-        kategori: item.id_kategori,
-        rawData: item
-      }));
-
-      // Sort by name
-      options.sort((a, b) => a.label.localeCompare(b.label));
-
-      // Add default option
-      const optionsWithDefault = [
-        { value: '', label: 'Pilih Office...', disabled: true },
-        ...options
-      ];
-
-      setOfficeOptions(optionsWithDefault);
-      
-      console.log(`✅ Loaded ${options.length} office options`);
-      return optionsWithDefault;
-    } catch (err) {
-      console.error('Error fetching offices:', err);
-      setError(err.message || 'Gagal memuat data office');
-      
-      // Return default options on error
-      const defaultOptions = [
-        { value: '', label: 'Pilih Office...', disabled: true },
-        { value: 1, label: 'Kandang Utama A' },
-        { value: 2, label: 'Kandang Muda B' },
-        { value: 3, label: 'Kandang Karantina' },
-        { value: 4, label: 'Office Administrasi' },
-        { value: 5, label: 'Kandang Betina' }
-      ];
-      setOfficeOptions(defaultOptions);
-      return defaultOptions;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  // Fetch on mount
-  useEffect(() => {
-    fetchOffices();
-  }, [fetchOffices]);
-
-  // Helper function to get office name by ID
-  const getOfficeName = useCallback((id) => {
-    const option = officeOptions.find(opt => opt.value === id);
-    return option ? option.label : `ID: ${id}`;
-  }, [officeOptions]);
-
-  // Helper function to validate if ID exists
-  const isValidOffice = useCallback((id) => {
-    if (!id) return false;
-    return officeOptions.some(opt => opt.value === id);
-  }, [officeOptions]);
-
-  return {
-    officeOptions,
-    loading,
-    error,
-    fetchOffices,
-    getOfficeName,
-    isValidOffice
-  };
+    return {
+        offices,
+        officeOptions,
+        loading,
+        error,
+        refetch: fetchOffices
+    };
 };
 
 export default useOfficeSelect;

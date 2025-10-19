@@ -1,10 +1,10 @@
 import React, { useRef, useEffect, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Eye, CheckCircle, XCircle, Download, Loader2 } from 'lucide-react';
+import { Eye, Download, Loader2 } from 'lucide-react';
 import LaporanPembelianService from '../../../../../services/laporanPembelianService';
 import { API_ENDPOINTS, API_BASE_URL } from '../../../../../config/api';
 
-const ActionMenu = ({ row, onDetail, onProcess, onReject, onDownloadOrder, onClose, buttonRef, apiEndpoint = API_ENDPOINTS.HO.PENJUALAN }) => {
+const ActionMenu = ({ row, onDetail, onDownloadOrder, onClose, buttonRef, apiEndpoint = API_ENDPOINTS.HO.PENJUALAN }) => {
     const menuRef = useRef(null);
     const [menuStyle, setMenuStyle] = useState(null);
     const [downloadLoading, setDownloadLoading] = useState(false);
@@ -41,8 +41,8 @@ const ActionMenu = ({ row, onDetail, onProcess, onReject, onDownloadOrder, onClo
 
     // Handle download order sheet functionality
     const handleDownloadOrderSheet = async (row) => {
-        // Use id if available, otherwise fallback to encryptedPid
-        const reportId = row.id || row.encryptedPid;
+        // Use pid if available, otherwise fallback to pubid
+        const reportId = row.pid || row.pubid;
         
         if (!reportId) {
             alert('ID penjualan tidak tersedia');
@@ -106,26 +106,6 @@ const ActionMenu = ({ row, onDetail, onProcess, onReject, onDownloadOrder, onClo
             text: 'text-blue-600',
         },
         {
-            label: 'Proses',
-            icon: CheckCircle,
-            onClick: () => onProcess(row),
-            className: 'text-gray-700',
-            description: 'Proses pesanan',
-            bg: 'bg-green-100',
-            hoverBg: 'group-hover:bg-green-200',
-            text: 'text-green-600',
-        },
-        {
-            label: 'Tolak',
-            icon: XCircle,
-            onClick: () => onReject(row),
-            className: 'text-gray-700',
-            description: 'Tolak pesanan',
-            bg: 'bg-red-100',
-            hoverBg: 'group-hover:bg-red-200',
-            text: 'text-red-600',
-        },
-        {
             label: 'Unduh Lembar Pesanan',
             icon: downloadLoading ? Loader2 : Download,
             onClick: () => handleDownloadOrderSheet(row),
@@ -169,7 +149,7 @@ const ActionMenu = ({ row, onDetail, onProcess, onReject, onDownloadOrder, onClo
                                 if (!action.disabled) {
                                     action.onClick();
                                     // onClose is handled individually in each action
-                                    if (action.label === 'Lihat Detail' || action.label === 'Proses' || action.label === 'Tolak') {
+                                    if (action.label === 'Lihat Detail') {
                                         onClose();
                                     }
                                 }

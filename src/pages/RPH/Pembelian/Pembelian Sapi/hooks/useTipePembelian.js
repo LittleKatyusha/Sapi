@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import useParameters from '../../../../../pages/system/hooks/useParameters';
+import useParameters from '../../../../system/hooks/useParameters';
 
 const useTipePembelian = () => {
     const { fetchParametersByGroup } = useParameters();

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Building2, User, Calendar, Truck, Hash, Package, Eye, Plus } from 'lucide-react';
-import usePembelianHO from './hooks/usePembelianHO';
+import usePoRph from './hooks/usePoRph';
 import useParameterSelect from './hooks/useParameterSelect';
 import useTipePembelian from './hooks/useTipePembelian';
 
@@ -12,10 +12,10 @@ const PembelianDetailPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const {
-        getPembelianDetail,
-        loading,
+        getPoDetail,
+        detailLoading: loading,
         error
-    } = usePembelianHO();
+    } = usePoRph();
     
     // Get parameter data for eartag mapping
     const { parameterData } = useParameterSelect();
@@ -58,7 +58,7 @@ const PembelianDetailPage = () => {
                     console.log('🚀 Fetching detail for ID:', id);
                     
                     // Get both header and detail data from /show endpoint
-                    const detailResult = await getPembelianDetail(id);
+                    const detailResult = await getPoDetail(id);
                     console.log('📋 Detail result:', detailResult);
                     
                     if (detailResult.success && Array.isArray(detailResult.data) && detailResult.data.length > 0) {
@@ -154,7 +154,7 @@ const PembelianDetailPage = () => {
     }, [pembelianData, parameterData.office]);
 
     const handleBack = () => {
-        navigate('/ho/pembelian');
+        navigate('/rph/pembelian-sapi');
     };
 
 

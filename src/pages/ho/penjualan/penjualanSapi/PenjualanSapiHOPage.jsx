@@ -399,18 +399,6 @@ const PenjualanSapiHOPage = () => {
         }
     }, [location.state]); // Only depend on location.state
 
-    // Handle process/approve through modal
-    const handleProcess = (penjualan) => {
-        // Open the purchasing order modal for approval
-        handleDetail(penjualan);
-    };
-
-    // Handle reject through modal
-    const handleReject = (penjualan) => {
-        // Open the purchasing order modal for rejection
-        handleDetail(penjualan);
-    };
-
     // Handle approve callback from modal
     const handleApproveCallback = (penjualan, idPersetujuanHo) => {
         console.log('Order approved:', penjualan.no_po || penjualan.nota, 'by:', idPersetujuanHo);
@@ -430,7 +418,7 @@ const PenjualanSapiHOPage = () => {
     };
 
     const handleDownloadOrder = async (penjualan) => {
-        const id = penjualan.encryptedPid || penjualan.id;
+        const id = penjualan.pid || penjualan.pubid;
         if (!id || id.startsWith('TEMP-')) {
             setNotification({
                 type: 'error',
@@ -483,8 +471,8 @@ const PenjualanSapiHOPage = () => {
         
         try {
             // Fetch detail data from API if available
-            if (penjualan.pid || penjualan.encryptedPid) {
-                const result = await getPenjualanDetail(penjualan.pid || penjualan.encryptedPid);
+            if (penjualan.pid || penjualan.pubid) {
+                const result = await getPenjualanDetail(penjualan.pid || penjualan.pubid);
                 
                 if (result.success && result.data) {
                     // Combine header data with detail data
@@ -760,10 +748,8 @@ const PenjualanSapiHOPage = () => {
                     openMenuId={openMenuId}
                     setOpenMenuId={setOpenMenuId}
                     onDetail={handleDetail}
-                    onProcess={handleProcess}
-                    onReject={handleReject}
                     onDownloadOrder={handleDownloadOrder}
-                    isActive={openMenuId === (row.id || row.pubid)}
+                    isActive={openMenuId === (row.pid || row.pubid)}
                 />
             ),
             ignoreRowClick: true,
@@ -1185,12 +1171,10 @@ const PenjualanSapiHOPage = () => {
                             <div className="space-y-3">
                                 {filteredData.map((item, index) => (
                                     <PenjualanSapiCard
-                                        key={item.pubid || item.id}
+                                        key={item.pid || item.pubid}
                                         data={item}
                                         index={(serverPagination.currentPage - 1) * serverPagination.perPage + index}
                                         onDetail={handleDetail}
-                                        onProcess={handleProcess}
-                                        onReject={handleReject}
                                         onDownloadOrder={handleDownloadOrder}
                                         getJenisPenjualanLabel={getJenisPenjualanLabel}
                                     />

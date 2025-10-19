@@ -98,8 +98,8 @@ class PoRphService {
    */
   static async getDetail(pid) {
     try {
-      const response = await HttpClient.get(API_ENDPOINTS.RPH?.PO?.SHOW || `${this.API_BASE}/show`, {
-        params: { pid }
+      const response = await HttpClient.post(API_ENDPOINTS.RPH?.PO?.SHOW || `${this.API_BASE}/show`, {
+        pid: pid
       });
 
       return {
@@ -156,7 +156,7 @@ class PoRphService {
    */
   static async update(data) {
     try {
-      const response = await HttpClient.put(API_ENDPOINTS.RPH?.PO?.UPDATE || `${this.API_BASE}/update`, data);
+      const response = await HttpClient.post(API_ENDPOINTS.RPH?.PO?.UPDATE || `${this.API_BASE}/update`, data);
 
       return {
         success: true,
@@ -179,8 +179,8 @@ class PoRphService {
    */
   static async delete(pid) {
     try {
-      const response = await HttpClient.delete(API_ENDPOINTS.RPH?.PO?.DELETE || `${this.API_BASE}/delete`, {
-        params: { pid }
+      const response = await HttpClient.post(API_ENDPOINTS.RPH?.PO?.DELETE || `${this.API_BASE}/hapus`, {
+        pid: pid
       });
 
       return {
@@ -224,6 +224,7 @@ class PoRphService {
       
       // Status and approval
       status: item.status, // 1: pending, 2: approved, 3: rejected
+      persetujuan: item.status || item.persetujuan, // Map status to persetujuan for compatibility
       reason: item.reason || '',
       id_persetujuan_rph: item.id_persetujuan_rph,
       

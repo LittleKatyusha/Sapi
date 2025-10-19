@@ -17,7 +17,7 @@ import { enhancedTableStyles } from './constants/tableStyles';
 import AddPoRphModal from './modals/AddPoRphModal';
 import EditPoRphModal from './modals/EditPoRphModal';
 import DeleteConfirmationModal from './modals/DeleteConfirmationModal';
-import PoRphDetailModal from './modals/PoRphDetailModal';
+// PoRphDetailModal removed - using navigation to detail page instead
 
 // Constants for better maintainability
 const NOTIFICATION_TIMEOUT = 5000;
@@ -211,7 +211,7 @@ const PembelianSapi = () => {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-    const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+    // Removed isDetailModalOpen - using navigation instead
     const [selectedItem, setSelectedItem] = useState(null);
     
     // Use the real PoRph hook
@@ -430,16 +430,14 @@ const PembelianSapi = () => {
         }
     };
 
-    // Handle Detail Modal
+    // Handle Detail - Navigate to detail page
     const handleDetail = (item) => {
-        setSelectedItem(item);
-        setIsDetailModalOpen(true);
+        // Navigate to detail page with item data
+        const itemId = item.pid || item.encryptedPid || item.pubid;
+        navigate(`/rph/pembelian-sapi/detail/${itemId}`, {
+            state: { item }
+        });
         setOpenMenuId(null);
-    };
-
-    const handleCloseDetailModal = () => {
-        setIsDetailModalOpen(false);
-        setSelectedItem(null);
     };
 
     // Pagination handlers for mobile cards
@@ -507,21 +505,54 @@ const PembelianSapi = () => {
 
     // Get persetujuan badge
     const getPersetujuanBadge = (persetujuan) => {
+        // Handle numeric values (from status field)
+        if (typeof persetujuan === 'number' || !isNaN(Number(persetujuan))) {
+            const numValue = Number(persetujuan);
+            switch (numValue) {
+                case 1:
+                    return (
+                        <span className="px-3 py-2 bg-yellow-50 text-yellow-700 rounded-lg font-semibold text-center min-w-[80px]">
+                            Menunggu
+                        </span>
+                    );
+                case 2:
+                    return (
+                        <span className="px-3 py-2 bg-green-50 text-green-700 rounded-lg font-semibold text-center min-w-[80px]">
+                            Disetujui
+                        </span>
+                    );
+                case 3:
+                    return (
+                        <span className="px-3 py-2 bg-red-50 text-red-700 rounded-lg font-semibold text-center min-w-[80px]">
+                            Ditolak
+                        </span>
+                    );
+                default:
+                    // Handle 0 or other values as pending
+                    return (
+                        <span className="px-3 py-2 bg-gray-50 text-gray-700 rounded-lg font-semibold text-center min-w-[80px]">
+                            Menunggu
+                        </span>
+                    );
+            }
+        }
+        
+        // Handle string values (backward compatibility)
         const persetujuanStr = String(persetujuan).toLowerCase();
         
-        if (persetujuanStr === 'disetujui' || persetujuanStr === 'approved' || persetujuanStr === '1') {
+        if (persetujuanStr === 'disetujui' || persetujuanStr === 'approved') {
             return (
                 <span className="px-3 py-2 bg-green-50 text-green-700 rounded-lg font-semibold text-center min-w-[80px]">
                     Disetujui
                 </span>
             );
-        } else if (persetujuanStr === 'ditolak' || persetujuanStr === 'rejected' || persetujuanStr === '2') {
+        } else if (persetujuanStr === 'ditolak' || persetujuanStr === 'rejected') {
             return (
                 <span className="px-3 py-2 bg-red-50 text-red-700 rounded-lg font-semibold text-center min-w-[80px]">
                     Ditolak
                 </span>
             );
-        } else if (persetujuanStr === 'menunggu' || persetujuanStr === 'pending' || persetujuanStr === '0') {
+        } else if (persetujuanStr === 'menunggu' || persetujuanStr === 'pending') {
             return (
                 <span className="px-3 py-2 bg-yellow-50 text-yellow-700 rounded-lg font-semibold text-center min-w-[80px]">
                     Menunggu
@@ -541,9 +572,7 @@ const PembelianSapi = () => {
             name: 'No',
             selector: (row, index) => index + 1,
             sortable: false,
-            width: '5%',
-            minWidth: '60px',
-            maxWidth: '80px',
+            width: '60px',
             ignoreRowClick: true,
             cell: (row, index) => (
                 <div className="flex items-center justify-center w-full h-full font-semibold text-gray-600">
@@ -553,9 +582,7 @@ const PembelianSapi = () => {
         },
         {
             name: 'Aksi',
-            width: '5%',
-            minWidth: '60px',
-            maxWidth: '80px',
+            width: '80px',
             cell: row => (
                 <ActionButton
                     row={row}
@@ -573,8 +600,7 @@ const PembelianSapi = () => {
             name: 'No. PO',
             selector: row => row.no_po,
             sortable: true,
-            width: '15%',
-            minWidth: '150px',
+            width: '180px',
             wrap: true,
             cell: row => (
                 <div className="w-full px-2 flex items-center justify-center">
@@ -588,8 +614,7 @@ const PembelianSapi = () => {
             name: 'Tanggal Pesanan',
             selector: row => row.tgl_pesanan,
             sortable: true,
-            width: '12%',
-            minWidth: '120px',
+            width: '140px',
             wrap: true,
             cell: row => (
                 <div className="flex items-center justify-center w-full h-full min-h-[40px]">
@@ -604,26 +629,10 @@ const PembelianSapi = () => {
             )
         },
         {
-            name: 'Nota',
-            selector: row => row.nota,
-            sortable: true,
-            width: '15%',
-            minWidth: '150px',
-            wrap: true,
-            cell: row => (
-                <div className="flex items-center justify-center w-full h-full min-h-[40px]">
-                    <div className="bg-purple-50 text-purple-700 px-3 py-2 rounded-lg font-medium text-center">
-                        {row.nota || '-'}
-                    </div>
-                </div>
-            )
-        },
-        {
             name: 'Supplier',
             selector: row => row.nama_supplier,
             sortable: true,
-            width: '15%',
-            minWidth: '150px',
+            grow: 2,
             wrap: true,
             cell: row => (
                 <div className="flex items-center justify-center w-full h-full min-h-[40px]">
@@ -637,8 +646,7 @@ const PembelianSapi = () => {
             name: 'Jumlah',
             selector: row => row.jumlah,
             sortable: true,
-            width: '8%',
-            minWidth: '80px',
+            width: '100px',
             wrap: true,
             cell: row => (
                 <div className="flex items-center justify-center w-full h-full min-h-[40px]">
@@ -653,8 +661,7 @@ const PembelianSapi = () => {
             name: 'Total Harga',
             selector: row => row.harga,
             sortable: true,
-            width: '12%',
-            minWidth: '120px',
+            grow: 1.5,
             wrap: true,
             cell: row => (
                 <div className="flex items-center justify-center w-full h-full min-h-[40px] px-1">
@@ -668,25 +675,11 @@ const PembelianSapi = () => {
             name: 'Status',
             selector: row => row.status,
             sortable: true,
-            width: '9%',
-            minWidth: '90px',
+            width: '120px',
             wrap: true,
             cell: row => (
                 <div className="flex items-center justify-center w-full h-full min-h-[40px]">
-                    {getStatusBadge(row.status)}
-                </div>
-            )
-        },
-        {
-            name: 'Persetujuan',
-            selector: row => row.persetujuan,
-            sortable: true,
-            width: '9%',
-            minWidth: '90px',
-            wrap: true,
-            cell: row => (
-                <div className="flex items-center justify-center w-full h-full min-h-[40px]">
-                    {getPersetujuanBadge(row.persetujuan)}
+                    {getPersetujuanBadge(row.status)}
                 </div>
             )
         },
@@ -715,7 +708,7 @@ const PembelianSapi = () => {
                 
                 /* Custom scrollbar styling */
                 .table-scroll-container::-webkit-scrollbar {
-                    height: 8px;
+                    height: 10px;
                 }
                 
                 .table-scroll-container::-webkit-scrollbar-track {
@@ -737,6 +730,16 @@ const PembelianSapi = () => {
                 .table-scroll-container {
                     scrollbar-width: thin;
                     scrollbar-color: #cbd5e1 #f1f5f9;
+                }
+                
+                /* Force full width table */
+                .rdt_Table {
+                    width: 100% !important;
+                    min-width: 1200px !important;
+                }
+                
+                .rdt_TableWrapper {
+                    width: 100% !important;
                 }
                 
                 /* Force header center alignment override */
@@ -767,10 +770,19 @@ const PembelianSapi = () => {
                 .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol span {
                     text-align: center !important;
                 }
+                
+                /* Full width for desktop table container */
+                @media (min-width: 768px) {
+                    .table-full-width {
+                        margin-left: 0;
+                        margin-right: 0;
+                        border-radius: 0;
+                    }
+                }
             `}</style>
             <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-            <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-6">
-                <div className="bg-white rounded-lg p-4 sm:p-6 shadow-xl border border-gray-100">
+            <div className="w-full mx-auto px-0 py-4 sm:py-6 space-y-6">
+                <div className="bg-white rounded-lg p-4 sm:p-6 shadow-xl border border-gray-100 mx-4 sm:mx-6 lg:mx-8">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex items-center gap-4">
                             <img
@@ -799,7 +811,7 @@ const PembelianSapi = () => {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-3 sm:gap-4 md:gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="grid grid-cols-1 gap-3 sm:gap-4 md:gap-6 sm:grid-cols-2 lg:grid-cols-4 px-4 sm:px-6 lg:px-8">
                     {/* Today's Stats */}
                     <StatCard
                         title="Hari Ini"
@@ -850,7 +862,7 @@ const PembelianSapi = () => {
                     />
                 </div>
 
-                <div className="bg-white rounded-lg p-4 sm:p-6 shadow-lg border border-gray-100">
+                <div className="bg-white rounded-lg p-4 sm:p-6 shadow-lg border border-gray-100 mx-4 sm:mx-6 lg:mx-8">
                     <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 md:gap-6 sm:items-center sm:justify-between">
                         <SearchInput
                             searchTerm={searchTerm}
@@ -871,9 +883,9 @@ const PembelianSapi = () => {
                 </div>
 
                 {/* Desktop Table View - Hidden on mobile */}
-                <div className="bg-white rounded-lg shadow-lg border border-gray-100 relative hidden md:block overflow-hidden">
+                <div className="bg-white shadow-lg border-y border-gray-100 relative hidden md:block overflow-hidden table-full-width">
                     {/* Scroll Indicator */}
-                    <div className="px-6 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                    <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
                         <div className="flex items-center text-sm text-gray-600">
                             <svg className="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16l-4-4m0 0l4-4m-4 4h18"></path>
@@ -889,8 +901,7 @@ const PembelianSapi = () => {
                     </div>
                     
                     {/* Table Container with proper scroll */}
-                    <div className="w-full overflow-x-auto max-w-full table-scroll-container" style={{maxHeight: '60vh'}}>
-                        <div className="min-w-full">
+                    <div className="w-full overflow-x-auto table-scroll-container" style={{maxHeight: '65vh'}}>
                         <DataTable
                             key={`datatable-${serverPagination.currentPage}-${filteredData.length}`}
                             columns={columns}
@@ -898,6 +909,7 @@ const PembelianSapi = () => {
                             pagination={false}
                             customStyles={enhancedTableStyles}
                             progressPending={loading}
+                            dense
                             progressComponent={
                                 <div className="text-center py-12">
                                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto"></div>
@@ -930,12 +942,13 @@ const PembelianSapi = () => {
                             responsive={false}
                             highlightOnHover
                             pointerOnHover
+                            fixedHeader
+                            fixedHeaderScrollHeight="65vh"
                         />
-                        </div>
                     </div>
                     
                     {/* Custom Pagination - Fixed outside scroll area */}
-                    <div className="border-t border-gray-200 bg-gray-50 px-6 py-4 flex items-center justify-between">
+                    <div className="border-t border-gray-200 bg-gray-50 px-4 py-4 flex items-center justify-between">
                         <div className="flex items-center text-sm text-gray-700">
                             <span>
                                 Menampilkan{' '}
@@ -1021,7 +1034,7 @@ const PembelianSapi = () => {
                 </div>
 
                 {/* Mobile Card View - Visible on mobile only */}
-                <div className="md:hidden">
+                <div className="md:hidden px-4 sm:px-6 lg:px-8">
                     {loading ? (
                         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
                             <div className="text-center">
@@ -1123,13 +1136,7 @@ const PembelianSapi = () => {
                 isDeleting={deleteLoading === (selectedItem?.pid || selectedItem?.encryptedPid)}
             />
 
-            <PoRphDetailModal
-                isOpen={isDetailModalOpen}
-                item={selectedItem}
-                onClose={handleCloseDetailModal}
-                onEdit={handleEdit}
-                usePoRphHook={poRphHook}
-            />
+            {/* PoRphDetailModal removed - using navigation to detail page instead */}
         </div>
         </>
     );

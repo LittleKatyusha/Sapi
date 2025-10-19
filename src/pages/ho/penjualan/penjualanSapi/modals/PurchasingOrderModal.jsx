@@ -4,7 +4,6 @@ import { X, Loader2, CheckCircle, XCircle } from 'lucide-react';
 import usePersetujuanHoSelect from '../hooks/usePersetujuanHoSelect';
 import PenjualanDokaSapiService from '../../../../../services/penjualanDokaSapiService';
 import RejectReasonModal from './RejectReasonModal';
-import useAuth from '../../../../../hooks/useAuth';
 import '../styles/PurchasingOrderPrint.css';
 
 const PurchasingOrderModal = ({
@@ -20,9 +19,6 @@ const PurchasingOrderModal = ({
     const [isProcessing, setIsProcessing] = useState(false);
     const [showRejectModal, setShowRejectModal] = useState(false);
     const [notification, setNotification] = useState(null);
-    
-    // Get current user from auth hook
-    const { user: currentUser } = useAuth();
     
     // Get approval options from API
     const {
@@ -141,7 +137,7 @@ const PurchasingOrderModal = ({
 
         try {
             // Call the approve API
-            const result = await PenjualanDokaSapiService.approve(data.pid || data.encryptedPid, approvedBy);
+            const result = await PenjualanDokaSapiService.approve(data.pid || data.pubid, approvedBy);
             
             if (result.success) {
                 setNotification({
@@ -283,6 +279,19 @@ const PurchasingOrderModal = ({
         
         // For numeric status, 2 typically means approved
         return data.status === 2 || data.status === 'completed';
+    };
+    
+    // Check if status is rejected
+    const isRejected = () => {
+        if (!data || !data.status) return false;
+        
+        if (typeof data.status === 'string') {
+            const statusLower = data.status.toLowerCase();
+            return statusLower === 'ditolak' || statusLower === 'rejected';
+        }
+        
+        // For numeric status, 3 typically means rejected
+        return data.status === 3;
     };
     
     // Check if status is pending
@@ -550,7 +559,7 @@ const PurchasingOrderModal = ({
                                     <p className="text-sm font-medium text-gray-700 mb-12">Yang Mengajukan</p>
                                     <div className="mt-16">
                                         <p className="text-sm font-semibold text-gray-900">
-                                            ( {currentUser?.nama || currentUser?.username || 'User'} )
+                                            ( {data._original?.nama_mengajukan || data.nama_mengajukan || data.details?.[0]?.nama_mengajukan} )
                                         </p>
                                     </div>
                                 </div>
@@ -559,12 +568,13 @@ const PurchasingOrderModal = ({
                                 <div className="text-right">
                                     <p className="text-sm font-medium text-gray-700 mb-12">Yang Menyetujui</p>
                                     <div className="mt-16">
-                                        {/* Get the selected approver's name */}
+                                        {/* Get the approver's name from API data */}
                                         <p className="text-sm font-semibold text-gray-900">
-                                            ( {approvedBy ?
-                                                persetujuanOptions.find(opt => opt.value === approvedBy)?.label?.replace('Pilih ', '') ||
-                                                'Belum dipilih' :
-                                                'Belum dipilih'
+                                            ( {data._original?.nama_persetujuan_ho || data.nama_persetujuan_ho || data.details?.[0]?.nama_persetujuan_ho ||
+                                                (approvedBy ?
+                                                    persetujuanOptions.find(opt => opt.value === approvedBy)?.label?.replace('Pilih ', '') ||
+                                                    'Belum dipilih' :
+                                                    'Belum dipilih')
                                             } )
                                         </p>
                                     </div>
@@ -572,8 +582,8 @@ const PurchasingOrderModal = ({
                             </div>
                         </div>
 
-                        {/* Footer Notes - Approval Section - Only show if not approved */}
-                        {!isApproved() && (
+                        {/* Footer Notes - Approval Section - Only show if not approved and not rejected */}
+                        {!isApproved() && !isRejected() && (
                             <div className="mt-8 pt-8 border-t border-gray-300 signature-section">
                                 <div className="flex justify-end">
                                     <div className="w-full max-w-md">

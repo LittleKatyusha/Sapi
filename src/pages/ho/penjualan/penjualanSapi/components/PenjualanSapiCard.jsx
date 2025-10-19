@@ -9,8 +9,6 @@ import {
   Hash,
   Package,
   Eye,
-  CheckCircle,
-  XCircle,
   MoreVertical,
   Download,
   Loader2
@@ -21,8 +19,6 @@ import { API_ENDPOINTS, API_BASE_URL } from '../../../../../config/api';
 const PenjualanSapiCard = ({
     data,
     onDetail,
-    onProcess,
-    onReject,
     onDownloadOrder,
     index,
     getJenisPenjualanLabel
@@ -57,16 +53,6 @@ const PenjualanSapiCard = ({
 
     const handleDetail = () => {
         onDetail(data);
-        setShowMenu(false);
-    };
-
-    const handleProcess = () => {
-        onProcess(data);
-        setShowMenu(false);
-    };
-
-    const handleReject = () => {
-        onReject(data);
         setShowMenu(false);
     };
 
@@ -106,20 +92,6 @@ const PenjualanSapiCard = ({
                             >
                                 <Eye className="w-4 h-4 text-blue-500" />
                                 Lihat Detail
-                            </button>
-                            <button
-                                onClick={handleProcess}
-                                className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150"
-                            >
-                                <CheckCircle className="w-4 h-4 text-green-500" />
-                                Proses
-                            </button>
-                            <button
-                                onClick={handleReject}
-                                className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150"
-                            >
-                                <XCircle className="w-4 h-4 text-red-500" />
-                                Tolak
                             </button>
                             <button
                                 onClick={handleDownloadOrder}

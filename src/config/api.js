@@ -115,7 +115,7 @@ export const API_ENDPOINTS = {
       SHOW: '/api/rph/po/show',
       STORE: '/api/rph/po/store',
       UPDATE: '/api/rph/po/update',
-      DELETE: '/api/rph/po/delete',
+      DELETE: '/api/rph/po/hapus',
       EXPORT: '/api/rph/po/export'
     },
     PEMBELIAN: {

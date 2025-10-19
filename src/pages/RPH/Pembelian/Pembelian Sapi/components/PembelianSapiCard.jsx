@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { 
-    MoreVertical, 
-    Edit, 
-    Trash2, 
-    Eye, 
+import { useNavigate } from 'react-router-dom';
+import {
+    MoreVertical,
+    Edit,
+    Trash2,
+    Eye,
     Calendar,
     FileText,
     Building2,
@@ -16,17 +17,18 @@ import {
     XCircle
 } from 'lucide-react';
 
-const PembelianSapiCard = ({ 
-    data, 
-    index, 
-    onEdit, 
-    onDelete, 
+const PembelianSapiCard = ({
+    data,
+    index,
+    onEdit,
+    onDelete,
     onDetail,
     formatCurrency,
     getStatusBadge,
     getPersetujuanBadge
 }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const navigate = useNavigate();
 
     const handleEdit = () => {
         setIsMenuOpen(false);
@@ -40,7 +42,11 @@ const PembelianSapiCard = ({
 
     const handleDetail = () => {
         setIsMenuOpen(false);
-        onDetail(data);
+        // Navigate to detail page instead of opening modal
+        const itemId = data.pid || data.encryptedPid || data.pubid;
+        navigate(`/rph/pembelian-sapi/detail/${itemId}`, {
+            state: { item: data }
+        });
     };
 
     // Format date

@@ -250,9 +250,9 @@ const enhancedTableStyles = {
             backgroundColor: '#fff',
             borderRadius: '0px', // Remove border radius from table itself
             width: '100%',
-            minWidth: '100%', // Use full container width
+            minWidth: '1200px', // Set minimum width for proper column display
             maxWidth: '100%',
-            tableLayout: 'auto', // Change to auto for flexible column sizing
+            tableLayout: 'fixed', // Fixed layout for consistent column widths
             borderCollapse: 'separate',
             borderSpacing: 0,
             margin: 0,
@@ -263,7 +263,7 @@ const enhancedTableStyles = {
             overflowX: 'auto',
             overflowY: 'visible',
             width: '100%',
-            maxWidth: '100%',
+            maxWidth: '100vw', // Use viewport width
             border: 'none', // Remove border as it's handled by parent container
             borderRadius: '0',
             WebkitOverflowScrolling: 'touch',
@@ -273,6 +273,20 @@ const enhancedTableStyles = {
             // Custom scrollbar styling
             scrollbarWidth: 'thin',
             scrollbarColor: '#cbd5e1 #f1f5f9',
+            '&::-webkit-scrollbar': {
+                height: '10px',
+            },
+            '&::-webkit-scrollbar-track': {
+                backgroundColor: '#f1f5f9',
+                borderRadius: '4px',
+            },
+            '&::-webkit-scrollbar-thumb': {
+                backgroundColor: '#cbd5e1',
+                borderRadius: '4px',
+                '&:hover': {
+                    backgroundColor: '#94a3b8',
+                },
+            },
         }
     },
     headRow: {
