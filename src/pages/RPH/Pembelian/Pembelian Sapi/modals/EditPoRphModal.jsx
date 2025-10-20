@@ -281,9 +281,10 @@ const EditPoRphModal = ({
               }`}
               disabled={isSubmitting || officeLoading}
             >
-              {officeOptions.map(option => (
-                <option 
-                  key={option.value} 
+              <option value="">Pilih Office...</option>
+              {officePoOptions && officePoOptions.map(option => (
+                <option
+                  key={option.value}
                   value={option.value}
                   disabled={option.disabled}
                 >
