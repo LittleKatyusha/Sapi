@@ -16,6 +16,7 @@ const useParameterSelect = (isEditMode = false, supplierFilters = {}, tipePembel
         eartag: [],
         supplier: [],
         office: [],
+        officepo: [],
         klasifikasihewan: [],
         klasifikasifeedmil: [],
         klasifikasiovk: [],
@@ -79,6 +80,7 @@ const useParameterSelect = (isEditMode = false, supplierFilters = {}, tipePembel
                     eartag: data.eartag || [],
                     supplier: data.supplier || [],
                     office: data.office || [],
+                    officepo: data.officepo || [],
                     klasifikasihewan: data.klasifikasihewan || [],
                     klasifikasifeedmil: data.klasifikasifeedmil || [],
                     klasifikasiovk: data.klasifikasiovk || [],
@@ -116,12 +118,14 @@ const useParameterSelect = (isEditMode = false, supplierFilters = {}, tipePembel
                 eartag: [],
                 supplier: [],
                 office: [],
+                officepo: [],
                 klasifikasihewan: [],
                 klasifikasifeedmil: [],
                 klasifikasiovk: [],
                 klasifikasikulit: [],
                 itemkulit: [],
                 itemfeedmil: [],
+                itemovk: [],
                 farm: [],
                 farmlainlain: [],
                 outlet: [],
@@ -222,6 +226,24 @@ const useParameterSelect = (isEditMode = false, supplierFilters = {}, tipePembel
         return options;
     }, [parameterData.office]);
 
+    const officePoOptions = useMemo(() => {
+        const options = parameterData.officepo.map(item => ({
+            value: item.id, // Keep numeric for consumer pages that expect number
+            label: item.name
+        }));
+        
+        // Debug logging for officepo options
+        if (parameterData.officepo.length > 0) {
+            console.log('🏢 OfficePO options created (filtered for IDs 1,11):', {
+                count: options.length,
+                data: options,
+                rawData: parameterData.officepo
+            });
+        }
+        
+        return options;
+    }, [parameterData.officepo]);
+
     const klasifikasiHewanOptions = useMemo(() => {
         return parameterData.klasifikasihewan.map(item => ({
             value: item.pubid || item.id, // Use pubid first, fallback to id
@@ -307,6 +329,7 @@ const useParameterSelect = (isEditMode = false, supplierFilters = {}, tipePembel
         eartagOptions,
         supplierOptions,
         officeOptions,
+        officePoOptions,
         klasifikasiHewanOptions,
         klasifikasiFeedmilOptions,
         klasifikasiOVKOptions,

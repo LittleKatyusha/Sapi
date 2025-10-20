@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { X, Save, AlertCircle, Building2, FileText, CheckCircle, User } from 'lucide-react';
-import useOfficeSelect from '../hooks/useOfficeSelect';
+import useParameterSelect from '../hooks/useParameterSelect';
 import usePersetujuanRphSelect from '../hooks/usePersetujuanRphSelect';
 
 const AddPoRphModal = ({ 
@@ -24,11 +24,11 @@ const AddPoRphModal = ({
   const [notaLoading, setNotaLoading] = useState(false);
 
   // Get hooks for dropdowns
-  const { 
-    officeOptions, 
+  const {
+    officePoOptions,
     loading: officeLoading,
-    error: officeError 
-  } = useOfficeSelect();
+    error: officeError
+  } = useParameterSelect();
   
   const { 
     persetujuanOptions, 
@@ -209,9 +209,10 @@ const AddPoRphModal = ({
               }`}
               disabled={isSubmitting || officeLoading}
             >
-              {officeOptions.map(option => (
-                <option 
-                  key={option.value} 
+              <option value="">Pilih Office...</option>
+              {officePoOptions && officePoOptions.map(option => (
+                <option
+                  key={option.value}
                   value={option.value}
                   disabled={option.disabled}
                 >
