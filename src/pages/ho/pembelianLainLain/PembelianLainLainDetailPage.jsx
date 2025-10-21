@@ -350,11 +350,12 @@ const PembelianLainLainDetailPage = () => {
             name: 'Nama Item',
             selector: row => row.item_name,
             sortable: true,
-            width: '250px',
+            minWidth: '200px',
+            grow: 1,
             wrap: true,
             cell: row => (
-                <div className="flex items-center justify-center w-full h-full min-h-[40px] px-2">
-                    <div className="text-center font-medium text-gray-800 leading-tight force-wrap">
+                <div className="flex items-center justify-start w-full h-full min-h-[40px] px-2">
+                    <div className="text-left font-medium text-gray-800 leading-tight">
                         {row.item_name || '-'}
                     </div>
                 </div>
@@ -364,7 +365,7 @@ const PembelianLainLainDetailPage = () => {
             name: 'Klasifikasi Lain-Lain',
             selector: row => row.nama_klasifikasi_lainlain || row.nama_klasifikasi_ovk,
             sortable: true,
-            width: '160px',
+            minWidth: '150px',
             wrap: true,
             center: true,
             cell: row => {
@@ -383,12 +384,12 @@ const PembelianLainLainDetailPage = () => {
             name: 'Jumlah Total',
             selector: row => row.berat,
             sortable: true,
-            width: '130px',
+            minWidth: '120px',
             wrap: true,
             cell: row => (
                 <div className="flex items-center justify-center w-full h-full min-h-[40px]">
                     <div className="bg-gray-50 text-gray-700 px-3 py-2 rounded-lg font-semibold text-center">
-                        {row.berat ? `${row.berat} kg` : '-'}
+                        {row.berat ? `${row.berat} Item` : '-'}
                     </div>
                 </div>
             )
@@ -397,7 +398,7 @@ const PembelianLainLainDetailPage = () => {
             name: 'Harga',
             selector: row => row.harga,
             sortable: true,
-            width: '170px',
+            minWidth: '150px',
             wrap: true,
             center: true,
             cell: row => (
@@ -412,7 +413,7 @@ const PembelianLainLainDetailPage = () => {
             name: 'Total Harga',
             selector: row => row.total_harga,
             sortable: true,
-            width: '190px',
+            minWidth: '170px',
             wrap: true,
             center: true,
             cell: row => (
@@ -427,7 +428,7 @@ const PembelianLainLainDetailPage = () => {
             name: 'Tgl Masuk RPH',
             selector: row => row.tgl_masuk_rph,
             sortable: true,
-            width: '160px',
+            minWidth: '140px',
             wrap: true,
             cell: row => (
                 <div className="flex items-center justify-center w-full h-full min-h-[40px]">
@@ -550,8 +551,8 @@ const PembelianLainLainDetailPage = () => {
                     text-align: center !important;
                 }
             `}</style>
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-0">
-            <div className="w-full space-y-6 sm:space-y-8">
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4 sm:p-8">
+            <div className="w-full max-w-full space-y-6 sm:space-y-8">
                 {/* Header */}
                 <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-xl border border-gray-100 w-full">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -674,7 +675,7 @@ const PembelianLainLainDetailPage = () => {
                                 Jumlah Total
                             </label>
                             <p className="text-lg font-bold text-gray-900">
-                                {pembelianData.berat_total ? `${parseFloat(pembelianData.berat_total).toFixed(1)} kg` : '-'}
+                                {pembelianData.berat_total ? `${Math.round(pembelianData.berat_total)} Item` : '-'}
                             </p>
                         </div>
 
@@ -712,10 +713,10 @@ const PembelianLainLainDetailPage = () => {
 
                 </div>
 
-                {/* Detail Table */}
-                <div className="bg-white rounded-xl shadow-lg border border-gray-100 relative overflow-hidden">
+                {/* Detail Table - Full Width */}
+                <div className="bg-white shadow-lg border-y border-gray-100 relative overflow-hidden -mx-4 sm:-mx-8">
                     {/* Enhanced Scroll Indicator - Top */}
-                    <div className="px-6 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                    <div className="px-4 sm:px-6 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <Package className="w-5 h-5 text-green-600" />
                             <div>
@@ -741,9 +742,9 @@ const PembelianLainLainDetailPage = () => {
                         </div>
                     </div>
                     
-                    {/* Table Container with proper scroll */}
-                    <div className="w-full overflow-x-auto max-w-full table-scroll-container" onScroll={handleTableScroll}>
-                        <div className="min-w-full">
+                    {/* Table Container with full width scroll */}
+                    <div className="w-full overflow-x-auto table-scroll-container" onScroll={handleTableScroll}>
+                        <div className="w-full">
                             <StyleSheetManager shouldForwardProp={shouldForwardProp}>
                                 <DataTable
                                 title="Daftar Detail Item Lain-Lain"
@@ -904,7 +905,7 @@ const PembelianLainLainDetailPage = () => {
                     </div>
                     
                     {/* Custom Pagination - Fixed outside scroll area */}
-                    <div className="border-t border-gray-200 bg-gray-50 px-6 py-4 flex items-center justify-between rounded-b-xl">
+                    <div className="border-t border-gray-200 bg-gray-50 px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
                         <div className="flex items-center text-sm text-gray-700">
                             <span>
                                 Menampilkan{' '}

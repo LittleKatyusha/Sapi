@@ -196,7 +196,8 @@ const PembelianLainLainPage = () => {
             name: 'No',
             selector: (row, index) => index + 1,
             sortable: false,
-            width: '60px',
+            minWidth: '60px',
+            maxWidth: '80px',
             ignoreRowClick: true,
             // Add sticky positioning for No column
             style: {
@@ -223,7 +224,8 @@ const PembelianLainLainPage = () => {
         },
         {
             name: 'Pilih',
-            width: '80px',
+            minWidth: '80px',
+            maxWidth: '100px',
             // Add sticky positioning for Pilih column
             style: {
                 position: 'sticky',
@@ -261,7 +263,7 @@ const PembelianLainLainPage = () => {
             name: 'Nota',
             selector: row => row.nota,
             sortable: true,
-            width: '150px',
+            minWidth: '140px',
             wrap: true,
             cell: row => (
                 <div className="w-full px-2 flex items-center justify-center min-h-[40px]">
@@ -275,7 +277,7 @@ const PembelianLainLainPage = () => {
             name: 'Nota Sistem',
             selector: row => row.nota_sistem,
             sortable: true,
-            width: '150px',
+            minWidth: '140px',
             wrap: true,
             cell: row => (
                 <div className="w-full px-2 flex items-center justify-center min-h-[40px]">
@@ -289,7 +291,7 @@ const PembelianLainLainPage = () => {
             name: 'Tanggal Masuk',
             selector: row => row.tgl_masuk,
             sortable: true,
-            width: '140px',
+            minWidth: '170px',
             wrap: true,
             cell: row => (
                 <div className="flex items-center justify-center w-full h-full min-h-[40px]">
@@ -307,7 +309,7 @@ const PembelianLainLainPage = () => {
             name: 'Jumlah PerJenis',
             selector: row => row.jumlah,
             sortable: true,
-            width: '130px',
+            minWidth: '170px',
             wrap: true,
             cell: row => (
                 <div className="flex items-center justify-center w-full h-full min-h-[40px]">
@@ -322,7 +324,8 @@ const PembelianLainLainPage = () => {
             name: 'Nama Supplier',
             selector: row => row.nama_supplier,
             sortable: true,
-            width: '260px',
+            minWidth: '200px',
+            grow: 1,
             wrap: true,
             cell: row => (
                 <div className="flex items-center justify-center w-full h-full min-h-[40px] px-2">
@@ -336,7 +339,7 @@ const PembelianLainLainPage = () => {
             name: 'Farm',
             selector: row => row.farm,
             sortable: true,
-            width: '150px',
+            minWidth: '140px',
             wrap: true,
             cell: row => (
                 <span className="inline-flex px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-100 text-blue-800">
@@ -348,19 +351,21 @@ const PembelianLainLainPage = () => {
             name: 'Syarat Pembelian',
             selector: row => row.syarat_pembelian,
             sortable: true,
-            width: '160px',
+            minWidth: '180px',
             wrap: true,
             cell: row => (
-                <span className="inline-flex px-3 py-1.5 text-xs font-medium rounded-lg bg-green-100 text-green-800">
-                    {row.syarat_pembelian || '-'}
-                </span>
+                <div className="flex items-center justify-center w-full h-full min-h-[40px]">
+                    <span className="inline-flex px-3 py-1.5 text-xs font-medium rounded-lg bg-green-100 text-green-800">
+                        {row.syarat_pembelian || '-'}
+                    </span>
+                </div>
             )
         },
         {
             name: 'Total Belanja',
             selector: row => row.total_belanja,
             sortable: true,
-            width: '200px',
+            minWidth: '180px',
             wrap: true,
             cell: row => (
                 <div className="flex items-center justify-center w-full h-full min-h-[40px] px-1">
@@ -377,14 +382,14 @@ const PembelianLainLainPage = () => {
         },
         {
             name: 'Jumlah Total',
-            selector: row => row.berat_total,
+            selector: row => row.jumlah,
             sortable: true,
-            width: '140px',
+            minWidth: '150px',
             wrap: true,
             cell: row => (
                 <div className="flex items-center justify-center w-full h-full min-h-[40px]">
                     <div className="bg-gray-50 text-gray-700 px-3 py-2 rounded-lg font-semibold text-center">
-                        {row.berat_total ? `${parseFloat(row.berat_total).toFixed(1)}` : '-'}<br/>
+                        {row.jumlah || 0}<br/>
                         <span className="text-xs text-gray-500">item</span>
                     </div>
                 </div>
@@ -394,7 +399,7 @@ const PembelianLainLainPage = () => {
             name: 'Grand Total',
             selector: row => row.biaya_total,
             sortable: true,
-            width: '200px',
+            minWidth: '180px',
             wrap: true,
             cell: row => (
                 <div className="flex items-center justify-center w-full h-full min-h-[40px] px-1">
@@ -413,7 +418,7 @@ const PembelianLainLainPage = () => {
             name: 'Biaya Lain',
             selector: row => row.biaya_lain,
             sortable: true,
-            width: '180px',
+            minWidth: '160px',
             wrap: true,
             cell: row => (
                 <div className="flex items-center justify-center w-full h-full min-h-[40px] px-1">
@@ -432,7 +437,7 @@ const PembelianLainLainPage = () => {
             name: 'Jenis Pembelian',
             selector: row => row.jenis_pembelian,
             sortable: true,
-            width: '190px',
+            minWidth: '170px',
             wrap: true,
             cell: row => (
                 <div className="flex items-center justify-center w-full h-full min-h-[40px] px-2">
@@ -567,9 +572,9 @@ const PembelianLainLainPage = () => {
                     overflow-y: visible;
                 }
             `}</style>
-            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-2 sm:p-4 md:p-6">
-            <div className="w-full max-w-none mx-0 space-y-6 md:space-y-8">
-                <div className="bg-white rounded-none sm:rounded-none p-4 sm:p-6 shadow-xl border border-gray-100">
+            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4 sm:p-6 md:p-8">
+            <div className="w-full max-w-full space-y-6 md:space-y-8">
+                <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-xl border border-gray-100">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div>
                             <h1 className="text-2xl sm:text-4xl font-bold text-gray-800 mb-1 sm:mb-2 flex items-center gap-3">
@@ -611,7 +616,7 @@ const PembelianLainLainPage = () => {
                     </div>
                 </div>
 
-                <div className="bg-white rounded-none sm:rounded-none p-4 sm:p-6 shadow-lg border border-gray-100">
+                <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-lg border border-gray-100">
                     <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 md:gap-6 sm:items-center sm:justify-between">
                         <div className="relative flex-1 max-w-full sm:max-w-md lg:max-w-lg">
                             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -663,10 +668,10 @@ const PembelianLainLainPage = () => {
                     </div>
                 </div>
 
-                {/* Desktop Table View - Hidden on mobile */}
-                <div className="bg-white rounded-xl shadow-lg border border-gray-100 relative hidden md:block overflow-hidden">
+                {/* Desktop Table View - Full Width */}
+                <div className="bg-white shadow-lg border-y border-gray-100 relative hidden md:block overflow-hidden -mx-4 sm:-mx-6 md:-mx-8">
                     {/* Scroll Indicator */}
-                    <div className="px-6 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                    <div className="px-4 sm:px-6 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
                         <div className="flex items-center text-sm text-gray-600">
                             <svg className="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16l-4-4m0 0l4-4m-4 4h18"></path>
@@ -681,9 +686,9 @@ const PembelianLainLainPage = () => {
                         </div>
                     </div>
                     
-                    {/* Table Container with proper scroll */}
-                    <div className="w-full overflow-x-auto max-w-full table-scroll-container" style={{maxHeight: '60vh'}}>
-                        <div className="min-w-full">
+                    {/* Table Container with full width scroll */}
+                    <div className="w-full overflow-x-auto table-scroll-container" style={{maxHeight: '60vh'}}>
+                        <div className="w-full">
                         <DataTable
                             key={`datatable-${serverPagination.currentPage}-${filteredData.length}`}
                             columns={columns}
@@ -728,7 +733,7 @@ const PembelianLainLainPage = () => {
                     </div>
                     
                     {/* Custom Pagination - Fixed outside scroll area */}
-                    <div className="border-t border-gray-200 bg-gray-50 px-6 py-4 flex items-center justify-between">
+                    <div className="border-t border-gray-200 bg-gray-50 px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
                         <div className="flex items-center text-sm text-gray-700">
                             <span>
                                 Menampilkan{' '}
