@@ -1773,7 +1773,7 @@ const AddEditPembelianLainLainPage = () => {
                                 </div>
                                 <div className="text-center">
                                     <p className="text-sm text-blue-600">Jumlah Total</p>
-                                    <p className="text-xl font-bold text-blue-800">{totals.totalBerat.toFixed(1)} kg</p>
+                                    <p className="text-xl font-bold text-blue-800">{totals.totalBerat.toFixed(1)} item</p>
                                 </div>
                                 <div className="text-center">
                                     <p className="text-sm text-green-600">Total Harga Items</p>

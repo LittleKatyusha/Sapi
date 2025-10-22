@@ -1,16 +1,25 @@
-import React, { useState } from 'react';
-import { FileText, Download, Calendar, AlertCircle, FileCheck, Package, CalendarDays } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { FileText, Download, Calendar, AlertCircle, FileCheck, Package, CalendarDays, Filter } from 'lucide-react';
 import LaporanPembelianService from '../../services/laporanPembelianService';
+import useJenisPembelianLainLain from '../ho/pembelianLainLain/hooks/useJenisPembelianLainLain';
 
 const LaporanPembelianLainLainPage = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [selectedTipePembelian, setSelectedTipePembelian] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  
+  // Fetch tipe pembelian options from pembelian lain lain
+  const {
+    jenisPembelianOptions: tipePembelianOptions,
+    loading: loadingTipePembelian,
+    error: tipePembelianError
+  } = useJenisPembelianLainLain();
 
-  // Set default dates (current month)
-  React.useEffect(() => {
+  // Set default dates (current month) and default tipe pembelian
+  useEffect(() => {
     const today = new Date();
     const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
     const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
@@ -18,6 +27,14 @@ const LaporanPembelianLainLainPage = () => {
     setStartDate(firstDay.toISOString().split('T')[0]);
     setEndDate(lastDay.toISOString().split('T')[0]);
   }, []);
+
+  // Set default tipe pembelian when options are loaded
+  useEffect(() => {
+    if (tipePembelianOptions.length > 0 && !selectedTipePembelian) {
+      // Set the first option as default
+      setSelectedTipePembelian(tipePembelianOptions[0].value);
+    }
+  }, [tipePembelianOptions, selectedTipePembelian]);
 
   // Handle form submission
   const handleSubmit = async (e) => {
@@ -41,14 +58,16 @@ const LaporanPembelianLainLainPage = () => {
       const blob = await LaporanPembelianService.downloadPdfReport('getReportOtherHo', {
         start_date: startDate,
         end_date: endDate,
-        id_tipe_pembelian: 1  // Hardcoded as requested
+        id_tipe_pembelian: selectedTipePembelian || 1  // Use selected value or default to 1
       });
       
       // Create download link
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `LAPORAN_PEMBELIAN_LAIN_LAIN_${startDate}_${endDate}.pdf`;
+      // Get tipe pembelian label for filename
+      const tipePembelianLabel = tipePembelianOptions.find(opt => opt.value === selectedTipePembelian)?.label || 'ALL';
+      link.download = `LAPORAN_PEMBELIAN_LAIN_LAIN_${tipePembelianLabel}_${startDate}_${endDate}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -63,37 +82,8 @@ const LaporanPembelianLainLainPage = () => {
     }
   };
 
-  // Quick date presets
-  const setQuickDate = (type) => {
-    const today = new Date();
-    let start, end;
-
-    switch (type) {
-      case 'today':
-        start = end = today;
-        break;
-      case 'thisWeek':
-        start = new Date(today.setDate(today.getDate() - today.getDay()));
-        end = new Date(today.setDate(today.getDate() - today.getDay() + 6));
-        break;
-      case 'thisMonth':
-        start = new Date(today.getFullYear(), today.getMonth(), 1);
-        end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-        break;
-      case 'lastMonth':
-        start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-        end = new Date(today.getFullYear(), today.getMonth(), 0);
-        break;
-      default:
-        return;
-    }
-
-    setStartDate(start.toISOString().split('T')[0]);
-    setEndDate(end.toISOString().split('T')[0]);
-  };
-
   // Clear messages after 5 seconds
-  React.useEffect(() => {
+  useEffect(() => {
     if (error || success) {
       const timer = setTimeout(() => {
         setError('');
@@ -133,41 +123,41 @@ const LaporanPembelianLainLainPage = () => {
       <div className="bg-white p-6 rounded-xl shadow-md">
         <div className="max-w-4xl mx-auto">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Quick Date Buttons */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">
-                Pilih Periode Cepat
+            {/* Tipe Pembelian Filter */}
+            <div className="col-span-1 md:col-span-2">
+              <label htmlFor="tipePembelian" className="block text-sm font-medium text-gray-700 mb-2">
+                Tipe Pembelian
               </label>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => setQuickDate('today')}
-                  className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              <div className="relative">
+                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                <select
+                  id="tipePembelian"
+                  value={selectedTipePembelian}
+                  onChange={(e) => setSelectedTipePembelian(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors appearance-none bg-white"
+                  disabled={loading || loadingTipePembelian}
                 >
-                  Hari Ini
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setQuickDate('thisWeek')}
-                  className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-                >
-                  Minggu Ini
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setQuickDate('thisMonth')}
-                  className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-                >
-                  Bulan Ini
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setQuickDate('lastMonth')}
-                  className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-                >
-                  Bulan Lalu
-                </button>
+                  {loadingTipePembelian ? (
+                    <option value="">Loading...</option>
+                  ) : tipePembelianOptions.length > 0 ? (
+                    tipePembelianOptions.map(option => (
+                      <option key={option.value || option.rawId} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))
+                  ) : (
+                    <option value="">Tidak ada data tipe pembelian</option>
+                  )}
+                </select>
               </div>
+              {tipePembelianError && (
+                <p className="text-sm text-red-600 mt-1">Error: {tipePembelianError}</p>
+              )}
+              {!loadingTipePembelian && !tipePembelianError && tipePembelianOptions.length > 0 && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Pilih tipe pembelian untuk memfilter laporan
+                </p>
+              )}
             </div>
 
             {/* Date Range */}
@@ -258,7 +248,7 @@ const LaporanPembelianLainLainPage = () => {
             <div className="text-blue-700 space-y-1">
               <p className="flex items-center">
                 <span className="w-2 h-2 bg-blue-400 rounded-full mr-2"></span>
-                Laporan akan menampilkan semua transaksi pembelian lain-lain dalam periode yang dipilih
+                Laporan akan menampilkan transaksi pembelian lain-lain berdasarkan tipe pembelian yang dipilih
               </p>
               <p className="flex items-center">
                 <span className="w-2 h-2 bg-blue-400 rounded-full mr-2"></span>
@@ -266,7 +256,11 @@ const LaporanPembelianLainLainPage = () => {
               </p>
               <p className="flex items-center">
                 <span className="w-2 h-2 bg-blue-400 rounded-full mr-2"></span>
-                Gunakan tombol periode cepat untuk memilih rentang tanggal yang umum digunakan
+                Tipe pembelian tersedia: {tipePembelianOptions.map(opt => opt.label).join(', ') || 'Loading...'}
+              </p>
+              <p className="flex items-center">
+                <span className="w-2 h-2 bg-blue-400 rounded-full mr-2"></span>
+                Silakan pilih rentang tanggal untuk periode laporan yang diinginkan
               </p>
             </div>
           </div>
