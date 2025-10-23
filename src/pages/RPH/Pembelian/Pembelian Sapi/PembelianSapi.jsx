@@ -795,7 +795,7 @@ const PembelianSapi = () => {
                                     Pembelian Sapi RPH
                                 </h1>
                                 <p className="text-gray-600 text-sm sm:text-base">
-                                    Kelola data PO pembelian sapi dan ternak
+                                    Kelola data pembelian sapi dan ternak
                                 </p>
                             </div>
                         </div>
@@ -805,7 +805,7 @@ const PembelianSapi = () => {
                                 className="bg-gradient-to-r from-red-500 to-rose-600 text-white px-4 py-2 sm:px-6 sm:py-3 md:px-7 md:py-4 lg:px-8 lg:py-4 rounded-xl sm:rounded-2xl hover:from-red-600 hover:to-rose-700 transition-all duration-300 flex items-center gap-3 font-medium shadow-lg hover:shadow-xl text-sm sm:text-base"
                             >
                                 <PlusCircle className="w-5 h-5 sm:w-6 sm:h-6" />
-                                Tambah PO RPH
+                                Tambah Pembelian Sapi
                             </button>
                         </div>
                     </div>

@@ -8,6 +8,7 @@ const AddEditUserModal = ({ isOpen, onClose, onSave, editData, loading, roles = 
         email: '',
         nik: '',
         position: '',
+        groupId: '',
         phone: '',
         address: ''
     });
@@ -25,6 +26,7 @@ const AddEditUserModal = ({ isOpen, onClose, onSave, editData, loading, roles = 
                     email: editData.email || '',
                     nik: editData.nik || '',
                     position: editData.position || '',
+                    groupId: editData.groupId || '',
                     phone: editData.phone || '',
                     address: editData.address || ''
                 });
@@ -36,6 +38,7 @@ const AddEditUserModal = ({ isOpen, onClose, onSave, editData, loading, roles = 
                     email: '',
                     nik: '',
                     position: '',
+                    groupId: '',
                     phone: '',
                     address: ''
                 });
@@ -107,6 +110,7 @@ const AddEditUserModal = ({ isOpen, onClose, onSave, editData, loading, roles = 
                 email: '',
                 nik: '',
                 position: '',
+                groupId: '',
                 phone: '',
                 address: ''
             });
@@ -232,19 +236,26 @@ const AddEditUserModal = ({ isOpen, onClose, onSave, editData, loading, roles = 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                     <Building2 className="w-4 h-4 inline mr-2" />
-                                    Jabatan
+                                    Jabatan / Role
                                 </label>
                                 <div className="relative">
                                     <select
-                                        name="position"
-                                        value={formData.position}
-                                        onChange={handleInputChange}
+                                        name="groupId"
+                                        value={formData.groupId}
+                                        onChange={(e) => {
+                                            const selectedRole = roles.find(r => r.id === e.target.value);
+                                            setFormData(prev => ({
+                                                ...prev,
+                                                groupId: e.target.value,
+                                                position: selectedRole ? (selectedRole.nama || selectedRole.name) : ''
+                                            }));
+                                        }}
                                         className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors appearance-none bg-white pr-10"
                                         disabled={isSubmitting}
                                     >
                                         <option value="">Pilih Jabatan</option>
                                         {roles.map((role, index) => (
-                                            <option key={`${role.id || role.nama || index}`} value={role.nama || role.name}>
+                                            <option key={`${role.id || index}`} value={role.id}>
                                                 {role.nama || role.name}
                                             </option>
                                         ))}

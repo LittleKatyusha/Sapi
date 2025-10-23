@@ -166,7 +166,8 @@ const useUsers = () => {
                 alamat: userData.address || userData.alamat || '',
                 kontak: userData.phone || userData.kontak || '',
                 position: userData.position || '',
-                group_id: userData.groupId || 2, // Default to a valid group_id
+                group_id: userData.groupId || null, // Keep for backward compatibility
+                roles_id: userData.groupId || null, // Add roles_id field that backend expects
                 password: userData.password || 'default123'
             });
             await fetchUsers(1, 1000); // Refresh data
@@ -205,7 +206,8 @@ const useUsers = () => {
                 alamat: userData.address || userData.alamat || '',
                 kontak: userData.phone || userData.kontak || '',
                 position: userData.position || '',
-                group_id: userData.groupId || 2,
+                group_id: userData.groupId || null, // Keep for backward compatibility
+                roles_id: userData.groupId || null, // Add roles_id field that backend expects
                 ...(userData.password && { password: userData.password }) // Only include password if provided
             });
             await fetchUsers(1, 1000); // Refresh data
