@@ -61,7 +61,17 @@ const CardView = ({
           </div>
 
           {/* Card Body */}
-          <div className="px-4 pb-4">
+          <div className="px-4 pb-4 space-y-3">
+            {/* Klasifikasi Badge */}
+            {item.klasifikasi && (
+              <div className="flex items-center gap-2">
+                <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded-md text-xs font-medium">
+                  {item.klasifikasi}
+                </span>
+              </div>
+            )}
+            
+            {/* Description */}
             <p className="text-gray-600 text-sm leading-relaxed line-clamp-3">
               {item.description}
             </p>

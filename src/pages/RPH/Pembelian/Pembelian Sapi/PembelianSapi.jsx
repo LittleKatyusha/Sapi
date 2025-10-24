@@ -792,7 +792,7 @@ const PembelianSapi = () => {
                             />
                             <div>
                                 <h1 className="text-2xl sm:text-4xl font-bold text-gray-800">
-                                    Pembelian Sapi RPH
+                                    Kelola data pembelian sapi
                                 </h1>
                                 <p className="text-gray-600 text-sm sm:text-base">
                                     Kelola data pembelian sapi dan ternak

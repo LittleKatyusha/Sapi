@@ -12,10 +12,11 @@ const AddPoRphModal = ({
 }) => {
   // Form state
   const [formData, setFormData] = useState({
-    id_office: '',
+    id_office: '1', // Auto-populate with HO (ID=1)
     nota: '',
     id_persetujuan_rph: '',
-    catatan: ''
+    catatan: '',
+    catatan_untuk_ho: '' // Add new field for notes to HO
   });
   
   const [errors, setErrors] = useState({});
@@ -43,10 +44,11 @@ const AddPoRphModal = ({
   useEffect(() => {
     if (isOpen) {
       setFormData({
-        id_office: '',
+        id_office: '1', // Auto-populate with HO (ID=1)
         nota: '',
         id_persetujuan_rph: '',
-        catatan: ''
+        catatan: '',
+        catatan_untuk_ho: '' // Reset new field
       });
       setErrors({});
       setAvailableNota([]);
@@ -94,9 +96,7 @@ const AddPoRphModal = ({
   const validateForm = useCallback(() => {
     const newErrors = {};
     
-    if (!formData.id_office) {
-      newErrors.id_office = 'Office wajib dipilih';
-    }
+    // Office is now auto-populated, no need to validate
     
     if (!formData.nota) {
       newErrors.nota = 'Nota wajib dipilih';
@@ -130,7 +130,8 @@ const AddPoRphModal = ({
         id_office: formData.id_office,
         nota: formData.nota,
         id_persetujuan_rph: formData.id_persetujuan_rph,
-        catatan: formData.catatan.trim()
+        catatan: formData.catatan.trim(),
+        catatan_untuk_ho: formData.catatan_untuk_ho.trim() // Include new field
       });
       onClose();
     } catch (error) {
@@ -195,42 +196,28 @@ const AddPoRphModal = ({
             </div>
           )}
 
-          {/* Office Selection */}
+          {/* Office Selection - Auto-populated and disabled */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               <Building2 className="inline h-4 w-4 mr-1" />
-              Office <span className="text-red-500">*</span>
+              Office
             </label>
             <select
               value={formData.id_office}
-              onChange={(e) => handleInputChange('id_office', e.target.value)}
-              className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 ${
-                errors.id_office ? 'border-red-300 bg-red-50' : 'border-gray-300'
-              }`}
-              disabled={isSubmitting || officeLoading}
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 cursor-not-allowed opacity-75"
+              disabled={true}
             >
-              <option value="">Pilih Office...</option>
-              {officePoOptions && officePoOptions.map(option => (
-                <option
-                  key={option.value}
-                  value={option.value}
-                  disabled={option.disabled}
-                >
-                  {option.label}
+              {officePoOptions && officePoOptions.find(opt => opt.value === 1) ? (
+                <option value="1">
+                  {officePoOptions.find(opt => opt.value === 1)?.label || 'HO'}
                 </option>
-              ))}
+              ) : (
+                <option value="1">HO</option>
+              )}
             </select>
-            {errors.id_office && (
-              <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
-                <AlertCircle className="h-4 w-4" />
-                {errors.id_office}
-              </p>
-            )}
-            {officeError && (
-              <p className="mt-1 text-sm text-yellow-600">
-                ⚠️ {officeError}
-              </p>
-            )}
+            <p className="mt-1 text-sm text-gray-500">
+              Office otomatis diisi dengan HO
+            </p>
           </div>
 
           {/* Nota Selection */}
@@ -321,17 +308,32 @@ const AddPoRphModal = ({
             )}
           </div>
 
-          {/* Catatan */}
+          {/* Catatan untuk HO */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Catatan
+              Catatan untuk HO
+            </label>
+            <textarea
+              value={formData.catatan_untuk_ho}
+              onChange={(e) => handleInputChange('catatan_untuk_ho', e.target.value)}
+              rows={3}
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 resize-none"
+              placeholder="Masukkan catatan untuk HO (opsional)"
+              disabled={isSubmitting}
+            />
+          </div>
+
+          {/* Catatan Umum */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Catatan Umum
             </label>
             <textarea
               value={formData.catatan}
               onChange={(e) => handleInputChange('catatan', e.target.value)}
-              rows={4}
+              rows={3}
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 resize-none"
-              placeholder="Masukkan catatan (opsional)"
+              placeholder="Masukkan catatan umum (opsional)"
               disabled={isSubmitting}
             />
           </div>

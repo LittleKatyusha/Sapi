@@ -175,7 +175,25 @@ const ItemLainLainPage = () => {
           <span className="font-semibold text-gray-800">{row.name}</span>
           <span className="text-xs text-gray-500 truncate">{row.description}</span>
         </div>
-      )
+      ),
+      grow: 2
+    },
+    {
+      name: "Klasifikasi",
+      selector: row => row.klasifikasi,
+      sortable: true,
+      cell: row => (
+        <div className="flex items-center">
+          {row.klasifikasi ? (
+            <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded-lg text-xs font-medium">
+              {row.klasifikasi}
+            </span>
+          ) : (
+            <span className="text-gray-400 text-xs italic">Tidak ada</span>
+          )}
+        </div>
+      ),
+      width: "180px"
     },
     {
       name: "Aksi",

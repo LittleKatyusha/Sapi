@@ -15,7 +15,9 @@ const AddEditDetailModal = ({
     getParsedPersentase,
     klasifikasiLoading,
     klasifikasiError,
-    isSubmitting
+    isSubmitting,
+    onKlasifikasiChange,
+    itemLainLainLoading
 }) => {
     const isEditMode = Boolean(editingItem);
     
@@ -31,6 +33,9 @@ const AddEditDetailModal = ({
     
     const [errors, setErrors] = useState({});
     const [touched, setTouched] = useState({});
+    
+    // Keep track of the selected classification separately to prevent reset
+    const [selectedKlasifikasi, setSelectedKlasifikasi] = useState(null);
 
     useEffect(() => {
         if (editingItem) {
@@ -46,15 +51,18 @@ const AddEditDetailModal = ({
                 }
             }
             
+            const klasifikasiValue = editingItem.id_klasifikasi_lainlain || null;
+            
             setFormData({
                 item_name: editingItem.item_name || '',
                 item_name_id: itemNameId || null,
-                id_klasifikasi_lainlain: editingItem.id_klasifikasi_lainlain || null,
+                id_klasifikasi_lainlain: klasifikasiValue,
                 berat: editingItem.berat || '',
                 harga: editingItem.harga || '',
                 peruntukan: editingItem.peruntukan || '',
                 catatan: editingItem.catatan || editingItem.keterangan || '' // Handle both field names
             });
+            setSelectedKlasifikasi(klasifikasiValue);
         } else {
             setFormData({
                 item_name: '',
@@ -65,10 +73,11 @@ const AddEditDetailModal = ({
                 peruntukan: '',
                 catatan: ''
             });
+            setSelectedKlasifikasi(null);
         }
         setErrors({});
         setTouched({});
-    }, [editingItem, isOpen, itemLainLainOptions]);
+    }, [editingItem, isOpen]);
 
     const calculations = useMemo(() => {
         const harga = parseFloat(formData.harga) || 0;
@@ -231,6 +240,44 @@ const AddEditDetailModal = ({
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="md:col-span-2">
                                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                    <TrendingUp className="w-4 h-4" />
+                                    Klasifikasi Lain-Lain
+                                </label>
+                                <SearchableSelect
+                                    value={selectedKlasifikasi || formData.id_klasifikasi_lainlain}
+                                    onChange={(value) => {
+                                        // Update both the local and form state
+                                        setSelectedKlasifikasi(value);
+                                        setFormData(prev => ({
+                                            ...prev,
+                                            id_klasifikasi_lainlain: value,
+                                            // Clear item selection when classification changes
+                                            item_name: '',
+                                            item_name_id: null
+                                        }));
+                                        
+                                        // Clear any validation errors for this field
+                                        if (touched.id_klasifikasi_lainlain) {
+                                            setErrors(prev => ({
+                                                ...prev,
+                                                id_klasifikasi_lainlain: ''
+                                            }));
+                                        }
+                                        
+                                        // Then trigger fetching items based on selected classification
+                                        if (onKlasifikasiChange && value) {
+                                            onKlasifikasiChange(value);
+                                        }
+                                    }}
+                                    options={klasifikasiLainLainOptions}
+                                    placeholder={klasifikasiLoading ? "Loading..." : "Pilih Klasifikasi Lain-Lain"}
+                                    className="w-full"
+                                    disabled={klasifikasiLoading || isSubmitting}
+                                />
+                            </div>
+
+                            <div className="md:col-span-2">
+                                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                                     <Package className="w-4 h-4" />
                                     Nama Item *
                                 </label>
@@ -239,29 +286,16 @@ const AddEditDetailModal = ({
                                     onChange={(value) => handleChange('item_name_id', value)}
                                     onBlur={() => handleBlur('item_name_id')}
                                     options={itemLainLainOptions}
-                                    placeholder={'Pilih Item Lain-Lain'}
-                                    isDisabled={isSubmitting}
+                                    placeholder={itemLainLainLoading ? 'Loading items...' : itemLainLainOptions.length === 0 ? 'Pilih klasifikasi terlebih dahulu' : 'Pilih Item Lain-Lain'}
+                                    isDisabled={isSubmitting || itemLainLainLoading}
                                     className="w-full"
                                 />
                                 {touched.item_name_id && errors.item_name_id && (
                                     <p className="text-xs text-red-600 mt-1">⚠️ {errors.item_name_id}</p>
                                 )}
-                            </div>
-
-                            <div className="md:col-span-2">
-                                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                    <TrendingUp className="w-4 h-4" />
-                                    Klasifikasi Lain-Lain
-                                </label>
-                                <SearchableSelect
-                                    value={formData.id_klasifikasi_lainlain}
-                                    onChange={(value) => handleChange('id_klasifikasi_lainlain', value)}
-                                    options={klasifikasiLainLainOptions}
-                                    placeholder={klasifikasiLoading ? "Loading..." : "Pilih Klasifikasi Lain-Lain"}
-                                    className="w-full"
-                                    disabled={klasifikasiLoading || isSubmitting}
-                                />
-                                <p className="text-xs text-gray-500 mt-1">💡 Opsional</p>
+                                {!itemLainLainLoading && itemLainLainOptions.length === 0 && formData.id_klasifikasi_lainlain && (
+                                    <p className="text-xs text-yellow-600 mt-1">⚠️ Tidak ada item untuk klasifikasi ini</p>
+                                )}
                             </div>
 
                             <div>

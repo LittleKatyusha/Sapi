@@ -36,12 +36,14 @@ const AddEditPembelianLainLainPage = () => {
         error: parameterError
     } = useParameterSelect(isEdit, { kategoriSupplier: 5 });
 
-    // Item Lain-Lain data integration
+    // Item Lain-Lain data integration - now supports filtering by classification
+    const [selectedKlasifikasiForItems, setSelectedKlasifikasiForItems] = useState(null);
     const {
         itemLainLainOptions,
         loading: itemLainLainLoading,
-        error: itemLainLainError
-    } = useItemLainLainSelect();
+        error: itemLainLainError,
+        fetchItemLainLain
+    } = useItemLainLainSelect(selectedKlasifikasiForItems);
 
     // Jenis Pembelian Lain-Lain API integration
     const {
@@ -2154,6 +2156,13 @@ const AddEditPembelianLainLainPage = () => {
                 klasifikasiLoading={klasifikasiLoading}
                 klasifikasiError={klasifikasiError}
                 isSubmitting={isDetailModalSubmitting}
+                onKlasifikasiChange={(klasifikasiId) => {
+                    // Update the selected classification state first
+                    setSelectedKlasifikasiForItems(klasifikasiId);
+                    // Then fetch items based on selected classification
+                    fetchItemLainLain(klasifikasiId);
+                }}
+                itemLainLainLoading={itemLainLainLoading}
             />
         </div>
     );

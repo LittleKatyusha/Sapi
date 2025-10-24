@@ -1,23 +1,83 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import HttpClient from '../../../../services/httpClient';
 import { API_ENDPOINTS } from '../../../../config/api';
 
 /**
  * Hook for fetching and formatting Item Lain-Lain data for select dropdowns
- * This replaces the itemOvk options with dedicated Item Lain-Lain master data
+ * Supports fetching all items or filtering by classification
  */
-const useItemLainLainSelect = () => {
+const useItemLainLainSelect = (klasifikasiId = null) => {
     const [itemLainLain, setItemLainLain] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    // Fetch item lain-lain data from API
-    const fetchItemLainLain = async () => {
+    // Fetch item lain-lain data based on classification
+    const fetchItemLainLainByKlasifikasi = useCallback(async (idKlasifikasi) => {
         setLoading(true);
         setError(null);
         
         try {
-            console.log('🔄 Fetching Item Lain-Lain data...');
+            console.log('🔄 Fetching Item Lain-Lain by klasifikasi:', idKlasifikasi);
+            
+            const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.ITEM_LAIN_LAIN}/databyklasifikasi`, {
+                id: idKlasifikasi  // Backend expects 'id' not 'id_klasifikasi'
+            });
+
+            // Handle various response formats
+            let dataArray = [];
+            
+            if (Array.isArray(result)) {
+                dataArray = result;
+            } else if (Array.isArray(result?.data)) {
+                dataArray = result.data;
+            } else if (result?.status === 'ok' && Array.isArray(result?.data)) {
+                dataArray = result.data;
+            }
+            
+            console.log(`✅ Successfully fetched ${dataArray.length} Item Lain-Lain records for klasifikasi ${idKlasifikasi}`);
+
+            // Validate and transform data
+            const validatedData = dataArray.map((item, index) => {
+                // Debug log to see actual data structure
+                if (index === 0) {
+                    console.log('🔍 First Item Lain-Lain raw data:', item);
+                }
+                
+                return {
+                    // Use numeric id as primary identifier
+                    id: item.id || item.pid || item.pubid || `TEMP-${index + 1}`,
+                    numericId: item.id, // Keep numeric ID separately
+                    pid: item.pid || item.pubid,
+                    pubid: item.pubid,
+                    name: item.name || item.nama || 'Item Lain-Lain',
+                    description: item.description || item.keterangan || '',
+                    id_klasifikasi_lainlain: item.id_klasifikasi_lainlain || idKlasifikasi,
+                    created_at: item.created_at || null,
+                    updated_at: item.updated_at || null,
+                };
+            });
+
+            setItemLainLain(validatedData);
+            console.log(`✅ Loaded ${validatedData.length} Item Lain-Lain for klasifikasi`);
+            if (validatedData.length > 0) {
+                console.log('📊 Sample Item Lain-Lain:', validatedData[0]);
+            }
+        } catch (err) {
+            console.error('❌ Error fetching Item Lain-Lain by klasifikasi:', err);
+            setError(err.message || 'Failed to fetch Item Lain-Lain data');
+            setItemLainLain([]);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    // Fetch all item lain-lain data from API
+    const fetchAllItemLainLain = useCallback(async () => {
+        setLoading(true);
+        setError(null);
+        
+        try {
+            console.log('🔄 Fetching all Item Lain-Lain data...');
             
             // First, make a request to get the total count
             const countParams = new URLSearchParams({
@@ -77,6 +137,7 @@ const useItemLainLainSelect = () => {
                     pubid: item.pubid,
                     name: item.name || item.nama || 'Item Lain-Lain',
                     description: item.description || item.keterangan || '',
+                    id_klasifikasi_lainlain: item.id_klasifikasi_lainlain || null,
                     created_at: item.created_at || null,
                     updated_at: item.updated_at || null,
                 };
@@ -94,12 +155,23 @@ const useItemLainLainSelect = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
-    // Fetch data on mount
+    // Main fetch function that decides which API to call
+    const fetchItemLainLain = useCallback(async (overrideKlasifikasiId = null) => {
+        const targetKlasifikasiId = overrideKlasifikasiId || klasifikasiId;
+        
+        if (targetKlasifikasiId) {
+            await fetchItemLainLainByKlasifikasi(targetKlasifikasiId);
+        } else {
+            await fetchAllItemLainLain();
+        }
+    }, [klasifikasiId, fetchItemLainLainByKlasifikasi, fetchAllItemLainLain]);
+
+    // Fetch data on mount or when klasifikasiId changes
     useEffect(() => {
         fetchItemLainLain();
-    }, []);
+    }, [klasifikasiId]);
 
     // Format data for SearchableSelect component
     const itemLainLainOptions = useMemo(() => {
@@ -132,7 +204,8 @@ const useItemLainLainSelect = () => {
         loading,
         error,
         // Actions
-        refetch: fetchItemLainLain
+        refetch: fetchItemLainLain,
+        fetchItemLainLain // Export the main fetch function
     };
 };
 

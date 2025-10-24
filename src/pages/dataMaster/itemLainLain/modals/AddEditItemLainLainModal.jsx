@@ -1,32 +1,53 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, Save, AlertCircle } from 'lucide-react';
+import { X, Save, AlertCircle, Tag } from 'lucide-react';
+import useKlasifikasiLainLain from '../../klasifikasiLainLain/hooks/useKlasifikasiLainLain';
 
-const AddEditItemLainLainModal = ({ 
-  item, 
-  onClose, 
-  onSave, 
-  loading = false 
+const AddEditItemLainLainModal = ({
+  item,
+  onClose,
+  onSave,
+  loading = false
 }) => {
   // Form state
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    id_klasifikasi_lain_lain: null,
   });
   
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Hook untuk klasifikasi lain-lain
+  const {
+    klasifikasiLainLain,
+    loading: klasifikasiLoading,
+    fetchKlasifikasiLainLain
+  } = useKlasifikasiLainLain();
+
+  // Fetch klasifikasi data on mount
+  useEffect(() => {
+    fetchKlasifikasiLainLain();
+  }, [fetchKlasifikasiLainLain]);
+
   // Initialize form data
   useEffect(() => {
     if (item) {
+      // Ensure id_klasifikasi_lain_lain is properly converted to integer
+      const klasifikasiId = item.id_klasifikasi_lain_lain
+        ? parseInt(item.id_klasifikasi_lain_lain, 10)
+        : null;
+      
       setFormData({
         name: item.name || '',
         description: item.description || '',
+        id_klasifikasi_lain_lain: klasifikasiId,
       });
     } else {
       setFormData({
         name: '',
         description: '',
+        id_klasifikasi_lain_lain: null,
       });
     }
     setErrors({});
@@ -35,6 +56,11 @@ const AddEditItemLainLainModal = ({
   // Validation
   const validateForm = useCallback(() => {
     const newErrors = {};
+    
+    // Validate klasifikasi first (required field)
+    if (!formData.id_klasifikasi_lain_lain || formData.id_klasifikasi_lain_lain === null) {
+      newErrors.id_klasifikasi_lain_lain = 'Klasifikasi wajib dipilih';
+    }
     
     if (!formData.name.trim()) {
       newErrors.name = 'Nama item lain-lain wajib diisi';
@@ -64,10 +90,17 @@ const AddEditItemLainLainModal = ({
     if (!validateForm()) return;
     setIsSubmitting(true);
     try {
-      await onSave({
+      // Ensure id_klasifikasi_lainlain is an integer
+      const dataToSave = {
         name: formData.name.trim(),
         description: formData.description.trim(),
-      });
+        id_klasifikasi_lain_lain: formData.id_klasifikasi_lain_lain ? parseInt(formData.id_klasifikasi_lain_lain, 10) : null,
+      };
+      
+      // Log for debugging
+      console.log('Saving item lain-lain with data:', dataToSave);
+      
+      await onSave(dataToSave);
     } catch (error) {
       setErrors({ submit: error.message || 'Terjadi kesalahan saat menyimpan data' });
     } finally {
@@ -118,6 +151,48 @@ const AddEditItemLainLainModal = ({
               </div>
             </div>
           )}
+
+          {/* Klasifikasi Lain-Lain */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <span className="inline-flex items-center gap-1">
+                <Tag className="h-4 w-4" />
+                Klasifikasi <span className="text-red-500">*</span>
+              </span>
+            </label>
+            <select
+              value={formData.id_klasifikasi_lain_lain || ''}
+              onChange={(e) => {
+                const value = e.target.value;
+                // Convert to integer or null
+                handleInputChange('id_klasifikasi_lain_lain', value ? parseInt(value, 10) : null);
+              }}
+              className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 ${
+                errors.id_klasifikasi_lain_lain ? 'border-red-300 bg-red-50' : 'border-gray-300'
+              }`}
+              disabled={isSubmitting || klasifikasiLoading}
+            >
+              <option value="">
+                {klasifikasiLoading ? 'Memuat klasifikasi...' : 'Pilih klasifikasi'}
+              </option>
+              {klasifikasiLainLain.map((klasifikasi) => (
+                <option key={klasifikasi.id} value={klasifikasi.id}>
+                  {klasifikasi.name}
+                </option>
+              ))}
+            </select>
+            {errors.id_klasifikasi_lain_lain && (
+              <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                <AlertCircle className="h-4 w-4" />
+                {errors.id_klasifikasi_lain_lain}
+              </p>
+            )}
+            {klasifikasiLainLain.length > 0 && formData.id_klasifikasi_lain_lain && (
+              <p className="mt-1 text-xs text-gray-500">
+                {klasifikasiLainLain.find(k => k.id === formData.id_klasifikasi_lain_lain)?.description}
+              </p>
+            )}
+          </div>
 
           {/* Nama Item Lain-Lain */}
           <div>

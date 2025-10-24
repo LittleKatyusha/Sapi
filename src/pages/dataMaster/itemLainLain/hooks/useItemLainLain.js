@@ -45,6 +45,8 @@ const useItemLainLain = () => {
         pid: item.pid || item.pubid, // encrypted PID from backend
         name: item.name || 'Nama tidak tersedia',
         description: item.description || '',
+        id_klasifikasi_lain_lain: item.id_klasifikasi_lain_lain || null,
+        klasifikasi: item.klasifikasi || '',
         created_at: item.created_at || null,
         updated_at: item.updated_at || null,
       }));

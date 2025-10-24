@@ -1,9 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { X, Loader2, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import usePersetujuanHoSelect from '../hooks/usePersetujuanHoSelect';
 import PenjualanDokaSapiService from '../../../../../services/penjualanDokaSapiService';
-import RejectReasonModal from './RejectReasonModal';
 import '../styles/PurchasingOrderPrint.css';
 
 const PurchasingOrderModal = ({
@@ -17,8 +16,9 @@ const PurchasingOrderModal = ({
 }) => {
     const [approvedBy, setApprovedBy] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
-    const [showRejectModal, setShowRejectModal] = useState(false);
     const [notification, setNotification] = useState(null);
+    const [catatanHo, setCatatanHo] = useState('');
+    const [isRejectMode, setIsRejectMode] = useState(false);
     
     // Get approval options from API
     const {
@@ -119,6 +119,7 @@ const PurchasingOrderModal = ({
         if (!isOpen) {
             setApprovedBy('');
             setNotification(null);
+            setCatatanHo('');
         }
     }, [isOpen]);
 
@@ -136,8 +137,12 @@ const PurchasingOrderModal = ({
         setNotification(null);
 
         try {
-            // Call the approve API
-            const result = await PenjualanDokaSapiService.approve(data.pid || data.pubid, approvedBy);
+            // Call the approve API with catatan_ho
+            const result = await PenjualanDokaSapiService.approve(
+                data.pid || data.pubid,
+                approvedBy,
+                catatanHo // Pass catatan HO to the API
+            );
             
             if (result.success) {
                 setNotification({
@@ -171,8 +176,8 @@ const PurchasingOrderModal = ({
         }
     };
 
-    // Handle reject action - show reason modal
-    const handleRejectClick = () => {
+    // Handle reject action
+    const handleReject = async () => {
         if (!approvedBy) {
             setNotification({
                 type: 'error',
@@ -180,21 +185,32 @@ const PurchasingOrderModal = ({
             });
             return;
         }
-        setShowRejectModal(true);
-    };
 
-    // Handle reject confirmation with reason
-    const handleRejectConfirm = async (reason) => {
-        setShowRejectModal(false);
+        if (!catatanHo.trim()) {
+            setNotification({
+                type: 'error',
+                message: 'Catatan HO harus diisi untuk penolakan'
+            });
+            return;
+        }
+
+        if (catatanHo.trim().length < 10) {
+            setNotification({
+                type: 'error',
+                message: 'Catatan HO minimal 10 karakter untuk penolakan'
+            });
+            return;
+        }
+
         setIsProcessing(true);
         setNotification(null);
 
         try {
-            // Call the reject API
+            // Call the reject API using catatan HO as the reason
             const result = await PenjualanDokaSapiService.reject(
                 data.pid || data.encryptedPid,
                 approvedBy,
-                reason
+                catatanHo // Use catatan HO as the reason
             );
             
             if (result.success) {
@@ -212,7 +228,7 @@ const PurchasingOrderModal = ({
                 setTimeout(() => {
                     onClose();
                     if (onReject) {
-                        onReject(data, approvedBy, reason);
+                        onReject(data, approvedBy, catatanHo);
                     }
                 }, 1500);
             } else {
@@ -226,6 +242,7 @@ const PurchasingOrderModal = ({
             });
         } finally {
             setIsProcessing(false);
+            setIsRejectMode(false);
         }
     };
 
@@ -541,14 +558,57 @@ const PurchasingOrderModal = ({
                             </div>
                         </div>
 
-                        {/* Notes Box */}
+                        {/* Notes Box - Catatan RPH */}
                         <div className="mt-6">
-                            <p className="text-sm font-medium text-gray-700 mb-2">Catatan:</p>
+                            <p className="text-sm font-medium text-gray-700 mb-2">Catatan RPH:</p>
                             <div className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 min-h-[100px]">
                                 <p className="text-sm text-gray-800">
                                     {data.catatan || data.details?.[0]?.catatan || 'Tidak ada catatan untuk pesanan ini.'}
                                 </p>
                             </div>
+                        </div>
+                
+                        {/* Notes Box - Catatan HO */}
+                        <div className="mt-4">
+                            <p className="text-sm font-medium text-gray-700 mb-2">
+                                Catatan HO {isPending() && isRejectMode && <span className="text-red-500">*</span>}:
+                            </p>
+                            {/* Show editable field if pending, otherwise show readonly */}
+                            {isPending() ? (
+                                <div>
+                                    <textarea
+                                        value={catatanHo}
+                                        onChange={(e) => setCatatanHo(e.target.value)}
+                                        placeholder={isRejectMode ? "Masukkan alasan penolakan (wajib diisi)..." : "Masukkan catatan HO (opsional untuk persetujuan)..."}
+                                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:border-blue-500 resize-none ${
+                                            isRejectMode ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                                        }`}
+                                        rows={3}
+                                        disabled={isProcessing}
+                                    />
+                                    {isRejectMode && (
+                                        <div className="mt-2 bg-amber-50 border border-amber-200 rounded-lg p-3">
+                                            <div className="flex">
+                                                <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                                                <div className="ml-3">
+                                                    <p className="text-sm text-amber-800 font-medium">
+                                                        Perhatian
+                                                    </p>
+                                                    <p className="text-xs text-amber-700 mt-1">
+                                                        Pesanan yang ditolak tidak dapat diubah kembali. Pastikan alasan penolakan sudah benar.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 min-h-[100px]">
+                                    <p className="text-sm text-gray-800">
+                                        {data.catatan_ho || data.details?.[0]?.catatan_ho || 'Tidak ada catatan HO untuk pesanan ini.'}
+                                    </p>
+                                </div>
+                            )}
                         </div>
 
                         {/* Signature Section - Yang Mengajukan & Yang Menyetujui */}
@@ -632,40 +692,65 @@ const PurchasingOrderModal = ({
                     {/* Footer Actions - Only show if status is pending */}
                     {isPending() && (
                         <div className="flex justify-end gap-3 p-4 border-t border-gray-200 bg-gray-50 modal-footer-actions">
-                            <button
-                                onClick={handleRejectClick}
-                                disabled={isProcessing || !approvedBy}
-                                className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                            >
-                                {isProcessing ? (
-                                    <>
-                                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                                        Memproses...
-                                    </>
-                                ) : (
-                                    <>
+                            {isRejectMode ? (
+                                <>
+                                    <button
+                                        onClick={() => {
+                                            setIsRejectMode(false);
+                                            setCatatanHo('');
+                                        }}
+                                        disabled={isProcessing}
+                                        className="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        Batal
+                                    </button>
+                                    <button
+                                        onClick={handleReject}
+                                        disabled={isProcessing || !approvedBy || !catatanHo.trim()}
+                                        className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                                    >
+                                        {isProcessing ? (
+                                            <>
+                                                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                                Memproses...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <XCircle className="w-4 h-4 mr-2" />
+                                                Konfirmasi Penolakan
+                                            </>
+                                        )}
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <button
+                                        onClick={() => setIsRejectMode(true)}
+                                        disabled={isProcessing || !approvedBy}
+                                        className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                                    >
                                         <XCircle className="w-4 h-4 mr-2" />
                                         Tolak
-                                    </>
-                                )}
-                            </button>
-                            <button
-                                onClick={handleApprove}
-                                disabled={isProcessing || !approvedBy}
-                                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                            >
-                                {isProcessing ? (
-                                    <>
-                                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                                        Memproses...
-                                    </>
-                                ) : (
-                                    <>
-                                        <CheckCircle className="w-4 h-4 mr-2" />
-                                        Setujui
-                                    </>
-                                )}
-                            </button>
+                                    </button>
+                                    <button
+                                        onClick={handleApprove}
+                                        disabled={isProcessing || !approvedBy}
+                                        className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                                    >
+                                        {isProcessing ? (
+                                            <>
+                                                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                                Memproses...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <CheckCircle className="w-4 h-4 mr-2" />
+                                                Setujui
+                                            </>
+                                        )}
+                                    </button>
+                                </>
+                            )}
                         </div>
                     )}
 
@@ -678,25 +763,11 @@ const PurchasingOrderModal = ({
                                         {statusInfo.label}
                                     </span>
                                 </p>
-                                {data.reason && (
-                                    <p className="mt-2 text-sm text-gray-500">
-                                        Alasan: {data.reason}
-                                    </p>
-                                )}
                             </div>
                         </div>
                     )}
                 </div>
             </div>
-
-            {/* Reject Reason Modal */}
-            <RejectReasonModal
-                isOpen={showRejectModal}
-                onClose={() => setShowRejectModal(false)}
-                onConfirm={handleRejectConfirm}
-                loading={isProcessing}
-                itemInfo={data}
-            />
         </>
     );
 };

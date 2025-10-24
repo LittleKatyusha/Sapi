@@ -83,13 +83,15 @@ class PenjualanDokaSapiService {
    * Approve a Penjualan Doka Sapi
    * @param {string} pid - Encrypted PID
    * @param {number} id_persetujuan_ho - ID of approval person
+   * @param {string} catatan_ho - HO notes (optional)
    * @returns {Promise} API response
    */
-  static async approve(pid, id_persetujuan_ho) {
+  static async approve(pid, id_persetujuan_ho, catatan_ho = '') {
     try {
       const response = await HttpClient.post(`${API_ENDPOINTS.HO.PENJUALAN_DOKA_SAPI}/approve`, {
         pid: pid,
-        id_persetujuan_ho: id_persetujuan_ho
+        id_persetujuan_ho: id_persetujuan_ho,
+        catatan: catatan_ho  // Backend expects 'catatan' not 'catatan_ho'
       });
 
       return {
@@ -108,14 +110,15 @@ class PenjualanDokaSapiService {
    * @param {string} pid - Encrypted PID
    * @param {number} id_persetujuan_ho - ID of approval person
    * @param {string} catatan - Rejection reason/notes
+   * @param {string} catatan_ho - HO notes (optional)
    * @returns {Promise} API response
    */
-  static async reject(pid, id_persetujuan_ho, catatan) {
+  static async reject(pid, id_persetujuan_ho, catatan, catatan_ho = '') {
     try {
       const response = await HttpClient.post(`${API_ENDPOINTS.HO.PENJUALAN_DOKA_SAPI}/reject`, {
         pid: pid,
         id_persetujuan_ho: id_persetujuan_ho,
-        catatan: catatan
+        catatan: catatan  // Backend only expects 'catatan', not 'catatan_ho'
       });
 
       return {

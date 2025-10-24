@@ -1,10 +1,10 @@
 import React from 'react';
-import { X, Edit, Calendar, FileText, Tag } from 'lucide-react';
+import { X, Edit, Calendar, FileText, Tag, Layers } from 'lucide-react';
 
-const ItemLainLainDetailModal = ({ 
-  item, 
-  onClose, 
-  onEdit 
+const ItemLainLainDetailModal = ({
+  item,
+  onClose,
+  onEdit
 }) => {
   const handleEdit = () => {
     onEdit(item);
@@ -62,6 +62,23 @@ const ItemLainLainDetailModal = ({
               </div>
             </div>
           </div>
+
+          {/* Klasifikasi */}
+          {item.klasifikasi && (
+            <div className="bg-white border border-gray-200 rounded-xl p-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2 bg-indigo-100 rounded-lg">
+                  <Layers className="h-5 w-5 text-indigo-600" />
+                </div>
+                <h4 className="font-semibold text-gray-900">Klasifikasi</h4>
+              </div>
+              <div className="ml-10">
+                <span className="bg-purple-100 text-purple-800 px-3 py-1.5 rounded-lg text-sm font-medium">
+                  {item.klasifikasi}
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Deskripsi */}
           <div className="bg-white border border-gray-200 rounded-xl p-4">
