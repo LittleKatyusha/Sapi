@@ -597,6 +597,20 @@ const PembelianSapi = () => {
             ignoreRowClick: true,
         },
         {
+            name: 'Nota',
+            selector: row => row.nota,
+            sortable: true,
+            width: '150px',
+            wrap: true,
+            cell: row => (
+                <div className="w-full px-2 flex items-center justify-center">
+                    <div className="font-medium text-sm bg-purple-50 px-3 py-2 rounded-lg text-center break-words whitespace-normal leading-tight text-purple-700">
+                        {row.nota || '-'}
+                    </div>
+                </div>
+            )
+        },
+        {
             name: 'No. PO',
             selector: row => row.no_po,
             sortable: true,

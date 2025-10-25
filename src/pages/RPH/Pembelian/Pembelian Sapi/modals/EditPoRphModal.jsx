@@ -16,7 +16,6 @@ const EditPoRphModal = ({
     id_office: '1', // Auto-populate with HO (ID=1)
     nota: '',
     id_persetujuan_rph: '',
-    catatan: '',
     catatan_untuk_ho: '' // Add new field for notes to HO
   });
   
@@ -41,90 +40,80 @@ const EditPoRphModal = ({
   // Get fetchAvailableNota from usePoRph hook if provided
   const { fetchAvailableNota, notaError } = usePoRphHook || {};
 
-  // Initialize form data when item changes
+  // Initialize form data and fetch nota when modal opens
   useEffect(() => {
     if (item && isOpen) {
+      const currentNota = item.nota || '';
+      
+      // Set form data
       setFormData({
         id_office: '1', // Always set to HO (ID=1)
-        nota: item.nota || '',
+        nota: currentNota,
         id_persetujuan_rph: item.id_persetujuan_rph || '',
-        catatan: item.catatan || item.note || '',
         catatan_untuk_ho: item.catatan_untuk_ho || '' // Initialize new field
       });
       setErrors({});
       
-      // Fetch nota for HO office
+      // Fetch nota for HO office when modal opens
       if (fetchAvailableNota) {
-        fetchNotaForOffice('1', item.nota); // Always use HO (ID=1)
-      }
-    }
-  }, [item, isOpen]);
-
-  // Function to fetch nota for office
-  const fetchNotaForOffice = useCallback(async (officeId, currentNota) => {
-    if (!fetchAvailableNota) return;
-    
-    setNotaLoading(true);
-    try {
-      const result = await fetchAvailableNota(officeId);
-      if (result.success && result.data) {
-        const notaOptions = result.data.map(nota => ({
-          value: nota.nota || nota.id,
-          label: nota.nota || 'Nota tidak tersedia',
-          detail: nota
-        }));
-        
-        // Include current nota if not in list
-        const hasCurrentNota = notaOptions.some(opt => opt.value === currentNota);
-        if (currentNota && !hasCurrentNota) {
-          notaOptions.unshift({
-            value: currentNota,
-            label: `${currentNota} (Nota saat ini)`,
-            detail: { nota: currentNota }
+        setNotaLoading(true);
+        fetchAvailableNota('1') // Always use HO (ID=1)
+          .then(result => {
+            if (result.success && result.data) {
+              const notaOptions = result.data.map(nota => ({
+                value: nota.nota || nota.id,
+                label: nota.nota || 'Nota tidak tersedia',
+                detail: nota
+              }));
+              
+              // Include current nota if not in list
+              const hasCurrentNota = notaOptions.some(opt => opt.value === currentNota);
+              if (currentNota && !hasCurrentNota) {
+                notaOptions.unshift({
+                  value: currentNota,
+                  label: `${currentNota} (Nota saat ini)`,
+                  detail: { nota: currentNota }
+                });
+              }
+              
+              setAvailableNota([
+                { value: '', label: 'Pilih Nota...', disabled: true },
+                ...notaOptions
+              ]);
+            } else {
+              // If no nota available, at least include current nota
+              if (currentNota) {
+                setAvailableNota([
+                  { value: '', label: 'Pilih Nota...', disabled: true },
+                  { value: currentNota, label: `${currentNota} (Nota saat ini)`, detail: { nota: currentNota } }
+                ]);
+              } else {
+                setAvailableNota([
+                  { value: '', label: 'Tidak ada nota tersedia', disabled: true }
+                ]);
+              }
+            }
+          })
+          .catch(err => {
+            console.error('Error fetching nota:', err);
+            // On error, include current nota
+            if (currentNota) {
+              setAvailableNota([
+                { value: '', label: 'Pilih Nota...', disabled: true },
+                { value: currentNota, label: `${currentNota} (Nota saat ini)`, detail: { nota: currentNota } }
+              ]);
+            } else {
+              setAvailableNota([
+                { value: '', label: 'Gagal memuat nota', disabled: true }
+              ]);
+            }
+          })
+          .finally(() => {
+            setNotaLoading(false);
           });
-        }
-        
-        setAvailableNota([
-          { value: '', label: 'Pilih Nota...', disabled: true },
-          ...notaOptions
-        ]);
-      } else {
-        // If no nota available, at least include current nota
-        if (currentNota) {
-          setAvailableNota([
-            { value: '', label: 'Pilih Nota...', disabled: true },
-            { value: currentNota, label: `${currentNota} (Nota saat ini)`, detail: { nota: currentNota } }
-          ]);
-        } else {
-          setAvailableNota([
-            { value: '', label: 'Tidak ada nota tersedia', disabled: true }
-          ]);
-        }
       }
-    } catch (err) {
-      console.error('Error fetching nota:', err);
-      // On error, include current nota
-      if (currentNota) {
-        setAvailableNota([
-          { value: '', label: 'Pilih Nota...', disabled: true },
-          { value: currentNota, label: `${currentNota} (Nota saat ini)`, detail: { nota: currentNota } }
-        ]);
-      } else {
-        setAvailableNota([
-          { value: '', label: 'Gagal memuat nota', disabled: true }
-        ]);
-      }
-    } finally {
-      setNotaLoading(false);
     }
-  }, [fetchAvailableNota]);
-
-  // Fetch available nota when office changes
-  useEffect(() => {
-    if (formData.id_office && fetchAvailableNota && isOpen) {
-      fetchNotaForOffice(formData.id_office, formData.nota);
-    }
-  }, [formData.id_office, isOpen]);
+  }, [item, isOpen, fetchAvailableNota]);
 
   // Validation
   const validateForm = useCallback(() => {
@@ -165,7 +154,6 @@ const EditPoRphModal = ({
         id_office: formData.id_office,
         nota: formData.nota,
         id_persetujuan_rph: formData.id_persetujuan_rph,
-        catatan: formData.catatan.trim(),
         catatan_untuk_ho: formData.catatan_untuk_ho.trim() // Include new field
       });
       onClose();
@@ -388,21 +376,6 @@ const EditPoRphModal = ({
               rows={3}
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 resize-none"
               placeholder="Masukkan catatan untuk HO (opsional)"
-              disabled={isSubmitting}
-            />
-          </div>
-
-          {/* Catatan Umum */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Catatan Umum
-            </label>
-            <textarea
-              value={formData.catatan}
-              onChange={(e) => handleInputChange('catatan', e.target.value)}
-              rows={3}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 resize-none"
-              placeholder="Masukkan catatan umum (opsional)"
               disabled={isSubmitting}
             />
           </div>

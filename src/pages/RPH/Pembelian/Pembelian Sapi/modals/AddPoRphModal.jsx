@@ -15,7 +15,6 @@ const AddPoRphModal = ({
     id_office: '1', // Auto-populate with HO (ID=1)
     nota: '',
     id_persetujuan_rph: '',
-    catatan: '',
     catatan_untuk_ho: '' // Add new field for notes to HO
   });
   
@@ -40,57 +39,52 @@ const AddPoRphModal = ({
   // Get fetchAvailableNota from usePoRph hook if provided
   const { fetchAvailableNota, notaError } = usePoRphHook || {};
 
-  // Reset form when modal opens
+  // Reset form and fetch nota when modal opens
   useEffect(() => {
     if (isOpen) {
+      // Reset form
       setFormData({
         id_office: '1', // Auto-populate with HO (ID=1)
         nota: '',
         id_persetujuan_rph: '',
-        catatan: '',
         catatan_untuk_ho: '' // Reset new field
       });
       setErrors({});
       setAvailableNota([]);
-    }
-  }, [isOpen]);
-
-  // Fetch available nota when office is selected
-  useEffect(() => {
-    if (formData.id_office && fetchAvailableNota) {
-      setNotaLoading(true);
-      fetchAvailableNota(formData.id_office)
-        .then(result => {
-          if (result.success && result.data) {
-            const notaOptions = result.data.map(nota => ({
-              value: nota.nota || nota.id,
-              label: nota.nota || 'Nota tidak tersedia',
-              detail: nota
-            }));
+      
+      // Fetch available nota for HO (ID=1) when modal opens
+      if (fetchAvailableNota) {
+        setNotaLoading(true);
+        fetchAvailableNota('1') // Always fetch for HO
+          .then(result => {
+            if (result.success && result.data) {
+              const notaOptions = result.data.map(nota => ({
+                value: nota.nota || nota.id,
+                label: nota.nota || 'Nota tidak tersedia',
+                detail: nota
+              }));
+              setAvailableNota([
+                { value: '', label: 'Pilih Nota...', disabled: true },
+                ...notaOptions
+              ]);
+            } else {
+              setAvailableNota([
+                { value: '', label: 'Tidak ada nota tersedia', disabled: true }
+              ]);
+            }
+          })
+          .catch(err => {
+            console.error('Error fetching nota:', err);
             setAvailableNota([
-              { value: '', label: 'Pilih Nota...', disabled: true },
-              ...notaOptions
+              { value: '', label: 'Gagal memuat nota', disabled: true }
             ]);
-          } else {
-            setAvailableNota([
-              { value: '', label: 'Tidak ada nota tersedia', disabled: true }
-            ]);
-          }
-        })
-        .catch(err => {
-          console.error('Error fetching nota:', err);
-          setAvailableNota([
-            { value: '', label: 'Gagal memuat nota', disabled: true }
-          ]);
-        })
-        .finally(() => {
-          setNotaLoading(false);
-        });
-    } else {
-      setAvailableNota([]);
-      setFormData(prev => ({ ...prev, nota: '' }));
+          })
+          .finally(() => {
+            setNotaLoading(false);
+          });
+      }
     }
-  }, [formData.id_office, fetchAvailableNota]);
+  }, [isOpen, fetchAvailableNota]);
 
   // Validation
   const validateForm = useCallback(() => {
@@ -130,7 +124,6 @@ const AddPoRphModal = ({
         id_office: formData.id_office,
         nota: formData.nota,
         id_persetujuan_rph: formData.id_persetujuan_rph,
-        catatan: formData.catatan.trim(),
         catatan_untuk_ho: formData.catatan_untuk_ho.trim() // Include new field
       });
       onClose();
@@ -319,21 +312,6 @@ const AddPoRphModal = ({
               rows={3}
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 resize-none"
               placeholder="Masukkan catatan untuk HO (opsional)"
-              disabled={isSubmitting}
-            />
-          </div>
-
-          {/* Catatan Umum */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Catatan Umum
-            </label>
-            <textarea
-              value={formData.catatan}
-              onChange={(e) => handleInputChange('catatan', e.target.value)}
-              rows={3}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 resize-none"
-              placeholder="Masukkan catatan umum (opsional)"
               disabled={isSubmitting}
             />
           </div>

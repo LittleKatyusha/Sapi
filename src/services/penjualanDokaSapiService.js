@@ -143,7 +143,7 @@ class PenjualanDokaSapiService {
       pubid: item.pubid || item.id,
       pid: item.pid, // Encrypted PID for API calls
       no_po: item.no_po || '',
-      nota: item.no_po || '', // Map no_po to nota for compatibility
+      nota: item.nota || '', // Map nota field correctly
       rph: item.rph || '',
       nama_supplier: item.rph || '', // Map rph to nama_supplier for display
       created_at: item.created_at || item.tgl_pesanan,
