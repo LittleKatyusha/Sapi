@@ -4,7 +4,7 @@ import { useAuthSecure } from '../../../hooks/useAuthSecure';
 import HttpClient from '../../../services/httpClient';
 import { API_ENDPOINTS } from '../../../config/api';
 
-const MenuAccessModal = ({ isOpen, onClose, menu, roles }) => {
+const MenuAccessModal = ({ isOpen, onClose, menu, roles, onAccessUpdated }) => {
   const { getAuthHeader } = useAuthSecure();
   const [accessInfo, setAccessInfo] = useState(null);
   const [selectedRoles, setSelectedRoles] = useState([]);
@@ -17,6 +17,9 @@ const MenuAccessModal = ({ isOpen, onClose, menu, roles }) => {
 
   useEffect(() => {
     if (isOpen && menu) {
+      // Reset state when opening modal
+      setAccessInfo(null);
+      setSelectedRoles([]);
       fetchAccessInfo();
     }
   }, [isOpen, menu]);
@@ -29,12 +32,14 @@ const MenuAccessModal = ({ isOpen, onClose, menu, roles }) => {
         throw new Error('Token authentication tidak ditemukan.');
       }
 
-      const result = await HttpClient.get(`${API_ENDPOINTS.SYSTEM.MENU}/access-info?pid=${menu.pid}`);
+      // Add cache buster to force fresh fetch from server
+      const cacheBuster = `&_t=${Date.now()}`;
+      const result = await HttpClient.get(`${API_ENDPOINTS.SYSTEM.MENU}/access-info?pid=${menu.pid}${cacheBuster}`);
 
       if (result.status === 'ok' && result.data) {
         setAccessInfo(result.data);
         // Set selected roles based on current access
-        const currentRoleIds = result.data.accessible_roles.map(role => role.id);
+        const currentRoleIds = result.data.accessible_roles ? result.data.accessible_roles.map(role => role.id) : [];
         setSelectedRoles(currentRoleIds);
       }
     } catch (error) {
@@ -78,7 +83,17 @@ const MenuAccessModal = ({ isOpen, onClose, menu, roles }) => {
 
       if (result.status === 'ok') {
         showNotification('Akses menu berhasil diperbarui', 'success');
-        await fetchAccessInfo(); // Refresh access info
+        
+        // Wait a moment for server to process, then fetch fresh data
+        setTimeout(() => {
+          // Force fresh fetch from server
+          fetchAccessInfo().then(() => {
+            // Trigger parent refresh after successful update
+            if (onAccessUpdated && typeof onAccessUpdated === 'function') {
+              onAccessUpdated();
+            }
+          });
+        }, 500);
       } else {
         throw new Error(result.message || 'Gagal memperbarui akses menu');
       }
@@ -110,7 +125,7 @@ const MenuAccessModal = ({ isOpen, onClose, menu, roles }) => {
 
   const hasChanges = () => {
     if (!accessInfo) return false;
-    const currentRoleIds = accessInfo.accessible_roles.map(role => role.id);
+    const currentRoleIds = accessInfo.accessible_roles ? accessInfo.accessible_roles.map(role => role.id) : [];
     return JSON.stringify(currentRoleIds.sort()) !== JSON.stringify(selectedRoles.sort());
   };
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import DataTable from 'react-data-table-component';
 import { Plus, Menu as MenuIcon, GitBranch, Search, Filter, ChevronDown, ChevronRight, Settings } from 'lucide-react';
 
@@ -164,6 +164,19 @@ const MenuManagementPage = () => {
     setOpenMenuId(null);
     setIsAccessModalOpen(true);
   };
+
+  // Handle access update callback - silent refresh
+  const handleAccessUpdated = useCallback(() => {
+    // Perform silent refresh of menu data without showing loading indicators
+    Promise.all([
+      fetchMenus(),
+      fetchTreeMenus(),
+      fetchRoles(),
+      getMenuStatistics()
+    ]).catch(error => {
+      console.error('Error refreshing data after access update:', error);
+    });
+  }, [fetchMenus, fetchTreeMenus, fetchRoles, getMenuStatistics]);
 
   const handleAddCustomRole = (customRole) => {
     // Add custom role to roles list
@@ -568,6 +581,7 @@ const MenuManagementPage = () => {
           }}
           menu={selectedMenuForAccess}
           roles={roles}
+          onAccessUpdated={handleAccessUpdated}
         />
       )}
 
