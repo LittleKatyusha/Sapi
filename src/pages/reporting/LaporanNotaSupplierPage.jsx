@@ -50,8 +50,9 @@ const LaporanNotaSupplierPage = () => {
     setSuccess('');
 
     try {
+      // Backend expects 'id' parameter which should be the encrypted pubid
       const blob = await LaporanPembelianService.downloadPdfReport('getReportNotaSupplier', {
-        nota: selectedNota
+        id: selectedNota  // This should be the encrypted pubid from the dropdown
       });
       
       // Create download link

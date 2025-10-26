@@ -16,9 +16,9 @@ class LaporanPembelianService {
    */
   static async getReportNotaSupplier(id) {
     try {
-      const response = await HttpClient.get('/api/report/pembelian/getReportNotaSupplier', {
-        params: { 
-          id: id
+      const response = await HttpClient.get('/api/report/pembelian/nota-supplier', {
+        params: {
+          id: id  // Backend expects 'id' parameter, which should be an encrypted pubid
         }
       });
       return response;
@@ -35,8 +35,8 @@ class LaporanPembelianService {
    */
   static async getReportNotaFeedmil(id) {
     try {
-      const response = await HttpClient.get('/api/report/pembelian/getReportNotaFeedmil', {
-        params: { 
+      const response = await HttpClient.get('/api/report/pembelian/nota-feedmil', {
+        params: {
           id: id
         }
       });
@@ -54,8 +54,8 @@ class LaporanPembelianService {
    */
   static async getReportNotaOvk(id) {
     try {
-      const response = await HttpClient.get('/api/report/pembelian/getReportNotaOvk', {
-        params: { 
+      const response = await HttpClient.get('/api/report/pembelian/nota-ovk', {
+        params: {
           id: id
         }
       });
@@ -74,10 +74,10 @@ class LaporanPembelianService {
    */
   static async getReportAllSupplier(startDate, endDate) {
     try {
-      const response = await HttpClient.get('/api/report/pembelian/getReportAllSupplier', {
-        params: { 
+      const response = await HttpClient.get('/api/report/pembelian/all-supplier', {
+        params: {
           start_date: startDate,
-          end_date: endDate 
+          end_date: endDate
         }
       });
       return response;
@@ -96,7 +96,7 @@ class LaporanPembelianService {
    */
   static async getReportOtherHo(startDate, endDate, idTipePembelian) {
     try {
-      const response = await HttpClient.get('/api/report/pembelian/getReportOtherHo', {
+      const response = await HttpClient.get('/api/report/pembelian/other-ho', {
         params: {
           start_date: startDate,
           end_date: endDate,
@@ -117,7 +117,7 @@ class LaporanPembelianService {
   static async getAllNotaNumbers() {
     try {
       const response = await HttpClient.get('/api/ho/pembelian/data', {
-        params: { 
+        params: {
           start: 0,
           length: 10000, // Get a large number to get all records
           draw: Date.now(),
@@ -127,18 +127,24 @@ class LaporanPembelianService {
         }
       });
       
-      // Extract nota numbers from the response
+      // Extract nota numbers with encrypted pid from the response
       if (response.data && Array.isArray(response.data)) {
+        console.log('Raw pembelian data sample:', response.data[0]); // Debug log
+        
         const notaList = response.data
-          .filter(item => item.nota) // Filter out items without nota
+          .filter(item => item.nota && item.pid) // Filter out items without nota or pid (encrypted id)
           .map(item => ({
-            value: item.nota,
-            label: item.nota,
-            supplier: item.nama_supplier || 'Unknown Supplier'
+            value: item.pid,    // Use encrypted pid as the value (this is what backend expects as 'id')
+            label: item.nota,   // Display nota number as the label
+            supplier: item.nama_supplier || 'Unknown Supplier',
+            originalNota: item.nota  // Keep original nota for reference
           }))
-          .filter((nota, index, self) => 
+          .filter((nota, index, self) =>
             index === self.findIndex(n => n.value === nota.value)
-          ); // Remove duplicates
+          ); // Remove duplicates based on pid
+        
+        console.log('Processed nota list:', notaList.length, 'items');
+        console.log('Sample nota item:', notaList[0]);
         
         return {
           success: true,
@@ -164,10 +170,10 @@ class LaporanPembelianService {
    */
   static async getReportSupplierTax(startDate, endDate) {
     try {
-      const response = await HttpClient.get('/api/report/pembelian/getReportSupplierTax', {
-        params: { 
+      const response = await HttpClient.get('/api/report/pembelian/supplier-tax', {
+        params: {
           start_date: startDate,
-          end_date: endDate 
+          end_date: endDate
         }
       });
       return response;
@@ -180,13 +186,32 @@ class LaporanPembelianService {
   /**
    * Download PDF report dengan handling untuk response blob
    * Menggunakan HttpClient untuk consistency dengan auth flow
-   * @param {string} endpoint - API endpoint yang akan digunakan
+   * @param {string} endpoint - API endpoint yang akan digunakan (method name to be mapped)
    * @param {Object} params - Parameters untuk request
    * @returns {Promise} - Blob response
    */
   static async downloadPdfReport(endpoint, params) {
+    // Map old method names to new endpoint names
+    const endpointMapping = {
+      'getReportNotaSupplier': 'nota-supplier',
+      'getReportAllSupplier': 'all-supplier',
+      'getReportSupplierTax': 'supplier-tax',
+      'getReportNotaFeedmil': 'nota-feedmil',
+      'getReportNotaOvk': 'nota-ovk',
+      'getReportOtherHo': 'other-ho'
+    };
+    
+    // Use the mapped endpoint or fallback to the provided endpoint
+    const mappedEndpoint = endpointMapping[endpoint] || endpoint;
+    
+    console.log('📋 downloadPdfReport called with:', {
+      originalEndpoint: endpoint,
+      mappedEndpoint: mappedEndpoint,
+      params: params
+    });
+    
     // Gunakan HttpClient untuk consistency dengan authentication
-    return await this.downloadPdfWithHttpClient(endpoint, params);
+    return await this.downloadPdfWithHttpClient(mappedEndpoint, params);
   }
 
   /**
@@ -200,16 +225,18 @@ class LaporanPembelianService {
       const apiEndpoint = `/api/report/pembelian/${endpoint}`;
       console.log('🔐 Making PDF request with HttpClient:', {
         endpoint: apiEndpoint,
-        params: params
+        params: params,
+        method: 'GET'
       });
 
-      // Gunakan fetch langsung dengan HttpClient headers untuk blob response
-      // Build URL dengan parameters
+      // Build URL dengan parameters untuk GET request
       let url = apiEndpoint;
       const urlParams = new URLSearchParams();
       
+      // Log each parameter being added
       Object.entries(params).forEach(([key, value]) => {
         if (value !== null && value !== undefined) {
+          console.log(`Adding param: ${key} = ${value}`);
           urlParams.append(key, value);
         }
       });
@@ -218,6 +245,8 @@ class LaporanPembelianService {
       if (queryString) {
         url += '?' + queryString;
       }
+      
+      console.log('Final URL path:', url);
 
       // Get JWT token from localStorage
       let token = localStorage.getItem('token');
@@ -230,21 +259,21 @@ class LaporanPembelianService {
         throw new Error('Token autentikasi tidak ditemukan. Silakan login kembali.');
       }
 
-      // Headers yang konsisten dengan HttpClient
+      // Headers yang konsisten dengan HttpClient - Remove Content-Type for GET
       const headers = {
         'Authorization': `Bearer ${token}`,
         'Accept': 'application/pdf',
-        'Content-Type': 'application/json',
         'X-Requested-With': 'XMLHttpRequest'
       };
 
       const fullUrl = `${API_BASE_URL}${url}`;
       
-      console.log('🔐 Making PDF request:', {
+      console.log('🔐 Making PDF GET request:', {
         fullUrl,
         method: 'GET',
         token: token ? `${token.substring(0, 10)}...` : 'Missing',
-        params: params
+        params: params,
+        queryString: queryString
       });
 
       const response = await fetch(fullUrl, {
@@ -269,12 +298,37 @@ class LaporanPembelianService {
           const contentType = response.headers.get('content-type');
           if (contentType && contentType.includes('application/json')) {
             const errorData = await response.json();
-            errorMessage = errorData.message || errorData.error || errorMessage;
+            console.log('🔍 Error response data:', errorData);
+            
+            // Check for specific backend errors
+            if (errorData.message && errorData.message.startsWith('-getReport')) {
+              // This is a backend method error
+              const methodName = errorData.message.substring(1); // Remove the leading '-'
+              
+              // Check if it's a missing parameter configuration
+              if (errorData.data && errorData.data.includes('No query results for model [App\\Models\\System\\Parameter]')) {
+                errorMessage = `Backend configuration error: Missing Jasper Report parameter in database for ${methodName}. Please check that all required JASPER_SERVER and JASPER_REPORT parameters are configured in the System Parameters table.`;
+                console.error('⚠️ Backend missing configuration:', {
+                  method: methodName,
+                  details: errorData.data
+                });
+              } else {
+                errorMessage = `Backend error in ${methodName}: ${errorData.data || 'Unknown error'}`;
+                console.error('⚠️ Backend error:', errorData);
+              }
+            } else {
+              errorMessage = errorData.message || errorData.error || errorMessage;
+            }
             errorDetails = errorData;
           } else {
             // For non-JSON responses, get text for debugging
             const responseText = await response.text();
             console.error('📄 Non-JSON error response:', responseText.substring(0, 500));
+            
+            // Check if this is the weird method name error
+            if (responseText.includes('-getReportNotaSupplier')) {
+              errorMessage = 'Backend error: The server is not properly handling the report request. Please check backend configuration.';
+            }
           }
         } catch (parseError) {
           console.error('❌ Error parsing response:', parseError);
@@ -284,6 +338,8 @@ class LaporanPembelianService {
           status: response.status,
           statusText: response.statusText,
           url: fullUrl,
+          endpoint: endpoint,
+          params: params,
           errorMessage,
           errorDetails
         });
@@ -303,8 +359,8 @@ class LaporanPembelianService {
    * @param {string} id - ID pembelian
    * @returns {Promise} - Blob response
    */
-  static async downloadReportNotaSupplier(id) {
-    return await this.downloadPdfReport('getReportNotaSupplier', { id });
+  static async downloadReportNotaSupplier(nota) {
+    return await this.downloadPdfReport('nota-supplier', { nota });
   }
 
   /**
@@ -313,7 +369,7 @@ class LaporanPembelianService {
    * @returns {Promise} - Blob response
    */
   static async downloadReportNotaFeedmil(id) {
-    return await this.downloadPdfReport('getReportNotaFeedmil', { id });
+    return await this.downloadPdfReport('nota-feedmil', { id });
   }
 
   /**
@@ -322,7 +378,7 @@ class LaporanPembelianService {
    * @returns {Promise} - Blob response
    */
   static async downloadReportNotaOvk(id) {
-    return await this.downloadPdfReport('getReportNotaOvk', { id });
+    return await this.downloadPdfReport('nota-ovk', { id });
   }
 
   /**
@@ -332,9 +388,9 @@ class LaporanPembelianService {
    * @returns {Promise} - Blob response
    */
   static async downloadReportAllSupplier(startDate, endDate) {
-    return await this.downloadPdfReport('getReportAllSupplier', { 
-      start_date: startDate, 
-      end_date: endDate 
+    return await this.downloadPdfReport('all-supplier', {
+      start_date: startDate,
+      end_date: endDate
     });
   }
 
@@ -345,9 +401,9 @@ class LaporanPembelianService {
    * @returns {Promise} - Blob response
    */
   static async downloadReportSupplierTax(startDate, endDate) {
-    return await this.downloadPdfReport('getReportSupplierTax', { 
-      start_date: startDate, 
-      end_date: endDate 
+    return await this.downloadPdfReport('supplier-tax', {
+      start_date: startDate,
+      end_date: endDate
     });
   }
 
@@ -359,7 +415,7 @@ class LaporanPembelianService {
    * @returns {Promise} - Blob response
    */
   static async downloadReportOtherHo(startDate, endDate, idTipePembelian) {
-    return await this.downloadPdfReport('getReportOtherHo', {
+    return await this.downloadPdfReport('other-ho', {
       start_date: startDate,
       end_date: endDate,
       id_tipe_pembelian: idTipePembelian
