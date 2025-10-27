@@ -96,7 +96,7 @@ const ActionMenu = ({ row, onDetail, onDownloadOrder, onClose, buttonRef, apiEnd
 
     const actions = [
         {
-            label: 'Lihat Detail',
+            label: 'Proses',
             icon: Eye,
             onClick: () => onDetail(row),
             className: 'text-gray-700',
@@ -104,18 +104,6 @@ const ActionMenu = ({ row, onDetail, onDownloadOrder, onClose, buttonRef, apiEnd
             bg: 'bg-blue-100',
             hoverBg: 'group-hover:bg-blue-200',
             text: 'text-blue-600',
-        },
-        {
-            label: 'Unduh Lembar Pesanan',
-            icon: downloadLoading ? Loader2 : Download,
-            onClick: () => handleDownloadOrderSheet(row),
-            className: downloadLoading ? 'text-gray-400' : 'text-gray-700',
-            description: downloadLoading ? 'Mengunduh...' : 'Download PDF',
-            bg: 'bg-purple-100',
-            hoverBg: 'group-hover:bg-purple-200',
-            text: 'text-purple-600',
-            disabled: downloadLoading,
-            isLoading: downloadLoading,
         },
     ];
 

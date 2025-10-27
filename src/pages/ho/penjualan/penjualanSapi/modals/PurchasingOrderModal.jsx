@@ -147,7 +147,7 @@ const PurchasingOrderModal = ({
             if (result.success) {
                 setNotification({
                     type: 'success',
-                    message: result.message || 'Purchasing Order berhasil disetujui'
+                    message: result.message || 'Lembar Pesanan berhasil disetujui'
                 });
                 
                 // Refresh data if callback provided
@@ -216,7 +216,7 @@ const PurchasingOrderModal = ({
             if (result.success) {
                 setNotification({
                     type: 'success',
-                    message: result.message || 'Purchasing Order berhasil ditolak'
+                    message: result.message || 'Lembar Pesanan berhasil ditolak'
                 });
                 
                 // Refresh data if callback provided
@@ -370,7 +370,7 @@ const PurchasingOrderModal = ({
                     {/* Header with close button */}
                     <div className="flex items-center justify-between p-4 border-b border-gray-200 modal-header-controls">
                         <div className="flex items-center gap-4">
-                            <h2 className="text-xl font-bold text-gray-900">Detail Purchasing Order</h2>
+                            <h2 className="text-xl font-bold text-gray-900">Detail Lembar Pesanan</h2>
                             {statusInfo && data.status && (
                                 <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusInfo.bgClass} ${statusInfo.textClass}`}>
                                     {statusInfo.label}
@@ -422,7 +422,7 @@ const PurchasingOrderModal = ({
                         {/* Title Section */}
                         <div className="text-center mb-6">
                             <h1 className="text-3xl font-bold text-gray-900 uppercase tracking-wider">
-                                Purchasing Order
+                                Lembar Pesanan
                             </h1>
                             <div className="mt-4 border-b-2 border-gray-800 w-full"></div>
                         </div>

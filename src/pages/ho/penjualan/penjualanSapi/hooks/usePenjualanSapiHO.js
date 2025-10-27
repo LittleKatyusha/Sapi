@@ -243,6 +243,9 @@ const usePenjualanSapiHO = () => {
     const [searchError, setSearchError] = useState(null);
     const [deleteLoading, setDeleteLoading] = useState(null);
     
+    // State untuk menyimpan total dari backend
+    const [backendTotal, setBackendTotal] = useState(0);
+    
     // Date range filter state
     const [dateRange, setDateRange] = useState({
         startDate: '',
@@ -343,15 +346,18 @@ const usePenjualanSapiHO = () => {
             let dataArray = [];
             let totalRecords = 0;
             let filteredRecords = 0;
+            let totalFromBackend = 0;
             
             if (result.draw && result.data && Array.isArray(result.data)) {
                 dataArray = result.data;
                 totalRecords = result.recordsTotal || result.data.length;
                 filteredRecords = result.recordsFiltered || result.data.length;
+                totalFromBackend = result.total || 0; // Get total from backend
             } else if (result.status === 'ok' && result.data && Array.isArray(result.data)) {
                 dataArray = result.data;
                 totalRecords = result.data.length;
                 filteredRecords = result.data.length;
+                totalFromBackend = result.total || 0;
             } else {
                 throw new Error(`Format response API tidak sesuai. Response: ${JSON.stringify(result).substring(0, 200)}...`);
             }
@@ -366,6 +372,9 @@ const usePenjualanSapiHO = () => {
             };
             
             setServerPagination(newPaginationState);
+            
+            // Save backend total
+            setBackendTotal(totalFromBackend);
             
             // Validate and map data
             const validatedData = dataArray.length > 0
@@ -750,36 +759,74 @@ const usePenjualanSapiHO = () => {
 
     // Memoized computed stats for better performance
     const stats = useMemo(() => {
-        const total = penjualan.length;
-        const totalTernak = penjualan.reduce((sum, item) => sum + (item.jumlah || 0), 0);
+        const now = new Date();
+        const today = now.toDateString();
+        const startOfWeek = new Date(now);
+        startOfWeek.setDate(now.getDate() - now.getDay()); // Start from Sunday
+        const thisMonth = now.getMonth();
+        const thisYear = now.getFullYear();
         
-        const today = new Date().toDateString();
-        const thisMonth = new Date().getMonth();
-        const thisYear = new Date().getFullYear();
+        // Pending orders - check for numeric status (1 = pending)
+        const pendingOrders = penjualan.filter(item => {
+            // Handle both numeric and string status
+            return item.status === 1 || item.status === '1' ||
+                   (typeof item.status === 'string' &&
+                    (item.status.toLowerCase() === 'pending' ||
+                     item.status.toLowerCase() === 'menunggu'));
+        });
         
-        const todayPurchases = penjualan.filter(item => {
-            const itemDate = new Date(item.tgl_masuk).toDateString();
+        // Today's data
+        const todayData = penjualan.filter(item => {
+            if (!item.tgl_masuk && !item.created_at) return false;
+            const itemDate = new Date(item.tgl_masuk || item.created_at).toDateString();
             return itemDate === today;
-        }).length;
+        });
         
-        const thisMonthPurchases = penjualan.filter(item => {
-            const itemDate = new Date(item.tgl_masuk);
+        // This week's data
+        const weekData = penjualan.filter(item => {
+            if (!item.tgl_masuk && !item.created_at) return false;
+            const itemDate = new Date(item.tgl_masuk || item.created_at);
+            return itemDate >= startOfWeek && itemDate <= now;
+        });
+        
+        // This month's data
+        const monthData = penjualan.filter(item => {
+            if (!item.tgl_masuk && !item.created_at) return false;
+            const itemDate = new Date(item.tgl_masuk || item.created_at);
             return itemDate.getMonth() === thisMonth && itemDate.getFullYear() === thisYear;
-        }).length;
+        });
         
-        const thisYearPurchases = penjualan.filter(item => {
-            const itemDate = new Date(item.tgl_masuk);
+        // This year's data
+        const yearData = penjualan.filter(item => {
+            if (!item.tgl_masuk && !item.created_at) return false;
+            const itemDate = new Date(item.tgl_masuk || item.created_at);
             return itemDate.getFullYear() === thisYear;
-        }).length;
+        });
+        
+        // Calculate totals function
+        const calculateTotals = (data) => ({
+            count: data.length,
+            totalAnimals: data.reduce((sum, item) => sum + (parseInt(item.jumlah) || 0), 0),
+            totalAmount: data.reduce((sum, item) => sum + (parseFloat(item.harga || item.biaya_total) || 0), 0)
+        });
         
         return {
-            total,
-            totalTernak,
-            today: todayPurchases,
-            thisMonth: thisMonthPurchases,
-            thisYear: thisYearPurchases
+            // Total dari backend
+            totalFromBackend: backendTotal,
+            totalRecords: serverPagination.totalItems,
+            
+            // Calculated stats from current page data
+            pending: pendingOrders.length,
+            today: calculateTotals(todayData),
+            week: calculateTotals(weekData),
+            month: calculateTotals(monthData),
+            year: calculateTotals(yearData),
+            
+            // Summary info
+            currentPageTotal: penjualan.length,
+            currentPageAnimals: penjualan.reduce((sum, item) => sum + (parseInt(item.jumlah) || 0), 0)
         };
-    }, [penjualan]);
+    }, [penjualan, backendTotal, serverPagination.totalItems]);
 
     // Optimized search handler with debouncing
     const handleSearch = useCallback((newSearchTerm) => {
@@ -1117,6 +1164,7 @@ const usePenjualanSapiHO = () => {
         searchError,
         stats,
         serverPagination,
+        backendTotal,
         fetchPenjualan,
         handleSearch,
         clearSearch,

@@ -202,6 +202,8 @@ const PenjualanSapiHOPage = () => {
         isSearching,
         searchError,
         serverPagination,
+        backendTotal,
+        stats,
         fetchPenjualan,
         handleSearch,
         clearSearch,
@@ -229,60 +231,8 @@ const PenjualanSapiHOPage = () => {
         return option ? option.label : jenisPenjualanId;
     };
 
-    // Calculate enhanced statistics for info cards
-    const enhancedStats = useMemo(() => {
-        const now = new Date();
-        const today = now.toDateString();
-        const startOfWeek = new Date(now);
-        startOfWeek.setDate(now.getDate() - now.getDay()); // Start from Sunday
-        const thisMonth = now.getMonth();
-        const thisYear = now.getFullYear();
-        
-        // Pending orders - check for string status values
-        const pendingOrders = filteredData.filter(item => {
-            const statusLower = item.status ? item.status.toLowerCase() : '';
-            return statusLower === 'pending' || statusLower === 'menunggu';
-        });
-        
-        // Today's data
-        const todayData = filteredData.filter(item => {
-            const itemDate = new Date(item.tgl_masuk).toDateString();
-            return itemDate === today;
-        });
-        
-        // This week's data
-        const weekData = filteredData.filter(item => {
-            const itemDate = new Date(item.tgl_masuk);
-            return itemDate >= startOfWeek && itemDate <= now;
-        });
-        
-        // This month's data
-        const monthData = filteredData.filter(item => {
-            const itemDate = new Date(item.tgl_masuk);
-            return itemDate.getMonth() === thisMonth && itemDate.getFullYear() === thisYear;
-        });
-        
-        // This year's data
-        const yearData = filteredData.filter(item => {
-            const itemDate = new Date(item.tgl_masuk);
-            return itemDate.getFullYear() === thisYear;
-        });
-        
-        // Calculate totals
-        const calculateTotals = (data) => ({
-            count: data.length,
-            totalAnimals: data.reduce((sum, item) => sum + (parseInt(item.jumlah) || 0), 0),
-            totalAmount: data.reduce((sum, item) => sum + (parseFloat(item.biaya_total) || 0), 0)
-        });
-        
-        return {
-            pending: pendingOrders.length,
-            today: calculateTotals(todayData),
-            week: calculateTotals(weekData),
-            month: calculateTotals(monthData),
-            year: calculateTotals(yearData)
-        };
-    }, [filteredData]);
+    // Use stats from hook instead of calculating locally
+    // Stats are now calculated in the hook with backend data
 
     // Format currency
     const formatCurrency = (amount) => {
@@ -918,59 +868,61 @@ const PenjualanSapiHOPage = () => {
                 </div>
 
                 <div className="grid grid-cols-1 gap-3 sm:gap-4 md:gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
-                    {/* Pesanan Menunggu Diproses */}
+                    {/* Total Keseluruhan dari Backend */}
                     <StatCard
-                        title="Pesanan Menunggu"
-                        subtitle="Diproses"
-                        value={enhancedStats.pending}
-                        bgColor="bg-gradient-to-br from-red-500 to-red-600"
+                        title="Total Sapi"
+                        subtitle="Keseluruhan"
+                        value={backendTotal || stats?.totalFromBackend || 0}
+                        bgColor="bg-gradient-to-br from-indigo-500 to-indigo-600"
+                        details={[
+                            { label: "Total Data", value: `${stats?.totalRecords || serverPagination.totalItems || 0}` },
+                            { label: "Halaman Ini", value: `${stats?.currentPageAnimals || 0} ekor` }
+                        ]}
                     />
                     
-                    {/* Hari Ini */}
+                    {/* Pesanan Menunggu - berdasarkan data halaman aktif */}
+                    <StatCard
+                        title="Status Pending"
+                        subtitle="Halaman Ini"
+                        value={stats?.pending || 0}
+                        bgColor="bg-gradient-to-br from-amber-500 to-orange-600"
+                    />
+                    
+                    {/* Hari Ini - berdasarkan data halaman aktif */}
                     <StatCard
                         title="Hari Ini"
-                        value={enhancedStats.today.count}
-                        bgColor="bg-gradient-to-br from-amber-400 to-orange-500"
-                        details={[
-                            { label: "Pembelian", value: `${enhancedStats.today.count}` },
-                            { label: "Ekor", value: `${enhancedStats.today.totalAnimals}` },
-                            { label: "Nilai", value: formatCurrency(enhancedStats.today.totalAmount) }
-                        ]}
+                        subtitle="Halaman Ini"
+                        value={stats?.today?.count || 0}
+                        bgColor="bg-gradient-to-br from-blue-400 to-blue-500"
+                        details={stats?.today ? [
+                            { label: "Transaksi", value: `${stats.today.count}` },
+                            { label: "Ekor", value: `${stats.today.totalAnimals}` },
+                            { label: "Nilai", value: formatCurrency(stats.today.totalAmount) }
+                        ] : []}
                     />
                     
-                    {/* Minggu Ini */}
+                    {/* Minggu Ini - berdasarkan data halaman aktif */}
                     <StatCard
                         title="Minggu Ini"
-                        value={enhancedStats.week.count}
-                        bgColor="bg-gradient-to-br from-blue-400 to-blue-500"
-                        details={[
-                            { label: "Pembelian", value: `${enhancedStats.week.count}` },
-                            { label: "Ekor", value: `${enhancedStats.week.totalAnimals}` },
-                            { label: "Nilai", value: formatCurrency(enhancedStats.week.totalAmount) }
-                        ]}
+                        subtitle="Halaman Ini"
+                        value={stats?.week?.count || 0}
+                        bgColor="bg-gradient-to-br from-purple-400 to-purple-500"
+                        details={stats?.week ? [
+                            { label: "Transaksi", value: `${stats.week.count}` },
+                            { label: "Ekor", value: `${stats.week.totalAnimals}` }
+                        ] : []}
                     />
                     
-                    {/* Bulan Ini */}
+                    {/* Bulan Ini - berdasarkan data halaman aktif */}
                     <StatCard
                         title="Bulan Ini"
-                        value={enhancedStats.month.count}
-                        bgColor="bg-gradient-to-br from-purple-400 to-purple-500"
-                        details={[
-                            { label: "Pembelian", value: `${enhancedStats.month.count}` },
-                            { label: "Ekor", value: `${enhancedStats.month.totalAnimals}` },
-                            { label: "Nilai", value: formatCurrency(enhancedStats.month.totalAmount) }
-                        ]}
-                    />
-                    
-                    {/* Tahun Ini */}
-                    <StatCard
-                        title="Tahun Ini"
-                        value={enhancedStats.year.count}
+                        subtitle="Halaman Ini"
+                        value={stats?.month?.count || 0}
                         bgColor="bg-gradient-to-br from-green-400 to-green-500"
-                        details={[
-                            { label: "Pembelian", value: `${enhancedStats.year.count}` },
-                            { label: "Ekor", value: `${enhancedStats.year.totalAnimals}` }
-                        ]}
+                        details={stats?.month ? [
+                            { label: "Transaksi", value: `${stats.month.count}` },
+                            { label: "Ekor", value: `${stats.month.totalAnimals}` }
+                        ] : []}
                     />
                 </div>
 
