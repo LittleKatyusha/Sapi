@@ -16,7 +16,7 @@ const EditPoRphModal = ({
     id_office: '1', // Auto-populate with HO (ID=1)
     nota: '',
     id_persetujuan_rph: '',
-    catatan_untuk_ho: '' // Add new field for notes to HO
+    catatan: '' // Field for notes (required by backend)
   });
   
   const [errors, setErrors] = useState({});
@@ -50,7 +50,7 @@ const EditPoRphModal = ({
         id_office: '1', // Always set to HO (ID=1)
         nota: currentNota,
         id_persetujuan_rph: item.id_persetujuan_rph || '',
-        catatan_untuk_ho: item.catatan_untuk_ho || '' // Initialize new field
+        catatan: item.catatan || '' // Initialize catatan field from item
       });
       setErrors({});
       
@@ -129,6 +129,10 @@ const EditPoRphModal = ({
       newErrors.id_persetujuan_rph = 'Persetujuan RPH wajib dipilih';
     }
     
+    if (!formData.catatan || !formData.catatan.trim()) {
+      newErrors.catatan = 'Catatan wajib diisi';
+    }
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   }, [formData]);
@@ -154,7 +158,7 @@ const EditPoRphModal = ({
         id_office: formData.id_office,
         nota: formData.nota,
         id_persetujuan_rph: formData.id_persetujuan_rph,
-        catatan_untuk_ho: formData.catatan_untuk_ho.trim() // Include new field
+        catatan: formData.catatan.trim() // Send as 'catatan' for backend
       });
       onClose();
     } catch (error) {
@@ -236,21 +240,59 @@ const EditPoRphModal = ({
               <div>
                 <span className="font-medium text-gray-700">Status:</span>
                 <span className="ml-2">
-                  {item.status === 1 && (
-                    <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-lg text-xs font-medium">
-                      Pending
-                    </span>
-                  )}
-                  {item.status === 2 && (
-                    <span className="px-2 py-1 bg-green-100 text-green-800 rounded-lg text-xs font-medium">
-                      Approved
-                    </span>
-                  )}
-                  {item.status === 3 && (
-                    <span className="px-2 py-1 bg-red-100 text-red-800 rounded-lg text-xs font-medium">
-                      Rejected
-                    </span>
-                  )}
+                  {/* Map status from backend data */}
+                  {(() => {
+                    const status = item.status;
+                    
+                    // Handle various status formats (number or string)
+                    const statusValue = typeof status === 'string' ? status.toLowerCase() : status;
+                    
+                    // Status mapping based on backend values
+                    if (statusValue === 'pending' || statusValue === 1 || statusValue === '1') {
+                      return (
+                        <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-lg text-xs font-medium">
+                          Pending
+                        </span>
+                      );
+                    } else if (statusValue === 'approved' || statusValue === 'approve' || statusValue === 2 || statusValue === '2') {
+                      return (
+                        <span className="px-2 py-1 bg-green-100 text-green-800 rounded-lg text-xs font-medium">
+                          Approved
+                        </span>
+                      );
+                    } else if (statusValue === 'rejected' || statusValue === 'reject' || statusValue === 3 || statusValue === '3') {
+                      return (
+                        <span className="px-2 py-1 bg-red-100 text-red-800 rounded-lg text-xs font-medium">
+                          Rejected
+                        </span>
+                      );
+                    } else if (statusValue === 'draft' || statusValue === 0 || statusValue === '0') {
+                      return (
+                        <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-lg text-xs font-medium">
+                          Draft
+                        </span>
+                      );
+                    } else if (statusValue === 'cancelled' || statusValue === 'cancel' || statusValue === 4 || statusValue === '4') {
+                      return (
+                        <span className="px-2 py-1 bg-red-100 text-red-800 rounded-lg text-xs font-medium">
+                          Cancelled
+                        </span>
+                      );
+                    } else if (statusValue === 'completed' || statusValue === 'complete' || statusValue === 5 || statusValue === '5') {
+                      return (
+                        <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-lg text-xs font-medium">
+                          Completed
+                        </span>
+                      );
+                    } else {
+                      // Default fallback for unknown status
+                      return (
+                        <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-lg text-xs font-medium">
+                          {item.status || 'Unknown'}
+                        </span>
+                      );
+                    }
+                  })()}
                 </span>
               </div>
             </div>
@@ -365,19 +407,27 @@ const EditPoRphModal = ({
             )}
           </div>
 
-          {/* Catatan untuk HO */}
+          {/* Catatan */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Catatan untuk HO
+              Catatan <span className="text-red-500">*</span>
             </label>
             <textarea
-              value={formData.catatan_untuk_ho}
-              onChange={(e) => handleInputChange('catatan_untuk_ho', e.target.value)}
+              value={formData.catatan}
+              onChange={(e) => handleInputChange('catatan', e.target.value)}
               rows={3}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 resize-none"
-              placeholder="Masukkan catatan untuk HO (opsional)"
+              className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 resize-none ${
+                errors.catatan ? 'border-red-300 bg-red-50' : 'border-gray-300'
+              }`}
+              placeholder="Masukkan catatan (wajib diisi)"
               disabled={isSubmitting}
             />
+            {errors.catatan && (
+              <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                <AlertCircle className="h-4 w-4" />
+                {errors.catatan}
+              </p>
+            )}
           </div>
 
           {/* Action Buttons */}
