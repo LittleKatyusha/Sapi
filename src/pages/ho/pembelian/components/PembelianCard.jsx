@@ -123,8 +123,7 @@ const PembelianCard = ({
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Accept': 'application/pdf,image/*,*/*',
-                    'Cache-Control': 'no-cache',
-                    'Pragma': 'no-cache'
+                    'Cache-Control': 'no-cache'
                 }
             });
 

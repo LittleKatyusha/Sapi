@@ -90,8 +90,7 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef, apiEn
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Accept': 'application/pdf,image/*,*/*',
-                    'Cache-Control': 'no-cache',
-                    'Pragma': 'no-cache'
+                    'Cache-Control': 'no-cache'
                 }
             });
 
