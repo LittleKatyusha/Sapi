@@ -701,126 +701,32 @@ const AddEditPembelianPage = () => {
         handleHeaderChange('fileName', '');
     };
 
-    // View uploaded file from backend - Updated for new Minio storage
+    // View uploaded file from backend - Use URL directly
     const viewUploadedFile = (filePath) => {
         if (filePath) {
             try {
-                // Debug: Log the original path
-                console.log('Original file path:', filePath);
+                // Debug: Log the original file URL
+                console.log('Original file URL:', filePath);
                 
-                let cleanPath;
+                // The filePath should already contain the complete pre-signed URL
+                // Just use it directly without any modification
+                const fileUrl = filePath;
                 
-                // Check if it's a full Minio URL or relative path
-                if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
-                    const url = new URL(filePath);
-                    const pathParts = url.pathname.split('/');
-                    // Remove empty parts and 'ternasys' prefix
-                    const filteredParts = pathParts.filter(part => part && part !== 'ternasys');
-                    cleanPath = filteredParts.join('/');
-                    console.log('Extracted relative path from Minio URL:', cleanPath);
-                } else {
-                    // It's already a relative path
-                    cleanPath = filePath.replace(/\\/g, '/');
-                    console.log('Using relative path as is:', cleanPath);
+                console.log('Using URL directly:', fileUrl);
+                
+                // Open the pre-signed URL directly in a new window
+                const newWindow = window.open(fileUrl, '_blank');
+                
+                if (!newWindow || newWindow.closed) {
+                    // Fallback: create a download link
+                    const link = document.createElement('a');
+                    link.href = fileUrl;
+                    link.target = '_blank';
+                    link.download = ''; // Let browser decide the filename
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
                 }
-                
-                // Create the API endpoint URL
-                const fileUrl = `${API_BASE_URL}${API_ENDPOINTS.HO.PEMBELIAN}/file/${cleanPath}`;
-                
-                console.log('Final file URL:', fileUrl);
-                
-                // Get auth token for authenticated request
-                const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-                
-                if (!token) {
-                    setNotification({
-                        type: 'error',
-                        message: 'Sesi login telah berakhir. Silakan login kembali.'
-                    });
-                    return;
-                }
-                
-                // Try to open in new tab with authentication
-                const newWindow = window.open('about:blank', '_blank');
-                
-                // Create authenticated request and open in new window
-                fetch(fileUrl, {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Accept': 'application/pdf,image/*,*/*',
-                        'Cache-Control': 'no-cache'
-                    }
-                })
-                .then(response => {
-                    console.log('Response status:', response.status);
-                    console.log('Response headers:', response.headers);
-                    
-                    if (response.ok) {
-                        // Check if response is a streamed response from backend
-                        const contentType = response.headers.get('content-type');
-                        const contentDisposition = response.headers.get('content-disposition');
-                        
-                        console.log('Content-Type:', contentType);
-                        console.log('Content-Disposition:', contentDisposition);
-                        
-                        // If it's a streamed response, handle it properly
-                        if (contentType && (contentType.includes('application/pdf') || contentType.includes('image/'))) {
-                            return response.blob();
-                        } else {
-                            // Fallback for other content types
-                            return response.blob();
-                        }
-                    } else if (response.status === 401) {
-                        throw new Error('Sesi login telah berakhir');
-                    } else if (response.status === 404) {
-                        throw new Error('File tidak ditemukan di server');
-                    } else if (response.status === 403) {
-                        throw new Error('Tidak memiliki izin untuk mengakses file ini');
-                    } else {
-                        throw new Error(`File tidak dapat diakses (${response.status})`);
-                    }
-                })
-                .then(blob => {
-                    console.log('Blob received:', blob);
-                    console.log('Blob size:', blob.size);
-                    console.log('Blob type:', blob.type);
-                    
-                    if (blob.size === 0) {
-                        throw new Error('File kosong atau tidak valid');
-                    }
-                    
-                    const blobUrl = URL.createObjectURL(blob);
-                    console.log('Blob URL created:', blobUrl);
-                    
-                    if (newWindow && !newWindow.closed) {
-                        newWindow.location.href = blobUrl;
-                        // Clean up blob URL after a delay to allow the window to load
-                        setTimeout(() => {
-                            URL.revokeObjectURL(blobUrl);
-                        }, 1000);
-                    } else {
-                        // Fallback: download file
-                        const link = document.createElement('a');
-                        link.href = blobUrl;
-                        link.download = cleanPath.split('/').pop() || 'document';
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                        URL.revokeObjectURL(blobUrl);
-                    }
-                })
-                .catch(error => {
-                    if (newWindow && !newWindow.closed) {
-                        newWindow.close();
-                    }
-                    console.error('File access error:', error);
-                    setNotification({
-                        type: 'error',
-                        message: error.message || 'Gagal membuka file'
-                    });
-                });
-                
 
             } catch (error) {
                 console.error('File access error:', error);

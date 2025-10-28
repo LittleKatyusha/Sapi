@@ -70,7 +70,7 @@ const PembelianCard = ({
         setShowMenu(false);
     };
 
-    // Handle view file functionality - Updated for new Minio storage
+    // Handle view file functionality - Use URL directly from data
     const handleViewFile = async () => {
         if (!data.file) {
             alert('File tidak tersedia untuk pembelian ini');
@@ -79,113 +79,27 @@ const PembelianCard = ({
 
         setFileLoading(true);
         try {
-            // Get auth token
-            const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+            // Debug: Log the original file URL
+            console.log('PembelianCard - File URL from data:', data.file);
             
-            if (!token) {
-                alert('Sesi login telah berakhir. Silakan login kembali.');
-                return;
-            }
-
-            // Debug: Log the original path
-            console.log('PembelianCard - Original file path:', data.file);
+            // The data.file should already contain the complete pre-signed URL
+            // Just use it directly without any modification
+            const fileUrl = data.file;
             
-            let cleanPath;
+            console.log('PembelianCard - Using URL directly:', fileUrl);
             
-            // Check if it's a full Minio URL or relative path
-            if (data.file.startsWith('http://') || data.file.startsWith('https://')) {
-                // It's a full Minio URL, extract the relative path
-                // Example: http://31.97.110.74:9000/ternasys/ho/ternak/pembelian/2025/9/224/filename.pdf
-                // Extract: ho/ternak/pembelian/2025/9/224/filename.pdf
-                const url = new URL(data.file);
-                const pathParts = url.pathname.split('/');
-                // Remove empty parts and 'ternasys' prefix
-                const filteredParts = pathParts.filter(part => part && part !== 'ternasys');
-                cleanPath = filteredParts.join('/');
-                console.log('PembelianCard - Extracted relative path from Minio URL:', cleanPath);
-            } else {
-                // It's already a relative path
-                cleanPath = data.file.replace(/\\/g, '/');
-                console.log('PembelianCard - Using relative path as is:', cleanPath);
-            }
+            // Open the pre-signed URL directly in a new window
+            const newWindow = window.open(fileUrl, '_blank');
             
-            // Create the API endpoint URL - Use regular pembelian endpoint
-            const fileUrl = `${API_BASE_URL}${API_ENDPOINTS.HO.PEMBELIAN}/file/${cleanPath}`;
-            
-            console.log('PembelianCard - Final file URL:', fileUrl);
-            
-            // Create new window
-            const newWindow = window.open('about:blank', '_blank');
-            
-            // Fetch file with authentication and proper headers for Minio storage
-            const response = await fetch(fileUrl, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/pdf,image/*,*/*',
-                    'Cache-Control': 'no-cache'
-                }
-            });
-
-            console.log('PembelianCard - Response status:', response.status);
-            console.log('PembelianCard - Response headers:', response.headers);
-
-            if (response.ok) {
-                // Check if response is a streamed response from backend
-                const contentType = response.headers.get('content-type');
-                const contentDisposition = response.headers.get('content-disposition');
-                
-                console.log('PembelianCard - Content-Type:', contentType);
-                console.log('PembelianCard - Content-Disposition:', contentDisposition);
-                
-                const blob = await response.blob();
-                console.log('PembelianCard - Blob received:', blob);
-                console.log('PembelianCard - Blob size:', blob.size);
-                console.log('PembelianCard - Blob type:', blob.type);
-                
-                if (blob.size === 0) {
-                    throw new Error('File kosong atau tidak valid');
-                }
-                
-                const blobUrl = URL.createObjectURL(blob);
-                console.log('PembelianCard - Blob URL created:', blobUrl);
-                
-                if (newWindow && !newWindow.closed) {
-                    newWindow.location.href = blobUrl;
-                    // Clean up blob URL after a delay to allow the window to load
-                    setTimeout(() => {
-                        URL.revokeObjectURL(blobUrl);
-                    }, 1000);
-                } else {
-                    // Fallback: download file
-                    const link = document.createElement('a');
-                    link.href = blobUrl;
-                    link.download = cleanPath.split('/').pop() || 'document';
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    URL.revokeObjectURL(blobUrl);
-                }
-            } else if (response.status === 401) {
-                alert('Sesi login telah berakhir');
-                if (newWindow && !newWindow.closed) {
-                    newWindow.close();
-                }
-            } else if (response.status === 404) {
-                alert('File tidak ditemukan di server');
-                if (newWindow && !newWindow.closed) {
-                    newWindow.close();
-                }
-            } else if (response.status === 403) {
-                alert('Tidak memiliki izin untuk mengakses file ini');
-                if (newWindow && !newWindow.closed) {
-                    newWindow.close();
-                }
-            } else {
-                alert(`File tidak dapat diakses (${response.status})`);
-                if (newWindow && !newWindow.closed) {
-                    newWindow.close();
-                }
+            if (!newWindow || newWindow.closed) {
+                // Fallback: create a download link
+                const link = document.createElement('a');
+                link.href = fileUrl;
+                link.target = '_blank';
+                link.download = ''; // Let browser decide the filename
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
             }
             
             // Close menu after successful view
