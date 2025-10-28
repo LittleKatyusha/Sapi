@@ -2,11 +2,13 @@ import React, { useRef, useEffect, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Eye, Edit, Copy, Trash2, Download, Loader2, FileText } from 'lucide-react';
 import { API_ENDPOINTS, API_BASE_URL } from '../../../../config/api';
+import LaporanPembelianService from '../../../../services/laporanPembelianService';
 
 const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef, apiEndpoint = API_ENDPOINTS.HO.PEMBELIAN }) => {
     const menuRef = useRef(null);
     const [menuStyle, setMenuStyle] = useState(null);
     const [fileLoading, setFileLoading] = useState(false);
+    const [reportLoading, setReportLoading] = useState(false);
 
     useLayoutEffect(() => {
         function updatePosition() {
@@ -80,6 +82,57 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef, apiEn
         }
     };
 
+    // Handle download report functionality
+    const handleDownloadReport = async (row) => {
+        if (!row.encryptedPid && !row.pid) {
+            alert('ID pembelian tidak tersedia untuk mengunduh laporan');
+            return;
+        }
+
+        setReportLoading(true);
+        try {
+            // Use encrypted PID (same as used in LaporanNotaSupplierPage)
+            const pembelianId = row.encryptedPid || row.pid;
+            
+            console.log('📄 Downloading report for pembelian:', {
+                id: pembelianId,
+                nota: row.nota
+            });
+
+            // Use the same service method as LaporanNotaSupplierPage
+            const blob = await LaporanPembelianService.downloadPdfReport('getReportNotaSupplier', {
+                id: pembelianId  // Backend expects 'id' parameter with encrypted pubid
+            });
+            
+            // Create download link
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            
+            // Use nota number in filename if available
+            const fileName = row.nota
+                ? `LAPORAN_NOTA_SUPPLIER_${row.nota}.pdf`
+                : `LAPORAN_PEMBELIAN_${pembelianId}.pdf`;
+            
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            
+            console.log('✅ Report downloaded successfully:', fileName);
+            
+            // Close menu after successful download
+            onClose();
+            
+        } catch (error) {
+            console.error('Error downloading report:', error);
+            alert(error.message || 'Gagal mengunduh laporan. Silakan coba lagi.');
+        } finally {
+            setReportLoading(false);
+        }
+    };
+
     const actions = [
         {
             label: 'Lihat Detail',
@@ -113,7 +166,18 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef, apiEn
             disabled: fileLoading,
             isLoading: fileLoading,
         }] : []),
-        // "Unduh Laporan" menu item has been removed as requested
+        {
+            label: 'Unduh Laporan',
+            icon: reportLoading ? Loader2 : FileText,
+            onClick: () => handleDownloadReport(row),
+            className: reportLoading ? 'text-gray-400' : 'text-gray-700',
+            description: reportLoading ? 'Mengunduh...' : 'Unduh laporan PDF',
+            bg: 'bg-green-100',
+            hoverBg: 'group-hover:bg-green-200',
+            text: 'text-green-600',
+            disabled: reportLoading,
+            isLoading: reportLoading,
+        },
         {
             divider: true
         },
@@ -155,12 +219,13 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef, apiEn
                     ) : (
                         <button
                             key={action.label}
-                            onClick={() => { 
+                            onClick={() => {
                                 if (!action.disabled) {
-                                    action.onClick(); 
+                                    action.onClick();
                                     // onClose is handled individually in each action
+                                    // Note: handleDownloadReport and handleViewFile handle onClose() internally
                                     if (action.label === 'Lihat Detail' || action.label === 'Edit Pembelian' || action.label === 'Hapus Pembelian') {
-                                        onClose(); 
+                                        onClose();
                                     }
                                 }
                             }}

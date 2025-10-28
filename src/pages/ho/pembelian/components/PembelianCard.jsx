@@ -113,41 +113,52 @@ const PembelianCard = ({
         }
     };
 
-    // Handle download functionality
+    // Handle download report functionality
     const handleDownload = async () => {
-        // Use id if available, otherwise fallback to encryptedPid
-        const reportId = data.id || data.encryptedPid;
+        // Use encrypted PID (same pattern as ActionMenu)
+        const pembelianId = data.encryptedPid || data.pid;
         
-        if (!reportId) {
-            alert('ID pembelian tidak tersedia');
+        if (!pembelianId) {
+            alert('ID pembelian tidak tersedia untuk mengunduh laporan');
             return;
         }
 
         setDownloadLoading(true);
         try {
-            // Use regular supplier report for HO pembelian
-            const blob = await LaporanPembelianService.downloadReportNotaSupplier(reportId);
+            console.log('📄 Downloading report for pembelian:', {
+                id: pembelianId,
+                nota: data.nota
+            });
+
+            // Use the same service method as ActionMenu and LaporanNotaSupplierPage
+            const blob = await LaporanPembelianService.downloadPdfReport('getReportNotaSupplier', {
+                id: pembelianId  // Backend expects 'id' parameter with encrypted pubid
+            });
             
             // Create download link
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
             
-            // Generate appropriate filename
-            const filename = `Laporan_Pembelian_${data.nota || 'Report'}.pdf`;
+            // Use nota number in filename if available
+            const fileName = data.nota
+                ? `LAPORAN_NOTA_SUPPLIER_${data.nota}.pdf`
+                : `LAPORAN_PEMBELIAN_${pembelianId}.pdf`;
             
-            link.download = filename;
+            link.download = fileName;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
             window.URL.revokeObjectURL(url);
+            
+            console.log('✅ Report downloaded successfully:', fileName);
             
             // Close menu after successful download
             setShowMenu(false);
             
         } catch (error) {
             console.error('Error downloading report:', error);
-            alert(error.message || 'Terjadi kesalahan saat mengunduh laporan');
+            alert(error.message || 'Gagal mengunduh laporan. Silakan coba lagi.');
         } finally {
             setDownloadLoading(false);
         }
@@ -216,7 +227,7 @@ const PembelianCard = ({
                                 ) : (
                                     <Download className="w-4 h-4 text-green-500" />
                                 )}
-                                {downloadLoading ? 'Mengunduh...' : 'Download Nota'}
+                                {downloadLoading ? 'Mengunduh...' : 'Unduh Laporan'}
                             </button>
                             <div className="border-t border-gray-200 my-1"></div>
                             <button
