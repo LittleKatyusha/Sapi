@@ -830,7 +830,7 @@ const PembelianSapi = () => {
                     <StatCard
                         title="Hari Ini"
                         value={stats.todayCount || 0}
-                        bgColor="bg-gradient-to-br from-amber-400 to-orange-500"
+                        bgColor="bg-gradient-to-br from-blue-400 to-blue-500"
                         icon={Calendar}
                         details={[
                             { label: "PO", value: `${stats.todayCount || 0}` },
@@ -854,7 +854,7 @@ const PembelianSapi = () => {
                     <StatCard
                         title="Tahun Ini"
                         value={stats.yearCount || 0}
-                        bgColor="bg-gradient-to-br from-purple-400 to-purple-500"
+                        bgColor="bg-gradient-to-br from-blue-400 to-blue-500"
                         icon={DollarSign}
                         details={[
                             { label: "PO", value: `${stats.yearCount || 0}` },
@@ -866,7 +866,7 @@ const PembelianSapi = () => {
                     <StatCard
                         title="Status PO"
                         value={stats.total || 0}
-                        bgColor="bg-gradient-to-br from-green-400 to-green-500"
+                        bgColor="bg-gradient-to-br from-blue-400 to-blue-500"
                         icon={Package}
                         details={[
                             { label: "Pending", value: `${stats.pendingCount || 0}` },
