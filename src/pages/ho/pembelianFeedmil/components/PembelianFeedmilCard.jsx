@@ -68,7 +68,7 @@ const PembelianFeedmilCard = ({
         setShowMenu(false);
     };
 
-    // Handle view file functionality - UPDATED WITH IMPROVED PATTERN
+    // Handle view file functionality - SIMPLIFIED TO USE PRE-SIGNED URLs
     const handleViewFile = async (data) => {
         if (!data.file) {
             alert('File tidak tersedia untuk pembelian ini');
@@ -77,114 +77,15 @@ const PembelianFeedmilCard = ({
 
         setFileLoading(true);
         try {
-            // Get auth token
-            const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+            // Use the pre-signed URL directly from the data
+            const fileUrl = data.file;
             
-            if (!token) {
-                alert('Sesi login telah berakhir. Silakan login kembali.');
-                return;
-            }
-
-            // Debug: Log the original path
-            console.log('PembelianFeedmilCard - Original file path:', data.file);
+            console.log('PembelianFeedmilCard - Opening file URL:', fileUrl);
             
-            let cleanPath;
+            // Simply open the pre-signed URL in a new window
+            window.open(fileUrl, '_blank');
             
-            // Check if it's a full Minio URL or relative path
-            if (data.file.startsWith('http://') || data.file.startsWith('https://')) {
-                // It's a full Minio URL, extract the relative path
-                const url = new URL(data.file);
-                const pathParts = url.pathname.split('/');
-                // Remove empty parts and 'ternasys' prefix
-                const filteredParts = pathParts.filter(part => part && part !== 'ternasys');
-                cleanPath = filteredParts.join('/');
-                console.log('PembelianFeedmilCard - Extracted relative path from Minio URL:', cleanPath);
-            } else {
-                // It's already a relative path
-                cleanPath = data.file.replace(/\\/g, '/');
-                console.log('PembelianFeedmilCard - Using relative path as is:', cleanPath);
-            }
-            
-            // Create the API endpoint URL
-            const fileUrl = `${API_BASE_URL}${API_ENDPOINTS.HO.FEEDMIL.PEMBELIAN}/file/${cleanPath}`;
-            
-            console.log('PembelianFeedmilCard - Final file URL:', fileUrl);
-            
-            // Create new window
-            const newWindow = window.open('about:blank', '_blank');
-            
-            // Fetch file with authentication and proper headers for Minio storage
-            const response = await fetch(fileUrl, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/pdf,image/*,*/*',
-                    'Cache-Control': 'no-cache',
-                    'Pragma': 'no-cache'
-                }
-            });
-
-            console.log('PembelianFeedmilCard - Response status:', response.status);
-            console.log('PembelianFeedmilCard - Response headers:', response.headers);
-
-            if (response.ok) {
-                // Check if response is a streamed response from backend
-                const contentType = response.headers.get('content-type');
-                const contentDisposition = response.headers.get('content-disposition');
-                
-                console.log('PembelianFeedmilCard - Content-Type:', contentType);
-                console.log('PembelianFeedmilCard - Content-Disposition:', contentDisposition);
-                
-                const blob = await response.blob();
-                console.log('PembelianFeedmilCard - Blob received:', blob);
-                console.log('PembelianFeedmilCard - Blob size:', blob.size);
-                console.log('PembelianFeedmilCard - Blob type:', blob.type);
-                
-                if (blob.size === 0) {
-                    throw new Error('File kosong atau tidak valid');
-                }
-                
-                const blobUrl = URL.createObjectURL(blob);
-                console.log('PembelianFeedmilCard - Blob URL created:', blobUrl);
-                
-                if (newWindow && !newWindow.closed) {
-                    newWindow.location.href = blobUrl;
-                    // Clean up blob URL after a delay to allow the window to load
-                    setTimeout(() => {
-                        URL.revokeObjectURL(blobUrl);
-                    }, 1000);
-                } else {
-                    // Fallback: download file
-                    const link = document.createElement('a');
-                    link.href = blobUrl;
-                    link.download = cleanPath.split('/').pop() || 'document';
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    URL.revokeObjectURL(blobUrl);
-                }
-            } else if (response.status === 401) {
-                alert('Sesi login telah berakhir');
-                if (newWindow && !newWindow.closed) {
-                    newWindow.close();
-                }
-            } else if (response.status === 404) {
-                alert('File tidak ditemukan di server');
-                if (newWindow && !newWindow.closed) {
-                    newWindow.close();
-                }
-            } else if (response.status === 403) {
-                alert('Tidak memiliki izin untuk mengakses file ini');
-                if (newWindow && !newWindow.closed) {
-                    newWindow.close();
-                }
-            } else {
-                alert(`File tidak dapat diakses (${response.status})`);
-                if (newWindow && !newWindow.closed) {
-                    newWindow.close();
-                }
-            }
-            
+            // Close menu after successful action
             setShowMenu(false);
             
         } catch (error) {
@@ -214,6 +115,9 @@ const PembelianFeedmilCard = ({
             if (cardType === 'ovk') {
                 blob = await LaporanPembelianService.downloadReportNotaOvk(reportId);
                 filename = `Laporan_Pembelian_OVK_${data.nota || 'Report'}.pdf`;
+            } else if (cardType === 'lainlain') {
+                blob = await LaporanPembelianService.downloadPdfReport('getReportOtherHo', { id: reportId });
+                filename = `Laporan_Pembelian_LainLain_${data.nota || 'Report'}.pdf`;
             } else {
                 // Default to feedmil
                 blob = await LaporanPembelianService.downloadReportNotaFeedmil(reportId);

@@ -101,6 +101,12 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef, apiEn
             if (reportType === 'ovk') {
                 reportMethod = 'getReportNotaOvk';
                 reportPrefix = 'NOTA_OVK';
+            } else if (reportType === 'feedmil') {
+                reportMethod = 'getReportNotaFeedmil';
+                reportPrefix = 'NOTA_FEEDMIL';
+            } else if (reportType === 'lainlain') {
+                reportMethod = 'getReportOtherHo';
+                reportPrefix = 'NOTA_LAINLAIN';
             }
             
             console.log('📄 Downloading report for pembelian:', {

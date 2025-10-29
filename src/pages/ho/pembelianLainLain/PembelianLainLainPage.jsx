@@ -254,6 +254,7 @@ const PembelianLainLainPage = () => {
                         onDetail={handleDetail}
                         isActive={openMenuId === (row.id || row.encryptedPid)}
                         apiEndpoint={API_ENDPOINTS.HO.LAINLAIN.PEMBELIAN}
+                        reportType="lainlain"
                     />
                 </div>
             ),
