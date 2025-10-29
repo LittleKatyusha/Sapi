@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { MoreVertical } from 'lucide-react';
 import ActionMenu from './ActionMenu';
 
-const ActionButton = ({ row, openMenuId, setOpenMenuId, onEdit, onDelete, onDetail, isActive, apiEndpoint }) => {
+const ActionButton = ({ row, openMenuId, setOpenMenuId, onEdit, onDelete, onDetail, isActive, apiEndpoint, reportType = 'supplier' }) => {
     const buttonRef = useRef(null);
     const [isAnimating, setIsAnimating] = useState(false);
 
@@ -55,6 +55,7 @@ const ActionButton = ({ row, openMenuId, setOpenMenuId, onEdit, onDelete, onDeta
                     onClose={() => setOpenMenuId(null)}
                     buttonRef={buttonRef}
                     apiEndpoint={apiEndpoint}
+                    reportType={reportType}
                 />
             )}
         </div>

@@ -4,7 +4,7 @@ import { Eye, Edit, Copy, Trash2, Download, Loader2, FileText } from 'lucide-rea
 import { API_ENDPOINTS, API_BASE_URL } from '../../../../config/api';
 import LaporanPembelianService from '../../../../services/laporanPembelianService';
 
-const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef, apiEndpoint = API_ENDPOINTS.HO.PEMBELIAN }) => {
+const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef, apiEndpoint = API_ENDPOINTS.HO.PEMBELIAN, reportType = 'supplier' }) => {
     const menuRef = useRef(null);
     const [menuStyle, setMenuStyle] = useState(null);
     const [fileLoading, setFileLoading] = useState(false);
@@ -94,13 +94,24 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef, apiEn
             // Use encrypted PID (same as used in LaporanNotaSupplierPage)
             const pembelianId = row.encryptedPid || row.pid;
             
+            // Determine which report type to use based on reportType prop
+            let reportMethod = 'getReportNotaSupplier';
+            let reportPrefix = 'NOTA_SUPPLIER';
+            
+            if (reportType === 'ovk') {
+                reportMethod = 'getReportNotaOvk';
+                reportPrefix = 'NOTA_OVK';
+            }
+            
             console.log('📄 Downloading report for pembelian:', {
                 id: pembelianId,
-                nota: row.nota
+                nota: row.nota,
+                reportType: reportType,
+                reportMethod: reportMethod
             });
 
-            // Use the same service method as LaporanNotaSupplierPage
-            const blob = await LaporanPembelianService.downloadPdfReport('getReportNotaSupplier', {
+            // Use the service method based on report type
+            const blob = await LaporanPembelianService.downloadPdfReport(reportMethod, {
                 id: pembelianId  // Backend expects 'id' parameter with encrypted pubid
             });
             
@@ -111,7 +122,7 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef, apiEn
             
             // Use nota number in filename if available
             const fileName = row.nota
-                ? `LAPORAN_NOTA_SUPPLIER_${row.nota}.pdf`
+                ? `LAPORAN_${reportPrefix}_${row.nota}.pdf`
                 : `LAPORAN_PEMBELIAN_${pembelianId}.pdf`;
             
             link.download = fileName;

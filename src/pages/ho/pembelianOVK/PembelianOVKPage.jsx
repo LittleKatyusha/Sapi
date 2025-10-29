@@ -241,6 +241,7 @@ const PembelianOVKPage = () => {
                     onDetail={handleDetail}
                     isActive={openMenuId === (row.id || row.encryptedPid)}
                     apiEndpoint={API_ENDPOINTS.HO.OVK.PEMBELIAN}
+                    reportType="ovk"
                 />
             ),
             ignoreRowClick: true,
