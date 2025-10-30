@@ -125,12 +125,18 @@ const AddEditPembelianFeedmilPage = () => {
     // Helper functions for number formatting (same as pembelian)
     const formatNumber = (value) => {
         if (value === null || value === undefined || value === '') return '';
-        return parseInt(value).toLocaleString('id-ID');
+        // Check if value is a decimal
+        const numValue = parseFloat(value);
+        if (Number.isInteger(numValue)) {
+            return numValue.toLocaleString('id-ID');
+        }
+        // Format with decimal places for non-integers (HPP might have decimals now)
+        return numValue.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
     };
 
     const parseNumber = (value) => {
         if (!value) return 0;
-        return parseInt(value.toString().replace(/\./g, '')) || 0;
+        return parseFloat(value.toString().replace(/\./g, '').replace(',', '.')) || 0;
     };
 
     // Helper functions for safe value handling (like OVK pattern)
@@ -648,11 +654,26 @@ const AddEditPembelianFeedmilPage = () => {
         }
 
         try {
-            // Calculate HPP
+            // Calculate HPP with new formula
             const harga = parseFloat(item.harga) || 0;
             const persentase = getParsedPersentase(item.persentase);
-            const hpp = harga + (harga * persentase / 100);
-            const totalHarga = hpp * parseInt(item.berat);
+            const berat = parseInt(item.berat) || 0;
+            const biayaTruk = parseFloat(headerData.biaya_truck) || 0;
+            const biayaLain = parseFloat(headerData.biaya_lain) || 0;
+            const beratTotal = parseFloat(headerData.berat_total) || berat; // Fallback to item berat if no total
+            
+            // New HPP formula without rounding
+            // HPP = ((biaya_truk + biaya_lain + (harga * berat_total)) / berat_total) + (((biaya_truk + biaya_lain + (harga * berat_total)) / berat_total) * persentase / 100)
+            let hpp;
+            if (beratTotal > 0) {
+                const baseCost = (biayaTruk + biayaLain + (harga * beratTotal)) / beratTotal;
+                hpp = baseCost + (baseCost * persentase / 100);
+            } else {
+                // Fallback to simple calculation if berat_total is 0
+                hpp = harga + (harga * persentase / 100);
+            }
+            
+            const totalHarga = hpp * berat;
 
 
 
@@ -1761,10 +1782,24 @@ const AddEditPembelianFeedmilPage = () => {
                                 </thead>
                                 <tbody>
                                     {detailItems.map((item, index) => {
-                                        // Calculate HPP: harga + markup persen
+                                        // Calculate HPP with new formula
                                         const harga = parseFloat(item.harga) || 0;
                                         const persentase = getParsedPersentase(item.persentase); // Use comma-aware parsing
-                                        const hpp = harga && persentase ? harga + (harga * persentase / 100) : harga;
+                                        const berat = parseInt(item.berat) || 0;
+                                        const biayaTruk = parseFloat(headerData.biaya_truck) || 0;
+                                        const biayaLain = parseFloat(headerData.biaya_lain) || 0;
+                                        const beratTotal = parseFloat(headerData.berat_total) || berat; // Fallback to item berat if no total
+                                        
+                                        // New HPP formula without rounding
+                                        // HPP = ((biaya_truk + biaya_lain + (harga * berat_total)) / berat_total) + (((biaya_truk + biaya_lain + (harga * berat_total)) / berat_total) * persentase / 100)
+                                        let hpp;
+                                        if (beratTotal > 0) {
+                                            const baseCost = (biayaTruk + biayaLain + (harga * beratTotal)) / beratTotal;
+                                            hpp = baseCost + (baseCost * persentase / 100);
+                                        } else {
+                                            // Fallback to simple calculation if berat_total is 0
+                                            hpp = harga ? harga + (harga * persentase / 100) : 0;
+                                        }
                                         
                                         // Update item dengan calculated HPP value
                                         if (item.hpp !== hpp) {
@@ -1907,7 +1942,7 @@ const AddEditPembelianFeedmilPage = () => {
                                 </div>
                                 <div className="text-center">
                                     <p className="text-sm text-blue-600">Total Berat</p>
-                                    <p className="text-xl font-bold text-blue-800">{totals.totalBerat.toFixed(1)} kg</p>
+                                    <p className="text-xl font-bold text-blue-800">{totals.totalBerat} kg</p>
                                 </div>
                                 <div className="text-center">
                                     <p className="text-sm text-blue-600">Total HPP</p>

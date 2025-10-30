@@ -99,15 +99,17 @@ const AddEditPembelianKulitPage = () => {
     
     // Removed unused ref for batch count manual set
     
-    // Helper functions for number formatting (same as pembelian)
+    // Helper functions for number formatting - REMOVED ROUNDING
     const formatNumber = (value) => {
         if (value === null || value === undefined || value === '') return '';
-        return parseInt(value).toLocaleString('id-ID');
+        // Show the actual number without rounding
+        return parseFloat(value).toLocaleString('id-ID', { maximumFractionDigits: 2 });
     };
 
     const parseNumber = (value) => {
         if (!value) return 0;
-        return parseInt(value.toString().replace(/\./g, '')) || 0;
+        // Parse as float to preserve decimals
+        return parseFloat(value.toString().replace(/\./g, '').replace(',', '.')) || 0;
     };
 
     // Helper functions for safe value handling (like OVK pattern)
@@ -196,7 +198,7 @@ const AddEditPembelianKulitPage = () => {
 
     // Load data untuk edit mode - using /show endpoint for both header and detail data
     useEffect(() => {
-        console.log('剥 Edit useEffect triggered:', {
+        console.log(' Edit useEffect triggered:', {
             isEdit,
             id,
             editDataLoaded: editDataLoaded.current,
@@ -213,7 +215,7 @@ const AddEditPembelianKulitPage = () => {
                     // decodedId not needed; use id directly
                     
                     // Get both header and detail data from /show endpoint only
-                    console.log('噫 Calling /show API for edit data with pid:', id);
+                    console.log(' Calling /show API for edit data with pid:', id);
                     
                     const showResponse = await HttpClient.post(`${API_ENDPOINTS.HO.KULIT.PEMBELIAN}/show`, {
                         pid: id
@@ -562,11 +564,21 @@ const AddEditPembelianKulitPage = () => {
         }
 
         try {
-            // Calculate HPP
+            // Calculate HPP with new formula
             const harga = parseFloat(item.harga) || 0;
+            const berat = parseInt(item.berat) || 0;
             const persentase = getParsedPersentase(item.persentase);
-            const hpp = harga + (harga * persentase / 100);
-            const totalHarga = hpp * parseInt(item.berat);
+            const biaya_lain = parseFloat(headerData.harga_total) || 0; // Using harga_total as biaya_lain
+            const berat_total = parseFloat(headerData.berat_total) || berat; // Use header berat_total or item berat
+            
+            // HPP = ((biaya_lain + (harga * berat_total)) / berat_total) + (((biaya_lain + (harga * berat_total)) / berat_total) * persentase / 100) - NO ROUNDING
+            let hpp = 0;
+            if (berat_total > 0) {
+                const baseCost = (biaya_lain + (harga * berat_total)) / berat_total;
+                const markupAmount = baseCost * persentase / 100;
+                hpp = baseCost + markupAmount; // NO ROUNDING
+            }
+            const totalHarga = hpp * berat;
 
 
 
@@ -767,7 +779,7 @@ const AddEditPembelianKulitPage = () => {
         };
     }, [filePreview]);
 
-    // Calculate totals
+    // Calculate totals - NO ROUNDING
     const totals = useMemo(() => {
         const totalJumlah = detailItems.length; // Count of items
         const totalBerat = detailItems.reduce((sum, item) => {
@@ -779,6 +791,7 @@ const AddEditPembelianKulitPage = () => {
             return sum + (isNaN(hpp) ? 0 : hpp);
         }, 0);
         
+        // Return raw values without rounding
         return { totalJumlah, totalBerat, totalHPP };
     }, [detailItems]);
 
@@ -880,7 +893,7 @@ const AddEditPembelianKulitPage = () => {
             const selectedSupplier = supplierOptions.find(s => s.value === headerData.idSupplier);
             
             // Debug file state
-            console.log('剥 File Debug Info:');
+            console.log(' File Debug Info:');
             console.log('selectedFile:', selectedFile);
             console.log('headerData.file:', headerData.file);
             console.log('selectedFile instanceof File:', selectedFile instanceof File);
@@ -910,7 +923,7 @@ const AddEditPembelianKulitPage = () => {
                 existingFileName: existingFileName
             };
 
-            console.log('剥 Final submissionData.file:', submissionData.file);
+            console.log(' Final submissionData.file:', submissionData.file);
 
 
             let result;
@@ -1060,7 +1073,7 @@ const AddEditPembelianKulitPage = () => {
                             />
                             {parameterError && (
                                 <p className="text-xs text-red-500 mt-1">
-                                    笞・・Error loading offices: {parameterError}
+                                    Error loading offices: {parameterError}
                                 </p>
                             )}
                         </div>
@@ -1084,12 +1097,12 @@ const AddEditPembelianKulitPage = () => {
                             />
                             {parameterLoading && (
                                 <p className="text-xs text-blue-600 mt-1">
-                                    売 Memuat data supplier...
+                                     Memuat data supplier...
                                 </p>
                             )}
                             {parameterError && (
                                 <p className="text-xs text-red-600 mt-1">
-                                    笶・Error: {parameterError}
+                                    Error: {parameterError}
                                 </p>
                             )}
                         </div>
@@ -1126,7 +1139,7 @@ const AddEditPembelianKulitPage = () => {
                             />
                             {jenisPembelianError && (
                                 <p className="text-xs text-red-500 mt-1">
-                                    ⚠️ Error loading jenis pembelian: {jenisPembelianError}
+                                    Error loading jenis pembelian: {jenisPembelianError}
                                 </p>
                             )}
                         </div>
@@ -1149,7 +1162,7 @@ const AddEditPembelianKulitPage = () => {
                                 step="0.1"
                             />
                             <p className="text-xs text-blue-600 mt-1">
-                                庁 Total berat semua kulit dalam pembelian ini
+                                Total berat semua kulit dalam pembelian ini
                             </p>
                         </div>
 
@@ -1167,7 +1180,7 @@ const AddEditPembelianKulitPage = () => {
                                 placeholder=""
                             />
                             <p className="text-xs text-blue-600 mt-1">
-                                庁 Total harga keseluruhan pembelian
+                                Total harga keseluruhan pembelian
                             </p>
                         </div>
 
@@ -1186,7 +1199,7 @@ const AddEditPembelianKulitPage = () => {
                                 min="0"
                             />
                             <p className="text-xs text-blue-600 mt-1">
-                                庁 Total jumlah kulit dalam pembelian ini
+                                Total jumlah kulit dalam pembelian ini
                             </p>
                         </div>
 
@@ -1208,7 +1221,7 @@ const AddEditPembelianKulitPage = () => {
                             />
                             {parameterError && (
                                 <p className="text-xs text-red-500 mt-1">
-                                    笞・・Error loading offices: {parameterError}
+                                    Error loading offices: {parameterError}
                                 </p>
                             )}
                         </div>
@@ -1231,7 +1244,7 @@ const AddEditPembelianKulitPage = () => {
                             />
                             {bankError && (
                                 <p className="text-xs text-red-500 mt-1">
-                                    笞・・Error loading banks: {bankError}
+                                    Error loading banks: {bankError}
                                 </p>
                             )}
                         </div>
@@ -1254,7 +1267,7 @@ const AddEditPembelianKulitPage = () => {
                             />
                             {tipePembayaranError && (
                                 <p className="text-xs text-red-500 mt-1">
-                                    ⚠️ Error loading tipe pembayaran: {tipePembayaranError}
+                                    Error loading tipe pembayaran: {tipePembayaranError}
                                 </p>
                             )}
                         </div>
@@ -1277,7 +1290,7 @@ const AddEditPembelianKulitPage = () => {
                                 </p>
                             )}
                             {headerData.tipe_pembayaran && parseInt(headerData.tipe_pembayaran) === 1 && (
-                                <p className="text-xs text-gray-60 mt-1">
+                                <p className="text-xs text-gray-600 mt-1">
                                     Opsional untuk pembayaran cash
                                 </p>
                             )}
@@ -1297,7 +1310,7 @@ const AddEditPembelianKulitPage = () => {
                                 placeholder="Masukkan catatan pembelian kulit..."
                             />
                             <p className="text-xs text-blue-600 mt-1">
-                                庁 Catatan terkait pembelian kulit (wajib diisi)
+                                Catatan terkait pembelian kulit (wajib diisi)
                             </p>
                         </div>
 
@@ -1349,15 +1362,15 @@ const AddEditPembelianKulitPage = () => {
                                                     {selectedFile ? (
                                                         <>
                                                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                                塘 {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                                                                 {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
                                                             </span>
                                                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                                捷・・{selectedFile.type.split('/')[1]?.toUpperCase() || 'FILE'}
+                                                                {selectedFile.type.split('/')[1]?.toUpperCase() || 'FILE'}
                                                             </span>
                                                         </>
                                                     ) : (
                                                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                            刀 File Existing
+                                                             File Existing
                                                         </span>
                                                     )}
                                                 </div>
@@ -1394,7 +1407,7 @@ const AddEditPembelianKulitPage = () => {
                             />
                             {parameterError && (
                                 <p className="text-xs text-red-500 mt-1">
-                                    笞・・Error loading items: {parameterError}
+                                    Error loading items: {parameterError}
                                 </p>
                             )}
                         </div>
@@ -1474,8 +1487,8 @@ const AddEditPembelianKulitPage = () => {
 
                         {/* Info Text */}
                         <div className="text-xs text-gray-600 ml-auto">
-                            <p>庁 Isi data default untuk mempercepat input batch</p>
-                            <p>統 Item baru akan menggunakan data default ini</p>
+                            <p> Isi data default untuk mempercepat input batch</p>
+                            <p> Item baru akan menggunakan data default ini</p>
                         </div>
                     </div>
                 </div>
@@ -1520,10 +1533,20 @@ const AddEditPembelianKulitPage = () => {
                                 </thead>
                                 <tbody>
                                     {detailItems.map((item, index) => {
-                                        // Calculate HPP: harga + markup persen
+                                        // Calculate HPP with new formula
                                         const harga = parseFloat(item.harga) || 0;
+                                        const berat = parseInt(item.berat) || 0;
                                         const persentase = getParsedPersentase(item.persentase); // Use comma-aware parsing
-                                        const hpp = harga && persentase ? harga + (harga * persentase / 100) : harga;
+                                        const biaya_lain = parseFloat(headerData.harga_total) || 0; // Using harga_total as biaya_lain
+                                        const berat_total = parseFloat(headerData.berat_total) || berat; // Use header berat_total or item berat
+                                        
+                                        // HPP = ((biaya_lain + (harga * berat_total)) / berat_total) + (((biaya_lain + (harga * berat_total)) / berat_total) * persentase / 100) - NO ROUNDING
+                                        let hpp = 0;
+                                        if (berat_total > 0) {
+                                            const baseCost = (biaya_lain + (harga * berat_total)) / berat_total;
+                                            const markupAmount = baseCost * persentase / 100;
+                                            hpp = baseCost + markupAmount; // NO ROUNDING
+                                        }
                                         
                                         // Update item dengan calculated HPP value
                                         if (item.hpp !== hpp) {
@@ -1652,7 +1675,7 @@ const AddEditPembelianKulitPage = () => {
                                 </div>
                                 <div className="text-center">
                                     <p className="text-sm text-blue-600">Total Berat</p>
-                                    <p className="text-xl font-bold text-blue-800">{totals.totalBerat.toFixed(1)} kg</p>
+                                    <p className="text-xl font-bold text-blue-800">{totals.totalBerat} kg</p>
                                 </div>
                                 <div className="text-center">
                                     <p className="text-sm text-blue-600">Total HPP</p>
@@ -1804,7 +1827,7 @@ const AddEditPembelianKulitPage = () => {
                                                 <h3 className={`text-xl font-bold transition-all duration-500 ${
                                                     isDragOver ? 'text-white drop-shadow-lg' : 'text-gray-800'
                                                 }`}>
-                                                    {isDragOver ? '脂 Drop file di sini!' : '刀 Upload File Dokumen'}
+                                                    {isDragOver ? ' Drop file di sini!' : ' Upload File Dokumen'}
                                                 </h3>
                                                 <p className={`text-sm transition-all duration-500 ${
                                                     isDragOver ? 'text-blue-100 drop-shadow-md' : 'text-gray-600'
@@ -1847,7 +1870,7 @@ const AddEditPembelianKulitPage = () => {
                                                         : 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg hover:shadow-xl hover:scale-105 hover:from-blue-600 hover:to-indigo-700 active:scale-95'
                                                 }`}
                                             >
-                                                {isDragOver ? '識 Upload Sekarang!' : '噫 Pilih File'}
+                                                {isDragOver ? ' Upload Sekarang!' : ' Pilih File'}
                                             </button>
                                         </div>
                                     </div>
@@ -1886,20 +1909,20 @@ const AddEditPembelianKulitPage = () => {
                                                     {selectedFile ? (
                                                         <>
                                                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                                塘 {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                                                                 {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
                                                             </span>
                                                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                                捷・・{selectedFile.type.split('/')[1]?.toUpperCase() || 'FILE'}
+                                                                {selectedFile.type.split('/')[1]?.toUpperCase() || 'FILE'}
                                                             </span>
                                                         </>
                                                     ) : (
                                                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                            刀 File Existing
+                                                             File Existing
                                                         </span>
                                                     )}
                                                 </div>
                                                 <p className="text-sm text-green-600 mt-2">
-                                                    {selectedFile ? '笨・File berhasil dipilih dan siap diupload' : '刀 File existing akan dipertahankan'}
+                                                    {selectedFile ? 'File berhasil dipilih dan siap diupload' : ' File existing akan dipertahankan'}
                                                 </p>
                                             </div>
                                         </div>
@@ -1916,7 +1939,7 @@ const AddEditPembelianKulitPage = () => {
                                         </div>
                                         <div className="flex-1">
                                             <h5 className="text-sm font-semibold text-blue-800 mb-1">
-                                                庁 Tips Upload File
+                                                Tips Upload File
                                             </h5>
                                             <p className="text-sm text-blue-700 leading-relaxed">
                                                 Upload file dokumen terkait pembelian seperti invoice, kontrak, atau foto kulit (opsional). 
@@ -1944,7 +1967,7 @@ const AddEditPembelianKulitPage = () => {
                                         }}
                                         className="px-6 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-200 shadow-md hover:shadow-lg"
                                     >
-                                        笨・Konfirmasi File
+                                        Konfirmasi File
                                     </button>
                                 )}
                             </div>

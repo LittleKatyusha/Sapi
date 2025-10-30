@@ -124,12 +124,13 @@ const AddEditPembelianOVKPage = () => {
 
 
 
-    // Helper functions for number formatting
+    // Helper functions for number formatting (without rounding)
     const formatNumber = (value) => {
         if (value === null || value === undefined || value === '') return '';
         const numValue = parseFloat(value);
         if (isNaN(numValue)) return '';
-        return numValue.toLocaleString('id-ID');
+        // Use maximumFractionDigits to show all decimal places without rounding
+        return numValue.toLocaleString('id-ID', { maximumFractionDigits: 20, minimumFractionDigits: 0 });
     };
 
     const parseNumber = (value) => {
@@ -1807,11 +1808,19 @@ const AddEditPembelianOVKPage = () => {
                                 </thead>
                                 <tbody>
                                     {detailItems.map((item, index) => {
-                                        // Calculate HPP: harga + markup persen (using comma-aware parsing)
+                                        // Get values from item and header data
                                         const harga = parseFloat(item.harga) || 0;
                                         const persentase = getParsedPersentase(item.persentase); // Use comma-aware parsing
                                         const berat = parseFloat(item.berat) || 0;
-                                        const hpp = harga && persentase ? harga + (harga * persentase / 100) : harga;
+                                        const biayaTruk = parseFloat(headerData.biaya_truck) || 0;
+                                        const biayaLain = parseFloat(headerData.biaya_lain) || 0;
+                                        const beratTotal = parseFloat(headerData.berat_total) || 1; // Avoid division by zero
+                                        
+                                        // Calculate HPP using the new formula WITHOUT rounding:
+                                        // HPP = ((biaya_truk + biaya_lain + (harga * berat_total)) / berat_total) + (((biaya_truk + biaya_lain + (harga * berat_total)) / berat_total) * persentase / 100)
+                                        const baseCost = (biayaTruk + biayaLain + (harga * beratTotal)) / beratTotal;
+                                        const markup = baseCost * persentase / 100;
+                                        const hpp = baseCost + markup; // No rounding - show exact value
                                         const totalHarga = hpp * berat; // Total harga = HPP * berat
                                         
                                         // Update item dengan calculated values
@@ -1950,7 +1959,7 @@ const AddEditPembelianOVKPage = () => {
                                 </div>
                                 <div className="text-center">
                                     <p className="text-sm text-blue-600">Total Berat</p>
-                                    <p className="text-xl font-bold text-blue-800">{totals.totalBerat.toFixed(1)} kg</p>
+                                    <p className="text-xl font-bold text-blue-800">{totals.totalBerat} kg</p>
                                 </div>
                                 <div className="text-center">
                                     <p className="text-sm text-blue-600">Total HPP</p>
