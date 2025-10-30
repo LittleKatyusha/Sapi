@@ -588,7 +588,7 @@ const AddEditPembelianPage = () => {
         if (isSupplierPerorangan && !isSupplierPerorangan2 && hargaPerKilo > 0) {
             setDefaultData(prev => ({
                 ...prev,
-                harga: Math.round(hargaPerKilo) // Round to nearest integer for cleaner price
+                harga: hargaPerKilo // No rounding
             }));
         }
     }, [isSupplierPerorangan, isSupplierPerorangan2, hargaPerKilo]);
@@ -598,7 +598,7 @@ const AddEditPembelianPage = () => {
         if (isSupplierPerorangan2 && beratPerSarpi > 0) {
             setDefaultData(prev => ({
                 ...prev,
-                berat: parseFloat(beratPerSarpi.toFixed(2)) // Use calculated berat per sarpi with 2 decimal precision
+                berat: beratPerSarpi // No rounding
             }));
         }
     }, [isSupplierPerorangan2, beratPerSarpi]);
@@ -608,7 +608,7 @@ const AddEditPembelianPage = () => {
         if (isSupplierPerorangan2 && hargaPerKiloType2 > 0) {
             setDefaultData(prev => ({
                 ...prev,
-                harga: Math.round(hargaPerKiloType2) // Use calculated harga per kilo rounded to nearest integer
+                harga: hargaPerKiloType2 // No rounding
             }));
         }
     }, [isSupplierPerorangan2, hargaPerKiloType2]);
@@ -627,7 +627,7 @@ const AddEditPembelianPage = () => {
             // ROUND(((biaya_truk + biaya_lain + (harga * berat_total)) / berat_total) + (((biaya_truk + biaya_lain + (harga * berat_total)) / berat_total) * persentase / 100), 0)
             const baseCostPerKg = (biayaTruck + biayaLain + (harga * totalBerat)) / totalBerat;
             const markupAmount = baseCostPerKg * (persentase / 100);
-            const newHpp = Math.round(baseCostPerKg + markupAmount);
+            const newHpp = baseCostPerKg + markupAmount;
             
             return {
                 ...item,
@@ -833,11 +833,11 @@ const AddEditPembelianPage = () => {
                         // Apply the new HPP formula
                         const baseCostPerKg = (biayaTruk + biayaLain + (harga * totalBerat)) / totalBerat;
                         const markupAmount = baseCostPerKg * (persentase / 100);
-                        updatedItem.hpp = Math.round(baseCostPerKg + markupAmount);
+                        updatedItem.hpp = baseCostPerKg + markupAmount;
                     } else {
                         // Fallback to simple calculation if no total berat
                         const markupAmount = harga * (persentase / 100);
-                        updatedItem.hpp = Math.round(harga + markupAmount);
+                        updatedItem.hpp = harga + markupAmount;
                     }
                 }
                 
@@ -887,11 +887,11 @@ const AddEditPembelianPage = () => {
             // Apply the new HPP formula
             const baseCostPerKg = (biayaTruk + biayaLain + (harga * totalBerat)) / totalBerat;
             const markupAmount = baseCostPerKg * (persentase / 100);
-            hpp = Math.round(baseCostPerKg + markupAmount);
+            hpp = baseCostPerKg + markupAmount;
         } else {
             // Fallback to simple calculation
             const markupAmount = harga * (persentase / 100);
-            hpp = Math.round(harga + markupAmount);
+            hpp = harga + markupAmount;
         }
         
         // Find T/N option from eartagOptions
@@ -942,11 +942,11 @@ const AddEditPembelianPage = () => {
             // Apply the new HPP formula
             const baseCostPerKg = (biayaTruk + biayaLain + (harga * totalBerat)) / totalBerat;
             const markupAmount = baseCostPerKg * (persentase / 100);
-            hpp = Math.round(baseCostPerKg + markupAmount);
+            hpp = baseCostPerKg + markupAmount;
         } else {
             // Fallback to simple calculation
             const markupAmount = harga * (persentase / 100);
-            hpp = Math.round(harga + markupAmount);
+            hpp = harga + markupAmount;
         }
         
         // Find T/N option from eartagOptions
@@ -2231,7 +2231,7 @@ const AddEditPembelianPage = () => {
                                                         </h4>
                                                         <div className="flex items-center gap-4 mt-1">
                                                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                                📄 {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                                                                📄 {(selectedFile.size / 1024 / 1024)} MB
                                                             </span>
                                                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                                                                 🏷️ {selectedFile.type.split('/')[1]?.toUpperCase() || 'FILE'}
@@ -2321,7 +2321,7 @@ const AddEditPembelianPage = () => {
                             />
                             {isSupplierPerorangan2 && (
                                 <p className="text-xs text-purple-600 mt-1">
-                                    💡 Otomatis diisi dari perhitungan: Total Berat ÷ Jumlah Ekor = {beratPerSarpi > 0 ? beratPerSarpi.toFixed(2) : '0.00'} kg
+                                    💡 Otomatis diisi dari perhitungan: Total Berat ÷ Jumlah Ekor = {beratPerSarpi > 0 ? beratPerSarpi : '0'} kg
                                 </p>
                             )}
                         </div>
@@ -2368,7 +2368,7 @@ const AddEditPembelianPage = () => {
                             )}
                             {isSupplierPerorangan2 && (
                                 <p className="text-xs text-teal-600 mt-1">
-                                    💡 Otomatis diisi dari perhitungan: Jumlah Harga ÷ Total Berat = Rp {hargaPerKiloType2 > 0 ? formatNumber(Math.round(hargaPerKiloType2)) : '0'}
+                                    💡 Otomatis diisi dari perhitungan: Jumlah Harga ÷ Total Berat = Rp {hargaPerKiloType2 > 0 ? formatNumber(hargaPerKiloType2) : '0'}
                                 </p>
                             )}
                         </div>
@@ -2428,7 +2428,7 @@ const AddEditPembelianPage = () => {
                                     <p className="text-green-800 font-medium">🧮 SUPPLIER (PERORANGAN) 2 Mode</p>
                                     <p className="text-green-700">🔄 Semua data default otomatis dari perhitungan</p>
                                     <p className="text-teal-700">💰 Harga per ekor otomatis: <span className="font-semibold">Rp {formatNumber(defaultData.harga)}</span> (dari Harga per Kilo)</p>
-                                    <p className="text-purple-700">⚖️ Berat per ekor otomatis: <span className="font-semibold">{beratPerSarpi > 0 ? beratPerSarpi.toFixed(2) : '0.00'} kg</span> (dari Berat per Sarpi)</p>
+                                    <p className="text-purple-700">⚖️ Berat per ekor otomatis: <span className="font-semibold">{beratPerSarpi > 0 ? beratPerSarpi : '0'} kg</span> (dari Berat per Sarpi)</p>
                                     <p className="text-green-700">🧮 Perhitungan otomatis: Berat per Sarpi & Harga per Kilo</p>
                                 </div>
                             ) : isSupplierPerorangan ? (
@@ -2539,7 +2539,7 @@ const AddEditPembelianPage = () => {
                                     </div>
                                     <div>
                                         <p className="text-2xl font-bold text-green-600">
-                                            {detailItems.reduce((sum, item) => sum + (parseFloat(item.berat) || 0), 0).toFixed(1)} kg
+                                            {detailItems.reduce((sum, item) => sum + (parseFloat(item.berat) || 0), 0)} kg
                                         </p>
                                         <p className="text-sm text-gray-600">Total Berat</p>
                                     </div>
@@ -2821,7 +2821,7 @@ const AddEditPembelianPage = () => {
                                                     </h4>
                                                     <div className="flex items-center gap-4 mt-1">
                                                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                            📄 {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                                                            📄 {(selectedFile.size / 1024 / 1024)} MB
                                                         </span>
                                                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                                                             🏷️ {selectedFile.type.split('/')[1]?.toUpperCase() || 'FILE'}

@@ -238,7 +238,7 @@ const PembelianDetailPage = () => {
             )
         },
         {
-            name: 'HPP\nper Unit',
+            name: 'HPP\nper Ekor',
             selector: row => row.hpp,
             sortable: true,
             width: '200px',
