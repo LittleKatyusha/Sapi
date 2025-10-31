@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuthSecure } from '../../../hooks/useAuthSecure';
+import HttpClient from '../../../services/httpClient';
+import { API_ENDPOINTS } from '../../../config/api';
 
 const useRolesList = () => {
     const { getAuthHeader } = useAuthSecure();
@@ -12,23 +14,27 @@ const useRolesList = () => {
         setError(null);
         
         try {
-            // Use the roles data endpoint with DataTables parameters to get all data
-            const response = await fetch('/api/system/roles/data?start=0&length=1000&search[value]=', {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...getAuthHeader()
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+            const authHeader = getAuthHeader();
+            if (!authHeader.Authorization) {
+                throw new Error('Token authentication tidak ditemukan. Silakan login ulang.');
             }
-
-            const result = await response.json();
+            
+            // Use HttpClient with API_ENDPOINTS for proper environment handling
+            const queryParams = new URLSearchParams({
+                'start': '0',
+                'length': '1000',
+                'draw': Date.now().toString(),
+                'search[value]': '',
+                'order[0][column]': '0',
+                'order[0][dir]': 'asc',
+                '_t': Date.now().toString() // Cache busting
+            });
+            
+            // Use the same approach as useRoles hook
+            const result = await HttpClient.get(`${API_ENDPOINTS.SYSTEM.ROLES}/data?${queryParams.toString()}`);
             
             if (result.data && Array.isArray(result.data)) {
-                // Collect only parent roles and remove duplicates by ID
+                // Collect all unique roles for dropdown
                 const allRoles = new Map();
                 
                 console.log('[DEBUG] Processing roles data:', result.data);
@@ -36,29 +42,35 @@ const useRolesList = () => {
                 result.data.forEach(role => {
                     console.log('[DEBUG] Processing role:', role);
                     
-                    // Only add parent_role and remove duplicates by ID
-                    if (role.parent_role && !allRoles.has(role.id)) {
-                        console.log('[DEBUG] Adding parent role:', role.parent_role, 'with ID:', role.id);
-                        // Create a combined label that includes both parent and child role names
-                        let label = role.parent_role;
-                        if (role.child_role) {
-                            label += ` (${role.child_role})`;
-                        }
+                    // Include all roles (both parent and child roles) for better flexibility
+                    // Each role can potentially be a parent to another role
+                    
+                    if (role.id) {
+                        // Check if we should use parent_role or child_role as the main name
+                        const roleName = role.child_role || role.parent_role || 'Unknown Role';
                         
-                        allRoles.set(role.id, {
-                            value: role.id, // Use ID as value
-                            label: label, // Combined label with parent and child role names
-                            description: 'Parent Role',
-                            pid: role.pid,
-                            parentRole: role.parent_role, // Keep original parent role name
-                            childRole: role.child_role || null // Keep child role name if exists
-                        });
+                        // Avoid duplicates by ID
+                        if (!allRoles.has(role.id)) {
+                            console.log('[DEBUG] Adding role:', roleName, 'with ID:', role.id);
+                            
+                            allRoles.set(role.id, {
+                                value: role.id, // Use ID as value for consistency
+                                label: roleName, // Display name
+                                description: role.description || '',
+                                pid: role.pid,
+                                parentRole: role.parent_role, // Keep original parent role name
+                                childRole: role.child_role || null // Keep child role name if exists
+                            });
+                        }
                     }
                 });
                 
-                // Convert map to array
-                const uniqueRoles = Array.from(allRoles.values());
-                console.log('[DEBUG] Final unique parent roles:', uniqueRoles);
+                // Convert map to array and sort by label
+                const uniqueRoles = Array.from(allRoles.values()).sort((a, b) => 
+                    a.label.localeCompare(b.label)
+                );
+                
+                console.log('[DEBUG] Final unique roles:', uniqueRoles);
                 
                 setRolesList(uniqueRoles);
             } else {
