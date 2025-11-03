@@ -446,7 +446,7 @@ const PurchasingOrderModal = ({
                         <div className="border-b border-gray-400 w-full mb-8"></div>
 
                         {/* Order Details */}
-                        <div className="grid grid-cols-4 gap-6 mb-8 print-spacing">
+                        <div className="grid grid-cols-5 gap-6 mb-8 print-spacing">
                             <div>
                                 <p className="text-sm font-medium text-gray-600 mb-1">Tanggal Pesanan</p>
                                 <p className="text-base font-semibold text-gray-900">{formatDate(data.tgl_masuk)}</p>
@@ -462,6 +462,10 @@ const PurchasingOrderModal = ({
                             <div>
                                 <p className="text-sm font-medium text-gray-600 mb-1">Penerima</p>
                                 <p className="text-base font-semibold text-gray-900">{data.nama_penerima || data.nama_office || 'Head Office'}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm font-medium text-gray-600 mb-1">Persetujuan RPH</p>
+                                <p className="text-base font-semibold text-gray-900">{data.nama_persetujuan_rph || data._original?.nama_persetujuan_rph || data.details?.[0]?.nama_persetujuan_rph || '-'}</p>
                             </div>
                         </div>
 
