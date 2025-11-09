@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import DataTable from 'react-data-table-component';
-import { PlusCircle, Search, Filter, Package, Building2, Truck, User, X, Loader2 } from 'lucide-react';
+import { PlusCircle, Search, Filter, Package, Building2, Truck, User, X, Loader2, Wallet, CreditCard, Boxes } from 'lucide-react';
 
 import usePembelianLainLain from './hooks/usePembelianLainLain';
 import usePembelianBeban from './hooks/usePembelianBeban';
@@ -12,9 +12,11 @@ import useTipePembayaranLazy from '../../../hooks/useTipePembayaranLazy';
 import useBanksAPILazy from '../../../hooks/useBanksAPILazy';
 import useSatuanAPI from './hooks/useSatuanAPI';
 import useJenisPembelianAPI from './hooks/useJenisPembelianAPI';
+import useInfoCardsPembelianLainLain from './hooks/useInfoCardsPembelianLainLain';
 import ActionButton from '../pembelian/components/ActionButton';
 import PembelianFeedmilCard from '../pembelianFeedmil/components/PembelianFeedmilCard';
 import CustomPagination from '../pembelianFeedmil/components/CustomPagination';
+import InfoCardLainLain from './components/InfoCardLainLain';
 import enhancedLainLainTableStyles from './constants/tableStyles';
 import { API_ENDPOINTS } from '../../../config/api';
 import HttpClient from '../../../services/httpClient';
@@ -71,8 +73,14 @@ const PembelianLainLainPage = () => {
         pembelianBeban,
         loading: bebanLoading,
         error: bebanError,
+        searchTerm: bebanSearchTerm,
+        setSearchTerm: setBebanSearchTerm,
+        isSearching: isBebanSearching,
+        searchError: bebanSearchError,
         serverPagination: bebanPagination,
         fetchPembelianBeban,
+        handleSearch: handleBebanSearch,
+        clearSearch: clearBebanSearch,
         handlePageChange: handleBebanPageChange,
         handlePerPageChange: handleBebanPerPageChange,
         createPembelianBeban,
@@ -85,8 +93,14 @@ const PembelianLainLainPage = () => {
         pembelianBahanPembantu,
         loading: bahanPembantuLoading,
         error: bahanPembantuError,
+        searchTerm: bahanPembantuSearchTerm,
+        setSearchTerm: setBahanPembantuSearchTerm,
+        isSearching: isBahanPembantuSearching,
+        searchError: bahanPembantuSearchError,
         serverPagination: bahanPembantuPagination,
         fetchPembelianBahanPembantu,
+        handleSearch: handleBahanPembantuSearch,
+        clearSearch: clearBahanPembantuSearch,
         handlePageChange: handleBahanPembantuPageChange,
         handlePerPageChange: handleBahanPembantuPerPageChange,
         createPembelianBahanPembantu,
@@ -139,6 +153,14 @@ const PembelianLainLainPage = () => {
         jenisPembelianOptions: jenisPembelianBahanPembantuOptions,
         loading: jenisPembelianBahanPembantuLoading
     } = useJenisPembelianAPI();
+
+    // Info Cards hook integration
+    const {
+        infoCardsData,
+        loading: infoCardsLoading,
+        error: infoCardsError,
+        refetch: refetchInfoCards
+    } = useInfoCardsPembelianLainLain();
 
     useEffect(() => {
         fetchPembelian();
@@ -1505,76 +1527,68 @@ const PembelianLainLainPage = () => {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-3 sm:gap-4 md:gap-6 sm:grid-cols-2 md:grid-cols-4">
-                    <div className="bg-gradient-to-br from-blue-400 to-blue-500 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
-                        <h3 className="text-sm sm:text-base font-medium opacity-90 mb-2">Total Pembelian</h3>
-                        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold">{stats.total}</p>
-                    </div>
-                    <div className="bg-gradient-to-br from-emerald-400 to-emerald-500 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
-                        <h3 className="text-sm sm:text-base font-medium opacity-90 mb-2">Total Item</h3>
-                        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold">{stats.totalLainLain}</p>
-                    </div>
-                    <div className="bg-gradient-to-br from-amber-400 to-orange-500 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
-                        <h3 className="text-sm sm:text-base font-medium opacity-90 mb-2">Hari Ini</h3>
-                        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold">{stats.today}</p>
-                    </div>
-                    <div className="bg-gradient-to-br from-purple-400 to-purple-500 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
-                        <h3 className="text-sm sm:text-base font-medium opacity-90 mb-2">Bulan Ini</h3>
-                        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold">{stats.thisMonth}</p>
-                    </div>
+                {/* Info Cards Section - 4 Categories with detailed breakdown */}
+                <div className="grid grid-cols-1 gap-4 sm:gap-5 md:gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                    {/* Pembelian Aset */}
+                    <InfoCardLainLain
+                        title="Pembelian Aset"
+                        icon={Package}
+                        gradientClass="from-blue-500 to-indigo-600"
+                        hariIni={infoCardsData.aset.hariIni}
+                        bulanIni={infoCardsData.aset.bulanIni}
+                        loading={infoCardsLoading}
+                    />
+
+                    {/* Pembelian Beban & Biaya - KAS */}
+                    <InfoCardLainLain
+                        title="Beban & Biaya (KAS)"
+                        icon={Wallet}
+                        gradientClass="from-emerald-500 to-teal-600"
+                        hariIni={infoCardsData.bebanKas.hariIni}
+                        bulanIni={infoCardsData.bebanKas.bulanIni}
+                        loading={infoCardsLoading}
+                    />
+
+                    {/* Pembelian Beban & Biaya - BANK */}
+                    <InfoCardLainLain
+                        title="Beban & Biaya (BANK)"
+                        icon={CreditCard}
+                        gradientClass="from-purple-500 to-violet-600"
+                        hariIni={infoCardsData.bebanBank.hariIni}
+                        bulanIni={infoCardsData.bebanBank.bulanIni}
+                        loading={infoCardsLoading}
+                    />
+
+                    {/* Pembelian Bahan Pembantu */}
+                    <InfoCardLainLain
+                        title="Bahan Pembantu"
+                        icon={Boxes}
+                        gradientClass="from-amber-500 to-orange-600"
+                        hariIni={infoCardsData.bahanPembantu.hariIni}
+                        bulanIni={infoCardsData.bahanPembantu.bulanIni}
+                        loading={infoCardsLoading}
+                    />
                 </div>
 
-                <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-lg border border-gray-100">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 md:gap-6 sm:items-center sm:justify-between">
-                        <div className="relative flex-1 max-w-full sm:max-w-md lg:max-w-lg">
-                            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                            
-                            {isSearching && (
-                                <Loader2 className="absolute right-12 top-1/2 transform -translate-y-1/2 w-4 h-4 text-blue-500 animate-spin" />
-                            )}
-                            
-                            {searchTerm && !isSearching && (
-                                <button
-                                    onClick={clearSearch}
-                                    className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 hover:text-gray-600 transition-colors duration-200"
-                                    title="Clear search"
-                                >
-                                    <X className="w-4 h-4" />
-                                </button>
-                            )}
-                            
-                            <input
-                                type="text"
-                                placeholder="Cari berdasarkan nota atau supplier..."
-                                value={searchTerm}
-                                onChange={(e) => handleSearch(e.target.value)}
-                                className={`w-full pl-12 ${searchTerm || isSearching ? 'pr-12' : 'pr-4'} py-2.5 sm:py-3 md:py-4 border ${searchError ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'} rounded-full transition-all duration-200 text-sm sm:text-base shadow-sm hover:shadow-md`}
-                            />
-                            
-                            {searchError && (
-                                <div className="absolute top-full left-0 right-0 mt-1 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-                                    {searchError}
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="flex flex-wrap gap-2 sm:gap-3 md:gap-4">
-                            <div className="flex items-center gap-2 md:gap-3">
-                                <Filter className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
-                                <select
-                                    value={filterJenisPembelian}
-                                    onChange={(e) => handleFilter(e.target.value)}
-                                    className="px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm sm:text-base shadow-sm hover:shadow-md transition-all duration-200"
-                                >
-                                    <option value="all">Semua Jenis</option>
-                                    <option value="Peralatan">Peralatan</option>
-                                    <option value="Perlengkapan">Perlengkapan</option>
-                                    <option value="Lainnya">Lainnya</option>
-                                </select>
-                            </div>
+                {/* Error notification for info cards */}
+                {infoCardsError && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+                        <svg className="w-5 h-5 text-red-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                        </svg>
+                        <div>
+                            <p className="text-sm font-medium text-red-800">Gagal memuat data info cards</p>
+                            <p className="text-xs text-red-600 mt-1">{infoCardsError}</p>
+                            <button
+                                onClick={refetchInfoCards}
+                                className="text-xs text-red-600 underline hover:text-red-800 mt-2"
+                            >
+                                Coba lagi
+                            </button>
                         </div>
                     </div>
-                </div>
+                )}
+
 
                 {/* First Desktop Table View - Full Width */}
                 <div className="bg-white shadow-lg border border-gray-200 relative hidden md:block overflow-hidden -mx-4 sm:-mx-6 md:-mx-8 rounded-xl">
@@ -1743,7 +1757,7 @@ const PembelianLainLainPage = () => {
                     </div>
                 </div>
 
-                {/* Second Desktop Table View - Pembelian Aset - Full Width */}
+                {/* Second Desktop Table View - Pembelian Beban - Full Width */}
                 <div className="bg-white shadow-lg border border-gray-200 relative hidden md:block overflow-hidden -mx-4 sm:-mx-6 md:-mx-8 mt-6 rounded-xl">
                     {/* Table Title */}
                     <div className="px-6 py-4 bg-gradient-to-r from-green-500 to-teal-600 border-b border-gray-200 flex items-center justify-between">

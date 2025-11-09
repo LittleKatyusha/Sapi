@@ -71,8 +71,11 @@ const AddEditBebanModal = ({
                 return found ? found.value : '';
             };
 
+            // Syarat Pembelian field should map from tipe_pembayaran (BANK/KAS/TUNAI)
+            // Try to find the value in tipePembayaranOptions by matching the label
+            const tipePembayaranValue = findValueByLabel(tipePembayaranOptions, editingItem.tipe_pembayaran) || editingItem.tipe_pembayaran || '';
+            // Bank field should map from syarat_pembelian (nama bank) or find by label
             const bankValue = editingItem.id_syarat_pembelian || editingItem.bank_pengirim || findValueByLabel(bankOptions, editingItem.syarat_pembelian) || '';
-            const tipePembayaranValue = editingItem.syarat_pembelian_value || editingItem.tipe_pembayaran || '';
 
             setFormData({
                 divisi: editingItem.divisi || editingItem.id_farm || findValueByLabel(divisiOptions, editingItem.farm) || '',
@@ -82,9 +85,9 @@ const AddEditBebanModal = ({
                 tanggal_pembayaran: editingItem.tanggal_pembayaran || editingItem.tgl_pembayaran || '',
                 peruntukan: editingItem.peruntukan || '',
                 keterangan: editingItem.keterangan || '',
-                // Bank field - editingItem.syarat_pembelian contains the bank name
+                // Bank field (id_syarat_pembelian) - maps to editingItem.syarat_pembelian (bank name)
                 id_syarat_pembelian: bankValue,
-                // Tipe Pembayaran field - editingItem.tipe_pembayaran contains the payment type value
+                // Syarat Pembelian field (syarat_pembelian in form) - maps to editingItem.tipe_pembayaran (BANK/KAS)
                 syarat_pembelian: tipePembayaranValue
             });
         } else {
