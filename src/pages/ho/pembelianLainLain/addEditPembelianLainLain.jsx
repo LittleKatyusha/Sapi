@@ -112,7 +112,9 @@ const AddEditPembelianLainLainPage = () => {
         fileName: '',
         tipe_pembayaran: '', // Added: Tipe pembayaran
         due_date: '', // Added: Jatuh tempo payment
-        note: '' // Added: Required note field
+        note: '', // Added: Required note field
+        nama_pembayar: '', // Added: Required for validation
+        tgl_pembayaran: '' // Added: Required for validation
     });
 
     // Detail items state
@@ -290,7 +292,9 @@ const AddEditPembelianLainLainPage = () => {
                             fileName: headerData.file ? headerData.file.split('/').pop() : '',
                             tipe_pembayaran: safeGetString(headerData.tipe_pembayaran),
                             due_date: safeGetString(headerData.due_date),
-                            note: safeGetString(headerData.note) || safeGetString(headerData.catatan)
+                            note: safeGetString(headerData.note) || safeGetString(headerData.catatan),
+                            nama_pembayar: safeGetString(headerData.nama_pembayar) || '',
+                            tgl_pembayaran: safeGetString(headerData.tgl_pembayaran) || ''
                         });
 
                         // Set existing file name if available
@@ -1011,6 +1015,14 @@ const AddEditPembelianLainLainPage = () => {
             errors.push('Catatan pembelian harus diisi');
         }
 
+        if (!headerData.nama_pembayar.trim()) {
+            errors.push('Nama pembayar harus diisi');
+        }
+
+        if (!headerData.tgl_pembayaran) {
+            errors.push('Tanggal pembayaran harus diisi');
+        }
+
         if (detailItems.length === 0) {
             errors.push('Minimal harus ada 1 item Lain-Lain');
         }
@@ -1085,6 +1097,8 @@ const AddEditPembelianLainLainPage = () => {
                 tipe_pembayaran: parseInt(headerData.tipe_pembayaran),
                 due_date: headerData.due_date,
                 note: headerData.note,
+                nama_pembayar: headerData.nama_pembayar, // Added required field
+                tgl_pembayaran: headerData.tgl_pembayaran, // Added required field
                 // Ensure file is properly passed - prioritize selectedFile over headerData.file
                 // Only pass file if it's a File object (new upload) or if we have existing file name but no new file
                 file: selectedFile || (headerData.file && headerData.file instanceof File ? headerData.file : null),
@@ -1510,7 +1524,7 @@ const AddEditPembelianLainLainPage = () => {
                                 className="w-full"
                             />
                             {tipePembayaranError && (
-                                <p className="text-xs text-red-500 mt-1">
+                                <p className="text-xs text-red-50 mt-1">
                                     ⚠️ Error loading tipe pembayaran: {tipePembayaranError}
                                 </p>
                             )}
@@ -1538,6 +1552,37 @@ const AddEditPembelianLainLainPage = () => {
                                     Opsional untuk pembayaran cash
                                 </p>
                             )}
+                        </div>
+
+                        {/* Nama Pembayar */}
+                        <div className="col-span-full md:col-span-1">
+                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <Building2 className="w-4 h-4" />
+                                Nama Pembayar *
+                            </label>
+                            <input
+                                type="text"
+                                value={headerData.nama_pembayar}
+                                onChange={(e) => handleHeaderChange('nama_pembayar', e.target.value)}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                                placeholder="Masukkan nama pembayar"
+                                required
+                            />
+                        </div>
+
+                        {/* Tanggal Pembayaran */}
+                        <div className="col-span-full md:col-span-1">
+                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <Calendar className="w-4 h-4" />
+                                Tanggal Pembayaran *
+                            </label>
+                            <input
+                                type="date"
+                                value={headerData.tgl_pembayaran}
+                                onChange={(e) => handleHeaderChange('tgl_pembayaran', e.target.value)}
+                                className="w-full px-4 py-3 border border-gray-30 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-50 transition-all duration-200"
+                                required
+                            />
                         </div>
 
                         {/* Note - Catatan */}

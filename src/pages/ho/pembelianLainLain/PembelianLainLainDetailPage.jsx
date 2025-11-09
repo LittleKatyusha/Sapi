@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Building2, User, Calendar, Truck, Hash, Package, Eye, Weight, DollarSign } from 'lucide-react';
+import { ArrowLeft, Building2, User, Calendar, Truck, Hash, Package, Eye, Weight, DollarSign, FileText, ExternalLink } from 'lucide-react';
 import usePembelianLainLain from './hooks/usePembelianLainLain';
 import useFarmAPI from './hooks/useFarmAPI';
 import useBanksAPI from '../pembelianFeedmil/hooks/useBanksAPI';
@@ -22,6 +22,7 @@ const PembelianLainLainDetailPage = () => {
     const navigate = useNavigate();
     const {
         getPembelianDetail,
+        viewUploadedFile,
         loading,
         error
     } = usePembelianLainLain();
@@ -303,6 +304,19 @@ const PembelianLainLainDetailPage = () => {
 
     const handleBack = () => {
         navigate('/ho/pembelian-lain-lain');
+    };
+
+    // Handle view file
+    const handleViewFile = async () => {
+        if (pembelianData?.file) {
+            const result = await viewUploadedFile(pembelianData.file);
+            if (!result.success) {
+                setNotification({
+                    type: 'error',
+                    message: result.message || 'Gagal membuka file'
+                });
+            }
+        }
     };
 
     // Auto hide notification
@@ -708,6 +722,23 @@ const PembelianLainLainDetailPage = () => {
                                 }).format(pembelianData.biaya_total) : 'Rp 0'}
                             </p>
                         </div>
+
+                        {/* File Document - Add this new section */}
+                        {pembelianData.file && (
+                            <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-lg">
+                                <label className="block text-sm font-medium text-gray-600 mb-2">
+                                    <FileText className="w-4 h-4 inline mr-1" />
+                                    Dokumen
+                                </label>
+                                <button
+                                    onClick={handleViewFile}
+                                    className="flex items-center gap-2 px-4 py-2 bg-white border border-purple-300 text-purple-700 rounded-lg hover:bg-purple-50 transition-colors duration-200"
+                                >
+                                    <ExternalLink className="w-4 h-4" />
+                                    <span className="font-medium">Lihat Dokumen</span>
+                                </button>
+                            </div>
+                        )}
                     </div>
 
 

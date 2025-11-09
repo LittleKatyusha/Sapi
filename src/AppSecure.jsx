@@ -40,6 +40,7 @@ const EartagPage = lazy(() => import('./pages/dataMaster/EartagPage'));
 const PersetujuanHoPage = lazy(() => import('./pages/dataMaster/PersetujuanHoPage'));
 const PersetujuanFeedmilPage = lazy(() => import('./pages/dataMaster/PersetujuanFeedmilPage'));
 const PersetujuanRphPage = lazy(() => import('./pages/dataMaster/PersetujuanRphPage'));
+const SatuanPage = lazy(() => import('./pages/dataMaster/SatuanPage'));
 
 // Boning Pages - Lazy loaded
 const BoningLayout = lazy(() => import('./pages/boning/BoningLayout'));
@@ -217,6 +218,7 @@ function AppSecure() {
               <Route path="/master-data/persetujuan-ho" element={<PersetujuanHoPage />} />
               <Route path="/master-data/persetujuan-feedmil" element={<PersetujuanFeedmilPage />} />
               <Route path="/master-data/persetujuan-rph" element={<PersetujuanRphPage />} />
+              <Route path="/master-data/satuan" element={<SatuanPage />} />
 
               {/* Boning Routes */}
               <Route path="/boning/*" element={<BoningLayout />}>

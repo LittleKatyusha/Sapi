@@ -428,7 +428,7 @@ const usePembelianLainLain = () => {
         }
     }, []);
 
-    // View uploaded file from pembelian Lain-Lain
+    // View uploaded file from pembelian Lain-Lain - Updated to use direct URL access
     const viewUploadedFile = useCallback(async (filePath) => {
         if (!filePath) {
             return {
@@ -438,74 +438,67 @@ const usePembelianLainLain = () => {
         }
 
         try {
-            let cleanPath;
-            
-            // Check if it's a full Minio URL or relative path
+            // Check if it's already a complete pre-signed URL from the database
             if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
-                const url = new URL(filePath);
-                const pathParts = url.pathname.split('/');
-                const filteredParts = pathParts.filter(part => part && part !== 'ternasys');
-                cleanPath = filteredParts.join('/');
-            } else {
-                cleanPath = filePath.replace(/\\/g, '/');
-            }
-            
-            const fileUrl = `${API_BASE_URL}${API_ENDPOINTS.HO.LAINLAIN.PEMBELIAN}/file/${cleanPath}`;
-            const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-            
-            if (!token) {
-                return {
-                    success: false,
-                    message: 'Sesi login telah berakhir. Silakan login kembali.'
-                };
-            }
-            
-            const newWindow = window.open('about:blank', '_blank');
-            const response = await fetch(fileUrl, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/pdf,image/*,*/*',
-                    'Cache-Control': 'no-cache',
-                    'Pragma': 'no-cache'
-                }
-            });
-            
-            if (response.ok) {
-                const blob = await response.blob();
+                // It's already a complete URL (like https://assets.ternasys.com/...?X-Amz-Signature=...)
+                // Open directly without any processing
+                const newWindow = window.open(filePath, '_blank');
                 
-                if (blob.size === 0) {
-                    throw new Error('File kosong atau tidak valid');
-                }
-                
-                const blobUrl = URL.createObjectURL(blob);
-                
-                if (newWindow && !newWindow.closed) {
-                    newWindow.location.href = blobUrl;
-                    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
-                } else {
-                    // Fallback: download file
+                if (!newWindow || newWindow.closed) {
+                    // Fallback: Create a link and click it
                     const link = document.createElement('a');
-                    link.href = blobUrl;
-                    link.download = cleanPath.split('/').pop() || 'document';
+                    link.href = filePath;
+                    link.target = '_blank';
+                    link.rel = 'noopener noreferrer';
+                    const fileName = filePath.split('/').pop()?.split('?')[0] || 'document';
+                    link.download = fileName;
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
-                    URL.revokeObjectURL(blobUrl);
                 }
                 
                 return {
                     success: true,
                     message: 'File berhasil dibuka'
                 };
-            } else if (response.status === 401) {
-                throw new Error('Sesi login telah berakhir');
-            } else if (response.status === 404) {
-                throw new Error('File tidak ditemukan di server');
-            } else if (response.status === 403) {
-                throw new Error('Tidak memiliki izin untuk mengakses file ini');
             } else {
-                throw new Error(`File tidak dapat diakses (${response.status})`);
+                // Legacy path format - construct the full URL
+                // This is for backward compatibility with older data
+                const cleanPath = filePath.replace(/\\/g, '/');
+                
+                // If it's a relative path, we might need to construct the full URL
+                // Check if the backend provides a base URL for assets
+                let fullUrl;
+                
+                // If the path looks like it should be on assets.ternasys.com
+                if (cleanPath.includes('ternasys') || cleanPath.includes('pembelian')) {
+                    // Construct the full Minio/S3 URL
+                    fullUrl = `https://assets.ternasys.com/${cleanPath}`;
+                } else {
+                    // Fall back to the API endpoint for legacy files
+                    fullUrl = `${API_BASE_URL}${API_ENDPOINTS.HO.LAINLAIN.PEMBELIAN}/file/${cleanPath}`;
+                }
+                
+                // Open the URL directly
+                const newWindow = window.open(fullUrl, '_blank');
+                
+                if (!newWindow || newWindow.closed) {
+                    // Fallback: Create a link and click it
+                    const link = document.createElement('a');
+                    link.href = fullUrl;
+                    link.target = '_blank';
+                    link.rel = 'noopener noreferrer';
+                    const fileName = cleanPath.split('/').pop() || 'document';
+                    link.download = fileName;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+                
+                return {
+                    success: true,
+                    message: 'File berhasil dibuka'
+                };
             }
         } catch (error) {
             console.error('File access error:', error);

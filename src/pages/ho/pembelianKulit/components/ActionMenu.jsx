@@ -39,7 +39,7 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef }) => 
         };
     }, [onClose, buttonRef]);
 
-    // Handle view file functionality - UPDATED WITH IMPROVED PATTERN
+    // Handle view file functionality - USING DIRECT URL ACCESS
     const handleViewFile = async (row) => {
         if (!row.file) {
             alert('File tidak tersedia untuk pembelian ini');
@@ -48,112 +48,32 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef }) => 
 
         setFileLoading(true);
         try {
-            // Get auth token
-            const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-            
-            if (!token) {
-                alert('Sesi login telah berakhir. Silakan login kembali.');
-                return;
-            }
-
             // Debug: Log the original path
             console.log('ActionMenu - Original file path:', row.file);
             
-            let cleanPath;
+            let fileUrl = row.file;
             
-            // Check if it's a full Minio URL or relative path
-            if (row.file.startsWith('http://') || row.file.startsWith('https://')) {
-                // It's a full Minio URL, extract the relative path
-                const url = new URL(row.file);
-                const pathParts = url.pathname.split('/');
-                // Remove empty parts and 'ternasys' prefix
-                const filteredParts = pathParts.filter(part => part && part !== 'ternasys');
-                cleanPath = filteredParts.join('/');
-                console.log('ActionMenu - Extracted relative path from Minio URL:', cleanPath);
+            // Check if it's already a complete pre-signed URL from database
+            if (fileUrl.includes('X-Amz-Signature') || fileUrl.includes('?')) {
+                // It's already a complete pre-signed URL from the database
+                console.log('ActionMenu - Using pre-signed URL directly:', fileUrl);
+            } else if (fileUrl.startsWith('http://') || fileUrl.startsWith('https://')) {
+                // It's a complete URL without signature - use as is
+                console.log('ActionMenu - Using complete URL:', fileUrl);
             } else {
-                // It's already a relative path
-                cleanPath = row.file.replace(/\\/g, '/');
-                console.log('ActionMenu - Using relative path as is:', cleanPath);
+                // It's a relative path - this should not happen with new approach
+                console.warn('ActionMenu - Unexpected relative path, using as is:', fileUrl);
+                // If it's still a relative path, construct full URL (fallback)
+                if (!fileUrl.startsWith('http')) {
+                    fileUrl = `https://assets.ternasys.com/${fileUrl}`;
+                }
             }
             
-            // Create the API endpoint URL
-            const fileUrl = `${API_BASE_URL}${API_ENDPOINTS.HO.FEEDMIL.PEMBELIAN}/file/${cleanPath}`;
+            // Open file directly in new window using the complete URL
+            const newWindow = window.open(fileUrl, '_blank');
             
-            console.log('ActionMenu - Final file URL:', fileUrl);
-            
-            // Create new window
-            const newWindow = window.open('about:blank', '_blank');
-            
-            // Fetch file with authentication and proper headers for Minio storage
-            const response = await fetch(fileUrl, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/pdf,image/*,*/*',
-                    'Cache-Control': 'no-cache',
-                    'Pragma': 'no-cache'
-                }
-            });
-
-            console.log('ActionMenu - Response status:', response.status);
-            console.log('ActionMenu - Response headers:', response.headers);
-
-            if (response.ok) {
-                // Check if response is a streamed response from backend
-                const contentType = response.headers.get('content-type');
-                const contentDisposition = response.headers.get('content-disposition');
-                
-                console.log('ActionMenu - Content-Type:', contentType);
-                console.log('ActionMenu - Content-Disposition:', contentDisposition);
-                
-                const blob = await response.blob();
-                console.log('ActionMenu - Blob received:', blob);
-                console.log('ActionMenu - Blob size:', blob.size);
-                console.log('ActionMenu - Blob type:', blob.type);
-                
-                if (blob.size === 0) {
-                    throw new Error('File kosong atau tidak valid');
-                }
-                
-                const blobUrl = URL.createObjectURL(blob);
-                console.log('ActionMenu - Blob URL created:', blobUrl);
-                
-                if (newWindow && !newWindow.closed) {
-                    newWindow.location.href = blobUrl;
-                    // Clean up blob URL after a delay to allow the window to load
-                    setTimeout(() => {
-                        URL.revokeObjectURL(blobUrl);
-                    }, 1000);
-                } else {
-                    // Fallback: download file
-                    const link = document.createElement('a');
-                    link.href = blobUrl;
-                    link.download = cleanPath.split('/').pop() || 'document';
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    URL.revokeObjectURL(blobUrl);
-                }
-            } else if (response.status === 401) {
-                alert('Sesi login telah berakhir');
-                if (newWindow && !newWindow.closed) {
-                    newWindow.close();
-                }
-            } else if (response.status === 404) {
-                alert('File tidak ditemukan di server');
-                if (newWindow && !newWindow.closed) {
-                    newWindow.close();
-                }
-            } else if (response.status === 403) {
-                alert('Tidak memiliki izin untuk mengakses file ini');
-                if (newWindow && !newWindow.closed) {
-                    newWindow.close();
-                }
-            } else {
-                alert(`File tidak dapat diakses (${response.status})`);
-                if (newWindow && !newWindow.closed) {
-                    newWindow.close();
-                }
+            if (!newWindow) {
+                alert('Pop-up blocker mencegah pembukaan file. Silakan izinkan pop-up untuk situs ini.');
             }
             
             // Close menu after successful view

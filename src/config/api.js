@@ -69,7 +69,8 @@ export const API_ENDPOINTS = {
     BANK: '/api/master/bank',
     PERSETUJUAN_HO: '/api/master/persetujuanho',
     PERSETUJUAN_FEEDMIL: '/api/master/persetujuanfeedmil',
-    PERSETUJUAN_RPH: '/api/master/persetujuanrph'
+    PERSETUJUAN_RPH: '/api/master/persetujuanrph',
+    SATUAN: '/api/master/satuan'
   },
 
   // Head Office (HO)
@@ -88,6 +89,12 @@ export const API_ENDPOINTS = {
     },
     LAINLAIN: {
       PEMBELIAN: '/api/ho/lainlain/pembelian'
+    },
+    BEBAN_BIAYA: {
+      PEMBELIAN: '/api/ho/bebanbiaya/pembelian'
+    },
+    BAHAN_PEMBANTU: {
+      PEMBELIAN: '/api/ho/bahanpembantu/pembelian'
     },
     PAYMENT: {
       BASE: '/api/ho/payment',
