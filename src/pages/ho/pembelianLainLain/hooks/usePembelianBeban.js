@@ -46,8 +46,10 @@ const usePembelianBeban = () => {
                 'order[0][dir]': 'desc'
             };
 
+            // Force bypass cache when isRefresh is true
             const response = await HttpClient.get(`${API_ENDPOINTS.HO.BEBAN_BIAYA.PEMBELIAN}/data`, {
-                params
+                params,
+                cache: isRefresh ? false : undefined
             });
 
             if (response && (response.success === true || response.data)) {
@@ -66,7 +68,6 @@ const usePembelianBeban = () => {
                 throw new Error(response?.message || response.data?.message || 'Failed to fetch pembelian beban data');
             }
         } catch (err) {
-            console.error('Error fetching pembelian beban:', err);
             setError(err.response?.data?.message || err.message || 'Failed to fetch pembelian beban data');
             setPembelianBeban([]);
             setServerPagination(prev => ({
@@ -141,8 +142,11 @@ const usePembelianBeban = () => {
                             (response && !response.error && !response.errors);
 
             if (isSuccess) {
-                // Refresh data after successful creation
-                await fetchPembelianBeban(serverPagination.currentPage, serverPagination.perPage, searchTerm);
+                // Clear cache for beban data endpoint
+                HttpClient.clearCache('bebanbiaya/pembelian');
+                
+                // Refresh data after successful creation with isRefresh flag
+                await fetchPembelianBeban(serverPagination.currentPage, serverPagination.perPage, searchTerm, false, true);
                 
                 return {
                     success: true,
@@ -153,7 +157,6 @@ const usePembelianBeban = () => {
                 throw new Error(response.message || response.data?.message || response.error || 'Failed to create pembelian beban');
             }
         } catch (err) {
-            console.error('Error creating pembelian beban:', err);
             const errorMessage = err.response?.data?.message || err.message || 'Failed to create pembelian beban';
             setError(errorMessage);
             
@@ -189,8 +192,11 @@ const usePembelianBeban = () => {
                             (response && !response.error && !response.errors);
 
             if (isSuccess) {
-                // Refresh data after successful update
-                await fetchPembelianBeban(serverPagination.currentPage, serverPagination.perPage, searchTerm);
+                // Clear cache for beban data endpoint
+                HttpClient.clearCache('bebanbiaya/pembelian');
+                
+                // Refresh data after successful update with isRefresh flag
+                await fetchPembelianBeban(serverPagination.currentPage, serverPagination.perPage, searchTerm, false, true);
                 
                 return {
                     success: true,
@@ -201,7 +207,6 @@ const usePembelianBeban = () => {
                 throw new Error(response.message || response.data?.message || response.error || 'Failed to update pembelian beban');
             }
         } catch (err) {
-            console.error('Error updating pembelian beban:', err);
             const errorMessage = err.response?.data?.message || err.message || 'Failed to update pembelian beban';
             setError(errorMessage);
             
@@ -229,19 +234,27 @@ const usePembelianBeban = () => {
                 }
             );
 
-            if (response && response.success) {
-                // Refresh data after successful deletion
-                await fetchPembelianBeban(serverPagination.currentPage, serverPagination.perPage, searchTerm);
+            // Check multiple possible success response structures
+            const isSuccess = response?.success === true ||
+                            response?.status === 'ok' ||
+                            response?.status === 'success' ||
+                            response?.data?.success === true;
+
+            if (isSuccess) {
+                // Clear cache for beban data endpoint to force fresh data
+                HttpClient.clearCache('bebanbiaya/pembelian');
+                
+                // Refresh data after successful deletion with isRefresh flag
+                await fetchPembelianBeban(serverPagination.currentPage, serverPagination.perPage, searchTerm, false, true);
                 
                 return {
                     success: true,
-                    message: response.data.message || 'Data pembelian beban berhasil dihapus'
+                    message: response.message || response.data?.message || 'Data pembelian beban berhasil dihapus'
                 };
             } else {
-                throw new Error(response.data?.message || 'Failed to delete pembelian beban');
+                throw new Error(response.message || response.data?.message || 'Failed to delete pembelian beban');
             }
         } catch (err) {
-            console.error('Error deleting pembelian beban:', err);
             const errorMessage = err.response?.data?.message || err.message || 'Failed to delete pembelian beban';
             setError(errorMessage);
             

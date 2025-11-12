@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, DollarSign, FileText, Calendar, User, Building2, TrendingUp, CreditCard, Wallet } from 'lucide-react';
+import { X, Save, DollarSign, FileText, Calendar, User, Building2, TrendingUp, CreditCard, Wallet, Package } from 'lucide-react';
 import SearchableSelect from '../../../../components/shared/SearchableSelect';
 import HttpClient from '../../../../services/httpClient';
+import useItemBebanBiayaAPI from '../hooks/useItemBebanBiayaAPI';
 
 const AddEditBebanModal = ({
     isOpen,
@@ -21,9 +22,17 @@ const AddEditBebanModal = ({
 }) => {
     const isEditMode = Boolean(editingItem) && !isDetailMode;
     
+    // Fetch item beban biaya options from new backend endpoint
+    const {
+        itemBebanBiayaOptions,
+        loading: itemBebanBiayaLoading,
+        refetch: refetchItemBebanBiaya
+    } = useItemBebanBiayaAPI();
+    
     const [formData, setFormData] = useState({
         divisi: '',
         jenis_beban: '',
+        id_item: '', // New field for item beban biaya
         nilai: '',
         dibayarkan_oleh: '',
         tanggal_pembayaran: '',
@@ -80,6 +89,7 @@ const AddEditBebanModal = ({
             setFormData({
                 divisi: editingItem.divisi || editingItem.id_farm || findValueByLabel(divisiOptions, editingItem.farm) || '',
                 jenis_beban: editingItem.jenis_beban || editingItem.tipe_pembelian || findValueByLabel(jenisBebanOptions, editingItem.jenis_pembelian) || '',
+                id_item: editingItem.id_item?.toString() || '', // New field from backend
                 nilai: editingItem.nilai || editingItem.biaya_total || '',
                 dibayarkan_oleh: editingItem.dibayarkan_oleh || editingItem.nama_pembayar || '',
                 tanggal_pembayaran: editingItem.tanggal_pembayaran || editingItem.tgl_pembayaran || '',
@@ -94,6 +104,7 @@ const AddEditBebanModal = ({
             setFormData({
                 divisi: '',
                 jenis_beban: '3',  // Auto-set for add mode
+                id_item: '', // New field
                 nilai: '',
                 dibayarkan_oleh: '',
                 tanggal_pembayaran: '',
@@ -134,8 +145,10 @@ const AddEditBebanModal = ({
             }
             // Fetch bank options when modal opens
             fetchBankOptions();
+            // Fetch item beban biaya options when modal opens
+            refetchItemBebanBiaya();
         }
-    }, [isOpen, syaratPembelianOptions]);
+    }, [isOpen, syaratPembelianOptions, refetchItemBebanBiaya]);
 
     const fetchTipePembayaranOptions = async () => {
         try {
@@ -203,6 +216,8 @@ const AddEditBebanModal = ({
                     return value !== '3' ? 'Jenis Beban/Biaya harus diisi dengan "BEBAN DAN BIAYA - BIAYA"' : '';
                 }
                 return !value ? 'Jenis Beban/Biaya harus dipilih' : '';
+            case 'id_item':
+                return !value ? 'Item harus dipilih' : '';
             case 'nilai':
                 if (!value || value === '') return 'Nilai harus diisi';
                 const nilaiNum = parseFloat(value);
@@ -227,6 +242,7 @@ const AddEditBebanModal = ({
         const newErrors = {};
         newErrors.divisi = validateField('divisi', formData.divisi);
         newErrors.jenis_beban = validateField('jenis_beban', formData.jenis_beban);
+        newErrors.id_item = validateField('id_item', formData.id_item);
         newErrors.nilai = validateField('nilai', formData.nilai);
         newErrors.dibayarkan_oleh = validateField('dibayarkan_oleh', formData.dibayarkan_oleh);
         newErrors.tanggal_pembayaran = validateField('tanggal_pembayaran', formData.tanggal_pembayaran);
@@ -239,10 +255,27 @@ const AddEditBebanModal = ({
     };
 
     const handleChange = (field, value) => {
-        setFormData(prev => ({
-            ...prev,
-            [field]: value
-        }));
+        // Special handling for syarat_pembelian
+        if (field === 'syarat_pembelian') {
+            // If payment type is "Kas" (ID 1), automatically set bank to "Kas" (ID 1) and lock it
+            if (value === 1 || value === '1') {
+                setFormData(prev => ({
+                    ...prev,
+                    [field]: value,
+                    id_syarat_pembelian: '1' // Auto-set to Kas
+                }));
+            } else {
+                setFormData(prev => ({
+                    ...prev,
+                    [field]: value
+                }));
+            }
+        } else {
+            setFormData(prev => ({
+                ...prev,
+                [field]: value
+            }));
+        }
         
         if (touched[field]) {
             setErrors(prev => ({
@@ -266,6 +299,7 @@ const AddEditBebanModal = ({
         setTouched({
             divisi: true,
             jenis_beban: true,
+            id_item: true,
             nilai: true,
             dibayarkan_oleh: true,
             tanggal_pembayaran: true,
@@ -281,6 +315,7 @@ const AddEditBebanModal = ({
         const dataToSave = {
             id_farm: formData.divisi,
             tipe_pembelian: formData.jenis_beban,
+            id_item: formData.id_item, // New field for item beban biaya
             biaya_total: parseNumber(formData.nilai) || 0,
             nama_pembayar: formData.dibayarkan_oleh.trim(),
             tgl_pembayaran: formData.tanggal_pembayaran,
@@ -392,6 +427,28 @@ const AddEditBebanModal = ({
                                 </select>
                                 {touched.jenis_beban && errors.jenis_beban && (
                                     <p className="text-xs text-red-600 mt-1">⚠️ {errors.jenis_beban}</p>
+                                )}
+                            </div>
+
+                            {/* Item Beban Biaya */}
+                            <div>
+                                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                    <Package className="w-4 h-4" />
+                                    Item *
+                                </label>
+                                <SearchableSelect
+                                    options={itemBebanBiayaOptions}
+                                    value={formData.id_item}
+                                    onChange={(value) => handleChange('id_item', value)}
+                                    onBlur={() => handleBlur('id_item')}
+                                    placeholder="Pilih Item"
+                                    isLoading={itemBebanBiayaLoading}
+                                    isDisabled={isSubmitting || itemBebanBiayaLoading || isDetailMode}
+                                    isClearable={false}
+                                    isSearchable={true}
+                                />
+                                {touched.id_item && errors.id_item && (
+                                    <p className="text-xs text-red-600 mt-1">⚠️ {errors.id_item}</p>
                                 )}
                             </div>
 
@@ -509,7 +566,7 @@ const AddEditBebanModal = ({
                             <div>
                                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                                     <Wallet className="w-4 h-4" />
-                                    Bank
+                                    Bank *
                                 </label>
                                 <SearchableSelect
                                     options={bankOptions}
@@ -517,12 +574,15 @@ const AddEditBebanModal = ({
                                     onChange={(value) => handleChange('id_syarat_pembelian', value)}
                                     placeholder="Pilih Bank"
                                     isLoading={bankLoading}
-                                    isDisabled={isSubmitting || bankLoading || isDetailMode}
+                                    isDisabled={isSubmitting || bankLoading || isDetailMode || formData.syarat_pembelian === 1 || formData.syarat_pembelian === '1'}
                                     isClearable={true}
                                     isSearchable={true}
                                 />
                                 {touched.id_syarat_pembelian && errors.id_syarat_pembelian && (
                                     <p className="text-xs text-red-600 mt-1">⚠️ {errors.id_syarat_pembelian}</p>
+                                )}
+                                {(formData.syarat_pembelian === 1 || formData.syarat_pembelian === '1') && (
+                                    <p className="text-xs text-blue-600 mt-1">🔒 Bank otomatis diset ke "Kas" karena pembayaran Kas</p>
                                 )}
                             </div>
 

@@ -22,7 +22,7 @@ import { API_ENDPOINTS } from '../../../config/api';
 import HttpClient from '../../../services/httpClient';
 
 // Import modals
-import DeleteConfirmationModal from '../pembelianFeedmil/modals/DeleteConfirmationModal';
+import DeleteConfirmationModal from './modals/DeleteConfirmationModal';
 import AddEditBebanModal from './modals/AddEditBebanModal';
 import AddEditBahanPembantuModal from './modals/AddEditBahanPembantuModal';
 
@@ -108,13 +108,6 @@ const PembelianLainLainPage = () => {
         deletePembelianBahanPembantu,
     } = usePembelianBahanPembantu();
 
-    // Debug: Log pembelianBahanPembantu data to check structure
-    useEffect(() => {
-        if (pembelianBahanPembantu.length > 0) {
-            console.log('✅ Pembelian Bahan Pembantu Data Fetched:', pembelianBahanPembantu.length, 'items');
-            console.log('📦 Bahan Pembantu Sample Data:', pembelianBahanPembantu[0]);
-        }
-    }, [pembelianBahanPembantu]);
 
     // Parameter Select integration for farm options
     const {
@@ -168,20 +161,6 @@ const PembelianLainLainPage = () => {
         fetchPembelianBahanPembantu();
     }, []);
 
-    // Debug: Log pembelianBeban data to check IDs and structure
-    useEffect(() => {
-        if (pembelianBeban.length > 0) {
-            console.log('Pembelian Beban Full Data Sample:', pembelianBeban[0]);
-            console.log('Pembelian Beban IDs:', pembelianBeban.map((item, idx) => ({
-                index: idx,
-                id: item.id,
-                encryptedPid: item.encryptedPid,
-                pid: item.pid,
-                pb_id: item.pb_id,
-                allKeys: Object.keys(item)
-            })));
-        }
-    }, [pembelianBeban]);
 
     // Auto-refresh when user returns to the page (e.g., from edit page)
     useEffect(() => {
@@ -269,13 +248,11 @@ const PembelianLainLainPage = () => {
                 pid: beban.pid || beban.encryptedPid
             });
 
-            console.log('Edit Beban Response:', response);
 
             // Check for both success formats: success: true OR status: "ok"
             if (response && (response.success === true || response.status === 'ok') && response.data) {
                 // API mengembalikan array, ambil item pertama
                 const detailData = Array.isArray(response.data) ? response.data[0] : response.data;
-                console.log('Edit Beban Detail Data:', detailData);
                 setSelectedBebanItem(detailData);
                 setIsBebanDetailMode(false);
                 setIsBebanModalOpen(true);
@@ -301,13 +278,11 @@ const PembelianLainLainPage = () => {
                 pid: beban.pid || beban.encryptedPid
             });
 
-            console.log('Detail Beban Response:', response);
 
             // Check for both success formats: success: true OR status: "ok"
             if (response && (response.success === true || response.status === 'ok') && response.data) {
                 // API mengembalikan array, ambil item pertama
                 const detailData = Array.isArray(response.data) ? response.data[0] : response.data;
-                console.log('Detail Beban Detail Data:', detailData);
                 setSelectedBebanItem(detailData);
                 setIsBebanDetailMode(true);
                 setIsBebanModalOpen(true);
@@ -315,7 +290,6 @@ const PembelianLainLainPage = () => {
                 throw new Error(response?.message || 'Gagal mengambil data beban');
             }
         } catch (error) {
-            console.error('Error fetching beban detail:', error);
             setNotification({
                 type: 'error',
                 message: error.message || 'Gagal mengambil data beban untuk ditampilkan'
@@ -328,35 +302,21 @@ const PembelianLainLainPage = () => {
     // Handler khusus untuk edit bahan pembantu
     const handleEditBahanPembantu = async (bahanPembantu) => {
         try {
-            console.log('🔵 EDIT REQUEST - Item dari table:', bahanPembantu);
-            
             // Fetch lazy-loaded options FIRST before opening modal
-            console.log('📡 Fetching Tipe Pembayaran and Bank options...');
             await Promise.all([
                 fetchTipePembayaran(),
                 fetchBanks()
             ]);
-            console.log('✅ Options loaded successfully');
-            
             // Fetch detail data dari API
             const response = await HttpClient.post(`${API_ENDPOINTS.HO.BAHAN_PEMBANTU.PEMBELIAN}/show`, {
                 pid: bahanPembantu.pid || bahanPembantu.encryptedPid
             });
 
-            console.log('🔵 EDIT RESPONSE - Raw API Response:', response);
 
             // Check for both success formats: success: true OR status: "ok"
             if (response && (response.success === true || response.status === 'ok') && response.data) {
                 // API mengembalikan array, ambil item pertama
                 const detailData = Array.isArray(response.data) ? response.data[0] : response.data;
-                console.log('🔵 EDIT DATA - Detail yang akan dikirim ke modal:', detailData);
-                console.log('🔵 EDIT DATA - Field mappings:', {
-                    farm: detailData.farm || detailData.nama_office,
-                    satuan: detailData.satuan,
-                    syarat_pembelian: detailData.syarat_pembelian,
-                    tipe_pembayaran: detailData.tipe_pembayaran
-                });
-                
                 setSelectedBahanPembantuItem(detailData);
                 setIsBahanPembantuDetailMode(false);
                 setIsBahanPembantuModalOpen(true);
@@ -364,7 +324,6 @@ const PembelianLainLainPage = () => {
                 throw new Error(response?.message || 'Gagal mengambil data bahan pembantu');
             }
         } catch (error) {
-            console.error('❌ Error fetching bahan pembantu detail:', error);
             setNotification({
                 type: 'error',
                 message: error.message || 'Gagal mengambil data bahan pembantu untuk diedit'
@@ -377,35 +336,21 @@ const PembelianLainLainPage = () => {
     // Handler khusus untuk detail bahan pembantu
     const handleDetailBahanPembantu = async (bahanPembantu) => {
         try {
-            console.log('🟢 DETAIL REQUEST - Item dari table:', bahanPembantu);
-            
             // Fetch lazy-loaded options FIRST before opening modal
-            console.log('📡 Fetching Tipe Pembayaran and Bank options...');
             await Promise.all([
                 fetchTipePembayaran(),
                 fetchBanks()
             ]);
-            console.log('✅ Options loaded successfully');
-            
             // Fetch detail data dari API
             const response = await HttpClient.post(`${API_ENDPOINTS.HO.BAHAN_PEMBANTU.PEMBELIAN}/show`, {
                 pid: bahanPembantu.pid || bahanPembantu.encryptedPid
             });
 
-            console.log('🟢 DETAIL RESPONSE - Raw API Response:', response);
 
             // Check for both success formats: success: true OR status: "ok"
             if (response && (response.success === true || response.status === 'ok') && response.data) {
                 // API mengembalikan array, ambil item pertama
                 const detailData = Array.isArray(response.data) ? response.data[0] : response.data;
-                console.log('🟢 DETAIL DATA - Detail yang akan dikirim ke modal:', detailData);
-                console.log('🟢 DETAIL DATA - Field mappings:', {
-                    farm: detailData.farm || detailData.nama_office,
-                    satuan: detailData.satuan,
-                    syarat_pembelian: detailData.syarat_pembelian,
-                    tipe_pembayaran: detailData.tipe_pembayaran
-                });
-                
                 setSelectedBahanPembantuItem(detailData);
                 setIsBahanPembantuDetailMode(true);
                 setIsBahanPembantuModalOpen(true);
@@ -413,7 +358,6 @@ const PembelianLainLainPage = () => {
                 throw new Error(response?.message || 'Gagal mengambil data bahan pembantu');
             }
         } catch (error) {
-            console.error('❌ Error fetching bahan pembantu detail:', error);
             setNotification({
                 type: 'error',
                 message: error.message || 'Gagal mengambil data bahan pembantu untuk ditampilkan'
@@ -451,34 +395,35 @@ const PembelianLainLainPage = () => {
             let result;
             let deleteType = 'lain-lain';
             
-            console.log('🗑️ Delete Request - Data:', pembelian);
-            console.log('🗑️ Delete Request - Report Type:', pembelian.reportType);
-            
             // Determine which delete function to use based on reportType
             if (pembelian.reportType === 'bahan_pembantu') {
-                console.log('🗑️ Deleting Bahan Pembantu with PID:', encryptedPid);
                 result = await deletePembelianBahanPembantu(encryptedPid);
                 deleteType = 'bahan pembantu';
             } else if (pembelian.reportType === 'beban') {
-                console.log('🗑️ Deleting Beban with PID:', encryptedPid);
                 result = await deletePembelianBeban(encryptedPid);
                 deleteType = 'beban dan biaya';
             } else {
-                console.log('🗑️ Deleting Lain-Lain with PID:', encryptedPid);
                 result = await deletePembelian(encryptedPid, pembelian);
                 deleteType = 'lain-lain';
             }
             
             if (result.success) {
-                console.log('✅ Delete Successful:', deleteType);
                 setNotification({
                     type: 'success',
                     message: result.message || `Data pembelian ${deleteType} berhasil dihapus`
                 });
                 
                 handleCloseDeleteModal();
+                
+                if (deleteType === 'beban dan biaya') {
+                    await fetchPembelianBeban(bebanPagination.currentPage, bebanPagination.perPage, bebanSearchTerm, false, true);
+                } else if (deleteType === 'bahan pembantu') {
+                    await fetchPembelianBahanPembantu(bahanPembantuPagination.currentPage, bahanPembantuPagination.perPage, bahanPembantuSearchTerm, false, true);
+                }
+                
+                // Refresh info cards
+                refetchInfoCards();
             } else {
-                console.error('❌ Delete Failed:', result.message);
                 let errorMessage = result.message || `Gagal menghapus data pembelian ${deleteType}`;
                 
                 setNotification({
@@ -487,13 +432,12 @@ const PembelianLainLainPage = () => {
                 });
             }
         } catch (error) {
-            console.error('❌ Delete Error:', error);
             setNotification({
                 type: 'error',
                 message: error.message || 'Terjadi kesalahan saat menghapus data pembelian'
             });
         }
-    }, [deletePembelian, deletePembelianBeban, deletePembelianBahanPembantu]);
+    }, [deletePembelian, deletePembelianBeban, deletePembelianBahanPembantu, pembelianBeban.length, pembelianBahanPembantu.length, bebanPagination, bahanPembantuPagination, bebanSearchTerm, bahanPembantuSearchTerm, fetchPembelianBeban, fetchPembelianBahanPembantu, refetchInfoCards]);
 
     // Pagination handlers for mobile cards
     const handlePageChange = (page) => {
@@ -513,7 +457,6 @@ const PembelianLainLainPage = () => {
         setIsBebanModalOpen(false);
         setSelectedBebanItem(null);
         setIsBebanDetailMode(false);
-        console.log('🔄 Beban Modal Closed - State Reset');
     };
 
     const handleSaveBeban = async (bebanData) => {
@@ -537,11 +480,15 @@ const PembelianLainLainPage = () => {
                 });
                 
                 handleCloseBebanModal();
-                // Refresh both tables
+                
+                // Refresh both tables with force refresh
                 await Promise.all([
                     fetchPembelian(),
-                    fetchPembelianBeban()
+                    fetchPembelianBeban(bebanPagination.currentPage, bebanPagination.perPage, bebanSearchTerm, false, true)
                 ]);
+                
+                // Refresh info cards
+                refetchInfoCards();
             } else {
                 throw new Error(result.message || `Gagal ${selectedBebanItem ? 'memperbarui' : 'menyimpan'} data beban dan biaya`);
             }
@@ -569,45 +516,37 @@ const PembelianLainLainPage = () => {
         setIsBahanPembantuModalOpen(false);
         setSelectedBahanPembantuItem(null);
         setIsBahanPembantuDetailMode(false);
-        console.log('🔄 Bahan Pembantu Modal Closed - State Reset');
     };
 
     const handleSaveBahanPembantu = async (bahanPembantuData) => {
         setIsBahanPembantuSubmitting(true);
         try {
-            console.log('💾 Saving Bahan Pembantu - Data:', bahanPembantuData);
-            console.log('💾 Edit Mode:', !!selectedBahanPembantuItem);
-            
             let result;
             
             // Check if we're updating or creating
             if (selectedBahanPembantuItem && selectedBahanPembantuItem.pid) {
                 // Update existing bahan pembantu
-                console.log('🔄 Updating Bahan Pembantu with PID:', selectedBahanPembantuItem.pid);
                 result = await updatePembelianBahanPembantu(selectedBahanPembantuItem.pid, bahanPembantuData);
             } else {
                 // Create new bahan pembantu
-                console.log('➕ Creating New Bahan Pembantu');
                 result = await createPembelianBahanPembantu(bahanPembantuData);
             }
             
             if (result.success) {
-                console.log('✅ Save Successful:', result.message);
                 setNotification({
                     type: 'success',
                     message: result.message || `Data pembelian bahan pembantu berhasil ${selectedBahanPembantuItem ? 'diperbarui' : 'disimpan'}!`
                 });
                 
                 handleCloseBahanPembantuModal();
-                // Refresh only bahan pembantu data
-                console.log('🔄 Refreshing Bahan Pembantu Data...');
-                await fetchPembelianBahanPembantu();
+                // Refresh bahan pembantu data with force refresh
+                await fetchPembelianBahanPembantu(bahanPembantuPagination.currentPage, bahanPembantuPagination.perPage, bahanPembantuSearchTerm, true);
+                // Refresh info cards
+                refetchInfoCards();
             } else {
-                console.error('❌ Save Failed:', result.message);
                 throw new Error(result.message || `Gagal ${selectedBahanPembantuItem ? 'memperbarui' : 'menyimpan'} data pembelian bahan pembantu`);
             }
         } catch (error) {
-            console.error('❌ Save Error:', error);
             setNotification({
                 type: 'error',
                 message: error.message || `Gagal ${selectedBahanPembantuItem ? 'memperbarui' : 'menyimpan'} data pembelian bahan pembantu`
@@ -977,6 +916,20 @@ const PembelianLainLainPage = () => {
             )
         },
         {
+            name: 'NAMA ITEM',
+            selector: row => row.nama_item,
+            sortable: true,
+            minWidth: '200px',
+            wrap: true,
+            cell: row => (
+                <div className="flex items-center justify-center w-full h-full min-h-[40px] px-2">
+                    <div className="text-center font-medium text-gray-800 leading-tight force-wrap">
+                        {row.nama_item || '-'}
+                    </div>
+                </div>
+            )
+        },
+        {
             name: 'NILAI (Rp)',
             selector: row => row.biaya_total || row.total_belanja,
             sortable: true,
@@ -1049,11 +1002,14 @@ const PembelianLainLainPage = () => {
                 return (
                     <div className="sticky-column-aksi">
                         <ActionButton
-                            row={{...row, id: rowId, encryptedPid: rowId}}
+                            row={{...row, id: rowId, encryptedPid: rowId, reportType: 'beban'}}
                             openMenuId={openMenuIdBeban}
                             setOpenMenuId={setOpenMenuIdBeban}
                             onEdit={handleEditBeban}
-                            onDelete={handleDelete}
+                            onDelete={(item) => {
+                                // Ensure reportType is set for beban items
+                                handleDelete({...item, reportType: 'beban'});
+                            }}
                             onDetail={handleDetailBeban}
                             isActive={openMenuIdBeban === rowId}
                             apiEndpoint={API_ENDPOINTS.HO.BEBAN_BIAYA.PEMBELIAN}
@@ -1068,7 +1024,6 @@ const PembelianLainLainPage = () => {
 
     // Handler khusus untuk delete bahan pembantu
     const handleDeleteBahanPembantu = (bahanPembantu) => {
-        console.log('🗑️ Delete Bahan Pembantu Request:', bahanPembantu);
         // Add reportType to identify this as bahan pembantu data
         setSelectedPembelian({ ...bahanPembantu, reportType: 'bahan_pembantu' });
         setIsDeleteModalOpen(true);
@@ -1467,9 +1422,9 @@ const PembelianLainLainPage = () => {
                     overflow-y: visible;
                 }
                 
-                /* Sticky PILIH column for second table (Pembelian Beban) */
-                .second-table .rdt_Table .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol:nth-child(9),
-                .second-table .rdt_Table .rdt_TableBody .rdt_TableRow .rdt_TableCell:nth-child(9) {
+                /* Sticky PILIH column for second table (Pembelian Beban) - Updated to 10th column due to new NAMA ITEM column */
+                .second-table .rdt_Table .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol:nth-child(10),
+                .second-table .rdt_Table .rdt_TableBody .rdt_TableRow .rdt_TableCell:nth-child(10) {
                     position: sticky !important;
                     right: 0 !important;
                     background-color: #fff !important;
@@ -1479,13 +1434,13 @@ const PembelianLainLainPage = () => {
                 }
                 
                 /* Ensure sticky header for PILIH in second table has higher z-index */
-                .second-table .rdt_Table .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol:nth-child(9) {
+                .second-table .rdt_Table .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol:nth-child(10) {
                     background-color: #f8fafc !important;
                     z-index: 1001 !important;
                 }
                 
                 /* Hover effect for sticky PILIH column in second table */
-                .second-table .rdt_Table .rdt_TableBody .rdt_TableRow:hover .rdt_TableCell:nth-child(9) {
+                .second-table .rdt_Table .rdt_TableBody .rdt_TableRow:hover .rdt_TableCell:nth-child(10) {
                     background-color: #f8fafc !important;
                 }
                 

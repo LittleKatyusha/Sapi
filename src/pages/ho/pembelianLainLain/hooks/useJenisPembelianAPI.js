@@ -12,8 +12,8 @@ const useJenisPembelianAPI = () => {
             setError(null);
 
             try {
-                const response = await HttpClient.get('/system/parameter/dataByGroup', {
-                    params: { group: 'jenis_pembelian_lainlain' }
+                const response = await HttpClient.post('/api/system/parameter/dataByGroup', {
+                    group: 'jenis_pembelian_lainlain'
                 });
 
                 if (response.data && response.data.success) {

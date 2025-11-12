@@ -134,15 +134,19 @@ const usePembelianBahanPembantu = () => {
                 bahanPembantuData
             );
 
-            // Check multiple possible response structures
+            // Check multiple possible response structures including status: "ok"
             const isSuccess = response?.success === true ||
                             response?.status === 'success' ||
+                            response?.status === 'ok' ||
                             response?.data?.success === true ||
                             (response && !response.error && !response.errors);
 
             if (isSuccess) {
-                // Refresh data after successful creation (silent mode)
-                await fetchPembelianBahanPembantu(serverPagination.currentPage, serverPagination.perPage, searchTerm, true, false);
+                // Clear cache after successful create
+                HttpClient.clearCache('bahanpembantu/pembelian');
+                
+                // Refresh data after successful creation with force refresh
+                await fetchPembelianBahanPembantu(serverPagination.currentPage, serverPagination.perPage, searchTerm, false, true);
                 
                 return {
                     success: true,
@@ -182,15 +186,19 @@ const usePembelianBahanPembantu = () => {
                 }
             );
 
-            // Check multiple possible response structures
+            // Check multiple possible response structures including status: "ok"
             const isSuccess = response?.success === true ||
                             response?.status === 'success' ||
+                            response?.status === 'ok' ||
                             response?.data?.success === true ||
                             (response && !response.error && !response.errors);
 
             if (isSuccess) {
-                // Refresh data after successful update (silent mode)
-                await fetchPembelianBahanPembantu(serverPagination.currentPage, serverPagination.perPage, searchTerm, true, false);
+                // Clear cache after successful update
+                HttpClient.clearCache('bahanpembantu/pembelian');
+                
+                // Refresh data after successful update with force refresh
+                await fetchPembelianBahanPembantu(serverPagination.currentPage, serverPagination.perPage, searchTerm, false, true);
                 
                 return {
                     success: true,
@@ -229,16 +237,22 @@ const usePembelianBahanPembantu = () => {
                 }
             );
 
-            if (response && response.success) {
-                // Refresh data after successful deletion (silent mode)
-                await fetchPembelianBahanPembantu(serverPagination.currentPage, serverPagination.perPage, searchTerm, true, false);
+            // Check for both success formats: success: true OR status: "ok"
+            const isSuccess = response && (response.success === true || response.status === 'ok');
+
+            if (isSuccess) {
+                // Clear cache after successful delete
+                HttpClient.clearCache('bahanpembantu/pembelian');
+                
+                // Refresh data after successful deletion with force refresh
+                await fetchPembelianBahanPembantu(serverPagination.currentPage, serverPagination.perPage, searchTerm, false, true);
                 
                 return {
                     success: true,
-                    message: response.data.message || 'Data pembelian bahan pembantu berhasil dihapus'
+                    message: response.message || response.data?.message || 'Data pembelian bahan pembantu berhasil dihapus'
                 };
             } else {
-                throw new Error(response.data?.message || 'Failed to delete pembelian bahan pembantu');
+                throw new Error(response.message || response.data?.message || 'Failed to delete pembelian bahan pembantu');
             }
         } catch (err) {
             console.error('Error deleting pembelian bahan pembantu:', err);
