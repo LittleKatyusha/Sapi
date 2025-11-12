@@ -13,7 +13,7 @@ import useBanksAPILazy from '../../../hooks/useBanksAPILazy';
 import useSatuanAPI from './hooks/useSatuanAPI';
 import useJenisPembelianAPI from './hooks/useJenisPembelianAPI';
 import useInfoCardsPembelianLainLain from './hooks/useInfoCardsPembelianLainLain';
-import ActionButton from '../pembelian/components/ActionButton';
+import ActionButton from './components/ActionButton';
 import PembelianFeedmilCard from '../pembelianFeedmil/components/PembelianFeedmilCard';
 import CustomPagination from '../pembelianFeedmil/components/CustomPagination';
 import InfoCardLainLain from './components/InfoCardLainLain';
