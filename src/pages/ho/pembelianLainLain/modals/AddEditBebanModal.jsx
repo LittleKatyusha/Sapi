@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { X, Save, DollarSign, FileText, Calendar, User, Building2, TrendingUp, CreditCard, Wallet, Package } from 'lucide-react';
 import SearchableSelect from '../../../../components/shared/SearchableSelect';
 import HttpClient from '../../../../services/httpClient';
@@ -264,6 +264,13 @@ const AddEditBebanModal = ({
                     [field]: value,
                     id_syarat_pembelian: '1' // Auto-set to Kas
                 }));
+            } else if (value === 2 || value === '2') {
+                // If switching to BANK, clear id_syarat_pembelian if it was KAS
+                setFormData(prev => ({
+                    ...prev,
+                    [field]: value,
+                    id_syarat_pembelian: prev.id_syarat_pembelian === '1' ? '' : prev.id_syarat_pembelian
+                }));
             } else {
                 setFormData(prev => ({
                     ...prev,
@@ -333,6 +340,15 @@ const AddEditBebanModal = ({
 
         onSave(dataToSave);
     };
+
+    // Filter bank options based on syarat_pembelian
+    const filteredBankOptions = useMemo(() => {
+        if (formData.syarat_pembelian === 2 || formData.syarat_pembelian === '2') {
+            // Exclude KAS from options when BANK is selected
+            return bankOptions.filter(option => option.value !== 1 && option.value !== '1');
+        }
+        return bankOptions;
+    }, [bankOptions, formData.syarat_pembelian]);
 
     if (!isOpen) return null;
 
@@ -569,7 +585,7 @@ const AddEditBebanModal = ({
                                     Bank *
                                 </label>
                                 <SearchableSelect
-                                    options={bankOptions}
+                                    options={filteredBankOptions}
                                     value={formData.id_syarat_pembelian}
                                     onChange={(value) => handleChange('id_syarat_pembelian', value)}
                                     placeholder="Pilih Bank"
@@ -583,6 +599,9 @@ const AddEditBebanModal = ({
                                 )}
                                 {(formData.syarat_pembelian === 1 || formData.syarat_pembelian === '1') && (
                                     <p className="text-xs text-blue-600 mt-1">🔒 Bank otomatis diset ke "Kas" karena pembayaran Kas</p>
+                                )}
+                                {(formData.syarat_pembelian === 2 || formData.syarat_pembelian === '2') && (
+                                    <p className="text-xs text-gray-600 mt-1">💡 Opsi "Kas" tidak tersedia untuk pembayaran BANK</p>
                                 )}
                             </div>
 

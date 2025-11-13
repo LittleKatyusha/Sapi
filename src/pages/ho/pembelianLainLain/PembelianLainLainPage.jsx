@@ -614,7 +614,8 @@ const PembelianLainLainPage = () => {
         {
             name: 'Pilih',
             minWidth: '80px',
-            maxWidth: '100px',
+            maxWidth: '80px',
+            ignoreRowClick: true,
             // Add sticky positioning for Pilih column
             style: {
                 position: 'sticky',
@@ -647,7 +648,6 @@ const PembelianLainLainPage = () => {
                     />
                 </div>
             ),
-            ignoreRowClick: true,
         },
         {
             name: 'Nota',
@@ -696,16 +696,16 @@ const PembelianLainLainPage = () => {
             )
         },
         {
-            name: 'Jumlah PerJenis',
+            name: 'Jumlah Total',
             selector: row => row.jumlah,
             sortable: true,
-            minWidth: '170px',
+            minWidth: '150px',
             wrap: true,
             cell: row => (
                 <div className="flex items-center justify-center w-full h-full min-h-[40px]">
-                    <div className="bg-indigo-50 text-indigo-700 px-3 py-2 rounded-lg font-semibold text-center min-w-[80px]">
+                    <div className="bg-gray-50 text-gray-700 px-3 py-2 rounded-lg font-semibold text-center">
                         {row.jumlah || 0}<br/>
-                        <span className="text-xs text-indigo-500">item</span>
+                        <span className="text-xs text-gray-500">item</span>
                     </div>
                 </div>
             )
@@ -766,21 +766,6 @@ const PembelianLainLainPage = () => {
                             minimumFractionDigits: 0,
                             maximumFractionDigits: 0
                         }).format(row.total_belanja) : 'Rp 0'}
-                    </div>
-                </div>
-            )
-        },
-        {
-            name: 'Jumlah Total',
-            selector: row => row.jumlah,
-            sortable: true,
-            minWidth: '150px',
-            wrap: true,
-            cell: row => (
-                <div className="flex items-center justify-center w-full h-full min-h-[40px]">
-                    <div className="bg-gray-50 text-gray-700 px-3 py-2 rounded-lg font-semibold text-center">
-                        {row.jumlah || 0}<br/>
-                        <span className="text-xs text-gray-500">item</span>
                     </div>
                 </div>
             )
@@ -848,11 +833,69 @@ const PembelianLainLainPage = () => {
             minWidth: '60px',
             maxWidth: '80px',
             ignoreRowClick: true,
+            style: {
+                position: 'sticky',
+                left: 0,
+                backgroundColor: '#fff',
+                zIndex: 100,
+                borderRight: '2px solid #e2e8f0',
+                boxShadow: '2px 0 4px rgba(0,0,0,0.05)',
+            },
+            cellStyle: {
+                position: 'sticky',
+                left: 0,
+                backgroundColor: '#fff',
+                zIndex: 100,
+                borderRight: '2px solid #e2e8f0',
+                boxShadow: '2px 0 4px rgba(0,0,0,0.05)',
+            },
             cell: (row, index) => (
                 <div className="flex items-center justify-center w-full h-full font-semibold text-gray-600">
                     {(bebanPagination.currentPage - 1) * bebanPagination.perPage + index + 1}
                 </div>
             )
+        },
+        {
+            name: 'PILIH',
+            minWidth: '80px',
+            maxWidth: '80px',
+            ignoreRowClick: true,
+            style: {
+                position: 'sticky',
+                left: '60px',
+                backgroundColor: '#fff',
+                zIndex: 100,
+                borderRight: '2px solid #e2e8f0',
+                boxShadow: '2px 0 4px rgba(0,0,0,0.05)',
+            },
+            cellStyle: {
+                position: 'sticky',
+                left: '60px',
+                backgroundColor: '#fff',
+                zIndex: 100,
+                borderRight: '2px solid #e2e8f0',
+                boxShadow: '2px 0 4px rgba(0,0,0,0.05)',
+            },
+            cell: (row, index) => {
+                const rowId = row.id || row.encryptedPid || row.pid || row.pb_id || `beban-${index}`;
+                return (
+                    <div className="sticky-column-aksi">
+                        <ActionButton
+                            row={{...row, id: rowId, encryptedPid: rowId, reportType: 'beban'}}
+                            openMenuId={openMenuIdBeban}
+                            setOpenMenuId={setOpenMenuIdBeban}
+                            onEdit={handleEditBeban}
+                            onDelete={(item) => {
+                                handleDelete({...item, reportType: 'beban'});
+                            }}
+                            onDetail={handleDetailBeban}
+                            isActive={openMenuIdBeban === rowId}
+                            apiEndpoint={API_ENDPOINTS.HO.BEBAN_BIAYA.PEMBELIAN}
+                            reportType="beban"
+                        />
+                    </div>
+                );
+            },
         },
         {
             name: 'TANGGAL',
@@ -976,50 +1019,6 @@ const PembelianLainLainPage = () => {
                 </div>
             )
         },
-        {
-            name: 'PILIH',
-            minWidth: '80px',
-            maxWidth: '100px',
-            style: {
-                position: 'sticky',
-                right: 0,
-                backgroundColor: '#fff',
-                zIndex: 100,
-                borderLeft: '2px solid #e2e8f0',
-                boxShadow: '-2px 0 4px rgba(0,0,0,0.05)',
-            },
-            cellStyle: {
-                position: 'sticky',
-                right: 0,
-                backgroundColor: '#fff',
-                zIndex: 100,
-                borderLeft: '2px solid #e2e8f0',
-                boxShadow: '-2px 0 4px rgba(0,0,0,0.05)',
-            },
-            cell: (row, index) => {
-                // Create unique ID with fallback
-                const rowId = row.id || row.encryptedPid || row.pid || row.pb_id || `beban-${index}`;
-                return (
-                    <div className="sticky-column-aksi">
-                        <ActionButton
-                            row={{...row, id: rowId, encryptedPid: rowId, reportType: 'beban'}}
-                            openMenuId={openMenuIdBeban}
-                            setOpenMenuId={setOpenMenuIdBeban}
-                            onEdit={handleEditBeban}
-                            onDelete={(item) => {
-                                // Ensure reportType is set for beban items
-                                handleDelete({...item, reportType: 'beban'});
-                            }}
-                            onDetail={handleDetailBeban}
-                            isActive={openMenuIdBeban === rowId}
-                            apiEndpoint={API_ENDPOINTS.HO.BEBAN_BIAYA.PEMBELIAN}
-                            reportType="beban"
-                        />
-                    </div>
-                );
-            },
-            ignoreRowClick: true,
-        },
     ], [openMenuIdBeban, pembelianBeban]);
 
     // Handler khusus untuk delete bahan pembantu
@@ -1039,11 +1038,70 @@ const PembelianLainLainPage = () => {
             minWidth: '60px',
             maxWidth: '80px',
             ignoreRowClick: true,
+            // Add sticky positioning for NO column
+            style: {
+                position: 'sticky',
+                left: 0,
+                backgroundColor: '#fff',
+                zIndex: 101,
+                borderRight: '2px solid #e2e8f0',
+                boxShadow: '2px 0 4px rgba(0,0,0,0.05)',
+            },
+            cellStyle: {
+                position: 'sticky',
+                left: 0,
+                backgroundColor: '#fff',
+                zIndex: 101,
+                borderRight: '2px solid #e2e8f0',
+                boxShadow: '2px 0 4px rgba(0,0,0,0.05)',
+            },
             cell: (row, index) => (
                 <div className="flex items-center justify-center w-full h-full font-semibold text-gray-600">
                     {(bahanPembantuPagination.currentPage - 1) * bahanPembantuPagination.perPage + index + 1}
                 </div>
             )
+        },
+        {
+            name: 'PILIH',
+            minWidth: '80px',
+            maxWidth: '80px',
+            ignoreRowClick: true,
+            // Add sticky positioning for Pilih column
+            style: {
+                position: 'sticky',
+                left: '60px', // Position after No column (60px width)
+                backgroundColor: '#fff',
+                zIndex: 100,
+                borderRight: '2px solid #e2e8f0',
+                boxShadow: '2px 0 4px rgba(0,0,0,0.05)',
+            },
+            cellStyle: {
+                position: 'sticky',
+                left: '60px', // Position after No column (60px width)
+                backgroundColor: '#fff',
+                zIndex: 100,
+                borderRight: '2px solid #e2e8f0',
+                boxShadow: '2px 0 4px rgba(0,0,0,0.05)',
+            },
+            cell: (row, index) => {
+                // Create unique ID with fallback
+                const rowId = row.id || row.encryptedPid || row.pid || `bahan-pembantu-${index}`;
+                return (
+                    <div className="sticky-column-aksi">
+                        <ActionButton
+                            row={{...row, id: rowId, encryptedPid: rowId}}
+                            openMenuId={openMenuIdBahanPembantu}
+                            setOpenMenuId={setOpenMenuIdBahanPembantu}
+                            onEdit={handleEditBahanPembantu}
+                            onDelete={handleDeleteBahanPembantu}
+                            onDetail={handleDetailBahanPembantu}
+                            isActive={openMenuIdBahanPembantu === rowId}
+                            apiEndpoint={API_ENDPOINTS.HO.BAHAN_PEMBANTU.PEMBELIAN}
+                            reportType="bahan_pembantu"
+                        />
+                    </div>
+                );
+            },
         },
         {
             name: 'DIVISI',
@@ -1256,47 +1314,6 @@ const PembelianLainLainPage = () => {
                 </div>
             )
         },
-        {
-            name: 'PILIH',
-            minWidth: '80px',
-            maxWidth: '100px',
-            style: {
-                position: 'sticky',
-                right: 0,
-                backgroundColor: '#fff',
-                zIndex: 100,
-                borderLeft: '2px solid #e2e8f0',
-                boxShadow: '-2px 0 4px rgba(0,0,0,0.05)',
-            },
-            cellStyle: {
-                position: 'sticky',
-                right: 0,
-                backgroundColor: '#fff',
-                zIndex: 100,
-                borderLeft: '2px solid #e2e8f0',
-                boxShadow: '-2px 0 4px rgba(0,0,0,0.05)',
-            },
-            cell: (row, index) => {
-                // Create unique ID with fallback
-                const rowId = row.id || row.encryptedPid || row.pid || `bahan-pembantu-${index}`;
-                return (
-                    <div className="sticky-column-aksi">
-                        <ActionButton
-                            row={{...row, id: rowId, encryptedPid: rowId}}
-                            openMenuId={openMenuIdBahanPembantu}
-                            setOpenMenuId={setOpenMenuIdBahanPembantu}
-                            onEdit={handleEditBahanPembantu}
-                            onDelete={handleDeleteBahanPembantu}
-                            onDetail={handleDetailBahanPembantu}
-                            isActive={openMenuIdBahanPembantu === rowId}
-                            apiEndpoint={API_ENDPOINTS.HO.BAHAN_PEMBANTU.PEMBELIAN}
-                            reportType="bahan_pembantu"
-                        />
-                    </div>
-                );
-            },
-            ignoreRowClick: true,
-        },
     ], [openMenuIdBahanPembantu, pembelianBahanPembantu, handleEditBahanPembantu, handleDeleteBahanPembantu, handleDetailBahanPembantu]);
 
     return (
@@ -1318,6 +1335,64 @@ const PembelianLainLainPage = () => {
                     white-space: normal;
                     word-wrap: break-word;
                     overflow-wrap: break-word;
+                }
+                
+                /* Enhanced Notification Animations */
+                @keyframes slide-in-right {
+                    from {
+                        transform: translateX(100%);
+                        opacity: 0;
+                    }
+                    to {
+                        transform: translateX(0);
+                        opacity: 1;
+                    }
+                }
+                
+                @keyframes bounce-once {
+                    0%, 100% {
+                        transform: scale(1);
+                    }
+                    50% {
+                        transform: scale(1.2);
+                    }
+                }
+                
+                @keyframes shake {
+                    0%, 100% {
+                        transform: translateX(0);
+                    }
+                    10%, 30%, 50%, 70%, 90% {
+                        transform: translateX(-5px);
+                    }
+                    20%, 40%, 60%, 80% {
+                        transform: translateX(5px);
+                    }
+                }
+                
+                @keyframes progress {
+                    from {
+                        width: 100%;
+                    }
+                    to {
+                        width: 0%;
+                    }
+                }
+                
+                .animate-slide-in-right {
+                    animation: slide-in-right 0.4s ease-out;
+                }
+                
+                .animate-bounce-once {
+                    animation: bounce-once 0.6s ease-in-out;
+                }
+                
+                .animate-shake {
+                    animation: shake 0.5s ease-in-out;
+                }
+                
+                .animate-progress {
+                    animation: progress linear forwards;
                 }
                 
                 /* Custom scrollbar styling */
@@ -1422,47 +1497,71 @@ const PembelianLainLainPage = () => {
                     overflow-y: visible;
                 }
                 
-                /* Sticky PILIH column for second table (Pembelian Beban) - Updated to 10th column due to new NAMA ITEM column */
-                .second-table .rdt_Table .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol:nth-child(10),
-                .second-table .rdt_Table .rdt_TableBody .rdt_TableRow .rdt_TableCell:nth-child(10) {
+                /* Sticky NO and PILIH columns for second table (Pembelian Beban) - EXACTLY like first table */
+                .second-table .rdt_Table .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol:nth-child(1),
+                .second-table .rdt_Table .rdt_TableBody .rdt_TableRow .rdt_TableCell:nth-child(1) {
                     position: sticky !important;
-                    right: 0 !important;
+                    left: 0 !important;
                     background-color: #fff !important;
                     z-index: 100 !important;
-                    border-left: 2px solid #e2e8f0 !important;
-                    box-shadow: -2px 0 4px rgba(0,0,0,0.05) !important;
+                    border-right: 2px solid #e2e8f0 !important;
+                    box-shadow: 2px 0 4px rgba(0,0,0,0.05) !important;
                 }
                 
-                /* Ensure sticky header for PILIH in second table has higher z-index */
-                .second-table .rdt_Table .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol:nth-child(10) {
+                .second-table .rdt_Table .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol:nth-child(2),
+                .second-table .rdt_Table .rdt_TableBody .rdt_TableRow .rdt_TableCell:nth-child(2) {
+                    position: sticky !important;
+                    left: 60px !important;
+                    background-color: #fff !important;
+                    z-index: 100 !important;
+                    border-right: 2px solid #e2e8f0 !important;
+                    box-shadow: 2px 0 4px rgba(0,0,0,0.05) !important;
+                }
+                
+                /* Ensure sticky headers have higher z-index for second table */
+                .second-table .rdt_Table .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol:nth-child(1),
+                .second-table .rdt_Table .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol:nth-child(2) {
                     background-color: #f8fafc !important;
                     z-index: 1001 !important;
                 }
                 
-                /* Hover effect for sticky PILIH column in second table */
-                .second-table .rdt_Table .rdt_TableBody .rdt_TableRow:hover .rdt_TableCell:nth-child(10) {
+                /* Hover effect for sticky columns in second table */
+                .second-table .rdt_Table .rdt_TableBody .rdt_TableRow:hover .rdt_TableCell:nth-child(1),
+                .second-table .rdt_Table .rdt_TableBody .rdt_TableRow:hover .rdt_TableCell:nth-child(2) {
                     background-color: #f8fafc !important;
                 }
                 
-                /* Sticky PILIH column for third table (Pembelian Bahan Pembantu) */
-                .third-table .rdt_Table .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol:nth-child(15),
-                .third-table .rdt_Table .rdt_TableBody .rdt_TableRow .rdt_TableCell:nth-child(15) {
+                /* Sticky NO and PILIH columns for third table (Pembelian Bahan Pembantu) */
+                .third-table .rdt_Table .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol:nth-child(1),
+                .third-table .rdt_Table .rdt_TableBody .rdt_TableRow .rdt_TableCell:nth-child(1) {
                     position: sticky !important;
-                    right: 0 !important;
+                    left: 0 !important;
                     background-color: #fff !important;
-                    z-index: 100 !important;
-                    border-left: 2px solid #e2e8f0 !important;
-                    box-shadow: -2px 0 4px rgba(0,0,0,0.05) !important;
+                    z-index: 101 !important;
+                    border-right: 2px solid #e2e8f0 !important;
+                    box-shadow: 2px 0 4px rgba(0,0,0,0.05) !important;
                 }
                 
-                /* Ensure sticky header for PILIH in third table has higher z-index */
-                .third-table .rdt_Table .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol:nth-child(15) {
+                .third-table .rdt_Table .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol:nth-child(2),
+                .third-table .rdt_Table .rdt_TableBody .rdt_TableRow .rdt_TableCell:nth-child(2) {
+                    position: sticky !important;
+                    left: 60px !important;
+                    background-color: #fff !important;
+                    z-index: 100 !important;
+                    border-right: 2px solid #e2e8f0 !important;
+                    box-shadow: 2px 0 4px rgba(0,0,0,0.05) !important;
+                }
+                
+                /* Ensure sticky headers have higher z-index for third table */
+                .third-table .rdt_Table .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol:nth-child(1),
+                .third-table .rdt_Table .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol:nth-child(2) {
                     background-color: #f8fafc !important;
                     z-index: 1001 !important;
                 }
                 
-                /* Hover effect for sticky PILIH column in third table */
-                .third-table .rdt_Table .rdt_TableBody .rdt_TableRow:hover .rdt_TableCell:nth-child(15) {
+                /* Hover effect for sticky columns in third table */
+                .third-table .rdt_Table .rdt_TableBody .rdt_TableRow:hover .rdt_TableCell:nth-child(1),
+                .third-table .rdt_Table .rdt_TableBody .rdt_TableRow:hover .rdt_TableCell:nth-child(2) {
                     background-color: #f8fafc !important;
                 }
             `}</style>
@@ -2117,46 +2216,60 @@ const PembelianLainLainPage = () => {
                 </div>
             </div>
 
-            {/* Notification */}
+            {/* Enhanced Notification */}
             {notification && (
-                <div className="fixed top-4 right-4 z-50">
-                    <div className={`max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden ${
-                        notification.type === 'success' ? 'border-l-4 border-green-400' :
-                        notification.type === 'info' ? 'border-l-4 border-blue-400' :
-                        'border-l-4 border-red-400'
+                <div className="fixed top-4 right-4 z-50 animate-slide-in-right">
+                    <div className={`max-w-md w-full bg-white shadow-2xl rounded-xl pointer-events-auto overflow-hidden transform transition-all duration-300 hover:scale-105 ${
+                        notification.type === 'success' ? 'border-l-4 border-green-500' :
+                        notification.type === 'info' ? 'border-l-4 border-blue-500' :
+                        'border-l-4 border-red-500'
                     }`}>
-                        <div className="p-4">
+                        <div className={`p-4 ${
+                            notification.type === 'success' ? 'bg-gradient-to-r from-green-50 to-white' :
+                            notification.type === 'info' ? 'bg-gradient-to-r from-blue-50 to-white' :
+                            'bg-gradient-to-r from-red-50 to-white'
+                        }`}>
                             <div className="flex items-start">
                                 <div className="flex-shrink-0">
                                     {notification.type === 'success' ? (
-                                        <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
-                                            <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                        <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center shadow-lg animate-bounce-once">
+                                            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
                                             </svg>
                                         </div>
                                     ) : notification.type === 'info' ? (
-                                        <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
-                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                                        <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center shadow-lg">
+                                            <svg className="w-6 h-6 text-white animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                            </svg>
                                         </div>
                                     ) : (
-                                        <div className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center">
-                                            <svg className="w-4 h-4 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                        <div className="w-10 h-10 bg-gradient-to-br from-red-400 to-red-600 rounded-full flex items-center justify-center shadow-lg animate-shake">
+                                            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                             </svg>
                                         </div>
                                     )}
                                 </div>
-                                <div className="ml-3 w-0 flex-1 pt-0.5">
-                                    <p className="text-sm font-medium text-gray-900">
-                                        {notification.type === 'success' ? 'Berhasil!' :
-                                         notification.type === 'info' ? 'Memproses...' : 'Error!'}
+                                <div className="ml-4 flex-1">
+                                    <p className={`text-base font-bold ${
+                                        notification.type === 'success' ? 'text-green-800' :
+                                        notification.type === 'info' ? 'text-blue-800' :
+                                        'text-red-800'
+                                    }`}>
+                                        {notification.type === 'success' ? '✓ Berhasil!' :
+                                         notification.type === 'info' ? '⏳ Memproses...' : '⚠ Error!'}
                                     </p>
-                                    <p className="mt-1 text-sm text-gray-500">{notification.message}</p>
+                                    <p className="mt-1 text-sm text-gray-700 leading-relaxed">{notification.message}</p>
                                 </div>
-                                <div className="ml-4 flex-shrink-0 flex">
+                                <div className="ml-4 flex-shrink-0">
                                     <button
                                         onClick={() => setNotification(null)}
-                                        className="bg-white rounded-md inline-flex text-gray-400 hover:text-gray-500"
+                                        className={`rounded-lg p-1.5 inline-flex items-center justify-center transition-all duration-200 ${
+                                            notification.type === 'success' ? 'text-green-600 hover:bg-green-100' :
+                                            notification.type === 'info' ? 'text-blue-600 hover:bg-blue-100' :
+                                            'text-red-600 hover:bg-red-100'
+                                        }`}
                                     >
                                         <span className="sr-only">Close</span>
                                         <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -2165,6 +2278,18 @@ const PembelianLainLainPage = () => {
                                     </button>
                                 </div>
                             </div>
+                        </div>
+                        {/* Progress bar */}
+                        <div className={`h-1 ${
+                            notification.type === 'success' ? 'bg-green-200' :
+                            notification.type === 'info' ? 'bg-blue-200' :
+                            'bg-red-200'
+                        }`}>
+                            <div className={`h-full animate-progress ${
+                                notification.type === 'success' ? 'bg-green-500' :
+                                notification.type === 'info' ? 'bg-blue-500' :
+                                'bg-red-500'
+                            }`} style={{animationDuration: '5s'}}></div>
                         </div>
                     </div>
                 </div>

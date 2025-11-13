@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { X, Save, Package, Building2, Calculator, DollarSign, TrendingUp, CreditCard, FileText, Truck, Tag } from 'lucide-react';
 import SearchableSelect from '../../../../components/shared/SearchableSelect';
 
@@ -201,6 +201,13 @@ const AddEditBahanPembantuModal = ({
                     [field]: value,
                     bank_pengirim: '1' // Auto-set to Kas
                 }));
+            } else if (value === 2 || value === '2') {
+                // If switching to BANK, clear bank_pengirim if it was KAS
+                setFormData(prev => ({
+                    ...prev,
+                    [field]: value,
+                    bank_pengirim: prev.bank_pengirim === '1' ? null : prev.bank_pengirim
+                }));
             } else {
                 setFormData(prev => ({
                     ...prev,
@@ -284,6 +291,15 @@ const AddEditBahanPembantuModal = ({
         document.addEventListener('keydown', handleEscape);
         return () => document.removeEventListener('keydown', handleEscape);
     }, [isOpen, isSubmitting, onClose]);
+
+    // Filter bank options based on syarat_pembayaran
+    const filteredBankOptions = useMemo(() => {
+        if (formData.syarat_pembayaran === 2 || formData.syarat_pembayaran === '2') {
+            // Exclude KAS from options when BANK is selected
+            return bankOptions.filter(option => option.value !== 1 && option.value !== '1');
+        }
+        return bankOptions;
+    }, [bankOptions, formData.syarat_pembayaran]);
 
     if (!isOpen) return null;
 
@@ -537,7 +553,7 @@ const AddEditBahanPembantuModal = ({
                                     value={formData.bank_pengirim}
                                     onChange={(value) => handleChange('bank_pengirim', value)}
                                     onBlur={() => handleBlur('bank_pengirim')}
-                                    options={bankOptions}
+                                    options={filteredBankOptions}
                                     placeholder={bankLoading ? 'Loading bank...' : 'Pilih Bank Pengirim'}
                                     isDisabled={isDetailMode || isSubmitting || bankLoading || formData.syarat_pembayaran === 1 || formData.syarat_pembayaran === '1'}
                                     className="w-full"
@@ -547,6 +563,9 @@ const AddEditBahanPembantuModal = ({
                                 )}
                                 {(formData.syarat_pembayaran === 1 || formData.syarat_pembayaran === '1') && (
                                     <p className="text-xs text-blue-600 mt-1">🔒 Bank otomatis diset ke "Kas" karena pembayaran Kas</p>
+                                )}
+                                {(formData.syarat_pembayaran === 2 || formData.syarat_pembayaran === '2') && (
+                                    <p className="text-xs text-gray-600 mt-1">💡 Opsi "Kas" tidak tersedia untuk pembayaran BANK</p>
                                 )}
                             </div>
 

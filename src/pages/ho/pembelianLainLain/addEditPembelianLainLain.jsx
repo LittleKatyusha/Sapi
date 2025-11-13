@@ -98,7 +98,7 @@ const AddEditPembelianLainLainPage = () => {
     const [headerData, setHeaderData] = useState({
         nota: '',
         idOffice: '', // Office now selectable
-        tipePembelian: '',
+        tipePembelian: '2', // Auto-set to "ASET" (value: "2")
         idSupplier: '',
         tgl_masuk: '',
         jumlah: '', // Added: Jumlah item
@@ -359,11 +359,44 @@ const AddEditPembelianLainLainPage = () => {
 
     // Handle header form changes
     const handleHeaderChange = (field, value) => {
-        setHeaderData(prev => ({
-            ...prev,
-            [field]: value
-        }));
+        // Special handling for tipe_pembayaran
+        if (field === 'tipe_pembayaran') {
+            // If payment type is "KAS" (value 1), automatically set syarat_pembelian to "KAS" (value 1) and lock it
+            if (value === 1 || value === '1') {
+                setHeaderData(prev => ({
+                    ...prev,
+                    [field]: value,
+                    syarat_pembelian: '1' // Auto-set to KAS
+                }));
+            } else if (value === 2 || value === '2') {
+                // If payment type is "BANK" (value 2), clear syarat_pembelian if it was KAS
+                setHeaderData(prev => ({
+                    ...prev,
+                    [field]: value,
+                    syarat_pembelian: prev.syarat_pembelian === '1' ? '' : prev.syarat_pembelian
+                }));
+            } else {
+                setHeaderData(prev => ({
+                    ...prev,
+                    [field]: value
+                }));
+            }
+        } else {
+            setHeaderData(prev => ({
+                ...prev,
+                [field]: value
+            }));
+        }
     };
+
+    // Filter bank options based on payment type
+    const filteredBankOptions = useMemo(() => {
+        if (headerData.tipe_pembayaran === 2 || headerData.tipe_pembayaran === '2') {
+            // If payment type is BANK, exclude KAS (value 1) from options
+            return bankOptions.filter(option => option.value !== 1 && option.value !== '1');
+        }
+        return bankOptions;
+    }, [bankOptions, headerData.tipe_pembayaran]);
 
     // Handle detail item changes
     const handleDetailChange = (itemId, field, value) => {
@@ -1324,35 +1357,22 @@ const AddEditPembelianLainLainPage = () => {
                             )}
                         </div>
 
-                        {/* Tipe Pembelian */}
+                        {/* Tipe Pembelian - Locked to ASSET */}
                         <div>
                             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                                 <Package className="w-4 h-4" />
                                 Tipe Pembelian *
                             </label>
-                            <SearchableSelect
-                                value={headerData.tipePembelian}
-                                onChange={(value) => handleHeaderChange('tipePembelian', value)}
-                                options={jenisPembelianOptions}
-                                placeholder={jenisPembelianLoading ? "Memuat jenis pembelian..." : "Pilih Tipe Pembelian"}
-                                className="w-full"
-                                disabled={jenisPembelianLoading}
+                            <input
+                                type="text"
+                                value="ASSET"
+                                readOnly
+                                disabled
+                                className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-600 cursor-not-allowed"
                             />
-                            {jenisPembelianLoading && (
-                                <p className="text-xs text-blue-600 mt-1">
-                                    🔄 Memuat jenis pembelian...
-                                </p>
-                            )}
-                            {jenisPembelianError && (
-                                <p className="text-xs text-red-600 mt-1">
-                                    ❌ Error: {jenisPembelianError}
-                                </p>
-                            )}
-                            {!jenisPembelianLoading && !jenisPembelianError && (
-                                <p className="text-xs text-orange-600 mt-1">
-                                    💡 Jenis pembelian untuk klasifikasi Lain-Lain
-                                </p>
-                            )}
+                            <p className="text-xs text-gray-600 mt-1">
+                                🔒 Tipe pembelian terkunci ke "ASSET" dan tidak dapat diubah
+                            </p>
                         </div>
 
                         {/* Supplier */}
@@ -1484,30 +1504,7 @@ const AddEditPembelianLainLainPage = () => {
                         </div>
 
 
-                        {/* Syarat Pembelian */}
-                        <div>
-                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <Hash className="w-4 h-4" />
-                                Syarat Pembelian *
-                            </label>
-                            <SearchableSelect
-                                options={bankOptions}
-                                value={headerData.syarat_pembelian}
-                                onChange={(value) => handleHeaderChange('syarat_pembelian', value)}
-                                placeholder={bankLoading ? 'Loading banks...' : bankError ? 'Error loading banks' : 'Pilih syarat pembelian'}
-                                isLoading={bankLoading}
-                                isDisabled={bankLoading || bankError}
-                                required={true}
-                                className="w-full"
-                            />
-                            {bankError && (
-                                <p className="text-xs text-red-500 mt-1">
-                                    ⚠️ Error loading banks: {bankError}
-                                </p>
-                            )}
-                        </div>
-
-                        {/* Tipe Pembayaran & Jatuh Tempo */}
+                        {/* Tipe Pembayaran */}
                         <div className="col-span-full md:col-span-1">
                             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                                 <DollarSign className="w-4 h-4" />
@@ -1527,6 +1524,35 @@ const AddEditPembelianLainLainPage = () => {
                                 <p className="text-xs text-red-50 mt-1">
                                     ⚠️ Error loading tipe pembayaran: {tipePembayaranError}
                                 </p>
+                            )}
+                        </div>
+
+                        {/* Syarat Pembelian */}
+                        <div>
+                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <Hash className="w-4 h-4" />
+                                Syarat Pembelian *
+                            </label>
+                            <SearchableSelect
+                                options={filteredBankOptions}
+                                value={headerData.syarat_pembelian}
+                                onChange={(value) => handleHeaderChange('syarat_pembelian', value)}
+                                placeholder={bankLoading ? 'Loading banks...' : bankError ? 'Error loading banks' : 'Pilih syarat pembelian'}
+                                isLoading={bankLoading}
+                                isDisabled={bankLoading || bankError || headerData.tipe_pembayaran === 1 || headerData.tipe_pembayaran === '1'}
+                                required={true}
+                                className="w-full"
+                            />
+                            {bankError && (
+                                <p className="text-xs text-red-500 mt-1">
+                                    ⚠️ Error loading banks: {bankError}
+                                </p>
+                            )}
+                            {(headerData.tipe_pembayaran === 1 || headerData.tipe_pembayaran === '1') && (
+                                <p className="text-xs text-blue-600 mt-1">🔒 Syarat pembelian otomatis diset ke "KAS" karena tipe pembayaran KAS</p>
+                            )}
+                            {(headerData.tipe_pembayaran === 2 || headerData.tipe_pembayaran === '2') && (
+                                <p className="text-xs text-blue-600 mt-1">💡 Opsi "KAS" tidak tersedia untuk tipe pembayaran BANK</p>
                             )}
                         </div>
 
