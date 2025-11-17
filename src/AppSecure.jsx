@@ -41,6 +41,7 @@ const PersetujuanHoPage = lazy(() => import('./pages/dataMaster/PersetujuanHoPag
 const PersetujuanFeedmilPage = lazy(() => import('./pages/dataMaster/PersetujuanFeedmilPage'));
 const PersetujuanRphPage = lazy(() => import('./pages/dataMaster/PersetujuanRphPage'));
 const SatuanPage = lazy(() => import('./pages/dataMaster/SatuanPage'));
+const BarangPage = lazy(() => import('./pages/dataMaster/BarangPage'));
 
 // Boning Pages - Lazy loaded
 const BoningLayout = lazy(() => import('./pages/boning/BoningLayout'));
@@ -96,6 +97,10 @@ const PembelianKulitDetailPage = lazy(() => import('./pages/ho/pembelianKulit/Pe
 const PembelianLainLainPage = lazy(() => import('./pages/ho/pembelianLainLain/PembelianLainLainPage'));
 const AddEditPembelianLainLainPage = lazy(() => import('./pages/ho/pembelianLainLain/addEditPembelianLainLain'));
 const PembelianLainLainDetailPage = lazy(() => import('./pages/ho/pembelianLainLain/PembelianLainLainDetailPage'));
+
+// Tanda Terima Pages - Lazy loaded
+const TandaTerimaPage = lazy(() => import('./pages/ho/tandaTerima/TandaTerimaPage'));
+const AddEditTandaTerimaPage = lazy(() => import('./pages/ho/tandaTerima/AddEditTandaTerimaPage'));
 
 // Pembayaran Pages - Lazy loaded
 const PembayaranPage = lazy(() => import('./pages/pembayaran/pembayaranDoka/PembayaranPage'));
@@ -219,6 +224,7 @@ function AppSecure() {
               <Route path="/master-data/persetujuan-feedmil" element={<PersetujuanFeedmilPage />} />
               <Route path="/master-data/persetujuan-rph" element={<PersetujuanRphPage />} />
               <Route path="/master-data/satuan" element={<SatuanPage />} />
+              <Route path="/master-data/barang" element={<BarangPage />} />
 
               {/* Boning Routes */}
               <Route path="/boning/*" element={<BoningLayout />}>
@@ -261,6 +267,11 @@ function AppSecure() {
               <Route path="/ho/pembelian-lain-lain/add" element={<AddEditPembelianLainLainPage />} />
               <Route path="/ho/pembelian-lain-lain/edit/:id" element={<AddEditPembelianLainLainPage />} />
               <Route path="/ho/pembelian-lain-lain/detail/:id" element={<PembelianLainLainDetailPage />} />
+              
+              {/* HO Tanda Terima Routes */}
+              <Route path="/ho/tanda-terima" element={<TandaTerimaPage />} />
+              <Route path="/ho/tanda-terima/add" element={<AddEditTandaTerimaPage />} />
+              <Route path="/ho/tanda-terima/edit/:id" element={<AddEditTandaTerimaPage />} />
               
               {/* Pembayaran Doka Routes */}
               <Route path="/pembayaran/doka" element={<PembayaranPage />} />

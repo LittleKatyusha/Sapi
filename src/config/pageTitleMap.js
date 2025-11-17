@@ -20,6 +20,8 @@ export const pageTitleMap = {
   '/master-data/outlet': 'Data Master: Outlet',
   '/master-data/produk-gds': 'Data Master: Produk Gudang',
   '/master-data/eartag': 'Data Master: Eartag',
+  '/master-data/satuan': 'Data Master: Satuan',
+  '/master-data/barang': 'Data Master: Barang',
   '/ho/pembelian': 'Pembelian Doka & Sapi',
   '/ho/pembelian/add': 'Tambah Pembelian Doka & Sapi',
   '/ho/pembelian/edit/:id': 'Edit Pembelian Doka & Sapi',
