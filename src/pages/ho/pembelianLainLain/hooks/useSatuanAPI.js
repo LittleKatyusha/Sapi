@@ -13,7 +13,11 @@ const useSatuanAPI = () => {
         
         try {
             // Fetch satuan data from master data
-            const response = await HttpClient.get(`${API_ENDPOINTS.MASTER.SATUAN}/data`);
+            const response = await HttpClient.get(`${API_ENDPOINTS.MASTER.SATUAN}/data`, {
+                params: {
+                    length: 1000 // Request a large number of records to get all
+                }
+            });
             
             console.log('📦 Satuan API Response:', response);
             
@@ -58,7 +62,7 @@ const useSatuanAPI = () => {
 
         return satuanData.map(satuan => ({
             value: String(satuan.id), // Convert to string for consistency
-            label: satuan.nama_satuan || satuan.name || satuan.satuan || 'Unknown'
+            label: satuan.name || satuan.nama_satuan || satuan.satuan || 'Unknown'
         }));
     }, [satuanData]);
 

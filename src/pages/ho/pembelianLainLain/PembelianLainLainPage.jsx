@@ -6,7 +6,7 @@ import { PlusCircle, Search, Filter, Package, Building2, Truck, User, X, Loader2
 import usePembelianLainLain from './hooks/usePembelianLainLain';
 import usePembelianBeban from './hooks/usePembelianBeban';
 import usePembelianBahanPembantu from './hooks/usePembelianBahanPembantu';
-import useParameterSelect from '../pembelian/hooks/useParameterSelect';
+import useDivisiData from './hooks/useDivisiData';
 import useJenisPembelianLainLain from './hooks/useJenisPembelianLainLain';
 import useTipePembayaranLazy from '../../../hooks/useTipePembayaranLazy';
 import useBanksAPILazy from '../../../hooks/useBanksAPILazy';
@@ -109,11 +109,11 @@ const PembelianLainLainPage = () => {
     } = usePembelianBahanPembantu();
 
 
-    // Parameter Select integration for farm options
+    // Divisi Data integration for divisi options
     const {
-        farmOptions,
-        loading: parameterLoading
-    } = useParameterSelect(false);
+        divisiOptions,
+        loading: divisiLoading
+    } = useDivisiData();
 
     // Jenis Pembelian Lain-Lain API integration for jenis beban options
     const {
@@ -2311,12 +2311,12 @@ const PembelianLainLainPage = () => {
                 onClose={handleCloseBebanModal}
                 onSave={handleSaveBeban}
                 editingItem={selectedBebanItem}
-                divisiOptions={farmOptions}
+                divisiOptions={divisiOptions}
                 jenisBebanOptions={jenisPembelianOptions}
                 syaratPembelianOptions={tipePembayaranOptions}
                 formatNumber={formatNumber}
                 parseNumber={parseNumber}
-                divisiLoading={parameterLoading}
+                divisiLoading={divisiLoading}
                 jenisBebanLoading={jenisPembelianLoading}
                 syaratPembelianLoading={tipePembayaranLoading}
                 isSubmitting={isBebanSubmitting}
@@ -2329,14 +2329,14 @@ const PembelianLainLainPage = () => {
                 onClose={handleCloseBahanPembantuModal}
                 onSave={handleSaveBahanPembantu}
                 editingItem={selectedBahanPembantuItem}
-                divisiOptions={farmOptions}
+                divisiOptions={divisiOptions}
                 jenisPembelianOptions={jenisPembelianBahanPembantuOptions}
                 satuanOptions={satuanOptions}
                 syaratPembayaranOptions={tipePembayaranOptions}
                 bankOptions={bankOptions}
                 formatNumber={formatNumber}
                 parseNumber={parseNumber}
-                divisiLoading={parameterLoading}
+                divisiLoading={divisiLoading}
                 jenisPembelianLoading={jenisPembelianBahanPembantuLoading}
                 satuanLoading={satuanLoading}
                 syaratPembayaranLoading={tipePembayaranLoading}

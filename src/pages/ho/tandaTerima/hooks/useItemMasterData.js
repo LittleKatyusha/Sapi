@@ -27,7 +27,13 @@ const useItemMasterData = () => {
         try {
             // Call Barang API endpoint using GET method
             // Backend returns DataTables format: { draw, recordsTotal, recordsFiltered, data }
-            const response = await HttpClient.get(`${API_ENDPOINTS.MASTER.BARANG}/data`);
+            // Use large length value to get all records
+            const response = await HttpClient.get(`${API_ENDPOINTS.MASTER.BARANG}/data`, {
+                params: {
+                    length: 10000, // Large number to get all records
+                    start: 0
+                }
+            });
 
             // Check if response has DataTables format
             if (response && response.data && Array.isArray(response.data)) {

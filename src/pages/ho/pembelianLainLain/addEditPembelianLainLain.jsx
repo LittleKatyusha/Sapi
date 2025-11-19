@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, Plus, Trash2, Edit2, Building2, Calendar, Hash, Package, X, AlertCircle, Weight, DollarSign, Upload, FileText } from 'lucide-react';
 import usePembelianLainLain from './hooks/usePembelianLainLain';
 import useParameterSelect from '../pembelian/hooks/useParameterSelect';
+import useFarmAPI from './hooks/useFarmAPI';
 import useJenisPembelianLainLain from './hooks/useJenisPembelianLainLain';
 import useItemLainLainSelect from './hooks/useItemLainLainSelect';
 import useBanksAPI from '../pembelianFeedmil/hooks/useBanksAPI';
@@ -30,11 +31,16 @@ const AddEditPembelianLainLainPage = () => {
     const {
         supplierOptions,
         officeOptions,
-        farmOptions,
-        farmLainLainOptions,
         loading: parameterLoading,
         error: parameterError
     } = useParameterSelect(isEdit, { kategoriSupplier: 5 });
+
+    // Farm data integration - uses PARAMETER_SELECT endpoint for farm-only data
+    const {
+        farmOptions,
+        loading: farmLoading,
+        error: farmError
+    } = useFarmAPI();
 
     // Item Lain-Lain data integration - now supports filtering by classification
     const [selectedKlasifikasiForItems, setSelectedKlasifikasiForItems] = useState(null);
@@ -198,7 +204,7 @@ const AddEditPembelianLainLainPage = () => {
 
     // Load data untuk edit mode - using /show endpoint for both header and detail data
     useEffect(() => {
-        if (isEdit && id && supplierOptions.length > 0 && officeOptions.length > 0 && (farmLainLainOptions?.length > 0 || farmOptions.length > 0) && jenisPembelianOptions.length > 0 && itemLainLainOptions.length > 0 && klasifikasiLainLainOptions.length > 0 && !editDataLoaded.current) { // Wait for all options to load first
+        if (isEdit && id && supplierOptions.length > 0 && officeOptions.length > 0 && farmOptions.length > 0 && jenisPembelianOptions.length > 0 && itemLainLainOptions.length > 0 && klasifikasiLainLainOptions.length > 0 && !editDataLoaded.current) { // Wait for all options to load first
             const loadEditData = async () => {
                 try {
                     // Set flag to prevent multiple calls
@@ -349,7 +355,7 @@ const AddEditPembelianLainLainPage = () => {
             
             loadEditData();
         }
-    }, [isEdit, id, supplierOptions, officeOptions, farmLainLainOptions, farmOptions, jenisPembelianOptions, itemLainLainOptions, klasifikasiLainLainOptions]);
+    }, [isEdit, id, supplierOptions, officeOptions, farmOptions, jenisPembelianOptions, itemLainLainOptions, klasifikasiLainLainOptions]);
 
     // Reset edit data loaded flag when id changes
     useEffect(() => {
@@ -1487,18 +1493,18 @@ const AddEditPembelianLainLainPage = () => {
                                 Farm *
                             </label>
                             <SearchableSelect
-                                options={farmLainLainOptions || farmOptions}
+                                options={farmOptions}
                                 value={headerData.farm}
                                 onChange={(value) => handleHeaderChange('farm', value)}
-                                placeholder={parameterLoading ? 'Loading farms...' : parameterError ? 'Error loading farms' : 'Pilih farm'}
-                                isLoading={parameterLoading}
-                                isDisabled={parameterLoading || parameterError}
+                                placeholder={farmLoading ? 'Loading farms...' : farmError ? 'Error loading farms' : 'Pilih farm'}
+                                isLoading={farmLoading}
+                                isDisabled={farmLoading || farmError}
                                 required={true}
                                 className="w-full"
                             />
-                            {parameterError && (
+                            {farmError && (
                                 <p className="text-xs text-red-500 mt-1">
-                                    ⚠️ Error loading offices: {parameterError}
+                                    ⚠️ Error loading farms: {farmError}
                                 </p>
                             )}
                         </div>
