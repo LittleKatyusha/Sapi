@@ -102,6 +102,9 @@ const PembelianLainLainDetailPage = lazy(() => import('./pages/ho/pembelianLainL
 const TandaTerimaPage = lazy(() => import('./pages/ho/tandaTerima/TandaTerimaPage'));
 const AddEditTandaTerimaPage = lazy(() => import('./pages/ho/tandaTerima/AddEditTandaTerimaPage'));
 
+// Pengajuan Pages - Lazy loaded
+const PengajuanPage = lazy(() => import('./pages/ho/pengajuan/PengajuanPage'));
+
 // Pembayaran Pages - Lazy loaded
 const PembayaranPage = lazy(() => import('./pages/pembayaran/pembayaranDoka/PembayaranPage'));
 const PembayaranDetailPage = lazy(() => import('./pages/pembayaran/pembayaranDoka/PembayaranDetailPage'));
@@ -272,6 +275,9 @@ function AppSecure() {
               <Route path="/ho/tanda-terima" element={<TandaTerimaPage />} />
               <Route path="/ho/tanda-terima/add" element={<AddEditTandaTerimaPage />} />
               <Route path="/ho/tanda-terima/edit/:id" element={<AddEditTandaTerimaPage />} />
+              
+              {/* HO Pengajuan Routes */}
+              <Route path="/ho/pengajuan" element={<PengajuanPage />} />
               
               {/* Pembayaran Doka Routes */}
               <Route path="/pembayaran/doka" element={<PembayaranPage />} />

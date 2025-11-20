@@ -369,10 +369,10 @@ const AddEditBebanModal = ({
                                 </div>
                                 <div>
                                     <h3 className="text-lg font-bold text-white">
-                                        {isDetailMode ? 'DETAIL PEMBELIAN BEBAN' : isEditMode ? 'EDIT BEBAN DAN BIAYA' : 'TAMBAH BEBAN DAN BIAYA'}
+                                        {isDetailMode ? 'DETAIL PEMBELIAN BIAYA' : isEditMode ? 'EDIT BIAYA-BIAYA' : 'TAMBAH BIAYA-BIAYA'}
                                     </h3>
                                     <p className="text-green-100 text-sm">
-                                        {isDetailMode ? 'Informasi lengkap pembelian beban' : isEditMode ? 'Perbarui informasi beban dan biaya' : 'Masukkan informasi beban dan biaya baru'}
+                                        {isDetailMode ? 'Informasi lengkap pembelian biaya' : isEditMode ? 'Perbarui informasi biaya-biaya' : 'Masukkan informasi biaya-biaya baru'}
                                     </p>
                                 </div>
                             </div>
@@ -417,7 +417,7 @@ const AddEditBebanModal = ({
                             <div>
                                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                                     <TrendingUp className="w-4 h-4" />
-                                    Jenis Beban / Biaya *
+                                    Jenis Biaya-Biaya *
                                 </label>
                                 <select
                                     value={formData.jenis_beban}
@@ -428,11 +428,11 @@ const AddEditBebanModal = ({
                                 >
                                     {!isEditMode && formData.jenis_beban === '3' ? (
                                         <>
-                                            <option value="3">BEBAN DAN BIAYA - BIAYA</option>
+                                            <option value="3">BIAYA-BIAYA</option>
                                         </>
                                     ) : (
                                         <>
-                                            <option value="">Pilih Jenis Beban/Biaya</option>
+                                            <option value="">Pilih Jenis Biaya-Biaya</option>
                                             {jenisBebanOptions.map(option => (
                                                 <option key={option.value} value={option.value}>
                                                     {option.label}
@@ -620,7 +620,7 @@ const AddEditBebanModal = ({
                                     placeholder="Masukkan keterangan tambahan..."
                                     rows="3"
                                 />
-                                <p className="text-xs text-gray-500 mt-1">💡 Catatan tambahan untuk beban/biaya ini (opsional)</p>
+                                <p className="text-xs text-gray-500 mt-1">💡 Catatan tambahan untuk biaya ini (opsional)</p>
                             </div>
                         </div>
 

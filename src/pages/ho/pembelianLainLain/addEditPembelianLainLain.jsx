@@ -107,10 +107,9 @@ const AddEditPembelianLainLainPage = () => {
         tipePembelian: '2', // Auto-set to "ASET" (value: "2")
         idSupplier: '',
         tgl_masuk: '',
-        jumlah: '', // Added: Jumlah item
+        jumlah: '', // Jumlah Total (mapped to total quantity, not berat_total)
         biaya_lain: '',
         biaya_total: '', // Added: Total biaya keseluruhan
-        berat_total: '',
         farm: '', // Farm
         syarat_pembelian: '', // Syarat Pembelian
         nota_ho: '', // Nomor Nota HO
@@ -118,9 +117,7 @@ const AddEditPembelianLainLainPage = () => {
         fileName: '',
         tipe_pembayaran: '', // Added: Tipe pembayaran
         due_date: '', // Added: Jatuh tempo payment
-        note: '', // Added: Required note field
-        nama_pembayar: '', // Added: Required for validation
-        tgl_pembayaran: '' // Added: Required for validation
+        note: '' // Added: Required note field
     });
 
     // Detail items state
@@ -293,14 +290,11 @@ const AddEditPembelianLainLainPage = () => {
                             jumlah: safeGetNumber(headerData.jumlah),
                             biaya_lain: safeGetNumber(headerData.biaya_lain),
                             biaya_total: safeGetNumber(headerData.biaya_total) ?? safeGetNumber(headerData.total_belanja),
-                            berat_total: safeGetNumber(headerData.berat_total),
                             file: safeGetString(headerData.file), // Keep as string for display purposes
                             fileName: headerData.file ? headerData.file.split('/').pop() : '',
                             tipe_pembayaran: safeGetString(headerData.tipe_pembayaran),
                             due_date: safeGetString(headerData.due_date),
-                            note: safeGetString(headerData.note) || safeGetString(headerData.catatan),
-                            nama_pembayar: safeGetString(headerData.nama_pembayar) || '',
-                            tgl_pembayaran: safeGetString(headerData.tgl_pembayaran) || ''
+                            note: safeGetString(headerData.note) || safeGetString(headerData.catatan)
                         });
 
                         // Set existing file name if available
@@ -1054,14 +1048,6 @@ const AddEditPembelianLainLainPage = () => {
             errors.push('Catatan pembelian harus diisi');
         }
 
-        if (!headerData.nama_pembayar.trim()) {
-            errors.push('Nama pembayar harus diisi');
-        }
-
-        if (!headerData.tgl_pembayaran) {
-            errors.push('Tanggal pembayaran harus diisi');
-        }
-
         if (detailItems.length === 0) {
             errors.push('Minimal harus ada 1 item Lain-Lain');
         }
@@ -1125,19 +1111,16 @@ const AddEditPembelianLainLainPage = () => {
                 nota: headerData.nota,
                 nama_supplier: headerData.idSupplier, // Now using text directly
                 tgl_masuk: headerData.tgl_masuk,
-                jumlah: parseInt(headerData.jumlah) || null,
+                jumlah: parseFloat(headerData.jumlah) || null,
                 biaya_lain: headerData.biaya_lain !== null && headerData.biaya_lain !== undefined && headerData.biaya_lain !== '' ? parseFloat(headerData.biaya_lain) : 0,
                 id_farm: headerData.farm ? parseInt(headerData.farm) : null,
                 id_syarat_pembelian: headerData.syarat_pembelian ? parseInt(headerData.syarat_pembelian) : null,
                 nota_ho: headerData.nota_ho || '',
                 biaya_total: parseFloat(headerData.biaya_total) || null,
-                berat_total: parseFloat(headerData.berat_total) || null,
                 tipe_pembelian: parseInt(headerData.tipePembelian),
                 tipe_pembayaran: parseInt(headerData.tipe_pembayaran),
                 due_date: headerData.due_date,
                 note: headerData.note,
-                nama_pembayar: headerData.nama_pembayar, // Added required field
-                tgl_pembayaran: headerData.tgl_pembayaran, // Added required field
                 // Ensure file is properly passed - prioritize selectedFile over headerData.file
                 // Only pass file if it's a File object (new upload) or if we have existing file name but no new file
                 file: selectedFile || (headerData.file && headerData.file instanceof File ? headerData.file : null),
@@ -1205,7 +1188,8 @@ const AddEditPembelianLainLainPage = () => {
                 jenis_pembelian: 'Lain-Lain',
                 supplier: headerData.idSupplier,
                 nama_supplier: headerData.idSupplier,
-                jenis_supplier: ''
+                jenis_supplier: '',
+                berat_total: totals.totalBerat // Map to berat_total for backend compatibility
             };
 
             let result;
@@ -1436,13 +1420,11 @@ const AddEditPembelianLainLainPage = () => {
                                 Jumlah Total
                             </label>
                             <input
-                                type="number"
-                                value={headerData.berat_total}
-                                onChange={(e) => handleHeaderChange('berat_total', e.target.value)}
+                                type="text"
+                                value={formatNumber(headerData.jumlah)}
+                                onChange={(e) => handleHeaderChange('jumlah', parseNumber(e.target.value))}
                                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                placeholder=""
-                                min="0"
-                                step="0.1"
+                                placeholder="Masukkan jumlah total"
                             />
                             <p className="text-xs text-blue-600 mt-1">
                                 💡 Jumlah total semua item Lain-Lain dalam pembelian ini
@@ -1464,25 +1446,6 @@ const AddEditPembelianLainLainPage = () => {
                             />
                             <p className="text-xs text-blue-600 mt-1">
                                 💡 Total seluruh biaya (truck + lain-lain + pembelian)
-                            </p>
-                        </div>
-
-                        {/* Jumlah PerJenis */}
-                        <div>
-                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <Hash className="w-4 h-4" />
-                                Jumlah PerJenis
-                            </label>
-                            <input
-                                type="number"
-                                value={headerData.jumlah}
-                                onChange={(e) => handleHeaderChange('jumlah', e.target.value)}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                placeholder=""
-                                min="0"
-                            />
-                            <p className="text-xs text-gray-500 mt-1">
-                                💡 Jumlah item per jenis dalam pembelian
                             </p>
                         </div>
 
@@ -1584,37 +1547,6 @@ const AddEditPembelianLainLainPage = () => {
                                     Opsional untuk pembayaran cash
                                 </p>
                             )}
-                        </div>
-
-                        {/* Nama Pembayar */}
-                        <div className="col-span-full md:col-span-1">
-                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <Building2 className="w-4 h-4" />
-                                Nama Pembayar *
-                            </label>
-                            <input
-                                type="text"
-                                value={headerData.nama_pembayar}
-                                onChange={(e) => handleHeaderChange('nama_pembayar', e.target.value)}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                placeholder="Masukkan nama pembayar"
-                                required
-                            />
-                        </div>
-
-                        {/* Tanggal Pembayaran */}
-                        <div className="col-span-full md:col-span-1">
-                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <Calendar className="w-4 h-4" />
-                                Tanggal Pembayaran *
-                            </label>
-                            <input
-                                type="date"
-                                value={headerData.tgl_pembayaran}
-                                onChange={(e) => handleHeaderChange('tgl_pembayaran', e.target.value)}
-                                className="w-full px-4 py-3 border border-gray-30 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-50 transition-all duration-200"
-                                required
-                            />
                         </div>
 
                         {/* Note - Catatan */}

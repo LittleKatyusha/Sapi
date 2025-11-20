@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import DataTable from 'react-data-table-component';
-import { PlusCircle, Search, Filter, Package, Building2, Truck, User, X, Loader2, Wallet, CreditCard, Boxes } from 'lucide-react';
+import { PlusCircle, Search, Filter, Package, Building2, Truck, User, X, Loader2, Wallet, CreditCard, Boxes, Download, Calendar, CalendarDays } from 'lucide-react';
 
 import usePembelianLainLain from './hooks/usePembelianLainLain';
 import usePembelianBeban from './hooks/usePembelianBeban';
@@ -20,11 +20,13 @@ import InfoCardLainLain from './components/InfoCardLainLain';
 import enhancedLainLainTableStyles from './constants/tableStyles';
 import { API_ENDPOINTS } from '../../../config/api';
 import HttpClient from '../../../services/httpClient';
+import LaporanPembelianService from '../../../services/laporanPembelianService';
 
 // Import modals
 import DeleteConfirmationModal from './modals/DeleteConfirmationModal';
 import AddEditBebanModal from './modals/AddEditBebanModal';
 import AddEditBahanPembantuModal from './modals/AddEditBahanPembantuModal';
+import ReportParameterModal from './modals/ReportParameterModal';
 
 const PembelianLainLainPage = () => {
     const navigate = useNavigate();
@@ -44,6 +46,9 @@ const PembelianLainLainPage = () => {
     const [isBahanPembantuSubmitting, setIsBahanPembantuSubmitting] = useState(false);
     const [selectedBahanPembantuItem, setSelectedBahanPembantuItem] = useState(null);
     const [isBahanPembantuDetailMode, setIsBahanPembantuDetailMode] = useState(false);
+    const [isDownloadingReport, setIsDownloadingReport] = useState(false);
+    const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+    const [reportModalType, setReportModalType] = useState('beban'); // 'aset' or 'beban'
     
     const {
         pembelian: filteredData,
@@ -556,6 +561,178 @@ const PembelianLainLainPage = () => {
         }
     };
 
+    // Download report handlers
+    const handleOpenReportModal = async (type = 'beban') => {
+        // Fetch lazy-loaded options FIRST before opening modal
+        await fetchTipePembayaran();
+        setReportModalType(type);
+        setIsReportModalOpen(true);
+    };
+
+    const handleCloseReportModal = () => {
+        setIsReportModalOpen(false);
+    };
+
+    const handleDownloadReport = async (params) => {
+        setIsDownloadingReport(true);
+        try {
+            const { reportType, divisi, id_tipe_pembayaran, tgl_input, bulan, tahun } = params;
+            
+            let reportDescription = '';
+            let reportTypeLabel = reportModalType === 'aset' ? 'Aset' : 'Beban';
+            
+            if (reportType === 'harian') {
+                reportDescription = `laporan harian ${reportTypeLabel} (${tgl_input})`;
+            } else {
+                const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+                reportDescription = `laporan bulanan ${reportTypeLabel} (${monthNames[bulan - 1]} ${tahun})`;
+            }
+            
+            setNotification({
+                type: 'info',
+                message: `Mengunduh ${reportDescription}...`
+            });
+
+            // Calculate date range
+            let startDate, endDate;
+            if (reportType === 'harian') {
+                startDate = tgl_input;
+                endDate = tgl_input;
+            } else {
+                const firstDay = new Date(tahun, bulan - 1, 1);
+                const lastDay = new Date(tahun, bulan, 0);
+                startDate = firstDay.toISOString().split('T')[0];
+                endDate = lastDay.toISOString().split('T')[0];
+            }
+
+            // Determine report type code: 1 for aset, 2 for beban
+            const reportTypeCode = reportModalType === 'aset' ? 1 : 2;
+
+            const blob = await LaporanPembelianService.downloadReportOtherHo(
+                startDate,
+                endDate,
+                reportTypeCode
+            );
+
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            
+            const filename = reportType === 'harian'
+                ? `Laporan_${reportTypeLabel}_Harian_${tgl_input}_${divisi}_${id_tipe_pembayaran}.pdf`
+                : `Laporan_${reportTypeLabel}_Bulanan_${tahun}-${String(bulan).padStart(2, '0')}_${divisi}_${id_tipe_pembayaran}.pdf`;
+            
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+
+            setNotification({
+                type: 'success',
+                message: `${reportDescription} berhasil diunduh!`
+            });
+            
+            handleCloseReportModal();
+        } catch (error) {
+            console.error('Error downloading report:', error);
+            setNotification({
+                type: 'error',
+                message: error.message || 'Gagal mengunduh laporan'
+            });
+        } finally {
+            setIsDownloadingReport(false);
+        }
+    };
+
+    const handleDownloadDailyReport = async (reportType) => {
+        setIsDownloadingReport(true);
+        try {
+            const today = new Date();
+            const startDate = today.toISOString().split('T')[0];
+            const endDate = startDate;
+            
+            setNotification({
+                type: 'info',
+                message: `Mengunduh laporan harian ${reportType}...`
+            });
+
+            const blob = await LaporanPembelianService.downloadReportOtherHo(
+                startDate,
+                endDate,
+                reportType === 'aset' ? 1 : reportType === 'beban' ? 2 : 3
+            );
+
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `Laporan_${reportType}_Harian_${startDate}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+
+            setNotification({
+                type: 'success',
+                message: `Laporan harian ${reportType} berhasil diunduh!`
+            });
+        } catch (error) {
+            console.error('Error downloading daily report:', error);
+            setNotification({
+                type: 'error',
+                message: error.message || `Gagal mengunduh laporan harian ${reportType}`
+            });
+        } finally {
+            setIsDownloadingReport(false);
+        }
+    };
+
+    const handleDownloadMonthlyReport = async (reportType) => {
+        setIsDownloadingReport(true);
+        try {
+            const today = new Date();
+            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+            const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            
+            const startDate = firstDay.toISOString().split('T')[0];
+            const endDate = lastDay.toISOString().split('T')[0];
+            
+            setNotification({
+                type: 'info',
+                message: `Mengunduh laporan bulanan ${reportType}...`
+            });
+
+            const blob = await LaporanPembelianService.downloadReportOtherHo(
+                startDate,
+                endDate,
+                reportType === 'aset' ? 1 : reportType === 'beban' ? 2 : 3
+            );
+
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            const monthYear = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+            link.download = `Laporan_${reportType}_Bulanan_${monthYear}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+
+            setNotification({
+                type: 'success',
+                message: `Laporan bulanan ${reportType} berhasil diunduh!`
+            });
+        } catch (error) {
+            console.error('Error downloading monthly report:', error);
+            setNotification({
+                type: 'error',
+                message: error.message || `Gagal mengunduh laporan bulanan ${reportType}`
+            });
+        } finally {
+            setIsDownloadingReport(false);
+        }
+    };
+
     // Helper functions for number formatting
     const formatNumber = (value) => {
         if (value === null || value === undefined || value === '') return '';
@@ -726,7 +903,7 @@ const PembelianLainLainPage = () => {
             )
         },
         {
-            name: 'Farm',
+            name: 'Divisi',
             selector: row => row.farm,
             sortable: true,
             minWidth: '140px',
@@ -753,32 +930,13 @@ const PembelianLainLainPage = () => {
         },
         {
             name: 'Total Belanja',
-            selector: row => row.total_belanja,
-            sortable: true,
-            minWidth: '180px',
-            wrap: true,
-            cell: row => (
-                <div className="flex items-center justify-center w-full h-full min-h-[40px] px-1">
-                    <div className="bg-purple-50 text-purple-700 px-3 py-2 rounded-lg font-semibold text-center text-xs leading-tight">
-                        {row.total_belanja ? new Intl.NumberFormat('id-ID', {
-                            style: 'currency',
-                            currency: 'IDR',
-                            minimumFractionDigits: 0,
-                            maximumFractionDigits: 0
-                        }).format(row.total_belanja) : 'Rp 0'}
-                    </div>
-                </div>
-            )
-        },
-        {
-            name: 'Grand Total',
             selector: row => row.biaya_total,
             sortable: true,
             minWidth: '180px',
             wrap: true,
             cell: row => (
                 <div className="flex items-center justify-center w-full h-full min-h-[40px] px-1">
-                    <div className="bg-green-50 text-green-700 px-3 py-2 rounded-lg font-semibold text-center text-xs leading-tight">
+                    <div className="bg-purple-50 text-purple-700 px-3 py-2 rounded-lg font-semibold text-center text-xs leading-tight">
                         {row.biaya_total ? new Intl.NumberFormat('id-ID', {
                             style: 'currency',
                             currency: 'IDR',
@@ -788,6 +946,28 @@ const PembelianLainLainPage = () => {
                     </div>
                 </div>
             )
+        },
+        {
+            name: 'Grand Total',
+            selector: row => (row.biaya_total || 0) + (row.biaya_lain || 0),
+            sortable: true,
+            minWidth: '180px',
+            wrap: true,
+            cell: row => {
+                const grandTotal = (row.biaya_total || 0) + (row.biaya_lain || 0);
+                return (
+                    <div className="flex items-center justify-center w-full h-full min-h-[40px] px-1">
+                        <div className="bg-green-50 text-green-700 px-3 py-2 rounded-lg font-semibold text-center text-xs leading-tight">
+                            {new Intl.NumberFormat('id-ID', {
+                                style: 'currency',
+                                currency: 'IDR',
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 0
+                            }).format(grandTotal)}
+                        </div>
+                    </div>
+                );
+            }
         },
         {
             name: 'Biaya Lain',
@@ -930,6 +1110,20 @@ const PembelianLainLainPage = () => {
             )
         },
         {
+            name: 'BIAYA - BIAYA',
+            selector: row => row.nama_item,
+            sortable: true,
+            minWidth: '180px',
+            wrap: true,
+            cell: row => (
+                <div className="flex items-center justify-center w-full h-full min-h-[40px] px-2">
+                    <div className="bg-amber-50 text-amber-700 px-3 py-2 rounded-lg font-medium text-center text-xs leading-tight force-wrap">
+                        {row.nama_item || '-'}
+                    </div>
+                </div>
+            )
+        },
+        {
             name: 'TIPE PEMBAYARAN',
             selector: row => row.tipe_pembayaran,
             sortable: true,
@@ -944,7 +1138,7 @@ const PembelianLainLainPage = () => {
             )
         },
         {
-            name: 'JENIS BEBAN & BIAYA - BIAYA',
+            name: 'JENIS BIAYA-BIAYA',
             selector: row => row.jenis_pembelian || row.jenis_beban,
             sortable: true,
             minWidth: '250px',
@@ -1595,7 +1789,7 @@ const PembelianLainLainPage = () => {
 
                     {/* Pembelian Beban & Biaya - KAS */}
                     <InfoCardLainLain
-                        title="Beban & Biaya (KAS)"
+                        title="Biaya - Biaya (KAS)"
                         icon={Wallet}
                         gradientClass="from-emerald-500 to-teal-600"
                         hariIni={infoCardsData.bebanKas.hariIni}
@@ -1605,7 +1799,7 @@ const PembelianLainLainPage = () => {
 
                     {/* Pembelian Beban & Biaya - BANK */}
                     <InfoCardLainLain
-                        title="Beban & Biaya (BANK)"
+                        title="Biaya - Biaya (BANK)"
                         icon={CreditCard}
                         gradientClass="from-purple-500 to-violet-600"
                         hariIni={infoCardsData.bebanBank.hariIni}
@@ -1654,13 +1848,24 @@ const PembelianLainLainPage = () => {
                             </svg>
                             Pembelian Aset
                         </h2>
-                        <button
-                            onClick={() => navigate('/ho/pembelian-lain-lain/add')}
-                            className="bg-white text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-50 transition-all duration-300 flex items-center gap-2 font-medium shadow-md hover:shadow-lg text-sm"
-                        >
-                            <PlusCircle className="w-5 h-5" />
-                            Tambah Pembelian Aset
-                        </button>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => handleOpenReportModal('aset')}
+                                disabled={isDownloadingReport}
+                                className="bg-white text-blue-600 px-3 py-2 rounded-lg hover:bg-blue-50 transition-all duration-300 flex items-center gap-2 font-medium shadow-md hover:shadow-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Download Laporan dengan Parameter"
+                            >
+                                <Download className="w-4 h-4" />
+                                <span className="hidden lg:inline">Laporan</span>
+                            </button>
+                            <button
+                                onClick={() => navigate('/ho/pembelian-lain-lain/add')}
+                                className="bg-white text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-50 transition-all duration-300 flex items-center gap-2 font-medium shadow-md hover:shadow-lg text-sm"
+                            >
+                                <PlusCircle className="w-5 h-5" />
+                                Tambah Pembelian Aset
+                            </button>
+                        </div>
                     </div>
                     
                     {/* Scroll Indicator */}
@@ -1819,15 +2024,26 @@ const PembelianLainLainPage = () => {
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                             </svg>
-                            Pembelian Beban
+                            Pembelian Biaya-Biaya
                         </h2>
-                        <button
-                            onClick={handleOpenBebanModal}
-                            className="bg-white text-green-600 px-4 py-2 rounded-lg hover:bg-green-50 transition-all duration-300 flex items-center gap-2 font-medium shadow-md hover:shadow-lg text-sm"
-                        >
-                            <PlusCircle className="w-5 h-5" />
-                            Tambah Pembelian Beban
-                        </button>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => handleOpenReportModal('beban')}
+                                disabled={isDownloadingReport}
+                                className="bg-white text-green-600 px-3 py-2 rounded-lg hover:bg-green-50 transition-all duration-300 flex items-center gap-2 font-medium shadow-md hover:shadow-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Download Laporan dengan Parameter"
+                            >
+                                <Download className="w-4 h-4" />
+                                <span className="hidden lg:inline">Laporan</span>
+                            </button>
+                            <button
+                                onClick={handleOpenBebanModal}
+                                className="bg-white text-green-600 px-4 py-2 rounded-lg hover:bg-green-50 transition-all duration-300 flex items-center gap-2 font-medium shadow-md hover:shadow-lg text-sm"
+                            >
+                                <PlusCircle className="w-5 h-5" />
+                                Tambah Pembelian Biaya
+                            </button>
+                        </div>
                     </div>
                     
                     {/* Scroll Indicator */}
@@ -1989,13 +2205,33 @@ const PembelianLainLainPage = () => {
                             </svg>
                             Pembelian Bahan Pembantu
                         </h2>
-                        <button
-                            onClick={handleOpenBahanPembantuModal}
-                            className="bg-white text-orange-600 px-4 py-2 rounded-lg hover:bg-orange-50 transition-all duration-300 flex items-center gap-2 font-medium shadow-md hover:shadow-lg text-sm"
-                        >
-                            <PlusCircle className="w-5 h-5" />
-                            Tambah Pembelian Bahan Pembantu
-                        </button>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => handleDownloadDailyReport('bahan_pembantu')}
+                                disabled={isDownloadingReport}
+                                className="bg-white text-orange-600 px-3 py-2 rounded-lg hover:bg-orange-50 transition-all duration-300 flex items-center gap-2 font-medium shadow-md hover:shadow-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Download Laporan Harian"
+                            >
+                                <Calendar className="w-4 h-4" />
+                                <span className="hidden lg:inline">Harian</span>
+                            </button>
+                            <button
+                                onClick={() => handleDownloadMonthlyReport('bahan_pembantu')}
+                                disabled={isDownloadingReport}
+                                className="bg-white text-orange-600 px-3 py-2 rounded-lg hover:bg-orange-50 transition-all duration-300 flex items-center gap-2 font-medium shadow-md hover:shadow-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Download Laporan Bulanan"
+                            >
+                                <CalendarDays className="w-4 h-4" />
+                                <span className="hidden lg:inline">Bulanan</span>
+                            </button>
+                            <button
+                                onClick={handleOpenBahanPembantuModal}
+                                className="bg-white text-orange-600 px-4 py-2 rounded-lg hover:bg-orange-50 transition-all duration-300 flex items-center gap-2 font-medium shadow-md hover:shadow-lg text-sm"
+                            >
+                                <PlusCircle className="w-5 h-5" />
+                                Tambah Pembelian Bahan Pembantu
+                            </button>
+                        </div>
                     </div>
                     
                     {/* Scroll Indicator */}
@@ -2343,6 +2579,19 @@ const PembelianLainLainPage = () => {
                 bankLoading={bankLoading}
                 isSubmitting={isBahanPembantuSubmitting}
                 isDetailMode={isBahanPembantuDetailMode}
+            />
+
+            {/* Report Parameter Modal */}
+            <ReportParameterModal
+                isOpen={isReportModalOpen}
+                onClose={handleCloseReportModal}
+                onDownload={handleDownloadReport}
+                divisiOptions={divisiOptions}
+                tipePembayaranOptions={tipePembayaranOptions}
+                divisiLoading={divisiLoading}
+                tipePembayaranLoading={tipePembayaranLoading}
+                isDownloading={isDownloadingReport}
+                reportTitle={reportModalType === 'aset' ? 'Pembelian Aset' : 'Pembelian Biaya-Biaya'}
             />
         </div>
         </>
