@@ -79,6 +79,7 @@ export const API_ENDPOINTS = {
     PEMBELIAN: '/api/ho/pembelian',
     PENJUALAN: '/api/ho/penjualan',
     PENJUALAN_DOKA_SAPI: '/api/ho/penjualandokasapi', // Updated endpoint for Penjualan Doka Sapi
+    PENGAJUAN_BIAYA: '/api/ho/pengajuanbiaya', // Pengajuan Biaya endpoint
     FEEDMIL: {
       PEMBELIAN: '/api/ho/feedmil/pembelian'
     },
