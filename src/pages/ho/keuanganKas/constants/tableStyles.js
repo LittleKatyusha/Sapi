@@ -42,7 +42,7 @@ const customTableStyles = {
         style: {
             position: 'sticky',
             top: 0,
-            zIndex: 1000,
+            zIndex: 1200,
             backgroundColor: '#f8fafc',
             borderBottom: '2px solid #e2e8f0',
             minHeight: '52px',
@@ -68,6 +68,22 @@ const customTableStyles = {
             '&:last-child': {
                 borderRight: 'none',
             },
+            '&:first-child': {
+                position: 'sticky',
+                left: 0,
+                zIndex: 1202,
+                backgroundColor: '#f8fafc',
+                borderRight: '2px solid #e2e8f0',
+                boxShadow: '2px 0 4px rgba(0,0,0,0.08)',
+            },
+            '&:nth-child(2)': {
+                position: 'sticky',
+                left: '70px',
+                zIndex: 1201,
+                backgroundColor: '#f8fafc',
+                borderRight: '2px solid #e2e8f0',
+                boxShadow: '2px 0 4px rgba(0,0,0,0.08)',
+            },
         },
     },
     cells: {
@@ -88,6 +104,24 @@ const customTableStyles = {
             height: 'auto',
             '&:last-child': {
                 borderRight: 'none',
+            },
+            '&:first-child': {
+                position: 'sticky',
+                left: 0,
+                zIndex: 999,
+                backgroundColor: '#ffffff !important',
+                borderRight: '2px solid #e2e8f0',
+                boxShadow: '2px 0 4px rgba(0,0,0,0.08)',
+                fontWeight: '600',
+                color: '#475569',
+            },
+            '&:nth-child(2)': {
+                position: 'sticky',
+                left: '70px',
+                zIndex: 998,
+                backgroundColor: '#ffffff !important',
+                borderRight: '2px solid #e2e8f0',
+                boxShadow: '2px 0 4px rgba(0,0,0,0.08)',
             },
         },
     },

@@ -1,19 +1,22 @@
 /**
- * Pengajuan Biaya Service
- * Service layer for handling all Pengajuan Biaya API operations
+ * Pengeluaran Pengajuan Biaya Kas Service
+ * Service layer for handling cash disbursement and approval operations
+ * Integrates with PengeluaranPengajuanBiayaKasController
  */
 
 import HttpClient from './httpClient';
 import { API_ENDPOINTS } from '../config/api';
 
-class PengajuanBiayaService {
+class PengeluaranPengajuanBiayaKasService {
   /**
-   * Get list of Pengajuan Biaya with pagination and filtering
+   * Get list of Pengeluaran Pengajuan Biaya with pagination and filtering
    * @param {Object} params - Query parameters
    * @param {number} params.start - Starting index for pagination
    * @param {number} params.length - Number of records per page
    * @param {string} params.search - Search term
    * @param {number} params.draw - Draw counter for DataTables
+   * @param {string} params.start_date - Start date for filtering (optional)
+   * @param {string} params.end_date - End date for filtering (optional)
    * @returns {Promise} API response with data
    */
   static async getData(params = {}) {
@@ -26,11 +29,18 @@ class PengajuanBiayaService {
         'search[value]': params.search || '',
         'order[0][column]': params.orderColumn || '0',
         'order[0][dir]': params.orderDir || 'desc',
-        tipe: params.tipe || 2, // ✅ Tambahkan parameter tipe (default 2 untuk menunggu persetujuan)
         _: Date.now() // Cache buster
       };
 
-      const response = await HttpClient.get(`${API_ENDPOINTS.HO.PENGAJUAN_BIAYA}/data`, {
+      // Add date range filters if provided
+      if (params.start_date) {
+        queryParams.start_date = params.start_date;
+      }
+      if (params.end_date) {
+        queryParams.end_date = params.end_date;
+      }
+
+      const response = await HttpClient.get(`${API_ENDPOINTS.HO.PENGELUARAN_PENGAJUAN_BIAYA_KAS}/data`, {
         params: queryParams
       });
 
@@ -43,19 +53,19 @@ class PengajuanBiayaService {
         success: true
       };
     } catch (error) {
-      console.error('Error fetching Pengajuan Biaya data:', error);
+      console.error('Error fetching Pengeluaran Pengajuan Biaya data:', error);
       throw error;
     }
   }
 
   /**
-   * Get detail of specific Pengajuan Biaya
+   * Get detail of specific Pengeluaran Pengajuan Biaya
    * @param {string} pid - Encrypted PID
    * @returns {Promise} API response with detail data
    */
   static async getDetail(pid) {
     try {
-      const response = await HttpClient.post(`${API_ENDPOINTS.HO.PENGAJUAN_BIAYA}/show`, {
+      const response = await HttpClient.post(`${API_ENDPOINTS.HO.PENGELUARAN_PENGAJUAN_BIAYA_KAS}/show`, {
         pid
       });
 
@@ -70,7 +80,7 @@ class PengajuanBiayaService {
         message: response.message || 'Detail berhasil dimuat'
       };
     } catch (error) {
-      console.error('Error fetching Pengajuan Biaya detail:', error);
+      console.error('Error fetching Pengeluaran Pengajuan Biaya detail:', error);
       throw error;
     }
   }
@@ -81,7 +91,7 @@ class PengajuanBiayaService {
    */
   static async getCardData() {
     try {
-      const response = await HttpClient.get(`${API_ENDPOINTS.HO.PENGAJUAN_BIAYA}/card`);
+      const response = await HttpClient.get(`${API_ENDPOINTS.HO.PENGELUARAN_PENGAJUAN_BIAYA_KAS}/card`);
 
       // Backend returns: { data: [{ pengajuanmenunggupersetujuan: {...}, pengajuanhariini: {...}, ... }] }
       // Transform to frontend format
@@ -139,96 +149,72 @@ class PengajuanBiayaService {
         message: response.message || 'Statistik berhasil dimuat'
       };
     } catch (error) {
-      console.error('Error fetching Pengajuan Biaya card data:', error);
+      console.error('Error fetching Pengeluaran Pengajuan Biaya card data:', error);
       throw error;
     }
   }
 
   /**
-   * Create new Pengajuan Biaya
-   * @param {Object} data - Pengajuan Biaya data
-   * @param {number} data.id_jenis_biaya - Expense type ID
-   * @param {number} data.nominal - Amount
-   * @param {string} data.tgl_pengajuan - Submission date
-   * @param {string} data.keperluan - Purpose (max 150 chars)
-   * @param {string} data.nama_pengaju - Submitter name (max 50 chars)
-   * @param {number} data.id_metode_bayar - Payment method ID
-   * @param {number} data.id_persetujuan_ho - HO approval ID
-   * @param {string} data.catatan - Notes
+   * Approve cash budget request
+   * @param {string} pid - Encrypted PID
+   * @param {Object} data - Approval data
+   * @param {number} data.nominal_disetujui - Approved amount
+   * @param {number} data.id_disetujui - Approver ID
+   * @param {string} data.penerima_nominal - Recipient name
+   * @param {string} data.tgl_pembayaran - Payment date
+   * @param {string} data.kota_pembayaran - Payment city
+   * @param {string} data.catatan_persetujuan - Approval notes (optional)
+   * @param {File} data.file - Payment receipt file (optional)
    * @returns {Promise} API response
    */
-  static async store(data) {
+  static async approve(pid, data) {
     try {
-      const response = await HttpClient.post(`${API_ENDPOINTS.HO.PENGAJUAN_BIAYA}/store`, data);
+      // Create FormData for file upload support
+      const formData = new FormData();
+      formData.append('pid', pid);
+      formData.append('nominal_disetujui', data.nominal_disetujui);
+      formData.append('id_disetujui', data.id_disetujui);
+      formData.append('penerima_nominal', data.penerima_nominal);
+      formData.append('tgl_pembayaran', data.tgl_pembayaran);
+      formData.append('kota_pembayaran', data.kota_pembayaran);
+      
+      if (data.catatan_persetujuan) {
+        formData.append('catatan_persetujuan', data.catatan_persetujuan);
+      }
+      
+      if (data.file) {
+        formData.append('file', data.file);
+      }
+
+      // Don't set Content-Type header - let browser set it automatically with boundary
+      // HttpClient will automatically add Authorization header
+      const response = await HttpClient.post(
+        `${API_ENDPOINTS.HO.PENGELUARAN_PENGAJUAN_BIAYA_KAS}/approve`,
+        formData
+      );
 
       return {
         success: true,
         data: response.data,
-        message: response.message || 'Data berhasil disimpan'
+        message: response.message || 'Pengajuan berhasil disetujui'
       };
     } catch (error) {
-      console.error('Error creating Pengajuan Biaya:', error);
+      console.error('Error approving Pengajuan Biaya:', error);
       throw error;
     }
   }
 
   /**
-   * Update existing Pengajuan Biaya
+   * Reject cash budget request
    * @param {string} pid - Encrypted PID
-   * @param {Object} data - Updated data
+   * @param {string} reason - Rejection reason
    * @returns {Promise} API response
    */
-  static async update(pid, data) {
+  static async reject(pid, reason) {
     try {
-      const response = await HttpClient.post(`${API_ENDPOINTS.HO.PENGAJUAN_BIAYA}/update`, {
+      const response = await HttpClient.post(`${API_ENDPOINTS.HO.PENGELUARAN_PENGAJUAN_BIAYA_KAS}/reject`, {
         pid,
-        ...data
-      });
-
-      return {
-        success: true,
-        data: response.data,
-        message: response.message || 'Data berhasil diperbarui'
-      };
-    } catch (error) {
-      console.error('Error updating Pengajuan Biaya:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Delete Pengajuan Biaya
-   * @param {string} pid - Encrypted PID
-   * @returns {Promise} API response
-   */
-  static async delete(pid) {
-    try {
-      const response = await HttpClient.post(`${API_ENDPOINTS.HO.PENGAJUAN_BIAYA}/hapus`, {
-        pid
-      });
-
-      return {
-        success: true,
-        data: response.data,
-        message: response.message || 'Data berhasil dihapus'
-      };
-    } catch (error) {
-      console.error('Error deleting Pengajuan Biaya:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Reject Pengajuan Biaya
-   * @param {string} pid - Encrypted PID
-   * @param {string} catatan_penolakan - Rejection notes
-   * @returns {Promise} API response
-   */
-  static async reject(pid, catatan_penolakan) {
-    try {
-      const response = await HttpClient.post(`${API_ENDPOINTS.HO.PENGAJUAN_BIAYA}/tolak`, {
-        pid,
-        catatan_penolakan
+        reason
       });
 
       return {
@@ -240,6 +226,38 @@ class PengajuanBiayaService {
       console.error('Error rejecting Pengajuan Biaya:', error);
       throw error;
     }
+  }
+
+  /**
+   * Delete Pengeluaran Pengajuan Biaya
+   * @param {string} pid - Encrypted PID
+   * @returns {Promise} API response
+   */
+  static async delete(pid) {
+    try {
+      const response = await HttpClient.post(`${API_ENDPOINTS.HO.PENGELUARAN_PENGAJUAN_BIAYA_KAS}/hapus`, {
+        pid
+      });
+
+      return {
+        success: true,
+        data: response.data,
+        message: response.message || 'Data berhasil dihapus'
+      };
+    } catch (error) {
+      console.error('Error deleting Pengeluaran Pengajuan Biaya:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get file/receipt from MinIO storage
+   * @param {string} filePath - File path in storage
+   * @returns {string} Full URL to file
+   */
+  static getFileUrl(filePath) {
+    if (!filePath) return null;
+    return `${API_ENDPOINTS.HO.PENGELUARAN_PENGAJUAN_BIAYA_KAS}/file/${encodeURIComponent(filePath)}`;
   }
 
   /**
@@ -272,7 +290,15 @@ class PengajuanBiayaService {
       
       // Office/Division data
       divisi: item.divisi || '',
-      id_office: item.id_office || null,
+      
+      // Approval fields
+      nama_persetujuan: item.nama_persetujuan || item.nama_pesetujuan || '',
+      catatan_persetujuan: item.catatan_persetujuan || item.catatan_pesetujuan || '',
+      nominal_disetujui: parseFloat(item.nominal_disetujui) || 0,
+      penerima_nominal: item.penerima_nominal || '',
+      tgl_pembayaran: item.tgl_pembayaran || '',
+      kota_pembayaran: item.kota_pembayaran || '',
+      file: item.file || null,
       
       // Status and notes
       status: item.status || 'Menunggu Persetujuan',
@@ -289,36 +315,52 @@ class PengajuanBiayaService {
   }
 
   /**
-   * Transform frontend data to backend format
+   * Transform frontend approval data to backend format
    * @param {Object} data - Frontend data
    * @returns {Object} Backend format data
    */
-  static transformToBackend(data) {
+  static transformApprovalToBackend(data) {
     // Ensure nominal is a pure number (remove any formatting)
-    const nominalValue = typeof data.nominal === 'string'
-      ? parseFloat(data.nominal.replace(/[^0-9]/g, ''))
-      : parseFloat(data.nominal);
+    const nominalValue = typeof data.nominal_disetujui === 'string'
+      ? parseFloat(data.nominal_disetujui.replace(/[^0-9]/g, ''))
+      : parseFloat(data.nominal_disetujui);
 
     return {
-      id_jenis_biaya: parseInt(data.id_jenis_biaya) || null,
-      nominal: nominalValue || 0,
-      tgl_pengajuan: data.tgl_pengajuan,
-      keperluan: (data.keperluan || data.barang_yang_diajukan || '').trim(),
-      nama_pengaju: (data.nama_pengaju || data.yang_mengajukan || '').trim(),
-      tipe_pembayaran: parseInt(data.id_metode_bayar) || null,
-      id_persetujuan_ho: parseInt(data.id_persetujuan_ho) || null,
-      catatan: (data.catatan || '').trim(),
-      id_office: parseInt(data.id_office) || null
+      nominal_disetujui: nominalValue || 0,
+      id_disetujui: parseInt(data.id_disetujui) || null,
+      penerima_nominal: (data.penerima_nominal || '').trim(),
+      tgl_pembayaran: data.tgl_pembayaran,
+      kota_pembayaran: (data.kota_pembayaran || '').trim(),
+      catatan_persetujuan: (data.catatan_persetujuan || '').trim(),
+      file: data.file || null
     };
   }
 
   /**
    * Get status badge configuration based on status
-   * @param {string} status - Status text
+   * @param {string|number} status - Status text or number
    * @returns {Object} Status badge configuration
    */
   static getStatusInfo(status) {
-    const statusLower = (status || '').toLowerCase();
+    // Convert numeric status to text
+    let statusText = status;
+    if (typeof status === 'number') {
+      switch (status) {
+        case 1:
+          statusText = 'Menunggu Persetujuan';
+          break;
+        case 2:
+          statusText = 'Disetujui';
+          break;
+        case 3:
+          statusText = 'Ditolak';
+          break;
+        default:
+          statusText = 'Menunggu Persetujuan';
+      }
+    }
+    
+    const statusLower = (statusText || '').toLowerCase();
     
     if (statusLower.includes('disetujui')) {
       return {
@@ -383,6 +425,80 @@ class PengajuanBiayaService {
       return date;
     }
   }
+
+  /**
+   * Validate approval data before submission
+   * @param {Object} data - Approval data to validate
+   * @returns {Object} Validation result { valid: boolean, errors: array }
+   */
+  static validateApprovalData(data) {
+    const errors = [];
+
+    if (!data.nominal_disetujui || parseFloat(data.nominal_disetujui) <= 0) {
+      errors.push('Nominal yang disetujui harus lebih dari 0');
+    }
+
+    if (!data.id_disetujui) {
+      errors.push('Persetujuan harus dipilih');
+    }
+
+    if (!data.penerima_nominal || data.penerima_nominal.trim().length === 0) {
+      errors.push('Penerima nominal harus diisi');
+    }
+
+    if (data.penerima_nominal && data.penerima_nominal.length > 150) {
+      errors.push('Penerima nominal maksimal 150 karakter');
+    }
+
+    if (!data.tgl_pembayaran) {
+      errors.push('Tanggal pembayaran harus diisi');
+    }
+
+    if (!data.kota_pembayaran || data.kota_pembayaran.trim().length === 0) {
+      errors.push('Kota pembayaran harus diisi');
+    }
+
+    // File validation if provided
+    if (data.file) {
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+      const maxSize = 2 * 1024 * 1024; // 2MB
+
+      if (!allowedTypes.includes(data.file.type)) {
+        errors.push('File harus berupa JPG, JPEG, PNG, atau PDF');
+      }
+
+      if (data.file.size > maxSize) {
+        errors.push('Ukuran file maksimal 2MB');
+      }
+    }
+
+    return {
+      valid: errors.length === 0,
+      errors
+    };
+  }
+
+  /**
+   * Validate rejection data before submission
+   * @param {string} reason - Rejection reason
+   * @returns {Object} Validation result { valid: boolean, errors: array }
+   */
+  static validateRejectionData(reason) {
+    const errors = [];
+
+    if (!reason || reason.trim().length === 0) {
+      errors.push('Alasan penolakan harus diisi');
+    }
+
+    if (reason && reason.length < 10) {
+      errors.push('Alasan penolakan minimal 10 karakter');
+    }
+
+    return {
+      valid: errors.length === 0,
+      errors
+    };
+  }
 }
 
-export default PengajuanBiayaService;
+export default PengeluaranPengajuanBiayaKasService;

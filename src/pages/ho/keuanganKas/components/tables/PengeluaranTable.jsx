@@ -236,6 +236,63 @@ const PengeluaranTable = ({
 
     return (
         <>
+            <style>{`
+                /* Header row sticky */
+                .pengeluaran-table .rdt_TableHead {
+                    position: sticky !important;
+                    top: 0 !important;
+                    z-index: 50 !important;
+                }
+                
+                .pengeluaran-table .rdt_TableHeadRow {
+                    position: sticky !important;
+                    top: 0 !important;
+                    z-index: 50 !important;
+                    background-color: #f8fafc !important;
+                }
+                
+                /* Sticky header columns - NO and AKSI */
+                .pengeluaran-table .rdt_TableHeadRow .rdt_TableCol:first-child {
+                    position: sticky !important;
+                    left: 0 !important;
+                    z-index: 60 !important;
+                    background-color: #f8fafc !important;
+                    border-right: 2px solid #e5e7eb !important;
+                    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.08) !important;
+                }
+                .pengeluaran-table .rdt_TableHeadRow .rdt_TableCol:nth-child(2) {
+                    position: sticky !important;
+                    left: 70px !important;
+                    z-index: 59 !important;
+                    background-color: #f8fafc !important;
+                    border-right: 2px solid #e5e7eb !important;
+                    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.08) !important;
+                }
+                
+                /* Sticky body columns - NO and AKSI */
+                .pengeluaran-table .rdt_TableBody .rdt_TableRow .rdt_TableCell:first-child {
+                    position: sticky !important;
+                    left: 0 !important;
+                    z-index: 2 !important;
+                    background-color: #ffffff !important;
+                    border-right: 2px solid #e5e7eb !important;
+                    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.08) !important;
+                }
+                .pengeluaran-table .rdt_TableBody .rdt_TableRow .rdt_TableCell:nth-child(2) {
+                    position: sticky !important;
+                    left: 70px !important;
+                    z-index: 1 !important;
+                    background-color: #ffffff !important;
+                    border-right: 2px solid #e5e7eb !important;
+                    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.08) !important;
+                }
+                
+                /* Ensure hover state maintains background */
+                .pengeluaran-table .rdt_TableBody .rdt_TableRow:hover .rdt_TableCell:first-child,
+                .pengeluaran-table .rdt_TableBody .rdt_TableRow:hover .rdt_TableCell:nth-child(2) {
+                    background-color: #f9fafb !important;
+                }
+            `}</style>
             {/* Statistics Cards */}
             {cardData && (
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
@@ -310,12 +367,14 @@ const PengeluaranTable = ({
                     <h3 className="text-lg font-bold text-gray-800">Data Pengeluaran Pengajuan Biaya</h3>
                 </div>
                 
-                <div className="w-full overflow-x-auto" style={{maxHeight: '60vh'}}>
+                <div className="w-full pengeluaran-table">
                     <DataTable
                         columns={columns}
                         data={data}
                         pagination={false}
                         customStyles={enhancedTableStyles}
+                        fixedHeader
+                        fixedHeaderScrollHeight="60vh"
                         progressPending={loading}
                         progressComponent={
                             <div className="text-center py-12">

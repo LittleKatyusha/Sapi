@@ -103,6 +103,15 @@ const PengajuanTable = ({
             cell: row => <div className="text-center px-2 py-2">{row.metode_bayar || '-'}</div>
         },
         {
+            name: 'DIVISI',
+            selector: row => row.divisi,
+            sortable: true,
+            width: '180px',
+            wrap: true,
+            center: true,
+            cell: row => <div className="text-center px-2 py-2">{row.divisi || '-'}</div>
+        },
+        {
             name: 'JENIS BIAYA',
             selector: row => row.jenis_biaya,
             sortable: true,
@@ -179,6 +188,63 @@ const PengajuanTable = ({
 
     return (
         <>
+            <style>{`
+                /* Header row sticky */
+                .pengajuan-table .rdt_TableHead {
+                    position: sticky !important;
+                    top: 0 !important;
+                    z-index: 50 !important;
+                }
+                
+                .pengajuan-table .rdt_TableHeadRow {
+                    position: sticky !important;
+                    top: 0 !important;
+                    z-index: 50 !important;
+                    background-color: #f8fafc !important;
+                }
+                
+                /* Sticky header columns - NO and PILIH */
+                .pengajuan-table .rdt_TableHeadRow .rdt_TableCol:first-child {
+                    position: sticky !important;
+                    left: 0 !important;
+                    z-index: 60 !important;
+                    background-color: #f8fafc !important;
+                    border-right: 2px solid #e5e7eb !important;
+                    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.08) !important;
+                }
+                .pengajuan-table .rdt_TableHeadRow .rdt_TableCol:nth-child(2) {
+                    position: sticky !important;
+                    left: 70px !important;
+                    z-index: 59 !important;
+                    background-color: #f8fafc !important;
+                    border-right: 2px solid #e5e7eb !important;
+                    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.08) !important;
+                }
+                
+                /* Sticky body columns - NO and PILIH */
+                .pengajuan-table .rdt_TableBody .rdt_TableRow .rdt_TableCell:first-child {
+                    position: sticky !important;
+                    left: 0 !important;
+                    z-index: 2 !important;
+                    background-color: #ffffff !important;
+                    border-right: 2px solid #e5e7eb !important;
+                    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.08) !important;
+                }
+                .pengajuan-table .rdt_TableBody .rdt_TableRow .rdt_TableCell:nth-child(2) {
+                    position: sticky !important;
+                    left: 70px !important;
+                    z-index: 1 !important;
+                    background-color: #ffffff !important;
+                    border-right: 2px solid #e5e7eb !important;
+                    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.08) !important;
+                }
+                
+                /* Ensure hover state maintains background */
+                .pengajuan-table .rdt_TableBody .rdt_TableRow:hover .rdt_TableCell:first-child,
+                .pengajuan-table .rdt_TableBody .rdt_TableRow:hover .rdt_TableCell:nth-child(2) {
+                    background-color: #f9fafb !important;
+                }
+            `}</style>
             <div className="bg-white rounded-none p-4 sm:p-6 shadow-lg border border-gray-100">
                 <div className="relative max-w-md">
                     <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -224,13 +290,14 @@ const PengajuanTable = ({
                     </div>
                 </div>
                 
-                <div className="w-full overflow-x-auto max-w-full table-scroll-container" style={{maxHeight: '60vh'}}>
-                    <div className="min-w-full">
-                        <DataTable
+                <div className="w-full pengajuan-table">
+                    <DataTable
                             columns={columns}
                             data={data}
                             pagination={false}
                             customStyles={enhancedTableStyles}
+                            fixedHeader
+                            fixedHeaderScrollHeight="60vh"
                             progressPending={loading}
                             progressComponent={
                                 <div className="text-center py-12">
@@ -243,10 +310,9 @@ const PengajuanTable = ({
                                     <p className="text-gray-500">Tidak ada data</p>
                                 </div>
                             }
-                            highlightOnHover
-                            pointerOnHover
-                        />
-                    </div>
+                        highlightOnHover
+                        pointerOnHover
+                    />
                 </div>
                 
                 <div className="border-t bg-gray-50 px-6 py-4 flex justify-between items-center">

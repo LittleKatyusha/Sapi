@@ -37,7 +37,7 @@ const KreditBankTable = ({
             style: {
                 position: 'sticky',
                 top: 0,
-                zIndex: 1000,
+                zIndex: 1200,
                 backgroundColor: '#f8fafc',
                 borderBottom: '2px solid #e2e8f0',
                 minHeight: '52px',
@@ -54,6 +54,22 @@ const KreditBankTable = ({
                 borderRight: '1px solid #e5e7eb',
                 '&:last-child': {
                     borderRight: 'none',
+                },
+                '&:first-child': {
+                    position: 'sticky',
+                    left: 0,
+                    zIndex: 1202,
+                    backgroundColor: '#f8fafc',
+                    borderRight: '2px solid #e5e7eb',
+                    boxShadow: '2px 0 4px rgba(0, 0, 0, 0.08)',
+                },
+                '&:nth-child(2)': {
+                    position: 'sticky',
+                    left: '90px',
+                    zIndex: 1201,
+                    backgroundColor: '#f8fafc',
+                    borderRight: '2px solid #e5e7eb',
+                    boxShadow: '2px 0 4px rgba(0, 0, 0, 0.08)',
                 },
             }
         },
@@ -76,6 +92,24 @@ const KreditBankTable = ({
                 borderRight: '1px solid #f3f4f6',
                 '&:last-child': {
                     borderRight: 'none',
+                },
+                '&:first-child': {
+                    position: 'sticky',
+                    left: 0,
+                    zIndex: 999,
+                    backgroundColor: '#ffffff !important',
+                    borderRight: '2px solid #e5e7eb',
+                    boxShadow: '2px 0 4px rgba(0, 0, 0, 0.08)',
+                    fontWeight: '600',
+                    color: '#6b7280',
+                },
+                '&:nth-child(2)': {
+                    position: 'sticky',
+                    left: '90px',
+                    zIndex: 998,
+                    backgroundColor: '#ffffff !important',
+                    borderRight: '2px solid #e5e7eb',
+                    boxShadow: '2px 0 4px rgba(0, 0, 0, 0.08)',
                 },
             }
         }
@@ -183,6 +217,63 @@ const KreditBankTable = ({
 
     return (
         <>
+            <style>{`
+                /* Header row sticky */
+                .kredit-bank-table .rdt_TableHead {
+                    position: sticky !important;
+                    top: 0 !important;
+                    z-index: 50 !important;
+                }
+                
+                .kredit-bank-table .rdt_TableHeadRow {
+                    position: sticky !important;
+                    top: 0 !important;
+                    z-index: 50 !important;
+                    background-color: #f8fafc !important;
+                }
+                
+                /* Sticky header columns - NO URUT and PILIH */
+                .kredit-bank-table .rdt_TableHeadRow .rdt_TableCol:first-child {
+                    position: sticky !important;
+                    left: 0 !important;
+                    z-index: 60 !important;
+                    background-color: #f8fafc !important;
+                    border-right: 2px solid #e5e7eb !important;
+                    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.08) !important;
+                }
+                .kredit-bank-table .rdt_TableHeadRow .rdt_TableCol:nth-child(2) {
+                    position: sticky !important;
+                    left: 90px !important;
+                    z-index: 59 !important;
+                    background-color: #f8fafc !important;
+                    border-right: 2px solid #e5e7eb !important;
+                    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.08) !important;
+                }
+                
+                /* Sticky body columns - NO URUT and PILIH */
+                .kredit-bank-table .rdt_TableBody .rdt_TableRow .rdt_TableCell:first-child {
+                    position: sticky !important;
+                    left: 0 !important;
+                    z-index: 2 !important;
+                    background-color: #ffffff !important;
+                    border-right: 2px solid #e5e7eb !important;
+                    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.08) !important;
+                }
+                .kredit-bank-table .rdt_TableBody .rdt_TableRow .rdt_TableCell:nth-child(2) {
+                    position: sticky !important;
+                    left: 90px !important;
+                    z-index: 1 !important;
+                    background-color: #ffffff !important;
+                    border-right: 2px solid #e5e7eb !important;
+                    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.08) !important;
+                }
+                
+                /* Ensure hover state maintains background */
+                .kredit-bank-table .rdt_TableBody .rdt_TableRow:hover .rdt_TableCell:first-child,
+                .kredit-bank-table .rdt_TableBody .rdt_TableRow:hover .rdt_TableCell:nth-child(2) {
+                    background-color: #f9fafb !important;
+                }
+            `}</style>
             <div className="bg-white rounded-none p-4 sm:p-6 shadow-lg border border-gray-100">
                 <div className="relative max-w-md">
                     <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -222,13 +313,14 @@ const KreditBankTable = ({
                     </div>
                 </div>
                 
-                <div className="w-full overflow-x-auto max-w-full table-scroll-container" style={{maxHeight: '60vh'}}>
-                    <div className="min-w-full">
-                        <DataTable
+                <div className="w-full kredit-bank-table">
+                    <DataTable
                             columns={columns}
                             data={data}
                             pagination={false}
                             customStyles={kreditBankTableStyles}
+                            fixedHeader
+                            fixedHeaderScrollHeight="60vh"
                             noDataComponent={
                                 <div className="text-center py-12">
                                     <div className="mb-4">
@@ -237,10 +329,9 @@ const KreditBankTable = ({
                                     <p className="text-gray-500 text-lg">Tidak ada data kas sudah ter setor</p>
                                 </div>
                             }
-                            highlightOnHover
-                            pointerOnHover
-                        />
-                    </div>
+                        highlightOnHover
+                        pointerOnHover
+                    />
                 </div>
                 
                 <div className="border-t bg-gray-50 px-6 py-4 flex justify-between items-center">
