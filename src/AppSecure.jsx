@@ -105,24 +105,23 @@ const AddEditTandaTerimaPage = lazy(() => import('./pages/ho/tandaTerima/AddEdit
 // Pengajuan Pages - Lazy loaded
 const PengajuanPage = lazy(() => import('./pages/ho/pengajuan/PengajuanPage'));
 
+// Keuangan Kas Pages - Lazy loaded
+const KeuanganKasPage = lazy(() => import('./pages/ho/keuanganKas/KeuanganKasPage'));
+const KeuanganKasDetailPage = lazy(() => import('./pages/ho/keuanganKas/KeuanganKasDetailPage'));
+
 // Pembayaran Pages - Lazy loaded
-const PembayaranPage = lazy(() => import('./pages/pembayaran/pembayaranDoka/PembayaranPage'));
 const PembayaranDetailPage = lazy(() => import('./pages/pembayaran/pembayaranDoka/PembayaranDetailPage'));
 
 // Pembayaran OVK Pages - Lazy loaded
-const PembayaranOvkPage = lazy(() => import('./pages/pembayaran/pembayaranOvk/PembayaranPage'));
 const PembayaranOvkDetailPage = lazy(() => import('./pages/pembayaran/pembayaranOvk/PembayaranDetailPage'));
 
 // Pembayaran Feedmill Pages - Lazy loaded
-const PembayaranFeedmillPage = lazy(() => import('./pages/pembayaran/pembayaranFeedmil/PembayaranPage'));
 const PembayaranFeedmillDetailPage = lazy(() => import('./pages/pembayaran/pembayaranFeedmil/PembayaranDetailPage'));
 
 // Pembayaran Kulit Pages - Lazy loaded
-const PembayaranKulitPage = lazy(() => import('./pages/pembayaran/pembayaranKulit/PembayaranPage'));
 const PembayaranKulitDetailPage = lazy(() => import('./pages/pembayaran/pembayaranKulit/PembayaranDetailPage'));
 
 // Pembayaran Lain-Lain Pages - Lazy loaded
-const PembayaranLainLainPage = lazy(() => import('./pages/pembayaran/pembayaranLainLain/PembayaranPage'));
 const PembayaranLainLainDetailPage = lazy(() => import('./pages/pembayaran/pembayaranLainLain/PembayaranDetailPage'));
 
 const AppWrapperSecure = () => (
@@ -279,25 +278,23 @@ function AppSecure() {
               {/* HO Pengajuan Routes */}
               <Route path="/ho/pengajuan" element={<PengajuanPage />} />
               
+              {/* HO Keuangan Kas Routes */}
+              <Route path="/ho/keuangan-kas/detail/:id" element={<KeuanganKasDetailPage />} />
+              <Route path="/ho/keuangan-kas" element={<KeuanganKasPage />} />
+              
               {/* Pembayaran Doka Routes */}
-              <Route path="/pembayaran/doka" element={<PembayaranPage />} />
               <Route path="/pembayaran/doka/detail/:id" element={<PembayaranDetailPage />} />
 
               {/* Pembayaran OVK Routes */}
-              <Route path="/pembayaran/ovk" element={<PembayaranOvkPage />} />
               <Route path="/pembayaran/ovk/detail/:id" element={<PembayaranOvkDetailPage />} />
 
               {/* Pembayaran Feedmill Routes */}
-              <Route path="/pembayaran/feedmill" element={<PembayaranFeedmillPage />} />
               <Route path="/pembayaran/feedmill/detail/:id" element={<PembayaranFeedmillDetailPage />} />
 
               {/* Pembayaran Kulit Routes */}
-              <Route path="/pembayaran/kulit" element={<PembayaranKulitPage />} />
               <Route path="/pembayaran/kulit/detail/:id" element={<PembayaranKulitDetailPage />} />
 
               {/* Pembayaran Lain-Lain Routes */}
-              <Route path="/pembayaran/lain-lain" element={<PembayaranLainLainPage />} />
-              <Route path="/pembayaran/lain-lain/edit/:id" element={<PembayaranLainLainPage />} />
               <Route path="/pembayaran/lain-lain/detail/:id" element={<PembayaranLainLainDetailPage />} />
               
               {/* HO Sales Routes - Commented out as files don't exist */}

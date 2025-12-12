@@ -79,7 +79,9 @@ export const API_ENDPOINTS = {
     PEMBELIAN: '/api/ho/pembelian',
     PENJUALAN: '/api/ho/penjualan',
     PENJUALAN_DOKA_SAPI: '/api/ho/penjualandokasapi', // Updated endpoint for Penjualan Doka Sapi
-    PENGAJUAN_BIAYA: '/api/ho/pengajuanbiaya', // Pengajuan Biaya endpoint
+    PENGAJUAN_BIAYA: '/api/ho/pengajuanbiaya', // Pengajuan Biaya endpoint (Cash Budget Request)
+    PENGELUARAN_PENGAJUAN_BIAYA_KAS: '/api/ho/pengeluaranpengajuanbiayakas', // Cash Disbursement/Approval endpoint
+    PENGELUARAN_PENGAJUAN_BIAYA_BANK: '/api/ho/pengeluaranpengajuanbiayabank', // Bank Disbursement/Approval endpoint
     FEEDMIL: {
       PEMBELIAN: '/api/ho/feedmil/pembelian'
     },
@@ -120,6 +122,10 @@ export const API_ENDPOINTS = {
       DETAIL_UPDATE: '/api/ho/payment/detail/update',
       DETAIL_DELETE: '/api/ho/payment/detail/hapus',
       ADD_PAYMENT: '/api/ho/payment/add-payment'
+    },
+    PENGELUARAN: {
+      BASE: '/api/ho/pengeluaran',
+      SHOW: '/api/ho/pengeluaran/show'
     }
   },
 
