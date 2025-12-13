@@ -8,8 +8,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 const isDevelopment = process.env.NODE_ENV === 'development';
 
 // Get API base URL from environment variables with fallback
-export const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 
-  (isProduction ? 'https://puput-api.ternasys.com' : 'http://localhost:8080');
+export const API_BASE_URL = process.env.REACT_APP_API_BASE_URL
 
 // Configuration based on environment
 export const API_CONFIG = {
