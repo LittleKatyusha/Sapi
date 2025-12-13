@@ -1,7 +1,7 @@
 // Environment configuration and validation
 export const ENV_CONFIG = {
   // API Configuration
-  API_URL: process.env.REACT_APP_API_URL || 'http://localhost:8080',
+  API_URL: process.env.REACT_APP_API_BASE_URL,
   
   // Security Configuration
   DISABLE_RIGHT_CLICK: process.env.REACT_APP_DISABLE_RIGHT_CLICK === 'true',

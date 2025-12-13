@@ -1,5 +1,5 @@
 /**
- * React Query Hook for Bank Options
+ * React Query Hook for Tipe Pembayaran (Payment Type)
  * Optimized with caching, background refetching, and automatic deduplication
  */
 
@@ -7,20 +7,20 @@ import { useQuery } from '@tanstack/react-query';
 import { QUERY_KEYS, QUERY_OPTIONS, apiCalls } from '../utils/queryFactory';
 
 /**
- * Hook for fetching bank options
+ * Hook for fetching tipe pembayaran options
  * @returns {Object} Query object with data, loading, error states
  */
-export const useBanksOptions = (options = {}) => {
+export const useTipePembayaranOptions = (options = {}) => {
   return useQuery({
-    queryKey: QUERY_KEYS.MASTER.BANK_LIST,
-    queryFn: () => apiCalls.master.getBanksList(),
-    ...QUERY_OPTIONS.MASTER, // 10 min stale time, no auto-refetch
+    queryKey: QUERY_KEYS.MASTER.TIPE_PEMBAYARAN,
+    queryFn: () => apiCalls.master.getParametersByGroup('tipe_pembayaran'),
+    ...QUERY_OPTIONS.FREQUENT, // 2 min stale time, refetch on focus
     select: (data) => {
       // Transform to options format
       if (Array.isArray(data)) {
-        return data.map(bank => ({
-          value: String(bank.id), // Convert to string to match form field format
-          label: bank.display_name || (bank.kode ? `[${bank.kode}] ${bank.nama}` : bank.nama)
+        return data.map(item => ({
+          value: parseInt(item.value),
+          label: item.name
         }));
       }
       return [];
@@ -30,19 +30,19 @@ export const useBanksOptions = (options = {}) => {
 };
 
 // For backward compatibility, export alias
-export const useBanksAPILazy = () => {
-  const query = useBanksOptions({
+export const useTipePembayaranLazy = () => {
+  const query = useTipePembayaranOptions({
     staleTime: 0, // Always fetch fresh data on first load, then cache
     gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
   });
 
   return {
-    bankOptions: query.data || [],
+    tipePembayaranOptions: query.data || [],
     loading: query.isLoading,
     error: query.error?.message || null,
-    fetchBanks: query.refetch, // Alias for backward compatibility
+    fetchTipePembayaran: query.refetch, // Alias for backward compatibility
     ...query, // Expose full query object
   };
 };
 
-export default useBanksAPILazy;
+export default useTipePembayaranLazy;
