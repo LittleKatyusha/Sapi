@@ -1,10 +1,9 @@
 import React, { useMemo } from 'react';
 import DataTable from 'react-data-table-component';
 import { Search, X, Loader2, Wallet } from 'lucide-react';
-import ActionButtonBelumDibayar from '../ActionButtonBelumDibayar';
-import pengeluaranService from '../../../../../services/pengeluaranService';
+import ActionButtonLunas from '../ActionButtonLunas';
 
-const BelumLunasTable = ({
+const LunasTable = ({
     data,
     loading = false,
     error = null,
@@ -18,16 +17,16 @@ const BelumLunasTable = ({
     clearSearch,
     handleServerPageChange,
     handleServerPerPageChange,
-    handleBayar
+    handleDownload
 }) => {
-    // Custom table styles for BelumLunasTable with sticky columns
-    const belumLunasTableStyles = {
+    // Custom table styles for LunasTable with sticky columns
+    const lunasTableStyles = {
         table: {
             style: {
                 backgroundColor: '#fff',
                 borderRadius: '0px',
                 width: '100%',
-                minWidth: '1500px',
+                minWidth: '1850px',
                 tableLayout: 'auto',
                 borderCollapse: 'separate',
                 borderSpacing: 0,
@@ -146,17 +145,17 @@ const BelumLunasTable = ({
             width: '90px',
             center: true,
             cell: row => (
-                <ActionButtonBelumDibayar
+                <ActionButtonLunas
                     row={row}
                     openMenuId={openMenuId}
                     setOpenMenuId={setOpenMenuId}
-                    onBayar={handleBayar}
+                    onDownload={handleDownload}
                     isActive={openMenuId === row.id_pembayaran}
                 />
             ),
         },
         {
-            name: 'NOMOR FAKTUR/NOTA',
+            name: 'NOMOR FAKTUR',
             selector: row => row.nota,
             sortable: true,
             width: '220px',
@@ -229,19 +228,6 @@ const BelumLunasTable = ({
             )
         },
         {
-            name: 'TANGGAL PEMBAYARAN',
-            selector: row => row.settlement_date,
-            sortable: true,
-            width: '200px',
-            center: true,
-            wrap: true,
-            cell: row => (
-                <div className="font-medium text-gray-800">
-                    {row.settlement_date || '-'}
-                </div>
-            )
-        },
-        {
             name: 'TIPE PEMBAYARAN',
             selector: row => row.payment_type_name,
             sortable: true,
@@ -255,24 +241,17 @@ const BelumLunasTable = ({
             )
         },
         {
-            name: 'SISA TAGIHAN (Rp.)',
-            selector: row => pengeluaranService.calculateSisaTagihan(row.total_tagihan, row.total_terbayar),
+            name: 'TANGGAL PELUNASAN',
+            selector: row => row.settlement_date,
             sortable: true,
             width: '200px',
             center: true,
             wrap: true,
-            cell: row => {
-                const sisaTagihan = pengeluaranService.calculateSisaTagihan(row.total_tagihan, row.total_terbayar);
-                return (
-                    <div className="font-semibold text-red-600">
-                        {sisaTagihan ? new Intl.NumberFormat('id-ID', {
-                            style: 'currency',
-                            currency: 'IDR',
-                            minimumFractionDigits: 0
-                        }).format(sisaTagihan) : '-'}
-                    </div>
-                );
-            }
+            cell: row => (
+                <div className="font-semibold text-green-600">
+                    {row.settlement_date || '-'}
+                </div>
+            )
         },
         {
             name: 'STATUS',
@@ -282,26 +261,25 @@ const BelumLunasTable = ({
             center: true,
             cell: row => (
                 <div className="flex justify-center">
-                    <span className="inline-flex px-3 py-1 rounded-full text-xs font-semibold border bg-yellow-100 text-yellow-800 border-yellow-200">
-                        {row.payment_status_text || 'Belum Lunas'}
+                    <span className="inline-flex px-3 py-1 rounded-full text-xs font-semibold border bg-green-100 text-green-800 border-green-200">
+                        {row.payment_status_text || 'Lunas'}
                     </span>
                 </div>
             )
         },
-    ], [openMenuId, serverPagination, handleBayar, setOpenMenuId]);
-
+    ], [openMenuId, serverPagination, handleDownload, setOpenMenuId]);
 
     return (
         <>
             <style>{`
                 /* Header row sticky */
-                .belum-lunas-table .rdt_TableHead {
+                .lunas-table .rdt_TableHead {
                     position: sticky !important;
                     top: 0 !important;
                     z-index: 50 !important;
                 }
                 
-                .belum-lunas-table .rdt_TableHeadRow {
+                .lunas-table .rdt_TableHeadRow {
                     position: sticky !important;
                     top: 0 !important;
                     z-index: 50 !important;
@@ -309,7 +287,7 @@ const BelumLunasTable = ({
                 }
                 
                 /* Sticky header columns - NO URUT and PILIH */
-                .belum-lunas-table .rdt_TableHeadRow .rdt_TableCol:first-child {
+                .lunas-table .rdt_TableHeadRow .rdt_TableCol:first-child {
                     position: sticky !important;
                     left: 0 !important;
                     z-index: 60 !important;
@@ -317,7 +295,7 @@ const BelumLunasTable = ({
                     border-right: 2px solid #e5e7eb !important;
                     box-shadow: 2px 0 4px rgba(0, 0, 0, 0.08) !important;
                 }
-                .belum-lunas-table .rdt_TableHeadRow .rdt_TableCol:nth-child(2) {
+                .lunas-table .rdt_TableHeadRow .rdt_TableCol:nth-child(2) {
                     position: sticky !important;
                     left: 100px !important;
                     z-index: 59 !important;
@@ -327,7 +305,7 @@ const BelumLunasTable = ({
                 }
                 
                 /* Sticky body columns - NO URUT and PILIH */
-                .belum-lunas-table .rdt_TableBody .rdt_TableRow .rdt_TableCell:first-child {
+                .lunas-table .rdt_TableBody .rdt_TableRow .rdt_TableCell:first-child {
                     position: sticky !important;
                     left: 0 !important;
                     z-index: 2 !important;
@@ -335,7 +313,7 @@ const BelumLunasTable = ({
                     border-right: 2px solid #e5e7eb !important;
                     box-shadow: 2px 0 4px rgba(0, 0, 0, 0.08) !important;
                 }
-                .belum-lunas-table .rdt_TableBody .rdt_TableRow .rdt_TableCell:nth-child(2) {
+                .lunas-table .rdt_TableBody .rdt_TableRow .rdt_TableCell:nth-child(2) {
                     position: sticky !important;
                     left: 100px !important;
                     z-index: 1 !important;
@@ -345,8 +323,8 @@ const BelumLunasTable = ({
                 }
                 
                 /* Ensure hover state maintains background */
-                .belum-lunas-table .rdt_TableBody .rdt_TableRow:hover .rdt_TableCell:first-child,
-                .belum-lunas-table .rdt_TableBody .rdt_TableRow:hover .rdt_TableCell:nth-child(2) {
+                .lunas-table .rdt_TableBody .rdt_TableRow:hover .rdt_TableCell:first-child,
+                .lunas-table .rdt_TableBody .rdt_TableRow:hover .rdt_TableCell:nth-child(2) {
                     background-color: #f9fafb !important;
                 }
             `}</style>
@@ -375,8 +353,8 @@ const BelumLunasTable = ({
             </div>
 
             <div className="bg-white rounded-xl shadow-lg border border-gray-100 relative overflow-hidden">
-                <div className="px-6 py-4 bg-gradient-to-r from-yellow-50 to-amber-50 border-b">
-                    <h3 className="text-lg font-bold text-gray-800">Data Belum Lunas</h3>
+                <div className="px-6 py-4 bg-gradient-to-r from-green-50 to-emerald-50 border-b">
+                    <h3 className="text-lg font-bold text-gray-800">Data Lunas</h3>
                 </div>
 
                 {/* Scroll Indicator */}
@@ -395,12 +373,12 @@ const BelumLunasTable = ({
                     </div>
                 </div>
                 
-                <div className="w-full belum-lunas-table">
+                <div className="w-full lunas-table">
                     <DataTable
                             columns={columns}
                             data={data}
                             pagination={false}
-                            customStyles={belumLunasTableStyles}
+                            customStyles={lunasTableStyles}
                             fixedHeader
                             fixedHeaderScrollHeight="60vh"
                             progressPending={loading}
@@ -425,7 +403,7 @@ const BelumLunasTable = ({
                                             <div className="mb-4">
                                                 <Wallet size={64} className="text-gray-300 mx-auto" />
                                             </div>
-                                            <p className="text-gray-500 text-lg">Tidak ada data belum lunas</p>
+                                            <p className="text-gray-500 text-lg">Tidak ada data lunas</p>
                                         </>
                                     )}
                                 </div>
@@ -471,4 +449,4 @@ const BelumLunasTable = ({
     );
 };
 
-export default BelumLunasTable;
+export default LunasTable;

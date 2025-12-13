@@ -1,34 +1,25 @@
 import React, { useMemo } from 'react';
 import DataTable from 'react-data-table-component';
-import { Search, X, Loader2, Wallet } from 'lucide-react';
-import ActionButtonBelumDibayar from '../ActionButtonBelumDibayar';
-import pengeluaranService from '../../../../../services/pengeluaranService';
+import { Search, CreditCard, PlusCircle } from 'lucide-react';
+import ActionButton from '../ActionButton';
 
-const BelumLunasTable = ({
+const KreditBankTable = ({
     data,
-    loading = false,
-    error = null,
-    searchTerm,
-    isSearching,
-    searchError,
-    serverPagination,
     openMenuId,
     setOpenMenuId,
-    handleSearch,
-    clearSearch,
-    handleServerPageChange,
-    handleServerPerPageChange,
-    handleBayar
+    handleEdit,
+    handleDelete,
+    handleDetail,
+    handleAdd
 }) => {
-    // Custom table styles for BelumLunasTable with sticky columns
-    const belumLunasTableStyles = {
+    // Custom table styles for KreditBankTable
+    const kreditBankTableStyles = {
         table: {
             style: {
                 backgroundColor: '#fff',
                 borderRadius: '0px',
                 width: '100%',
-                minWidth: '1500px',
-                tableLayout: 'auto',
+                tableLayout: 'fixed',
                 borderCollapse: 'separate',
                 borderSpacing: 0,
             }
@@ -64,7 +55,6 @@ const BelumLunasTable = ({
                 '&:last-child': {
                     borderRight: 'none',
                 },
-                // Sticky NO URUT column (first column)
                 '&:first-child': {
                     position: 'sticky',
                     left: 0,
@@ -73,10 +63,9 @@ const BelumLunasTable = ({
                     borderRight: '2px solid #e5e7eb',
                     boxShadow: '2px 0 4px rgba(0, 0, 0, 0.08)',
                 },
-                // Sticky PILIH column (second column)
                 '&:nth-child(2)': {
                     position: 'sticky',
-                    left: '100px',
+                    left: '90px',
                     zIndex: 1201,
                     backgroundColor: '#f8fafc',
                     borderRight: '2px solid #e5e7eb',
@@ -104,7 +93,6 @@ const BelumLunasTable = ({
                 '&:last-child': {
                     borderRight: 'none',
                 },
-                // Sticky NO URUT column (first column)
                 '&:first-child': {
                     position: 'sticky',
                     left: 0,
@@ -115,10 +103,9 @@ const BelumLunasTable = ({
                     fontWeight: '600',
                     color: '#6b7280',
                 },
-                // Sticky PILIH column (second column)
                 '&:nth-child(2)': {
                     position: 'sticky',
-                    left: '100px',
+                    left: '90px',
                     zIndex: 998,
                     backgroundColor: '#ffffff !important',
                     borderRight: '2px solid #e5e7eb',
@@ -133,11 +120,11 @@ const BelumLunasTable = ({
             name: 'NO URUT',
             selector: (row, index) => index + 1,
             sortable: false,
-            width: '100px',
+            width: '90px',
             center: true,
             cell: (row, index) => (
                 <div className="font-semibold text-gray-600">
-                    {(serverPagination.currentPage - 1) * serverPagination.perPage + index + 1}
+                    {index + 1}
                 </div>
             )
         },
@@ -146,162 +133,99 @@ const BelumLunasTable = ({
             width: '90px',
             center: true,
             cell: row => (
-                <ActionButtonBelumDibayar
+                <ActionButton
                     row={row}
                     openMenuId={openMenuId}
                     setOpenMenuId={setOpenMenuId}
-                    onBayar={handleBayar}
-                    isActive={openMenuId === row.id_pembayaran}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                    onDetail={handleDetail}
+                    isActive={openMenuId === row.id}
                 />
             ),
         },
         {
-            name: 'NOMOR FAKTUR/NOTA',
-            selector: row => row.nota,
+            name: 'KREDIT',
+            selector: row => row.kredit,
             sortable: true,
-            width: '220px',
-            center: true,
-            wrap: true,
-            cell: row => (
-                <div className="font-semibold text-blue-600">
-                    {row.nota || row.nota_sistem || '-'}
-                </div>
-            )
-        },
-        {
-            name: 'JENIS PEMBELIAN',
-            selector: row => row.purchase_type_name,
-            sortable: true,
-            width: '200px',
-            center: true,
-            wrap: true,
-            cell: row => (
-                <div className="font-medium text-gray-800">
-                    {row.purchase_type_name || '-'}
-                </div>
-            )
-        },
-        {
-            name: 'NILAI (Rp.)',
-            selector: row => row.total_tagihan,
-            sortable: true,
-            width: '200px',
+            width: '160px',
             center: true,
             wrap: true,
             cell: row => (
                 <div className="font-semibold text-green-600">
-                    {row.total_tagihan ? new Intl.NumberFormat('id-ID', {
+                    {row.kredit ? new Intl.NumberFormat('id-ID', {
                         style: 'currency',
                         currency: 'IDR',
                         minimumFractionDigits: 0
-                    }).format(row.total_tagihan) : '-'}
+                    }).format(row.kredit) : '-'}
                 </div>
             )
         },
         {
-            name: 'TANGGAL MASUK',
-            selector: row => row.tgl_masuk,
+            name: 'TANGGAL KREDIT',
+            selector: row => row.tgl_kredit,
             sortable: true,
-            width: '200px',
+            grow: 1,
             center: true,
             wrap: true,
             cell: row => (
                 <div className="font-medium text-gray-800">
-                    {row.tgl_masuk || '-'}
+                    {row.tgl_kredit ? new Date(row.tgl_kredit).toLocaleDateString('id-ID') : '-'}
                 </div>
             )
         },
         {
-            name: 'PEMBAYARAN',
-            selector: row => row.total_terbayar,
+            name: 'KREDIT BANK',
+            selector: row => row.kredit_bank,
             sortable: true,
-            width: '200px',
+            grow: 1,
             center: true,
             wrap: true,
             cell: row => (
-                <div className="font-semibold text-blue-600">
-                    {row.total_terbayar ? new Intl.NumberFormat('id-ID', {
-                        style: 'currency',
-                        currency: 'IDR',
-                        minimumFractionDigits: 0
-                    }).format(row.total_terbayar) : '-'}
+                <div className="font-medium text-blue-600">
+                    {row.kredit_bank || '-'}
                 </div>
             )
         },
         {
-            name: 'TANGGAL PEMBAYARAN',
-            selector: row => row.settlement_date,
+            name: 'DEPOSITOR',
+            selector: row => row.depositor,
             sortable: true,
-            width: '200px',
+            grow: 1,
             center: true,
             wrap: true,
             cell: row => (
                 <div className="font-medium text-gray-800">
-                    {row.settlement_date || '-'}
+                    {row.depositor || '-'}
                 </div>
             )
         },
         {
-            name: 'TIPE PEMBAYARAN',
-            selector: row => row.payment_type_name,
+            name: 'BUKTI SETOR',
+            selector: row => row.bukti_setor,
             sortable: true,
-            width: '200px',
+            grow: 1,
             center: true,
             wrap: true,
             cell: row => (
                 <div className="font-medium text-gray-800">
-                    {row.payment_type_name || '-'}
+                    {row.bukti_setor || '-'}
                 </div>
             )
         },
-        {
-            name: 'SISA TAGIHAN (Rp.)',
-            selector: row => pengeluaranService.calculateSisaTagihan(row.total_tagihan, row.total_terbayar),
-            sortable: true,
-            width: '200px',
-            center: true,
-            wrap: true,
-            cell: row => {
-                const sisaTagihan = pengeluaranService.calculateSisaTagihan(row.total_tagihan, row.total_terbayar);
-                return (
-                    <div className="font-semibold text-red-600">
-                        {sisaTagihan ? new Intl.NumberFormat('id-ID', {
-                            style: 'currency',
-                            currency: 'IDR',
-                            minimumFractionDigits: 0
-                        }).format(sisaTagihan) : '-'}
-                    </div>
-                );
-            }
-        },
-        {
-            name: 'STATUS',
-            selector: row => row.payment_status_text,
-            sortable: true,
-            width: '150px',
-            center: true,
-            cell: row => (
-                <div className="flex justify-center">
-                    <span className="inline-flex px-3 py-1 rounded-full text-xs font-semibold border bg-yellow-100 text-yellow-800 border-yellow-200">
-                        {row.payment_status_text || 'Belum Lunas'}
-                    </span>
-                </div>
-            )
-        },
-    ], [openMenuId, serverPagination, handleBayar, setOpenMenuId]);
-
+    ], [openMenuId, handleEdit, handleDelete, handleDetail, setOpenMenuId]);
 
     return (
         <>
             <style>{`
                 /* Header row sticky */
-                .belum-lunas-table .rdt_TableHead {
+                .kredit-bank-table .rdt_TableHead {
                     position: sticky !important;
                     top: 0 !important;
                     z-index: 50 !important;
                 }
                 
-                .belum-lunas-table .rdt_TableHeadRow {
+                .kredit-bank-table .rdt_TableHeadRow {
                     position: sticky !important;
                     top: 0 !important;
                     z-index: 50 !important;
@@ -309,7 +233,7 @@ const BelumLunasTable = ({
                 }
                 
                 /* Sticky header columns - NO URUT and PILIH */
-                .belum-lunas-table .rdt_TableHeadRow .rdt_TableCol:first-child {
+                .kredit-bank-table .rdt_TableHeadRow .rdt_TableCol:first-child {
                     position: sticky !important;
                     left: 0 !important;
                     z-index: 60 !important;
@@ -317,9 +241,9 @@ const BelumLunasTable = ({
                     border-right: 2px solid #e5e7eb !important;
                     box-shadow: 2px 0 4px rgba(0, 0, 0, 0.08) !important;
                 }
-                .belum-lunas-table .rdt_TableHeadRow .rdt_TableCol:nth-child(2) {
+                .kredit-bank-table .rdt_TableHeadRow .rdt_TableCol:nth-child(2) {
                     position: sticky !important;
-                    left: 100px !important;
+                    left: 90px !important;
                     z-index: 59 !important;
                     background-color: #f8fafc !important;
                     border-right: 2px solid #e5e7eb !important;
@@ -327,7 +251,7 @@ const BelumLunasTable = ({
                 }
                 
                 /* Sticky body columns - NO URUT and PILIH */
-                .belum-lunas-table .rdt_TableBody .rdt_TableRow .rdt_TableCell:first-child {
+                .kredit-bank-table .rdt_TableBody .rdt_TableRow .rdt_TableCell:first-child {
                     position: sticky !important;
                     left: 0 !important;
                     z-index: 2 !important;
@@ -335,9 +259,9 @@ const BelumLunasTable = ({
                     border-right: 2px solid #e5e7eb !important;
                     box-shadow: 2px 0 4px rgba(0, 0, 0, 0.08) !important;
                 }
-                .belum-lunas-table .rdt_TableBody .rdt_TableRow .rdt_TableCell:nth-child(2) {
+                .kredit-bank-table .rdt_TableBody .rdt_TableRow .rdt_TableCell:nth-child(2) {
                     position: sticky !important;
-                    left: 100px !important;
+                    left: 90px !important;
                     z-index: 1 !important;
                     background-color: #ffffff !important;
                     border-right: 2px solid #e5e7eb !important;
@@ -345,38 +269,32 @@ const BelumLunasTable = ({
                 }
                 
                 /* Ensure hover state maintains background */
-                .belum-lunas-table .rdt_TableBody .rdt_TableRow:hover .rdt_TableCell:first-child,
-                .belum-lunas-table .rdt_TableBody .rdt_TableRow:hover .rdt_TableCell:nth-child(2) {
+                .kredit-bank-table .rdt_TableBody .rdt_TableRow:hover .rdt_TableCell:first-child,
+                .kredit-bank-table .rdt_TableBody .rdt_TableRow:hover .rdt_TableCell:nth-child(2) {
                     background-color: #f9fafb !important;
                 }
             `}</style>
             <div className="bg-white rounded-none p-4 sm:p-6 shadow-lg border border-gray-100">
                 <div className="relative max-w-md">
                     <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    {isSearching && (
-                        <Loader2 className="absolute right-12 top-1/2 transform -translate-y-1/2 w-4 h-4 text-blue-500 animate-spin" />
-                    )}
-                    {searchTerm && !isSearching && (
-                        <button
-                            onClick={clearSearch}
-                            className="absolute right-4 top-1/2 transform -translate-y-1/2"
-                        >
-                            <X className="w-4 h-4 text-gray-400 hover:text-gray-600" />
-                        </button>
-                    )}
                     <input
                         type="text"
-                        placeholder="Cari nomor faktur/nota..."
-                        value={searchTerm}
-                        onChange={(e) => handleSearch(e.target.value)}
-                        className="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Cari data kredit bank..."
+                        className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                 </div>
             </div>
 
             <div className="bg-white rounded-xl shadow-lg border border-gray-100 relative overflow-hidden">
-                <div className="px-6 py-4 bg-gradient-to-r from-yellow-50 to-amber-50 border-b">
-                    <h3 className="text-lg font-bold text-gray-800">Data Belum Lunas</h3>
+                <div className="px-6 py-4 bg-gradient-to-r from-blue-50 to-cyan-50 border-b flex justify-between items-center">
+                    <h3 className="text-lg font-bold text-gray-800">Data kas sudah ter setor</h3>
+                    <button
+                        onClick={handleAdd}
+                        className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white px-4 py-2 rounded-lg hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 flex items-center gap-2 font-medium shadow-md hover:shadow-lg"
+                    >
+                        <PlusCircle className="w-4 h-4" />
+                        Tambah Data
+                    </button>
                 </div>
 
                 {/* Scroll Indicator */}
@@ -395,39 +313,20 @@ const BelumLunasTable = ({
                     </div>
                 </div>
                 
-                <div className="w-full belum-lunas-table">
+                <div className="w-full kredit-bank-table">
                     <DataTable
                             columns={columns}
                             data={data}
                             pagination={false}
-                            customStyles={belumLunasTableStyles}
+                            customStyles={kreditBankTableStyles}
                             fixedHeader
                             fixedHeaderScrollHeight="60vh"
-                            progressPending={loading}
-                            progressComponent={
-                                <div className="text-center py-12">
-                                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                                    <p className="text-gray-500 text-sm">Memuat data...</p>
-                                </div>
-                            }
                             noDataComponent={
                                 <div className="text-center py-12">
-                                    {error ? (
-                                        <>
-                                            <div className="mb-4">
-                                                <Wallet size={64} className="text-red-300 mx-auto" />
-                                            </div>
-                                            <p className="text-red-500 text-lg font-semibold mb-2">Gagal memuat data</p>
-                                            <p className="text-gray-500 text-sm">{error}</p>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <div className="mb-4">
-                                                <Wallet size={64} className="text-gray-300 mx-auto" />
-                                            </div>
-                                            <p className="text-gray-500 text-lg">Tidak ada data belum lunas</p>
-                                        </>
-                                    )}
+                                    <div className="mb-4">
+                                        <CreditCard size={64} className="text-gray-300 mx-auto" />
+                                    </div>
+                                    <p className="text-gray-500 text-lg">Tidak ada data kas sudah ter setor</p>
                                 </div>
                             }
                         highlightOnHover
@@ -437,12 +336,11 @@ const BelumLunasTable = ({
                 
                 <div className="border-t bg-gray-50 px-6 py-4 flex justify-between items-center">
                     <span className="text-sm text-gray-700">
-                        Menampilkan {((serverPagination.currentPage - 1) * serverPagination.perPage) + 1} - {Math.min(serverPagination.currentPage * serverPagination.perPage, serverPagination.totalItems)} dari {serverPagination.totalItems}
+                        Menampilkan 1 - {data.length} dari {data.length}
                     </span>
                     <div className="flex gap-2">
                         <select
-                            value={serverPagination.perPage}
-                            onChange={(e) => handleServerPerPageChange(parseInt(e.target.value))}
+                            value={10}
                             className="border rounded px-2 py-1"
                         >
                             <option value={10}>10</option>
@@ -450,16 +348,14 @@ const BelumLunasTable = ({
                             <option value={50}>50</option>
                         </select>
                         <button
-                            onClick={() => handleServerPageChange(serverPagination.currentPage - 1)}
-                            disabled={serverPagination.currentPage === 1}
+                            disabled
                             className="px-3 py-1 border rounded disabled:opacity-50"
                         >
                             Prev
                         </button>
-                        <span className="px-3 py-1">{serverPagination.currentPage} / {serverPagination.totalPages}</span>
+                        <span className="px-3 py-1">1 / 1</span>
                         <button
-                            onClick={() => handleServerPageChange(serverPagination.currentPage + 1)}
-                            disabled={serverPagination.currentPage === serverPagination.totalPages}
+                            disabled
                             className="px-3 py-1 border rounded disabled:opacity-50"
                         >
                             Next
@@ -471,4 +367,4 @@ const BelumLunasTable = ({
     );
 };
 
-export default BelumLunasTable;
+export default KreditBankTable;

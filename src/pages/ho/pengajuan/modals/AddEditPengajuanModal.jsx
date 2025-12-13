@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { X, Save, Loader2 } from 'lucide-react';
 import Select from 'react-select';
 import useMasterData from '../hooks/useMasterData';
+import useOfficeData from '../../tandaTerima/hooks/useOfficeData';
 import PengajuanBiayaService from '../../../../services/pengajuanBiayaService';
 
 /**
@@ -16,6 +17,7 @@ import PengajuanBiayaService from '../../../../services/pengajuanBiayaService';
  * - id_metode_bayar (required, integer)
  * - id_persetujuan_ho (required, integer)
  * - catatan (required, string)
+ * - id_office (required, integer)
  */
 const AddEditPengajuanModal = ({ isOpen, onClose, onSave, editingItem }) => {
     // Form state
@@ -27,7 +29,8 @@ const AddEditPengajuanModal = ({ isOpen, onClose, onSave, editingItem }) => {
         nama_pengaju: '',
         id_metode_bayar: null,
         id_persetujuan_ho: null,
-        catatan: ''
+        catatan: '',
+        id_office: null
     });
 
     const [errors, setErrors] = useState({});
@@ -48,6 +51,13 @@ const AddEditPengajuanModal = ({ isOpen, onClose, onSave, editingItem }) => {
         persetujuanHoError,
         fetchAllMasterData
     } = useMasterData();
+
+    // Fetch office data using custom hook
+    const {
+        officeOptions,
+        loading: officeLoading,
+        error: officeError
+    } = useOfficeData();
 
     // Fetch master data when modal opens
     useEffect(() => {
@@ -144,6 +154,11 @@ const AddEditPengajuanModal = ({ isOpen, onClose, onSave, editingItem }) => {
                 ? persetujuanHoOptions.find(opt => opt.value === detailData.id_persetujuan_ho)
                 : persetujuanHoOptions.find(opt => opt.label.toUpperCase() === (detailData.persetujuan_ho || '').toUpperCase());
             
+            // Find office by ID
+            const officeOption = detailData.id_office
+                ? officeOptions.find(opt => opt.value === detailData.id_office)
+                : null;
+            
             setFormData({
                 id_jenis_biaya: jeniBiayaOption || null,
                 nominal: detailData.nominal ? String(detailData.nominal) : '',
@@ -152,7 +167,8 @@ const AddEditPengajuanModal = ({ isOpen, onClose, onSave, editingItem }) => {
                 nama_pengaju: detailData.nama_pengaju || detailData.yang_mengajukan || '',
                 id_metode_bayar: metodeBayarOption || null,
                 id_persetujuan_ho: persetujuanHoOption || null,
-                catatan: detailData.catatan || ''
+                catatan: detailData.catatan || '',
+                id_office: officeOption || null
             });
         } else if (!editingItem) {
             const today = new Date().toISOString().split('T')[0];
@@ -164,11 +180,12 @@ const AddEditPengajuanModal = ({ isOpen, onClose, onSave, editingItem }) => {
                 nama_pengaju: '',
                 id_metode_bayar: null,
                 id_persetujuan_ho: null,
-                catatan: ''
+                catatan: '',
+                id_office: null
             });
         }
         setErrors({});
-    }, [editingItem, detailData, isLoadingDetail, jenisBiayaOptions, metodeBayarOptions, persetujuanHoOptions]);
+    }, [editingItem, detailData, isLoadingDetail, jenisBiayaOptions, metodeBayarOptions, persetujuanHoOptions, officeOptions]);
 
     // Handle select change
     const handleSelectChange = (name, selectedOption) => {
@@ -269,6 +286,10 @@ const AddEditPengajuanModal = ({ isOpen, onClose, onSave, editingItem }) => {
             newErrors.catatan = 'Catatan harus diisi';
         }
 
+        if (!formData.id_office) {
+            newErrors.id_office = 'Office/Divisi harus dipilih';
+        }
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -292,7 +313,8 @@ const AddEditPengajuanModal = ({ isOpen, onClose, onSave, editingItem }) => {
                 nama_pengaju: formData.nama_pengaju.trim(),
                 id_metode_bayar: formData.id_metode_bayar?.value || formData.id_metode_bayar?.id,
                 id_persetujuan_ho: formData.id_persetujuan_ho?.value || formData.id_persetujuan_ho?.id,
-                catatan: formData.catatan.trim()
+                catatan: formData.catatan.trim(),
+                id_office: formData.id_office?.value || formData.id_office?.id
             };
 
             await onSave(dataToSave);
@@ -506,6 +528,35 @@ const AddEditPengajuanModal = ({ isOpen, onClose, onSave, editingItem }) => {
                                     </p>
                                 )}
                             </div>
+                        </div>
+
+                        {/* Office/Divisi */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Office/Divisi <span className="text-red-500">*</span>
+                            </label>
+                            <Select
+                                name="id_office"
+                                value={formData.id_office}
+                                onChange={(option) => handleSelectChange('id_office', option)}
+                                options={officeOptions}
+                                styles={selectStyles}
+                                placeholder={officeLoading ? 'Memuat...' : officeError ? 'Error memuat data' : 'Pilih office/divisi...'}
+                                isDisabled={isSubmitting || officeLoading}
+                                isLoading={officeLoading}
+                                isClearable
+                                isSearchable
+                            />
+                            {errors.id_office && (
+                                <p className="text-red-500 text-xs mt-1">
+                                    {errors.id_office}
+                                </p>
+                            )}
+                            {officeError && (
+                                <p className="text-orange-500 text-xs mt-1">
+                                    ⚠️ {officeError}
+                                </p>
+                            )}
                         </div>
 
                         {/* Keperluan */}

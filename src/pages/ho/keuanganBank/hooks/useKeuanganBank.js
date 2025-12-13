@@ -1,8 +1,8 @@
 import { useState, useCallback } from 'react';
 import pengeluaranService from '../../../../services/pengeluaranService';
 
-const useKeuanganKas = (activeTab = 'belum-dibayar') => {
-    const [keuanganKas, setKeuanganKas] = useState([]);
+const useKeuanganBank = (activeTab = 'belum-dibayar') => {
+    const [keuanganBank, setKeuanganBank] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
@@ -15,8 +15,8 @@ const useKeuanganKas = (activeTab = 'belum-dibayar') => {
         totalItems: 0
     });
 
-    // Fetch keuangan kas data from API
-    const fetchKeuanganKas = useCallback(async (
+    // Fetch keuangan bank data from API
+    const fetchKeuanganBank = useCallback(async (
         page = 1,
         perPage = 10,
         search = '',
@@ -50,7 +50,7 @@ const useKeuanganKas = (activeTab = 'belum-dibayar') => {
                 'due_date',
                 'desc',
                 {
-                    tipe_pembayaran: 1,  // Filter only payment_type = 1 (Kas)
+                    tipe_pembayaran: 2,  // Filter only payment_type = 2 (Bank)
                     ...(paymentStatus !== null ? { payment_status: paymentStatus } : {})
                 }
             );
@@ -66,7 +66,7 @@ const useKeuanganKas = (activeTab = 'belum-dibayar') => {
             if (response && response.data) {
                 const data = response.data;
 
-                setKeuanganKas(data);
+                setKeuanganBank(data);
 
                 // Update pagination info from server response
                 setServerPagination({
@@ -84,8 +84,8 @@ const useKeuanganKas = (activeTab = 'belum-dibayar') => {
                 throw new Error('Invalid response format from server');
             }
         } catch (err) {
-            console.error('❌ [FETCH] Error fetching keuangan kas:', err);
-            setKeuanganKas([]);
+            console.error('❌ [FETCH] Error fetching keuangan bank:', err);
+            setKeuanganBank([]);
             setServerPagination({
                 currentPage: 1,
                 perPage: perPage,
@@ -108,32 +108,32 @@ const useKeuanganKas = (activeTab = 'belum-dibayar') => {
 
         // Debounce search
         const timeoutId = setTimeout(() => {
-            fetchKeuanganKas(1, serverPagination.perPage, value, activeTab, false);
+            fetchKeuanganBank(1, serverPagination.perPage, value, activeTab, false);
             setIsSearching(false);
         }, 500);
 
         return () => clearTimeout(timeoutId);
-    }, [fetchKeuanganKas, serverPagination.perPage, activeTab]);
+    }, [fetchKeuanganBank, serverPagination.perPage, activeTab]);
 
     // Clear search
     const clearSearch = useCallback(() => {
         setSearchTerm('');
         setSearchError(null);
-        fetchKeuanganKas(1, serverPagination.perPage, '', activeTab, false);
-    }, [fetchKeuanganKas, serverPagination.perPage, activeTab]);
+        fetchKeuanganBank(1, serverPagination.perPage, '', activeTab, false);
+    }, [fetchKeuanganBank, serverPagination.perPage, activeTab]);
 
     // Handle page change
     const handlePageChange = useCallback((page) => {
-        fetchKeuanganKas(page, serverPagination.perPage, searchTerm, activeTab, true);
-    }, [fetchKeuanganKas, serverPagination.perPage, searchTerm, activeTab]);
+        fetchKeuanganBank(page, serverPagination.perPage, searchTerm, activeTab, true);
+    }, [fetchKeuanganBank, serverPagination.perPage, searchTerm, activeTab]);
 
     // Handle per page change
     const handlePerPageChange = useCallback((perPage) => {
-        fetchKeuanganKas(1, perPage, searchTerm, activeTab, true);
-    }, [fetchKeuanganKas, searchTerm, activeTab]);
+        fetchKeuanganBank(1, perPage, searchTerm, activeTab, true);
+    }, [fetchKeuanganBank, searchTerm, activeTab]);
 
-    // Create keuangan kas - Not implemented in PengeluaranController
-    const createKeuanganKas = useCallback(async (data) => {
+    // Create keuangan bank - Not implemented in PengeluaranController
+    const createKeuanganBank = useCallback(async (data) => {
         console.log('💾 [CREATE HOOK] Create operation not available for pengeluaran');
         return {
             success: false,
@@ -141,8 +141,8 @@ const useKeuanganKas = (activeTab = 'belum-dibayar') => {
         };
     }, []);
 
-    // Update keuangan kas - Not implemented in PengeluaranController
-    const updateKeuanganKas = useCallback(async (id, data) => {
+    // Update keuangan bank - Not implemented in PengeluaranController
+    const updateKeuanganBank = useCallback(async (id, data) => {
         console.log('💾 [UPDATE HOOK] Update operation not available for pengeluaran');
         return {
             success: false,
@@ -150,8 +150,8 @@ const useKeuanganKas = (activeTab = 'belum-dibayar') => {
         };
     }, []);
 
-    // Delete keuangan kas - Not implemented in PengeluaranController
-    const deleteKeuanganKas = useCallback(async (id) => {
+    // Delete keuangan bank - Not implemented in PengeluaranController
+    const deleteKeuanganBank = useCallback(async (id) => {
         console.log('🗑️ [DELETE HOOK] Delete operation not available for pengeluaran');
         return {
             success: false,
@@ -183,7 +183,7 @@ const useKeuanganKas = (activeTab = 'belum-dibayar') => {
     }, []);
 
     return {
-        keuanganKas,
+        keuanganBank,
         loading,
         error,
         searchTerm,
@@ -191,16 +191,16 @@ const useKeuanganKas = (activeTab = 'belum-dibayar') => {
         isSearching,
         searchError,
         serverPagination,
-        fetchKeuanganKas,
+        fetchKeuanganBank,
         handleSearch,
         clearSearch,
         handlePageChange,
         handlePerPageChange,
-        createKeuanganKas,
-        updateKeuanganKas,
-        deleteKeuanganKas,
+        createKeuanganBank,
+        updateKeuanganBank,
+        deleteKeuanganBank,
         getPengeluaranDetail
     };
 };
 
-export default useKeuanganKas;
+export default useKeuanganBank;
