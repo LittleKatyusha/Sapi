@@ -11,7 +11,7 @@ import PengajuanTable from './components/tables/PengajuanTable';
 import BelumDibayarTable from './components/tables/BelumDibayarTable';
 import BelumLunasTable from './components/tables/BelumLunasTable';
 import LunasTable from './components/tables/LunasTable';
-import KreditBankTable from './components/tables/KreditBankTable';
+
 
 // Import modals
 import DeleteConfirmationModal from './modals/DeleteConfirmationModal';
@@ -372,10 +372,10 @@ const KeuanganBankPage = () => {
                         <div>
                             <h1 className="text-2xl sm:text-4xl font-bold text-gray-800 mb-1 sm:mb-2 flex items-center gap-3">
                                 <Wallet size={32} className="text-blue-500" />
-                                Keuangan Bank
+                                Pengeluaran Bank
                             </h1>
                             <p className="text-gray-600 text-sm sm:text-base">
-                                Kelola data keuangan bank
+                                Kelola data pengeluaran bank
                             </p>
                         </div>
                     </div>
@@ -437,19 +437,7 @@ const KeuanganBankPage = () => {
                                         <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-400 to-cyan-400"></div>
                                     )}
                                 </button>
-                                <button
-                                    onClick={() => handleTabChange('kredit-bank')}
-                                    className={`relative flex-1 px-8 py-5 text-lg font-bold transition-all duration-300 ${
-                                       activeTab === 'kredit-bank'
-                                            ? 'text-white bg-gradient-to-r from-blue-600 to-cyan-600 shadow-lg'
-                                            : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-                                    }`}
-                                >
-                                    <span className="relative z-10">tersetor</span>
-                                    {activeTab === 'kredit-bank' && (
-                                        <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-400 to-cyan-400"></div>
-                                    )}
-                                </button>
+
                             </div>
                         </div>
 
@@ -536,19 +524,7 @@ const KeuanganBankPage = () => {
                                     />
                                 </div>
                             )}
-                            {activeTab === 'kredit-bank' && (
-                                <div className="animate-fadeIn">
-                                    <KreditBankTable
-                                        data={[]}
-                                        openMenuId={openMenuId}
-                                        setOpenMenuId={setOpenMenuId}
-                                        handleEdit={handleEdit}
-                                        handleDelete={handleDelete}
-                                        handleDetail={handleDetail}
-                                        handleAdd={handleAddSetorBank}
-                                    />
-                                </div>
-                            )}
+
                         </div>
                     </div>
                 </div>

@@ -8,7 +8,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 const isDevelopment = process.env.NODE_ENV === 'development';
 
 // Get API base URL from environment variables with fallback
-export const API_BASE_URL = process.env.REACT_APP_API_BASE_URL
+export const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || process.env.REACT_APP_API_URL || 'http://localhost:8080'
 
 // Configuration based on environment
 export const API_CONFIG = {

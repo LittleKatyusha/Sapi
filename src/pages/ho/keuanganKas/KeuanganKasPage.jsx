@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PlusCircle, Wallet } from 'lucide-react';
 
 import useKeuanganKas from './hooks/useKeuanganKas';
 import usePengajuanBiayaKas from './hooks/usePengajuanBiayaKas';
+import useBankDeposit from './hooks/useBankDeposit';
+import useBanksAPILazy from './hooks/useBanksAPILazy';
 import pengajuanBiayaService from '../../../services/pengajuanBiayaService';
 
 // Import table components
@@ -11,7 +13,7 @@ import PengajuanTable from './components/tables/PengajuanTable';
 import BelumDibayarTable from './components/tables/BelumDibayarTable';
 import BelumLunasTable from './components/tables/BelumLunasTable';
 import LunasTable from './components/tables/LunasTable';
-import KreditBankTable from './components/tables/KreditBankTable';
+import TersetorTable from './components/tables/TersetorTable';
 
 // Import modals
 import DeleteConfirmationModal from './modals/DeleteConfirmationModal';
@@ -19,6 +21,7 @@ import AddEditKeuanganKasModal from './modals/AddEditKeuanganKasModal';
 import DetailModal from './modals/DetailModal';
 import SetorKasModal from './modals/SetorKasModal';
 import FormPengajuanBiayaModal from './modals/FormPengajuanBiayaModal';
+import BankDepositDetailModal from './modals/BankDepositDetailModal';
 
 const KeuanganKasPage = () => {
     const navigate = useNavigate();
@@ -30,6 +33,7 @@ const KeuanganKasPage = () => {
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [isSetorKasModalOpen, setIsSetorKasModalOpen] = useState(false);
     const [isFormPengajuanModalOpen, setIsFormPengajuanModalOpen] = useState(false);
+    const [isBankDepositDetailModalOpen, setIsBankDepositDetailModalOpen] = useState(false);
     const [selectedItem, setSelectedItem] = useState(null);
     const [notification, setNotification] = useState(null);
 
@@ -69,12 +73,54 @@ const KeuanganKasPage = () => {
         handlePerPageChange: handlePerPageChangePengajuan,
     } = usePengajuanBiayaKas();
 
+    // Hook untuk Bank Deposit (Tersetor)
+    const {
+        bankDeposits,
+        loading: loadingBankDeposit,
+        error: errorBankDeposit,
+        searchTerm: searchTermBankDeposit,
+        isSearching: isSearchingBankDeposit,
+        searchError: searchErrorBankDeposit,
+        serverPagination: serverPaginationBankDeposit,
+        dateFilter: dateFilterBankDeposit,
+        fetchBankDeposits,
+        handleSearch: handleSearchBankDeposit,
+        clearSearch: clearSearchBankDeposit,
+        handlePageChange: handlePageChangeBankDeposit,
+        handlePerPageChange: handlePerPageChangeBankDeposit,
+        handleDateFilterChange: handleDateFilterChangeBankDeposit,
+        createBankDeposit,
+        updateBankDeposit,
+        deleteBankDeposit,
+        getBankDepositDetail,
+        refreshData: refreshBankDeposits,
+    } = useBankDeposit();
+
+    // Hook untuk Bank Options
+    const {
+        bankOptions: allBankOptions,
+        loading: loadingBanks,
+        fetchBanks,
+    } = useBanksAPILazy();
+
+    // Filter bank options untuk tab tersetor (hilangkan opsi "Kas")
+    const bankOptionsForTersetor = useMemo(() => {
+        return allBankOptions.filter(bank => {
+            const label = (bank.label || '').toLowerCase();
+            return !label.includes('kas') || label.includes('bank');
+        });
+    }, [allBankOptions]);
+
     // Fetch data on mount and when tab changes
     useEffect(() => {
         if (activeTab === 'pengajuan') {
             console.log('🔄 [TAB CHANGE] Fetching pengajuan data');
             fetchPengajuanBiaya();
-        } else if (activeTab !== 'kredit-bank') {
+        } else if (activeTab === 'kredit-bank') {
+            console.log('🔄 [TAB CHANGE] Fetching bank deposit data');
+            fetchBankDeposits();
+            fetchBanks(); // Fetch bank options for modal
+        } else {
             console.log('🔄 [TAB CHANGE] Fetching data for tab:', activeTab);
             fetchKeuanganKas(1, serverPagination.perPage, '', activeTab, true);
         }
@@ -93,7 +139,41 @@ const KeuanganKasPage = () => {
     };
 
     const handleAddSetorKas = () => {
+        setSelectedItem(null);
         setIsSetorKasModalOpen(true);
+    };
+
+    const handleEditSetorKas = (item) => {
+        setSelectedItem(item);
+        setIsSetorKasModalOpen(true);
+        setOpenMenuId(null);
+    };
+
+    const handleDeleteSetorKas = (item) => {
+        setSelectedItem(item);
+        setIsDeleteModalOpen(true);
+        setOpenMenuId(null);
+    };
+
+    const handleDetailSetorKas = async (item) => {
+        try {
+            const response = await getBankDepositDetail(item.pid);
+            if (response.success) {
+                setSelectedItem(response.data);
+                setIsBankDepositDetailModalOpen(true);
+            }
+        } catch (error) {
+            setNotification({
+                type: 'error',
+                message: error.message || 'Gagal memuat detail'
+            });
+        }
+        setOpenMenuId(null);
+    };
+
+    const handleCloseBankDepositDetailModal = () => {
+        setIsBankDepositDetailModalOpen(false);
+        setSelectedItem(null);
     };
 
     const handleProses = (item) => {
@@ -159,6 +239,7 @@ const KeuanganKasPage = () => {
 
     const handleCloseSetorKasModal = () => {
         setIsSetorKasModalOpen(false);
+        setSelectedItem(null);
     };
 
     const handleCloseFormPengajuanModal = () => {
@@ -278,24 +359,55 @@ const KeuanganKasPage = () => {
         }
     }, [selectedItem, updateKeuanganKas, createKeuanganKas, fetchKeuanganKas, serverPagination, searchTerm]);
 
-    const handleSaveSetorKas = useCallback(async (data) => {
+    const handleSaveSetorKas = useCallback(async (data, isEditMode) => {
         try {
-            // Here you would call your API to save the setor kas data
-            // For now, we'll just show a success notification
-            setNotification({
-                type: 'success',
-                message: 'Data setor kas berhasil disimpan!'
-            });
-            handleCloseSetorKasModal();
-            // Optionally refresh the data
-            await fetchKeuanganKas(serverPagination.currentPage, serverPagination.perPage, searchTerm, false, true);
+            let result;
+            if (isEditMode && data.pid) {
+                result = await updateBankDeposit(data.pid, data);
+            } else {
+                result = await createBankDeposit(data);
+            }
+            
+            if (result.success) {
+                setNotification({
+                    type: 'success',
+                    message: result.message || `Data setor kas berhasil ${isEditMode ? 'diperbarui' : 'disimpan'}!`
+                });
+                handleCloseSetorKasModal();
+                refreshBankDeposits();
+            } else {
+                throw new Error(result.message || 'Gagal menyimpan data');
+            }
         } catch (error) {
             setNotification({
                 type: 'error',
                 message: error.message || 'Gagal menyimpan data setor kas'
             });
+            throw error;
         }
-    }, [fetchKeuanganKas, serverPagination, searchTerm]);
+    }, [createBankDeposit, updateBankDeposit, refreshBankDeposits]);
+
+    const handleDeleteSetorKasConfirm = useCallback(async (item) => {
+        try {
+            const result = await deleteBankDeposit(item.pid);
+            
+            if (result.success) {
+                setNotification({
+                    type: 'success',
+                    message: result.message || 'Data berhasil dihapus'
+                });
+                handleCloseDeleteModal();
+                refreshBankDeposits();
+            } else {
+                throw new Error(result.message || 'Gagal menghapus data');
+            }
+        } catch (error) {
+            setNotification({
+                type: 'error',
+                message: error.message || 'Terjadi kesalahan saat menghapus'
+            });
+        }
+    }, [deleteBankDeposit, refreshBankDeposits]);
 
     useEffect(() => {
         if (notification) {
@@ -372,10 +484,10 @@ const KeuanganKasPage = () => {
                         <div>
                             <h1 className="text-2xl sm:text-4xl font-bold text-gray-800 mb-1 sm:mb-2 flex items-center gap-3">
                                 <Wallet size={32} className="text-blue-500" />
-                                Keuangan Kas
+                                Pengeluaran Kas
                             </h1>
                             <p className="text-gray-600 text-sm sm:text-base">
-                                Kelola data keuangan kas
+                                Kelola data pengeluaran kas
                             </p>
                         </div>
                     </div>
@@ -538,13 +650,20 @@ const KeuanganKasPage = () => {
                             )}
                             {activeTab === 'kredit-bank' && (
                                 <div className="animate-fadeIn">
-                                    <KreditBankTable
-                                        data={[]}
-                                        openMenuId={openMenuId}
-                                        setOpenMenuId={setOpenMenuId}
-                                        handleEdit={handleEdit}
-                                        handleDelete={handleDelete}
-                                        handleDetail={handleDetail}
+                                    <TersetorTable
+                                        data={bankDeposits}
+                                        loading={loadingBankDeposit}
+                                        error={errorBankDeposit}
+                                        searchTerm={searchTermBankDeposit}
+                                        isSearching={isSearchingBankDeposit}
+                                        searchError={searchErrorBankDeposit}
+                                        serverPagination={serverPaginationBankDeposit}
+                                        dateFilter={dateFilterBankDeposit}
+                                        handleSearch={handleSearchBankDeposit}
+                                        clearSearch={clearSearchBankDeposit}
+                                        handleServerPageChange={handlePageChangeBankDeposit}
+                                        handleServerPerPageChange={handlePerPageChangeBankDeposit}
+                                        handleDateFilterChange={handleDateFilterChangeBankDeposit}
                                         handleAdd={handleAddSetorKas}
                                     />
                                 </div>
@@ -564,9 +683,9 @@ const KeuanganKasPage = () => {
             <DeleteConfirmationModal
                 isOpen={isDeleteModalOpen}
                 onClose={handleCloseDeleteModal}
-                onConfirm={handleDeleteItem}
+                onConfirm={activeTab === 'kredit-bank' ? handleDeleteSetorKasConfirm : handleDeleteItem}
                 data={selectedItem}
-                loading={loading}
+                loading={activeTab === 'kredit-bank' ? loadingBankDeposit : loading}
             />
 
             <AddEditKeuanganKasModal
@@ -586,6 +705,9 @@ const KeuanganKasPage = () => {
                 isOpen={isSetorKasModalOpen}
                 onClose={handleCloseSetorKasModal}
                 onSave={handleSaveSetorKas}
+                editingItem={selectedItem}
+                bankOptions={bankOptionsForTersetor}
+                loadingBanks={loadingBanks}
             />
 
             <FormPengajuanBiayaModal
@@ -597,6 +719,12 @@ const KeuanganKasPage = () => {
                 onSave={handleSaveFormPengajuan}
                 onReject={handleRejectFormPengajuan}
                 onSavePembayaran={handleSavePembayaran}
+            />
+
+            <BankDepositDetailModal
+                isOpen={isBankDepositDetailModalOpen}
+                onClose={handleCloseBankDepositDetailModal}
+                data={selectedItem}
             />
         </>
     );

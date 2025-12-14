@@ -1,47 +1,60 @@
 import React, { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X, Upload, FileImage, Loader2 } from 'lucide-react';
 import SearchableSelect from '../../../../components/shared/SearchableSelect';
+import BankDepositService from '../../../../services/bankDepositService';
 
-const SetorKasModal = ({ isOpen, onClose, onSave }) => {
+const SetorKasModal = ({ 
+    isOpen, 
+    onClose, 
+    onSave, 
+    editingItem = null,
+    bankOptions = [],
+    loadingBanks = false 
+}) => {
     const [formData, setFormData] = useState({
-        bank: '',
-        jumlah_kas: '',
-        depositor_1: '',
-        depositor_2: '',
-        tanggal_setor: '',
-        bukti_setor: null
+        deposit_date: '',
+        id_bank: '',
+        depositor_name: '',
+        amount: '',
+        proof_of_deposit: null
     });
 
     const [errors, setErrors] = useState({});
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [fileName, setFileName] = useState('');
+    const [existingFileUrl, setExistingFileUrl] = useState(null);
 
-    // Mock bank options - replace with actual data from API
-    const bankOptions = [
-        { value: 'bca', label: 'Bank BCA' },
-        { value: 'mandiri', label: 'Bank Mandiri' },
-        { value: 'bni', label: 'Bank BNI' },
-        { value: 'bri', label: 'Bank BRI' },
-        { value: 'cimb', label: 'Bank CIMB Niaga' },
-        { value: 'permata', label: 'Bank Permata' },
-        { value: 'danamon', label: 'Bank Danamon' },
-    ];
+    const isEditMode = !!editingItem;
 
     useEffect(() => {
         if (isOpen) {
-            const today = new Date().toISOString().split('T')[0];
-            setFormData({
-                bank: '',
-                jumlah_kas: '',
-                depositor_1: '',
-                depositor_2: '',
-                tanggal_setor: today,
-                bukti_setor: null
-            });
+            if (editingItem) {
+                // Edit mode - populate form with existing data
+                setFormData({
+                    deposit_date: editingItem.deposit_date || '',
+                    id_bank: editingItem.id_bank ? String(editingItem.id_bank) : '',
+                    depositor_name: editingItem.depositor_name || '',
+                    amount: editingItem.amount ? String(editingItem.amount) : '',
+                    proof_of_deposit: null
+                });
+                setExistingFileUrl(editingItem.proof_of_deposit_url || null);
+                setFileName('');
+            } else {
+                // Add mode - reset form
+                const today = new Date().toISOString().split('T')[0];
+                setFormData({
+                    deposit_date: today,
+                    id_bank: '',
+                    depositor_name: '',
+                    amount: '',
+                    proof_of_deposit: null
+                });
+                setExistingFileUrl(null);
+                setFileName('');
+            }
             setErrors({});
-            setFileName('');
         }
-    }, [isOpen]);
+    }, [isOpen, editingItem]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -60,12 +73,12 @@ const SetorKasModal = ({ isOpen, onClose, onSave }) => {
     const handleBankChange = (value) => {
         setFormData(prev => ({
             ...prev,
-            bank: value
+            id_bank: value
         }));
-        if (errors.bank) {
+        if (errors.id_bank) {
             setErrors(prev => ({
                 ...prev,
-                bank: null
+                id_bank: null
             }));
         }
     };
@@ -78,70 +91,40 @@ const SetorKasModal = ({ isOpen, onClose, onSave }) => {
         return new Intl.NumberFormat('id-ID').format(number);
     };
 
-    const handleJumlahKasChange = (e) => {
+    const handleAmountChange = (e) => {
         const { value } = e.target;
         const numericValue = value.replace(/[^0-9]/g, '');
-        setFormData(prev => ({ ...prev, jumlah_kas: numericValue }));
-        if (errors.jumlah_kas) {
-            setErrors(prev => ({ ...prev, jumlah_kas: null }));
+        setFormData(prev => ({ ...prev, amount: numericValue }));
+        if (errors.amount) {
+            setErrors(prev => ({ ...prev, amount: null }));
         }
     };
 
     const handleFileChange = (e) => {
         const file = e.target.files[0];
         if (file) {
-            // Validate file type
-            const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
-            if (!validTypes.includes(file.type)) {
+            const validation = BankDepositService.validateFile(file);
+            if (!validation.valid) {
                 setErrors(prev => ({
                     ...prev,
-                    bukti_setor: 'File harus berupa gambar (JPG, PNG) atau PDF'
+                    proof_of_deposit: validation.error
                 }));
                 return;
             }
 
-            // Validate file size (max 5MB)
-            if (file.size > 5 * 1024 * 1024) {
-                setErrors(prev => ({
-                    ...prev,
-                    bukti_setor: 'Ukuran file maksimal 5MB'
-                }));
-                return;
-            }
-
-            setFormData(prev => ({ ...prev, bukti_setor: file }));
+            setFormData(prev => ({ ...prev, proof_of_deposit: file }));
             setFileName(file.name);
-            if (errors.bukti_setor) {
-                setErrors(prev => ({ ...prev, bukti_setor: null }));
+            setExistingFileUrl(null); // Clear existing file when new file selected
+            if (errors.proof_of_deposit) {
+                setErrors(prev => ({ ...prev, proof_of_deposit: null }));
             }
         }
     };
 
     const validateForm = () => {
-        const newErrors = {};
-
-        if (!formData.bank) {
-            newErrors.bank = 'Bank harus dipilih';
-        }
-
-        if (!formData.jumlah_kas || parseFloat(formData.jumlah_kas) <= 0) {
-            newErrors.jumlah_kas = 'Jumlah kas harus lebih dari 0';
-        }
-
-        if (!formData.depositor_1.trim()) {
-            newErrors.depositor_1 = 'Depositor 1 harus diisi';
-        }
-
-        if (!formData.tanggal_setor) {
-            newErrors.tanggal_setor = 'Tanggal setor harus diisi';
-        }
-
-        if (!formData.bukti_setor) {
-            newErrors.bukti_setor = 'Bukti setor harus diunggah';
-        }
-
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
+        const validation = BankDepositService.validateFormData(formData);
+        setErrors(validation.errors);
+        return validation.valid;
     };
 
     const handleSubmit = async (e) => {
@@ -154,13 +137,24 @@ const SetorKasModal = ({ isOpen, onClose, onSave }) => {
         setIsSubmitting(true);
         try {
             const dataToSave = {
-                ...formData,
-                jumlah_kas: parseInt(formData.jumlah_kas)
+                deposit_date: formData.deposit_date,
+                id_bank: parseInt(formData.id_bank),
+                depositor_name: formData.depositor_name.trim(),
+                amount: parseInt(formData.amount),
+                proof_of_deposit: formData.proof_of_deposit
             };
 
-            await onSave(dataToSave);
+            if (isEditMode) {
+                dataToSave.pid = editingItem.pid;
+            }
+
+            await onSave(dataToSave, isEditMode);
         } catch (error) {
             console.error('Error saving setor kas:', error);
+            setErrors(prev => ({
+                ...prev,
+                submit: error.message || 'Gagal menyimpan data'
+            }));
         } finally {
             setIsSubmitting(false);
         }
@@ -176,16 +170,16 @@ const SetorKasModal = ({ isOpen, onClose, onSave }) => {
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
                 {/* Header */}
                 <div className="bg-gradient-to-r from-blue-600 to-cyan-600 px-8 py-6">
                     <div className="flex items-center justify-between">
                         <div>
                             <h2 className="text-2xl font-bold text-white">
-                                Setor Kas
+                                {isEditMode ? 'Edit Setoran Kas' : 'Setor Kas'}
                             </h2>
                             <p className="text-sm text-blue-50 mt-1">
-                                Lengkapi informasi penyetoran kas ke bank
+                                {isEditMode ? 'Perbarui informasi setoran kas' : 'Lengkapi informasi penyetoran kas ke bank'}
                             </p>
                         </div>
                         <button
@@ -200,7 +194,31 @@ const SetorKasModal = ({ isOpen, onClose, onSave }) => {
 
                 {/* Form */}
                 <form onSubmit={handleSubmit} className="p-8 overflow-y-auto max-h-[calc(90vh-200px)]">
+                    {errors.submit && (
+                        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                            <p className="text-red-600 text-sm">{errors.submit}</p>
+                        </div>
+                    )}
+
                     <div className="space-y-6">
+                        {/* Tanggal Setor */}
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                Tanggal Setor <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                                type="date"
+                                name="deposit_date"
+                                value={formData.deposit_date}
+                                onChange={handleChange}
+                                className={`w-full px-4 py-3 border ${errors.deposit_date ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors`}
+                                disabled={isSubmitting}
+                            />
+                            {errors.deposit_date && (
+                                <p className="text-red-500 text-xs mt-1">{errors.deposit_date}</p>
+                            )}
+                        </div>
+
                         {/* Bank */}
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -208,21 +226,44 @@ const SetorKasModal = ({ isOpen, onClose, onSave }) => {
                             </label>
                             <SearchableSelect
                                 options={bankOptions}
-                                value={formData.bank}
+                                value={formData.id_bank}
                                 onChange={handleBankChange}
-                                placeholder="Pilih bank tujuan..."
-                                isDisabled={isSubmitting}
+                                placeholder={loadingBanks ? "Memuat bank..." : "Pilih bank tujuan..."}
+                                isDisabled={isSubmitting || loadingBanks}
                                 isClearable={true}
                             />
-                            {errors.bank && (
-                                <p className="text-red-500 text-xs mt-1">{errors.bank}</p>
+                            {errors.id_bank && (
+                                <p className="text-red-500 text-xs mt-1">{errors.id_bank}</p>
                             )}
                         </div>
 
-                        {/* Jumlah Kas */}
+                        {/* Nama Penyetor */}
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Jumlah Kas <span className="text-red-500">*</span>
+                                Nama Penyetor <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                                type="text"
+                                name="depositor_name"
+                                value={formData.depositor_name}
+                                onChange={handleChange}
+                                maxLength={50}
+                                className={`w-full px-4 py-3 border ${errors.depositor_name ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors`}
+                                placeholder="Nama penyetor"
+                                disabled={isSubmitting}
+                            />
+                            {errors.depositor_name && (
+                                <p className="text-red-500 text-xs mt-1">{errors.depositor_name}</p>
+                            )}
+                            <p className="text-gray-400 text-xs mt-1">
+                                {formData.depositor_name.length}/50 karakter
+                            </p>
+                        </div>
+
+                        {/* Jumlah */}
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                Jumlah <span className="text-red-500">*</span>
                             </label>
                             <div className="relative">
                                 <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium">
@@ -230,108 +271,74 @@ const SetorKasModal = ({ isOpen, onClose, onSave }) => {
                                 </span>
                                 <input
                                     type="text"
-                                    name="jumlah_kas"
-                                    value={formatRupiah(formData.jumlah_kas)}
-                                    onChange={handleJumlahKasChange}
-                                    className={`w-full pl-12 pr-4 py-3 border ${errors.jumlah_kas ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors`}
+                                    name="amount"
+                                    value={formatRupiah(formData.amount)}
+                                    onChange={handleAmountChange}
+                                    className={`w-full pl-12 pr-4 py-3 border ${errors.amount ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors`}
                                     placeholder="0"
                                     disabled={isSubmitting}
                                     inputMode="numeric"
                                 />
                             </div>
-                            {errors.jumlah_kas && (
-                                <p className="text-red-500 text-xs mt-1">{errors.jumlah_kas}</p>
-                            )}
-                        </div>
-
-                        {/* Depositor 1 & 2 */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Depositor 1 <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    name="depositor_1"
-                                    value={formData.depositor_1}
-                                    onChange={handleChange}
-                                    className={`w-full px-4 py-3 border ${errors.depositor_1 ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors`}
-                                    placeholder="Nama depositor pertama"
-                                    disabled={isSubmitting}
-                                />
-                                {errors.depositor_1 && (
-                                    <p className="text-red-500 text-xs mt-1">{errors.depositor_1}</p>
-                                )}
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Depositor 2 <span className="text-gray-400 text-xs">(Opsional)</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    name="depositor_2"
-                                    value={formData.depositor_2}
-                                    onChange={handleChange}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                                    placeholder="Nama depositor kedua"
-                                    disabled={isSubmitting}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Tanggal Setor Kas */}
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Tanggal Setor Kas <span className="text-red-500">*</span>
-                            </label>
-                            <input
-                                type="date"
-                                name="tanggal_setor"
-                                value={formData.tanggal_setor}
-                                onChange={handleChange}
-                                className={`w-full px-4 py-3 border ${errors.tanggal_setor ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors`}
-                                disabled={isSubmitting}
-                            />
-                            {errors.tanggal_setor && (
-                                <p className="text-red-500 text-xs mt-1">{errors.tanggal_setor}</p>
+                            {errors.amount && (
+                                <p className="text-red-500 text-xs mt-1">{errors.amount}</p>
                             )}
                         </div>
 
                         {/* Upload Bukti Setor */}
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Upload Bukti Setor <span className="text-red-500">*</span>
+                                Bukti Setor <span className="text-gray-400 text-xs">(Opsional)</span>
                             </label>
+                            
+                            {/* Show existing file if in edit mode */}
+                            {existingFileUrl && !fileName && (
+                                <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <FileImage className="w-5 h-5 text-blue-600" />
+                                        <span className="text-sm text-blue-700">File bukti setor sudah ada</span>
+                                    </div>
+                                    <a
+                                        href={existingFileUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                                    >
+                                        Lihat
+                                    </a>
+                                </div>
+                            )}
+
                             <div className="relative">
                                 <input
                                     type="file"
-                                    id="bukti_setor"
+                                    id="proof_of_deposit"
                                     accept="image/jpeg,image/jpg,image/png,application/pdf"
                                     onChange={handleFileChange}
                                     className="hidden"
                                     disabled={isSubmitting}
                                 />
                                 <label
-                                    htmlFor="bukti_setor"
-                                    className={`flex items-center justify-center w-full px-4 py-8 border-2 ${errors.bukti_setor ? 'border-red-500' : 'border-gray-300'} border-dashed rounded-lg cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-all duration-200 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    htmlFor="proof_of_deposit"
+                                    className={`flex items-center justify-center w-full px-4 py-8 border-2 ${errors.proof_of_deposit ? 'border-red-500' : 'border-gray-300'} border-dashed rounded-lg cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-all duration-200 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 >
                                     <div className="text-center">
+                                        <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                                         <div className="text-gray-600 mb-2">
                                             {fileName ? (
                                                 <span className="font-medium text-blue-600">{fileName}</span>
                                             ) : (
-                                                <span>Klik untuk upload file</span>
+                                                <span>Klik untuk upload file {existingFileUrl ? 'baru' : ''}</span>
                                             )}
                                         </div>
                                         <p className="text-xs text-gray-500">
-                                            Format: JPG, PNG, PDF (Maks. 5MB)
+                                            Format: JPG, PNG, PDF (Maks. 2MB)
                                         </p>
                                     </div>
                                 </label>
                             </div>
-                            {errors.bukti_setor && (
-                                <p className="text-red-500 text-xs mt-1">{errors.bukti_setor}</p>
+                            {errors.proof_of_deposit && (
+                                <p className="text-red-500 text-xs mt-1">{errors.proof_of_deposit}</p>
                             )}
                         </div>
                     </div>
@@ -354,11 +361,11 @@ const SetorKasModal = ({ isOpen, onClose, onSave }) => {
                     >
                         {isSubmitting ? (
                             <div className="flex items-center justify-center gap-2">
-                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                <Loader2 className="w-4 h-4 animate-spin" />
                                 <span>Menyimpan...</span>
                             </div>
                         ) : (
-                            <span>Setor Kas</span>
+                            <span>{isEditMode ? 'Simpan Perubahan' : 'Setor Kas'}</span>
                         )}
                     </button>
                 </div>
