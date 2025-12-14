@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { Users, MapPin, FileText, Phone } from 'lucide-react';
 import CardActionButton from './CardActionButton';
 import PaginationControls from './PaginationControls';
+import { ErrorState as SharedErrorState, EmptyState as SharedEmptyState } from '../../../../components/shared';
 
 const CardView = ({
     data,
@@ -53,21 +54,10 @@ const CardView = ({
     );
 
     // Error component
-    const ErrorDisplay = () => (
-        <div className="text-center py-12">
-            <div className="text-red-600">
-                <p className="text-lg font-semibold">Error</p>
-                <p className="text-sm">{error}</p>
-            </div>
-        </div>
-    );
+    const ErrorDisplay = () => <SharedErrorState error={error} />;
 
     // Empty state component
-    const EmptyState = () => (
-        <div className="text-center py-12">
-            <p className="text-gray-500 text-lg">Tidak ada data pelanggan ditemukan</p>
-        </div>
-    );
+    const EmptyState = () => <SharedEmptyState title="Tidak ada data pelanggan" message="Belum ada data pelanggan yang tersedia." />;
 
     return (
         <div className="space-y-6">

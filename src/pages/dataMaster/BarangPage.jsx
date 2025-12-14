@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
 import DataTable from "react-data-table-component";
-import { PlusCircle, Search, LayoutGrid, List } from "lucide-react";
+import { PlusCircle, Search, LayoutGrid, List, RefreshCw } from "lucide-react";
 import ActionButton from "./barang/components/ActionButton";
 
 // Komponen dan hooks terpisah
@@ -8,8 +8,9 @@ import CardView from "./barang/components/CardView";
 import AddEditBarangModal from "./barang/modals/AddEditBarangModal";
 import BarangDetailModal from "./barang/modals/BarangDetailModal";
 import DeleteConfirmationModal from "./barang/modals/DeleteConfirmationModal";
+import { ErrorState, EmptyState, TableSkeleton } from "../../components/shared";
 import Notification from "./barang/components/Notification";
-import useBarang from "./barang/hooks/useBarang";
+import useBarang from "../../hooks/useBarangQuery";
 import customTableStyles from "./barang/constants/tableStyles";
 
 // Main Page
@@ -313,8 +314,31 @@ const BarangPage = () => {
         
         {/* Data Display */}
         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-x-auto">
-          <div>
-            {viewMode === "table" ? (
+          <div className="min-h-[400px]">
+            {error ? (
+              <ErrorState
+                error={error}
+                onRetry={() => fetchBarang(searchTerm)}
+                className="min-h-[400px]"
+              />
+            ) : loading ? (
+              viewMode === "table" ? (
+                <div className="p-6">
+                  <TableSkeleton rows={5} columns={3} />
+                </div>
+              ) : (
+                <div className="p-6">
+                  <TableSkeleton rows={5} columns={3} />
+                </div>
+              )
+            ) : filteredData.length === 0 ? (
+              <EmptyState
+                title="Tidak ada data barang"
+                message="Belum ada data barang yang tersedia. Klik tombol 'Tambah Barang' untuk menambah data baru."
+                actionLabel="Tambah Barang"
+                onAction={handleAdd}
+              />
+            ) : viewMode === "table" ? (
               <div className="w-full min-w-[600px]">
                 <DataTable
                   key={`datatable-barang-${filteredData.length}`}
@@ -324,12 +348,7 @@ const BarangPage = () => {
                   paginationPerPage={20}
                   paginationRowsPerPageOptions={[10, 20, 30, 50, 100]}
                   customStyles={customTableStyles}
-                  noDataComponent={
-                    <div className="text-center py-12">
-                      <p className="text-gray-500 text-lg">Tidak ada data barang ditemukan</p>
-                    </div>
-                  }
-                  progressPending={loading}
+                  progressPending={false}
                   responsive={true}
                   highlightOnHover={true}
                   pointerOnHover={true}

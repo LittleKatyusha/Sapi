@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import './index.css';
 import App from './AppSecure.jsx';
 import reportWebVitals from './reportWebVitals';
@@ -46,6 +47,31 @@ if (process.env.NODE_ENV === 'production') {
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 
+// Create Query Client with optimized default options for preventing redundant API calls
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes - Data is fresh for 5 minutes
+      gcTime: 10 * 60 * 1000, // 10 minutes - Keep in cache for 10 minutes
+      retry: (failureCount, error) => {
+        // Don't retry on 4xx client errors
+        if (error?.status >= 400 && error?.status < 500) {
+          return false;
+        }
+        return failureCount < 3; // Retry up to 3 times for network/server errors
+      },
+      refetchOnWindowFocus: 'always', // Always refetch when window gains focus
+      refetchOnMount: true, // Always refetch on mount (prevents stale data)
+      refetchOnReconnect: 'always', // Always refetch on network reconnect
+      networkMode: 'offlineFirst', // Try cache first, then network
+    },
+    mutations: {
+      retry: false, // Don't retry mutations by default
+      networkMode: 'always', // Mutations always go to network
+    },
+  },
+});
+
 // Initialize performance monitoring
 performanceMonitor.init();
 
@@ -90,7 +116,11 @@ if (process.env.NODE_ENV === 'development' && process.env.REACT_APP_ENABLE_BUNDL
 // Render application
 // Note: StrictMode removed to prevent double rendering issues with certain components
 performanceMonitor.startTiming('app-render');
-root.render(<App />);
+root.render(
+  <QueryClientProvider client={queryClient}>
+    <App />
+  </QueryClientProvider>
+);
 performanceMonitor.endTiming('app-render');
 
 // Performance monitoring

@@ -4,7 +4,7 @@
 /node_modules
 /.pnp
 .pnp.js
-
+package-lock.json
 # testing
 /coverage
 
@@ -26,6 +26,8 @@ yarn-error.log*
 .env.production
 Dockerfile
 compose.yaml
+docker-compose.yaml
+.dockerignore
 .kilocode/mcp.json
 .roo/mcp.json
 ternasys
