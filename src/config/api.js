@@ -82,6 +82,15 @@ export const API_ENDPOINTS = {
     PENGAJUAN_BIAYA: '/api/ho/pengajuanbiaya', // Pengajuan Biaya endpoint (Cash Budget Request)
     PENGELUARAN_PENGAJUAN_BIAYA_KAS: '/api/ho/pengeluaranpengajuanbiayakas', // Cash Disbursement/Approval endpoint
     PENGELUARAN_PENGAJUAN_BIAYA_BANK: '/api/ho/pengeluaranpengajuanbiayabank', // Bank Disbursement/Approval endpoint
+    BANK_DEPOSIT: {
+      BASE: '/api/ho/bankdeposit',
+      DATA: '/api/ho/bankdeposit/data',
+      SHOW: '/api/ho/bankdeposit/show',
+      STORE: '/api/ho/bankdeposit/store',
+      UPDATE: '/api/ho/bankdeposit/update',
+      DELETE: '/api/ho/bankdeposit/delete',
+      FILE: '/api/ho/bankdeposit/file'
+    },
     FEEDMIL: {
       PEMBELIAN: '/api/ho/feedmil/pembelian'
     },
