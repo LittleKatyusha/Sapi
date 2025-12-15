@@ -213,6 +213,39 @@ const AddEditPembelianFeedmilPage = () => {
 
     // Use Feedmil suppliers only (kategori_supplier = 2)
     const supplierOptionsToShow = supplierOptions;
+
+    // Filter bank options based on tipe pembayaran
+    const filteredBankOptions = useMemo(() => {
+        if (!headerData.tipe_pembayaran) {
+            return bankOptions;
+        }
+
+        // Get the selected payment type label
+        const selectedPaymentType = tipePembayaranOptions.find(
+            opt => opt.value === headerData.tipe_pembayaran
+        );
+
+        if (!selectedPaymentType) {
+            return bankOptions;
+        }
+
+        const paymentTypeLabel = selectedPaymentType.label.toUpperCase();
+
+        // If payment type is KAS, show all options (including Kas)
+        if (paymentTypeLabel.includes('KAS') || paymentTypeLabel.includes('CASH')) {
+            return bankOptions;
+        }
+
+        // If payment type is BANK, hide Kas option
+        if (paymentTypeLabel.includes('BANK') || paymentTypeLabel.includes('KREDIT')) {
+            return bankOptions.filter(option => 
+                !option.label.toUpperCase().includes('KAS') && 
+                !option.label.toUpperCase().includes('CASH')
+            );
+        }
+
+        return bankOptions;
+    }, [bankOptions, headerData.tipe_pembayaran, tipePembayaranOptions]);
     
     // Debug: Log supplier options to verify filtering
     useEffect(() => {
@@ -229,6 +262,56 @@ const AddEditPembelianFeedmilPage = () => {
             console.log('📊 First item feedmil sample:', itemFeedmilOptions[0]);
         }
     }, [itemFeedmilOptions]);
+
+    // Auto-select Syarat Pembelian based on Tipe Pembayaran
+    useEffect(() => {
+        if (!headerData.tipe_pembayaran || bankOptions.length === 0 || tipePembayaranOptions.length === 0) {
+            return;
+        }
+
+        // Get the selected payment type label
+        const selectedPaymentType = tipePembayaranOptions.find(
+            opt => opt.value === headerData.tipe_pembayaran
+        );
+
+        if (!selectedPaymentType) {
+            return;
+        }
+
+        const paymentTypeLabel = selectedPaymentType.label.toUpperCase();
+
+        // If payment type is KAS/CASH, auto-select Kas in Syarat Pembelian
+        if (paymentTypeLabel.includes('KAS') || paymentTypeLabel.includes('CASH')) {
+            const kasOption = bankOptions.find(option => 
+                option.label.toUpperCase().includes('KAS') || 
+                option.label.toUpperCase().includes('CASH')
+            );
+
+            if (kasOption && headerData.syarat_pembelian !== kasOption.value) {
+                setHeaderData(prev => ({
+                    ...prev,
+                    syarat_pembelian: kasOption.value
+                }));
+            }
+        }
+
+        // If payment type is BANK and current syarat_pembelian is Kas, clear it
+        if (paymentTypeLabel.includes('BANK') || paymentTypeLabel.includes('KREDIT')) {
+            const currentSyarat = bankOptions.find(option => 
+                option.value === headerData.syarat_pembelian
+            );
+
+            if (currentSyarat && (
+                currentSyarat.label.toUpperCase().includes('KAS') || 
+                currentSyarat.label.toUpperCase().includes('CASH')
+            )) {
+                setHeaderData(prev => ({
+                    ...prev,
+                    syarat_pembelian: ''
+                }));
+            }
+        }
+    }, [headerData.tipe_pembayaran, bankOptions, tipePembayaranOptions]);
 
     // Note: Removed pembelian list fetching for edit mode since we now use /show endpoint directly
     // This eliminates the need to fetch all data and then filter by pubid
@@ -1453,6 +1536,29 @@ const AddEditPembelianFeedmilPage = () => {
                             )}
                         </div>
 
+                        {/* Syarat Pembelian */}
+                        <div>
+                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <Hash className="w-4 h-4" />
+                                Syarat Pembelian *
+                            </label>
+                            <SearchableSelect
+                                options={filteredBankOptions}
+                                value={headerData.syarat_pembelian}
+                                onChange={(value) => handleHeaderChange('syarat_pembelian', value)}
+                                placeholder={bankLoading ? 'Loading banks...' : bankError ? 'Error loading banks' : 'Pilih syarat pembelian'}
+                                isLoading={bankLoading}
+                                isDisabled={bankLoading || bankError}
+                                required={true}
+                                className="w-full"
+                            />
+                            {bankError && (
+                                <p className="text-xs text-red-500 mt-1">
+                                    ⚠️ Error loading banks: {bankError}
+                                </p>
+                            )}
+                        </div>
+
                         {/* Tipe Pembayaran */}
                         <div>
                             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
@@ -1472,29 +1578,6 @@ const AddEditPembelianFeedmilPage = () => {
                             {tipePembayaranError && (
                                 <p className="text-xs text-red-500 mt-1">
                                     ⚠️ Error loading tipe pembayaran: {tipePembayaranError}
-                                </p>
-                            )}
-                        </div>
-
-                        {/* Syarat Pembelian */}
-                        <div>
-                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <Hash className="w-4 h-4" />
-                                Syarat Pembelian *
-                            </label>
-                            <SearchableSelect
-                                options={bankOptions}
-                                value={headerData.syarat_pembelian}
-                                onChange={(value) => handleHeaderChange('syarat_pembelian', value)}
-                                placeholder={bankLoading ? 'Loading banks...' : bankError ? 'Error loading banks' : 'Pilih syarat pembelian'}
-                                isLoading={bankLoading}
-                                isDisabled={bankLoading || bankError}
-                                required={true}
-                                className="w-full"
-                            />
-                            {bankError && (
-                                <p className="text-xs text-red-500 mt-1">
-                                    ⚠️ Error loading banks: {bankError}
                                 </p>
                             )}
                         </div>

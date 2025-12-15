@@ -36,6 +36,7 @@ const AddEditPembelianPage = () => {
         nota: '',
         idSupplier: '',
         tglMasuk: new Date().toISOString().split('T')[0],
+        idFarm: '', // Farm ID - new field
         namaSupir: '',
         platNomor: '',
         biayaTruck: 0, // Added truck cost field
@@ -83,6 +84,7 @@ const AddEditPembelianPage = () => {
         supplierOptions,
         officeOptions,
         klasifikasiHewanOptions,
+        farmOptions,
         loading: parameterLoading,
         error: parameterError
     } = useParameterSelect(isEdit, {
@@ -330,6 +332,7 @@ const AddEditPembelianPage = () => {
                         nota: firstDetail.nota || '',
                         idSupplier: supplierIdFromName || '', // Use matched supplier ID from name
                         tglMasuk: firstDetail.tgl_masuk || '',
+                        idFarm: firstDetail.id_farm || firstDetail.farm_id || '', // Farm ID from backend
                         namaSupir: firstDetail.nama_supir || '',
                         platNomor: firstDetail.plat_nomor || '',
                         biayaTruck: parseFloat(firstDetail.biaya_truck) || parseFloat(firstDetail.biaya_truk) || 0,
@@ -459,6 +462,7 @@ const AddEditPembelianPage = () => {
                 nota: cloneData.nota || '',
                 idSupplier: cloneData.id_supplier || '',
                 tglMasuk: cloneData.tgl_masuk || new Date().toISOString().split('T')[0],
+                idFarm: cloneData.id_farm || cloneData.farm_id || '', // Farm ID from clone data
                 namaSupir: cloneData.nama_supir || '',
                 platNomor: cloneData.plat_nomor || '',
                 biayaTruck: cloneData.biaya_truk || 0, // Load truck cost from clone data
@@ -1374,6 +1378,7 @@ const AddEditPembelianPage = () => {
                     tipe_pembayaran: parseInt(updatedHeaderData.purchase_type) || 1,
                     due_date: updatedHeaderData.due_date,
                     syarat_pembelian: parseInt(updatedHeaderData.syarat_pembelian) || null,
+                    id_farm: updatedHeaderData.idFarm ? parseInt(updatedHeaderData.idFarm) : null, // Farm ID
                     file: selectedFile, // Only send file if there's a new file upload
                     details: Array.isArray(detailItems) && detailItems.length > 0 
                         ? detailItems.map(item => ({ // Details are now required for all supplier types
@@ -1413,6 +1418,7 @@ const AddEditPembelianPage = () => {
                     tipe_pembayaran: parseInt(updatedHeaderData.purchase_type) || 1,
                     due_date: updatedHeaderData.due_date,
                     syarat_pembelian: parseInt(updatedHeaderData.syarat_pembelian) || null,
+                    id_farm: updatedHeaderData.idFarm ? parseInt(updatedHeaderData.idFarm) : null, // Farm ID
                     file: selectedFile, // Send actual file object
                     details: Array.isArray(detailItems) && detailItems.length > 0 
                         ? detailItems.map(item => ({ // Details are now required for all supplier types
@@ -1539,6 +1545,7 @@ const AddEditPembelianPage = () => {
                     nota: headerOnlyData.nota,
                     id_supplier: headerOnlyData.idSupplier,
                     tgl_masuk: headerOnlyData.tglMasuk,
+                    id_farm: headerOnlyData.idFarm ? parseInt(headerOnlyData.idFarm) : null, // Farm ID
                     nama_supir: headerOnlyData.namaSupir,
                     plat_nomor: headerOnlyData.platNomor,
                     jumlah: headerOnlyData.jumlah,
@@ -1882,6 +1889,26 @@ const AddEditPembelianPage = () => {
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
                                 required
                             />
+                        </div>
+
+                        {/* Farm Field */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <Building2 className="w-4 h-4 inline mr-1" />
+                                Farm
+                            </label>
+                            <SearchableSelect
+                                value={headerData.idFarm}
+                                onChange={(value) => handleHeaderChange('idFarm', value)}
+                                options={farmOptions}
+                                placeholder={parameterLoading ? 'Loading farms...' : parameterError ? 'Error loading farms' : 'Pilih Farm'}
+                                isLoading={parameterLoading}
+                                isDisabled={parameterLoading || parameterError}
+                                className="w-full"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                                💡 Pilih farm tujuan untuk pembelian ini
+                            </p>
                         </div>
 
                         <div>
@@ -2251,7 +2278,7 @@ const AddEditPembelianPage = () => {
                             <div className="md:col-span-2">
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                     <Hash className="w-4 h-4 inline mr-1" />
-                                    Alamat Tujuan
+                                    Catatan
                                 </label>
                                 <textarea
                                     value={headerData.note}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+﻿import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, Plus, Trash2, Building2, Calendar, Hash, Package, X, Settings, AlertCircle, Weight, DollarSign, Upload, FileText } from 'lucide-react';
 import usePembelianKulit from './hooks/usePembelianKulit';
@@ -187,6 +187,89 @@ const AddEditPembelianKulitPage = () => {
     // Use Kulit suppliers only (kategori_supplier = 2)
     const supplierOptionsToShow = supplierOptions;
 
+    // Filter bank options based on tipe pembayaran
+    const filteredBankOptions = useMemo(() => {
+        if (!headerData.tipe_pembayaran) {
+            return bankOptions;
+        }
+
+        // Get the selected payment type label
+        const selectedPaymentType = tipePembayaranOptions.find(
+            opt => opt.value === headerData.tipe_pembayaran
+        );
+
+        if (!selectedPaymentType) {
+            return bankOptions;
+        }
+
+        const paymentTypeLabel = selectedPaymentType.label.toUpperCase();
+
+        // If payment type is KAS, show all options (including Kas)
+        if (paymentTypeLabel.includes('KAS') || paymentTypeLabel.includes('CASH')) {
+            return bankOptions;
+        }
+
+        // If payment type is BANK, hide Kas option
+        if (paymentTypeLabel.includes('BANK') || paymentTypeLabel.includes('KREDIT')) {
+            return bankOptions.filter(option => 
+                !option.label.toUpperCase().includes('KAS') && 
+                !option.label.toUpperCase().includes('CASH')
+            );
+        }
+
+        return bankOptions;
+    }, [bankOptions, headerData.tipe_pembayaran, tipePembayaranOptions]);
+
+    // Auto-select Syarat Pembelian based on Tipe Pembayaran
+    useEffect(() => {
+        if (!headerData.tipe_pembayaran || bankOptions.length === 0 || tipePembayaranOptions.length === 0) {
+            return;
+        }
+
+        // Get the selected payment type label
+        const selectedPaymentType = tipePembayaranOptions.find(
+            opt => opt.value === headerData.tipe_pembayaran
+        );
+
+        if (!selectedPaymentType) {
+            return;
+        }
+
+        const paymentTypeLabel = selectedPaymentType.label.toUpperCase();
+
+        // If payment type is KAS/CASH, auto-select Kas in Syarat Pembelian
+        if (paymentTypeLabel.includes('KAS') || paymentTypeLabel.includes('CASH')) {
+            const kasOption = bankOptions.find(option => 
+                option.label.toUpperCase().includes('KAS') || 
+                option.label.toUpperCase().includes('CASH')
+            );
+
+            if (kasOption && headerData.syarat_pembelian !== kasOption.value) {
+                setHeaderData(prev => ({
+                    ...prev,
+                    syarat_pembelian: kasOption.value
+                }));
+            }
+        }
+
+        // If payment type is BANK and current syarat_pembelian is Kas, clear it
+        if (paymentTypeLabel.includes('BANK') || paymentTypeLabel.includes('KREDIT')) {
+            const currentSyarat = bankOptions.find(option => 
+                option.value === headerData.syarat_pembelian
+            );
+
+            if (currentSyarat && (
+                currentSyarat.label.toUpperCase().includes('KAS') || 
+                currentSyarat.label.toUpperCase().includes('CASH')
+            )) {
+                setHeaderData(prev => ({
+                    ...prev,
+                    syarat_pembelian: ''
+                }));
+            }
+        }
+    }, [headerData.tipe_pembayaran, bankOptions, tipePembayaranOptions]);
+
     // Ref to track if edit data has been loaded to prevent multiple API calls
     const editDataLoaded = useRef(false);
 
@@ -198,7 +281,7 @@ const AddEditPembelianKulitPage = () => {
 
     // Load data untuk edit mode - using /show endpoint for both header and detail data
     useEffect(() => {
-        console.log(' Edit useEffect triggered:', {
+        console.log('・Edit useEffect triggered:', {
             isEdit,
             id,
             editDataLoaded: editDataLoaded.current,
@@ -215,7 +298,7 @@ const AddEditPembelianKulitPage = () => {
                     // decodedId not needed; use id directly
                     
                     // Get both header and detail data from /show endpoint only
-                    console.log(' Calling /show API for edit data with pid:', id);
+                    console.log('・Calling /show API for edit data with pid:', id);
                     
                     const showResponse = await HttpClient.post(`${API_ENDPOINTS.HO.KULIT.PEMBELIAN}/show`, {
                         pid: id
@@ -893,7 +976,7 @@ const AddEditPembelianKulitPage = () => {
             const selectedSupplier = supplierOptions.find(s => s.value === headerData.idSupplier);
             
             // Debug file state
-            console.log(' File Debug Info:');
+            console.log('・File Debug Info:');
             console.log('selectedFile:', selectedFile);
             console.log('headerData.file:', headerData.file);
             console.log('selectedFile instanceof File:', selectedFile instanceof File);
@@ -923,7 +1006,7 @@ const AddEditPembelianKulitPage = () => {
                 existingFileName: existingFileName
             };
 
-            console.log(' Final submissionData.file:', submissionData.file);
+            console.log('・Final submissionData.file:', submissionData.file);
 
 
             let result;
@@ -1073,7 +1156,7 @@ const AddEditPembelianKulitPage = () => {
                             />
                             {parameterError && (
                                 <p className="text-xs text-red-500 mt-1">
-                                    Error loading offices: {parameterError}
+                                    ・Error loading offices: {parameterError}
                                 </p>
                             )}
                         </div>
@@ -1097,7 +1180,7 @@ const AddEditPembelianKulitPage = () => {
                             />
                             {parameterLoading && (
                                 <p className="text-xs text-blue-600 mt-1">
-                                     Memuat data supplier...
+                                    ・Memuat data supplier...
                                 </p>
                             )}
                             {parameterError && (
@@ -1221,30 +1304,7 @@ const AddEditPembelianKulitPage = () => {
                             />
                             {parameterError && (
                                 <p className="text-xs text-red-500 mt-1">
-                                    Error loading offices: {parameterError}
-                                </p>
-                            )}
-                        </div>
-
-                        {/* Syarat Pembelian */}
-                        <div>
-                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <Hash className="w-4 h-4" />
-                                Syarat Pembelian *
-                            </label>
-                            <SearchableSelect
-                                options={bankOptions}
-                                value={headerData.syarat_pembelian}
-                                onChange={(value) => handleHeaderChange('syarat_pembelian', value)}
-                                placeholder={bankLoading ? 'Loading banks...' : bankError ? 'Error loading banks' : 'Pilih syarat pembelian'}
-                                isLoading={bankLoading}
-                                isDisabled={bankLoading || bankError}
-                                required={true}
-                                className="w-full"
-                            />
-                            {bankError && (
-                                <p className="text-xs text-red-500 mt-1">
-                                    Error loading banks: {bankError}
+                                    ・Error loading offices: {parameterError}
                                 </p>
                             )}
                         </div>
@@ -1268,6 +1328,29 @@ const AddEditPembelianKulitPage = () => {
                             {tipePembayaranError && (
                                 <p className="text-xs text-red-500 mt-1">
                                     Error loading tipe pembayaran: {tipePembayaranError}
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Syarat Pembelian */}
+                        <div>
+                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <Hash className="w-4 h-4" />
+                                Syarat Pembelian *
+                            </label>
+                            <SearchableSelect
+                                options={filteredBankOptions}
+                                value={headerData.syarat_pembelian}
+                                onChange={(value) => handleHeaderChange('syarat_pembelian', value)}
+                                placeholder={bankLoading ? 'Loading banks...' : bankError ? 'Error loading banks' : 'Pilih syarat pembelian'}
+                                isLoading={bankLoading}
+                                isDisabled={bankLoading || bankError}
+                                required={true}
+                                className="w-full"
+                            />
+                            {bankError && (
+                                <p className="text-xs text-red-500 mt-1">
+                                    Error loading banks: {bankError}
                                 </p>
                             )}
                         </div>
@@ -1362,15 +1445,15 @@ const AddEditPembelianKulitPage = () => {
                                                     {selectedFile ? (
                                                         <>
                                                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                                 {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                                                                ・{(selectedFile.size / 1024 / 1024).toFixed(2)} MB
                                                             </span>
                                                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                                {selectedFile.type.split('/')[1]?.toUpperCase() || 'FILE'}
+                                                                {selectedFile.type.split('/')[1]?.toUpperCase() || 'FILE'}
                                                             </span>
                                                         </>
                                                     ) : (
                                                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                             File Existing
+                                                            ・File Existing
                                                         </span>
                                                     )}
                                                 </div>
@@ -1407,7 +1490,7 @@ const AddEditPembelianKulitPage = () => {
                             />
                             {parameterError && (
                                 <p className="text-xs text-red-500 mt-1">
-                                    Error loading items: {parameterError}
+                                    ・Error loading items: {parameterError}
                                 </p>
                             )}
                         </div>
@@ -1488,7 +1571,7 @@ const AddEditPembelianKulitPage = () => {
                         {/* Info Text */}
                         <div className="text-xs text-gray-600 ml-auto">
                             <p> Isi data default untuk mempercepat input batch</p>
-                            <p> Item baru akan menggunakan data default ini</p>
+                            <p>・Item baru akan menggunakan data default ini</p>
                         </div>
                     </div>
                 </div>
@@ -1827,7 +1910,7 @@ const AddEditPembelianKulitPage = () => {
                                                 <h3 className={`text-xl font-bold transition-all duration-500 ${
                                                     isDragOver ? 'text-white drop-shadow-lg' : 'text-gray-800'
                                                 }`}>
-                                                    {isDragOver ? ' Drop file di sini!' : ' Upload File Dokumen'}
+                                                    {isDragOver ? '・Drop file di sini!' : '・Upload File Dokumen'}
                                                 </h3>
                                                 <p className={`text-sm transition-all duration-500 ${
                                                     isDragOver ? 'text-blue-100 drop-shadow-md' : 'text-gray-600'
@@ -1870,7 +1953,7 @@ const AddEditPembelianKulitPage = () => {
                                                         : 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg hover:shadow-xl hover:scale-105 hover:from-blue-600 hover:to-indigo-700 active:scale-95'
                                                 }`}
                                             >
-                                                {isDragOver ? ' Upload Sekarang!' : ' Pilih File'}
+                                                {isDragOver ? '・Upload Sekarang!' : '・Pilih File'}
                                             </button>
                                         </div>
                                     </div>
@@ -1909,20 +1992,20 @@ const AddEditPembelianKulitPage = () => {
                                                     {selectedFile ? (
                                                         <>
                                                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                                 {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                                                                ・{(selectedFile.size / 1024 / 1024).toFixed(2)} MB
                                                             </span>
                                                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                                {selectedFile.type.split('/')[1]?.toUpperCase() || 'FILE'}
+                                                                {selectedFile.type.split('/')[1]?.toUpperCase() || 'FILE'}
                                                             </span>
                                                         </>
                                                     ) : (
                                                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                             File Existing
+                                                            ・File Existing
                                                         </span>
                                                     )}
                                                 </div>
                                                 <p className="text-sm text-green-600 mt-2">
-                                                    {selectedFile ? 'File berhasil dipilih dan siap diupload' : ' File existing akan dipertahankan'}
+                                                    {selectedFile ? 'File berhasil dipilih dan siap diupload' : '・File existing akan dipertahankan'}
                                                 </p>
                                             </div>
                                         </div>
@@ -2064,3 +2147,4 @@ const AddEditPembelianKulitPage = () => {
 };
 
 export default AddEditPembelianKulitPage;
+
