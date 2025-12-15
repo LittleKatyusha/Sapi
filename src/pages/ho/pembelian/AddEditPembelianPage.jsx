@@ -77,6 +77,128 @@ const AddEditPembelianPage = () => {
         error: bankError
     } = useBanksAPI();
 
+    // Filter bank options based on tipe pembayaran
+    const filteredBankOptions = useMemo(() => {
+        if (!headerData.purchase_type) {
+            return bankOptions;
+        }
+
+        // Get the selected payment type label
+        // tipePembayaranOptions.value is integer, headerData.purchase_type is string from select
+        const selectedPaymentType = tipePembayaranOptions.find(
+            opt => String(opt.value) === String(headerData.purchase_type)
+        );
+
+        console.log('🔍 Filter Debug:', {
+            purchase_type: headerData.purchase_type,
+            purchase_type_type: typeof headerData.purchase_type,
+            selectedPaymentType,
+            tipePembayaranOptions: tipePembayaranOptions.map(o => ({ value: o.value, label: o.label, valueType: typeof o.value })),
+            bankOptionsCount: bankOptions.length
+        });
+
+        if (!selectedPaymentType) {
+            console.log('🔍 No matching payment type found, returning all bank options');
+            return bankOptions;
+        }
+
+        const paymentTypeLabel = selectedPaymentType.label.toUpperCase();
+        const paymentTypeValue = parseInt(selectedPaymentType.value);
+        console.log('🔍 Payment type:', { label: paymentTypeLabel, value: paymentTypeValue });
+
+        // Check by label first, then fallback to value
+        // Value 1 = KAS/CASH, Value 2 = BANK/KREDIT (common convention)
+        const isKasType = paymentTypeLabel.includes('KAS') || paymentTypeLabel.includes('CASH') || paymentTypeValue === 1;
+        const isBankType = paymentTypeLabel.includes('BANK') || paymentTypeLabel.includes('KREDIT') || paymentTypeValue === 2;
+
+        // If payment type is KAS, show all options (including Kas)
+        if (isKasType && !isBankType) {
+            console.log('🔍 KAS mode - showing all bank options');
+            return bankOptions;
+        }
+
+        // If payment type is BANK, hide Kas option
+        if (isBankType) {
+            const filtered = bankOptions.filter(option => 
+                !option.label.toUpperCase().includes('KAS') && 
+                !option.label.toUpperCase().includes('CASH')
+            );
+            console.log('🔍 BANK mode - filtered bank options:', filtered.length, 'from', bankOptions.length);
+            return filtered;
+        }
+
+        return bankOptions;
+    }, [bankOptions, headerData.purchase_type, tipePembayaranOptions]);
+
+    // Auto-select Syarat Pembelian based on Tipe Pembayaran
+    useEffect(() => {
+        if (!headerData.purchase_type || bankOptions.length === 0 || tipePembayaranOptions.length === 0) {
+            return;
+        }
+
+        // Get the selected payment type label
+        // tipePembayaranOptions.value is integer, headerData.purchase_type is string from select
+        const selectedPaymentType = tipePembayaranOptions.find(
+            opt => String(opt.value) === String(headerData.purchase_type)
+        );
+
+        if (!selectedPaymentType) {
+            return;
+        }
+
+        const paymentTypeLabel = selectedPaymentType.label.toUpperCase();
+        const paymentTypeValue = parseInt(selectedPaymentType.value);
+
+        // Check by label first, then fallback to value
+        const isKasType = paymentTypeLabel.includes('KAS') || paymentTypeLabel.includes('CASH') || paymentTypeValue === 1;
+        const isBankType = paymentTypeLabel.includes('BANK') || paymentTypeLabel.includes('KREDIT') || paymentTypeValue === 2;
+
+        // If payment type is KAS/CASH, auto-select Kas in Syarat Pembelian
+        if (isKasType && !isBankType) {
+            const kasOption = bankOptions.find(option => 
+                option.label.toUpperCase().includes('KAS') || 
+                option.label.toUpperCase().includes('CASH')
+            );
+
+            // bankOptions.value is String
+            if (kasOption && String(headerData.syarat_pembelian) !== String(kasOption.value)) {
+                console.log('🔍 KAS mode - auto-selecting Kas:', kasOption);
+                setHeaderData(prev => ({
+                    ...prev,
+                    syarat_pembelian: kasOption.value
+                }));
+            }
+        }
+
+        // If payment type is BANK and current syarat_pembelian is Kas, clear it
+        if (isBankType) {
+            // bankOptions.value is String, headerData.syarat_pembelian could be string or number
+            const currentSyaratValue = String(headerData.syarat_pembelian);
+            const currentSyarat = bankOptions.find(option => 
+                String(option.value) === currentSyaratValue
+            );
+
+            console.log('🔍 BANK mode - checking current syarat:', {
+                currentSyaratValue,
+                currentSyarat,
+                shouldClear: currentSyarat && (
+                    currentSyarat.label.toUpperCase().includes('KAS') || 
+                    currentSyarat.label.toUpperCase().includes('CASH')
+                )
+            });
+
+            if (currentSyarat && (
+                currentSyarat.label.toUpperCase().includes('KAS') || 
+                currentSyarat.label.toUpperCase().includes('CASH')
+            )) {
+                setHeaderData(prev => ({
+                    ...prev,
+                    syarat_pembelian: ''
+                }));
+            }
+        }
+    }, [headerData.purchase_type, bankOptions, tipePembayaranOptions]);
+
     // Get master data from centralized parameter endpoint with supplier filter
     const {
         parameterData,
@@ -1891,26 +2013,6 @@ const AddEditPembelianPage = () => {
                             />
                         </div>
 
-                        {/* Farm Field */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                <Building2 className="w-4 h-4 inline mr-1" />
-                                Farm
-                            </label>
-                            <SearchableSelect
-                                value={headerData.idFarm}
-                                onChange={(value) => handleHeaderChange('idFarm', value)}
-                                options={farmOptions}
-                                placeholder={parameterLoading ? 'Loading farms...' : parameterError ? 'Error loading farms' : 'Pilih Farm'}
-                                isLoading={parameterLoading}
-                                isDisabled={parameterLoading || parameterError}
-                                className="w-full"
-                            />
-                            <p className="text-xs text-gray-500 mt-1">
-                                💡 Pilih farm tujuan untuk pembelian ini
-                            </p>
-                        </div>
-
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 <User className="w-4 h-4 inline mr-1" />
@@ -2061,6 +2163,26 @@ const AddEditPembelianPage = () => {
                                     </p>
                                 </div>
 
+                                {/* Farm Field - Moved before Tipe Pembayaran */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        <Building2 className="w-4 h-4 inline mr-1" />
+                                        Farm
+                                    </label>
+                                    <SearchableSelect
+                                        value={headerData.idFarm}
+                                        onChange={(value) => handleHeaderChange('idFarm', value)}
+                                        options={farmOptions}
+                                        placeholder={parameterLoading ? 'Loading farms...' : parameterError ? 'Error loading farms' : 'Pilih Farm'}
+                                        isLoading={parameterLoading}
+                                        isDisabled={parameterLoading || parameterError}
+                                        className="w-full"
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        💡 Pilih farm tujuan untuk pembelian ini
+                                    </p>
+                                </div>
+
                                 {/* Tipe Pembayaran */}
                                 <div>
                                     <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
@@ -2083,6 +2205,29 @@ const AddEditPembelianPage = () => {
                                     {tipePembayaranError && (
                                         <p className="text-xs text-red-500 mt-1">
                                             Error loading data: {tipePembayaranError}
+                                        </p>
+                                    )}
+                                </div>
+
+                                {/* Syarat Pembelian - Moved after Tipe Pembayaran */}
+                                <div>
+                                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                        <Hash className="w-4 h-4" />
+                                        Syarat Pembelian *
+                                    </label>
+                                    <SearchableSelect
+                                        options={filteredBankOptions}
+                                        value={headerData.syarat_pembelian}
+                                        onChange={(value) => handleHeaderChange('syarat_pembelian', value)}
+                                        placeholder={bankLoading ? 'Loading banks...' : bankError ? 'Error loading banks' : 'Pilih syarat pembelian'}
+                                        isLoading={bankLoading}
+                                        isDisabled={bankLoading || bankError}
+                                        required={true}
+                                        className="w-full"
+                                    />
+                                    {bankError && (
+                                        <p className="text-xs text-red-500 mt-1">
+                                            Error loading banks: {bankError}
                                         </p>
                                     )}
                                 </div>
@@ -2120,29 +2265,6 @@ const AddEditPembelianPage = () => {
                                     {headerData.purchase_type && parseInt(headerData.purchase_type) === 1 && (
                                         <p className="text-xs text-gray-600 mt-1">
                                             Opsional untuk pembayaran cash
-                                        </p>
-                                    )}
-                                </div>
-
-                                {/* Syarat Pembelian */}
-                                <div>
-                                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                        <Hash className="w-4 h-4" />
-                                        Syarat Pembelian *
-                                    </label>
-                                    <SearchableSelect
-                                        options={bankOptions}
-                                        value={headerData.syarat_pembelian}
-                                        onChange={(value) => handleHeaderChange('syarat_pembelian', value)}
-                                        placeholder={bankLoading ? 'Loading banks...' : bankError ? 'Error loading banks' : 'Pilih syarat pembelian'}
-                                        isLoading={bankLoading}
-                                        isDisabled={bankLoading || bankError}
-                                        required={true}
-                                        className="w-full"
-                                    />
-                                    {bankError && (
-                                        <p className="text-xs text-red-500 mt-1">
-                                            Error loading banks: {bankError}
                                         </p>
                                     )}
                                 </div>
