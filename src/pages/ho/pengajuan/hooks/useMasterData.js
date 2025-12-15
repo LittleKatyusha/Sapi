@@ -4,14 +4,10 @@ import { API_ENDPOINTS } from '../../../../config/api';
 
 /**
  * Custom hook for fetching master data for Pengajuan Biaya form
- * Fetches: Jenis Biaya, Metode Bayar, Persetujuan HO
+ * Fetches: Metode Bayar, Persetujuan HO
+ * Note: Jenis Biaya now fetched via useItemBebanBiayaAPI hook (from /api/master/parameter/data)
  */
 const useMasterData = () => {
-  // Jenis Biaya state
-  const [jenisBiayaData, setJenisBiayaData] = useState([]);
-  const [jenisBiayaLoading, setJenisBiayaLoading] = useState(false);
-  const [jenisBiayaError, setJenisBiayaError] = useState(null);
-
   // Metode Bayar state
   const [metodeBayarData, setMetodeBayarData] = useState([]);
   const [metodeBayarLoading, setMetodeBayarLoading] = useState(false);
@@ -21,65 +17,6 @@ const useMasterData = () => {
   const [persetujuanHoData, setPersetujuanHoData] = useState([]);
   const [persetujuanHoLoading, setPersetujuanHoLoading] = useState(false);
   const [persetujuanHoError, setPersetujuanHoError] = useState(null);
-
-  /**
-   * Fetch Jenis Biaya data from Item Lain-Lain API
-   */
-  const fetchJenisBiaya = useCallback(async () => {
-    setJenisBiayaLoading(true);
-    setJenisBiayaError(null);
-    
-    try {
-      // Use Item Lain-Lain endpoint with DataTables format
-      const params = {
-        draw: 1,
-        start: 0,
-        length: 10000, // Large number to get all records
-        'search[value]': '',
-        'order[0][column]': 0,
-        'order[0][dir]': 'asc',
-        t: Date.now() // Cache busting
-      };
-      
-      const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.ITEM_LAIN_LAIN}/data`, { params });
-
-      // Debug logging
-      console.log('=== JENIS BIAYA RESPONSE ===');
-      console.log('Full response:', result);
-      console.log('result.data:', result.data);
-
-      // Handle DataTables response format
-      let dataArray = [];
-      
-      if (result?.data) {
-        dataArray = result.data;
-      } else if (Array.isArray(result)) {
-        dataArray = result;
-      }
-
-      console.log('Data array:', dataArray);
-
-      if (dataArray && Array.isArray(dataArray) && dataArray.length > 0) {
-        const options = dataArray.map(item => ({
-          value: parseInt(item.id), // Use actual database ID, not pubid
-          label: item.name,
-          id: parseInt(item.id),
-          pubid: item.pubid // Store pubid for reference if needed
-        }));
-        console.log('Mapped options:', options);
-        setJenisBiayaData(options);
-      } else {
-        console.log('No data found, setting empty array');
-        setJenisBiayaData([]);
-      }
-    } catch (err) {
-      console.error('Error fetching jenis biaya:', err);
-      setJenisBiayaError('Gagal memuat data jenis biaya');
-      setJenisBiayaData([]);
-    } finally {
-      setJenisBiayaLoading(false);
-    }
-  }, []);
 
   /**
    * Fetch Metode Bayar data from Parameter API using 'tipe_pembayaran' group
@@ -153,29 +90,22 @@ const useMasterData = () => {
 
   /**
    * Fetch all master data
-   * Now includes jenis biaya for lazy loading
+   * Note: Jenis Biaya removed - now fetched via useItemBebanBiayaAPI
    */
   const fetchAllMasterData = useCallback(async () => {
     await Promise.all([
-      fetchJenisBiaya(),
       fetchMetodeBayar(),
       fetchPersetujuanHo()
     ]);
-  }, [fetchJenisBiaya, fetchMetodeBayar, fetchPersetujuanHo]);
+  }, [fetchMetodeBayar, fetchPersetujuanHo]);
 
   // Check if any data is loading
-  const isLoading = jenisBiayaLoading || metodeBayarLoading || persetujuanHoLoading;
+  const isLoading = metodeBayarLoading || persetujuanHoLoading;
 
   // Check if there are any errors
-  const hasError = jenisBiayaError || metodeBayarError || persetujuanHoError;
+  const hasError = metodeBayarError || persetujuanHoError;
 
   return {
-    // Jenis Biaya
-    jenisBiayaData,
-    jenisBiayaLoading,
-    jenisBiayaError,
-    fetchJenisBiaya,
-
     // Metode Bayar
     metodeBayarData,
     metodeBayarLoading,

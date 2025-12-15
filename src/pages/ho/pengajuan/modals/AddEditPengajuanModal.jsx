@@ -5,6 +5,7 @@ import Select from 'react-select';
 import useMasterData from '../hooks/useMasterData';
 import useOfficeData from '../../tandaTerima/hooks/useOfficeData';
 import PengajuanBiayaService from '../../../../services/pengajuanBiayaService';
+import useItemBebanBiayaAPI from '../../pembelianLainLain/hooks/useItemBebanBiayaAPI';
 
 /**
  * Modal untuk Add/Edit Pengajuan Biaya sesuai dengan backend requirements
@@ -40,9 +41,6 @@ const AddEditPengajuanModal = ({ isOpen, onClose, onSave, editingItem }) => {
 
     // Fetch master data using custom hook
     const {
-        jenisBiayaData,
-        jenisBiayaLoading,
-        jenisBiayaError,
         metodeBayarData,
         metodeBayarLoading,
         metodeBayarError,
@@ -59,16 +57,24 @@ const AddEditPengajuanModal = ({ isOpen, onClose, onSave, editingItem }) => {
         error: officeError
     } = useOfficeData();
 
+    // Fetch item beban biaya (jenis biaya) from new endpoint - same as AddEditBebanModal
+    const {
+        itemBebanBiayaOptions: jenisBiayaOptions,
+        loading: jenisBiayaLoading,
+        error: jenisBiayaError,
+        refetch: refetchJenisBiaya
+    } = useItemBebanBiayaAPI();
+
     // Fetch master data when modal opens
     useEffect(() => {
         if (isOpen) {
             fetchAllMasterData();
+            refetchJenisBiaya(); // Fetch jenis biaya from parameter/data endpoint
         }
-    }, [isOpen, fetchAllMasterData]);
+    }, [isOpen, fetchAllMasterData, refetchJenisBiaya]);
 
     // All master data already in correct format {value, label, id} from useMasterData hook
     // No need to transform
-    const jenisBiayaOptions = jenisBiayaData;
     const metodeBayarOptions = metodeBayarData;
 
     const persetujuanHoOptions = useMemo(() => {
@@ -139,9 +145,9 @@ const AddEditPengajuanModal = ({ isOpen, onClose, onSave, editingItem }) => {
         if (editingItem && detailData && !isLoadingDetail) {
             const today = new Date().toISOString().split('T')[0];
             
-            // Find jenis biaya by ID or label (name)
+            // Find jenis biaya by ID or label (name) - now using string comparison since value is string
             const jeniBiayaOption = detailData.id_jenis_biaya
-                ? jenisBiayaOptions.find(opt => opt.value === detailData.id_jenis_biaya)
+                ? jenisBiayaOptions.find(opt => opt.value === String(detailData.id_jenis_biaya))
                 : jenisBiayaOptions.find(opt => opt.label.toUpperCase() === (detailData.jenis_biaya || '').toUpperCase());
             
             // Find metode bayar by ID or label (name)
@@ -393,7 +399,12 @@ const AddEditPengajuanModal = ({ isOpen, onClose, onSave, editingItem }) => {
                                 )}
                                 {jenisBiayaError && (
                                     <p className="text-orange-500 text-xs mt-1">
-                                        ⚠️ {jenisBiayaError}
+                                        ⚠️ Error: {jenisBiayaError}
+                                    </p>
+                                )}
+                                {jenisBiayaLoading && (
+                                    <p className="text-xs text-blue-600 mt-1">
+                                        🔄 Memuat data jenis biaya...
                                     </p>
                                 )}
                             </div>

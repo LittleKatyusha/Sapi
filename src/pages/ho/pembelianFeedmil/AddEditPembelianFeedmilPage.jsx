@@ -1453,29 +1453,6 @@ const AddEditPembelianFeedmilPage = () => {
                             )}
                         </div>
 
-                        {/* Syarat Pembelian */}
-                        <div>
-                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <Hash className="w-4 h-4" />
-                                Syarat Pembelian *
-                            </label>
-                            <SearchableSelect
-                                options={bankOptions}
-                                value={headerData.syarat_pembelian}
-                                onChange={(value) => handleHeaderChange('syarat_pembelian', value)}
-                                placeholder={bankLoading ? 'Loading banks...' : bankError ? 'Error loading banks' : 'Pilih syarat pembelian'}
-                                isLoading={bankLoading}
-                                isDisabled={bankLoading || bankError}
-                                required={true}
-                                className="w-full"
-                            />
-                            {bankError && (
-                                <p className="text-xs text-red-500 mt-1">
-                                    ⚠️ Error loading banks: {bankError}
-                                </p>
-                            )}
-                        </div>
-
                         {/* Tipe Pembayaran */}
                         <div>
                             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
@@ -1495,6 +1472,29 @@ const AddEditPembelianFeedmilPage = () => {
                             {tipePembayaranError && (
                                 <p className="text-xs text-red-500 mt-1">
                                     ⚠️ Error loading tipe pembayaran: {tipePembayaranError}
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Syarat Pembelian */}
+                        <div>
+                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <Hash className="w-4 h-4" />
+                                Syarat Pembelian *
+                            </label>
+                            <SearchableSelect
+                                options={bankOptions}
+                                value={headerData.syarat_pembelian}
+                                onChange={(value) => handleHeaderChange('syarat_pembelian', value)}
+                                placeholder={bankLoading ? 'Loading banks...' : bankError ? 'Error loading banks' : 'Pilih syarat pembelian'}
+                                isLoading={bankLoading}
+                                isDisabled={bankLoading || bankError}
+                                required={true}
+                                className="w-full"
+                            />
+                            {bankError && (
+                                <p className="text-xs text-red-500 mt-1">
+                                    ⚠️ Error loading banks: {bankError}
                                 </p>
                             )}
                         </div>
