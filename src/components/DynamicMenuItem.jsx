@@ -56,63 +56,129 @@ const DynamicMenuItem = ({
   // Handle click menu
   const handleMenuClick = () => {
     if (hasChildren) {
-      onToggleMenu(item.id || item.nama);
+      onToggleMenu(item.id || item.nama, depth);
     }
   };
 
   if (hasChildren) {
     // Menu dengan submenu
+    // Check if this menu also has a URL (child+parent case)
+    const hasUrl = item.url && item.url !== '#';
+    
     return (
       <li>
         <div>
-          <button
-            onClick={handleMenuClick}
-            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg sidebar-item-hover transition-all duration-200 ${
-              isActive
-                ? 'bg-emerald-900 text-white shadow-lg'
-                : 'text-emerald-200 hover:bg-emerald-700/50 hover:text-white'
-            } ${depth > 0 ? getIndentClass(depth) : ''}`}
-          >
+          {hasUrl ? (
+            // Child+Parent: Menu has both children AND URL
             <div className="flex items-center">
-              {/* Hierarchy indicator */}
-              {depth > 0 && (
-                <div className="mr-2 flex-shrink-0">
-                  {getHierarchyIndicator(depth)}
+              <Link
+                to={item.url}
+                className={`flex-1 flex items-center px-3 py-2.5 rounded-l-lg sidebar-item-hover transition-all duration-200 ${
+                  isActive
+                    ? 'bg-emerald-900 text-white shadow-lg'
+                    : 'text-emerald-200 hover:bg-emerald-700/50 hover:text-white'
+                } ${depth > 0 ? getIndentClass(depth) : ''}`}
+              >
+                <div className="flex items-center flex-1">
+                  {/* Hierarchy indicator */}
+                  {depth > 0 && (
+                    <div className="mr-2 flex-shrink-0">
+                      {getHierarchyIndicator(depth)}
+                    </div>
+                  )}
+                  
+                  {/* Icon with enhanced styling */}
+                  {IconComponent && (
+                    <div className={`flex-shrink-0 ${depth === 0 ? 'p-1 bg-emerald-700/30 rounded-md' : ''}`}>
+                      <IconComponent className={`${depth === 0 ? 'w-5 h-5' : 'w-4 h-4'} transition-colors duration-200`} />
+                    </div>
+                  )}
+                  
+                  {shouldShowExpanded && (
+                    <div className="flex items-center ml-3">
+                      <span className={`font-medium sidebar-content-fade sidebar-text-slide transition-colors duration-200 ${
+                        depth === 0 ? 'text-sm font-semibold' : 'text-sm'
+                      }`}>
+                        {item.nama}
+                      </span>
+                      {item.badge && (
+                        <span className="ml-2 bg-emerald-100 text-emerald-600 text-xs px-2 py-1 rounded-full font-medium">
+                          {item.badge}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
-              )}
-              
-              {/* Icon with enhanced styling */}
-              {IconComponent && (
-                <div className={`flex-shrink-0 ${depth === 0 ? 'p-1 bg-emerald-700/30 rounded-md' : ''}`}>
-                  <IconComponent className={`${depth === 0 ? 'w-5 h-5' : 'w-4 h-4'} transition-colors duration-200`} />
-                </div>
-              )}
-              
+              </Link>
               {shouldShowExpanded && (
-                <div className="flex items-center ml-3">
-                  <span className={`font-medium sidebar-content-fade sidebar-text-slide transition-colors duration-200 ${
-                    depth === 0 ? 'text-sm font-semibold' : 'text-sm'
-                  }`}>
-                    {item.nama}
-                  </span>
-                  {item.badge && (
-                    <span className="ml-2 bg-emerald-100 text-emerald-600 text-xs px-2 py-1 rounded-full font-medium">
-                      {item.badge}
+                <button
+                  onClick={handleMenuClick}
+                  className={`px-2 py-2.5 rounded-r-lg sidebar-item-hover transition-all duration-200 ${
+                    isActive
+                      ? 'bg-emerald-900 text-white'
+                      : 'text-emerald-200 hover:bg-emerald-700/50 hover:text-white'
+                  }`}
+                  title="Toggle submenu"
+                >
+                  {isExpanded ? (
+                    <ChevronDown className="w-4 h-4 flex-shrink-0 transition-transform duration-200" />
+                  ) : (
+                    <ChevronRight className="w-4 h-4 flex-shrink-0 transition-transform duration-200" />
+                  )}
+                </button>
+              )}
+            </div>
+          ) : (
+            // Regular Parent: Menu only has children, no URL
+            <button
+              onClick={handleMenuClick}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg sidebar-item-hover transition-all duration-200 ${
+                isActive
+                  ? 'bg-emerald-900 text-white shadow-lg'
+                  : 'text-emerald-200 hover:bg-emerald-700/50 hover:text-white'
+              } ${depth > 0 ? getIndentClass(depth) : ''}`}
+            >
+              <div className="flex items-center">
+                {/* Hierarchy indicator */}
+                {depth > 0 && (
+                  <div className="mr-2 flex-shrink-0">
+                    {getHierarchyIndicator(depth)}
+                  </div>
+                )}
+                
+                {/* Icon with enhanced styling */}
+                {IconComponent && (
+                  <div className={`flex-shrink-0 ${depth === 0 ? 'p-1 bg-emerald-700/30 rounded-md' : ''}`}>
+                    <IconComponent className={`${depth === 0 ? 'w-5 h-5' : 'w-4 h-4'} transition-colors duration-200`} />
+                  </div>
+                )}
+                
+                {shouldShowExpanded && (
+                  <div className="flex items-center ml-3">
+                    <span className={`font-medium sidebar-content-fade sidebar-text-slide transition-colors duration-200 ${
+                      depth === 0 ? 'text-sm font-semibold' : 'text-sm'
+                    }`}>
+                      {item.nama}
                     </span>
+                    {item.badge && (
+                      <span className="ml-2 bg-emerald-100 text-emerald-600 text-xs px-2 py-1 rounded-full font-medium">
+                        {item.badge}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+              {shouldShowExpanded && (
+                <div className="flex items-center">
+                  {isExpanded ? (
+                    <ChevronDown className="w-4 h-4 text-emerald-200 flex-shrink-0 transition-transform duration-200" />
+                  ) : (
+                    <ChevronRight className="w-4 h-4 text-emerald-200 flex-shrink-0 transition-transform duration-200" />
                   )}
                 </div>
               )}
-            </div>
-            {shouldShowExpanded && (
-              <div className="flex items-center">
-                {isExpanded ? (
-                  <ChevronDown className="w-4 h-4 text-emerald-200 flex-shrink-0 transition-transform duration-200" />
-                ) : (
-                  <ChevronRight className="w-4 h-4 text-emerald-200 flex-shrink-0 transition-transform duration-200" />
-                )}
-              </div>
-            )}
-          </button>
+            </button>
+          )}
           
           {/* Submenu with enhanced styling */}
           {shouldShowExpanded && isExpanded && (

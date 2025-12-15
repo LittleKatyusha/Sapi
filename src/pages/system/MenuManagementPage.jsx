@@ -241,10 +241,15 @@ const MenuManagementPage = () => {
             )}
           </div>
           <div>
-            <div className="font-medium text-gray-900">
+            <div className="font-medium text-gray-900 flex items-center gap-2">
               {row.nama}
+              {row.has_children && row.parent_name && row.parent_name !== '-' && (
+                <span className="inline-flex px-1.5 py-0.5 text-xs font-semibold rounded bg-purple-100 text-purple-700" title="Menu ini adalah child yang juga menjadi parent">
+                  Child+Parent
+                </span>
+              )}
             </div>
-            {row.parent_name && (
+            {row.parent_name && row.parent_name !== '-' && (
               <div className="text-xs text-gray-500">
                 Parent: {row.parent_name}
               </div>
@@ -299,21 +304,37 @@ const MenuManagementPage = () => {
     },
     {
       name: 'Status',
-      cell: row => (
-        <div className="flex flex-col space-y-1">
-          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-            row.has_children 
-              ? 'bg-green-100 text-green-800' 
-              : 'bg-gray-100 text-gray-800'
-          }`}>
-            {row.has_children ? 'Parent' : 'Item'}
-          </span>
-          <span className="text-xs text-gray-500">
-            Depth: {row.depth}
-          </span>
-        </div>
-      ),
-      width: '100px'
+      cell: row => {
+        const isRoot = !row.parent_name || row.parent_name === '-';
+        const isParent = row.has_children;
+        const isChild = !isRoot;
+        
+        let statusText = 'Item';
+        let statusColor = 'bg-gray-100 text-gray-800';
+        
+        if (isParent && isChild) {
+          statusText = 'Child+Parent';
+          statusColor = 'bg-purple-100 text-purple-800';
+        } else if (isParent) {
+          statusText = 'Parent';
+          statusColor = 'bg-green-100 text-green-800';
+        } else if (isChild) {
+          statusText = 'Child';
+          statusColor = 'bg-blue-100 text-blue-800';
+        }
+        
+        return (
+          <div className="flex flex-col space-y-1">
+            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${statusColor}`}>
+              {statusText}
+            </span>
+            <span className="text-xs text-gray-500">
+              Level: {row.depth}
+            </span>
+          </div>
+        );
+      },
+      width: '120px'
     },
     {
       name: 'Dibuat',
@@ -366,7 +387,10 @@ const MenuManagementPage = () => {
               <MenuIcon className="w-7 h-7 text-emerald-600" />
               Menu Management
             </h1>
-            <p className="text-gray-600 mt-1">Kelola struktur menu sistem</p>
+            <p className="text-gray-600 mt-1">
+              Kelola struktur menu sistem dengan nested hierarchy
+
+            </p>
           </div>
           <div className="flex items-center space-x-3">
             <button
@@ -395,7 +419,7 @@ const MenuManagementPage = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
         <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
@@ -423,6 +447,20 @@ const MenuManagementPage = () => {
         <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
+              <p className="text-sm font-medium text-gray-600">Nested Parent</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {filteredData.filter(m => m.has_children && m.parent_name && m.parent_name !== '-').length}
+              </p>
+            </div>
+            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+              <GitBranch className="w-6 h-6 text-purple-600" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between">
+            <div>
               <p className="text-sm font-medium text-gray-600">Menu dengan URL</p>
               <p className="text-2xl font-bold text-gray-900">{stats.menus_with_url || 0}</p>
             </div>
@@ -438,8 +476,8 @@ const MenuManagementPage = () => {
               <p className="text-sm font-medium text-gray-600">Max Depth</p>
               <p className="text-2xl font-bold text-gray-900">{stats.max_depth || 0}</p>
             </div>
-            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-              <ChevronDown className="w-6 h-6 text-purple-600" />
+            <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
+              <ChevronDown className="w-6 h-6 text-indigo-600" />
             </div>
           </div>
         </div>

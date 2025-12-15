@@ -64,20 +64,42 @@ const LayoutSecure = ({ children, title }) => {
   // Use dynamic menu only (no fallback)
   const currentMenuItems = menuTree;
 
-  const toggleMenu = (menuName) => {
+  const toggleMenu = (menuName, depth = 0) => {
     setExpandedMenus(prev => {
-      // If the clicked menu is already open, close it
-      if (prev[menuName]) {
-        return {
-          ...prev,
-          [menuName]: false
-        };
-      } else {
-        // If the clicked menu is closed, open it and close all others
-        const newExpandedMenus = {};
+      // Level 0 (root): Accordion behavior - close other root menus
+      if (depth === 0) {
+        // If clicking the same root menu that's already open, close it
+        if (prev[menuName]) {
+          return {
+            ...prev,
+            [menuName]: false
+          };
+        }
+        
+        // Close all other root menus, but keep nested menus open
+        const newExpandedMenus = { ...prev };
+        
+        // Get all root menu names from menuTree
+        const rootMenuNames = menuTree.map(item => item.id || item.nama);
+        
+        // Close only root level menus
+        rootMenuNames.forEach(rootName => {
+          if (rootName !== menuName) {
+            newExpandedMenus[rootName] = false;
+          }
+        });
+        
+        // Open the clicked root menu
         newExpandedMenus[menuName] = true;
+        
         return newExpandedMenus;
       }
+      
+      // Level 1+ (nested): Independent toggle - keep others open
+      return {
+        ...prev,
+        [menuName]: !prev[menuName]
+      };
     });
   };
 

@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { X, Menu, Link, Hash, ArrowUp, Type, Palette } from 'lucide-react';
+import SearchableSelect from '../../../components/shared/SearchableSelect';
 
 const AddEditMenuModal = ({ isOpen, onClose, onSave, menu, menuOptions, selectedParentId, allMenus }) => {
   console.log('AddEditMenuModal render - allMenus:', allMenus);
@@ -47,6 +48,29 @@ const AddEditMenuModal = ({ isOpen, onClose, onSave, menu, menuOptions, selected
     }
   }, [menu, isOpen, selectedParentId, allMenus]);
 
+  // Helper function to flatten tree structure
+  const flattenMenuTree = useCallback((menus) => {
+    const flattened = [];
+    
+    const flatten = (items, parentDepth = 0) => {
+      items.forEach(item => {
+        // Add current item
+        flattened.push({
+          ...item,
+          depth: parentDepth
+        });
+        
+        // Recursively flatten children
+        if (item.children && Array.isArray(item.children) && item.children.length > 0) {
+          flatten(item.children, parentDepth + 1);
+        }
+      });
+    };
+    
+    flatten(menus);
+    return flattened;
+  }, []);
+
   // Separate effect to handle allMenus changes
   useEffect(() => {
     console.log('allMenus changed in modal:', allMenus);
@@ -54,21 +78,41 @@ const AddEditMenuModal = ({ isOpen, onClose, onSave, menu, menuOptions, selected
     console.log('allMenus is array:', Array.isArray(allMenus));
     
     if (allMenus && Array.isArray(allMenus)) {
-      console.log('Setting localAllMenus to:', allMenus);
-      setLocalAllMenus(allMenus);
+      // Check if data is tree structure (has children property)
+      const hasTreeStructure = allMenus.some(item => 'children' in item);
+      
+      if (hasTreeStructure) {
+        console.log('Detected tree structure, flattening...');
+        const flattened = flattenMenuTree(allMenus);
+        console.log('Flattened menus:', flattened);
+        console.log('Flattened count:', flattened.length);
+        setLocalAllMenus(flattened);
+      } else {
+        console.log('Setting localAllMenus to:', allMenus);
+        setLocalAllMenus(allMenus);
+      }
     } else {
       console.log('allMenus is not valid, setting empty array');
       setLocalAllMenus([]);
     }
-  }, [allMenus]);
+  }, [allMenus, flattenMenuTree]);
 
   // Force update localAllMenus when modal opens
   useEffect(() => {
     if (isOpen && allMenus && Array.isArray(allMenus) && allMenus.length > 0) {
       console.log('Modal opened - force setting localAllMenus');
-      setLocalAllMenus([...allMenus]); // Create a new array to force update
+      
+      // Check if data is tree structure
+      const hasTreeStructure = allMenus.some(item => 'children' in item);
+      
+      if (hasTreeStructure) {
+        const flattened = flattenMenuTree(allMenus);
+        setLocalAllMenus(flattened);
+      } else {
+        setLocalAllMenus([...allMenus]);
+      }
     }
-  }, [isOpen, allMenus]);
+  }, [isOpen, allMenus, flattenMenuTree]);
 
   const validateForm = () => {
     const newErrors = {};
@@ -148,25 +192,114 @@ const AddEditMenuModal = ({ isOpen, onClose, onSave, menu, menuOptions, selected
     'Building2', 'UserCheck', 'Key', 'Receipt', 'Syringe', 'RotateCcw'
   ];
 
-  // Memoized dropdown options
+  // Helper function to check if selecting a parent would create circular reference
+  const wouldCreateCircularReference = useCallback((potentialParentId, currentMenuId) => {
+    if (!potentialParentId || !currentMenuId) return false;
+    if (potentialParentId === currentMenuId) return true;
+    
+    // Build a map of menu id to parent id for quick lookup
+    const menuMap = new Map();
+    localAllMenus.forEach(m => {
+      const id = m.id || m.pid;
+      const parentId = m.parent_id;
+      if (id) {
+        menuMap.set(id, parentId);
+      }
+    });
+    
+    // Build parent chain to check for circular reference
+    const visited = new Set();
+    let checkId = potentialParentId;
+    
+    while (checkId && !visited.has(checkId)) {
+      visited.add(checkId);
+      
+      // Get parent of current check id
+      const parentId = menuMap.get(checkId);
+      
+      // If parent is our current menu, we have a circular reference
+      if (parentId === currentMenuId) return true;
+      
+      // Continue checking up the chain
+      checkId = parentId;
+    }
+    
+    return false;
+  }, [localAllMenus]);
+
+  // Memoized dropdown options - SHOW ALL MENUS (child can become parent)
   const dropdownOptions = useMemo(() => {
     console.log('Computing dropdown options - localAllMenus:', localAllMenus);
     console.log('Computing dropdown options - localAllMenus length:', localAllMenus.length);
     if (!localAllMenus || !Array.isArray(localAllMenus) || localAllMenus.length === 0) {
       return [];
     }
-    return localAllMenus.map((menuItem) => {
-      // Use id if available (from tree endpoint), otherwise use pid
-      const value = menuItem.id || menuItem.pid;
-      const key = menuItem.pid || menuItem.id || menuItem.nama; // Fallback for key
-      console.log('Menu item for dropdown:', { nama: menuItem.nama, id: menuItem.id, pid: menuItem.pid, using: value, key: key });
-      return {
-        key: key,
-        value: value,
-        label: menuItem.nama
-      };
-    });
-  }, [localAllMenus]);
+    
+    const currentMenuId = menu?.id || menu?.pid;
+    
+    return localAllMenus
+      .filter(menuItem => {
+        // Exclude current menu from being its own parent
+        const itemId = menuItem.id || menuItem.pid;
+        if (currentMenuId && itemId === currentMenuId) {
+          return false;
+        }
+        
+        // Check for circular reference
+        if (currentMenuId && wouldCreateCircularReference(itemId, currentMenuId)) {
+          return false;
+        }
+        
+        return true;
+      })
+      .map((menuItem) => {
+        // Use id if available (from tree endpoint), otherwise use pid
+        const value = menuItem.id || menuItem.pid;
+        
+        // Add visual indicator for depth/hierarchy
+        const depth = menuItem.depth || 0;
+        const prefix = '  '.repeat(depth) + (depth > 0 ? '└─ ' : '');
+        
+        // Check if has parent (depth > 0 means it's a child)
+        const hasParent = depth > 0 || (menuItem.parent_name && menuItem.parent_name !== '-');
+        
+        // Check if has children
+        const hasChildren = menuItem.has_children || (menuItem.children && menuItem.children.length > 0);
+        
+        // Build label with indicators
+        let label = `${prefix}${menuItem.nama}`;
+        if (hasParent && hasChildren) {
+          label += ' 🔗 (child+parent)';
+        } else if (hasParent) {
+          label += ' 📄 (child)';
+        } else if (hasChildren) {
+          label += ' 📁 (parent)';
+        }
+        
+        console.log('Menu item for dropdown:', { 
+          nama: menuItem.nama, 
+          id: menuItem.id, 
+          pid: menuItem.pid, 
+          using: value,
+          hasParent,
+          hasChildren,
+          depth
+        });
+        
+        return {
+          value: value,
+          label: label,
+          depth: depth,
+          hasParent: hasParent,
+          hasChildren: hasChildren
+        };
+      })
+      .sort((a, b) => {
+        // Sort by depth first, then by name
+        if (a.depth !== b.depth) return a.depth - b.depth;
+        return a.label.localeCompare(b.label);
+      });
+  }, [localAllMenus, menu, wouldCreateCircularReference]);
 
   if (!isOpen) return null;
 
@@ -248,31 +381,20 @@ const AddEditMenuModal = ({ isOpen, onClose, onSave, menu, menuOptions, selected
               <ArrowUp className="w-4 h-4 inline mr-1" />
               Parent Menu
             </label>
-            <select
-              value={formData.parent_id}
-              onChange={(e) => handleChange('parent_id', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-              disabled={saving}
-            >
-              <option value="">-- Root Menu --</option>
-              {dropdownOptions.length > 0 ? (
-                dropdownOptions.map((option) => {
-                  console.log('Rendering dropdown option:', option);
-                  return (
-                    <option key={option.key} value={option.value}>
-                      {option.label}
-                    </option>
-                  );
-                })
-              ) : (
-              <>
-                <option value="">-- Root Menu --</option>
-                <option disabled>
-                  {localAllMenus.length === 0 ? 'Loading menus...' : 'No menus available'}
-                </option>
-              </>
-              )}
-            </select>
+            <SearchableSelect
+              options={dropdownOptions}
+              value={formData.parent_id || null}
+              onChange={(value) => handleChange('parent_id', value || '')}
+              placeholder="-- Root Menu (Level 0) --"
+              isLoading={localAllMenus.length === 0}
+              isDisabled={saving}
+              isClearable={true}
+              isSearchable={true}
+              className="font-mono text-sm"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              💡 Child menu dapat menjadi parent untuk menu lain (nested hierarchy)
+            </p>
           </div>
 
           {/* URL */}
