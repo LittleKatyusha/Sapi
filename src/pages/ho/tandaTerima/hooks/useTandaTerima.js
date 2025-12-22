@@ -553,6 +553,23 @@ const useTandaTerima = () => {
         }
     }, []);
 
+    // Download report
+    const downloadReport = useCallback(async (id, petugas) => {
+        try {
+            const response = await HttpClient.get(API_ENDPOINTS.REPORT.PEMBELIAN.OTHER_HO_RECEIPT, {
+                params: {
+                    id_terima_barang: id,
+                    petugas: petugas
+                },
+                responseType: 'blob'
+            });
+            return response;
+        } catch (error) {
+            console.error('Error downloading report:', error);
+            throw error;
+        }
+    }, []);
+
     return {
         tandaTerima,
         loading,
@@ -572,7 +589,8 @@ const useTandaTerima = () => {
         updateTandaTerima,
         deleteTandaTerima,
         getTandaTerimaById,
-        updateDetailItem
+        updateDetailItem,
+        downloadReport
     };
 };
 

@@ -13,6 +13,7 @@ import useBanksAPILazy from '../../../hooks/useBanksAPILazy';
 import useSatuanAPI from './hooks/useSatuanAPI';
 import useJenisPembelianAPI from './hooks/useJenisPembelianAPI';
 import useInfoCardsPembelianLainLain from './hooks/useInfoCardsPembelianLainLain';
+import useAuth from '../../../hooks/useAuth';
 import ActionButton from './components/ActionButton';
 import PembelianFeedmilCard from '../pembelianFeedmil/components/PembelianFeedmilCard';
 import CustomPagination from '../pembelianFeedmil/components/CustomPagination';
@@ -28,6 +29,7 @@ import AddEditBebanModal from './modals/AddEditBebanModal';
 import AddEditBahanPembantuModal from './modals/AddEditBahanPembantuModal';
 import ReportParameterModal from './modals/ReportParameterModal';
 import ReportBahanPembantuModal from './modals/ReportBahanPembantuModal';
+import ReportBebanModal from './modals/ReportBebanModal';
 
 const PembelianLainLainPage = () => {
     const navigate = useNavigate();
@@ -51,6 +53,8 @@ const PembelianLainLainPage = () => {
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
     const [reportModalType, setReportModalType] = useState('beban'); // 'aset' or 'beban'
     const [isBahanPembantuReportModalOpen, setIsBahanPembantuReportModalOpen] = useState(false);
+    const [isBebanReportModalOpen, setIsBebanReportModalOpen] = useState(false);
+    const { user } = useAuth();
     
     const {
         pembelian: filteredData,
@@ -716,6 +720,85 @@ const PembelianLainLainPage = () => {
             });
             
             handleCloseBahanPembantuReportModal();
+        } catch (error) {
+            console.error('Error downloading report:', error);
+            setNotification({
+                type: 'error',
+                message: error.message || 'Gagal mengunduh laporan'
+            });
+        } finally {
+            setIsDownloadingReport(false);
+        }
+    };
+
+    // Beban Report handlers
+    const handleOpenBebanReportModal = async () => {
+        // Fetch lazy-loaded options FIRST before opening modal
+        await fetchTipePembayaran();
+        setIsBebanReportModalOpen(true);
+    };
+
+    const handleCloseBebanReportModal = () => {
+        setIsBebanReportModalOpen(false);
+    };
+
+    const handleDownloadBebanReport = async (params) => {
+        setIsDownloadingReport(true);
+        try {
+            const { reportType, division, id_tipe_pembayaran, input_date, month, year } = params;
+            const petugas = user?.name || 'User';
+            
+            let reportDescription = '';
+            
+            if (reportType === 'harian') {
+                reportDescription = `laporan harian Biaya-Biaya (${input_date})`;
+            } else {
+                const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+                reportDescription = `laporan bulanan Biaya-Biaya (${monthNames[month - 1]} ${year})`;
+            }
+            
+            setNotification({
+                type: 'info',
+                message: `Mengunduh ${reportDescription}...`
+            });
+
+            let blob;
+            let filename;
+
+            if (reportType === 'harian') {
+                blob = await LaporanPembelianService.downloadReportBebanDaily(
+                    input_date,
+                    division,
+                    id_tipe_pembayaran,
+                    petugas
+                );
+                filename = `Laporan_Biaya_Biaya_Harian_${input_date}_${division}.pdf`;
+            } else {
+                blob = await LaporanPembelianService.downloadReportBebanMonthly(
+                    year,
+                    month,
+                    division,
+                    id_tipe_pembayaran,
+                    petugas
+                );
+                filename = `Laporan_Biaya_Biaya_Bulanan_${year}-${String(month).padStart(2, '0')}_${division}.pdf`;
+            }
+
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+
+            setNotification({
+                type: 'success',
+                message: `${reportDescription} berhasil diunduh!`
+            });
+            
+            handleCloseBebanReportModal();
         } catch (error) {
             console.error('Error downloading report:', error);
             setNotification({
@@ -2022,10 +2105,10 @@ const PembelianLainLainPage = () => {
                         </h2>
                         <div className="flex items-center gap-2">
                             <button
-                                onClick={() => handleOpenReportModal('beban')}
+                                onClick={handleOpenBebanReportModal}
                                 disabled={isDownloadingReport}
                                 className="bg-white text-green-600 px-3 py-2 rounded-lg hover:bg-green-50 transition-all duration-300 flex items-center gap-2 font-medium shadow-md hover:shadow-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                                title="Download Laporan dengan Parameter"
+                                title="Download Laporan Biaya-Biaya"
                             >
                                 <Download className="w-4 h-4" />
                                 <span className="hidden lg:inline">Laporan</span>
@@ -2584,6 +2667,18 @@ const PembelianLainLainPage = () => {
                 isOpen={isBahanPembantuReportModalOpen}
                 onClose={handleCloseBahanPembantuReportModal}
                 onDownload={handleDownloadBahanPembantuReport}
+                divisiOptions={divisiOptions}
+                tipePembayaranOptions={tipePembayaranOptions}
+                divisiLoading={divisiLoading}
+                tipePembayaranLoading={tipePembayaranLoading}
+                isDownloading={isDownloadingReport}
+            />
+
+            {/* Report Beban Modal */}
+            <ReportBebanModal
+                isOpen={isBebanReportModalOpen}
+                onClose={handleCloseBebanReportModal}
+                onDownload={handleDownloadBebanReport}
                 divisiOptions={divisiOptions}
                 tipePembayaranOptions={tipePembayaranOptions}
                 divisiLoading={divisiLoading}

@@ -1,7 +1,7 @@
 import React from 'react';
-import { Edit, Trash2, Eye, FileText, MapPin, User, Truck, CheckCircle, FileStack } from 'lucide-react';
+import { Edit, Trash2, Eye, FileText, MapPin, User, Truck, CheckCircle, FileStack, Download } from 'lucide-react';
 
-const TandaTerimaCard = ({ data, index, onEdit, onDelete, onDetail }) => {
+const TandaTerimaCard = ({ data, index, onEdit, onDelete, onDetail, onReport }) => {
     const getKondisiColor = (kondisi) => {
         switch (kondisi) {
             case 'Baik':
@@ -40,6 +40,13 @@ const TandaTerimaCard = ({ data, index, onEdit, onDelete, onDetail }) => {
                         title="Edit"
                     >
                         <Edit className="w-4 h-4" />
+                    </button>
+                    <button
+                        onClick={() => onReport(data)}
+                        className="p-2 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 transition-colors duration-200"
+                        title="Download Laporan"
+                    >
+                        <Download className="w-4 h-4" />
                     </button>
                     <button
                         onClick={() => onDelete(data)}
