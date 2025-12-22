@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { MoreVertical } from 'lucide-react';
 import DetailActionMenu from './DetailActionMenu';
 
-const DetailActionButton = ({ row, openMenuId, setOpenMenuId, onEdit, onDelete, onDetail, isActive }) => {
+const DetailActionButton = ({ row, openMenuId, setOpenMenuId, onEdit, onDelete, onDetail, onViewProof, isActive }) => {
     const buttonRef = useRef(null);
     const [isAnimating, setIsAnimating] = useState(false);
     
@@ -55,6 +55,7 @@ const DetailActionButton = ({ row, openMenuId, setOpenMenuId, onEdit, onDelete, 
                     onEdit={onEdit}
                     onDelete={onDelete}
                     onDetail={onDetail}
+                    onViewProof={onViewProof}
                     onClose={() => setOpenMenuId(null)}
                     buttonRef={buttonRef}
                 />

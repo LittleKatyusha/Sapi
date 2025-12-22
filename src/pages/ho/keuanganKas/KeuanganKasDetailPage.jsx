@@ -186,6 +186,20 @@ const KeuanganKasDetailPage = () => {
         setOpenMenuId(null);
     }, []);
 
+    const handleViewProofAction = useCallback((row) => {
+        if (row.bukti_pembayaran_url) {
+            // Open the proof image in a new tab
+            window.open(row.bukti_pembayaran_url, '_blank');
+            setOpenMenuId(null);
+        } else {
+            setNotification({
+                type: 'error',
+                message: 'Bukti pembayaran tidak tersedia'
+            });
+            setOpenMenuId(null);
+        }
+    }, []);
+
     const handleDeleteDetailConfirm = async () => {
         if (!selectedDetail) return;
         
@@ -233,7 +247,8 @@ const KeuanganKasDetailPage = () => {
         setOpenMenuId,
         handleEditAction,
         handleDeleteAction,
-        handleDetailAction
+        handleDetailAction,
+        handleViewProofAction
     );
 
     // Loading state

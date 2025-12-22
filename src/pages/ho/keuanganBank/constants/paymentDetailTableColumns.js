@@ -15,7 +15,8 @@ export const createDetailColumns = (
   setOpenMenuId,
   handleEditAction,
   handleDeleteAction,
-  handleDetailAction
+  handleDetailAction,
+  handleViewProofAction
 ) => [
   {
     name: 'No',
@@ -44,6 +45,7 @@ export const createDetailColumns = (
           onEdit={handleEditAction}
           onDelete={handleDeleteAction}
           onDetail={handleDetailAction}
+          onViewProof={handleViewProofAction}
           isActive={openMenuId === row.id}
         />
       </div>

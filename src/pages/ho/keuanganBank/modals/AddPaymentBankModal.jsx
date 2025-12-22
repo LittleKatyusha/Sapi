@@ -146,7 +146,7 @@ const AddPaymentKasModal = ({ isOpen, onClose, onSuccess, pembayaranId, pembayar
             submitData.append('note', formData.note ? String(formData.note).trim() : '');
             
             if (formData.proof_of_payment) {
-                submitData.append('proof_of_payment', formData.proof_of_payment);
+                submitData.append('file_upload', formData.proof_of_payment);
             }
 
             console.log('💾 Payment Bank payload FormData created');
