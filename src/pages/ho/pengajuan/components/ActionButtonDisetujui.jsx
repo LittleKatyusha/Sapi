@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { MoreVertical } from 'lucide-react';
 import ActionMenuDisetujui from './ActionMenuDisetujui';
 
-const ActionButtonDisetujui = ({ row, openMenuId, setOpenMenuId, onDelete, onDetail, isActive }) => {
+const ActionButtonDisetujui = ({ row, openMenuId, setOpenMenuId, onDelete, onDetail, onPrint, isActive }) => {
     const buttonRef = useRef(null);
     const [isAnimating, setIsAnimating] = useState(false);
 
@@ -51,6 +51,7 @@ const ActionButtonDisetujui = ({ row, openMenuId, setOpenMenuId, onDelete, onDet
                     row={row}
                     onDelete={onDelete}
                     onDetail={onDetail}
+                    onPrint={onPrint}
                     onClose={() => setOpenMenuId(null)}
                     buttonRef={buttonRef}
                 />

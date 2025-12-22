@@ -5,6 +5,7 @@ import { PlusCircle, Wallet } from 'lucide-react';
 import useKeuanganBank from './hooks/useKeuanganBank';
 import usePengajuanBiayaBank from './hooks/usePengajuanBiayaBank';
 import pengajuanBiayaService from '../../../services/pengajuanBiayaService';
+import pengeluaranService from '../../../services/pengeluaranService';
 
 // Import table components
 import PengajuanTable from './components/tables/PengajuanTable';
@@ -32,6 +33,85 @@ const KeuanganBankPage = () => {
     const [isFormPengajuanModalOpen, setIsFormPengajuanModalOpen] = useState(false);
     const [selectedItem, setSelectedItem] = useState(null);
     const [notification, setNotification] = useState(null);
+
+    // Helper formatter
+    const formatCurrency = (value) => {
+        return new Intl.NumberFormat('id-ID', {
+            style: 'currency',
+            currency: 'IDR',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }).format(value);
+    };
+
+    // Placeholder data for info cards
+    const summaryCards = [
+        {
+            id: 1,
+            preText: "",
+            count: 12,
+            text: "Tagihan yang harus dibayar",
+            total: 15000000,
+            bgColor: "bg-red-50",
+            borderColor: "border-red-200",
+            textColor: "text-red-800",
+            subTextColor: "text-red-600",
+            labelColor: "text-red-500",
+            valueColor: "text-red-700"
+        },
+        {
+            id: 2,
+            preText: "Kas keluar hari ini",
+            count: 5,
+            text: "tagihan",
+            total: 2500000,
+            bgColor: "bg-yellow-50",
+            borderColor: "border-yellow-200",
+            textColor: "text-yellow-800",
+            subTextColor: "text-yellow-700",
+            labelColor: "text-yellow-600",
+            valueColor: "text-yellow-800"
+        },
+        {
+            id: 3,
+            preText: "Kas keluar Minggu Ini",
+            count: 15,
+            text: "tagihan",
+            total: 12500000,
+            bgColor: "bg-orange-50",
+            borderColor: "border-orange-200",
+            textColor: "text-orange-800",
+            subTextColor: "text-orange-700",
+            labelColor: "text-orange-600",
+            valueColor: "text-orange-800"
+        },
+        {
+            id: 4,
+            preText: "Kas keluar bulan ini",
+            count: 45,
+            text: "tagihan",
+            total: 125000000,
+            bgColor: "bg-blue-50",
+            borderColor: "border-blue-200",
+            textColor: "text-blue-800",
+            subTextColor: "text-blue-600",
+            labelColor: "text-blue-500",
+            valueColor: "text-blue-700"
+        },
+        {
+            id: 5,
+            preText: "Kas keluar tahun ini",
+            count: 320,
+            text: "tagihan",
+            total: 1500000000,
+            bgColor: "bg-green-50",
+            borderColor: "border-green-200",
+            textColor: "text-green-800",
+            subTextColor: "text-green-700",
+            labelColor: "text-green-600",
+            valueColor: "text-green-800"
+        }
+    ];
 
     const {
         keuanganBank: filteredData,
@@ -102,13 +182,50 @@ const KeuanganBankPage = () => {
         setOpenMenuId(null);
     };
 
-    const handleDownload = (item) => {
-        // Implement download functionality here
+    const handleDownload = async (item) => {
         setNotification({
-            type: 'success',
-            message: `Mengunduh berkas untuk ${item.nomor_pengajuan || 'pengajuan'}`
+            type: 'info',
+            message: 'Sedang mengunduh berkas...'
         });
         setOpenMenuId(null);
+
+        try {
+            // Get petugas from localStorage
+            const userStr = localStorage.getItem('user');
+            const user = userStr ? JSON.parse(userStr) : {};
+            const petugas = user.name || 'Admin';
+            
+            let response;
+            // Determine which report to download based on purchase_type
+            // 7 = Pengajuan (ho-spend-submit)
+            // Others = Pembelian (ho-spend-buy)
+            if (item.purchase_type === 7) {
+                response = await pengeluaranService.downloadReportPengajuan(item.id_pembayaran_pembelian, petugas);
+            } else {
+                response = await pengeluaranService.downloadReportPembelian(item.id_pembayaran_pembelian, petugas);
+            }
+            
+            // Create download link
+            const url = window.URL.createObjectURL(new Blob([response]));
+            const link = document.createElement('a');
+            link.href = url;
+            const filename = `Report_${item.nota || 'Pengeluaran'}.pdf`;
+            link.setAttribute('download', filename);
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode.removeChild(link);
+            
+            setNotification({
+                type: 'success',
+                message: `Berhasil mengunduh berkas ${filename}`
+            });
+        } catch (error) {
+            console.error('Download error:', error);
+            setNotification({
+                type: 'error',
+                message: 'Gagal mengunduh berkas'
+            });
+        }
     };
 
     const handleBayar = (item) => {
@@ -380,6 +497,42 @@ const KeuanganBankPage = () => {
                         </div>
                     </div>
 
+                    {/* Info Cards Section */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+                        {summaryCards.map((card) => (
+                            <div
+                                key={card.id}
+                                className={`bg-white rounded-xl shadow-md border-l-4 ${card.borderColor} p-4 hover:shadow-lg transition-shadow duration-300`}
+                            >
+                                <div className="flex flex-col h-full justify-between">
+                                    <div>
+                                        {card.preText && (
+                                            <div className={`text-xs font-bold uppercase tracking-wider mb-1 ${card.subTextColor}`}>
+                                                {card.preText}
+                                            </div>
+                                        )}
+                                        <div className="flex items-baseline gap-2">
+                                            <span className={`text-3xl font-bold ${card.textColor}`}>
+                                                {card.count}
+                                            </span>
+                                            <span className={`text-sm font-medium ${card.subTextColor}`}>
+                                                {card.text}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="mt-3 pt-3 border-t border-gray-100">
+                                        <div className={`text-xs font-semibold ${card.labelColor} mb-0.5`}>
+                                            Total Nilai
+                                        </div>
+                                        <div className={`text-lg font-bold ${card.valueColor}`}>
+                                            {formatCurrency(card.total)}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
                     {/* Tabs Section */}
                     <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
                         {/* Tab Headers */}
@@ -530,8 +683,16 @@ const KeuanganBankPage = () => {
                 </div>
 
                 {notification && (
-                    <div className="fixed top-4 right-4 z-50 max-w-sm bg-white shadow-lg rounded-lg p-4 border-l-4 border-green-400">
-                        <p className="font-semibold">{notification.type === 'success' ? 'Berhasil!' : 'Error!'}</p>
+                    <div className={`fixed top-4 right-4 z-50 max-w-sm bg-white shadow-lg rounded-lg p-4 border-l-4 ${
+                        notification.type === 'success' ? 'border-green-400' :
+                        notification.type === 'info' ? 'border-blue-400' :
+                        'border-red-400'
+                    }`}>
+                        <p className="font-semibold">{
+                            notification.type === 'success' ? 'Berhasil!' :
+                            notification.type === 'info' ? 'Info' :
+                            'Error!'
+                        }</p>
                         <p className="text-sm text-gray-600">{notification.message}</p>
                     </div>
                 )}

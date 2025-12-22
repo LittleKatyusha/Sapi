@@ -253,7 +253,7 @@ class HttpClient {
       }
       
       // Remove params from options before passing to fetch
-      const { params, cache, ...fetchOptions } = options;
+      const { params, cache, responseType, ...fetchOptions } = options;
       
       // Create the request promise
       const requestPromise = (async () => {
@@ -266,6 +266,14 @@ class HttpClient {
           });
           
           await handleResponseError(response);
+          
+          if (responseType === 'blob') {
+            const data = await response.blob();
+            // Clear failed request record on success
+            clearFailedRequest(url);
+            return data;
+          }
+
           const data = await response.json();
           
           // Clear failed request record on success

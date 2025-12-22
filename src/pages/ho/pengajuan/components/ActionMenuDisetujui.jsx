@@ -1,8 +1,8 @@
 import React, { useRef, useEffect, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Eye, Trash2 } from 'lucide-react';
+import { Eye, Trash2, Printer } from 'lucide-react';
 
-const ActionMenuDisetujui = ({ row, onDelete, onDetail, onClose, buttonRef }) => {
+const ActionMenuDisetujui = ({ row, onDelete, onDetail, onPrint, onClose, buttonRef }) => {
     const menuRef = useRef(null);
     const [menuStyle, setMenuStyle] = useState(null);
 
@@ -45,6 +45,16 @@ const ActionMenuDisetujui = ({ row, onDelete, onDetail, onClose, buttonRef }) =>
             bg: 'bg-blue-100',
             hoverBg: 'group-hover:bg-blue-200',
             text: 'text-blue-600',
+        },
+        {
+            label: 'Cetak Surat',
+            icon: Printer,
+            onClick: () => onPrint(row),
+            className: 'text-gray-700',
+            description: 'Cetak surat pengajuan',
+            bg: 'bg-indigo-100',
+            hoverBg: 'group-hover:bg-indigo-200',
+            text: 'text-indigo-600',
         },
         {
             divider: true

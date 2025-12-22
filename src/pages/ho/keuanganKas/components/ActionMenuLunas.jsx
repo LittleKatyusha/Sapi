@@ -35,18 +35,33 @@ const ActionMenuLunas = ({ row, onDownload, onClose, buttonRef }) => {
         };
     }, [onClose, buttonRef]);
 
-    const actions = [
-        {
-            label: 'Unduh Berkas',
+    const actions = [];
+
+    // Use API 1 (Pengajuan) when purchase_type is 7
+    if (row.purchase_type === 7) {
+        actions.push({
+            label: 'Bukti Pengajuan',
             icon: Download,
-            onClick: () => onDownload(row),
+            onClick: () => onDownload(row, 'pengajuan'),
             className: 'text-gray-700',
-            description: 'Download dokumen',
+            description: 'Cetak bukti pengajuan',
             bg: 'bg-blue-100',
             hoverBg: 'group-hover:bg-blue-200',
             text: 'text-blue-600',
-        }
-    ];
+        });
+    } else {
+        // Use API 2 (Pembelian) when purchase_type is NOT 7
+        actions.push({
+            label: 'Bukti Pembelian',
+            icon: Download,
+            onClick: () => onDownload(row, 'pembelian'),
+            className: 'text-gray-700',
+            description: 'Cetak bukti pembelian',
+            bg: 'bg-green-100',
+            hoverBg: 'group-hover:bg-green-200',
+            text: 'text-green-600',
+        });
+    }
 
     // Render menu hanya jika posisi sudah didapat
     if (!menuStyle) return null;
