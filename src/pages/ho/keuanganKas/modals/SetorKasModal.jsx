@@ -15,6 +15,7 @@ const SetorKasModal = ({
         deposit_date: '',
         id_bank: '',
         depositor_name: '',
+        depositor_name_2: '',
         amount: '',
         proof_of_deposit: null
     });
@@ -34,6 +35,7 @@ const SetorKasModal = ({
                     deposit_date: editingItem.deposit_date || '',
                     id_bank: editingItem.id_bank ? String(editingItem.id_bank) : '',
                     depositor_name: editingItem.depositor_name || '',
+                    depositor_name_2: editingItem.depositor_name_2 || '',
                     amount: editingItem.amount ? String(editingItem.amount) : '',
                     proof_of_deposit: null
                 });
@@ -46,6 +48,7 @@ const SetorKasModal = ({
                     deposit_date: today,
                     id_bank: '',
                     depositor_name: '',
+                    depositor_name_2: '',
                     amount: '',
                     proof_of_deposit: null
                 });
@@ -140,6 +143,7 @@ const SetorKasModal = ({
                 deposit_date: formData.deposit_date,
                 id_bank: parseInt(formData.id_bank),
                 depositor_name: formData.depositor_name.trim(),
+                depositor_name_2: formData.depositor_name_2 ? formData.depositor_name_2.trim() : '',
                 amount: parseInt(formData.amount),
                 proof_of_deposit: formData.proof_of_deposit
             };
@@ -257,6 +261,29 @@ const SetorKasModal = ({
                             )}
                             <p className="text-gray-400 text-xs mt-1">
                                 {formData.depositor_name.length}/50 karakter
+                            </p>
+                        </div>
+
+                        {/* Nama Penyetor 2 */}
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                Nama Penyetor 2 <span className="text-gray-400 text-xs">(Opsional)</span>
+                            </label>
+                            <input
+                                type="text"
+                                name="depositor_name_2"
+                                value={formData.depositor_name_2}
+                                onChange={handleChange}
+                                maxLength={50}
+                                className={`w-full px-4 py-3 border ${errors.depositor_name_2 ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors`}
+                                placeholder="Nama penyetor 2 (opsional)"
+                                disabled={isSubmitting}
+                            />
+                            {errors.depositor_name_2 && (
+                                <p className="text-red-500 text-xs mt-1">{errors.depositor_name_2}</p>
+                            )}
+                            <p className="text-gray-400 text-xs mt-1">
+                                {formData.depositor_name_2 ? formData.depositor_name_2.length : 0}/50 karakter
                             </p>
                         </div>
 

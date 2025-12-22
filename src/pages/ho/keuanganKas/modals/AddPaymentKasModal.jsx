@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, DollarSign, Calendar, Save, AlertCircle, FileText } from 'lucide-react';
+import { X, DollarSign, Calendar, Save, AlertCircle, FileText, Upload } from 'lucide-react';
 import HttpClient from '../../../../services/httpClient';
 import { API_ENDPOINTS } from '../../../../config/api';
 
@@ -7,10 +7,12 @@ const AddPaymentKasModal = ({ isOpen, onClose, onSuccess, pembayaranId, pembayar
     const [formData, setFormData] = useState({
         amount: '',
         payment_date: new Date().toISOString().split('T')[0],
-        note: ''
+        note: '',
+        proof_of_payment: null
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [notification, setNotification] = useState(null);
+    const [fileName, setFileName] = useState('');
 
     // Reset form when modal opens
     useEffect(() => {
@@ -18,8 +20,10 @@ const AddPaymentKasModal = ({ isOpen, onClose, onSuccess, pembayaranId, pembayar
             setFormData({
                 amount: '',
                 payment_date: new Date().toISOString().split('T')[0],
-                note: ''
+                note: '',
+                proof_of_payment: null
             });
+            setFileName('');
             setNotification(null);
         }
     }, [isOpen]);
@@ -39,6 +43,37 @@ const AddPaymentKasModal = ({ isOpen, onClose, onSuccess, pembayaranId, pembayar
             ...prev,
             [field]: field === 'note' ? (value || '') : value
         }));
+    };
+
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            // Validate file size (max 2MB)
+            if (file.size > 2 * 1024 * 1024) {
+                setNotification({
+                    type: 'error',
+                    message: 'Ukuran file maksimal 2MB'
+                });
+                return;
+            }
+
+            // Validate file type
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+            if (!allowedTypes.includes(file.type)) {
+                setNotification({
+                    type: 'error',
+                    message: 'Format file harus JPG, PNG, atau PDF'
+                });
+                return;
+            }
+
+            setFormData(prev => ({
+                ...prev,
+                proof_of_payment: file
+            }));
+            setFileName(file.name);
+            setNotification(null);
+        }
     };
 
     const formatNumber = (value) => {
@@ -104,15 +139,17 @@ const AddPaymentKasModal = ({ isOpen, onClose, onSuccess, pembayaranId, pembayar
                 throw new Error('ID Pembayaran tidak valid');
             }
             
-            const submitData = {
-                id_pembayaran: idPembayaran,
-                amount: parseNumber(formData.amount),
-                payment_date: formData.payment_date,
-                note: formData.note ? String(formData.note).trim() : ''
-            };
+            const submitData = new FormData();
+            submitData.append('id_pembayaran', idPembayaran);
+            submitData.append('amount', parseNumber(formData.amount));
+            submitData.append('payment_date', formData.payment_date);
+            submitData.append('note', formData.note ? String(formData.note).trim() : '');
+            
+            if (formData.proof_of_payment) {
+                submitData.append('proof_of_payment', formData.proof_of_payment);
+            }
 
-            console.log('💾 Payment Kas payload structure:', submitData);
-            console.log('💾 Payment Kas payload JSON:', JSON.stringify(submitData));
+            console.log('💾 Payment Kas payload FormData created');
 
             // Use add-payment endpoint
             const result = await HttpClient.post(API_ENDPOINTS.HO.PAYMENT.ADD_PAYMENT, submitData);
@@ -274,6 +311,43 @@ const AddPaymentKasModal = ({ isOpen, onClose, onSuccess, pembayaranId, pembayar
                             <p className="text-xs text-blue-600 mt-1">
                                 Catatan atau keterangan tambahan untuk pembayaran ini
                             </p>
+                        </div>
+
+                        {/* File Upload Field */}
+                        <div className="mb-6">
+                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <Upload className="w-4 h-4" />
+                                Bukti Pembayaran (Opsional)
+                            </label>
+                            <div className="relative">
+                                <input
+                                    type="file"
+                                    id="proof_of_payment"
+                                    accept="image/jpeg,image/jpg,image/png,application/pdf"
+                                    onChange={handleFileChange}
+                                    className="hidden"
+                                    disabled={isSubmitting}
+                                />
+                                <label
+                                    htmlFor="proof_of_payment"
+                                    className={`flex items-center justify-center w-full px-4 py-6 border-2 border-dashed rounded-xl cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-all duration-200 ${
+                                        isSubmitting ? 'opacity-50 cursor-not-allowed' : 'border-gray-300'
+                                    }`}
+                                >
+                                    <div className="text-center">
+                                        <div className="text-gray-600 mb-1">
+                                            {fileName ? (
+                                                <span className="font-medium text-blue-600">{fileName}</span>
+                                            ) : (
+                                                <span>Klik untuk upload file</span>
+                                            )}
+                                        </div>
+                                        <p className="text-xs text-gray-500">
+                                            Format: JPG, PNG, PDF (Maks. 2MB)
+                                        </p>
+                                    </div>
+                                </label>
+                            </div>
                         </div>
 
                         {/* Notification in Modal */}

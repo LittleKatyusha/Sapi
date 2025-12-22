@@ -493,7 +493,6 @@ const PengajuanPage = () => {
                     row={row}
                     openMenuId={openMenuId}
                     setOpenMenuId={setOpenMenuId}
-                    onDelete={handleDelete}
                     onDetail={handleDetail}
                     onPrint={(row) => handlePrint(row, 'disetujui')}
                     isActive={openMenuId === (row.id || row.pid)}

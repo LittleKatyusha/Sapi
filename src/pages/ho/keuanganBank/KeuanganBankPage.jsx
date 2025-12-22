@@ -44,75 +44,6 @@ const KeuanganBankPage = () => {
         }).format(value);
     };
 
-    // Placeholder data for info cards
-    const summaryCards = [
-        {
-            id: 1,
-            preText: "",
-            count: 12,
-            text: "Tagihan yang harus dibayar",
-            total: 15000000,
-            bgColor: "bg-red-50",
-            borderColor: "border-red-200",
-            textColor: "text-red-800",
-            subTextColor: "text-red-600",
-            labelColor: "text-red-500",
-            valueColor: "text-red-700"
-        },
-        {
-            id: 2,
-            preText: "Kas keluar hari ini",
-            count: 5,
-            text: "tagihan",
-            total: 2500000,
-            bgColor: "bg-yellow-50",
-            borderColor: "border-yellow-200",
-            textColor: "text-yellow-800",
-            subTextColor: "text-yellow-700",
-            labelColor: "text-yellow-600",
-            valueColor: "text-yellow-800"
-        },
-        {
-            id: 3,
-            preText: "Kas keluar Minggu Ini",
-            count: 15,
-            text: "tagihan",
-            total: 12500000,
-            bgColor: "bg-orange-50",
-            borderColor: "border-orange-200",
-            textColor: "text-orange-800",
-            subTextColor: "text-orange-700",
-            labelColor: "text-orange-600",
-            valueColor: "text-orange-800"
-        },
-        {
-            id: 4,
-            preText: "Kas keluar bulan ini",
-            count: 45,
-            text: "tagihan",
-            total: 125000000,
-            bgColor: "bg-blue-50",
-            borderColor: "border-blue-200",
-            textColor: "text-blue-800",
-            subTextColor: "text-blue-600",
-            labelColor: "text-blue-500",
-            valueColor: "text-blue-700"
-        },
-        {
-            id: 5,
-            preText: "Kas keluar tahun ini",
-            count: 320,
-            text: "tagihan",
-            total: 1500000000,
-            bgColor: "bg-green-50",
-            borderColor: "border-green-200",
-            textColor: "text-green-800",
-            subTextColor: "text-green-700",
-            labelColor: "text-green-600",
-            valueColor: "text-green-800"
-        }
-    ];
-
     const {
         keuanganBank: filteredData,
         loading,
@@ -130,7 +61,83 @@ const KeuanganBankPage = () => {
         createKeuanganBank,
         updateKeuanganBank,
         deleteKeuanganBank,
+        cardData,
+        fetchCardData
     } = useKeuanganBank(activeTab);
+
+    // Fetch card data on mount
+    useEffect(() => {
+        fetchCardData();
+    }, [fetchCardData]);
+
+    // Data for info cards
+    const summaryCards = [
+        {
+            id: 1,
+            preText: "",
+            count: cardData?.tagihan?.jumlah || 0,
+            text: "Tagihan yang harus dibayar",
+            total: cardData?.tagihan?.nominal || 0,
+            bgColor: "bg-red-50",
+            borderColor: "border-red-200",
+            textColor: "text-red-800",
+            subTextColor: "text-red-600",
+            labelColor: "text-red-500",
+            valueColor: "text-red-700"
+        },
+        {
+            id: 2,
+            preText: "Kas keluar hari ini",
+            count: cardData?.keluarhariini?.jumlah || 0,
+            text: "tagihan",
+            total: cardData?.keluarhariini?.nominal || 0,
+            bgColor: "bg-yellow-50",
+            borderColor: "border-yellow-200",
+            textColor: "text-yellow-800",
+            subTextColor: "text-yellow-700",
+            labelColor: "text-yellow-600",
+            valueColor: "text-yellow-800"
+        },
+        {
+            id: 3,
+            preText: "Kas keluar Minggu Ini",
+            count: cardData?.keluarmingguini?.jumlah || 0,
+            text: "tagihan",
+            total: cardData?.keluarmingguini?.nominal || 0,
+            bgColor: "bg-orange-50",
+            borderColor: "border-orange-200",
+            textColor: "text-orange-800",
+            subTextColor: "text-orange-700",
+            labelColor: "text-orange-600",
+            valueColor: "text-orange-800"
+        },
+        {
+            id: 4,
+            preText: "Kas keluar bulan ini",
+            count: cardData?.keluarbulanini?.jumlah || 0,
+            text: "tagihan",
+            total: cardData?.keluarbulanini?.nominal || 0,
+            bgColor: "bg-blue-50",
+            borderColor: "border-blue-200",
+            textColor: "text-blue-800",
+            subTextColor: "text-blue-600",
+            labelColor: "text-blue-500",
+            valueColor: "text-blue-700"
+        },
+        {
+            id: 5,
+            preText: "Kas keluar tahun ini",
+            count: cardData?.keluartahunini?.jumlah || 0,
+            text: "tagihan",
+            total: cardData?.keluartahunini?.nominal || 0,
+            bgColor: "bg-green-50",
+            borderColor: "border-green-200",
+            textColor: "text-green-800",
+            subTextColor: "text-green-700",
+            labelColor: "text-green-600",
+            valueColor: "text-green-800"
+        }
+    ];
 
     // Hook untuk Pengajuan Biaya Bank
     const {

@@ -47,6 +47,24 @@ export const getPengeluaranSummary = async (filters = {}) => {
 };
 
 /**
+ * Get pengeluaran card statistics
+ * @param {Object} params - Query parameters
+ * @returns {Promise<Object>} Card data
+ */
+export const getPengeluaranCards = async (params = {}) => {
+    try {
+        const response = await HttpClient.get(`${BASE_URL}/card`, {
+            params: params
+        });
+
+        return response;
+    } catch (error) {
+        console.error('Error fetching pengeluaran cards:', error);
+        throw error;
+    }
+};
+
+/**
  * Get single pengeluaran detail
  * @param {string} pid - Encrypted public ID
  * @returns {Promise<Object>} Pengeluaran detail
@@ -323,6 +341,7 @@ export const downloadReportBuktiSetor = async (tglDari, sampaiTgl, petugas) => {
 export default {
     getPengeluaran,
     getPengeluaranSummary,
+    getPengeluaranCards,
     getPengeluaranDetail,
     convertToDataTablesParams,
     getPaymentStatusByTab,
