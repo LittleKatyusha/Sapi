@@ -73,6 +73,15 @@ export const API_ENDPOINTS = {
     BARANG: '/api/master/barang'
   },
 
+  // Reports
+  REPORT: {
+    PENGELUARAN: {
+      SUBMIT: '/api/report/pengeluaran/ho-spend-submit',
+      BUY: '/api/report/pengeluaran/ho-spend-buy',
+      CASH: '/api/report/pengeluaran/ho-spend-cash'
+    }
+  },
+
   // Head Office (HO)
   HO: {
     PEMBELIAN: '/api/ho/pembelian',

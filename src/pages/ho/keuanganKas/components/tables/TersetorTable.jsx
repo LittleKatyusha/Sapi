@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import DataTable from 'react-data-table-component';
-import { Search, Wallet, PlusCircle, X, Loader2, Calendar } from 'lucide-react';
+import { Search, Wallet, PlusCircle, X, Loader2, Calendar, Printer } from 'lucide-react';
 import BankDepositService from '../../../../../services/bankDepositService';
+import pengeluaranService from '../../../../../services/pengeluaranService';
 
 const TersetorTable = ({
     data,
@@ -17,11 +18,13 @@ const TersetorTable = ({
     handleServerPageChange,
     handleServerPerPageChange,
     handleDateFilterChange,
-    handleAdd
+    handleAdd,
+    setNotification
 }) => {
     const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm || '');
     const [startDate, setStartDate] = useState(dateFilter?.startDate || '');
     const [endDate, setEndDate] = useState(dateFilter?.endDate || '');
+    const [isDownloading, setIsDownloading] = useState(false);
 
     // Custom table styles
     const tableStyles = {
@@ -187,6 +190,65 @@ const TersetorTable = ({
         handleDateFilterChange(null, null);
     };
 
+    const handleDownloadReport = async () => {
+        if (!startDate || !endDate) {
+            if (setNotification) {
+                setNotification({
+                    type: 'error',
+                    message: 'Silakan pilih periode tanggal terlebih dahulu'
+                });
+            } else {
+                alert('Silakan pilih periode tanggal terlebih dahulu');
+            }
+            return;
+        }
+
+        try {
+            setIsDownloading(true);
+            if (setNotification) {
+                setNotification({
+                    type: 'info',
+                    message: 'Sedang mengunduh laporan...'
+                });
+            }
+
+            const userStr = localStorage.getItem('user');
+            const user = userStr ? JSON.parse(userStr) : {};
+            const petugas = user.name || 'Admin';
+
+            const blob = await pengeluaranService.downloadReportBuktiSetor(startDate, endDate, petugas);
+            
+            // Create download link
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `Bukti_Setor_Kas_${startDate}_${endDate}.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            
+            if (setNotification) {
+                setNotification({
+                    type: 'success',
+                    message: 'Berhasil mengunduh laporan'
+                });
+            }
+        } catch (error) {
+            console.error('Error downloading report:', error);
+            if (setNotification) {
+                setNotification({
+                    type: 'error',
+                    message: error.message || 'Gagal mengunduh laporan'
+                });
+            } else {
+                alert('Gagal mengunduh laporan');
+            }
+        } finally {
+            setIsDownloading(false);
+        }
+    };
+
     return (
         <>
             {/* Search and Filter Section */}
@@ -247,6 +309,25 @@ const TersetorTable = ({
                                 <X className="w-4 h-4" />
                             </button>
                         )}
+
+                        <button
+                            type="button"
+                            onClick={handleDownloadReport}
+                            disabled={isDownloading || !startDate || !endDate}
+                            className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
+                                isDownloading || !startDate || !endDate
+                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                    : 'bg-green-500 text-white hover:bg-green-600'
+                            }`}
+                            title={!startDate || !endDate ? "Pilih periode tanggal terlebih dahulu" : "Unduh Laporan"}
+                        >
+                            {isDownloading ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                                <Printer className="w-4 h-4" />
+                            )}
+                            <span className="hidden sm:inline">Cetak</span>
+                        </button>
                     </div>
                 </div>
 

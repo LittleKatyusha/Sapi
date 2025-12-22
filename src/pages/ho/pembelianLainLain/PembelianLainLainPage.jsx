@@ -27,6 +27,7 @@ import DeleteConfirmationModal from './modals/DeleteConfirmationModal';
 import AddEditBebanModal from './modals/AddEditBebanModal';
 import AddEditBahanPembantuModal from './modals/AddEditBahanPembantuModal';
 import ReportParameterModal from './modals/ReportParameterModal';
+import ReportBahanPembantuModal from './modals/ReportBahanPembantuModal';
 
 const PembelianLainLainPage = () => {
     const navigate = useNavigate();
@@ -49,6 +50,7 @@ const PembelianLainLainPage = () => {
     const [isDownloadingReport, setIsDownloadingReport] = useState(false);
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
     const [reportModalType, setReportModalType] = useState('beban'); // 'aset' or 'beban'
+    const [isBahanPembantuReportModalOpen, setIsBahanPembantuReportModalOpen] = useState(false);
     
     const {
         pembelian: filteredData,
@@ -645,74 +647,64 @@ const PembelianLainLainPage = () => {
         }
     };
 
-    const handleDownloadDailyReport = async (reportType) => {
-        setIsDownloadingReport(true);
-        try {
-            const today = new Date();
-            const startDate = today.toISOString().split('T')[0];
-            const endDate = startDate;
-            
-            setNotification({
-                type: 'info',
-                message: `Mengunduh laporan harian ${reportType}...`
-            });
-
-            const blob = await LaporanPembelianService.downloadReportOtherHo(
-                startDate,
-                endDate,
-                reportType === 'aset' ? 1 : reportType === 'beban' ? 2 : 3
-            );
-
-            const url = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `Laporan_${reportType}_Harian_${startDate}.pdf`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
-
-            setNotification({
-                type: 'success',
-                message: `Laporan harian ${reportType} berhasil diunduh!`
-            });
-        } catch (error) {
-            console.error('Error downloading daily report:', error);
-            setNotification({
-                type: 'error',
-                message: error.message || `Gagal mengunduh laporan harian ${reportType}`
-            });
-        } finally {
-            setIsDownloadingReport(false);
-        }
+    // Bahan Pembantu Report handlers
+    const handleOpenBahanPembantuReportModal = async () => {
+        // Fetch lazy-loaded options FIRST before opening modal
+        await fetchTipePembayaran();
+        setIsBahanPembantuReportModalOpen(true);
     };
 
-    const handleDownloadMonthlyReport = async (reportType) => {
+    const handleCloseBahanPembantuReportModal = () => {
+        setIsBahanPembantuReportModalOpen(false);
+    };
+
+    const handleDownloadBahanPembantuReport = async (params) => {
         setIsDownloadingReport(true);
         try {
-            const today = new Date();
-            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-            const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            const { reportType, divisi, id_tipe_pembayaran, petugas, tgl_pembelian, bulan, tahun } = params;
             
-            const startDate = firstDay.toISOString().split('T')[0];
-            const endDate = lastDay.toISOString().split('T')[0];
+            let reportDescription = '';
+            
+            if (reportType === 'harian') {
+                reportDescription = `laporan harian Bahan Pembantu (${tgl_pembelian})`;
+            } else {
+                const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+                const selectedMonthsStr = bulan.map(m => monthNames[m - 1]).join(', ');
+                reportDescription = `laporan bulanan Bahan Pembantu (${selectedMonthsStr} ${tahun})`;
+            }
             
             setNotification({
                 type: 'info',
-                message: `Mengunduh laporan bulanan ${reportType}...`
+                message: `Mengunduh ${reportDescription}...`
             });
 
-            const blob = await LaporanPembelianService.downloadReportOtherHo(
-                startDate,
-                endDate,
-                reportType === 'aset' ? 1 : reportType === 'beban' ? 2 : 3
-            );
+            let blob;
+            let filename;
+
+            if (reportType === 'harian') {
+                blob = await LaporanPembelianService.downloadReportBahanPembantuDaily(
+                    tgl_pembelian,
+                    divisi,
+                    id_tipe_pembayaran,
+                    petugas
+                );
+                filename = `Laporan_Bahan_Pembantu_Harian_${tgl_pembelian}_${divisi}.pdf`;
+            } else {
+                blob = await LaporanPembelianService.downloadReportBahanPembantuMonthly(
+                    bulan,
+                    tahun,
+                    divisi,
+                    id_tipe_pembayaran,
+                    petugas
+                );
+                const monthsStr = bulan.join('-');
+                filename = `Laporan_Bahan_Pembantu_Bulanan_${tahun}-${monthsStr}_${divisi}.pdf`;
+            }
 
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            const monthYear = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
-            link.download = `Laporan_${reportType}_Bulanan_${monthYear}.pdf`;
+            link.download = filename;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -720,13 +712,15 @@ const PembelianLainLainPage = () => {
 
             setNotification({
                 type: 'success',
-                message: `Laporan bulanan ${reportType} berhasil diunduh!`
+                message: `${reportDescription} berhasil diunduh!`
             });
+            
+            handleCloseBahanPembantuReportModal();
         } catch (error) {
-            console.error('Error downloading monthly report:', error);
+            console.error('Error downloading report:', error);
             setNotification({
                 type: 'error',
-                message: error.message || `Gagal mengunduh laporan bulanan ${reportType}`
+                message: error.message || 'Gagal mengunduh laporan'
             });
         } finally {
             setIsDownloadingReport(false);
@@ -2207,22 +2201,13 @@ const PembelianLainLainPage = () => {
                         </h2>
                         <div className="flex items-center gap-2">
                             <button
-                                onClick={() => handleDownloadDailyReport('bahan_pembantu')}
+                                onClick={handleOpenBahanPembantuReportModal}
                                 disabled={isDownloadingReport}
                                 className="bg-white text-orange-600 px-3 py-2 rounded-lg hover:bg-orange-50 transition-all duration-300 flex items-center gap-2 font-medium shadow-md hover:shadow-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                                title="Download Laporan Harian"
+                                title="Download Laporan Bahan Pembantu"
                             >
-                                <Calendar className="w-4 h-4" />
-                                <span className="hidden lg:inline">Harian</span>
-                            </button>
-                            <button
-                                onClick={() => handleDownloadMonthlyReport('bahan_pembantu')}
-                                disabled={isDownloadingReport}
-                                className="bg-white text-orange-600 px-3 py-2 rounded-lg hover:bg-orange-50 transition-all duration-300 flex items-center gap-2 font-medium shadow-md hover:shadow-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                                title="Download Laporan Bulanan"
-                            >
-                                <CalendarDays className="w-4 h-4" />
-                                <span className="hidden lg:inline">Bulanan</span>
+                                <Download className="w-4 h-4" />
+                                <span className="hidden lg:inline">Laporan</span>
                             </button>
                             <button
                                 onClick={handleOpenBahanPembantuModal}
@@ -2592,6 +2577,18 @@ const PembelianLainLainPage = () => {
                 tipePembayaranLoading={tipePembayaranLoading}
                 isDownloading={isDownloadingReport}
                 reportTitle={reportModalType === 'aset' ? 'Pembelian Aset' : 'Pembelian Biaya-Biaya'}
+            />
+
+            {/* Report Bahan Pembantu Modal */}
+            <ReportBahanPembantuModal
+                isOpen={isBahanPembantuReportModalOpen}
+                onClose={handleCloseBahanPembantuReportModal}
+                onDownload={handleDownloadBahanPembantuReport}
+                divisiOptions={divisiOptions}
+                tipePembayaranOptions={tipePembayaranOptions}
+                divisiLoading={divisiLoading}
+                tipePembayaranLoading={tipePembayaranLoading}
+                isDownloading={isDownloadingReport}
             />
         </div>
         </>

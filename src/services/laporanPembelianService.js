@@ -198,7 +198,9 @@ class LaporanPembelianService {
       'getReportSupplierTax': 'supplier-tax',
       'getReportNotaFeedmil': 'nota-feedmil',
       'getReportNotaOvk': 'nota-ovk',
-      'getReportOtherHo': 'other-ho'
+      'getReportOtherHo': 'other-ho',
+      'getReportBahanPembantuDaily': 'other-ho-daily-assistance',
+      'getReportBahanPembantuMonthly': 'other-ho-monthly-assistance'
     };
     
     // Use the mapped endpoint or fallback to the provided endpoint
@@ -419,6 +421,42 @@ class LaporanPembelianService {
       start_date: startDate,
       end_date: endDate,
       id_tipe_pembelian: idTipePembelian
+    });
+  }
+
+  /**
+   * Download PDF report for Bahan Pembantu Harian
+   * @param {string} tglPembelian - Tanggal pembelian (YYYY-MM-DD)
+   * @param {string} divisi - Divisi ID
+   * @param {string} idTipePembayaran - Tipe Pembayaran ID
+   * @param {string} petugas - Nama petugas
+   * @returns {Promise} - Blob response
+   */
+  static async downloadReportBahanPembantuDaily(tglPembelian, divisi, idTipePembayaran, petugas) {
+    return await this.downloadPdfReport('other-ho-daily-assistance', {
+      tgl_pembelian: tglPembelian,
+      divisi: divisi,
+      id_tipe_pembayaran: idTipePembayaran,
+      petugas: petugas
+    });
+  }
+
+  /**
+   * Download PDF report for Bahan Pembantu Bulanan
+   * @param {Array<number>} bulan - Array of month numbers
+   * @param {number} tahun - Tahun
+   * @param {string} divisi - Divisi ID
+   * @param {string} idTipePembayaran - Tipe Pembayaran ID
+   * @param {string} petugas - Nama petugas
+   * @returns {Promise} - Blob response
+   */
+  static async downloadReportBahanPembantuMonthly(bulan, tahun, divisi, idTipePembayaran, petugas) {
+    return await this.downloadPdfReport('other-ho-monthly-assistance', {
+      bulan: bulan,
+      tahun: tahun,
+      divisi: divisi,
+      id_tipe_pembayaran: idTipePembayaran,
+      petugas: petugas
     });
   }
 

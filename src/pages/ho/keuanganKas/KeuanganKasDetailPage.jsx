@@ -189,23 +189,32 @@ const KeuanganKasDetailPage = () => {
     const handleDeleteDetailConfirm = async () => {
         if (!selectedDetail) return;
         
+        setLoading(true);
         try {
-            // Implement delete logic here when API is ready
-            setNotification({
-                type: 'success',
-                message: 'Detail pembayaran berhasil dihapus'
+            const response = await HttpClient.post(API_ENDPOINTS.HO.PAYMENT.DELETE, {
+                id: selectedDetail.id
             });
-            
-            setTimeout(() => {
-                window.location.reload();
-            }, 1000);
+
+            if (response && (response.success || response.status === 'ok')) {
+                setNotification({
+                    type: 'success',
+                    message: response.message || 'Pembayaran berhasil dihapus'
+                });
+                
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            } else {
+                throw new Error(response?.message || 'Gagal menghapus pembayaran');
+            }
         } catch (error) {
             console.error('Delete detail error:', error);
             setNotification({
                 type: 'error',
-                message: error.message || 'Terjadi kesalahan saat menghapus detail pembayaran'
+                message: error.message || 'Terjadi kesalahan saat menghapus pembayaran'
             });
         } finally {
+            setLoading(false);
             setIsDeleteDetailModalOpen(false);
             setSelectedDetail(null);
         }

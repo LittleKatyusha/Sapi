@@ -15,6 +15,8 @@ import { enhancedTableStyles } from './constants/tableStyles';
 import DeleteConfirmationModal from './modals/DeleteConfirmationModal';
 import AddEditPengajuanModal from './modals/AddEditPengajuanModal';
 import PengajuanDetailModal from './modals/PengajuanDetailModal';
+import PrintPengajuanModal from './modals/PrintPengajuanModal';
+import PengajuanBiayaService from '../../../services/pengajuanBiayaService';
 
 const PengajuanPage = () => {
     const navigate = useNavigate();
@@ -23,7 +25,10 @@ const PengajuanPage = () => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isAddEditModalOpen, setIsAddEditModalOpen] = useState(false);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+    const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
+    const [isPrinting, setIsPrinting] = useState(false);
     const [selectedPengajuan, setSelectedPengajuan] = useState(null);
+    const [printReportType, setPrintReportType] = useState('menunggu'); // 'menunggu' or 'disetujui'
     const [notification, setNotification] = useState(null);
     const [lastRefreshTime, setLastRefreshTime] = useState(Date.now());
     
@@ -130,6 +135,13 @@ const PengajuanPage = () => {
         setOpenMenuId(null);
     };
 
+    const handlePrint = (pengajuan, type = 'menunggu') => {
+        setSelectedPengajuan(pengajuan);
+        setPrintReportType(type);
+        setIsPrintModalOpen(true);
+        setOpenMenuId(null);
+    };
+
     // Modal handlers
     const handleCloseDeleteModal = () => {
         setIsDeleteModalOpen(false);
@@ -144,6 +156,59 @@ const PengajuanPage = () => {
     const handleCloseDetailModal = () => {
         setIsDetailModalOpen(false);
         setSelectedPengajuan(null);
+    };
+
+    const handleClosePrintModal = () => {
+        if (!isPrinting) {
+            setIsPrintModalOpen(false);
+            setSelectedPengajuan(null);
+        }
+    };
+
+    const handlePrintDownload = async ({ petugas, id_pengajuan }) => {
+        setIsPrinting(true);
+        try {
+            console.log(`🖨️ [PRINT] Downloading report type: ${printReportType} for ID: ${id_pengajuan}`);
+            
+            let blob;
+            if (printReportType === 'disetujui') {
+                blob = await PengajuanBiayaService.downloadReportSudahDisetujui(id_pengajuan, petugas);
+            } else {
+                blob = await PengajuanBiayaService.downloadReportMenungguPersetujuan(id_pengajuan, petugas);
+            }
+            
+            // Create download link
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            
+            // Generate filename
+            const timestamp = new Date().toISOString().split('T')[0];
+            const typeStr = printReportType === 'disetujui' ? 'DISETUJUI' : 'MENUNGGU';
+            const fileName = `SURAT_PENGAJUAN_${typeStr}_${selectedPengajuan?.nomor_pengajuan || 'DOC'}_${timestamp}.pdf`;
+            
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            
+            console.log('✅ [PRINT] Report downloaded successfully');
+            handleClosePrintModal();
+            
+            setNotification({
+                type: 'success',
+                message: 'Surat pengajuan berhasil diunduh'
+            });
+        } catch (error) {
+            console.error('❌ [PRINT] Error downloading report:', error);
+            setNotification({
+                type: 'error',
+                message: error.message || 'Gagal mengunduh surat pengajuan'
+            });
+        } finally {
+            setIsPrinting(false);
+        }
     };
 
     const handleDeletePengajuan = useCallback(async (pengajuan) => {
@@ -279,6 +344,7 @@ const PengajuanPage = () => {
                     onEdit={handleEdit}
                     onDelete={handleDelete}
                     onDetail={handleDetail}
+                    onPrint={(row) => handlePrint(row, 'menunggu')}
                     isActive={openMenuId === (row.id || row.pid)}
                 />
             ),
@@ -427,8 +493,8 @@ const PengajuanPage = () => {
                     row={row}
                     openMenuId={openMenuId}
                     setOpenMenuId={setOpenMenuId}
-                    onDelete={handleDelete}
                     onDetail={handleDetail}
+                    onPrint={(row) => handlePrint(row, 'disetujui')}
                     isActive={openMenuId === (row.id || row.pid)}
                 />
             ),
@@ -1164,6 +1230,15 @@ const PengajuanPage = () => {
                 isOpen={isDetailModalOpen}
                 onClose={handleCloseDetailModal}
                 data={selectedPengajuan}
+            />
+
+            <PrintPengajuanModal
+                isOpen={isPrintModalOpen}
+                onClose={handleClosePrintModal}
+                onPrint={handlePrintDownload}
+                data={selectedPengajuan}
+                isPrinting={isPrinting}
+                reportType={printReportType}
             />
         </div>
         </>

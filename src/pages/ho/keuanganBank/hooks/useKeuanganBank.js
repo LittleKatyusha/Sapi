@@ -14,6 +14,24 @@ const useKeuanganBank = (activeTab = 'belum-dibayar') => {
         totalPages: 1,
         totalItems: 0
     });
+    const [cardData, setCardData] = useState(null);
+
+    // Fetch card data
+    const fetchCardData = useCallback(async () => {
+        try {
+            const response = await pengeluaranService.getPengeluaranCards({
+                tipe_pembayaran: 2
+            });
+            
+            if (response && response.data && Array.isArray(response.data)) {
+                setCardData(response.data[0]);
+            } else if (response && response.data) {
+                setCardData(response.data);
+            }
+        } catch (error) {
+            console.error('❌ [FETCH CARD] Error fetching card data:', error);
+        }
+    }, []);
 
     // Fetch keuangan bank data from API
     const fetchKeuanganBank = useCallback(async (
@@ -199,7 +217,9 @@ const useKeuanganBank = (activeTab = 'belum-dibayar') => {
         createKeuanganBank,
         updateKeuanganBank,
         deleteKeuanganBank,
-        getPengeluaranDetail
+        getPengeluaranDetail,
+        cardData,
+        fetchCardData
     };
 };
 

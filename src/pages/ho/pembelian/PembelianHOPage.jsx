@@ -119,44 +119,58 @@ const Notification = React.memo(({ notification, onClose }) => {
     if (!notification) return null;
 
     return (
-        <div className="fixed top-4 right-4 z-50">
-            <div className={`max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden ${
-                notification.type === 'success' ? 'border-l-4 border-green-400' :
-                notification.type === 'info' ? 'border-l-4 border-blue-400' :
-                'border-l-4 border-red-400'
+        <div className="fixed top-4 right-4 z-50 animate-slide-in-right">
+            <div className={`max-w-md w-full bg-white shadow-2xl rounded-xl pointer-events-auto overflow-hidden transform transition-all duration-300 hover:scale-105 ${
+                notification.type === 'success' ? 'border-l-4 border-green-500' :
+                notification.type === 'info' ? 'border-l-4 border-blue-500' :
+                'border-l-4 border-red-500'
             }`}>
-                <div className="p-4">
+                <div className={`p-4 ${
+                    notification.type === 'success' ? 'bg-gradient-to-r from-green-50 to-white' :
+                    notification.type === 'info' ? 'bg-gradient-to-r from-blue-50 to-white' :
+                    'bg-gradient-to-r from-red-50 to-white'
+                }`}>
                     <div className="flex items-start">
                         <div className="flex-shrink-0">
                             {notification.type === 'success' ? (
-                                <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
-                                    <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center shadow-lg animate-bounce-once">
+                                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
                                     </svg>
                                 </div>
                             ) : notification.type === 'info' ? (
-                                <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
-                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                                <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center shadow-lg">
+                                    <svg className="w-6 h-6 text-white animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
                                 </div>
                             ) : (
-                                <div className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center">
-                                    <svg className="w-4 h-4 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                <div className="w-10 h-10 bg-gradient-to-br from-red-400 to-red-600 rounded-full flex items-center justify-center shadow-lg animate-shake">
+                                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                     </svg>
                                 </div>
                             )}
                         </div>
-                        <div className="ml-3 w-0 flex-1 pt-0.5">
-                            <p className="text-sm font-medium text-gray-900">
-                                {notification.type === 'success' ? 'Berhasil!' :
-                                 notification.type === 'info' ? 'Memproses...' : 'Error!'}
+                        <div className="ml-4 flex-1">
+                            <p className={`text-base font-bold ${
+                                notification.type === 'success' ? 'text-green-800' :
+                                notification.type === 'info' ? 'text-blue-800' :
+                                'text-red-800'
+                            }`}>
+                                {notification.type === 'success' ? '✓ Berhasil!' :
+                                 notification.type === 'info' ? '⏳ Memproses...' : '⚠ Error!'}
                             </p>
-                            <p className="mt-1 text-sm text-gray-500">{notification.message}</p>
+                            <p className="mt-1 text-sm text-gray-700 leading-relaxed">{notification.message}</p>
                         </div>
-                        <div className="ml-4 flex-shrink-0 flex">
+                        <div className="ml-4 flex-shrink-0">
                             <button
                                 onClick={onClose}
-                                className="bg-white rounded-md inline-flex text-gray-400 hover:text-gray-500"
+                                className={`rounded-lg p-1.5 inline-flex items-center justify-center transition-all duration-200 ${
+                                    notification.type === 'success' ? 'text-green-600 hover:bg-green-100' :
+                                    notification.type === 'info' ? 'text-blue-600 hover:bg-blue-100' :
+                                    'text-red-600 hover:bg-red-100'
+                                }`}
                             >
                                 <span className="sr-only">Close</span>
                                 <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -165,6 +179,18 @@ const Notification = React.memo(({ notification, onClose }) => {
                             </button>
                         </div>
                     </div>
+                </div>
+                {/* Progress bar */}
+                <div className={`h-1 ${
+                    notification.type === 'success' ? 'bg-green-200' :
+                    notification.type === 'info' ? 'bg-blue-200' :
+                    'bg-red-200'
+                }`}>
+                    <div className={`h-full animate-progress ${
+                        notification.type === 'success' ? 'bg-green-500' :
+                        notification.type === 'info' ? 'bg-blue-500' :
+                        'bg-red-500'
+                    }`} style={{animationDuration: '5s'}}></div>
                 </div>
             </div>
         </div>
@@ -683,6 +709,64 @@ const PembelianHOPage = () => {
                     hyphens: auto;
                 }
                 
+                /* Enhanced Notification Animations */
+                @keyframes slide-in-right {
+                    from {
+                        transform: translateX(100%);
+                        opacity: 0;
+                    }
+                    to {
+                        transform: translateX(0);
+                        opacity: 1;
+                    }
+                }
+                
+                @keyframes bounce-once {
+                    0%, 100% {
+                        transform: scale(1);
+                    }
+                    50% {
+                        transform: scale(1.2);
+                    }
+                }
+                
+                @keyframes shake {
+                    0%, 100% {
+                        transform: translateX(0);
+                    }
+                    10%, 30%, 50%, 70%, 90% {
+                        transform: translateX(-5px);
+                    }
+                    20%, 40%, 60%, 80% {
+                        transform: translateX(5px);
+                    }
+                }
+                
+                @keyframes progress {
+                    from {
+                        width: 100%;
+                    }
+                    to {
+                        width: 0%;
+                    }
+                }
+                
+                .animate-slide-in-right {
+                    animation: slide-in-right 0.4s ease-out;
+                }
+                
+                .animate-bounce-once {
+                    animation: bounce-once 0.6s ease-in-out;
+                }
+                
+                .animate-shake {
+                    animation: shake 0.5s ease-in-out;
+                }
+                
+                .animate-progress {
+                    animation: progress linear forwards;
+                }
+                
                 .no-wrap {
                     white-space: nowrap;
                     overflow: visible;
@@ -748,6 +832,122 @@ const PembelianHOPage = () => {
                 
                 .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol span {
                     text-align: center !important;
+                }
+
+                /* Enhanced Notification Animations */
+                @keyframes slide-in-right {
+                    from {
+                        transform: translateX(100%);
+                        opacity: 0;
+                    }
+                    to {
+                        transform: translateX(0);
+                        opacity: 1;
+                    }
+                }
+                
+                @keyframes bounce-once {
+                    0%, 100% {
+                        transform: scale(1);
+                    }
+                    50% {
+                        transform: scale(1.2);
+                    }
+                }
+                
+                @keyframes shake {
+                    0%, 100% {
+                        transform: translateX(0);
+                    }
+                    10%, 30%, 50%, 70%, 90% {
+                        transform: translateX(-5px);
+                    }
+                    20%, 40%, 60%, 80% {
+                        transform: translateX(5px);
+                    }
+                }
+                
+                @keyframes progress {
+                    from {
+                        width: 100%;
+                    }
+                    to {
+                        width: 0%;
+                    }
+                }
+                
+                .animate-slide-in-right {
+                    animation: slide-in-right 0.4s ease-out;
+                }
+                
+                .animate-bounce-once {
+                    animation: bounce-once 0.6s ease-in-out;
+                }
+                
+                .animate-shake {
+                    animation: shake 0.5s ease-in-out;
+                }
+                
+                .animate-progress {
+                    animation: progress linear forwards;
+                }
+
+                /* Enhanced Notification Animations */
+                @keyframes slide-in-right {
+                    from {
+                        transform: translateX(100%);
+                        opacity: 0;
+                    }
+                    to {
+                        transform: translateX(0);
+                        opacity: 1;
+                    }
+                }
+                
+                @keyframes bounce-once {
+                    0%, 100% {
+                        transform: scale(1);
+                    }
+                    50% {
+                        transform: scale(1.2);
+                    }
+                }
+                
+                @keyframes shake {
+                    0%, 100% {
+                        transform: translateX(0);
+                    }
+                    10%, 30%, 50%, 70%, 90% {
+                        transform: translateX(-5px);
+                    }
+                    20%, 40%, 60%, 80% {
+                        transform: translateX(5px);
+                    }
+                }
+                
+                @keyframes progress {
+                    from {
+                        width: 100%;
+                    }
+                    to {
+                        width: 0%;
+                    }
+                }
+                
+                .animate-slide-in-right {
+                    animation: slide-in-right 0.4s ease-out;
+                }
+                
+                .animate-bounce-once {
+                    animation: bounce-once 0.6s ease-in-out;
+                }
+                
+                .animate-shake {
+                    animation: shake 0.5s ease-in-out;
+                }
+                
+                .animate-progress {
+                    animation: progress linear forwards;
                 }
             `}</style>
             <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-2 sm:p-4 md:p-6">

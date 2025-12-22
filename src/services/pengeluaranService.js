@@ -5,6 +5,7 @@
  */
 
 import HttpClient from './httpClient';
+import { API_ENDPOINTS } from '../config/api';
 
 const BASE_URL = '/api/ho/pengeluaran';
 
@@ -41,6 +42,24 @@ export const getPengeluaranSummary = async (filters = {}) => {
         return response;
     } catch (error) {
         console.error('Error fetching pengeluaran summary:', error);
+        throw error;
+    }
+};
+
+/**
+ * Get pengeluaran card statistics
+ * @param {Object} params - Query parameters
+ * @returns {Promise<Object>} Card data
+ */
+export const getPengeluaranCards = async (params = {}) => {
+    try {
+        const response = await HttpClient.get(`${BASE_URL}/card`, {
+            params: params
+        });
+
+        return response;
+    } catch (error) {
+        console.error('Error fetching pengeluaran cards:', error);
         throw error;
     }
 };
@@ -254,14 +273,83 @@ export const calculateSisaTagihan = (totalTagihan, totalTerbayar) => {
     return Math.max(0, totalTagihan - totalTerbayar);
 };
 
+/**
+ * Download report pengeluaran pengajuan
+ * @param {number|string} idPembayaranPembelian
+ * @param {string} petugas
+ */
+export const downloadReportPengajuan = async (idPembayaranPembelian, petugas) => {
+    try {
+        const response = await HttpClient.get(API_ENDPOINTS.REPORT.PENGELUARAN.SUBMIT, {
+            params: {
+                id_pembayaran_pembelian: idPembayaranPembelian,
+                petugas: petugas
+            },
+            responseType: 'blob'
+        });
+        return response;
+    } catch (error) {
+        console.error('Error downloading report pengajuan:', error);
+        throw error;
+    }
+};
+
+/**
+ * Download report pengeluaran pembelian
+ * @param {number|string} idPembayaranPembelian
+ * @param {string} petugas
+ */
+export const downloadReportPembelian = async (idPembayaranPembelian, petugas) => {
+    try {
+        const response = await HttpClient.get(API_ENDPOINTS.REPORT.PENGELUARAN.BUY, {
+            params: {
+                id_pembayaran_pembelian: idPembayaranPembelian,
+                petugas: petugas
+            },
+            responseType: 'blob'
+        });
+        return response;
+    } catch (error) {
+        console.error('Error downloading report pembelian:', error);
+        throw error;
+    }
+};
+
+/**
+ * Download report bukti setor kas ke bank
+ * @param {string} tglDari - Start date (YYYY-MM-DD)
+ * @param {string} sampaiTgl - End date (YYYY-MM-DD)
+ * @param {string} petugas - Petugas name
+ */
+export const downloadReportBuktiSetor = async (tglDari, sampaiTgl, petugas) => {
+    try {
+        const response = await HttpClient.get(API_ENDPOINTS.REPORT.PENGELUARAN.CASH, {
+            params: {
+                start_date: tglDari,
+                end_date: sampaiTgl,
+                petugas: petugas
+            },
+            responseType: 'blob'
+        });
+        return response;
+    } catch (error) {
+        console.error('Error downloading report bukti setor:', error);
+        throw error;
+    }
+};
+
 export default {
     getPengeluaran,
     getPengeluaranSummary,
+    getPengeluaranCards,
     getPengeluaranDetail,
     convertToDataTablesParams,
     getPaymentStatusByTab,
     filterBelumLunas,
     filterBelumDibayar,
     filterLunas,
-    calculateSisaTagihan
+    calculateSisaTagihan,
+    downloadReportPengajuan,
+    downloadReportPembelian,
+    downloadReportBuktiSetor
 };

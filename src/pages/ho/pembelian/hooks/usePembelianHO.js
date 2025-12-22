@@ -479,17 +479,13 @@ const usePembelianHO = () => {
                 '401': 'Sesi Anda telah berakhir. Silakan login kembali.'
             };
             
-            let errorMsg = 'Terjadi kesalahan saat menghapus data';
+            let errorMsg = err.message || 'Terjadi kesalahan saat menghapus data';
             
             for (const [key, message] of Object.entries(errorMessages)) {
-                if (err.message.includes(key)) {
+                if (err.message && err.message.includes(key)) {
                     errorMsg = message;
                     break;
                 }
-            }
-            
-            if (!errorMsg.includes('Terjadi kesalahan') && err.message && err.message.length <= 100) {
-                errorMsg = err.message;
             }
             
             setError(errorMsg);

@@ -207,6 +207,9 @@ class BankDepositService {
     if (data.depositor_name) {
       formData.append('depositor_name', data.depositor_name);
     }
+    if (data.depositor_name_2) {
+      formData.append('depositor_name_2', data.depositor_name_2);
+    }
     if (data.amount !== undefined && data.amount !== null) {
       // Ensure amount is a number without formatting
       const amountValue = typeof data.amount === 'string'
@@ -239,6 +242,7 @@ class BankDepositService {
       deposit_date: item.deposit_date || '',
       id_bank: item.id_bank || null,
       depositor_name: item.depositor_name || '',
+      depositor_name_2: item.depositor_name_2 || '',
       amount: parseFloat(item.amount) || 0,
       
       // Bank relationship
@@ -387,6 +391,11 @@ class BankDepositService {
       errors.depositor_name = 'Nama penyetor wajib diisi';
     } else if (data.depositor_name.length > 50) {
       errors.depositor_name = 'Nama penyetor maksimal 50 karakter';
+    }
+
+    // Validate depositor_name_2 (optional but check length if exists)
+    if (data.depositor_name_2 && data.depositor_name_2.length > 50) {
+      errors.depositor_name_2 = 'Nama penyetor 2 maksimal 50 karakter';
     }
 
     // Validate amount
