@@ -43,6 +43,7 @@ const TandaTerimaPage = () => {
         createTandaTerima,
         updateTandaTerima,
         deleteTandaTerima,
+        downloadReport,
     } = useTandaTerima();
 
     useEffect(() => {
@@ -107,6 +108,59 @@ const TandaTerimaPage = () => {
         setSelectedTandaTerima(tandaTerima);
         setIsDeleteModalOpen(true);
         setOpenMenuId(null);
+    };
+
+    const handleReport = async (tandaTerima) => {
+        setOpenMenuId(null);
+        
+        setNotification({
+            type: 'info',
+            message: 'Mengunduh laporan...'
+        });
+
+        try {
+            const id = tandaTerima.id || tandaTerima.pid;
+            
+            // Get username (petugas) from localStorage
+            let petugas = '';
+            try {
+                const userStr = localStorage.getItem('user');
+                if (userStr) {
+                    const user = JSON.parse(userStr);
+                    // Use 'name' property as requested
+                    petugas = user.name || user.username || 'Admin';
+                } else {
+                    petugas = 'Admin';
+                }
+            } catch (e) {
+                console.error('Error getting username:', e);
+                petugas = 'Admin';
+            }
+            
+            // Call API to download report via hook (uses HttpClient)
+            const blob = await downloadReport(id, petugas);
+
+            // Create blob and download
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `Laporan_Tanda_Terima_${tandaTerima.barang_yang_diterima || id}_${new Date().getTime()}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+
+            setNotification({
+                type: 'success',
+                message: 'Laporan berhasil diunduh'
+            });
+        } catch (error) {
+            console.error('Error downloading report:', error);
+            setNotification({
+                type: 'error',
+                message: error.message || 'Gagal mengunduh laporan'
+            });
+        }
     };
 
     // Modal handlers
@@ -262,6 +316,7 @@ const TandaTerimaPage = () => {
                     onEdit={handleEdit}
                     onDelete={handleDelete}
                     onDetail={handleDetail}
+                    onReport={handleReport}
                     isActive={openMenuId === (row.id || row.pid)}
                 />
             ),
@@ -712,6 +767,7 @@ const TandaTerimaPage = () => {
                                         onEdit={handleEdit}
                                         onDelete={handleDelete}
                                         onDetail={handleDetail}
+                                        onReport={handleReport}
                                     />
                                 ))}
                             </div>

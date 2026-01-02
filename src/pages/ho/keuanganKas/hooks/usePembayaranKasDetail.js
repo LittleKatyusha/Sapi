@@ -53,6 +53,7 @@ export const usePembayaranKasDetail = (id, getPembayaranDetail) => {
       amount: parseFloat(item.amount) || 0,
       payment_date: item.payment_date || '',
       note: item.note || item.description || '',
+      bukti_pembayaran_url: item.bukti_pembayaran_url || null,
       created_at: item.created_at || '',
       updated_at: item.updated_at || ''
     }));

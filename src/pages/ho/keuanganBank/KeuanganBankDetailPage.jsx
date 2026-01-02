@@ -186,6 +186,18 @@ const KeuanganBankDetailPage = () => {
         setOpenMenuId(null);
     }, []);
 
+    const handleViewProofAction = useCallback((row) => {
+        if (row.bukti_pembayaran_url) {
+            window.open(row.bukti_pembayaran_url, '_blank');
+            setOpenMenuId(null);
+        } else {
+            setNotification({
+                type: 'error',
+                message: 'Bukti pembayaran tidak tersedia'
+            });
+        }
+    }, []);
+
     const handleDeleteDetailConfirm = async () => {
         if (!selectedDetail) return;
         
@@ -233,7 +245,8 @@ const KeuanganBankDetailPage = () => {
         setOpenMenuId,
         handleEditAction,
         handleDeleteAction,
-        handleDetailAction
+        handleDetailAction,
+        handleViewProofAction
     );
 
     // Loading state

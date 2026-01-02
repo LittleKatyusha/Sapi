@@ -1,8 +1,8 @@
 import React, { useRef, useEffect, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Eye } from 'lucide-react';
+import { Eye, FileImage } from 'lucide-react';
 
-const DetailActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef }) => {
+const DetailActionMenu = ({ row, onEdit, onDelete, onDetail, onViewProof, onClose, buttonRef }) => {
     const menuRef = useRef(null);
     const [menuStyle, setMenuStyle] = useState(null);
 
@@ -45,6 +45,17 @@ const DetailActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef 
             bg: 'bg-blue-100',
             hoverBg: 'group-hover:bg-blue-200',
             text: 'text-blue-600',
+        },
+        {
+            label: 'Lihat Bukti Transfer',
+            icon: FileImage,
+            onClick: () => onViewProof && onViewProof(row),
+            className: 'text-gray-700',
+            description: 'Lihat bukti pembayaran',
+            bg: 'bg-purple-100',
+            hoverBg: 'group-hover:bg-purple-200',
+            text: 'text-purple-600',
+            disabled: !row.bukti_pembayaran_url || row.bukti_pembayaran_url === '' || row.bukti_pembayaran_url === null,
         },
         {
             label: 'Hapus',

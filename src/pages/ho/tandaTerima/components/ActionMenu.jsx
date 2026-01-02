@@ -1,8 +1,8 @@
 import React, { useRef, useEffect, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Eye, Edit, Trash2 } from 'lucide-react';
+import { Eye, Edit, Trash2, FileText } from 'lucide-react';
 
-const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef }) => {
+const ActionMenu = ({ row, onEdit, onDelete, onDetail, onReport, onClose, buttonRef }) => {
     const menuRef = useRef(null);
     const [menuStyle, setMenuStyle] = useState(null);
 
@@ -55,6 +55,16 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef }) => 
             bg: 'bg-amber-100',
             hoverBg: 'group-hover:bg-amber-200',
             text: 'text-amber-600',
+        },
+        {
+            label: 'Download Laporan',
+            icon: FileText,
+            onClick: () => onReport(row),
+            className: 'text-gray-700',
+            description: 'Unduh laporan PDF',
+            bg: 'bg-green-100',
+            hoverBg: 'group-hover:bg-green-200',
+            text: 'text-green-600',
         },
         {
             divider: true

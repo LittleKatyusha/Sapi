@@ -461,6 +461,42 @@ class LaporanPembelianService {
   }
 
   /**
+   * Download PDF report for Beban Harian (Daily Expenses)
+   * @param {string} inputDate - Tanggal input (YYYY-MM-DD)
+   * @param {string} division - Division ID
+   * @param {string} idTipePembayaran - Tipe Pembayaran ID
+   * @param {string} petugas - Nama petugas
+   * @returns {Promise} - Blob response
+   */
+  static async downloadReportBebanDaily(inputDate, division, idTipePembayaran, petugas) {
+    return await this.downloadPdfReport('other-ho-load-other-daily', {
+      input_date: inputDate,
+      division: division,
+      id_tipe_pembayaran: idTipePembayaran,
+      petugas: petugas
+    });
+  }
+
+  /**
+   * Download PDF report for Beban Bulanan (Monthly Expenses)
+   * @param {number} year - Tahun
+   * @param {number} month - Bulan (1-12)
+   * @param {string} division - Division ID
+   * @param {string} idTipePembayaran - Tipe Pembayaran ID
+   * @param {string} petugas - Nama petugas
+   * @returns {Promise} - Blob response
+   */
+  static async downloadReportBebanMonthly(year, month, division, idTipePembayaran, petugas) {
+    return await this.downloadPdfReport('other-ho-load-other-monthly', {
+      year: year,
+      month: month,
+      division: division,
+      id_tipe_pembayaran: idTipePembayaran,
+      petugas: petugas
+    });
+  }
+
+  /**
    * DEPRECATED: Direct PDF download dengan JWT authentication
    * Use downloadPdfWithHttpClient instead for consistency
    * @param {Object} params - Parameters untuk request

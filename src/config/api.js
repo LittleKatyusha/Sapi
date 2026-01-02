@@ -79,6 +79,9 @@ export const API_ENDPOINTS = {
       SUBMIT: '/api/report/pengeluaran/ho-spend-submit',
       BUY: '/api/report/pengeluaran/ho-spend-buy',
       CASH: '/api/report/pengeluaran/ho-spend-cash'
+    },
+    PEMBELIAN: {
+      OTHER_HO_RECEIPT: '/api/report/pembelian/other-ho-receipt'
     }
   },
 
@@ -138,7 +141,7 @@ export const API_ENDPOINTS = {
       DETAIL_STORE: '/api/ho/payment/detail/store',
       DETAIL_UPDATE: '/api/ho/payment/detail/update',
       DETAIL_DELETE: '/api/ho/payment/detail/hapus',
-      ADD_PAYMENT: '/api/ho/payment/add-payment'
+      ADD_PAYMENT: '/api/ho/payment/detail/store'
     },
     PENGELUARAN: {
       BASE: '/api/ho/pengeluaran',
