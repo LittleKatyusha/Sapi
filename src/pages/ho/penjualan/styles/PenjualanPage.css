@@ -1,0 +1,51 @@
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fadeIn {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Sticky scrollbar wrapper */
+.sticky-scrollbar-wrapper {
+    position: relative;
+    display: flex;
+    flex-direction: column-reverse;
+}
+
+/* Custom scrollbar styling for horizontal scrollbar */
+.table-scroll-container-horizontal {
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+    background: white;
+    padding-bottom: 2px;
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+.table-scroll-container-horizontal::-webkit-scrollbar {
+    height: 12px;
+}
+
+.table-scroll-container-horizontal::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+}
+
+.table-scroll-container-horizontal::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+    transition: background 0.2s ease;
+}
+
+.table-scroll-container-horizontal::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}

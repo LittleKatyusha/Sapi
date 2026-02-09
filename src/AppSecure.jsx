@@ -113,6 +113,10 @@ const KeuanganKasDetailPage = lazy(() => import('./pages/ho/keuanganKas/Keuangan
 const KeuanganBankPage = lazy(() => import('./pages/ho/keuanganBank/KeuanganBankPage'));
 const KeuanganBankDetailPage = lazy(() => import('./pages/ho/keuanganBank/KeuanganBankDetailPage'));
 
+// HO Penjualan Pages - Lazy loaded
+const PenjualanHOPage = lazy(() => import('./pages/ho/penjualan/PenjualanPage'));
+const AddEditPenjualanHOPage = lazy(() => import('./pages/ho/penjualan/AddEditPenjualanPage'));
+
 // Pembayaran Pages - Lazy loaded
 const PembayaranDetailPage = lazy(() => import('./pages/pembayaran/pembayaranDoka/PembayaranDetailPage'));
 
@@ -289,6 +293,11 @@ function AppSecure() {
               {/* HO Keuangan Bank Routes */}
               <Route path="/ho/keuangan-bank/detail/:id" element={<KeuanganBankDetailPage />} />
               <Route path="/ho/keuangan-bank" element={<KeuanganBankPage />} />
+
+              {/* HO Penjualan Routes */}
+              <Route path="/ho/penjualan" element={<PenjualanHOPage />} />
+              <Route path="/ho/penjualan/add" element={<AddEditPenjualanHOPage />} />
+              <Route path="/ho/penjualan/edit/:id" element={<AddEditPenjualanHOPage />} />
 
               {/* Pembayaran Doka Routes */}
               <Route path="/pembayaran/doka/detail/:id" element={<PembayaranDetailPage />} />
