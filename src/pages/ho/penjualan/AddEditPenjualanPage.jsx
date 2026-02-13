@@ -93,9 +93,13 @@ const AddEditPenjualanPage = () => {
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">Plat Nomor <span className="text-red-500">*</span></label>
                                 <input type="text" name="platNomor" value={formData.platNomor} onChange={handleInputChange} placeholder="Masukkan plat nomor kendaraan..." className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all duration-200 text-gray-800 uppercase" />
                             </div>
-                            <div className="md:col-span-2">
+                            <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">Tipe Pembayaran <span className="text-red-500">*</span></label>
                                 <Select value={formData.tipePembayaran} onChange={(v) => handleSelectChange('tipePembayaran', v)} options={tipePembayaranOptions} placeholder="Pilih tipe pembayaran..." isClearable isSearchable isLoading={tipePembayaranLoading} loadingMessage={() => 'Memuat data tipe pembayaran...'} styles={selectStyles} noOptionsMessage={() => 'Tidak ada opsi'} />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">Nama Penerima</label>
+                                <input type="text" name="namaPenerima" value={formData.namaPenerima} onChange={handleInputChange} placeholder="Masukkan nama penerima..." className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all duration-200 text-gray-800" />
                             </div>
                             <div className="md:col-span-2">
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">Keterangan</label>

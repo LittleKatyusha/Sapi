@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShoppingCart, PlusCircle, X } from 'lucide-react';
+import { ShoppingCart, PlusCircle } from 'lucide-react';
 
 import usePenjualan from './hooks/usePenjualan';
 import { formatCurrency } from './utils/formatters';
@@ -8,6 +8,9 @@ import { formatCurrency } from './utils/formatters';
 // Import table components
 import PenjualanBahanBakuTable from './components/tables/PenjualanBahanBakuTable';
 import PenjualanOVKTable from './components/tables/PenjualanOVKTable';
+
+// Import shared components
+import Notification from '../../../components/shared/NotificationComponent';
 
 // Import styles
 import './styles/PenjualanPage.css';
@@ -38,50 +41,30 @@ const PenjualanPage = () => {
         {
             id: 1,
             key: 'hariIni',
-            preText: "Penjualan hari ini",
+            preText: "Penjualan Hari Ini",
             text: "transaksi",
-            bgColor: "bg-blue-50",
-            borderColor: "border-blue-200",
-            textColor: "text-blue-800",
-            subTextColor: "text-blue-600",
-            labelColor: "text-blue-500",
-            valueColor: "text-blue-700"
+            gradient: "bg-gradient-to-br from-blue-400 to-blue-600",
         },
         {
             id: 2,
             key: 'mingguIni',
-            preText: "Penjualan minggu ini",
+            preText: "Penjualan Minggu Ini",
             text: "transaksi",
-            bgColor: "bg-green-50",
-            borderColor: "border-green-200",
-            textColor: "text-green-800",
-            subTextColor: "text-green-700",
-            labelColor: "text-green-600",
-            valueColor: "text-green-800"
+            gradient: "bg-gradient-to-br from-emerald-400 to-teal-500",
         },
         {
             id: 3,
             key: 'bulanIni',
-            preText: "Penjualan bulan ini",
+            preText: "Penjualan Bulan Ini",
             text: "transaksi",
-            bgColor: "bg-purple-50",
-            borderColor: "border-purple-200",
-            textColor: "text-purple-800",
-            subTextColor: "text-purple-700",
-            labelColor: "text-purple-600",
-            valueColor: "text-purple-800"
+            gradient: "bg-gradient-to-br from-amber-400 to-orange-500",
         },
         {
             id: 4,
             key: 'tahunIni',
-            preText: "Penjualan tahun ini",
+            preText: "Penjualan Tahun Ini",
             text: "transaksi",
-            bgColor: "bg-orange-50",
-            borderColor: "border-orange-200",
-            textColor: "text-orange-800",
-            subTextColor: "text-orange-600",
-            labelColor: "text-orange-500",
-            valueColor: "text-orange-700"
+            gradient: "bg-gradient-to-br from-purple-400 to-purple-600",
         }
     ], []);
 
@@ -93,9 +76,9 @@ const PenjualanPage = () => {
         navigate('/ho/penjualan/add');
     };
 
-    const dismissNotification = () => {
+    const dismissNotification = useCallback(() => {
         setNotification(null);
-    };
+    }, []);
 
     // Auto-dismiss notification
     useEffect(() => {
@@ -136,50 +119,36 @@ const PenjualanPage = () => {
                 </div>
 
                 {/* Info Cards Section */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                     {summaryCardsConfig.map((card) => (
                         <div
                             key={card.id}
-                            className={`bg-white rounded-xl shadow-md border-l-4 ${card.borderColor} p-4 hover:shadow-lg transition-shadow duration-300`}
+                            className={`${card.gradient} rounded-2xl shadow-lg p-5 sm:p-6 text-white hover:shadow-xl hover:scale-[1.02] transition-all duration-300`}
                         >
                             {loading ? (
                                 /* Skeleton placeholder while loading */
-                                <div className="flex flex-col h-full justify-between animate-pulse">
-                                    <div>
-                                        <div className="h-3 w-28 bg-gray-200 rounded mb-2" />
-                                        <div className="flex items-baseline gap-2">
-                                            <div className="h-8 w-12 bg-gray-200 rounded" />
-                                            <div className="h-4 w-16 bg-gray-200 rounded" />
-                                        </div>
-                                    </div>
-                                    <div className="mt-3 pt-3 border-t border-gray-100">
-                                        <div className="h-3 w-16 bg-gray-200 rounded mb-1" />
-                                        <div className="h-5 w-32 bg-gray-200 rounded" />
-                                    </div>
+                                <div className="animate-pulse space-y-3">
+                                    <div className="h-4 w-28 bg-white/30 rounded" />
+                                    <div className="h-10 w-16 bg-white/30 rounded" />
+                                    <div className="h-3 w-32 bg-white/20 rounded" />
                                 </div>
                             ) : (
                                 /* Actual card content */
-                                <div className="flex flex-col h-full justify-between">
-                                    <div>
-                                        {card.preText && (
-                                            <div className={`text-xs font-bold uppercase tracking-wider mb-1 ${card.subTextColor}`}>
-                                                {card.preText}
-                                            </div>
-                                        )}
-                                        <div className="flex items-baseline gap-2">
-                                            <span className={`text-3xl font-bold ${card.textColor}`}>
-                                                {cardData?.[card.key]?.count || 0}
-                                            </span>
-                                            <span className={`text-sm font-medium ${card.subTextColor}`}>
-                                                {card.text}
-                                            </span>
-                                        </div>
+                                <div className="flex flex-col gap-1">
+                                    <span className="text-sm font-semibold text-white/90 tracking-wide">
+                                        {card.preText}
+                                    </span>
+                                    <div className="flex items-baseline gap-2 mt-1">
+                                        <span className="text-4xl font-extrabold leading-none">
+                                            {cardData?.[card.key]?.count || 0}
+                                        </span>
+                                        <span className="text-sm font-medium text-white/80">
+                                            {card.text}
+                                        </span>
                                     </div>
-                                    <div className="mt-3 pt-3 border-t border-gray-100">
-                                        <div className={`text-xs font-semibold ${card.labelColor} mb-0.5`}>
-                                            Total Nilai
-                                        </div>
-                                        <div className={`text-lg font-bold ${card.valueColor}`}>
+                                    <div className="mt-2 pt-2 border-t border-white/20">
+                                        <span className="text-xs font-medium text-white/70">Total Nilai</span>
+                                        <div className="text-base font-bold text-white/95">
                                             {formatCurrency(cardData?.[card.key]?.total || 0)}
                                         </div>
                                     </div>
@@ -245,32 +214,10 @@ const PenjualanPage = () => {
                 </div>
             </div>
 
-            {/* Notification */}
-            {notification && (
-                <div className={`fixed top-4 right-4 z-50 max-w-sm bg-white shadow-lg rounded-lg p-4 border-l-4 ${
-                    notification.type === 'success' ? 'border-green-400' :
-                    notification.type === 'info' ? 'border-blue-400' :
-                    'border-red-400'
-                }`}>
-                    <div className="flex items-start justify-between gap-2">
-                        <div>
-                            <p className="font-semibold">{
-                                notification.type === 'success' ? 'Berhasil!' :
-                                notification.type === 'info' ? 'Info' :
-                                'Error!'
-                            }</p>
-                            <p className="text-sm text-gray-600">{notification.message}</p>
-                        </div>
-                        <button
-                            onClick={dismissNotification}
-                            className="flex-shrink-0 p-1 rounded-full hover:bg-gray-100 transition-colors"
-                            aria-label="Dismiss notification"
-                        >
-                            <X size={16} className="text-gray-400 hover:text-gray-600" />
-                        </button>
-                    </div>
-                </div>
-            )}
+            <Notification
+                notification={notification}
+                onClose={dismissNotification}
+            />
         </div>
     );
 };

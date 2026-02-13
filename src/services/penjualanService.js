@@ -68,6 +68,21 @@ class PenjualanService {
       throw error;
     }
   }
+
+  /**
+   * Delete a Penjualan record by pid
+   * @param {string} pid - The public ID (pubid) of the penjualan to delete
+   * @returns {Promise} API response
+   */
+  static async deletePenjualan(pid) {
+    try {
+      const response = await HttpClient.post(`${API_ENDPOINTS.HO.PENJUALAN}/hapus`, { pid });
+      return response;
+    } catch (error) {
+      console.error(`Error deleting Penjualan (pid=${pid}):`, error);
+      throw error;
+    }
+  }
 }
 
 export default PenjualanService;

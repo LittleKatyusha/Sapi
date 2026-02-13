@@ -6,231 +6,12 @@ import { API_ENDPOINTS } from '../../../../../config/api';
 // Constants for better maintainability
 const DEFAULT_PER_PAGE = 10;
 const SEARCH_DEBOUNCE_DELAY = 300;
-const NOTIFICATION_TIMEOUT = 5000;
 
 // Data validation and mapping utilities
 const validateAndMapPenjualanItem = (item, index) => {
     // Use the service's transform method for consistency
     return PenjualanDokaSapiService.transformData(item);
 };
-
-// Mock data for testing - Using current date for better testing
-const currentDate = new Date();
-const year = currentDate.getFullYear();
-const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-const day = String(currentDate.getDate()).padStart(2, '0');
-const today = `${year}-${month}-${day}`;
-
-// Helper to get date days ago
-const getDaysAgo = (days) => {
-    const date = new Date();
-    date.setDate(date.getDate() - days);
-    return date.toISOString().split('T')[0];
-};
-
-const MOCK_DATA = [
-    {
-        pubid: 'PSJ-2025-001',
-        encryptedPid: 'enc_001',
-        pid: 'enc_001',
-        nota: 'INV-2025-001',
-        nota_sistem: 'SYS-2025-001',
-        nama_supplier: 'PT. Sapi Nusantara',
-        nama_office: 'Kantor Pusat Jakarta',
-        tgl_masuk: today, // Today's data
-        nama_supir: 'Budi Santoso',
-        plat_nomor: 'B 1234 ABC',
-        jumlah: 25,
-        status: 'completed',
-        total_belanja: 375000000,
-        biaya_lain: 5000000,
-        biaya_truk: 10000000,
-        biaya_total: 390000000,
-        berat_total: 12500,
-        jenis_penjualan: '1',
-        jenis_penjualan_id: 1,
-        saldo_sebelum: 500000000,
-        saldo_setelah: 110000000,
-        file: null,
-        note: 'Pengiriman tepat waktu',
-        createdAt: `${today}T08:00:00Z`,
-        updatedAt: `${today}T08:00:00Z`,
-        id: 'enc_001'
-    },
-    {
-        pubid: 'PSJ-2025-002',
-        encryptedPid: 'enc_002',
-        pid: 'enc_002',
-        nota: 'INV-2025-002',
-        nota_sistem: 'SYS-2025-002',
-        nama_supplier: 'CV. Ternak Makmur',
-        nama_office: 'Kantor Cabang Surabaya',
-        tgl_masuk: today, // Today's data
-        nama_supir: 'Ahmad Rizki',
-        plat_nomor: 'L 5678 DEF',
-        jumlah: 30,
-        status: 'pending',
-        total_belanja: 450000000,
-        biaya_lain: 6000000,
-        biaya_truk: 12000000,
-        biaya_total: 468000000,
-        berat_total: 15000,
-        jenis_penjualan: '2',
-        jenis_penjualan_id: 2,
-        saldo_sebelum: 110000000,
-        saldo_setelah: -358000000,
-        file: null,
-        note: 'Menunggu konfirmasi pembayaran',
-        createdAt: `${today}T09:30:00Z`,
-        updatedAt: `${today}T09:30:00Z`,
-        id: 'enc_002'
-    },
-    {
-        pubid: 'PSJ-2025-003',
-        encryptedPid: 'enc_003',
-        pid: 'enc_003',
-        nota: 'INV-2025-003',
-        nota_sistem: null,
-        nama_supplier: 'UD. Sapi Jaya',
-        nama_office: 'Kantor Cabang Bandung',
-        tgl_masuk: getDaysAgo(1), // Yesterday
-        nama_supir: 'Dedi Kurniawan',
-        plat_nomor: 'D 9012 GHI',
-        jumlah: 20,
-        status: 'draft',
-        total_belanja: 300000000,
-        biaya_lain: 4000000,
-        biaya_truk: 8000000,
-        biaya_total: 312000000,
-        berat_total: 10000,
-        jenis_penjualan: '1',
-        jenis_penjualan_id: 1,
-        saldo_sebelum: -358000000,
-        saldo_setelah: -670000000,
-        file: null,
-        note: 'Draft pesanan',
-        createdAt: `${getDaysAgo(1)}T10:00:00Z`,
-        updatedAt: `${getDaysAgo(1)}T10:00:00Z`,
-        id: 'enc_003'
-    },
-    {
-        pubid: 'PSJ-2025-004',
-        encryptedPid: 'enc_004',
-        pid: 'enc_004',
-        nota: 'INV-2025-004',
-        nota_sistem: 'SYS-2025-004',
-        nama_supplier: 'PT. Ternak Indonesia',
-        nama_office: 'Kantor Pusat Jakarta',
-        tgl_masuk: getDaysAgo(5), // 5 days ago (this month)
-        nama_supir: 'Eko Prasetyo',
-        plat_nomor: 'B 3456 JKL',
-        jumlah: 35,
-        status: 'completed',
-        total_belanja: 525000000,
-        biaya_lain: 7000000,
-        biaya_truk: 14000000,
-        biaya_total: 546000000,
-        berat_total: 17500,
-        jenis_penjualan: '2',
-        jenis_penjualan_id: 2,
-        saldo_sebelum: -670000000,
-        saldo_setelah: -1216000000,
-        file: null,
-        note: 'Pembayaran lunas',
-        createdAt: `${getDaysAgo(5)}T11:00:00Z`,
-        updatedAt: `${getDaysAgo(5)}T11:00:00Z`,
-        id: 'enc_004'
-    },
-    {
-        pubid: 'PSJ-2025-005',
-        encryptedPid: 'enc_005',
-        pid: 'enc_005',
-        nota: 'INV-2025-005',
-        nota_sistem: 'SYS-2025-005',
-        nama_supplier: 'CV. Sapi Berkah',
-        nama_office: 'Kantor Cabang Medan',
-        tgl_masuk: getDaysAgo(10), // 10 days ago (this month)
-        nama_supir: 'Fahmi Abdullah',
-        plat_nomor: 'BK 7890 MNO',
-        jumlah: 28,
-        status: 'completed',
-        total_belanja: 420000000,
-        biaya_lain: 5500000,
-        biaya_truk: 11000000,
-        biaya_total: 436500000,
-        berat_total: 14000,
-        jenis_penjualan: '1',
-        jenis_penjualan_id: 1,
-        saldo_sebelum: -1216000000,
-        saldo_setelah: -1652500000,
-        file: null,
-        note: 'Pengiriman selesai',
-        createdAt: `${getDaysAgo(10)}T12:00:00Z`,
-        updatedAt: `${getDaysAgo(10)}T12:00:00Z`,
-        id: 'enc_005'
-    },
-    {
-        pubid: 'PSJ-2025-006',
-        encryptedPid: 'enc_006',
-        pid: 'enc_006',
-        nota: 'INV-2025-006',
-        nota_sistem: 'SYS-2025-006',
-        nama_supplier: 'PT. Maju Bersama',
-        nama_office: 'Kantor Cabang Yogyakarta',
-        tgl_masuk: getDaysAgo(35), // Last month
-        nama_supir: 'Gunawan Wibowo',
-        plat_nomor: 'AB 4567 XYZ',
-        jumlah: 40,
-        status: 'completed',
-        total_belanja: 600000000,
-        biaya_lain: 8000000,
-        biaya_truk: 16000000,
-        biaya_total: 624000000,
-        berat_total: 20000,
-        jenis_penjualan: '2',
-        jenis_penjualan_id: 2,
-        saldo_sebelum: -1652500000,
-        saldo_setelah: -2276500000,
-        file: null,
-        note: 'Transaksi bulan lalu',
-        createdAt: `${getDaysAgo(35)}T13:00:00Z`,
-        updatedAt: `${getDaysAgo(35)}T13:00:00Z`,
-        id: 'enc_006'
-    },
-    {
-        pubid: 'PSJ-2025-007',
-        encryptedPid: 'enc_007',
-        pid: 'enc_007',
-        nota: 'INV-2025-007',
-        nota_sistem: 'SYS-2025-007',
-        nama_supplier: 'UD. Sumber Rejeki',
-        nama_office: 'Kantor Cabang Semarang',
-        tgl_masuk: getDaysAgo(100), // 3+ months ago (last year data)
-        nama_supir: 'Hendra Susanto',
-        plat_nomor: 'H 8901 ABC',
-        jumlah: 15,
-        status: 'completed',
-        total_belanja: 225000000,
-        biaya_lain: 3000000,
-        biaya_truk: 6000000,
-        biaya_total: 234000000,
-        berat_total: 7500,
-        jenis_penjualan: '1',
-        jenis_penjualan_id: 1,
-        saldo_sebelum: -2276500000,
-        saldo_setelah: -2510500000,
-        file: null,
-        note: 'Transaksi tahun lalu',
-        createdAt: `${getDaysAgo(100)}T14:00:00Z`,
-        updatedAt: `${getDaysAgo(100)}T14:00:00Z`,
-        id: 'enc_007'
-    }
-];
-
-// Flag to enable/disable mock data
-// ⚠️ IMPORTANT: Set to false in production to use real API
-// Set to true for testing without backend API
-const USE_MOCK_DATA = false; // Now using REAL API data
 
 const usePenjualanSapiHO = () => {
     // State management
@@ -734,7 +515,7 @@ const usePenjualanSapiHO = () => {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [fetchPenjualan]);
 
     // Reject Penjualan
     const rejectPenjualan = useCallback(async (encryptedPid, idPersetujuanHo, catatan) => {
@@ -755,7 +536,7 @@ const usePenjualanSapiHO = () => {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [fetchPenjualan]);
 
     // Memoized computed stats for better performance
     const stats = useMemo(() => {
@@ -845,7 +626,7 @@ const usePenjualanSapiHO = () => {
         searchTimeoutRef.current = setTimeout(() => {
             fetchPenjualan(1, null, newSearchTerm, null, null, true);
         }, SEARCH_DEBOUNCE_DELAY);
-    }, []);
+    }, [fetchPenjualan]);
     
     const clearSearch = useCallback(() => {
         setSearchTerm('');
@@ -856,35 +637,35 @@ const usePenjualanSapiHO = () => {
         }
         
         fetchPenjualan(1, null, '', null, null, false);
-    }, []);
+    }, [fetchPenjualan]);
 
     // Filter and pagination handlers
     const handleFilter = useCallback((newFilter) => {
         setFilterStatus(newFilter);
         setSearchError(null);
         fetchPenjualan(1, null, null, newFilter, null, false);
-    }, []);
+    }, [fetchPenjualan]);
     
     const handleDateRangeFilter = useCallback((newDateRange) => {
         setDateRange(newDateRange);
         setSearchError(null);
         fetchPenjualan(1, null, null, null, newDateRange, false);
-    }, []);
+    }, [fetchPenjualan]);
     
     const clearDateRange = useCallback(() => {
         const emptyDateRange = { startDate: '', endDate: '' };
         setDateRange(emptyDateRange);
         setSearchError(null);
         fetchPenjualan(1, null, null, null, emptyDateRange, false);
-    }, []);
+    }, [fetchPenjualan]);
 
     const handlePageChange = useCallback((newPage) => {
         fetchPenjualan(newPage, null, null, null, null, false);
-    }, []);
+    }, [fetchPenjualan]);
 
     const handlePerPageChange = useCallback((newPerPage) => {
         fetchPenjualan(1, newPerPage, null, null, null, false);
-    }, []);
+    }, [fetchPenjualan]);
 
     // Update refs when state changes to avoid stale closures
     useEffect(() => {

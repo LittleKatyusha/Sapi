@@ -1,8 +1,8 @@
 import React, { useRef, useLayoutEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Download } from 'lucide-react';
+import { Download, Edit, Trash2 } from 'lucide-react';
 
-const ActionMenu = ({ row, onDownload, onClose, buttonRef }) => {
+const ActionMenu = ({ row, onDownload, onEdit, onDelete, onClose, buttonRef }) => {
     const menuRef = useRef(null);
     const [menuStyle, setMenuStyle] = useState(null);
 
@@ -37,14 +37,35 @@ const ActionMenu = ({ row, onDownload, onClose, buttonRef }) => {
 
     const actions = [
         {
+            label: 'Edit Penjualan',
+            icon: Edit,
+            onClick: () => onEdit(row),
+            className: 'text-gray-700',
+            description: 'Edit data penjualan',
+            bg: 'bg-blue-100',
+            hoverBg: 'group-hover:bg-blue-200',
+            text: 'text-blue-600',
+        },
+        {
             label: 'Unduh Berkas',
             icon: Download,
             onClick: () => onDownload(row),
             className: 'text-gray-700',
             description: 'Download dokumen penjualan',
-            bg: 'bg-blue-100',
-            hoverBg: 'group-hover:bg-blue-200',
-            text: 'text-blue-600',
+            bg: 'bg-green-100',
+            hoverBg: 'group-hover:bg-green-200',
+            text: 'text-green-600',
+        },
+        { divider: true },
+        {
+            label: 'Hapus Penjualan',
+            icon: Trash2,
+            onClick: () => onDelete(row),
+            className: 'text-red-600',
+            description: 'Hapus data penjualan',
+            bg: 'bg-red-100',
+            hoverBg: 'group-hover:bg-red-200',
+            text: 'text-red-600',
         }
     ];
 

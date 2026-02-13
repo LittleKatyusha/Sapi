@@ -43,6 +43,7 @@ const ProdukSelectionModal = ({ isOpen, onClose, jenisPenjualan, idJenis, onSele
 
     const filteredProduk = useMemo(() =>
         produkList.filter(item =>
+            (parseFloat(item.jumlah) || 0) > 0 &&
             item.NAME?.toLowerCase().includes(searchTerm.toLowerCase())
         ), [produkList, searchTerm]
     );
@@ -152,6 +153,9 @@ const ProdukSelectionModal = ({ isOpen, onClose, jenisPenjualan, idJenis, onSele
                                             Harga Jual
                                         </th>
                                         <th className="px-6 py-4 text-center text-sm font-bold text-gray-700 border-b-2 border-emerald-200">
+                                            Jumlah
+                                        </th>
+                                        <th className="px-6 py-4 text-center text-sm font-bold text-gray-700 border-b-2 border-emerald-200">
                                             Aksi
                                         </th>
                                     </tr>
@@ -180,6 +184,9 @@ const ProdukSelectionModal = ({ isOpen, onClose, jenisPenjualan, idJenis, onSele
                                             </td>
                                             <td className="px-6 py-4 text-sm text-right font-bold text-emerald-700">
                                                 {formatCurrency(produk.harga_jual)}
+                                            </td>
+                                            <td className="px-6 py-4 text-center text-sm font-semibold text-gray-700">
+                                                {produk.jumlah}
                                             </td>
                                             <td className="px-6 py-4 text-center">
                                                 <button

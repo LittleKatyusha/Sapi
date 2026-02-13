@@ -45,6 +45,8 @@ const useItemFeedmil = () => {
         pid: item.pid || item.pubid, // encrypted PID from backend
         name: item.name || 'Nama tidak tersedia',
         description: item.description || '',
+        id_satuan: item.id_satuan || null,
+        satuan_name: item.satuan_name || item.satuan?.name || null,
         created_at: item.created_at || null,
         updated_at: item.updated_at || null,
       }));

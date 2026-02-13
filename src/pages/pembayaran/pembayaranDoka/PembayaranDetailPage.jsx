@@ -1,8 +1,8 @@
 
 import React, { useState, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  ArrowLeft, Calendar, CreditCard, DollarSign, CheckCircle, 
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import {
+  ArrowLeft, Calendar, CreditCard, DollarSign, CheckCircle,
   XCircle, Settings, Plus 
 } from 'lucide-react';
 import DataTable from 'react-data-table-component';
@@ -12,6 +12,8 @@ import { StyleSheetManager } from 'styled-components';
 import usePembayaran from './hooks/usePembayaran';
 import { usePembayaranDetail } from './hooks/usePembayaranDetail';
 import { usePagination } from './hooks/usePagination';
+// Services
+import pengeluaranService from '../../../services/pengeluaranService';
 
 // Components
 import DeleteConfirmationModal from './modals/DeleteConfirmationModal';
@@ -40,6 +42,7 @@ const shouldForwardProp = (prop) => {
 const PembayaranDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   
   // API hooks
   const {
@@ -50,6 +53,49 @@ const PembayaranDetailPage = () => {
     error
   } = usePembayaran();
 
+  // Check if we are in "Purchase Mode" (coming from Keuangan Kas)
+  const isPurchase = location.state?.isPurchase === true;
+
+  // Create a unified fetcher function
+  const getDetail = useCallback(async (idToFetch) => {
+      if (isPurchase) {
+          console.log('🔄 Doka Fetcher: Fetching as Purchase (Keuangan Context)', idToFetch);
+          try {
+              const response = await pengeluaranService.getPengeluaranDetail(idToFetch);
+              if (response && (response.success || response.data)) {
+                  const purchaseData = Array.isArray(response.data) ? response.data[0] : response.data;
+                  const header = {
+                      ...purchaseData,
+                      id: purchaseData.id || purchaseData.pid,
+                      encryptedPid: purchaseData.pid || idToFetch,
+                      id_pembelian: purchaseData.id || purchaseData.pid,
+                      purchase_type: purchaseData.purchase_type || purchaseData.jenis_biaya,
+                      total_tagihan: purchaseData.total_tagihan || purchaseData.nominal || 0,
+                      total_terbayar: purchaseData.total_terbayar || 0,
+                      payment_status: purchaseData.payment_status || 0,
+                      due_date: purchaseData.due_date || '',
+                      settlement_date: purchaseData.settlement_date || '',
+                      nota: purchaseData.nota || purchaseData.nota_sistem || '',
+                      nota_sistem: purchaseData.nota_sistem || '',
+                  };
+                  return {
+                      success: true,
+                      header: header,
+                      data: [],
+                      message: 'Data pembelian berhasil dimuat'
+                  };
+              } else {
+                  throw new Error(response?.message || 'Gagal memuat data pembelian');
+              }
+          } catch (error) {
+              console.error('UnifiedFetcher Error:', error);
+              throw error;
+          }
+      } else {
+          return getPembayaranDetail(idToFetch);
+      }
+  }, [isPurchase, getPembayaranDetail]);
+
   // Custom hooks for data management
   const {
     pembayaranData,
@@ -57,7 +103,7 @@ const PembayaranDetailPage = () => {
     setDetailData,
     notification,
     setNotification
-  } = usePembayaranDetail(id, getPembayaranDetail);
+  } = usePembayaranDetail(id, getDetail);
 
   const {
     pagination,
@@ -75,7 +121,13 @@ const PembayaranDetailPage = () => {
   const [openMenuId, setOpenMenuId] = useState(null);
 
   // Navigation handlers
-  const handleBack = () => navigate('/pembayaran/doka');
+  const handleBack = () => {
+      if (location.state?.isPurchase) {
+          navigate('/ho/keuangan-kas');
+      } else {
+          navigate(-1);
+      }
+  };
   const handleEdit = () => navigate(`/pembayaran/doka/edit/${id}`);
 
   // Delete handlers

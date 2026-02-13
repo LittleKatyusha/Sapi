@@ -1,11 +1,15 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import DataTable from 'react-data-table-component';
 import styled, { StyleSheetManager } from 'styled-components';
 import isPropValid from '@emotion/is-prop-valid';
 import { Search, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import customTableStyles from '../../constants/tableStyles';
 import { formatCurrency, formatDate } from '../../utils/formatters';
+import { PENJUALAN_ROUTES } from '../../constants/routes';
+import PenjualanService from '../../../../../services/penjualanService';
 import ActionButton from '../ActionButton';
+import DeleteConfirmationModal from '../../modals/DeleteConfirmationModal';
 
 // Styled components
 const TableWrapper = styled.div`
@@ -139,9 +143,15 @@ const PenjualanBahanBakuTable = ({
     handleServerPerPageChange,
     setNotification
 }) => {
+    const navigate = useNavigate();
     const searchInputRef = useRef(null);
     const tableWrapperRef = useRef(null);
     const [openMenuId, setOpenMenuId] = useState(null);
+
+    // Delete modal state
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [selectedItem, setSelectedItem] = useState(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     // Handle download action
     const handleDownload = (row) => {
@@ -152,6 +162,54 @@ const PenjualanBahanBakuTable = ({
             });
         }
     };
+
+    // Handle edit action
+    const handleEdit = useCallback((row) => {
+        const id = row.id || row.pid;
+        navigate(PENJUALAN_ROUTES.EDIT(id));
+    }, [navigate]);
+
+    // Handle delete action - open confirmation modal
+    const handleDelete = useCallback((row) => {
+        setSelectedItem(row);
+        setIsDeleteModalOpen(true);
+    }, []);
+
+    // Confirm delete
+    const handleConfirmDelete = useCallback(async () => {
+        if (!selectedItem) return;
+
+        const pid = selectedItem.pubid || selectedItem.pid;
+        setIsDeleting(true);
+
+        try {
+            await PenjualanService.deletePenjualan(pid);
+
+            if (setNotification) {
+                setNotification({
+                    type: 'success',
+                    message: `Data penjualan "${selectedItem.nomor_faktur || ''}" berhasil dihapus`
+                });
+            }
+
+            setIsDeleteModalOpen(false);
+            setSelectedItem(null);
+
+            // Refresh current page data
+            if (handleServerPageChange) {
+                handleServerPageChange(serverPagination.currentPage || 1);
+            }
+        } catch (error) {
+            if (setNotification) {
+                setNotification({
+                    type: 'error',
+                    message: error.message || 'Gagal menghapus data penjualan'
+                });
+            }
+        } finally {
+            setIsDeleting(false);
+        }
+    }, [selectedItem, setNotification, handleServerPageChange, serverPagination.currentPage]);
 
     // Table columns
     const columns = useMemo(() => [
@@ -172,6 +230,8 @@ const PenjualanBahanBakuTable = ({
                     openMenuId={openMenuId}
                     setOpenMenuId={setOpenMenuId}
                     onDownload={handleDownload}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
                     isActive={openMenuId === (row.id || row.pid)}
                 />
             ),
@@ -228,13 +288,20 @@ const PenjualanBahanBakuTable = ({
             center: true,
         },
         {
+            name: 'Nama Penerima',
+            selector: row => row.nama_penerima || '-',
+            sortable: true,
+            width: '170px',
+            center: true,
+        },
+        {
             name: 'Plat Nomor',
             selector: row => row.plat_nomor || '-',
             sortable: true,
             width: '160px',
             center: true,
         },
-    ], [serverPagination.currentPage, serverPagination.perPage, openMenuId]);
+    ], [serverPagination.currentPage, serverPagination.perPage, openMenuId, handleEdit, handleDelete]);
 
     // Handle search input change
     const handleSearchChange = (e) => {
@@ -408,6 +475,20 @@ const PenjualanBahanBakuTable = ({
                         <CustomPagination />
                     </div>
                 </TableWrapper>
+
+                {/* Delete Confirmation Modal */}
+                <DeleteConfirmationModal
+                    isOpen={isDeleteModalOpen}
+                    onClose={() => {
+                        if (!isDeleting) {
+                            setIsDeleteModalOpen(false);
+                            setSelectedItem(null);
+                        }
+                    }}
+                    onConfirm={handleConfirmDelete}
+                    itemName={selectedItem?.nomor_faktur || ''}
+                    isDeleting={isDeleting}
+                />
             </div>
         </StyleSheetManager>
     );
