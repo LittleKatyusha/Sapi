@@ -24,6 +24,7 @@ const PenjualanPage = () => {
     const {
         penjualan,
         loading,
+        cardLoading,
         error,
         searchTerm,
         isSearching,
@@ -125,7 +126,7 @@ const PenjualanPage = () => {
                             key={card.id}
                             className={`${card.gradient} rounded-2xl shadow-lg p-5 sm:p-6 text-white hover:shadow-xl hover:scale-[1.02] transition-all duration-300`}
                         >
-                            {loading ? (
+                            {cardLoading ? (
                                 /* Skeleton placeholder while loading */
                                 <div className="animate-pulse space-y-3">
                                     <div className="h-4 w-28 bg-white/30 rounded" />
@@ -140,17 +141,13 @@ const PenjualanPage = () => {
                                     </span>
                                     <div className="flex items-baseline gap-2 mt-1">
                                         <span className="text-4xl font-extrabold leading-none">
-                                            {cardData?.[card.key]?.count || 0}
-                                        </span>
-                                        <span className="text-sm font-medium text-white/80">
-                                            {card.text}
+                                            {formatCurrency(cardData?.[card.key]?.total ?? 0)}
                                         </span>
                                     </div>
                                     <div className="mt-2 pt-2 border-t border-white/20">
-                                        <span className="text-xs font-medium text-white/70">Total Nilai</span>
-                                        <div className="text-base font-bold text-white/95">
-                                            {formatCurrency(cardData?.[card.key]?.total || 0)}
-                                        </div>
+                                        <span className="text-xs text-white/80">
+                                            Feedmil: {formatCurrency(cardData?.[card.key]?.feedmil ?? 0)} | OVK: {formatCurrency(cardData?.[card.key]?.ovk ?? 0)}
+                                        </span>
                                     </div>
                                 </div>
                             )}

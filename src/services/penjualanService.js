@@ -70,6 +70,27 @@ class PenjualanService {
   }
 
   /**
+   * Get card data for penjualan dashboard
+   * @returns {Promise} API response with card data
+   */
+  static async getCardData() {
+    try {
+      const response = await HttpClient.get(`${API_ENDPOINTS.HO.PENJUALAN}/getCardData`, {
+        params: { _: Date.now() },
+        cache: false
+      });
+
+      return {
+        success: true,
+        data: response.data || response || []
+      };
+    } catch (error) {
+      console.error('Error fetching Penjualan card data:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Delete a Penjualan record by pid
    * @param {string} pid - The public ID (pubid) of the penjualan to delete
    * @returns {Promise} API response

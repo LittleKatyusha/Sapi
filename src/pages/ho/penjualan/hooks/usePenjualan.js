@@ -10,6 +10,41 @@ const TAB_TO_JENIS = {
     'ovk': 2
 };
 
+/**
+ * Transform raw API card data response into the format expected by PenjualanPage
+ * Maps API keys like penjualanfeedmilhariini -> hariIni.feedmil
+ */
+const transformCardData = (rawData) => {
+    if (!rawData || !Array.isArray(rawData) || rawData.length === 0) {
+        return null;
+    }
+
+    const item = rawData[0];
+
+    return {
+        hariIni: {
+            feedmil: item?.penjualanfeedmilhariini?.jumlah ?? 0,
+            ovk: item?.penjualanovkhariini?.jumlah ?? 0,
+            total: item?.penjualantotalhariini?.jumlah ?? 0,
+        },
+        mingguIni: {
+            feedmil: item?.penjualanfeedmilmingguini?.jumlah ?? 0,
+            ovk: item?.penjualanovkmingguini?.jumlah ?? 0,
+            total: item?.penjualantotalmingguini?.jumlah ?? 0,
+        },
+        bulanIni: {
+            feedmil: item?.penjualanfeedmilbulanini?.jumlah ?? 0,
+            ovk: item?.penjualanovkbulanini?.jumlah ?? 0,
+            total: item?.penjualantotalbulanini?.jumlah ?? 0,
+        },
+        tahunIni: {
+            feedmil: item?.penjualanfeedmiltahunini?.jumlah ?? 0,
+            ovk: item?.penjualanovktahunini?.jumlah ?? 0,
+            total: item?.penjualantotaltahunini?.jumlah ?? 0,
+        },
+    };
+};
+
 const usePenjualan = (activeTab = 'bahan-baku') => {
     const idJenisPenjualan = useMemo(() => TAB_TO_JENIS[activeTab] || 1, [activeTab]);
     const [penjualan, setPenjualan] = useState([]);
@@ -19,6 +54,7 @@ const usePenjualan = (activeTab = 'bahan-baku') => {
     const [isSearching, setIsSearching] = useState(false);
     const [searchError, setSearchError] = useState(null);
     const [cardData, setCardData] = useState(null);
+    const [cardLoading, setCardLoading] = useState(false);
 
     // Pagination state
     const [serverPagination, setServerPagination] = useState({
@@ -93,22 +129,31 @@ const usePenjualan = (activeTab = 'bahan-baku') => {
         }
     }, [idJenisPenjualan]);
 
-    // Fetch summary/card data from API
-    const fetchSummary = useCallback(async () => {
+    // Fetch card data from API (independent from table data)
+    const fetchCardData = useCallback(async () => {
+        setCardLoading(true);
         try {
-            const result = await PenjualanService.getSummary(idJenisPenjualan);
-            setCardData(result.data || null);
+            const result = await PenjualanService.getCardData();
+            const rawData = result.data || [];
+            setCardData(transformCardData(rawData));
         } catch (err) {
-            console.error('Error fetching summary data:', err);
-            // Don't block the main UI if summary fails
+            console.error('Error fetching card data:', err);
+            // Don't block the main UI if card data fails — show 0s
+            setCardData(null);
+        } finally {
+            setCardLoading(false);
         }
-    }, [idJenisPenjualan]);
+    }, []);
 
-    // Initial data fetch when tab changes
+    // Fetch card data once on mount (independent from tab changes)
+    useEffect(() => {
+        fetchCardData();
+    }, [fetchCardData]);
+
+    // Initial table data fetch when tab changes
     useEffect(() => {
         fetchPenjualan(1);
-        fetchSummary();
-    }, [idJenisPenjualan, fetchPenjualan, fetchSummary]);
+    }, [idJenisPenjualan, fetchPenjualan]);
 
     // Update refs when state changes
     useEffect(() => {
@@ -176,6 +221,7 @@ const usePenjualan = (activeTab = 'bahan-baku') => {
 
         // Loading states
         loading,
+        cardLoading,
         error,
 
         // Search
