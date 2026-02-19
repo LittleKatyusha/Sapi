@@ -82,6 +82,11 @@ export const API_ENDPOINTS = {
     },
     PEMBELIAN: {
       OTHER_HO_RECEIPT: '/api/report/pembelian/other-ho-receipt'
+    },
+    PENJUALAN: {
+      HO_DELIVERY: '/api/report/penjualan/ho-delivery',
+      HO_HANDOVER: '/api/report/penjualan/ho-handover',
+      HO_RECEIPT: '/api/report/penjualan/ho-receipt'
     }
   },
 
