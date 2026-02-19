@@ -4,7 +4,7 @@
  */
 
 import HttpClient from './httpClient';
-import { API_ENDPOINTS } from '../config/api';
+import { API_ENDPOINTS, API_BASE_URL } from '../config/api';
 
 class PenjualanService {
   /**
@@ -103,6 +103,93 @@ class PenjualanService {
       console.error(`Error deleting Penjualan (pid=${pid}):`, error);
       throw error;
     }
+  }
+
+  /**
+   * Generic PDF report download for penjualan
+   * @param {string} endpoint - Full API endpoint path
+   * @param {Object} params - Query parameters
+   * @returns {Promise<Blob>} PDF blob
+   */
+  static async downloadPdfReport(endpoint, params) {
+    try {
+      const urlParams = new URLSearchParams();
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== null && value !== undefined) {
+          urlParams.append(key, value);
+        }
+      });
+
+      const queryString = urlParams.toString();
+      const fullUrl = `${API_BASE_URL}${endpoint}${queryString ? '?' + queryString : ''}`;
+
+      let token = localStorage.getItem('token');
+      if (!token) {
+        token = localStorage.getItem('authToken') || localStorage.getItem('secureAuthToken');
+      }
+      if (!token) {
+        throw new Error('Token autentikasi tidak ditemukan. Silakan login kembali.');
+      }
+
+      // Parse token if stored as JSON
+      try { token = JSON.parse(token); } catch (_) { /* use as-is */ }
+
+      const response = await fetch(fullUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/pdf',
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      });
+
+      if (!response.ok) {
+        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        try {
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            const errorData = await response.json();
+            errorMessage = errorData.message || errorData.error || errorMessage;
+          }
+        } catch (_) { /* use default message */ }
+        throw new Error(errorMessage);
+      }
+
+      return await response.blob();
+    } catch (error) {
+      console.error('Error downloading penjualan PDF report:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Download Surat Jalan PDF
+   * @param {string} id - Encrypted PID of the penjualan
+   * @param {string} petugas - Officer name
+   * @returns {Promise<Blob>} PDF blob
+   */
+  static async downloadSuratJalan(id, petugas) {
+    return this.downloadPdfReport(API_ENDPOINTS.REPORT.PENJUALAN.HO_DELIVERY, { id, petugas });
+  }
+
+  /**
+   * Download Surat Serah Terima Barang PDF
+   * @param {string} id - Encrypted PID of the penjualan
+   * @param {string} petugas - Officer name
+   * @returns {Promise<Blob>} PDF blob
+   */
+  static async downloadSerahTerimaBarang(id, petugas) {
+    return this.downloadPdfReport(API_ENDPOINTS.REPORT.PENJUALAN.HO_HANDOVER, { id, petugas });
+  }
+
+  /**
+   * Download Kwitansi PDF
+   * @param {string} id - Encrypted PID of the penjualan
+   * @param {string} petugas - Officer name
+   * @returns {Promise<Blob>} PDF blob
+   */
+  static async downloadKwitansi(id, petugas) {
+    return this.downloadPdfReport(API_ENDPOINTS.REPORT.PENJUALAN.HO_RECEIPT, { id, petugas });
   }
 }
 

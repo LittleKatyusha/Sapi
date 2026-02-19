@@ -10,6 +10,7 @@ import { PENJUALAN_ROUTES } from '../../constants/routes';
 import PenjualanService from '../../../../../services/penjualanService';
 import ActionButton from '../ActionButton';
 import DeleteConfirmationModal from '../../modals/DeleteConfirmationModal';
+import PrintPenjualanModal from '../../modals/PrintPenjualanModal';
 
 // Styled components
 const TableWrapper = styled.div`
@@ -153,15 +154,54 @@ const PenjualanBahanBakuTable = ({
     const [selectedItem, setSelectedItem] = useState(null);
     const [isDeleting, setIsDeleting] = useState(false);
 
-    // Handle download action
-    const handleDownload = (row) => {
-        if (setNotification) {
-            setNotification({
-                type: 'info',
-                message: 'Fitur unduh berkas akan segera tersedia'
-            });
+    // Print/download modal state
+    const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
+    const [printRow, setPrintRow] = useState(null);
+    const [isDownloading, setIsDownloading] = useState(false);
+
+    // Handle download action - open print modal
+    const handleDownload = useCallback((row) => {
+        setPrintRow(row);
+        setIsPrintModalOpen(true);
+    }, []);
+
+    // Handle print/download submit from modal
+    const handlePrintDownload = useCallback(async ({ reportType, petugas, id }) => {
+        setIsDownloading(true);
+        try {
+            let blob;
+            if (reportType === 'surat-jalan') {
+                blob = await PenjualanService.downloadSuratJalan(id, petugas);
+            } else if (reportType === 'serah-terima') {
+                blob = await PenjualanService.downloadSerahTerimaBarang(id, petugas);
+            } else {
+                blob = await PenjualanService.downloadKwitansi(id, petugas);
+            }
+
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            const faktur = printRow?.nomor_faktur || 'penjualan';
+            link.download = `${reportType}_${faktur}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+
+            setIsPrintModalOpen(false);
+            setPrintRow(null);
+
+            if (setNotification) {
+                setNotification({ type: 'success', message: 'Dokumen berhasil diunduh' });
+            }
+        } catch (error) {
+            if (setNotification) {
+                setNotification({ type: 'error', message: error.message || 'Gagal mengunduh dokumen' });
+            }
+        } finally {
+            setIsDownloading(false);
         }
-    };
+    }, [printRow, setNotification]);
 
     // Handle edit action
     const handleEdit = useCallback((row) => {
@@ -488,6 +528,20 @@ const PenjualanBahanBakuTable = ({
                     onConfirm={handleConfirmDelete}
                     itemName={selectedItem?.nomor_faktur || ''}
                     isDeleting={isDeleting}
+                />
+
+                {/* Print/Download Modal */}
+                <PrintPenjualanModal
+                    isOpen={isPrintModalOpen}
+                    onClose={() => {
+                        if (!isDownloading) {
+                            setIsPrintModalOpen(false);
+                            setPrintRow(null);
+                        }
+                    }}
+                    onDownload={handlePrintDownload}
+                    data={printRow}
+                    isDownloading={isDownloading}
                 />
             </div>
         </StyleSheetManager>
