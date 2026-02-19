@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Edit, Calendar, FileText, Tag } from 'lucide-react';
+import { X, Edit, Calendar, FileText, Tag, Ruler } from 'lucide-react';
 
 const ItemFeedmilDetailModal = ({ 
   item, 
@@ -62,6 +62,21 @@ const ItemFeedmilDetailModal = ({
               </div>
             </div>
           </div>
+
+          {/* Satuan */}
+          {item.satuan_name && (
+            <div className="bg-white border border-gray-200 rounded-xl p-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <Ruler className="h-5 w-5 text-blue-600" />
+                </div>
+                <h4 className="font-semibold text-gray-900">Satuan</h4>
+              </div>
+              <p className="text-gray-700 ml-10 leading-relaxed">
+                {item.satuan_name}
+              </p>
+            </div>
+          )}
 
           {/* Deskripsi */}
           <div className="bg-white border border-gray-200 rounded-xl p-4">

@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, Save, AlertCircle } from 'lucide-react';
+import { X, Save, AlertCircle, Tag } from 'lucide-react';
+import useSatuanAPI from '../../../ho/pembelianLainLain/hooks/useSatuanAPI';
 
-const AddEditItemFeedmilModal = ({ 
+const AddEditItemFeedmilModal = ({
   item, 
   onClose, 
   onSave, 
@@ -11,10 +12,13 @@ const AddEditItemFeedmilModal = ({
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    id_satuan: '',
   });
   
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const { satuanOptions, loading: satuanLoading } = useSatuanAPI();
 
   // Initialize form data
   useEffect(() => {
@@ -22,11 +26,13 @@ const AddEditItemFeedmilModal = ({
       setFormData({
         name: item.name || '',
         description: item.description || '',
+        id_satuan: item.id_satuan ? String(item.id_satuan) : '',
       });
     } else {
       setFormData({
         name: '',
         description: '',
+        id_satuan: '',
       });
     }
     setErrors({});
@@ -36,6 +42,10 @@ const AddEditItemFeedmilModal = ({
   const validateForm = useCallback(() => {
     const newErrors = {};
     
+    if (!formData.id_satuan) {
+      newErrors.id_satuan = 'Satuan wajib dipilih';
+    }
+
     if (!formData.name.trim()) {
       newErrors.name = 'Nama item feedmil wajib diisi';
     } else if (formData.name.length > 200) {
@@ -67,6 +77,7 @@ const AddEditItemFeedmilModal = ({
       await onSave({
         name: formData.name.trim(),
         description: formData.description.trim(),
+        id_satuan: formData.id_satuan,
       });
     } catch (error) {
       setErrors({ submit: error.message || 'Terjadi kesalahan saat menyimpan data' });
@@ -118,6 +129,39 @@ const AddEditItemFeedmilModal = ({
               </div>
             </div>
           )}
+
+          {/* Satuan */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <span className="inline-flex items-center gap-1">
+                <Tag className="h-4 w-4" />
+                Satuan <span className="text-red-500">*</span>
+              </span>
+            </label>
+            <select
+              value={formData.id_satuan}
+              onChange={(e) => handleInputChange('id_satuan', e.target.value)}
+              className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${
+                errors.id_satuan ? 'border-red-300 bg-red-50' : 'border-gray-300'
+              }`}
+              disabled={isSubmitting || satuanLoading}
+            >
+              <option value="">
+                {satuanLoading ? 'Memuat satuan...' : 'Pilih Satuan'}
+              </option>
+              {satuanOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            {errors.id_satuan && (
+              <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                <AlertCircle className="h-4 w-4" />
+                {errors.id_satuan}
+              </p>
+            )}
+          </div>
 
           {/* Nama Item Feedmil */}
           <div>

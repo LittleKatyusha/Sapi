@@ -1,4 +1,4 @@
-import React, { useEffect, Suspense } from 'react';
+import React, { useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import LayoutSecure from './components/LayoutSecure';
 import ProtectedRouteSecure from './components/ProtectedRouteSecure';
@@ -8,7 +8,129 @@ import { pageTitleMap } from './config/pageTitleMap';
 import SecurityErrorBoundary from './components/SecurityErrorBoundary';
 import LoadingSpinner from './components/LoadingSpinner';
 import useDocumentTitle from './hooks/useDocumentTitle';
-import { renderRoutes } from './routes';
+
+// Lazy load components for better performance
+const DashboardPage = lazy(() => import('./pages/DashboardPage'));
+const SalesPage = lazy(() => import('./pages/operations/SalesPage'));
+const PurchasePage = lazy(() => import('./pages/operations/PurchasePage'));
+const LivestockStockPage = lazy(() => import('./pages/inventory/LivestockStockPage'));
+const MeatStockPage = lazy(() => import('./pages/inventory/MeatStockPage'));
+const EmployeePage = lazy(() => import('./pages/humanResources/EmployeePage'));
+const AttendancePage = lazy(() => import('./pages/humanResources/AttendancePage'));
+const LeaveRequestPage = lazy(() => import('./pages/humanResources/LeaveRequestPage'));
+const DeliveryOrderPage = lazy(() => import('./pages/operations/DeliveryOrderPage'));
+const SettingsPageSecure = lazy(() => import('./pages/SettingsPageSecure'));
+
+// Data Master - Lazy loaded
+const KandangOfficePage = lazy(() => import('./pages/dataMaster/KandangOfficePage'));
+const JenisHewanPage = lazy(() => import('./pages/dataMaster/JenisHewanPage'));
+const KlasifikasiHewanPage = lazy(() => import('./pages/dataMaster/KlasifikasiHewanPage'));
+const KlasifikasiOvkPage = lazy(() => import('./pages/dataMaster/KlasifikasiOvkPage'));
+const KlasifikasiFeedmilPage = lazy(() => import('./pages/dataMaster/KlasifikasiFeedmilPage'));
+const KlasifikasiLainLainPage = lazy(() => import('./pages/dataMaster/KlasifikasiLainLainPage'));
+const ItemKulitPage = lazy(() => import('./pages/dataMaster/ItemKulitPage'));
+const ItemFeedmilPage = lazy(() => import('./pages/dataMaster/ItemFeedmilPage'));
+const ItemOvkPage = lazy(() => import('./pages/dataMaster/ItemOvkPage'));
+const ItemLainLainPage = lazy(() => import('./pages/dataMaster/ItemLainLainPage'));
+const SupplierPage = lazy(() => import('./pages/dataMaster/SupplierPage'));
+const PelangganPage = lazy(() => import('./pages/dataMaster/PelangganPage'));
+const OutletPage = lazy(() => import('./pages/dataMaster/OutletPage'));
+const ProdukGDSPage = lazy(() => import('./pages/dataMaster/ProdukGDSPage'));
+const EartagPage = lazy(() => import('./pages/dataMaster/EartagPage'));
+const PersetujuanHoPage = lazy(() => import('./pages/dataMaster/PersetujuanHoPage'));
+const PersetujuanFeedmilPage = lazy(() => import('./pages/dataMaster/PersetujuanFeedmilPage'));
+const PersetujuanRphPage = lazy(() => import('./pages/dataMaster/PersetujuanRphPage'));
+const SatuanPage = lazy(() => import('./pages/dataMaster/SatuanPage'));
+const BarangPage = lazy(() => import('./pages/dataMaster/BarangPage'));
+
+// Boning Pages - Lazy loaded
+const BoningLayout = lazy(() => import('./pages/boning/BoningLayout'));
+const KeuanganPage = lazy(() => import('./pages/boning/KeuanganPage'));
+const PembelianPage = lazy(() => import('./pages/boning/PembelianPage'));
+const PenjualanPage = lazy(() => import('./pages/boning/PenjualanPage'));
+const StokDagingPage = lazy(() => import('./pages/boning/StokDagingPage'));
+const ReturnPage = lazy(() => import('./pages/boning/ReturnPage'));
+const SuratJalanPage = lazy(() => import('./pages/boning/SuratJalanPage'));
+
+// System Pages
+const PermissionManagementPage = lazy(() => import('./pages/system/PermissionManagementPage'));
+const RolePage = lazy(() => import('./pages/system/RolePage'));
+const MenuManagementPage = lazy(() => import('./pages/system/MenuManagementPage'));
+const UsersPage = lazy(() => import('./pages/system/UsersPage'));
+
+// HO Pages - Lazy loaded
+const PembelianHOPage = lazy(() => import('./pages/ho/pembelian/PembelianHOPage'));
+const PembelianDetailPage = lazy(() => import('./pages/ho/pembelian/PembelianDetailPage'));
+const AddEditPembelianPage = lazy(() => import('./pages/ho/pembelian/AddEditPembelianPage'));
+// const PenjualanHOPage = lazy(() => import('./pages/ho/penjualan/PenjualanHOPage'));
+// const AddEditPenjualanPage = lazy(() => import('./pages/ho/penjualan/AddEditPenjualanPage'));
+// const PenjualanDetailPage = lazy(() => import('./pages/ho/penjualan/PenjualanDetailPage'));
+
+// HO Penjualan Sapi Pages - Lazy loaded
+const PenjualanSapiHOPage = lazy(() => import('./pages/ho/penjualan/penjualanSapi/PenjualanSapiHOPage'));
+// Removed AddEditPenjualanSapiPage and PenjualanSapiDetailPage as they are not needed
+
+// RPH Pembelian Sapi Pages - Lazy loaded
+const PembelianSapi = lazy(() => import('./pages/RPH/Pembelian/Pembelian Sapi/PembelianSapi'));
+const PembelianSapiDetailPage = lazy(() => import('./pages/RPH/Pembelian/Pembelian Sapi/PembelianDetailPage'));
+
+// Reporting Pages - Lazy loaded
+const LaporanNotaSupplierPage = lazy(() => import('./pages/reporting/LaporanNotaSupplierPage'));
+const LaporanSemuaSupplierPage = lazy(() => import('./pages/reporting/LaporanSemuaSupplierPage'));
+const LaporanPajakPage = lazy(() => import('./pages/reporting/LaporanPajakPage'));
+const LaporanPembelianLainLainPage = lazy(() => import('./pages/reporting/LaporanPembelianLainLainPage'));
+
+// New HO Pages - Lazy loaded
+const PembelianFeedmilPage = lazy(() => import('./pages/ho/pembelianFeedmil/PembelianFeedmilPage'));
+const AddEditPembelianFeedmilPage = lazy(() => import('./pages/ho/pembelianFeedmil/AddEditPembelianFeedmilPage'));
+const PembelianFeedmilDetailPage = lazy(() => import('./pages/ho/pembelianFeedmil/PembelianFeedmilDetailPage'));
+const PembelianOVKPage = lazy(() => import('./pages/ho/pembelianOVK/PembelianOVKPage'));
+const AddEditPembelianOVKPage = lazy(() => import('./pages/ho/pembelianOVK/addEditPembelianOVK'));
+const PembelianOVKDetailPage = lazy(() => import('./pages/ho/pembelianOVK/PembelianOVKDetailPage'));
+
+// Pembelian Kulit Pages - Lazy loaded
+const PembelianKulitPage = lazy(() => import('./pages/ho/pembelianKulit/PembelianKulitPage'));
+const AddEditPembelianKulitPage = lazy(() => import('./pages/ho/pembelianKulit/AddEditPembelianKulitPage'));
+const PembelianKulitDetailPage = lazy(() => import('./pages/ho/pembelianKulit/PembelianKulitDetailPage'));
+
+// Pembelian Lain Lain Pages - Lazy loaded
+const PembelianLainLainPage = lazy(() => import('./pages/ho/pembelianLainLain/PembelianLainLainPage'));
+const AddEditPembelianLainLainPage = lazy(() => import('./pages/ho/pembelianLainLain/addEditPembelianLainLain'));
+const PembelianLainLainDetailPage = lazy(() => import('./pages/ho/pembelianLainLain/PembelianLainLainDetailPage'));
+
+// Tanda Terima Pages - Lazy loaded
+const TandaTerimaPage = lazy(() => import('./pages/ho/tandaTerima/TandaTerimaPage'));
+const AddEditTandaTerimaPage = lazy(() => import('./pages/ho/tandaTerima/AddEditTandaTerimaPage'));
+
+// Pengajuan Pages - Lazy loaded
+const PengajuanPage = lazy(() => import('./pages/ho/pengajuan/PengajuanPage'));
+
+// Keuangan Kas Pages - Lazy loaded
+const KeuanganKasPage = lazy(() => import('./pages/ho/keuanganKas/KeuanganKasPage'));
+const KeuanganKasDetailPage = lazy(() => import('./pages/ho/keuanganKas/KeuanganKasDetailPage'));
+
+// Keuangan Bank Pages - Lazy loaded
+const KeuanganBankPage = lazy(() => import('./pages/ho/keuanganBank/KeuanganBankPage'));
+const KeuanganBankDetailPage = lazy(() => import('./pages/ho/keuanganBank/KeuanganBankDetailPage'));
+
+// HO Penjualan Pages - Lazy loaded
+const PenjualanHOPage = lazy(() => import('./pages/ho/penjualan/PenjualanPage'));
+const AddEditPenjualanHOPage = lazy(() => import('./pages/ho/penjualan/AddEditPenjualanPage'));
+
+// Pembayaran Pages - Lazy loaded
+const PembayaranDetailPage = lazy(() => import('./pages/pembayaran/pembayaranDoka/PembayaranDetailPage'));
+
+// Pembayaran OVK Pages - Lazy loaded
+const PembayaranOvkDetailPage = lazy(() => import('./pages/pembayaran/pembayaranOvk/PembayaranDetailPage'));
+
+// Pembayaran Feedmill Pages - Lazy loaded
+const PembayaranFeedmillDetailPage = lazy(() => import('./pages/pembayaran/pembayaranFeedmil/PembayaranDetailPage'));
+
+// Pembayaran Kulit Pages - Lazy loaded
+const PembayaranKulitDetailPage = lazy(() => import('./pages/pembayaran/pembayaranKulit/PembayaranDetailPage'));
+
+// Pembayaran Lain-Lain Pages - Lazy loaded
+const PembayaranLainLainDetailPage = lazy(() => import('./pages/pembayaran/pembayaranLainLain/PembayaranDetailPage'));
 
 const AppWrapperSecure = () => (
   <Router>
@@ -65,7 +187,152 @@ function AppSecure() {
       <ProtectedRouteSecure>
         <LayoutSecure title={title}>
           <Suspense fallback={<LoadingSpinner />}>
-            {renderRoutes()}
+            <Routes>
+              {/* Dashboard Route */}
+              <Route path="/dashboard" element={<DashboardPage />} />
+              
+              {/* Operations Routes */}
+              <Route path="/sales" element={<SalesPage />} />
+              <Route path="/purchases" element={<PurchasePage />} />
+              <Route path="/delivery-orders" element={<DeliveryOrderPage />} />
+              
+              {/* Inventory Routes */}
+              <Route path="/inventory/livestock" element={<LivestockStockPage />} />
+              <Route path="/inventory/meat" element={<MeatStockPage />} />
+              
+              {/* Reporting Routes */}
+              <Route path="/reports/nota-supplier" element={<LaporanNotaSupplierPage />} />
+              <Route path="/reports/semua-supplier" element={<LaporanSemuaSupplierPage />} />
+              <Route path="/reports/pajak" element={<LaporanPajakPage />} />
+              <Route path="/reports/pembelian-lain-lain" element={<LaporanPembelianLainLainPage />} />
+
+              {/* HR Routes */}
+              <Route path="/hr/employees" element={<EmployeePage />} />
+              <Route path="/hr/attendance" element={<AttendancePage />} />
+              <Route path="/hr/leave-requests" element={<LeaveRequestPage />} />
+
+              {/* Settings Route */}
+              <Route path="/settings" element={<SettingsPageSecure />} />
+
+              {/* Master Data Routes */}
+              <Route path="/master-data/kandang-office" element={<KandangOfficePage />} />
+              <Route path="/master-data/jenis-hewan" element={<JenisHewanPage />} />
+              <Route path="/master-data/klasifikasi-hewan" element={<KlasifikasiHewanPage />} />
+              <Route path="/master-data/klasifikasi-ovk" element={<KlasifikasiOvkPage />} />
+              <Route path="/master-data/klasifikasi-feedmil" element={<KlasifikasiFeedmilPage />} />
+              <Route path="/data-master/klasifikasi-lain-lain" element={<KlasifikasiLainLainPage />} />
+              <Route path="/master-data/item-kulit" element={<ItemKulitPage />} />
+              <Route path="/master-data/item-feedmil" element={<ItemFeedmilPage />} />
+              <Route path="/master-data/item-ovk" element={<ItemOvkPage />} />
+              <Route path="/master-data/item-lain-lain" element={<ItemLainLainPage />} />
+              <Route path="/master-data/supplier" element={<SupplierPage />} />
+              <Route path="/master-data/pelanggan" element={<PelangganPage />} />
+              <Route path="/master-data/outlet" element={<OutletPage />} />
+              <Route path="/master-data/produk-gds" element={<ProdukGDSPage />} />
+              <Route path="/master-data/eartag" element={<EartagPage />} />
+              <Route path="/master-data/persetujuan-ho" element={<PersetujuanHoPage />} />
+              <Route path="/master-data/persetujuan-feedmil" element={<PersetujuanFeedmilPage />} />
+              <Route path="/master-data/persetujuan-rph" element={<PersetujuanRphPage />} />
+              <Route path="/master-data/satuan" element={<SatuanPage />} />
+              <Route path="/master-data/barang" element={<BarangPage />} />
+
+              {/* Boning Routes */}
+              <Route path="/boning/*" element={<BoningLayout />}>
+                <Route path="keuangan" element={<KeuanganPage />} />
+                <Route path="pembelian" element={<PembelianPage />} />
+                <Route path="penjualan" element={<PenjualanPage />} />
+                <Route path="stok-daging" element={<StokDagingPage />} />
+                <Route path="return" element={<ReturnPage />} />
+                <Route path="surat-jalan" element={<SuratJalanPage />} />
+              </Route>
+
+              {/* HO Routes */}
+              <Route path="/ho/pembelian" element={<PembelianHOPage />} />
+              <Route path="/ho/pembelian/add" element={<AddEditPembelianPage />} />
+              <Route path="/ho/pembelian/edit/:id" element={<AddEditPembelianPage />} />
+              <Route path="/ho/pembelian/detail/:id" element={<PembelianDetailPage />} />
+              
+              {/* RPH Pembelian Sapi Routes */}
+              <Route path="/rph/pembelian-sapi" element={<PembelianSapi />} />
+              <Route path="/rph/pembelian-sapi/detail/:id" element={<PembelianSapiDetailPage />} />
+              
+              {/* HO Feedmil and OVK Routes */}
+              <Route path="/ho/pembelian-feedmil" element={<PembelianFeedmilPage />} />
+              <Route path="/ho/pembelian-feedmil/add" element={<AddEditPembelianFeedmilPage />} />
+              <Route path="/ho/pembelian-feedmil/edit/:id" element={<AddEditPembelianFeedmilPage />} />
+              <Route path="/ho/pembelian-feedmil/detail/:id" element={<PembelianFeedmilDetailPage />} />
+              <Route path="/ho/pembelian-ovk" element={<PembelianOVKPage />} />
+              <Route path="/ho/pembelian-ovk/add" element={<AddEditPembelianOVKPage />} />
+              <Route path="/ho/pembelian-ovk/edit/:id" element={<AddEditPembelianOVKPage />} />
+              <Route path="/ho/pembelian-ovk/detail/:id" element={<PembelianOVKDetailPage />} />
+              
+              {/* HO Pembelian Kulit Routes */}
+              <Route path="/ho/pembelian-kulit" element={<PembelianKulitPage />} />
+              <Route path="/ho/pembelian-kulit/add" element={<AddEditPembelianKulitPage />} />
+              <Route path="/ho/pembelian-kulit/edit/:id" element={<AddEditPembelianKulitPage />} />
+              <Route path="/ho/pembelian-kulit/detail/:id" element={<PembelianKulitDetailPage />} />
+            
+              {/* HO Pembelian Lain Lain Routes */}
+              <Route path="/ho/pembelian-lain-lain" element={<PembelianLainLainPage />} />
+              <Route path="/ho/pembelian-lain-lain/add" element={<AddEditPembelianLainLainPage />} />
+              <Route path="/ho/pembelian-lain-lain/edit/:id" element={<AddEditPembelianLainLainPage />} />
+              <Route path="/ho/pembelian-lain-lain/detail/:id" element={<PembelianLainLainDetailPage />} />
+              
+              {/* HO Tanda Terima Routes */}
+              <Route path="/ho/tanda-terima" element={<TandaTerimaPage />} />
+              <Route path="/ho/tanda-terima/add" element={<AddEditTandaTerimaPage />} />
+              <Route path="/ho/tanda-terima/edit/:id" element={<AddEditTandaTerimaPage />} />
+              
+              {/* HO Pengajuan Routes */}
+              <Route path="/ho/pengajuan" element={<PengajuanPage />} />
+              
+              {/* HO Keuangan Kas Routes */}
+              <Route path="/ho/keuangan-kas/detail/:id" element={<KeuanganKasDetailPage />} />
+              <Route path="/ho/keuangan-kas" element={<KeuanganKasPage />} />
+              
+              {/* HO Keuangan Bank Routes */}
+              <Route path="/ho/keuangan-bank/detail/:id" element={<KeuanganBankDetailPage />} />
+              <Route path="/ho/keuangan-bank" element={<KeuanganBankPage />} />
+
+              {/* HO Penjualan Routes */}
+              <Route path="/ho/penjualan" element={<PenjualanHOPage />} />
+              <Route path="/ho/penjualan/add" element={<AddEditPenjualanHOPage />} />
+              <Route path="/ho/penjualan/edit/:id" element={<AddEditPenjualanHOPage />} />
+
+              {/* Pembayaran Doka Routes */}
+              <Route path="/pembayaran/doka/detail/:id" element={<PembayaranDetailPage />} />
+
+              {/* Pembayaran OVK Routes */}
+              <Route path="/pembayaran/ovk/detail/:id" element={<PembayaranOvkDetailPage />} />
+
+              {/* Pembayaran Feedmill Routes */}
+              <Route path="/pembayaran/feedmill/detail/:id" element={<PembayaranFeedmillDetailPage />} />
+
+              {/* Pembayaran Kulit Routes */}
+              <Route path="/pembayaran/kulit/detail/:id" element={<PembayaranKulitDetailPage />} />
+
+              {/* Pembayaran Lain-Lain Routes */}
+              <Route path="/pembayaran/lain-lain/detail/:id" element={<PembayaranLainLainDetailPage />} />
+              
+              {/* HO Sales Routes - Commented out as files don't exist */}
+              {/* <Route path="/ho/penjualan" element={<PenjualanHOPage />} />
+              <Route path="/ho/penjualan/add" element={<AddEditPenjualanPage />} />
+              <Route path="/ho/penjualan/edit/:id" element={<AddEditPenjualanPage />} />
+              <Route path="/ho/penjualan/detail/:id" element={<PenjualanDetailPage />} /> */}
+              
+              {/* HO Penjualan Sapi Routes */}
+              <Route path="/ho/penjualan-sapi" element={<PenjualanSapiHOPage />} />
+              {/* Add and Edit routes removed - handled by modals in the main page */}
+
+              {/* System Routes */}
+              <Route path="/system/permission-management" element={<PermissionManagementPage />} />
+              <Route path="/system/roles" element={<RolePage />} />
+              <Route path="/system/users" element={<UsersPage />} />
+              <Route path="/system/menu-management" element={<MenuManagementPage />} />
+
+              {/* Fallback Route */}
+              <Route path="*" element={<DashboardPage />} />
+            </Routes>
           </Suspense>
         </LayoutSecure>
       </ProtectedRouteSecure>

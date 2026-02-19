@@ -176,6 +176,16 @@ const ItemFeedmilPage = () => {
       )
     },
     {
+      name: "Satuan",
+      selector: row => row.satuan_name,
+      sortable: true,
+      cell: row => (
+        <span className="px-2 py-1 bg-gray-100 rounded-lg text-sm text-gray-700">
+          {row.satuan_name || '-'}
+        </span>
+      )
+    },
+    {
       name: "Aksi",
       cell: row => (
         <div style={{ position: "relative", right: 0, background: "#fff", zIndex: 10, overflow: "hidden" }}>

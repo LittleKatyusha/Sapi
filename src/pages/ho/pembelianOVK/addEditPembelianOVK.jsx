@@ -4,6 +4,7 @@ import { ArrowLeft, Save, Plus, Trash2, Building2, User, Calendar, Truck, Hash, 
 import usePembelianOVK from './hooks/usePembelianOVK';
 import useParameterSelect from '../pembelian/hooks/useParameterSelect';
 import useJenisPembelianOVK from './hooks/useJenisPembelianOVK';
+import useSatuanAPI from './hooks/useSatuanAPI';
 import useBanksAPI from '../pembelianFeedmil/hooks/useBanksAPI';
 import useTipePembayaran from '../../../hooks/useTipePembayaran';
 import SearchableSelect from '../../../components/shared/SearchableSelect';
@@ -64,6 +65,13 @@ const AddEditPembelianOVKPage = () => {
         error: tipePembayaranError
     } = useTipePembayaran();
 
+    // Satuan API integration
+    const {
+        satuanOptions,
+        loading: satuanLoading,
+        error: satuanError
+    } = useSatuanAPI();
+
     // Header form state
     const [headerData, setHeaderData] = useState({
         nota: '',
@@ -105,6 +113,7 @@ const AddEditPembelianOVKPage = () => {
     const [defaultData, setDefaultData] = useState({
         item_name: '',
         id_klasifikasi_ovk: null,
+        id_satuan: null,
         berat: '',
         harga: '',
         persentase: ''
@@ -510,6 +519,7 @@ const AddEditPembelianOVKPage = () => {
                                 item_name: itemName, // Display name for UI
                                 item_name_id: foundItem ? foundItem.value : '', // ID for SearchableSelect
                                 id_klasifikasi_ovk: item.id_klasifikasi_ovk || null,
+                                id_satuan: item.id_satuan ? String(item.id_satuan) : null,
                                 berat: parseFloat(item.berat) || 0,
                                 harga: parseFloat(item.harga) || 0,
                                 persentase: formatPersentaseFromBackend(item.persentase), // Format with comma for display
@@ -580,6 +590,7 @@ const AddEditPembelianOVKPage = () => {
             item_name: defaultData.item_name_display || defaultData.item_name || '',
             item_name_id: defaultData.item_name || null,
             id_klasifikasi_ovk: defaultData.id_klasifikasi_ovk || null,
+            id_satuan: defaultData.id_satuan || null,
             berat: defaultData.berat || '',
             harga: defaultData.harga || '',
             persentase: defaultData.persentase || '',
@@ -613,6 +624,7 @@ const AddEditPembelianOVKPage = () => {
                 item_name: defaultData.item_name_display || defaultData.item_name || '',
                 item_name_id: defaultData.item_name || null,
                 id_klasifikasi_ovk: defaultData.id_klasifikasi_ovk || null,
+                id_satuan: defaultData.id_satuan || null,
                 berat: defaultData.berat || '',
                 harga: defaultData.harga || '',
                 persentase: defaultData.persentase || '',
@@ -736,13 +748,7 @@ const AddEditPembelianOVKPage = () => {
         }
 
         const berat = parseFloat(item.berat);
-        if (isNaN(berat) || berat <= 0) {
-            setNotification({
-                type: 'error',
-                message: 'Berat harus lebih dari 0'
-            });
-            return;
-        }
+        // Validation removed as per request
 
         const harga = parseFloat(item.harga);
         if (isNaN(harga) || harga <= 0) {
@@ -775,6 +781,7 @@ const AddEditPembelianOVKPage = () => {
                 idOffice: parseInt(headerData.idOffice) || 1, // Use selected office ID
                 item_name: String(item.item_name || ''),
                 item_name_id: item.item_name_id || null, // Include item ID for backend reference
+                id_satuan: item.id_satuan ? parseInt(item.id_satuan) : null,
                 id_klasifikasi_ovk: (() => {
                     const rawValue = item.id_klasifikasi_ovk;
                     
@@ -820,6 +827,7 @@ const AddEditPembelianOVKPage = () => {
                     item_name: detailData.item_name,
                     id_item: detailData.item_name_id ? parseInt(detailData.item_name_id) : null, // Send item ID to backend
                     id_klasifikasi_ovk: detailData.id_klasifikasi_ovk,
+                    id_satuan: detailData.id_satuan,
                     harga: detailData.harga,
                     persentase: detailData.persentase,
                     berat: detailData.berat,
@@ -855,6 +863,7 @@ const AddEditPembelianOVKPage = () => {
                     item_name: detailData.item_name,
                     id_item: detailData.item_name_id ? parseInt(detailData.item_name_id) : null, // Send item ID to backend
                     id_klasifikasi_ovk: detailData.id_klasifikasi_ovk,
+                    id_satuan: detailData.id_satuan,
                     harga: detailData.harga,
                     persentase: detailData.persentase,
                     berat: detailData.berat,
@@ -1009,20 +1018,21 @@ const AddEditPembelianOVKPage = () => {
     // Calculate totals
     const totals = useMemo(() => {
         const totalJumlah = detailItems.length; // Count of items
-        const totalBerat = detailItems.reduce((sum, item) => {
-            const berat = parseFloat(item.berat);
-            return sum + (isNaN(berat) ? 0 : berat);
-        }, 0);
         const totalHPP = detailItems.reduce((sum, item) => {
             const hpp = parseFloat(item.hpp);
             return sum + (isNaN(hpp) ? 0 : hpp);
         }, 0);
-        const totalHargaItems = detailItems.reduce((sum, item) => {
+        const totalHargaBeli = detailItems.reduce((sum, item) => {
+            const harga = parseFloat(item.harga);
+            return sum + (isNaN(harga) ? 0 : harga);
+        }, 0);
+
+        const totalHargaJual = detailItems.reduce((sum, item) => {
             const totalHarga = parseFloat(item.total_harga);
             return sum + (isNaN(totalHarga) ? 0 : totalHarga);
         }, 0);
         
-        return { totalJumlah, totalBerat, totalHPP, totalHargaItems };
+        return { totalJumlah, totalHPP, totalHargaBeli, totalHargaJual };
     }, [detailItems]);
 
     // Form validation
@@ -1088,9 +1098,7 @@ const AddEditPembelianOVKPage = () => {
             // id_klasifikasi_ovk is nullable according to backend rules - no validation needed (like Feedmil)
             // Remove required validation for klasifikasi OVK to match Feedmil implementation
             const berat = parseFloat(item.berat);
-            if (isNaN(berat) || berat <= 0) {
-                errors.push(`Item ${index + 1}: Berat harus lebih dari 0`);
-            }
+            // Validation removed as per request
             const harga = parseFloat(item.harga);
             if (isNaN(harga) || harga <= 0) {
                 errors.push(`Item ${index + 1}: Harga harus lebih dari 0`);
@@ -1161,7 +1169,9 @@ const AddEditPembelianOVKPage = () => {
                 details: detailItems.map(item => ({
                     id_office: parseInt(headerData.idOffice) || 1, // Use selected office ID
                     item_name: item.item_name || null,
+                    id_item: item.item_name_id ? parseInt(item.item_name_id) : null, // Send item ID to backend
                     id_klasifikasi_ovk: item.id_klasifikasi_ovk ? parseInt(item.id_klasifikasi_ovk) || null : null, // Use selected ID directly from dropdown
+                    id_satuan: item.id_satuan ? parseInt(item.id_satuan) : null,
                     harga: parseFloat(item.harga) || null,
                     persentase: getParsedPersentase(item.persentase) || null, // Use comma-aware parsing
                     berat: parseFloat(item.berat) || null,
@@ -1490,26 +1500,6 @@ const AddEditPembelianOVKPage = () => {
                             </p>
                         </div>
 
-                        {/* Berat Total */}
-                        <div>
-                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <Weight className="w-4 h-4" />
-                                Berat Total (Kg)
-                            </label>
-                            <input
-                                type="number"
-                                value={headerData.berat_total}
-                                onChange={(e) => handleHeaderChange('berat_total', e.target.value)}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                placeholder=""
-                                min="0"
-                                step="0.1"
-                            />
-                            <p className="text-xs text-blue-600 mt-1">
-                                💡 Total berat semua OVK dalam pembelian ini
-                            </p>
-                        </div>
-
                         {/* Biaya Total */}
                         <div>
                             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
@@ -1774,20 +1764,25 @@ const AddEditPembelianOVKPage = () => {
                             )}
                         </div>
 
-                        {/* Berat Default */}
+                        {/* Satuan Default */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Berat Default (kg)
+                                Satuan Default
                             </label>
-                            <input
-                                type="number"
-                                value={defaultData.berat}
-                                onChange={(e) => handleDefaultDataChange('berat', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                                placeholder="5"
-                                min="0"
-                                step="0.1"
+                            <SearchableSelect
+                                value={defaultData.id_satuan}
+                                onChange={(value) => handleDefaultDataChange('id_satuan', value)}
+                                options={satuanOptions}
+                                placeholder={satuanLoading ? 'Loading...' : satuanError ? 'Error loading satuan' : 'Pilih Satuan'}
+                                isLoading={satuanLoading}
+                                isDisabled={satuanLoading || satuanError}
+                                className="w-full"
                             />
+                            {satuanError && (
+                                <p className="text-xs text-red-500 mt-1">
+                                    ⚠️ Error loading satuan: {satuanError}
+                                </p>
+                            )}
                         </div>
 
                         {/* Harga Default */}
@@ -1880,7 +1875,7 @@ const AddEditPembelianOVKPage = () => {
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 w-12">No</th>
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[180px]">Nama Item</th>
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[120px]">Klasifikasi OVK</th>
-                                        <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 w-24">Berat (kg)</th>
+                                        <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[140px]">Satuan</th>
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[120px]">Harga (Rp)</th>
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 w-20">Persentase (%)</th>
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[120px]">HPP (Rp)</th>
@@ -1894,16 +1889,10 @@ const AddEditPembelianOVKPage = () => {
                                         const harga = parseFloat(item.harga) || 0;
                                         const persentase = getParsedPersentase(item.persentase); // Use comma-aware parsing
                                         const berat = parseFloat(item.berat) || 0;
-                                        const biayaTruk = parseFloat(headerData.biaya_truck) || 0;
-                                        const biayaLain = parseFloat(headerData.biaya_lain) || 0;
-                                        const beratTotal = parseFloat(headerData.berat_total) || 1; // Avoid division by zero
                                         
-                                        // Calculate HPP using the new formula WITHOUT rounding:
-                                        // HPP = ((biaya_truk + biaya_lain + (harga * berat_total)) / berat_total) + (((biaya_truk + biaya_lain + (harga * berat_total)) / berat_total) * persentase / 100)
-                                        const baseCost = (biayaTruk + biayaLain + (harga * beratTotal)) / beratTotal;
-                                        const markup = baseCost * persentase / 100;
-                                        const hpp = baseCost + markup; // No rounding - show exact value
-                                        const totalHarga = hpp * berat; // Total harga = HPP * berat
+                                        // Calculate HPP: harga x (persentase / 100)
+                                        const hpp = harga * (persentase / 100);
+                                        const totalHarga = harga + hpp; // Total harga = Harga + HPP
                                         
                                         // Update item dengan calculated values
                                         if (item.hpp !== hpp) {
@@ -1942,15 +1931,16 @@ const AddEditPembelianOVKPage = () => {
                                                     />
                                                 </td>
                                                 
-                                                {/* Berat */}
+                                                {/* Satuan */}
                                                 <td className="p-2 sm:p-3">
-                                                    <input
-                                                        type="number"
-                                                        value={item.berat}
-                                                        onChange={(e) => handleDetailChange(item.id, 'berat', e.target.value)}
-                                                        className="w-full px-1 sm:px-2 py-1 border border-gray-300 rounded text-xs sm:text-sm"
-                                                        min="0"
-                                                        step="0.1"
+                                                    <SearchableSelect
+                                                        value={item.id_satuan}
+                                                        onChange={(value) => handleDetailChange(item.id, 'id_satuan', value)}
+                                                        options={satuanOptions}
+                                                        placeholder={satuanLoading ? 'Loading...' : 'Pilih Satuan'}
+                                                        isLoading={satuanLoading}
+                                                        isDisabled={satuanLoading || satuanError}
+                                                        className="w-full text-xs sm:text-sm"
                                                     />
                                                 </td>
                                                 
@@ -1981,7 +1971,7 @@ const AddEditPembelianOVKPage = () => {
                                                         {formatNumber(hpp)}
                                                     </div>
                                                 </td>
-                                                
+
                                                 {/* Total Harga (calculated) */}
                                                 <td className="p-2 sm:p-3">
                                                     <div className="w-full px-1 sm:px-2 py-1 border border-gray-300 rounded text-xs sm:text-sm bg-blue-50 text-blue-900 font-semibold">
@@ -2034,22 +2024,22 @@ const AddEditPembelianOVKPage = () => {
                     {detailItems.length > 0 && (
                         <div className="mt-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-200">
                             <h3 className="text-lg font-semibold text-blue-800 mb-3">Total Keseluruhan</h3>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4 sm:gap-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
                                 <div className="text-center">
                                     <p className="text-sm text-blue-600">Total Items</p>
                                     <p className="text-xl font-bold text-blue-800">{totals.totalJumlah} items</p>
                                 </div>
                                 <div className="text-center">
-                                    <p className="text-sm text-blue-600">Total Berat</p>
-                                    <p className="text-xl font-bold text-blue-800">{totals.totalBerat} kg</p>
+                                    <p className="text-sm text-green-600">Total Harga Beli</p>
+                                    <p className="text-xl font-bold text-green-800">Rp {formatNumber(totals.totalHargaBeli)}</p>
                                 </div>
                                 <div className="text-center">
                                     <p className="text-sm text-blue-600">Total HPP</p>
                                     <p className="text-xl font-bold text-blue-800">Rp {formatNumber(totals.totalHPP)}</p>
                                 </div>
                                 <div className="text-center">
-                                    <p className="text-sm text-green-600">Total Harga Items</p>
-                                    <p className="text-xl font-bold text-green-800">Rp {formatNumber(totals.totalHargaItems)}</p>
+                                    <p className="text-sm text-orange-600">Total Harga Jual</p>
+                                    <p className="text-xl font-bold text-orange-800">Rp {formatNumber(totals.totalHargaJual)}</p>
                                 </div>
                             </div>
                         </div>

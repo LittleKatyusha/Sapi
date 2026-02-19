@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  ArrowLeft, Calendar, CreditCard, DollarSign, CheckCircle, 
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import {
+  ArrowLeft, Calendar, CreditCard, DollarSign, CheckCircle,
   XCircle, Settings, Plus 
 } from 'lucide-react';
 import DataTable from 'react-data-table-component';
@@ -11,6 +11,8 @@ import { StyleSheetManager } from 'styled-components';
 import usePembayaran from './hooks/usePembayaran';
 import { usePembayaranDetail } from './hooks/usePembayaranDetail';
 import { usePagination } from './hooks/usePagination';
+// Services
+import pengeluaranService from '../../../services/pengeluaranService';
 
 // Components
 import DeleteConfirmationModal from './modals/DeleteConfirmationModal';
@@ -39,6 +41,7 @@ const shouldForwardProp = (prop) => {
 const PembayaranDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   
   // API hooks
   const {
@@ -49,6 +52,63 @@ const PembayaranDetailPage = () => {
     error
   } = usePembayaran();
 
+  // Check if we are in "Purchase Mode" (coming from Keuangan Kas)
+  const isPurchase = location.state?.isPurchase === true;
+
+  // Create a unified fetcher function
+  const getDetail = useCallback(async (idToFetch) => {
+      if (isPurchase) {
+          console.log('🔄 OVK Fetcher: Fetching as Purchase (Keuangan Context)', idToFetch);
+          try {
+              // Fetch using pengeluaranService (which gets Purchase details)
+              const response = await pengeluaranService.getPengeluaranDetail(idToFetch);
+              
+              // Adapt the response to match usePembayaranDetail expectations
+              // Expected structure: { success: true, header: {...}, data: [...] }
+              if (response && (response.success || response.data)) {
+                  const purchaseData = Array.isArray(response.data) ? response.data[0] : response.data;
+                  
+                  // Map purchase data to payment header structure
+                  const header = {
+                      ...purchaseData,
+                      // Ensure key fields exist
+                      id: purchaseData.id || purchaseData.pid, // Use whatever ID is available
+                      encryptedPid: purchaseData.pid || idToFetch,
+                      id_pembelian: purchaseData.id || purchaseData.pid, // Map purchase ID
+                      // Map purchase_type if not present (optional, usually present)
+                      purchase_type: purchaseData.purchase_type || purchaseData.jenis_biaya,
+                      // Map totals
+                      total_tagihan: purchaseData.total_tagihan || purchaseData.nominal || 0,
+                      total_terbayar: purchaseData.total_terbayar || 0,
+                      // Map payment status
+                      payment_status: purchaseData.payment_status || 0,
+                      // Map dates
+                      due_date: purchaseData.due_date || '',
+                      settlement_date: purchaseData.settlement_date || '',
+                      // Map other fields as needed
+                      nota: purchaseData.nota || purchaseData.nota_sistem || '',
+                      nota_sistem: purchaseData.nota_sistem || '',
+                  };
+
+                  return {
+                      success: true,
+                      header: header,
+                      data: [], // No payment details yet for unpaid purchases
+                      message: 'Data pembelian berhasil dimuat'
+                  };
+              } else {
+                  throw new Error(response?.message || 'Gagal memuat data pembelian');
+              }
+          } catch (error) {
+              console.error('UnifiedFetcher Error:', error);
+              throw error;
+          }
+      } else {
+          // Normal behavior: use the default payment fetcher
+          return getPembayaranDetail(idToFetch);
+      }
+  }, [isPurchase, getPembayaranDetail]);
+
   // Custom hooks for data management
   const {
     pembayaranData,
@@ -56,7 +116,7 @@ const PembayaranDetailPage = () => {
     setDetailData,
     notification,
     setNotification
-  } = usePembayaranDetail(id, getPembayaranDetail);
+  } = usePembayaranDetail(id, getDetail);
 
   const {
     pagination,
@@ -74,7 +134,13 @@ const PembayaranDetailPage = () => {
   const [openMenuId, setOpenMenuId] = useState(null);
 
   // Navigation handlers
-  const handleBack = () => navigate('/pembayaran/ovk');
+  const handleBack = () => {
+      if (location.state?.isPurchase) {
+          navigate('/ho/keuangan-kas');
+      } else {
+          navigate(-1);
+      }
+  };
   const handleEdit = () => navigate(`/pembayaran/ovk/edit/${id}`);
 
   // Delete handlers
