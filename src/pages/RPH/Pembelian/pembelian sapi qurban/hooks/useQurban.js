@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import QurbanService from '../../../../../services/qurban/qurbanService';
 
 /**
@@ -40,6 +40,58 @@ const useQurban = () => {
         perPage: 10,
         draw: 1,
     });
+
+    const [stats, setStats] = useState({
+        today_ekor: 0,
+        today_po: 0,
+        today_total: 0,
+        week_ekor: 0,
+        week_po: 0,
+        week_total: 0,
+        month_ekor: 0,
+        month_po: 0,
+        month_total: 0,
+        total_po: 0,
+        pending: 0,
+        approved: 0,
+        rejected: 0,
+    });
+
+    const toNumber = (value) => {
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : 0;
+    };
+
+    /**
+     * Fetch Qurban statistics from backend card endpoint
+     */
+    const fetchStatistics = useCallback(async () => {
+        try {
+            const result = await QurbanService.getStatistics();
+            const data = result?.data || {};
+
+            if (result?.success) {
+                setStats({
+                    today_ekor: toNumber(data.hewan_hari_ini),
+                    today_po: toNumber(data.nota_hari_ini),
+                    today_total: toNumber(data.nominal_hari_ini),
+                    week_ekor: toNumber(data.hewan_minggu_ini),
+                    week_po: toNumber(data.nota_minggu_ini),
+                    week_total: toNumber(data.nominal_minggu_ini),
+                    month_ekor: toNumber(data.hewan_bulan_ini),
+                    month_po: toNumber(data.nota_bulan_ini),
+                    month_total: toNumber(data.nominal_bulan_ini),
+                    total_po: toNumber(data.total_po),
+                    pending: toNumber(data.pending),
+                    approved: toNumber(data.approved),
+                    rejected: toNumber(data.rejected),
+                });
+            }
+        } catch (err) {
+            // Silently ignore to keep existing stats and avoid breaking list screen
+            console.error('[useQurban] Error fetching statistics:', err);
+        }
+    }, []);
 
     /**
      * Fetch available nota from HO
@@ -124,6 +176,8 @@ const useQurban = () => {
                         draw: response.draw,
                     });
 
+                    await fetchStatistics();
+
                     return {
                         success: true,
                         data: transformedData,
@@ -151,7 +205,7 @@ const useQurban = () => {
                 setIsSearching(false);
             }
         },
-        [searchTerm, dateRange, pagination.draw]
+        [searchTerm, dateRange, pagination.draw, fetchStatistics]
     );
 
     /**
@@ -340,48 +394,6 @@ const useQurban = () => {
     // Statistics
     // -------------------------------------------------------------------------
 
-    const stats = useMemo(() => {
-        const today = new Date();
-        const todayString = today.toDateString();
-        const thisMonth = today.getMonth();
-        const thisYear = today.getFullYear();
-
-        const todayData = poList.filter((item) => {
-            const itemDate = new Date(item.tgl_pesanan || item.created_at);
-            return itemDate.toDateString() === todayString;
-        });
-
-        const monthData = poList.filter((item) => {
-            const itemDate = new Date(item.tgl_pesanan || item.created_at);
-            return itemDate.getMonth() === thisMonth && itemDate.getFullYear() === thisYear;
-        });
-
-        const yearData = poList.filter((item) => {
-            const itemDate = new Date(item.tgl_pesanan || item.created_at);
-            return itemDate.getFullYear() === thisYear;
-        });
-
-        return {
-            total: pagination.totalItems,
-            totalFiltered: pagination.filteredItems,
-            todayCount: todayData.length,
-            todayAmount: todayData.reduce((sum, item) => sum + (item.harga || 0), 0),
-            monthCount: monthData.length,
-            monthAmount: monthData.reduce((sum, item) => sum + (item.harga || 0), 0),
-            yearCount: yearData.length,
-            yearAmount: yearData.reduce((sum, item) => sum + (item.harga || 0), 0),
-            pendingCount: poList.filter((item) => item.status === 1).length,
-            approvedCount: poList.filter((item) => item.status === 2).length,
-            rejectedCount: poList.filter((item) => item.status === 3).length,
-        };
-    }, [poList, pagination.totalItems, pagination.filteredItems]);
-
-    /**
-     * Initialize data on mount
-     */
-    useEffect(() => {
-        fetchPoList();
-    }, []);
 
     // Return all hook functions and state
     return {
@@ -441,6 +453,7 @@ const useQurban = () => {
         handlePerPageChange,
 
         // Refresh function
+        fetchStatistics,
         refresh: () => fetchPoList(pagination.currentPage, pagination.perPage),
     };
 };

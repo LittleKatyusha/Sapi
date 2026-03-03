@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import DataTable from 'react-data-table-component';
-import { PlusCircle, Search, X, Loader2, Calendar, Package, TrendingUp, DollarSign, ShoppingCart } from 'lucide-react';
+import { PlusCircle, Search, X, Loader2, Calendar, Package, TrendingUp, DollarSign, ShoppingCart, AlertCircle, CheckCircle2 } from 'lucide-react';
 import useQurban from './hooks/useQurban';
 import ActionButton from './components/ActionButton';
 import QurbanCard from './components/QurbanCard';
@@ -24,19 +24,30 @@ const StatCard = React.memo(({ title, icon: Icon, bgColor, children }) => (
 
 const Notification = React.memo(({ notification, onClose }) => {
     if (!notification) return null;
-    const borderColor = notification.type === 'success' ? 'border-green-400' : notification.type === 'info' ? 'border-blue-400' : 'border-red-400';
+    const borderColor = notification.type === 'success' ? 'border-green-500' : notification.type === 'info' ? 'border-blue-500' : 'border-red-500';
     return (
-        <div className="fixed top-4 right-4 z-50">
-            <div className={`max-w-sm w-full bg-white shadow-lg rounded-lg ring-1 ring-black ring-opacity-5 overflow-hidden border-l-4 ${borderColor}`}>
+        <div className="fixed top-4 right-4 left-4 sm:left-auto z-50">
+            <div className={`max-w-sm w-full bg-white shadow-lg rounded-xl ring-1 ring-black ring-opacity-5 overflow-hidden border-l-4 ${borderColor}`}>
                 <div className="p-4 flex items-start">
-                    <div className="ml-3 w-0 flex-1">
+                    <div className="flex-shrink-0">
+                        {notification.type === 'success' ? (
+                            <div className="w-7 h-7 bg-green-100 rounded-full flex items-center justify-center">
+                                <CheckCircle2 className="w-4 h-4 text-green-600" />
+                            </div>
+                        ) : notification.type === 'info' ? (
+                            <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
+                        ) : (
+                            <AlertCircle className="w-5 h-5 text-red-500" />
+                        )}
+                    </div>
+                    <div className="ml-3 flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-900">
                             {notification.type === 'success' ? 'Berhasil!' : notification.type === 'info' ? 'Memproses...' : 'Error!'}
                         </p>
-                        <p className="mt-1 text-sm text-gray-500">{notification.message}</p>
+                        <p className="mt-0.5 text-sm text-gray-500 break-words">{notification.message}</p>
                     </div>
-                    <button onClick={onClose} className="ml-4 text-gray-400 hover:text-gray-500">
-                        <X className="h-5 w-5" />
+                    <button onClick={onClose} className="ml-3 text-gray-400 hover:text-gray-600">
+                        <X className="w-4 h-4" />
                     </button>
                 </div>
             </div>

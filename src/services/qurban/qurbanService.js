@@ -247,9 +247,10 @@ class QurbanService {
    */
   static async getStatistics() {
     try {
-      const endpoint = API_ENDPOINTS?.RPH?.QURBAN?.BASE
-        ? `${API_ENDPOINTS.RPH.QURBAN.BASE}/statistics`
-        : '/api/rph/qurban/statistics';
+      const endpoint = API_ENDPOINTS?.RPH?.QURBAN?.STATISTIK
+        || (API_ENDPOINTS?.RPH?.QURBAN?.BASE
+          ? `${API_ENDPOINTS.RPH.QURBAN.BASE}/statistik`
+          : '/api/rph/qurban/statistik');
 
       const response = await HttpClient.get(endpoint);
 
