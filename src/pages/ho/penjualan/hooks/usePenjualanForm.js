@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import HttpClient from '../../../../services/httpClient';
 import { extractApiData } from '../utils/apiHelpers';
 import { PENJUALAN_ROUTES } from '../constants/routes';
+import { API_ENDPOINTS } from '../../../../config/api';
 
 /**
  * Custom hook that manages the penjualan form state and submission logic
@@ -20,6 +21,7 @@ const usePenjualanForm = () => {
         namaSupir: '',
         platNomor: '',
         tipePembayaran: null,
+        syaratPembayaran: null,
         namaPenerima: '',
         keterangan: ''
     });
@@ -117,12 +119,56 @@ const usePenjualanForm = () => {
                         }
                     }
 
+                    // Map syarat_pembayaran — fetch from bank API and match by value
+                    let syaratPembayaranValue = null;
+                    if (record.id_syarat_pembayaran != null) {
+                        // Check if it's a KAS value (cash)
+                        if (String(record.id_syarat_pembayaran).toUpperCase() === 'KAS') {
+                            syaratPembayaranValue = {
+                                value: 'KAS',
+                                label: 'Kas',
+                                id: 'KAS',
+                                kode: 'KAS',
+                                nama: 'Kas',
+                                isKas: true
+                            };
+                        } else {
+                            // It's a bank ID - try to fetch and match
+                            try {
+                                const bankResponse = await HttpClient.get(`${API_ENDPOINTS.MASTER.BANK}/all`);
+                                const bankList = bankResponse?.data || bankResponse || [];
+                                const matchedBank = bankList.find(b => String(b.id) === String(record.id_syarat_pembayaran));
+                                if (matchedBank) {
+                                    syaratPembayaranValue = {
+                                        value: String(matchedBank.id),
+                                        label: matchedBank.display_name || (matchedBank.kode ? `[${matchedBank.kode}] ${matchedBank.nama}` : matchedBank.nama),
+                                        id: matchedBank.id,
+                                        kode: matchedBank.kode,
+                                        nama: matchedBank.nama
+                                    };
+                                } else {
+                                    syaratPembayaranValue = {
+                                        value: String(record.id_syarat_pembayaran),
+                                        label: `Bank #${record.id_syarat_pembayaran}`
+                                    };
+                                }
+                            } catch (bankError) {
+                                console.error('Error fetching syarat pembayaran for edit:', bankError);
+                                syaratPembayaranValue = {
+                                    value: String(record.id_syarat_pembayaran),
+                                    label: `Bank #${record.id_syarat_pembayaran}`
+                                };
+                            }
+                        }
+                    }
+
                     setFormData({
                         jenisPenjualan: matchedJenis,
                         pembeli: pembeliValue,
                         namaSupir: record.nama_supir || '',
                         platNomor: record.plat_nomor || '',
                         tipePembayaran: tipePembayaranValue,
+                        syaratPembayaran: syaratPembayaranValue,
                         namaPenerima: record.nama_penerima || '',
                         keterangan: record.keterangan || ''
                     });
@@ -227,6 +273,28 @@ const usePenjualanForm = () => {
         setFormData(prev => {
             const newData = { ...prev, [field]: value };
             if (field === 'jenisPenjualan') newData.produk = null;
+            
+            // Auto-handle syaratPembayaran when tipePembayaran changes
+            if (field === 'tipePembayaran') {
+                if (value?.value === '1') {
+                    // KAS selected - auto select "Kas" option
+                    newData.syaratPembayaran = {
+                        value: 'KAS',
+                        label: 'Kas',
+                        id: 'KAS',
+                        kode: 'KAS',
+                        nama: 'Kas',
+                        isKas: true
+                    };
+                } else if (value?.value === '2') {
+                    // BANK selected - clear and let user pick from bank list
+                    newData.syaratPembayaran = null;
+                } else {
+                    // Neither KAS nor BANK selected - clear syaratPembayaran
+                    newData.syaratPembayaran = null;
+                }
+            }
+            
             return newData;
         });
         // Clear all detail produk when jenis penjualan changes
@@ -292,6 +360,7 @@ const usePenjualanForm = () => {
         if (!formData.namaSupir.trim()) { setNotification({ type: 'error', message: 'Masukkan nama supir' }); return; }
         if (!formData.platNomor.trim()) { setNotification({ type: 'error', message: 'Masukkan plat nomor' }); return; }
         if (!formData.tipePembayaran) { setNotification({ type: 'error', message: 'Pilih tipe pembayaran' }); return; }
+        if (!formData.syaratPembayaran) { setNotification({ type: 'error', message: 'Pilih syarat pembayaran' }); return; }
         if (detailProduk.length === 0) { setNotification({ type: 'error', message: 'Tambahkan minimal satu produk' }); return; }
 
         // Validate each detail item
@@ -310,6 +379,7 @@ const usePenjualanForm = () => {
                 nama_supir: formData.namaSupir,
                 plat_nomor: formData.platNomor,
                 tipe_pembayaran: formData.tipePembayaran?.value,
+                id_syarat_pembayaran: formData.syaratPembayaran?.value,
                 nama_penerima: formData.namaPenerima,
                 keterangan: formData.keterangan,
                 items: detailProduk.map(item => ({
