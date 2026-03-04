@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import DataTable from 'react-data-table-component';
-import { PlusCircle, Search, X, Loader2, Calendar, Package, TrendingUp, DollarSign, ShoppingCart, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { PlusCircle, Search, X, Loader2, Package, TrendingUp, DollarSign, ShoppingCart, AlertCircle, CheckCircle2 } from 'lucide-react';
 import useQurban from './hooks/useQurban';
 import ActionButton from './components/ActionButton';
 import QurbanCard from './components/QurbanCard';
@@ -311,17 +311,6 @@ const PembelianSapiQurbanPage = () => {
                                 value={searchTerm} onChange={(e) => handleSearch(e.target.value)}
                                 className={`w-full pl-12 ${searchTerm ? 'pr-12' : 'pr-4'} py-2.5 sm:py-3 border ${searchError ? 'border-red-300' : 'border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500'} rounded-full transition-all duration-200 text-sm sm:text-base shadow-sm hover:shadow-md`}
                             />
-                        </div>
-                        <div className="flex items-center gap-2 md:gap-3 flex-wrap">
-                            <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
-                            <input type="date" value={dateRange.startDate} onChange={(e) => handleDateRangeFilter({ ...dateRange, startDate: e.target.value })}
-                                className="px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-sm shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer" style={{ minWidth: '150px' }} />
-                            <span className="text-gray-500 text-sm font-medium">s/d</span>
-                            <input type="date" value={dateRange.endDate} onChange={(e) => handleDateRangeFilter({ ...dateRange, endDate: e.target.value })}
-                                className="px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-sm shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer" style={{ minWidth: '150px' }} />
-                            {(dateRange.startDate || dateRange.endDate) && (
-                                <button onClick={clearDateRange} className="p-2 text-gray-400 hover:text-green-500 hover:bg-green-50 rounded-lg transition-all duration-200" title="Hapus Filter Tanggal"><X className="w-4 h-4" /></button>
-                            )}
                         </div>
                     </div>
                 </div>

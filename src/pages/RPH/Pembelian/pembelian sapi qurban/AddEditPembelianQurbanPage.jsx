@@ -85,7 +85,7 @@ const AddEditPembelianQurbanPage = () => {
                     setFormData({
                         id_pemasok: d.id_pemasok || '', jenis_pembelian: d.jenis_pembelian || '',
                         nama_penerima: d.nama_penerima || '',
-                        tanggal_pemesanan: d.tanggal_pemesanan || '',
+                        tanggal_pemesanan: d.tanggal_pemesanan ? d.tanggal_pemesanan.split(' ')[0] : '',
                         id_nota: d.id_nota || '', id_persetujuan_rph: d.id_persetujuan_rph || '',
                         tipe_pembayaran: d.tipe_pembayaran ? String(d.tipe_pembayaran) : '1',
                         id_syarat_pembayaran: d.id_syarat_pembayaran || '', note: d.note || '',
@@ -93,11 +93,11 @@ const AddEditPembelianQurbanPage = () => {
                     if (d.details && Array.isArray(d.details)) {
                         setSelectedSapi(d.details.map(x => ({
                             id_hewan: x.id_hewan,
-                            eartag: x.eartag || x.pembelianDetail?.eartag || '-',
-                            code_eartag: x.code_eartag || x.pembelianDetail?.code_eartag || '-',
-                            eartag_supplier: x.eartag_supplier || x.pembelianDetail?.eartag_supplier || '-',
-                            berat: x.berat || x.pembelianDetail?.berat || 0,
-                            harga_beli: x.harga_beli || 0,
+                            eartag: x.hewan_details?.eartag || '-',
+                            code_eartag: x.hewan_details?.code_eartag || '-',
+                            eartag_supplier: x.hewan_details?.eartag_supplier || '-',
+                            berat: x.hewan_details?.berat || 0,
+                            harga_beli: parseFloat(x.harga_beli) || 0,
                         })));
                     }
                     if (d.id_pemasok) fetchNota(d.id_pemasok);
