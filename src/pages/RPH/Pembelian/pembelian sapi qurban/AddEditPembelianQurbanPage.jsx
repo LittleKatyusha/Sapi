@@ -356,7 +356,7 @@ const AddEditPembelianQurbanPage = () => {
             )}
 
             {/* Pilih Sapi Modal */}
-            <PilihSapiModal isOpen={isPilihSapiOpen} onClose={() => setIsPilihSapiOpen(false)} onSelect={handleSelectSapi} notaId={formData.id_nota} excludeIds={excludeIds} />
+            <PilihSapiModal isOpen={isPilihSapiOpen} onClose={() => setIsPilihSapiOpen(false)} onSelect={handleSelectSapi} notaId={formData.id_nota} excludeIds={excludeIds} onClearAll={() => setSelectedSapi([])} />
         </div>
     );
 };
