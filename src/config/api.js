@@ -166,6 +166,17 @@ export const API_ENDPOINTS = {
       DELETE: '/api/rph/po/hapus',
       EXPORT: '/api/rph/po/export'
     },
+    QURBAN: {
+      BASE: '/api/rph/qurban',
+      NOTA: '/api/rph/qurban/getnota',
+      DATA: '/api/rph/qurban/data',
+      SHOW: '/api/rph/qurban/show',
+      STORE: '/api/rph/qurban/store',
+      UPDATE: '/api/rph/qurban/update',
+      DELETE: '/api/rph/qurban/hapus',
+      EXPORT: '/api/rph/qurban/export',
+      STATISTIK: '/api/rph/qurban/statistik'
+    },
     PEMBELIAN: {
       BASE: '/api/rph/pembelian',
       SAPI: '/api/rph/pembelian/sapi'

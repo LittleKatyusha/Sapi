@@ -4,6 +4,7 @@ import Select from 'react-select';
 import { selectStyles } from './constants/selectStyles';
 import usePembeli from './hooks/usePembeli';
 import useTipePembayaran from './hooks/useTipePembayaran';
+import useSyaratPembayaran from './hooks/useSyaratPembayaran';
 import usePenjualanForm from './hooks/usePenjualanForm';
 import PriceInfoPanel from './components/PriceInfoPanel';
 import ProdukDetailTable from './components/ProdukDetailTable';
@@ -18,7 +19,7 @@ const jenisPenjualanOptions = [
 const AddEditPenjualanPage = () => {
     const { pembeliOptions, pembeliLoading } = usePembeli();
     const { tipePembayaranOptions, tipePembayaranLoading } = useTipePembayaran();
-
+    
     const {
         formData,
         detailProduk,
@@ -38,6 +39,11 @@ const AddEditPenjualanPage = () => {
         closeProdukModal,
         setNotification,
     } = usePenjualanForm();
+
+    // Determine filter type based on selected tipePembayaran
+    // tipe_pembayaran: '1' = KAS, '2' = BANK
+    const filterType = formData.tipePembayaran?.value === '1' ? 'KAS' : (formData.tipePembayaran?.value === '2' ? 'BANK' : null);
+    const { syaratPembayaranOptions, syaratPembayaranLoading } = useSyaratPembayaran(filterType);
 
     const onQtyChange = useCallback((index, value) => {
         handleQtyChange(index, value);
@@ -96,6 +102,21 @@ const AddEditPenjualanPage = () => {
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">Tipe Pembayaran <span className="text-red-500">*</span></label>
                                 <Select value={formData.tipePembayaran} onChange={(v) => handleSelectChange('tipePembayaran', v)} options={tipePembayaranOptions} placeholder="Pilih tipe pembayaran..." isClearable isSearchable isLoading={tipePembayaranLoading} loadingMessage={() => 'Memuat data tipe pembayaran...'} styles={selectStyles} noOptionsMessage={() => 'Tidak ada opsi'} />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">Syarat Pembayaran <span className="text-red-500">*</span></label>
+                                <Select
+                                    value={formData.syaratPembayaran}
+                                    onChange={(v) => handleSelectChange('syaratPembayaran', v)}
+                                    options={syaratPembayaranOptions}
+                                    placeholder={filterType === 'KAS' ? 'Pilih Kas...' : (filterType === 'BANK' ? 'Pilih Bank...' : 'Cari dan pilih syarat pembayaran...')}
+                                    isClearable
+                                    isSearchable
+                                    isLoading={syaratPembayaranLoading}
+                                    loadingMessage={() => 'Memuat data syarat pembayaran...'}
+                                    styles={selectStyles}
+                                    noOptionsMessage={() => 'Syarat pembayaran tidak ditemukan'}
+                                />
                             </div>
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">Nama Penerima</label>
