@@ -75,4 +75,7 @@ export const pageTitleMap = {
   '/ho/penjualan-sapi/add': 'Head Office: Tambah Penjualan Sapi',
   '/ho/penjualan-sapi/edit/:id': 'Head Office: Edit Penjualan Sapi',
   '/ho/penjualan-sapi/detail/:id': 'Head Office: Detail Penjualan Sapi',
+  '/rph/pembelian-pakan-ovk': 'RPH: Pembelian Pakan & OVK',
+  '/rph/pembelian-pakan-ovk/add/pakan': 'RPH: Tambah Pembelian Pakan',
+  '/rph/pembelian-pakan-ovk/add/ovk': 'RPH: Tambah Pembelian OVK',
 };

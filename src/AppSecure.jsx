@@ -78,6 +78,10 @@ const PembelianSapiDetailPage = lazy(() => import('./pages/RPH/Pembelian/Pembeli
 const PembelianSapiQurbanPage = lazy(() => import('./pages/RPH/Pembelian/pembelian sapi qurban/PembelianSapiQurbanPage'));
 const AddEditPembelianQurbanPage = lazy(() => import('./pages/RPH/Pembelian/pembelian sapi qurban/AddEditPembelianQurbanPage'));
 
+// RPH Pembelian Pakan dan OVK Page - Lazy loaded
+const PembelianPakanOvkPage = lazy(() => import('./pages/RPH/Pembelian/pembelian pakan dan ovk/PembelianPakanOvkPage'));
+const AddPembelianPakanOvkPage = lazy(() => import('./pages/RPH/Pembelian/pembelian pakan dan ovk/AddPembelianPakanOvkPage'));
+
 // Reporting Pages - Lazy loaded
 const LaporanNotaSupplierPage = lazy(() => import('./pages/reporting/LaporanNotaSupplierPage'));
 const LaporanSemuaSupplierPage = lazy(() => import('./pages/reporting/LaporanSemuaSupplierPage'));
@@ -264,7 +268,11 @@ function AppSecure() {
               <Route path="/rph/pembelian-sapi-qurban" element={<PembelianSapiQurbanPage />} />
               <Route path="/rph/pembelian-sapi-qurban/add" element={<AddEditPembelianQurbanPage />} />
               <Route path="/rph/pembelian-sapi-qurban/edit/:id" element={<AddEditPembelianQurbanPage />} />
-              
+
+              {/* RPH Pembelian Pakan dan OVK Routes */}
+              <Route path="/rph/pembelian-pakan-ovk" element={<PembelianPakanOvkPage />} />
+              <Route path="/rph/pembelian-pakan-ovk/add/:type" element={<AddPembelianPakanOvkPage />} />
+               
               {/* HO Feedmil and OVK Routes */}
               <Route path="/ho/pembelian-feedmil" element={<PembelianFeedmilPage />} />
               <Route path="/ho/pembelian-feedmil/add" element={<AddEditPembelianFeedmilPage />} />
