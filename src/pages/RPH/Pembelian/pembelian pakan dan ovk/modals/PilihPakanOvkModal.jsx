@@ -15,10 +15,14 @@ const PilihPakanOvkModal = ({
   initialSelected = [],
   onApply,
   title = 'Persediaan',
-  accentClass = 'from-emerald-600 to-emerald-500'
+  accentClass = 'from-emerald-600 to-emerald-500',
+  isLoading = false,
+  errorMessage = ''
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMap, setSelectedMap] = useState({});
+
+  const getDefaultPrice = (item) => item.priceOptions?.[0] ?? item.price ?? 0;
 
   useEffect(() => {
     if (!isOpen) return;
@@ -27,7 +31,7 @@ const PilihPakanOvkModal = ({
       next[item.id] = {
         selected: true,
         qty: item.qty || 1,
-        price: item.price || (item.priceOptions?.[0] ?? 0)
+        price: item.price || getDefaultPrice(item)
       };
     });
     setSelectedMap(next);
@@ -38,7 +42,7 @@ const PilihPakanOvkModal = ({
     if (!searchTerm.trim()) return items;
     const lower = searchTerm.toLowerCase();
     return items.filter((item) =>
-      [item.name, item.code, item.supplier]
+      [item.name, item.product]
         .filter(Boolean)
         .some((value) => value.toLowerCase().includes(lower))
     );
@@ -55,7 +59,7 @@ const PilihPakanOvkModal = ({
       next[item.id] = {
         selected: true,
         qty: current?.qty || 1,
-        price: current?.price || item.priceOptions?.[0] || 0
+        price: current?.price || getDefaultPrice(item)
       };
       return next;
     });
@@ -67,7 +71,7 @@ const PilihPakanOvkModal = ({
       [item.id]: {
         selected: true,
         qty: Math.max(1, qty || 1),
-        price: prev[item.id]?.price || item.priceOptions?.[0] || 0
+        price: prev[item.id]?.price || getDefaultPrice(item)
       }
     }));
   };
@@ -150,18 +154,30 @@ const PilihPakanOvkModal = ({
                 <tr>
                   <th className="w-12 border-b border-slate-200 px-3 py-2 text-center">Pilih</th>
                   <th className="border-b border-slate-200 px-3 py-2 text-left">Nama Produk</th>
-                  <th className="border-b border-slate-200 px-3 py-2 text-left">Persediaan</th>
-                  <th className="border-b border-slate-200 px-3 py-2 text-left">Satuan</th>
-                  <th className="border-b border-slate-200 px-3 py-2 text-left">Pilih Harga</th>
+                  <th className="border-b border-slate-200 px-3 py-2 text-left">Produk</th>
+                  <th className="border-b border-slate-200 px-3 py-2 text-left">Harga</th>
                   <th className="border-b border-slate-200 px-3 py-2 text-left">Jumlah Pembelian</th>
-                  <th className="border-b border-slate-200 px-3 py-2 text-left">Kode Barang</th>
-                  <th className="border-b border-slate-200 px-3 py-2 text-left">Pemasok</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredItems.map((item) => {
+                {isLoading && (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-8 text-center text-sm text-slate-500">
+                      Memuat data produk...
+                    </td>
+                  </tr>
+                )}
+                {!isLoading && errorMessage && (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-6 text-center text-sm text-red-600">
+                      {errorMessage}
+                    </td>
+                  </tr>
+                )}
+                {!isLoading && !errorMessage && filteredItems.map((item) => {
                   const current = selectedMap[item.id];
                   const isSelected = Boolean(current?.selected);
+                  const hasPriceOptions = (item.priceOptions || []).length > 0;
                   return (
                     <tr
                       key={item.id}
@@ -183,20 +199,11 @@ const PilihPakanOvkModal = ({
                         </button>
                       </td>
                       <td className="px-3 py-2 font-semibold text-slate-700">{item.name}</td>
-                      <td className="px-3 py-2 text-slate-600">{item.stock}</td>
-                      <td className="px-3 py-2 text-slate-600">{item.unit}</td>
+                      <td className="px-3 py-2 text-slate-600">{item.product || '-'}</td>
                       <td className="px-3 py-2">
-                        <select
-                          value={current?.price ?? item.priceOptions?.[0] ?? 0}
-                          onChange={(event) => handlePriceChange(item, event.target.value)}
-                          className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-700"
-                        >
-                          {(item.priceOptions || []).map((price) => (
-                            <option key={price} value={price}>
-                              {formatCurrency(price)}
-                            </option>
-                          ))}
-                        </select>
+                        <span className="text-sm text-slate-500">
+                          {formatCurrency(getDefaultPrice(item))}
+                        </span>
                       </td>
                       <td className="px-3 py-2">
                         <input
@@ -207,14 +214,12 @@ const PilihPakanOvkModal = ({
                           className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-700"
                         />
                       </td>
-                      <td className="px-3 py-2 text-slate-600">{item.code}</td>
-                      <td className="px-3 py-2 text-slate-600">{item.supplier}</td>
                     </tr>
                   );
                 })}
-                {filteredItems.length === 0 && (
+                {!isLoading && !errorMessage && filteredItems.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="px-4 py-8 text-center text-sm text-slate-500">
+                    <td colSpan={5} className="px-4 py-8 text-center text-sm text-slate-500">
                       Data tidak ditemukan.
                     </td>
                   </tr>

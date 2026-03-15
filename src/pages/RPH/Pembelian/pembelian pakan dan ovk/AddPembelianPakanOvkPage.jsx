@@ -1,9 +1,10 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, CheckSquare, FileText, Save, ShoppingCart, Sparkles } from 'lucide-react';
 import SearchableSelect from '../../../../components/shared/SearchableSelect';
 import usePersetujuanRphSelect from '../Pembelian Sapi/hooks/usePersetujuanRphSelect';
 import PilihPakanOvkModal from './modals/PilihPakanOvkModal';
+import RphPembelianService from '../../../../services/rphPembelianService';
 
 const PAGE_VARIANTS = {
   pakan: {
@@ -54,68 +55,6 @@ const PAGE_VARIANTS = {
   }
 };
 
-const ITEM_OPTIONS = {
-  pakan: [
-    {
-      id: 'pakan-001',
-      name: 'Pakan Konsentrat Super',
-      stock: '1.200 kg',
-      unit: 'Kg',
-      code: 'PKN-001',
-      supplier: 'PT Agro Makmur',
-      priceOptions: [7500, 8200]
-    },
-    {
-      id: 'pakan-002',
-      name: 'Pakan Hijauan Premium',
-      stock: '800 kg',
-      unit: 'Kg',
-      code: 'PKN-002',
-      supplier: 'CV Hijau Lestari',
-      priceOptions: [6200, 7000]
-    },
-    {
-      id: 'pakan-003',
-      name: 'Pakan Fermentasi',
-      stock: '450 kg',
-      unit: 'Kg',
-      code: 'PKN-003',
-      supplier: 'UD Mitra Peternak',
-      priceOptions: [9800, 10500]
-    }
-  ],
-  ovk: [
-    {
-      id: 'ovk-001',
-      name: 'Vitamin Ternak A',
-      stock: '120 botol',
-      unit: 'Botol',
-      code: 'OVK-001',
-      supplier: 'PT Sehat Farm',
-      priceOptions: [18500, 21000]
-    },
-    {
-      id: 'ovk-002',
-      name: 'Disinfektan Kandang',
-      stock: '85 botol',
-      unit: 'Botol',
-      code: 'OVK-002',
-      supplier: 'CV Bio Clean',
-      priceOptions: [26000, 29500]
-    },
-    {
-      id: 'ovk-003',
-      name: 'Antibiotik Spektrum',
-      stock: '60 botol',
-      unit: 'Botol',
-      code: 'OVK-003',
-      supplier: 'PT Vet Farma',
-      priceOptions: [42000, 45000]
-    }
-  ]
-};
-
-
 const formatCurrency = (value) =>
   new Intl.NumberFormat('id-ID', {
     style: 'currency',
@@ -144,9 +83,40 @@ const AddPembelianPakanOvkPage = () => {
   const [selectedMengetahui, setSelectedMengetahui] = useState(null);
   const [notes, setNotes] = useState('');
   const [isItemModalOpen, setIsItemModalOpen] = useState(false);
+  const [itemOptions, setItemOptions] = useState([]);
+  const [isItemLoading, setIsItemLoading] = useState(false);
+  const [itemErrorMessage, setItemErrorMessage] = useState('');
 
   const { persetujuanOptions, loading: persetujuanLoading } = usePersetujuanRphSelect();
-  const itemOptions = useMemo(() => ITEM_OPTIONS[config.key] || [], [config.key]);
+
+  useEffect(() => {
+    let isActive = true;
+
+    const fetchItems = async () => {
+      setIsItemLoading(true);
+      setItemErrorMessage('');
+
+      const response = await RphPembelianService.getProdukOptions(
+        config.key === 'pakan' ? 1 : 2
+      );
+
+      if (!isActive) return;
+
+      setItemOptions(response.data || []);
+
+      if (!response.success) {
+        setItemErrorMessage(response.message || 'Gagal memuat daftar produk.');
+      }
+
+      setIsItemLoading(false);
+    };
+
+    fetchItems();
+
+    return () => {
+      isActive = false;
+    };
+  }, [config.key]);
 
   const handleApplyItems = (items) => {
     setSelectedItems(items);
@@ -364,6 +334,8 @@ const AddPembelianPakanOvkPage = () => {
         onApply={handleApplyItems}
         title={config.helperTitle}
         accentClass={config.accentClass}
+        isLoading={isItemLoading}
+        errorMessage={itemErrorMessage}
       />
     </div>
   );
