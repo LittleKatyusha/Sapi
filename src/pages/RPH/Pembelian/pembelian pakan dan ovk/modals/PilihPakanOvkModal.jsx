@@ -48,6 +48,30 @@ const PilihPakanOvkModal = ({
     );
   }, [items, searchTerm]);
 
+  const handleSelectAll = () => {
+    setSelectedMap((prev) => {
+      const next = { ...prev };
+      filteredItems.forEach((item) => {
+        next[item.id] = {
+          selected: true,
+          qty: next[item.id]?.qty || 1,
+          price: next[item.id]?.price || getDefaultPrice(item)
+        };
+      });
+      return next;
+    });
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedMap((prev) => {
+      const next = { ...prev };
+      filteredItems.forEach((item) => {
+        delete next[item.id];
+      });
+      return next;
+    });
+  };
+
   const handleToggleSelect = (item) => {
     setSelectedMap((prev) => {
       const current = prev[item.id];
@@ -135,15 +159,33 @@ const PilihPakanOvkModal = ({
         </div>
 
         <div className="px-6 pt-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Cari nama produk, kode barang, atau pemasok..."
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm text-slate-700 outline-none transition focus:border-emerald-300 focus:bg-white focus:ring-4 focus:ring-emerald-100"
-            />
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="relative flex-1 min-w-[220px]">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="Cari nama produk, kode barang, atau pemasok..."
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm text-slate-700 outline-none transition focus:border-emerald-300 focus:bg-white focus:ring-4 focus:ring-emerald-100"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleSelectAll}
+                className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100"
+              >
+                Pilih Semua
+              </button>
+              <button
+                type="button"
+                onClick={handleDeselectAll}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-100"
+              >
+                Deselect Semua
+              </button>
+            </div>
           </div>
         </div>
 
@@ -156,20 +198,21 @@ const PilihPakanOvkModal = ({
                   <th className="border-b border-slate-200 px-3 py-2 text-left">Nama Produk</th>
                   <th className="border-b border-slate-200 px-3 py-2 text-left">Produk</th>
                   <th className="border-b border-slate-200 px-3 py-2 text-left">Harga</th>
+                  <th className="border-b border-slate-200 px-3 py-2 text-left">Stok</th>
                   <th className="border-b border-slate-200 px-3 py-2 text-left">Jumlah Pembelian</th>
                 </tr>
               </thead>
               <tbody>
                 {isLoading && (
                   <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-sm text-slate-500">
+                    <td colSpan={6} className="px-4 py-8 text-center text-sm text-slate-500">
                       Memuat data produk...
                     </td>
                   </tr>
                 )}
                 {!isLoading && errorMessage && (
                   <tr>
-                    <td colSpan={5} className="px-4 py-6 text-center text-sm text-red-600">
+                    <td colSpan={6} className="px-4 py-6 text-center text-sm text-red-600">
                       {errorMessage}
                     </td>
                   </tr>
@@ -205,6 +248,7 @@ const PilihPakanOvkModal = ({
                           {formatCurrency(getDefaultPrice(item))}
                         </span>
                       </td>
+                      <td className="px-3 py-2 text-slate-600">{item.qty ?? item.stock ?? '-'}</td>
                       <td className="px-3 py-2">
                         <input
                           type="number"
@@ -219,7 +263,7 @@ const PilihPakanOvkModal = ({
                 })}
                 {!isLoading && !errorMessage && filteredItems.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-sm text-slate-500">
+                    <td colSpan={6} className="px-4 py-8 text-center text-sm text-slate-500">
                       Data tidak ditemukan.
                     </td>
                   </tr>

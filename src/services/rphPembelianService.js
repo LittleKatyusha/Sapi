@@ -39,6 +39,7 @@ const normalizePriceOptions = (item = {}) => {
 class RphPembelianService {
   static API_DATA = '/api/rph/pembelian/data';
   static API_PRODUK = '/api/rph/pembelian/getproduk';
+  static API_STORE = '/api/rph/pembelian/store';
 
   static async getProdukOptions(jenisProduk) {
     try {
@@ -94,6 +95,25 @@ class RphPembelianService {
         success: false,
         data: [],
         message: error?.message || 'Gagal memuat data pembelian'
+      };
+    }
+  }
+
+  static async storePembelian(payload = {}) {
+    try {
+      const response = await HttpClient.post(this.API_STORE, payload);
+      return {
+        success: true,
+        data: response?.data ?? response,
+        message: response?.message || 'Pembelian berhasil disimpan'
+      };
+    } catch (error) {
+      const errorData = error?.data ?? error?.response?.data ?? null;
+      console.error('Error storing RPH pembelian:', error);
+      return {
+        success: false,
+        data: errorData,
+        message: errorData?.message || error?.message || 'Gagal menyimpan pembelian'
       };
     }
   }

@@ -410,15 +410,12 @@ const PembelianPakanOvkPage = () => {
         cell: (row) => <div className="font-semibold text-emerald-700">{formatCurrency(row.total)}</div>
       },
       {
-        name: 'Status',
+        name: 'Catatan',
         selector: (row) => row.status,
         sortable: true,
-        minWidth: '150px',
-        center: true,
+        minWidth: '200px',
         cell: (row) => (
-          <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${getStatusClasses(row.status)}`}>
-            {row.status}
-          </span>
+          <div className="text-sm font-medium text-gray-700">{row.status || '-'}</div>
         )
       }
     ],

@@ -184,7 +184,10 @@ const handleResponseError = async (response) => {
       }
     }
     
-    throw new Error(errorMessage);
+    const error = new Error(errorMessage);
+    error.data = errorDetails;
+    error.status = response.status;
+    throw error;
   }
   
   return response;

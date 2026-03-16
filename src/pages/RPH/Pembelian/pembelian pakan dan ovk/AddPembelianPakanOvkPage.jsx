@@ -1,12 +1,44 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, CheckSquare, FileText, Save, ShoppingCart, Sparkles } from 'lucide-react';
+import {
+  AlertCircle,
+  ArrowLeft,
+  CheckSquare,
+  FileText,
+  Save,
+  ShoppingCart,
+  Sparkles,
+  X
+} from 'lucide-react';
 import SearchableSelect from '../../../../components/shared/SearchableSelect';
 import usePersetujuanRphSelect from '../Pembelian Sapi/hooks/usePersetujuanRphSelect';
 import PilihPakanOvkModal from './modals/PilihPakanOvkModal';
 import RphPembelianService from '../../../../services/rphPembelianService';
 
 const PAGE_VARIANTS = {
+  universal: {
+    key: 'universal',
+    entityName: 'Pembelian',
+    pageTitle: 'Tambah Pembelian RPH',
+    subtitle:
+      'Pilih jenis pembelian terlebih dahulu, lalu lengkapi data dan item yang akan diajukan.',
+    itemFieldLabel: 'Pilih Produk',
+    itemSelectLabel: 'Produk',
+    itemPlaceholder: 'Pilih Produk',
+    mengetahuiLabel: 'Mengetahui',
+    notesLabel: 'Catatan',
+    notesPlaceholder: 'Tambahkan catatan pembelian bila diperlukan',
+    ctaText: 'Simpan Pengajuan',
+    helperTitle: 'Persediaan Produk',
+    helperDescription:
+      'Klik area ini untuk membuka modal pemilihan item atau melihat persediaan produk yang tersedia.',
+    emptySelectionText: 'Belum ada produk yang dipilih',
+    itemPreviewLabel: 'Produk terpilih',
+    accentClass: 'from-slate-500 via-slate-400 to-slate-600',
+    softAccentClass: 'from-slate-50 via-white to-slate-100',
+    iconBgClass: 'bg-slate-100 text-slate-700',
+    ctaClass: 'from-slate-500 to-slate-600 hover:from-slate-600 hover:to-slate-700'
+  },
   pakan: {
     key: 'pakan',
     entityName: 'Pakan',
@@ -78,14 +110,39 @@ const AddPembelianPakanOvkPage = () => {
   const navigate = useNavigate();
   const { type } = useParams();
 
-  const config = PAGE_VARIANTS[type] || PAGE_VARIANTS.ovk;
+  const baseConfig = PAGE_VARIANTS.universal;
+  const jenisPembelianOptions = useMemo(
+    () => [
+      { label: 'Feedmill', value: 1 },
+      { label: 'OVK', value: 2 }
+    ],
+    []
+  );
+  const tipePembayaranOptions = useMemo(
+    () => [
+      { label: 'Kas', value: 1 },
+      { label: 'Bank', value: 2 }
+    ],
+    []
+  );
+  const [selectedJenisPembelian, setSelectedJenisPembelian] = useState(null);
+  const config = selectedJenisPembelian === 1
+    ? PAGE_VARIANTS.pakan
+    : selectedJenisPembelian === 2
+      ? PAGE_VARIANTS.ovk
+      : baseConfig;
   const [selectedItems, setSelectedItems] = useState([]);
   const [selectedMengetahui, setSelectedMengetahui] = useState(null);
+  const [tipePembayaran, setTipePembayaran] = useState(1);
   const [notes, setNotes] = useState('');
+  const [notification, setNotification] = useState(null);
   const [isItemModalOpen, setIsItemModalOpen] = useState(false);
   const [itemOptions, setItemOptions] = useState([]);
   const [isItemLoading, setIsItemLoading] = useState(false);
   const [itemErrorMessage, setItemErrorMessage] = useState('');
+
+  const isItemSelectionDisabled = !selectedJenisPembelian;
+  const isPersetujuanDisabled = isItemSelectionDisabled;
 
   const { persetujuanOptions, loading: persetujuanLoading } = usePersetujuanRphSelect();
 
@@ -93,12 +150,17 @@ const AddPembelianPakanOvkPage = () => {
     let isActive = true;
 
     const fetchItems = async () => {
+      if (!selectedJenisPembelian) {
+        setItemOptions([]);
+        setItemErrorMessage('');
+        setIsItemLoading(false);
+        return;
+      }
+
       setIsItemLoading(true);
       setItemErrorMessage('');
 
-      const response = await RphPembelianService.getProdukOptions(
-        config.key === 'pakan' ? 1 : 2
-      );
+      const response = await RphPembelianService.getProdukOptions(selectedJenisPembelian);
 
       if (!isActive) return;
 
@@ -116,7 +178,21 @@ const AddPembelianPakanOvkPage = () => {
     return () => {
       isActive = false;
     };
-  }, [config.key]);
+  }, [selectedJenisPembelian]);
+
+  useEffect(() => {
+    if (isItemSelectionDisabled) {
+      setIsItemModalOpen(false);
+    }
+  }, [isItemSelectionDisabled]);
+
+  useEffect(() => {
+    if (!selectedJenisPembelian) {
+      return;
+    }
+
+    setSelectedItems([]);
+  }, [selectedJenisPembelian]);
 
   const handleApplyItems = (items) => {
     setSelectedItems(items);
@@ -125,9 +201,58 @@ const AddPembelianPakanOvkPage = () => {
 
   const handleBack = () => navigate('/rph/pembelian-pakan-ovk');
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
+
+    const payload = {
+      id_jenis_pembelian_rph: selectedJenisPembelian ?? null,
+      id_persetujuan_rph: selectedMengetahui ?? null,
+      tipe_pembayaran: tipePembayaran ?? null,
+      keterangan: notes?.trim() || null,
+      items: selectedItems.map((item) => {
+        const parsedId = Number(
+          item.id ?? item.id_produk ?? item._original?.id_produk ?? item._original?.id
+        );
+        return {
+          id_produk: Number.isFinite(parsedId) ? parsedId : null,
+          jumlah: Number(item.qty ?? item.jumlah ?? 0)
+        };
+      })
+    };
+
+    const result = await RphPembelianService.storePembelian(payload);
+
+    if (result.success) {
+      navigate('/rph/pembelian-pakan-ovk');
+      return;
+    }
+
+    const detailMessage =
+      result?.data?.data?.details ||
+      result?.data?.details ||
+      result?.message ||
+      'Gagal menyimpan pembelian';
+
+    const normalizeStockMessage = (message) => {
+      if (!message) return message;
+      const match = String(message).match(/produk\s+(.+?)\s+stok/i);
+      if (match?.[1]) {
+        return `${match[1]} stok tidak cukup`;
+      }
+      return message;
+    };
+
+    setNotification({
+      type: 'error',
+      message: normalizeStockMessage(detailMessage)
+    });
   };
+
+  useEffect(() => {
+    if (!notification) return;
+    const timer = setTimeout(() => setNotification(null), 5000);
+    return () => clearTimeout(timer);
+  }, [notification]);
 
   return (
     <div className={`min-h-screen bg-gradient-to-br ${config.softAccentClass} p-3 sm:p-5 md:p-6`}>
@@ -196,11 +321,28 @@ const AddPembelianPakanOvkPage = () => {
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
                     Tipe Form
                   </p>
-                  <p className="mt-1 text-sm font-semibold text-slate-700">{config.entityName}</p>
+                  <p className="mt-1 text-sm font-semibold text-slate-700">
+                    {selectedJenisPembelian
+                      ? config.entityName
+                      : 'Belum dipilih'}
+                  </p>
                 </div>
               </div>
 
               <div className="mt-6 grid gap-5 md:grid-cols-2">
+                <FormField
+                  label="Pilih Jenis Pembelian"
+                  helperText="Pilih jenis pembelian sebelum memilih item."
+                  required
+                >
+                  <SearchableSelect
+                    value={selectedJenisPembelian}
+                    onChange={setSelectedJenisPembelian}
+                    options={jenisPembelianOptions}
+                    placeholder="Pilih Jenis Pembelian"
+                  />
+                </FormField>
+
                 <FormField
                   label={config.itemFieldLabel}
                   helperText={`Gunakan field ini untuk memilih ${config.itemSelectLabel.toLowerCase()} yang akan diajukan.`}
@@ -209,7 +351,12 @@ const AddPembelianPakanOvkPage = () => {
                   <button
                     type="button"
                     onClick={() => setIsItemModalOpen(true)}
-                    className="w-full rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-3 text-left text-sm text-slate-600 transition hover:border-emerald-300 hover:bg-white focus:outline-none focus:ring-4 focus:ring-emerald-100"
+                    disabled={isItemSelectionDisabled}
+                    className={`w-full rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-3 text-left text-sm transition focus:outline-none focus:ring-4 focus:ring-emerald-100 ${
+                      isItemSelectionDisabled
+                        ? 'cursor-not-allowed text-slate-400 opacity-60'
+                        : 'text-slate-600 hover:border-emerald-300 hover:bg-white'
+                    }`}
                   >
                     {selectedItems.length === 0 ? (
                       <span className="text-slate-400">{config.itemPlaceholder}</span>
@@ -230,9 +377,29 @@ const AddPembelianPakanOvkPage = () => {
                     value={selectedMengetahui}
                     onChange={setSelectedMengetahui}
                     options={persetujuanOptions.filter((option) => option.value !== '')}
-                    placeholder={persetujuanLoading ? 'Loading...' : `Pilih ${config.mengetahuiLabel}`}
+                    placeholder={
+                      persetujuanLoading
+                        ? 'Loading...'
+                        : isPersetujuanDisabled
+                          ? 'Pilih jenis pembelian terlebih dahulu'
+                          : `Pilih ${config.mengetahuiLabel}`
+                    }
                     isLoading={persetujuanLoading}
-                    isDisabled={persetujuanLoading}
+                    isDisabled={persetujuanLoading || isPersetujuanDisabled}
+                  />
+                </FormField>
+
+                <FormField
+                  label="Tipe Pembayaran"
+                  helperText="Pilih tipe pembayaran yang digunakan."
+                  required
+                >
+                  <SearchableSelect
+                    value={tipePembayaran}
+                    onChange={setTipePembayaran}
+                    options={tipePembayaranOptions}
+                    placeholder="Pilih Tipe Pembayaran"
+                    isDisabled={isItemSelectionDisabled}
                   />
                 </FormField>
 
@@ -274,7 +441,12 @@ const AddPembelianPakanOvkPage = () => {
                 <button
                   type="button"
                   onClick={() => setIsItemModalOpen(true)}
-                  className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-700"
+                  disabled={isItemSelectionDisabled}
+                  className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-semibold shadow-sm transition ${
+                    isItemSelectionDisabled
+                      ? 'cursor-not-allowed bg-slate-200 text-slate-500'
+                      : 'bg-emerald-600 text-white hover:bg-emerald-700'
+                  }`}
                 >
                   Tambah Produk
                 </button>
@@ -286,18 +458,15 @@ const AddPembelianPakanOvkPage = () => {
                     <tr className="border-b border-emerald-100">
                       <th className="w-12 px-4 py-2 text-left font-semibold">Pilih</th>
                       <th className="px-4 py-2 text-left font-semibold">Nama Produk</th>
-                      <th className="px-4 py-2 text-left font-semibold">Persediaan</th>
-                      <th className="px-4 py-2 text-left font-semibold">Satuan</th>
-                      <th className="px-4 py-2 text-left font-semibold">Pilih Harga</th>
+                      <th className="px-4 py-2 text-left font-semibold">Produk</th>
+                      <th className="px-4 py-2 text-left font-semibold">Harga</th>
                       <th className="px-4 py-2 text-left font-semibold">Jumlah Pembelian</th>
-                      <th className="px-4 py-2 text-left font-semibold">Kode Barang</th>
-                      <th className="px-4 py-2 text-left font-semibold">Pemasok</th>
                     </tr>
                   </thead>
                   <tbody>
                     {selectedItems.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="px-4 py-8 text-center text-sm text-slate-500">
+                        <td colSpan={5} className="px-4 py-8 text-center text-sm text-slate-500">
                           {config.emptySelectionText}
                         </td>
                       </tr>
@@ -308,12 +477,9 @@ const AddPembelianPakanOvkPage = () => {
                             <CheckSquare className="h-4 w-4 text-emerald-600" />
                           </td>
                           <td className="px-4 py-2 font-semibold text-slate-700">{item.name}</td>
-                          <td className="px-4 py-2 text-slate-600">{item.stock}</td>
-                          <td className="px-4 py-2 text-slate-600">{item.unit}</td>
+                          <td className="px-4 py-2 text-slate-600">{item.product || '-'}</td>
                           <td className="px-4 py-2 text-slate-700">{formatCurrency(item.price)}</td>
-                          <td className="px-4 py-2 text-slate-700">{item.qty}</td>
-                          <td className="px-4 py-2 text-slate-600">{item.code}</td>
-                          <td className="px-4 py-2 text-slate-600">{item.supplier}</td>
+                          <td className="px-4 py-2 text-slate-700">{item.qty ?? '-'}</td>
                         </tr>
                       ))
                     )}
@@ -325,6 +491,29 @@ const AddPembelianPakanOvkPage = () => {
           </form>
         </div>
       </div>
+
+      {notification && (
+        <div className="fixed right-4 top-4 z-50">
+          <div className="w-full max-w-sm overflow-hidden rounded-xl border-l-4 border-red-500 bg-white shadow-lg ring-1 ring-black/5">
+            <div className="flex items-start gap-3 p-4">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-red-50 text-red-600">
+                <AlertCircle className="h-4 w-4" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-slate-900">Error!</p>
+                <p className="mt-1 text-sm text-slate-600">{notification.message}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setNotification(null)}
+                className="rounded-full p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <PilihPakanOvkModal
         isOpen={isItemModalOpen}
