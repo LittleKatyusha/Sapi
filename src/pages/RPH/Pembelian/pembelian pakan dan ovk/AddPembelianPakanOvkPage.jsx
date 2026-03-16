@@ -3,8 +3,10 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
   AlertCircle,
   ArrowLeft,
+  CheckCircle2,
   CheckSquare,
   FileText,
+  Loader2,
   Save,
   ShoppingCart,
   Sparkles,
@@ -108,7 +110,10 @@ const FormField = ({ label, helperText, required = false, children }) => (
 
 const AddPembelianPakanOvkPage = () => {
   const navigate = useNavigate();
-  const { type } = useParams();
+  const { type, id, pubid } = useParams();
+
+  const detailId = id || pubid;
+  const isEditMode = Boolean(detailId);
 
   const baseConfig = PAGE_VARIANTS.universal;
   const jenisPembelianOptions = useMemo(
@@ -140,6 +145,11 @@ const AddPembelianPakanOvkPage = () => {
   const [itemOptions, setItemOptions] = useState([]);
   const [isItemLoading, setIsItemLoading] = useState(false);
   const [itemErrorMessage, setItemErrorMessage] = useState('');
+  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [detailItems, setDetailItems] = useState([]);
+  const [hasAppliedDetailItems, setHasAppliedDetailItems] = useState(false);
+  const [skipResetOnJenis, setSkipResetOnJenis] = useState(false);
 
   const isItemSelectionDisabled = !selectedJenisPembelian;
   const isPersetujuanDisabled = isItemSelectionDisabled;
@@ -181,6 +191,58 @@ const AddPembelianPakanOvkPage = () => {
   }, [selectedJenisPembelian]);
 
   useEffect(() => {
+    if (isEditMode || !type) return;
+    if (type === 'pakan') {
+      setSelectedJenisPembelian(1);
+    } else if (type === 'ovk') {
+      setSelectedJenisPembelian(2);
+    }
+  }, [type, isEditMode]);
+
+  useEffect(() => {
+    if (!isEditMode || !detailId) return;
+    let isActive = true;
+
+    const fetchDetail = async () => {
+      setIsLoadingDetail(true);
+      try {
+        const response = await RphPembelianService.getDetail(detailId);
+        if (!isActive) return;
+
+        if (response.success && response.data?.length) {
+          const detail = Array.isArray(response.data) ? response.data[0] : response.data;
+          setSkipResetOnJenis(true);
+          setSelectedJenisPembelian(detail.id_jenis_pembelian_rph ?? null);
+          setSelectedMengetahui(
+            detail.id_persetujuan_rph ?? detail.id_persetujuan ?? detail.id_mengetahui ?? null
+          );
+          setTipePembayaran(detail.tipe_pembayaran ?? 1);
+          setNotes(detail.keterangan ?? detail.note ?? '');
+          setDetailItems(Array.isArray(detail.detail) ? detail.detail : detail.details || []);
+        } else {
+          setNotification({
+            type: 'error',
+            message: response.message || 'Gagal memuat data detail'
+          });
+        }
+      } catch (error) {
+        console.error('Error loading pembelian detail:', error);
+        if (isActive) {
+          setNotification({ type: 'error', message: 'Gagal memuat data untuk edit' });
+        }
+      } finally {
+        if (isActive) setIsLoadingDetail(false);
+      }
+    };
+
+    fetchDetail();
+
+    return () => {
+      isActive = false;
+    };
+  }, [isEditMode, detailId]);
+
+  useEffect(() => {
     if (isItemSelectionDisabled) {
       setIsItemModalOpen(false);
     }
@@ -191,8 +253,41 @@ const AddPembelianPakanOvkPage = () => {
       return;
     }
 
+    if (skipResetOnJenis) {
+      setSkipResetOnJenis(false);
+      return;
+    }
+
     setSelectedItems([]);
-  }, [selectedJenisPembelian]);
+  }, [selectedJenisPembelian, skipResetOnJenis]);
+
+  useEffect(() => {
+    if (!isEditMode || hasAppliedDetailItems || detailItems.length === 0) return;
+    if (itemOptions.length === 0) return;
+
+    const normalizeId = (value) => (value === null || value === undefined ? '' : String(value));
+
+    const mappedItems = detailItems
+      .map((detail) => {
+        const detailIdValue = detail.id_produk ?? detail.id ?? detail.pid;
+        const option = itemOptions.find(
+          (item) =>
+            normalizeId(item.id) === normalizeId(detailIdValue) ||
+            Number(item.id) === Number(detailIdValue)
+        );
+
+        if (!option) return null;
+
+        return {
+          ...option,
+          qty: Number(detail.jumlah ?? detail.qty ?? 0)
+        };
+      })
+      .filter(Boolean);
+
+    setSelectedItems(mappedItems);
+    setHasAppliedDetailItems(true);
+  }, [detailItems, itemOptions, hasAppliedDetailItems, isEditMode]);
 
   const handleApplyItems = (items) => {
     setSelectedItems(items);
@@ -220,10 +315,27 @@ const AddPembelianPakanOvkPage = () => {
       })
     };
 
-    const result = await RphPembelianService.storePembelian(payload);
+    if (isEditMode) {
+      payload.pid = detailId;
+    }
+
+    setIsSubmitting(true);
+    setNotification({
+      type: 'info',
+      message: isEditMode ? 'Memperbarui data...' : 'Menyimpan data...'
+    });
+
+    const result = isEditMode
+      ? await RphPembelianService.updatePembelian(payload)
+      : await RphPembelianService.storePembelian(payload);
 
     if (result.success) {
-      navigate('/rph/pembelian-pakan-ovk');
+      setNotification({
+        type: 'success',
+        message: result.message || 'Data berhasil disimpan'
+      });
+      setTimeout(() => navigate('/rph/pembelian-pakan-ovk'), 1200);
+      setIsSubmitting(false);
       return;
     }
 
@@ -246,6 +358,7 @@ const AddPembelianPakanOvkPage = () => {
       type: 'error',
       message: normalizeStockMessage(detailMessage)
     });
+    setIsSubmitting(false);
   };
 
   useEffect(() => {
@@ -253,6 +366,22 @@ const AddPembelianPakanOvkPage = () => {
     const timer = setTimeout(() => setNotification(null), 5000);
     return () => clearTimeout(timer);
   }, [notification]);
+
+  if (isLoadingDetail) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-cyan-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-10 w-10 animate-spin text-emerald-500 mx-auto" />
+          <p className="mt-3 text-sm font-medium text-slate-500">Memuat data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const pageTitle = isEditMode
+    ? config.pageTitle.replace('Tambah', 'Edit')
+    : config.pageTitle;
+  const actionText = isEditMode ? 'Perbarui Data' : config.ctaText;
 
   return (
     <div className={`min-h-screen bg-gradient-to-br ${config.softAccentClass} p-3 sm:p-5 md:p-6`}>
@@ -280,7 +409,7 @@ const AddPembelianPakanOvkPage = () => {
                     Form Pengajuan RPH
                   </div>
                   <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-                    {config.pageTitle}
+                    {pageTitle}
                   </h1>
                   <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500 sm:text-base">
                     {config.subtitle}
@@ -294,9 +423,10 @@ const AddPembelianPakanOvkPage = () => {
                 type="submit"
                 form="pembelian-pakan-ovk-form"
                 className={`inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r px-5 py-3 text-sm font-semibold text-white shadow-lg transition-all ${config.ctaClass}`}
+                disabled={isSubmitting}
               >
-                <Save className="h-4 w-4" />
-                {config.ctaText}
+                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                {isSubmitting ? 'Menyimpan...' : actionText}
               </button>
             </div>
           </div>
@@ -494,13 +624,41 @@ const AddPembelianPakanOvkPage = () => {
 
       {notification && (
         <div className="fixed right-4 top-4 z-50">
-          <div className="w-full max-w-sm overflow-hidden rounded-xl border-l-4 border-red-500 bg-white shadow-lg ring-1 ring-black/5">
+          <div
+            className={`w-full max-w-sm overflow-hidden rounded-xl border-l-4 bg-white shadow-lg ring-1 ring-black/5 ${
+              notification.type === 'success'
+                ? 'border-emerald-500'
+                : notification.type === 'info'
+                  ? 'border-sky-500'
+                  : 'border-red-500'
+            }`}
+          >
             <div className="flex items-start gap-3 p-4">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-red-50 text-red-600">
-                <AlertCircle className="h-4 w-4" />
+              <div
+                className={`flex h-8 w-8 items-center justify-center rounded-full ${
+                  notification.type === 'success'
+                    ? 'bg-emerald-50 text-emerald-600'
+                    : notification.type === 'info'
+                      ? 'bg-sky-50 text-sky-600'
+                      : 'bg-red-50 text-red-600'
+                }`}
+              >
+                {notification.type === 'success' ? (
+                  <CheckCircle2 className="h-4 w-4" />
+                ) : notification.type === 'info' ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <AlertCircle className="h-4 w-4" />
+                )}
               </div>
               <div className="flex-1">
-                <p className="text-sm font-semibold text-slate-900">Error!</p>
+                <p className="text-sm font-semibold text-slate-900">
+                  {notification.type === 'success'
+                    ? 'Berhasil!'
+                    : notification.type === 'info'
+                      ? 'Memproses...'
+                      : 'Error!'}
+                </p>
                 <p className="mt-1 text-sm text-slate-600">{notification.message}</p>
               </div>
               <button

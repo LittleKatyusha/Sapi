@@ -272,6 +272,7 @@ function AppSecure() {
               {/* RPH Pembelian Pakan dan OVK Routes */}
               <Route path="/rph/pembelian-pakan-ovk" element={<PembelianPakanOvkPage />} />
               <Route path="/rph/pembelian-pakan-ovk/add/:type" element={<AddPembelianPakanOvkPage />} />
+              <Route path="/rph/pembelian-pakan-ovk/edit/:id" element={<AddPembelianPakanOvkPage />} />
                
               {/* HO Feedmil and OVK Routes */}
               <Route path="/ho/pembelian-feedmil" element={<PembelianFeedmilPage />} />

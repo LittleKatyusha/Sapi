@@ -40,6 +40,8 @@ class RphPembelianService {
   static API_DATA = '/api/rph/pembelian/data';
   static API_PRODUK = '/api/rph/pembelian/getproduk';
   static API_STORE = '/api/rph/pembelian/store';
+  static API_SHOW = '/api/rph/pembelian/show';
+  static API_UPDATE = '/api/rph/pembelian/update';
 
   static async getProdukOptions(jenisProduk) {
     try {
@@ -114,6 +116,51 @@ class RphPembelianService {
         success: false,
         data: errorData,
         message: errorData?.message || error?.message || 'Gagal menyimpan pembelian'
+      };
+    }
+  }
+
+  static async getDetail(pid) {
+    try {
+      const response = await HttpClient.post(this.API_SHOW, { pid });
+      const rawData = Array.isArray(response?.data)
+        ? response.data
+        : Array.isArray(response)
+          ? response
+          : response?.data
+            ? [response.data]
+            : [];
+      return {
+        success: true,
+        data: rawData,
+        message: response?.message || 'Detail pembelian berhasil dimuat'
+      };
+    } catch (error) {
+      const errorData = error?.data ?? error?.response?.data ?? null;
+      console.error('Error fetching RPH pembelian detail:', error);
+      return {
+        success: false,
+        data: [],
+        message: errorData?.message || error?.message || 'Gagal memuat detail pembelian'
+      };
+    }
+  }
+
+  static async updatePembelian(payload = {}) {
+    try {
+      const response = await HttpClient.post(this.API_UPDATE, payload);
+      return {
+        success: true,
+        data: response?.data ?? response,
+        message: response?.message || 'Pembelian berhasil diperbarui'
+      };
+    } catch (error) {
+      const errorData = error?.data ?? error?.response?.data ?? null;
+      console.error('Error updating RPH pembelian:', error);
+      return {
+        success: false,
+        data: errorData,
+        message: errorData?.message || error?.message || 'Gagal memperbarui pembelian'
       };
     }
   }

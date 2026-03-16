@@ -71,7 +71,7 @@ const SummaryCard = ({ title, value, subtext, icon: Icon, gradientClass }) => (
   </div>
 );
 
-const ActionMenu = ({ row, onClose, buttonRef }) => {
+const ActionMenu = ({ row, onClose, buttonRef, onDetail, onEdit, onDelete }) => {
   const menuRef = useRef(null);
   const [menuStyle, setMenuStyle] = useState(null);
 
@@ -119,23 +119,31 @@ const ActionMenu = ({ row, onClose, buttonRef }) => {
       description: `Lihat detail ${row.nomor}`,
       icon: Eye,
       iconClass: 'text-sky-600',
-      bgClass: 'bg-sky-100'
+      bgClass: 'bg-sky-100',
+      onClick: () => onDetail?.(row)
     },
     {
       label: 'Edit',
       description: `Ubah data ${row.nomor}`,
       icon: Pencil,
       iconClass: 'text-amber-600',
-      bgClass: 'bg-amber-100'
+      bgClass: 'bg-amber-100',
+      onClick: () => onEdit?.(row)
     },
     {
       label: 'Hapus',
       description: `Hapus data ${row.nomor}`,
       icon: Trash2,
       iconClass: 'text-red-600',
-      bgClass: 'bg-red-100'
+      bgClass: 'bg-red-100',
+      onClick: () => onDelete?.(row)
     }
   ];
+
+  const handleActionClick = (action) => {
+    action.onClick?.();
+    onClose();
+  };
 
   return createPortal(
     <div
@@ -153,7 +161,7 @@ const ActionMenu = ({ row, onClose, buttonRef }) => {
           <button
             key={action.label}
             type="button"
-            onClick={onClose}
+            onClick={() => handleActionClick(action)}
             className="flex w-full items-start gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-gray-50"
           >
             <div className={`mt-0.5 rounded-lg p-2 ${action.bgClass}`}>
@@ -171,7 +179,7 @@ const ActionMenu = ({ row, onClose, buttonRef }) => {
   );
 };
 
-const ActionButton = ({ row, isOpen, onToggle, onClose }) => {
+const ActionButton = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onDelete }) => {
   const buttonRef = useRef(null);
 
   return (
@@ -192,12 +200,30 @@ const ActionButton = ({ row, isOpen, onToggle, onClose }) => {
         <MoreHorizontal className="h-4 w-4" />
       </button>
 
-      {isOpen && <ActionMenu row={row} onClose={onClose} buttonRef={buttonRef} />}
+      {isOpen && (
+        <ActionMenu
+          row={row}
+          onClose={onClose}
+          buttonRef={buttonRef}
+          onDetail={onDetail}
+          onEdit={onEdit}
+          onDelete={onDelete}
+        />
+      )}
     </div>
   );
 };
 
-const MobilePurchaseCard = ({ row, index, onToggleMenu, isMenuOpen, onCloseMenu }) => (
+const MobilePurchaseCard = ({
+  row,
+  index,
+  onToggleMenu,
+  isMenuOpen,
+  onCloseMenu,
+  onDetail,
+  onEdit,
+  onDelete
+}) => (
   <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
     <div className="h-1.5 bg-gradient-to-r from-emerald-500 to-cyan-500" />
     <div className="space-y-4 p-4">
@@ -243,6 +269,9 @@ const MobilePurchaseCard = ({ row, index, onToggleMenu, isMenuOpen, onCloseMenu 
           isOpen={isMenuOpen}
           onToggle={onToggleMenu}
           onClose={onCloseMenu}
+          onDetail={onDetail}
+          onEdit={onEdit}
+          onDelete={onDelete}
         />
       </div>
     </div>
@@ -263,6 +292,30 @@ const PembelianPakanOvkPage = () => {
  });
 
  const activeData = pembelianData[activeTab] || [];
+
+ const getRowId = (row) => row?.pid || row?.id || row?._original?.pid || row?._original?.id;
+
+ const handleDetail = (row) => {
+   const rowId = getRowId(row);
+   if (!rowId) return;
+   navigate(`/rph/pembelian-pakan-ovk/detail/${rowId}`, { state: { item: row, type: activeTab } });
+   setOpenMenuIdDesktop(null);
+   setOpenMenuIdMobile(null);
+ };
+
+ const handleEdit = (row) => {
+   const rowId = getRowId(row);
+   if (!rowId) return;
+   navigate(`/rph/pembelian-pakan-ovk/edit/${rowId}`, { state: { item: row, type: activeTab } });
+   setOpenMenuIdDesktop(null);
+   setOpenMenuIdMobile(null);
+ };
+
+ const handleDelete = (row) => {
+   if (!row) return;
+   setOpenMenuIdDesktop(null);
+   setOpenMenuIdMobile(null);
+ };
 
  const loadPembelianData = async (jenisPembelian, isActive) => {
    setIsLoading(true);
@@ -351,6 +404,9 @@ const PembelianPakanOvkPage = () => {
                 setOpenMenuIdDesktop((currentId) => (currentId === row.id ? null : row.id));
               }}
               onClose={() => setOpenMenuIdDesktop(null)}
+              onDetail={handleDetail}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
             />
           </div>
         )
@@ -633,6 +689,9 @@ const PembelianPakanOvkPage = () => {
                       setOpenMenuIdMobile((currentId) => (currentId === row.id ? null : row.id));
                     }}
                     onCloseMenu={() => setOpenMenuIdMobile(null)}
+                    onDetail={handleDetail}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
                   />
                 ))
               )}
