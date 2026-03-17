@@ -42,6 +42,7 @@ class RphPembelianService {
   static API_STORE = '/api/rph/pembelian/store';
   static API_SHOW = '/api/rph/pembelian/show';
   static API_UPDATE = '/api/rph/pembelian/update';
+  static API_DELETE = '/api/rph/pembelian/hapus';
 
   static async getProdukOptions(jenisProduk) {
     try {
@@ -72,11 +73,12 @@ class RphPembelianService {
     }
   }
 
-  static async getPembelianData(idJenisPembelianRph) {
+  static async getPembelianData(idJenisPembelianRph, cacheBuster) {
     try {
       const response = await HttpClient.get(this.API_DATA, {
         params: {
-          id_jenis_pembelian_rph: idJenisPembelianRph
+          id_jenis_pembelian_rph: idJenisPembelianRph,
+          _ts: cacheBuster || Date.now()
         }
       });
 
@@ -161,6 +163,25 @@ class RphPembelianService {
         success: false,
         data: errorData,
         message: errorData?.message || error?.message || 'Gagal memperbarui pembelian'
+      };
+    }
+  }
+
+  static async deletePembelian(pid) {
+    try {
+      const response = await HttpClient.post(this.API_DELETE, { pid });
+      return {
+        success: true,
+        data: response?.data ?? response,
+        message: response?.message || 'Pembelian berhasil dihapus'
+      };
+    } catch (error) {
+      const errorData = error?.data ?? error?.response?.data ?? null;
+      console.error('Error deleting RPH pembelian:', error);
+      return {
+        success: false,
+        data: errorData,
+        message: errorData?.message || error?.message || 'Gagal menghapus pembelian'
       };
     }
   }

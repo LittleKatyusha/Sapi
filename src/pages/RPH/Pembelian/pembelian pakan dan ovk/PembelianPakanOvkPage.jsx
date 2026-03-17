@@ -1,5 +1,5 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import DataTable from 'react-data-table-component';
 import {
   PlusCircle,
@@ -19,6 +19,7 @@ import {
 import { createPortal } from 'react-dom';
 import { enhancedTableStyles } from '../pembelian sapi qurban/constants/tableStyles';
 import RphPembelianService from '../../../../services/rphPembelianService';
+import DeleteConfirmationModal from '../../../../components/shared/modals/DeleteConfirmationModal';
 
 const PURCHASE_TYPES = {
   pakan: 1,
@@ -278,18 +279,23 @@ const MobilePurchaseCard = ({
   </div>
 );
 
-const PembelianPakanOvkPage = () => {
- const navigate = useNavigate();
- const [searchTerm, setSearchTerm] = useState('');
- const [openMenuIdDesktop, setOpenMenuIdDesktop] = useState(null);
- const [openMenuIdMobile, setOpenMenuIdMobile] = useState(null);
- const [isLoading, setIsLoading] = useState(false);
- const [errorMessage, setErrorMessage] = useState('');
- const [activeTab, setActiveTab] = useState('ovk');
- const [pembelianData, setPembelianData] = useState({
-   pakan: [],
-   ovk: []
- });
+ const PembelianPakanOvkPage = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [openMenuIdDesktop, setOpenMenuIdDesktop] = useState(null);
+  const [openMenuIdMobile, setOpenMenuIdMobile] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [activeTab, setActiveTab] = useState('ovk');
+  const [pembelianData, setPembelianData] = useState({
+    pakan: [],
+    ovk: []
+  });
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const hasLoadedOnceRef = useRef(false);
 
  const activeData = pembelianData[activeTab] || [];
 
@@ -297,64 +303,106 @@ const PembelianPakanOvkPage = () => {
 
  const handleDetail = (row) => {
    const rowId = getRowId(row);
-   if (!rowId) return;
-   navigate(`/rph/pembelian-pakan-ovk/detail/${rowId}`, { state: { item: row, type: activeTab } });
-   setOpenMenuIdDesktop(null);
-   setOpenMenuIdMobile(null);
- };
+    if (!rowId) return;
+    navigate(`/rph/pembelian-pakan-ovk/detail/${rowId}`, { state: { item: row, type: activeTab } });
+    setOpenMenuIdDesktop(null);
+    setOpenMenuIdMobile(null);
+  };
 
- const handleEdit = (row) => {
-   const rowId = getRowId(row);
-   if (!rowId) return;
-   navigate(`/rph/pembelian-pakan-ovk/edit/${rowId}`, { state: { item: row, type: activeTab } });
-   setOpenMenuIdDesktop(null);
-   setOpenMenuIdMobile(null);
- };
+  const handleEdit = (row) => {
+    const rowId = getRowId(row);
+    if (!rowId) return;
+    navigate(`/rph/pembelian-pakan-ovk/edit/${rowId}`, { state: { item: row, type: activeTab } });
+    setOpenMenuIdDesktop(null);
+    setOpenMenuIdMobile(null);
+    // hard refresh after edit navigation
+    setTimeout(() => window.location.reload(), 50);
+  };
+const handleDelete = (row) => {
+    if (!row) return;
+    setSelectedItem(row);
+    setIsDeleteModalOpen(true);
+    setOpenMenuIdDesktop(null);
+    setOpenMenuIdMobile(null);
+  };
 
- const handleDelete = (row) => {
-   if (!row) return;
-   setOpenMenuIdDesktop(null);
-   setOpenMenuIdMobile(null);
- };
+  const handleConfirmDelete = async () => {
+    if (!selectedItem) return;
+    const rowId = getRowId(selectedItem);
+    if (!rowId) return;
 
- const loadPembelianData = async (jenisPembelian, isActive) => {
-   setIsLoading(true);
-   setErrorMessage('');
+    setIsDeleting(true);
+    setErrorMessage('');
 
-   const response = await RphPembelianService.getPembelianData(PURCHASE_TYPES[jenisPembelian]);
+    try {
+      const response = await RphPembelianService.deletePembelian(rowId);
 
-   if (!isActive.current) return;
+      if (!response.success) {
+        setErrorMessage(response.message || 'Gagal menghapus pembelian.');
+        return;
+      }
 
-   setPembelianData((prevState) => ({
-     ...prevState,
-     [jenisPembelian]: response.data
-   }));
+      // hard refresh after delete
+      setTimeout(() => window.location.reload(), 50);
+    } catch (error) {
+      setErrorMessage(error?.message || 'Gagal menghapus pembelian.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
-   if (!response.success) {
-     setErrorMessage(response.message || 'Gagal memuat data pembelian.');
-   }
+  const loadPembelianData = async (jenisPembelian, isActive, cacheBuster) => {
+    if (!isActive?.current) return;
+    setIsLoading(true);
+    setErrorMessage('');
 
-   setIsLoading(false);
- };
+    const response = await RphPembelianService.getPembelianData(PURCHASE_TYPES[jenisPembelian], cacheBuster);
 
- const handleTabChange = (tabKey) => {
-   setSearchTerm('');
-   setActiveTab(tabKey);
-   setOpenMenuIdDesktop(null);
-   setOpenMenuIdMobile(null);
- };
+    if (!isActive.current) return;
 
- useEffect(() => {
-   const isActive = { current: true };
+    setPembelianData((prevState) => ({
+      ...prevState,
+      [jenisPembelian]: response.data
+    }));
 
-   loadPembelianData(activeTab, isActive);
+    if (!response.success) {
+      setErrorMessage(response.message || 'Gagal memuat data pembelian.');
+    }
 
-   return () => {
-     isActive.current = false;
-   };
- }, [activeTab]);
+    setIsLoading(false);
+    hasLoadedOnceRef.current = true;
+  };
 
- const filteredData = useMemo(() => {
+
+  const handleTabChange = (tabKey) => {
+    setSearchTerm('');
+    setActiveTab(tabKey);
+    setOpenMenuIdDesktop(null);
+    setOpenMenuIdMobile(null);
+  };
+
+  useEffect(() => {
+    const isActive = { current: true };
+
+    loadPembelianData(activeTab, isActive, Date.now());
+
+    return () => {
+      isActive.current = false;
+    };
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (!hasLoadedOnceRef.current) return;
+
+    const isActive = { current: true };
+
+    loadPembelianData(activeTab, isActive, Date.now());
+
+    return () => {
+      isActive.current = false;
+    };
+  }, [location.key]);
+const filteredData = useMemo(() => {
  const keyword = searchTerm.trim().toLowerCase();
  if (!keyword) return activeData;
 
@@ -677,30 +725,46 @@ const PembelianPakanOvkPage = () => {
                   Coba ubah kata kunci pencarian untuk menemukan data {activeTab === 'ovk' ? 'OVK' : 'Pakan'} yang sesuai.
                   </p>
                 </div>
-              ) : (
-                filteredData.map((row, index) => (
-                  <MobilePurchaseCard
-                    key={row.id}
-                    row={row}
-                    index={index + 1}
-                    isMenuOpen={openMenuIdMobile === row.id}
-                    onToggleMenu={() => {
-                      setOpenMenuIdDesktop(null);
-                      setOpenMenuIdMobile((currentId) => (currentId === row.id ? null : row.id));
-                    }}
-                    onCloseMenu={() => setOpenMenuIdMobile(null)}
-                    onDetail={handleDetail}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                  />
-                ))
-              )}
-              </div>
-              </div>
-              </div>
-              </div>
-              </div>
-              </>
+                    ) : (
+        filteredData.map((row, index) => (
+          <MobilePurchaseCard
+            key={row.id}
+            row={row}
+            index={index + 1}
+            isMenuOpen={openMenuIdMobile === row.id}
+            onToggleMenu={() => {
+              setOpenMenuIdDesktop(null);
+              setOpenMenuIdMobile((currentId) => (currentId === row.id ? null : row.id));
+            }}
+            onCloseMenu={() => setOpenMenuIdMobile(null)}
+            onDetail={handleDetail}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
+        ))
+      )}
+      </div>
+      </div>
+      </div>
+      </div>
+      </div>
+
+      <DeleteConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setSelectedItem(null);
+        }}
+        onConfirm={handleConfirmDelete}
+        loading={isDeleting}
+        title="Hapus Pembelian?"
+        description={
+          selectedItem
+            ? `Anda yakin ingin menghapus pembelian ${selectedItem.nomor || ''}? Tindakan ini tidak dapat dibatalkan.`
+            : 'Anda yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.'
+        }
+      />
+    </>
   );
 };
 

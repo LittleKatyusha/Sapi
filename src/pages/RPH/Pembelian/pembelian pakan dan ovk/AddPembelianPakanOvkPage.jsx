@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   AlertCircle,
   ArrowLeft,
@@ -108,12 +108,14 @@ const FormField = ({ label, helperText, required = false, children }) => (
 );
 
 
-const AddPembelianPakanOvkPage = () => {
+ const AddPembelianPakanOvkPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { type, id, pubid } = useParams();
 
   const detailId = id || pubid;
   const isEditMode = Boolean(detailId);
+
 
   const baseConfig = PAGE_VARIANTS.universal;
   const jenisPembelianOptions = useMemo(
@@ -296,6 +298,16 @@ const AddPembelianPakanOvkPage = () => {
 
   const handleBack = () => navigate('/rph/pembelian-pakan-ovk');
 
+  const handleNavigateWithRefresh = (message) => {
+    navigate('/rph/pembelian-pakan-ovk', {
+      state: {
+        fromEdit: Boolean(isEditMode),
+        fromAdd: !isEditMode,
+        message
+      }
+    });
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
 
@@ -334,8 +346,10 @@ const AddPembelianPakanOvkPage = () => {
         type: 'success',
         message: result.message || 'Data berhasil disimpan'
       });
-      setTimeout(() => navigate('/rph/pembelian-pakan-ovk'), 1200);
       setIsSubmitting(false);
+      setTimeout(() => {
+        handleNavigateWithRefresh(result.message || 'Data berhasil disimpan');
+      }, 1200);
       return;
     }
 
