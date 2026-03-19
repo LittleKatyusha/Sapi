@@ -78,4 +78,8 @@ export const pageTitleMap = {
   '/rph/pembelian-pakan-ovk': 'RPH: Pembelian Pakan & OVK',
   '/rph/pembelian-pakan-ovk/add/pakan': 'RPH: Tambah Pembelian Pakan',
   '/rph/pembelian-pakan-ovk/add/ovk': 'RPH: Tambah Pembelian OVK',
+  '/rph/bahan-pembantu-rph': 'RPH: Bahan Pembantu',
+  '/rph/bahan-pembantu-rph/add': 'RPH: Tambah Bahan Pembantu',
+  '/rph/bahan-pembantu-rph/edit/:id': 'RPH: Edit Bahan Pembantu',
+  '/rph/bahan-pembantu-rph/detail/:id': 'RPH: Detail Bahan Pembantu',
 };

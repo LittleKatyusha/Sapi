@@ -180,7 +180,16 @@ export const API_ENDPOINTS = {
     PEMBELIAN: {
       BASE: '/api/rph/pembelian',
       SAPI: '/api/rph/pembelian/sapi'
-    }
+    },
+    BAHAN_PEMBANTU: {
+      DATA: '/api/rph/bahanpembantu/data',
+      SHOW: '/api/rph/bahanpembantu/show',
+      STORE: '/api/rph/bahanpembantu/store',
+      UPDATE: '/api/rph/bahanpembantu/update',
+      DELETE: '/api/rph/bahanpembantu/hapus',
+      SUMMARY_DAILY: '/api/rph/bahanpembantu/summary-daily',
+      SUMMARY_MONTHLY: '/api/rph/bahanpembantu/summary-monthly',
+    },
   },
 
   // SDM (Human Resources)
