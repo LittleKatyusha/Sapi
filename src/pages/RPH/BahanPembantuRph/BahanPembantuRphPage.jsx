@@ -522,16 +522,26 @@ const [openMenuIdMobile, setOpenMenuIdMobile] = useState(null);
   ];
 
   const columns = useMemo(() => {
+    const fixedWidthColumn = (config) => ({
+      grow: 0,
+      ...config
+    });
+
+    const flexibleColumn = (config) => ({
+      grow: config.grow ?? 1,
+      ...config
+    });
+
     const baseColumns = [
-      {
+      fixedWidthColumn({
         name: 'No',
         width: '50px',
         center: true,
         cell: (row, index) => (
           <div className="w-full text-center font-semibold text-gray-500">{index + 1}</div>
         )
-      },
-      {
+      }),
+      fixedWidthColumn({
         name: 'Aksi',
         width: '70px',
         center: true,
@@ -552,65 +562,73 @@ const [openMenuIdMobile, setOpenMenuIdMobile] = useState(null);
             />
           </div>
         )
-      }
+      })
     ];
 
     if (!isBiayaTab) {
-      baseColumns.push({
-        name: 'Nota Sistem',
-        selector: (row) => row.notaSistem,
-        sortable: true,
-        width: '160px',
-        cell: (row) => (
-          <div className="w-full">
-            <div className="inline-flex rounded-lg bg-emerald-50 px-3 py-1.5 font-semibold text-emerald-700">
-              {row.notaSistem}
+      baseColumns.push(
+        fixedWidthColumn({
+          name: 'Nota Sistem',
+          selector: (row) => row.notaSistem,
+          sortable: true,
+          width: '160px',
+          cell: (row) => (
+            <div className="w-full">
+              <div className="inline-flex rounded-lg bg-emerald-50 px-3 py-1.5 font-semibold text-emerald-700">
+                {row.notaSistem}
+              </div>
             </div>
-          </div>
-        )
-      });
+          )
+        })
+      );
     }
 
     if (isBiayaTab) {
       return [
         ...baseColumns,
-        {
+        flexibleColumn({
           name: 'Item Lain Lain',
           selector: (row) => row.namaProduk,
           sortable: true,
-          width: '180px',
+          minWidth: '200px',
+          grow: 1.35,
           cell: (row) => <div className="py-2 font-semibold text-gray-800">{row.namaProduk || '-'}</div>
-        },
-        {
+        }),
+        flexibleColumn({
           name: rightAlignedColumnName('Harga'),
           selector: (row) => row.hargaSatuan,
           sortable: true,
-          width: '140px',
+          minWidth: '170px',
+          grow: 1.15,
+          right: true,
           cell: (row) => (
             <div className="w-full text-right font-semibold text-emerald-700">
               {formatCurrency(row.hargaSatuan)}
             </div>
           )
-        },
-        {
+        }),
+        flexibleColumn({
           name: 'Keterangan',
           selector: (row) => row.keterangan,
           sortable: true,
-          width: '180px',
+          minWidth: '220px',
+          grow: 1.35,
           cell: (row) => <div className="text-sm font-medium text-gray-700">{row.keterangan || '-'}</div>
-        },
-        {
+        }),
+        flexibleColumn({
           name: 'Nama Bank',
           selector: (row) => row.namaBank,
           sortable: true,
-          width: '140px',
+          minWidth: '165px',
+          grow: 1.1,
           cell: (row) => <div className="text-sm font-medium text-gray-700">{row.namaBank || '-'}</div>
-        },
-        {
+        }),
+        flexibleColumn({
           name: 'Jenis Pembelian',
           selector: (row) => row.jenisPembelian,
           sortable: true,
-          width: '130px',
+          minWidth: '150px',
+          grow: 1,
           center: true,
           cell: (row) => (
             <span
@@ -623,134 +641,149 @@ const [openMenuIdMobile, setOpenMenuIdMobile] = useState(null);
               {row.jenisPembelian}
             </span>
           )
-        },
-        {
+        }),
+        flexibleColumn({
           name: 'Nama Bayar',
           selector: (row) => row.namaBayar,
           sortable: true,
-          width: '150px',
+          minWidth: '170px',
+          grow: 1.15,
           cell: (row) => <div className="text-sm font-medium text-gray-700">{row.namaBayar || '-'}</div>
-        },
-        {
+        }),
+        flexibleColumn({
           name: 'Tanggal Pembayaran',
           selector: (row) => row.tanggalPembayaran,
           sortable: true,
-          width: '160px',
+          minWidth: '180px',
+          grow: 1.1,
           cell: (row) => <div className="text-sm font-medium text-gray-700">{formatDate(row.tanggalPembayaran)}</div>
-        },
-        {
+        }),
+        flexibleColumn({
           name: 'Peruntukkan',
           selector: (row) => row.peruntukkan,
           sortable: true,
-          width: '150px',
+          minWidth: '180px',
+          grow: 1.2,
           cell: (row) => <div className="text-sm font-medium text-gray-700">{row.peruntukkan || '-'}</div>
-        },
-        {
+        }),
+        flexibleColumn({
           name: 'Payor',
           selector: (row) => row.payor,
           sortable: true,
-          width: '140px',
+          minWidth: '165px',
+          grow: 1.1,
           cell: (row) => <div className="text-sm font-medium text-gray-700">{row.payor || '-'}</div>
-        },
-        {
+        }),
+        flexibleColumn({
           name: 'Created At',
           selector: (row) => row.createdAt,
           sortable: true,
-          width: '150px',
+          minWidth: '170px',
+          grow: 1.1,
           cell: (row) => <div className="text-sm font-medium text-gray-700">{formatDate(row.createdAt)}</div>
-        }
+        })
       ];
     }
 
     return [
       ...baseColumns,
-      {
+      flexibleColumn({
         name: 'Nama Produk',
         selector: (row) => row.namaProduk,
         sortable: true,
-        width: '180px',
+        minWidth: '180px',
+        grow: 1.25,
         cell: (row) => <div className="py-2 font-semibold text-gray-800">{row.namaProduk || '-'}</div>
-      },
-      {
+      }),
+      flexibleColumn({
         name: 'Peruntukkan',
         selector: (row) => row.peruntukkan,
         sortable: true,
-        width: '150px',
+        minWidth: '150px',
+        grow: 1,
         cell: (row) => <div className="text-sm font-medium text-gray-700">{row.peruntukkan || '-'}</div>
-      },
-      {
+      }),
+      flexibleColumn({
         name: rightAlignedColumnName('Qty'),
         selector: (row) => row.qty,
         sortable: true,
-        width: '80px',
+        minWidth: '80px',
+        grow: 0.75,
         cell: (row) => (
           <div className="w-full text-right text-sm font-medium text-gray-700">{row.qty ?? '-'}</div>
         )
-      },
-      {
+      }),
+      flexibleColumn({
         name: 'Satuan',
         selector: (row) => row.satuan,
         sortable: true,
-        width: '100px',
+        minWidth: '100px',
+        grow: 0.8,
         center: true,
         cell: (row) => <div className="text-sm font-medium text-gray-700">{row.satuan || '-'}</div>
-      },
-      {
+      }),
+      flexibleColumn({
         name: rightAlignedColumnName('Harga Satuan'),
         selector: (row) => row.hargaSatuan,
         sortable: true,
-        width: '150px',
+        minWidth: '150px',
+        grow: 0.95,
         cell: (row) => (
           <div className="w-full text-right text-sm font-medium text-gray-700">
             {formatCurrency(row.hargaSatuan)}
           </div>
         )
-      },
-      {
+      }),
+      flexibleColumn({
         name: 'Pemasok',
         selector: (row) => row.pemasok,
         sortable: true,
-        width: '150px',
+        minWidth: '150px',
+        grow: 1,
         cell: (row) => <div className="text-sm font-medium text-gray-700">{row.pemasok || '-'}</div>
-      },
-      {
+      }),
+      flexibleColumn({
         name: rightAlignedColumnName('Biaya Kirim'),
         selector: (row) => row.biayaKirim,
         sortable: true,
-        width: '130px',
+        minWidth: '130px',
+        grow: 0.9,
         cell: (row) => (
           <div className="w-full text-right text-sm font-medium text-gray-700">
             {formatCurrency(row.biayaKirim)}
           </div>
         )
-      },
-      {
+      }),
+      flexibleColumn({
         name: rightAlignedColumnName('Biaya Lain'),
         selector: (row) => row.biayaLain,
         sortable: true,
-        width: '130px',
+        minWidth: '130px',
+        grow: 0.9,
         cell: (row) => (
           <div className="w-full text-right text-sm font-medium text-gray-700">
             {formatCurrency(row.biayaLain)}
           </div>
         )
-      },
-      {
+      }),
+      flexibleColumn({
         name: rightAlignedColumnName('Biaya Total'),
         selector: (row) => row.biayaTotal,
         sortable: true,
-        width: '150px',
+        minWidth: '150px',
+        grow: 1,
         cell: (row) => (
           <div className="w-full text-right font-semibold text-emerald-700">
             {formatCurrency(row.biayaTotal)}
           </div>
         )
-      },
-      {
+      }),
+      flexibleColumn({
         name: 'Jenis',
         selector: (row) => row.jenisPembelian,
         sortable: true,
-        width: '100px',
+        minWidth: '100px',
+        grow: 0.85,
         center: true,
         cell: (row) => (
           <span
@@ -763,28 +796,31 @@ const [openMenuIdMobile, setOpenMenuIdMobile] = useState(null);
             {row.jenisPembelian}
           </span>
         )
-      },
-      {
+      }),
+      flexibleColumn({
         name: 'Bank',
         selector: (row) => row.namaBank,
         sortable: true,
-        width: '130px',
+        minWidth: '130px',
+        grow: 0.9,
         cell: (row) => <div className="text-sm font-medium text-gray-700">{row.namaBank || '-'}</div>
-      },
-      {
+      }),
+      flexibleColumn({
         name: 'Keterangan',
         selector: (row) => row.keterangan,
         sortable: true,
-        width: '180px',
+        minWidth: '180px',
+        grow: 1.2,
         cell: (row) => <div className="text-sm font-medium text-gray-700">{row.keterangan || '-'}</div>
-      },
-      {
+      }),
+      flexibleColumn({
         name: 'Tanggal',
         selector: (row) => row.createdAt,
         sortable: true,
-        width: '160px',
+        minWidth: '160px',
+        grow: 0.95,
         cell: (row) => <div className="text-sm font-medium text-gray-700">{formatDate(row.createdAt)}</div>
-      }
+      })
     ];
   }, [isBiayaTab, openMenuIdDesktop]);
 

@@ -18,7 +18,7 @@ const normalizeItemLainLain = (item, index, fallbackKlasifikasiId = null) => ({
 });
 
 const buildSelectOption = (item) => ({
-    value: item.numericId || item.id,
+    value: String(item.numericId || item.id),
     label: item.name || 'Item Lain-Lain',
     description: item.description,
     pid: item.pid,

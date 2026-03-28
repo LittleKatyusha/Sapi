@@ -36,6 +36,32 @@ const jenisPembelianOptions = [
 
 const KAS_BANK_ID = '1';
 
+const normalizeJenisPembelian = (value) => {
+  if (value === null || value === undefined || value === '') return '';
+
+  const normalizedValue = String(value).trim().toLowerCase();
+
+  if (normalizedValue === 'bank' || normalizedValue === '1') return '1';
+  if (normalizedValue === 'kas' || normalizedValue === '2') return '2';
+
+  return String(value);
+};
+
+const normalizeBankPengirim = (value) => {
+  if (!value && value !== 0) return '';
+
+  if (typeof value === 'object') {
+    return value.id !== undefined && value.id !== null ? String(value.id) : '';
+  }
+
+  return String(value);
+};
+
+const normalizeDateForInput = (value) => {
+  if (!value) return '';
+  return String(value).split(' ')[0];
+};
+
 const AddEditBiayaRphPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -88,18 +114,15 @@ const AddEditBiayaRphPage = () => {
     try {
       const result = await BiayaRphService.show(id);
       if (result.success && result.data) {
-        const d = Array.isArray(result.data) ? result.data[0] || result.data : result.data;
+        const d = result.data;
         setFormData({
           id_item_lain: d.id_item_lain ? String(d.id_item_lain) : '',
           harga: d.harga ? String(d.harga) : '',
           keterangan: d.keterangan || '',
-          bank_pengirim: d.bank_pengirim ? String(d.bank_pengirim) : '',
-          jenis_pembelian:
-            d.jenis_pembelian !== null && d.jenis_pembelian !== undefined
-              ? String(d.jenis_pembelian === 'Bank' ? 1 : d.jenis_pembelian === 'Kas' ? 2 : d.jenis_pembelian)
-              : '',
+          bank_pengirim: normalizeBankPengirim(d.bank_pengirim),
+          jenis_pembelian: normalizeJenisPembelian(d.jenis_pembelian),
           nama_bayar: d.nama_bayar || '',
-          tanggal_pembayaran: d.tanggal_pembayaran || '',
+          tanggal_pembayaran: normalizeDateForInput(d.tanggal_pembayaran),
           peruntukkan: d.peruntukkan || '',
         });
       } else {

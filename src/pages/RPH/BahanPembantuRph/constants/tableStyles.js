@@ -4,7 +4,7 @@ const customTableStyles = {
       backgroundColor: '#fff',
       borderRadius: '0px',
       width: '100%',
-      minWidth: '1600px',
+      minWidth: '1500px',
       maxWidth: 'none',
       tableLayout: 'auto',
       borderCollapse: 'separate',
@@ -14,12 +14,18 @@ const customTableStyles = {
   },
   tableWrapper: {
     style: {
-      overflow: 'visible',
+      overflowX: 'auto',
+      overflowY: 'visible',
       width: '100%',
       maxWidth: '100%',
       border: 'none',
       borderRadius: '0',
+      WebkitOverflowScrolling: 'touch',
       position: 'relative',
+      scrollBehavior: 'smooth',
+      scrollbarWidth: 'thin',
+      scrollbarColor: '#cbd5e1 #f1f5f9',
+      isolation: 'isolate',
     }
   },
   headRow: {

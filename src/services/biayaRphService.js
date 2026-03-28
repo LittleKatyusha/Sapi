@@ -108,16 +108,14 @@ class BiayaRphService {
   static async show(pid) {
     try {
       const response = await HttpClient.post(this.API_SHOW, { pid });
-      const rawData = Array.isArray(response?.data)
-        ? response.data
+      const detailData = Array.isArray(response?.data)
+        ? response.data[0] || null
         : Array.isArray(response)
-          ? response
-          : response?.data
-            ? [response.data]
-            : [];
+          ? response[0] || null
+          : response?.data || null;
       return {
         success: true,
-        data: rawData,
+        data: detailData,
         message: response?.message || 'Detail biaya RPH berhasil dimuat'
       };
     } catch (error) {
