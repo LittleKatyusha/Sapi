@@ -81,5 +81,7 @@ export const pageTitleMap = {
   '/rph/bahan-pembantu-rph': 'RPH: Bahan Pembantu',
   '/rph/bahan-pembantu-rph/add': 'RPH: Tambah Bahan Pembantu',
   '/rph/bahan-pembantu-rph/edit/:id': 'RPH: Edit Bahan Pembantu',
+  '/rph/bahan-pembantu-rph/biaya/add': 'RPH: Tambah Biaya Bank/Kas',
+  '/rph/bahan-pembantu-rph/biaya/edit/:id': 'RPH: Edit Biaya Bank/Kas',
   '/rph/bahan-pembantu-rph/detail/:id': 'RPH: Detail Bahan Pembantu',
 };

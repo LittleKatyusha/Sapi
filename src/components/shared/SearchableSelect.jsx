@@ -12,6 +12,7 @@ const SearchableSelect = ({
     isSearchable = true,
     required = false,
     className = "",
+    maxMenuHeight = 210,
     ...props
 }) => {
     // Custom styles for the select component
@@ -52,6 +53,15 @@ const SearchableSelect = ({
         menu: (provided) => ({
             ...provided,
             zIndex: 9999,
+            maxHeight: `${maxMenuHeight}px`,
+            overflow: 'hidden',
+        }),
+        menuList: (provided) => ({
+            ...provided,
+            maxHeight: `${maxMenuHeight}px`,
+            overflowY: 'auto',
+            paddingTop: 0,
+            paddingBottom: 0,
         }),
         menuPortal: (provided) => ({
             ...provided,
