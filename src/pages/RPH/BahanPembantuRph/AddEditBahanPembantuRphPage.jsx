@@ -20,6 +20,8 @@ const jenisPembelianOptions = [
     { value: '2', label: 'Kas' },
 ];
 
+const KAS_BANK_ID = 1;
+
 const AddEditBahanPembantuRphPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -148,7 +150,7 @@ const AddEditBahanPembantuRphPage = () => {
                 biaya_kirim: formData.biaya_kirim ? parseFloat(parseNumber(formData.biaya_kirim)) : 0,
                 biaya_lain: formData.biaya_lain ? parseFloat(parseNumber(formData.biaya_lain)) : 0,
                 jenis_pembelian: parseInt(formData.jenis_pembelian),
-                bank_pengirim: String(formData.jenis_pembelian) === '1' ? parseInt(formData.bank_pengirim) : null,
+                bank_pengirim: String(formData.jenis_pembelian) === '1' ? parseInt(formData.bank_pengirim) : KAS_BANK_ID,
                 keterangan: formData.keterangan.trim(),
             };
             if (isEditMode) payload.pid = id;

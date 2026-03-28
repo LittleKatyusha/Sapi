@@ -34,6 +34,8 @@ const jenisPembelianOptions = [
   { value: '2', label: 'Kas' },
 ];
 
+const KAS_BANK_ID = '1';
+
 const AddEditBiayaRphPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -154,7 +156,7 @@ const AddEditBiayaRphPage = () => {
         id_item_lain: formData.id_item_lain,
         harga: parseFloat(parseNumber(formData.harga)),
         keterangan: formData.keterangan.trim(),
-        bank_pengirim: String(formData.jenis_pembelian) === '1' ? formData.bank_pengirim : null,
+        bank_pengirim: String(formData.jenis_pembelian) === '1' ? formData.bank_pengirim : KAS_BANK_ID,
         jenis_pembelian: parseInt(formData.jenis_pembelian),
         nama_bayar: formData.nama_bayar.trim(),
         tanggal_pembayaran: formData.tanggal_pembayaran,
