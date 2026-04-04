@@ -12,9 +12,7 @@ const PenggunaOvkTab = () => {
     availableDates,
     tableColumns,
     tableData,
-    toggleDate,
-    selectAllDates,
-    clearDates,
+    handleDateRangeChange,
     refresh,
   } = usePenggunaOvk();
 
@@ -23,9 +21,7 @@ const PenggunaOvkTab = () => {
       <DateColumnPicker
         availableDates={availableDates}
         selectedDates={selectedDates}
-        onToggleDate={toggleDate}
-        onSelectAll={selectAllDates}
-        onClearDates={clearDates}
+        onDateRangeChange={handleDateRangeChange}
       />
 
       {error && (

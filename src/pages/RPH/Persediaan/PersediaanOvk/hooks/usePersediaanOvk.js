@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { PersediaanOvkService } from '../../../../../services/persediaanOvkService';
+import PersediaanOvkService from '../../../../../services/persediaanOvkService';
 
 const usePersediaanOvk = () => {
   // State

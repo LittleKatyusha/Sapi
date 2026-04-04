@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { PersediaanOvkService } from '../../../../../services/persediaanOvkService';
+import PersediaanOvkService from '../../../../../services/persediaanOvkService';
 
 const formatDate = (date) => {
   const d = new Date(date);
@@ -59,31 +59,11 @@ const usePenggunaOvk = () => {
   // Generate available dates (last 7 days) for the date picker
   const availableDates = useMemo(() => getLast7Days(), []);
 
-  // Toggle a date selection
-  const toggleDate = useCallback((dateStr) => {
-    setSelectedDates((prev) => {
-      if (prev.includes(dateStr)) {
-        // Don't allow deselecting if it would leave 0 dates
-        if (prev.length <= 1) return prev;
-        return prev.filter((d) => d !== dateStr);
-      }
-      // Don't allow more than 7 dates
-      if (prev.length >= 7) return prev;
-      // Add date and sort chronologically
-      const next = [...prev, dateStr].sort();
-      return next;
-    });
+  // Handle date range change from the calendar picker
+  const handleDateRangeChange = useCallback((dates) => {
+    // dates should already be sorted and within 1-7 range, validated by the picker
+    setSelectedDates(dates.sort());
   }, []);
-
-  // Select all 7 days
-  const selectAllDates = useCallback(() => {
-    setSelectedDates(availableDates);
-  }, [availableDates]);
-
-  // Clear all except today
-  const clearDates = useCallback(() => {
-    setSelectedDates([availableDates[6]]); // today is the last one
-  }, [availableDates]);
 
   // Generate table columns dynamically
   const tableColumns = useMemo(() => {
@@ -146,9 +126,7 @@ const usePenggunaOvk = () => {
     tableColumns,
     tableData,
     // Actions
-    toggleDate,
-    selectAllDates,
-    clearDates,
+    handleDateRangeChange,
     refresh: fetchPenggunaData,
   };
 };
