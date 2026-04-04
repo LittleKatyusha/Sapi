@@ -84,4 +84,5 @@ export const pageTitleMap = {
   '/rph/bahan-pembantu-rph/biaya/add': 'RPH: Tambah Biaya Bank/Kas',
   '/rph/bahan-pembantu-rph/biaya/edit/:id': 'RPH: Edit Biaya Bank/Kas',
   '/rph/bahan-pembantu-rph/detail/:id': 'RPH: Detail Bahan Pembantu',
+  '/rph/persediaan-ovk': 'Persediaan OVK - RPH',
 };

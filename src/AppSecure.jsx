@@ -88,6 +88,9 @@ const AddEditBahanPembantuRphPage = lazy(() => import('./pages/RPH/BahanPembantu
 const AddEditBiayaRphPage = lazy(() => import('./pages/RPH/BahanPembantuRph/AddEditBiayaRphPage'));
 const BahanPembantuRphDetailPage = lazy(() => import('./pages/RPH/BahanPembantuRph/BahanPembantuRphDetailPage'));
 
+// RPH Persediaan OVK Page - Lazy loaded
+const PersediaanOvkPage = lazy(() => import('./pages/RPH/Persediaan/PersediaanOvk/PersediaanOvkPage'));
+
 // Reporting Pages - Lazy loaded
 const LaporanNotaSupplierPage = lazy(() => import('./pages/reporting/LaporanNotaSupplierPage'));
 const LaporanSemuaSupplierPage = lazy(() => import('./pages/reporting/LaporanSemuaSupplierPage'));
@@ -287,6 +290,13 @@ function AppSecure() {
               <Route path="/rph/bahan-pembantu-rph/biaya/add" element={<AddEditBiayaRphPage />} />
               <Route path="/rph/bahan-pembantu-rph/biaya/edit/:id" element={<AddEditBiayaRphPage />} />
               <Route path="/rph/bahan-pembantu-rph/detail/:id" element={<BahanPembantuRphDetailPage />} />
+
+              {/* RPH Persediaan OVK Route */}
+              <Route path="/rph/persediaan-ovk" element={
+                <Suspense fallback={<LoadingSpinner />}>
+                  <PersediaanOvkPage />
+                </Suspense>
+              } />
 
               {/* HO Feedmil and OVK Routes */}
               <Route path="/ho/pembelian-feedmil" element={<PembelianFeedmilPage />} />
