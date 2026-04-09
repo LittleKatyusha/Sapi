@@ -6,25 +6,33 @@
 import HttpClient from './httpClient';
 
 class PersediaanOvkService {
-  // API endpoints
-  static API_PENGGUNA = '/api/rph/persediaan-ovk/pengguna';
-  static API_DATA = '/api/rph/persediaan-ovk/data';
-  static API_SUMMARY = '/api/rph/persediaan-ovk/summary';
+  // API endpoints — matched to backend PersediaanRphController routes
+  static API_DATA = '/api/rph/persediaan/data';
+  static API_REKAP = '/api/rph/persediaan/datarekap';
 
   /**
-   * Get pengguna (usage) data for selected dates
-   * @param {Array<string>} dates - Array of date strings 'YYYY-MM-DD'
-   * @returns {Promise} API response with usage data per date
+   * Get pengguna (usage) data for selected date range
+   * Calls the same /data endpoint but fetches all records (length=-1)
+   * @param {Object} options
+   * @param {string} options.startDate - Start date 'YYYY-MM-DD'
+   * @param {string} options.endDate - End date 'YYYY-MM-DD'
+   * @param {string} [options.search=''] - Search value
+   * @param {number} [options.draw=1] - DataTable draw counter
+   * @param {number} [options.start=0] - Pagination offset
+   * @param {number} [options.length=-1] - Page size (-1 = all records, omitted from request)
+   * @returns {Promise} API response with usage data
    */
-  static async getPenggunaData(dates = []) {
+  static async getPenggunaData({ startDate, endDate, search = '', draw = 1, start = 0, length = -1 } = {}) {
     try {
       const params = new URLSearchParams();
-      if (dates.length > 0) {
-        params.set('dates', dates.join(','));
-      }
-      params.set('_ts', Date.now());
+      if (startDate) params.append('start_date', startDate);
+      if (endDate) params.append('end_date', endDate);
+      params.append('draw', draw);
+      params.append('start', start);
+      if (length !== -1) params.append('length', length);
+      if (search) params.append('search[value]', search);
 
-      const response = await HttpClient.get(`${this.API_PENGGUNA}?${params.toString()}`);
+      const response = await HttpClient.get(`${this.API_DATA}?${params.toString()}`);
       return {
         success: true,
         data: response?.data ?? response,
@@ -58,6 +66,10 @@ class PersediaanOvkService {
         _ts: Date.now(),
       });
 
+      // Add date range if provided
+      if (params.startDate) queryParams.append('start_date', params.startDate);
+      if (params.endDate) queryParams.append('end_date', params.endDate);
+
       const response = await HttpClient.get(`${this.API_DATA}?${queryParams.toString()}`);
       return {
         success: true,
@@ -73,25 +85,27 @@ class PersediaanOvkService {
   }
 
   /**
-   * Get summary statistics
-   * @returns {Promise} API response with summary data
+   * Get rekap (recap/summary) data — all-time available stock
+   * Calls /datarekap with no query parameters (no pagination/filtering needed)
+   * @returns {Promise} API response with rekap data
    */
   static async getSummary() {
     try {
-      const response = await HttpClient.get(this.API_SUMMARY, {
-        params: { _ts: Date.now() },
-      });
+      const response = await HttpClient.get(this.API_REKAP);
       return {
         success: true,
         data: response?.data ?? response,
-        message: response?.message || 'Ringkasan persediaan berhasil dimuat'
+        recordsTotal: response?.recordsTotal ?? 0,
+        recordsFiltered: response?.recordsFiltered ?? 0,
       };
     } catch (error) {
       const errorData = error?.data ?? error?.response?.data ?? null;
       console.error('Error fetching Persediaan OVK summary:', error);
       return {
         success: false,
-        data: null,
+        data: [],
+        recordsTotal: 0,
+        recordsFiltered: 0,
         message: errorData?.message || error?.message || 'Gagal memuat ringkasan persediaan'
       };
     }
@@ -105,15 +119,11 @@ class PersediaanOvkService {
   static transformData(item) {
     return {
       id: item.id,
-      pid: item.pid,
-      namaOvk: item.nama_ovk,
+      namaOvk: item.nama_produk,
       satuan: item.satuan,
+      harga: item.harga,
+      pemasok: item.pemasok,
       stok: item.stok,
-      stokMinimal: item.stok_minimal,
-      kategori: item.kategori,
-      tanggalMasuk: item.tanggal_masuk,
-      supplier: item.supplier,
-      hargaSatuan: item.harga_satuan,
     };
   }
 }

@@ -39,7 +39,13 @@ const usePenggunaOvk = () => {
     setError(null);
 
     try {
-      const response = await PersediaanOvkService.getPenggunaData(selectedDates);
+      const startDate = selectedDates[0];
+      const endDate = selectedDates[selectedDates.length - 1];
+      const response = await PersediaanOvkService.getPenggunaData({
+        startDate,
+        endDate,
+        length: -1, // fetch all records
+      });
       if (response.success) {
         setPenggunaData(response.data);
       } else {
@@ -101,13 +107,17 @@ const usePenggunaOvk = () => {
     return penggunaData.map((item) => {
       const row = {
         id: item.id,
-        namaOvk: item.namaOvk,
+        namaOvk: item.nama_produk,
         satuan: item.satuan,
       };
 
-      // Add dynamic date values
+      // Add dynamic date values with both stok_masuk and stok_keluar
       selectedDates.forEach((dateStr) => {
-        row[`tanggal_${dateStr}`] = item.tanggal?.[dateStr] ?? '-';
+        const stok = item.stok?.[dateStr];
+        row[`tanggal_${dateStr}`] = {
+          masuk: stok?.stok_masuk ?? 0,
+          keluar: stok?.stok_keluar ?? 0,
+        };
       });
 
       return row;

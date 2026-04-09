@@ -7,15 +7,15 @@ const usePersediaanOvk = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Fetch inventory data
+  // Fetch inventory recap data from /datarekap (all-time available stock)
   const fetchPersediaanData = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const response = await PersediaanOvkService.getPersediaanData();
+      const response = await PersediaanOvkService.getSummary();
       if (response.success) {
-        setPersediaanData(response.data.data || []);
+        setPersediaanData(response.data || []);
       } else {
         setError(response.message || 'Gagal memuat data persediaan OVK');
       }

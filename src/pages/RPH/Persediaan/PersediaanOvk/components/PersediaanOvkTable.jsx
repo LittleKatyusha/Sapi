@@ -1,15 +1,6 @@
 import React from 'react';
-import { Package, Search } from 'lucide-react';
+import { Package } from 'lucide-react';
 import usePersediaanOvk from '../hooks/usePersediaanOvk';
-
-const formatCurrency = (value) => {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value || 0);
-};
 
 const PersediaanOvkTable = () => {
   const { persediaanData, loading, error, refresh } = usePersediaanOvk();
@@ -39,7 +30,7 @@ const PersediaanOvkTable = () => {
 
   if (!persediaanData || persediaanData.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-gray-400">
+      <div className="rounded-xl border border-dashed border-gray-200 px-4 py-12 flex flex-col items-center justify-center text-gray-400">
         <Package className="w-16 h-16 mb-4" />
         <span>Belum ada data persediaan OVK</span>
       </div>
@@ -51,30 +42,36 @@ const PersediaanOvkTable = () => {
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
-              <th className="px-6 py-4 text-left font-semibold w-16">No</th>
-              <th className="px-6 py-4 text-left font-semibold">Nama OVK</th>
-              <th className="px-6 py-4 text-center font-semibold w-32">Jumlah (PCS)</th>
-              <th className="px-6 py-4 text-right font-semibold w-40">Harga (Rp)</th>
+            <tr className="bg-slate-50 border-b-2 border-gray-200">
+              <th className="px-4 py-3 text-left text-[13px] font-semibold text-gray-700 tracking-wide w-12">No</th>
+              <th className="px-4 py-3 text-left text-[13px] font-semibold text-gray-700 tracking-wide border-r border-gray-200">Nama Produk</th>
+              <th className="px-4 py-3 text-center text-[13px] font-semibold text-gray-700 tracking-wide border-r border-gray-200">Satuan</th>
+              <th className="px-4 py-3 text-center text-[13px] font-semibold text-gray-700 tracking-wide border-r border-gray-200">Jumlah Stok</th>
+              <th className="px-4 py-3 text-right text-[13px] font-semibold text-gray-700 tracking-wide">Nominal</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {persediaanData.map((item, index) => (
               <tr
-                key={item.id}
-                className="hover:bg-blue-50/50 transition-colors"
+                key={index}
+                className="hover:bg-gray-50 transition-all duration-200"
               >
-                <td className="px-6 py-4 text-gray-600">{index + 1}</td>
-                <td className="px-6 py-4">
-                  <div className="font-medium text-gray-900">{item.namaOvk}</div>
+                <td className="px-4 py-3 text-[13px] text-gray-600 border-r border-gray-100">{index + 1}</td>
+                <td className="px-4 py-3 text-[13px] border-r border-gray-100">
+                  <div className="font-medium text-gray-900">{item.nama_produk}</div>
                 </td>
-                <td className="px-6 py-4 text-center">
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-                    {item.stok?.toLocaleString('id-ID')} PCS
+                <td className="px-4 py-3 text-center border-r border-gray-100">
+                  <span className="inline-flex px-3 py-1 rounded-full text-xs font-semibold border border-blue-200 bg-blue-50 text-blue-700">
+                    {item.satuan}
                   </span>
                 </td>
-                <td className="px-6 py-4 text-right font-medium text-gray-900">
-                  {formatCurrency(item.hargaSatuan)}
+                <td className="px-4 py-3 text-center border-r border-gray-100">
+                  <span className="inline-flex px-3 py-1 rounded-full text-xs font-semibold border border-green-200 bg-green-50 text-green-700">
+                    {item.jumlah}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-right text-[13px] font-medium text-gray-900">
+                  Rp {item.nominal}
                 </td>
               </tr>
             ))}

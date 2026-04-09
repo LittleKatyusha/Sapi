@@ -23,21 +23,21 @@ const PenggunaOvkTable = ({ columns, data, loading }) => {
     );
   }
 
+  const totalColumns = columns.length;
+
   return (
-    <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-gradient-to-r from-slate-50 to-gray-50">
-              <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
+            <tr className="bg-slate-50 border-b-2 border-gray-200">
+              <th className="px-4 py-3 text-center text-[13px] font-semibold text-gray-700 tracking-wide">
                 No
               </th>
-              {columns.map((col) => (
+              {columns.map((col, colIndex) => (
                 <th
                   key={col.key}
-                  className={`px-4 py-3 text-xs font-bold uppercase tracking-wider text-gray-500 ${
-                    col.align === 'center' ? 'text-center' : 'text-left'
-                  }`}
+                  className={`px-4 py-3 text-center text-[13px] font-semibold text-gray-700 tracking-wide${colIndex < totalColumns - 1 ? ' border-r border-gray-200' : ''}`}
                   style={col.width ? { width: col.width } : undefined}
                 >
                   {col.label}
@@ -49,28 +49,40 @@ const PenggunaOvkTable = ({ columns, data, loading }) => {
             {data.map((row, index) => (
               <tr
                 key={row.id}
-                className="transition-colors hover:bg-emerald-50/30"
+                className="transition-all duration-200 hover:bg-gray-50"
               >
-                <td className="px-4 py-3 text-center font-semibold text-gray-400">
+                <td className="px-4 py-3 text-center text-[13px] text-gray-600 border-r border-gray-100">
                   {index + 1}
                 </td>
-                {columns.map((col) => {
+                {columns.map((col, colIndex) => {
                   const value = row[col.key];
 
                   if (col.align === 'center' && col.dateKey) {
-                    // Date column — show usage value with badge
-                    const isUsed = value && value !== '-' && value !== 0;
+                    // Date column — show stok_masuk and stok_keluar
+                    const masuk = value?.masuk ?? 0;
+                    const keluar = value?.keluar ?? 0;
                     return (
-                      <td key={col.key} className="px-4 py-3 text-center">
-                        <span
-                          className={`inline-flex rounded-lg px-3 py-1 text-xs font-bold ${
-                            isUsed
-                              ? 'bg-emerald-100 text-emerald-700'
-                              : 'bg-gray-100 text-gray-400'
-                          }`}
-                        >
-                          {value || 0}
-                        </span>
+                      <td key={col.key} className={`px-4 py-3 text-center text-[13px] text-gray-700${colIndex < totalColumns - 1 ? ' border-r border-gray-100' : ''}`}>
+                        <div className="flex flex-col items-center gap-1">
+                          <span
+                            className={`inline-flex px-3 py-0.5 rounded-full text-xs font-semibold border ${
+                              masuk > 0
+                                ? 'border-blue-200 bg-blue-50 text-blue-700'
+                                : 'border-gray-200 bg-gray-50 text-gray-400'
+                            }`}
+                          >
+                            ↑ {masuk}
+                          </span>
+                          <span
+                            className={`inline-flex px-3 py-0.5 rounded-full text-xs font-semibold border ${
+                              keluar > 0
+                                ? 'border-orange-200 bg-orange-50 text-orange-700'
+                                : 'border-gray-200 bg-gray-50 text-gray-400'
+                            }`}
+                          >
+                            ↓ {keluar}
+                          </span>
+                        </div>
                       </td>
                     );
                   }
@@ -78,14 +90,12 @@ const PenggunaOvkTable = ({ columns, data, loading }) => {
                   return (
                     <td
                       key={col.key}
-                      className={`px-4 py-3 ${
-                        col.align === 'center' ? 'text-center' : ''
-                      }`}
+                      className={`px-4 py-3 text-center text-[13px] text-gray-700${colIndex < totalColumns - 1 ? ' border-r border-gray-100' : ''}`}
                     >
                       {col.key === 'namaOvk' ? (
-                        <span className="font-semibold text-gray-800">{value}</span>
+                        <span className="font-medium text-gray-900">{value}</span>
                       ) : col.key === 'satuan' ? (
-                        <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
+                        <span className="inline-flex px-3 py-1 rounded-full text-xs font-semibold border border-slate-200 bg-slate-50 text-slate-600">
                           {value}
                         </span>
                       ) : (
