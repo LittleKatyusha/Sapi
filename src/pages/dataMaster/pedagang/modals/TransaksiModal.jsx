@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { X, Save, Scissors, Calculator } from 'lucide-react';
 import { CUT_PARTS } from '../constants/cutParts';
 import { formatCurrency } from '../utils/formatters';
-import PedagangService from '../../../services/pedagangService';
+import PedagangService from '../../../../services/pedagangService';
 
 const TransaksiModal = ({ isOpen, onClose, data, onSubmit, loading }) => {
   const [qtyData, setQtyData] = useState({});

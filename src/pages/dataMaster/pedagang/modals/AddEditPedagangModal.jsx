@@ -4,9 +4,8 @@ import {
   ChevronDown, ChevronUp, DollarSign, Building2,
 } from 'lucide-react';
 import { CUT_PARTS, getEmptyHarga } from '../constants/cutParts';
-import { formatCurrency } from '../utils/formatters';
-import PedagangService from '../../../services/pedagangService';
-import useOfficeData from '../../ho/tandaTerima/hooks/useOfficeData';
+import PedagangService from '../../../../services/pedagangService';
+import useOfficeData from '../../../ho/tandaTerima/hooks/useOfficeData';
 
 const TABS = [
   { key: 'identitas', label: 'Identitas', icon: User },

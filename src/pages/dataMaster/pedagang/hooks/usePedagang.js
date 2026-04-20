@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import PedagangService from '../../../services/pedagangService';
+import PedagangService from '../../../../services/pedagangService';
 
 const usePedagang = () => {
   const [pedagangList, setPedagangList] = useState([]);

@@ -32,7 +32,6 @@ const PedagangPage = () => {
     statsLoading,
     fetchPedagang,
     fetchStatistics,
-    fetchDetail,
     createPedagang,
     updatePedagang,
     deletePedagang,
@@ -61,12 +60,12 @@ const PedagangPage = () => {
   useEffect(() => {
     fetchPedagang(1, pagination.perPage);
     fetchStatistics();
-  }, [fetchPedagang, fetchStatistics]);
+  }, [fetchPedagang, fetchStatistics, pagination.perPage]);
 
   // Re-fetch when filters change
   useEffect(() => {
     fetchPedagang(1, pagination.perPage);
-  }, [statusFilter, pasarFilter]);
+  }, [statusFilter, pasarFilter, fetchPedagang, pagination.perPage]);
 
   // Show notification helper
   const showNotification = useCallback((message, type = 'success') => {
