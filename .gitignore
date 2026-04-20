@@ -32,3 +32,4 @@ docker-compose.yaml
 .kilocode/mcp.json
 .roo/mcp.json
 ternasys
+.impeccable.md
