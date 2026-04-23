@@ -27,7 +27,7 @@ class PedagangService {
         _ts: Date.now(),
       });
 
-      const response = await HttpClient.get(`${PEDAGANG_BASE}/getData?${queryParams.toString()}`);
+      const response = await HttpClient.get(`${PEDAGANG_BASE}/data?${queryParams.toString()}`);
       return {
         success: true,
         data: response.data || [],
@@ -52,9 +52,7 @@ class PedagangService {
    */
   static async show(pid) {
     try {
-      const response = await HttpClient.get(`${PEDAGANG_BASE}/show`, {
-        params: { pid },
-      });
+      const response = await HttpClient.post(`${PEDAGANG_BASE}/show`, { pid });
       return {
         success: true,
         data: response?.data ?? response,
@@ -100,7 +98,7 @@ class PedagangService {
    */
   static async update(payload = {}) {
     try {
-      const response = await HttpClient.put(`${PEDAGANG_BASE}/update`, payload);
+      const response = await HttpClient.post(`${PEDAGANG_BASE}/update`, payload);
       return {
         success: true,
         data: response?.data ?? response,
@@ -123,9 +121,7 @@ class PedagangService {
    */
   static async delete(pid) {
     try {
-      const response = await HttpClient.delete(`${PEDAGANG_BASE}/delete`, {
-        data: { pid },
-      });
+      const response = await HttpClient.post(`${PEDAGANG_BASE}/hapus`, { pid });
       return {
         success: true,
         data: response?.data ?? response,

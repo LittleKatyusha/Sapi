@@ -1,4 +1,38 @@
 const customTableStyles = {
+    table: {
+        style: {
+            backgroundColor: '#fff',
+            borderRadius: '0px',
+            width: '100%',
+            minWidth: '1500px',
+            maxWidth: 'none',
+            tableLayout: 'auto',
+            borderCollapse: 'separate',
+            borderSpacing: 0,
+            margin: 0,
+        }
+    },
+    tableWrapper: {
+        style: {
+            overflow: 'visible',
+            width: '100%',
+            maxWidth: '100%',
+            border: 'none',
+            borderRadius: '0',
+            position: 'relative',
+        }
+    },
+    headRow: {
+        style: {
+            position: 'sticky',
+            top: 0,
+            zIndex: 1000,
+            backgroundColor: '#f8fafc',
+            borderBottom: '2px solid #e2e8f0',
+            minHeight: '52px',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+        }
+    },
     headCells: {
         style: {
             fontSize: '12px',
@@ -12,6 +46,56 @@ const customTableStyles = {
             paddingTop: '12px',
             paddingBottom: '12px',
             borderBottom: '1px solid #e5e7eb',
+            borderRight: '1px solid #e5e7eb',
+            whiteSpace: 'normal',
+            wordWrap: 'break-word',
+            wordBreak: 'break-word',
+            lineHeight: '1.4',
+            '&:last-child': {
+                borderRight: 'none',
+            },
+            // Sticky "No" column styling (1st column)
+            '&:first-child': {
+                position: 'sticky',
+                left: 0,
+                zIndex: 1002,
+                backgroundColor: '#f8fafc',
+                borderRight: '2px solid #e5e7eb',
+                boxShadow: '1px 0 2px rgba(0, 0, 0, 0.05)',
+                willChange: 'transform',
+                minWidth: '70px',
+                maxWidth: '70px',
+            },
+            // Sticky "Aksi" column styling (2nd column)
+            '&:nth-child(2)': {
+                position: 'sticky',
+                left: '70px',
+                zIndex: 1001,
+                backgroundColor: '#f8fafc',
+                borderRight: '2px solid #e5e7eb',
+                boxShadow: '1px 0 2px rgba(0, 0, 0, 0.05)',
+                willChange: 'transform',
+                minWidth: '70px',
+                maxWidth: '70px',
+            },
+        },
+    },
+    rows: {
+        style: {
+            minHeight: '60px',
+            backgroundColor: '#ffffff',
+            borderBottom: '1px solid #f3f4f6',
+            transition: 'all 0.2s ease',
+            '&:hover': {
+                backgroundColor: '#f9fafb',
+                transition: 'background-color 0.2s ease',
+            },
+            '&:last-child': {
+                borderBottom: 'none',
+            }
+        },
+        stripedStyle: {
+            backgroundColor: '#f9fafb',
         },
     },
     cells: {
@@ -23,19 +107,40 @@ const customTableStyles = {
             paddingTop: '12px',
             paddingBottom: '12px',
             borderBottom: '1px solid #f3f4f6',
-        },
-    },
-    rows: {
-        style: {
-            minHeight: '60px',
-            backgroundColor: '#ffffff',
-            '&:hover': {
-                backgroundColor: '#f9fafb',
-                transition: 'background-color 0.2s ease',
+            borderRight: '1px solid #f3f4f6',
+            whiteSpace: 'normal',
+            wordWrap: 'break-word',
+            wordBreak: 'break-word',
+            lineHeight: '1.5',
+            overflow: 'visible',
+            verticalAlign: 'middle',
+            '&:last-child': {
+                borderRight: 'none',
             },
-        },
-        stripedStyle: {
-            backgroundColor: '#f9fafb',
+            // Sticky "No" column styling (1st column)
+            '&:first-child': {
+                position: 'sticky',
+                left: 0,
+                zIndex: 998,
+                backgroundColor: '#ffffff',
+                borderRight: '2px solid #e5e7eb',
+                boxShadow: '1px 0 2px rgba(0, 0, 0, 0.05)',
+                willChange: 'transform',
+                minWidth: '70px',
+                maxWidth: '70px',
+            },
+            // Sticky "Aksi" column styling (2nd column)
+            '&:nth-child(2)': {
+                position: 'sticky',
+                left: '70px',
+                zIndex: 998,
+                backgroundColor: '#ffffff',
+                borderRight: '2px solid #e5e7eb',
+                boxShadow: '1px 0 2px rgba(0, 0, 0, 0.05)',
+                willChange: 'transform',
+                minWidth: '70px',
+                maxWidth: '70px',
+            },
         },
     },
     pagination: {
@@ -90,28 +195,6 @@ const customTableStyles = {
             fontSize: '14px',
             fontWeight: '500',
             padding: '48px 24px',
-        },
-    },
-    table: {
-        style: {
-            backgroundColor: '#ffffff',
-            borderRadius: '12px',
-            overflow: 'hidden',
-        },
-    },
-    tableWrapper: {
-        style: {
-            display: 'table',
-            width: '100%',
-            backgroundColor: '#ffffff',
-        },
-    },
-    responsiveWrapper: {
-        style: {
-            backgroundColor: '#ffffff',
-            borderRadius: '12px',
-            border: '1px solid #e5e7eb',
-            overflow: 'hidden',
         },
     },
 };

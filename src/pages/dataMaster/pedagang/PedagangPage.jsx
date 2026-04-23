@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import DataTable from 'react-data-table-component';
 import {
   Search, PlusCircle, CheckCircle, XCircle, Users, Activity,
-  RefreshCw, Filter, Eye, Edit3, Trash2, Scissors, Wallet,
-  Phone, Store,
+  RefreshCw, Filter, Phone, Store, MoreVertical, Wallet,
 } from 'lucide-react';
 
 import usePedagang from './hooks/usePedagang';
@@ -15,6 +14,7 @@ import PedagangDetailModal from './modals/PedagangDetailModal';
 import TransaksiModal from './modals/TransaksiModal';
 import SetoranModal from './modals/SetoranModal';
 import DeleteConfirmationModal from './modals/DeleteConfirmationModal';
+import ActionMenu from './components/ActionMenu';
 
 const PedagangPage = () => {
   const {
@@ -55,6 +55,10 @@ const PedagangPage = () => {
   const [setoranData, setSetoranData] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [notification, setNotification] = useState({ show: false, message: '', type: '' });
+  
+  // ActionMenu state
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const actionButtonRefs = useRef({});
 
   // Fetch data on mount
   useEffect(() => {
@@ -190,6 +194,41 @@ const PedagangPage = () => {
       ignoreRowClick: true,
     },
     {
+      name: 'Aksi',
+      width: '70px',
+      cell: row => {
+        const menuId = row.pid || row.id_pedagang || row.nama_alias;
+        const isOpen = openMenuId === menuId;
+        
+        return (
+          <div className="relative">
+            <button
+              ref={el => actionButtonRefs.current[menuId] = el}
+              onClick={() => setOpenMenuId(isOpen ? null : menuId)}
+              className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              title="Menu Aksi"
+              aria-label={`Menu aksi untuk ${row.nama_alias}`}
+            >
+              <MoreVertical className="w-5 h-5" />
+            </button>
+            {isOpen && (
+              <ActionMenu
+                row={row}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onDetail={handleDetail}
+                onTransaksi={handleTransaksi}
+                onSetoran={handleSetoran}
+                onClose={() => setOpenMenuId(null)}
+                buttonRef={{ current: actionButtonRefs.current[menuId] }}
+              />
+            )}
+          </div>
+        );
+      },
+      ignoreRowClick: true,
+    },
+    {
       name: 'ID Pedagang',
       selector: row => row.id_pedagang,
       sortable: true,
@@ -272,58 +311,178 @@ const PedagangPage = () => {
         </span>
       ),
     },
-    {
-      name: 'Aksi',
-      width: '200px',
-      cell: row => (
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => handleDetail(row)}
-            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-            title="Detail"
-            aria-label={`Detail ${row.nama_alias}`}
-          >
-            <Eye className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => handleEdit(row)}
-            className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
-            title="Edit"
-            aria-label={`Edit ${row.nama_alias}`}
-          >
-            <Edit3 className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => handleTransaksi(row)}
-            className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-            title="Transaksi (Angkatan)"
-            aria-label={`Transaksi ${row.nama_alias}`}
-          >
-            <Scissors className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => handleSetoran(row)}
-            className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-            title="Setoran"
-            aria-label={`Setoran ${row.nama_alias}`}
-          >
-            <Wallet className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => handleDelete(row)}
-            className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-            title="Hapus"
-            aria-label={`Hapus ${row.nama_alias}`}
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
-      ),
-      ignoreRowClick: true,
-    },
-  ], [pagination.currentPage, pagination.perPage, handleDetail, handleEdit, handleTransaksi, handleSetoran, handleDelete]);
+  ], [pagination.currentPage, pagination.perPage, openMenuId, handleDetail, handleEdit, handleTransaksi, handleSetoran, handleDelete]);
 
   return (
+    <>
+      {/* Custom CSS for horizontal scrollbar styling and sticky columns */}
+      <style>{`
+        .horizontal-scroll-container::-webkit-scrollbar {
+            height: 12px;
+        }
+        .horizontal-scroll-container::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 6px;
+        }
+        .horizontal-scroll-container::-webkit-scrollbar-thumb {
+            background: #94a3b8;
+            border-radius: 6px;
+            border: 2px solid #f1f5f9;
+        }
+        .horizontal-scroll-container::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+        .horizontal-scroll-container::-webkit-scrollbar-corner {
+            background: #f1f5f9;
+        }
+        
+        /* Sticky No column (1st column) - Pedagang Page */
+        .pedagang-table .rdt_TableHeadRow .rdt_TableCol:first-child,
+        .pedagang-table .rdt_TableHeadRow th:first-child {
+          position: sticky !important;
+          left: 0 !important;
+          z-index: 12 !important;
+          background-color: #f8fafc !important;
+          border-right: 2px solid #e5e7eb !important;
+          box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
+          will-change: transform !important;
+          min-width: 70px !important;
+          max-width: 70px !important;
+        }
+        
+        .pedagang-table .rdt_TableBodyRow .rdt_TableCell:first-child,
+        .pedagang-table .rdt_TableBodyRow td:first-child {
+          position: sticky !important;
+          left: 0 !important;
+          z-index: 10 !important;
+          background-color: #ffffff !important;
+          border-right: 2px solid #e5e7eb !important;
+          box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
+          will-change: transform !important;
+          min-width: 70px !important;
+          max-width: 70px !important;
+        }
+        
+        .pedagang-table .rdt_TableBodyRow:hover .rdt_TableCell:first-child,
+        .pedagang-table .rdt_TableBodyRow:hover td:first-child {
+          background-color: #f9fafb !important;
+        }
+        
+        /* Sticky Aksi column (2nd column) - Pedagang Page */
+        .pedagang-table .rdt_TableHeadRow .rdt_TableCol:nth-child(2),
+        .pedagang-table .rdt_TableHeadRow th:nth-child(2) {
+          position: sticky !important;
+          left: 70px !important;
+          z-index: 11 !important;
+          background-color: #f8fafc !important;
+          border-right: 2px solid #e5e7eb !important;
+          box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
+          will-change: transform !important;
+          min-width: 70px !important;
+          max-width: 70px !important;
+        }
+        
+        .pedagang-table .rdt_TableBodyRow .rdt_TableCell:nth-child(2),
+        .pedagang-table .rdt_TableBodyRow td:nth-child(2) {
+          position: sticky !important;
+          left: 70px !important;
+          z-index: 10 !important;
+          background-color: #ffffff !important;
+          border-right: 2px solid #e5e7eb !important;
+          box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
+          will-change: transform !important;
+          min-width: 70px !important;
+          max-width: 70px !important;
+        }
+        
+        .pedagang-table .rdt_TableBodyRow:hover .rdt_TableCell:nth-child(2),
+        .pedagang-table .rdt_TableBodyRow:hover td:nth-child(2) {
+          background-color: #f9fafb !important;
+        }
+        
+        /* Additional selectors for better compatibility */
+        .pedagang-table table thead tr th:first-child {
+          position: sticky !important;
+          left: 0 !important;
+          z-index: 12 !important;
+          background-color: #f8fafc !important;
+          border-right: 2px solid #e5e7eb !important;
+          box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
+          will-change: transform !important;
+          min-width: 70px !important;
+          max-width: 70px !important;
+        }
+        
+        .pedagang-table table tbody tr td:first-child {
+          position: sticky !important;
+          left: 0 !important;
+          z-index: 10 !important;
+          background-color: #ffffff !important;
+          border-right: 2px solid #e5e7eb !important;
+          box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
+          will-change: transform !important;
+          min-width: 70px !important;
+          max-width: 70px !important;
+        }
+        
+        .pedagang-table table tbody tr:hover td:first-child {
+          background-color: #f9fafb !important;
+        }
+        
+        .pedagang-table table thead tr th:nth-child(2) {
+          position: sticky !important;
+          left: 70px !important;
+          z-index: 11 !important;
+          background-color: #f8fafc !important;
+          border-right: 2px solid #e5e7eb !important;
+          box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
+          will-change: transform !important;
+          min-width: 70px !important;
+          max-width: 70px !important;
+        }
+        
+        .pedagang-table table tbody tr td:nth-child(2) {
+          position: sticky !important;
+          left: 70px !important;
+          z-index: 10 !important;
+          background-color: #ffffff !important;
+          border-right: 2px solid #e5e7eb !important;
+          box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
+          will-change: transform !important;
+          min-width: 70px !important;
+          max-width: 70px !important;
+        }
+        
+        .pedagang-table table tbody tr:hover td:nth-child(2) {
+          background-color: #f9fafb !important;
+        }
+        
+        /* Custom scrollbar styling for table container */
+        .table-scroll-container::-webkit-scrollbar {
+            height: 8px;
+        }
+        
+        .table-scroll-container::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        
+        .table-scroll-container::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+            transition: background 0.2s ease;
+        }
+        
+        .table-scroll-container::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        
+        /* Hide scrollbar on Firefox while keeping functionality */
+        .table-scroll-container {
+            scrollbar-width: thin;
+            scrollbar-color: #cbd5e1 #f1f5f9;
+        }
+      `}</style>
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-2 sm:p-4 md:p-6">
       {/* Notification */}
       {notification.show && (
@@ -485,75 +644,131 @@ const PedagangPage = () => {
         )}
 
         {/* Data Table */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 relative overflow-x-auto flex flex-col min-h-[400px]">
-          <div className="flex-1 flex flex-col">
-            {loading ? (
-              <div className="flex-1 flex items-center justify-center py-12">
-                <div className="text-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mx-auto mb-4"></div>
-                  <p className="text-gray-500">Memuat data...</p>
-                </div>
-              </div>
-            ) : (
-              <div className="w-full h-full overflow-x-auto flex-1 flex flex-col">
-                <div className="min-w-[1100px] h-full flex-1 flex flex-col">
-                  <DataTable
-                    columns={columns}
-                    data={pedagangList}
-                    pagination
-                    paginationServer
-                    paginationTotalRows={pagination.totalItems}
-                    paginationPerPage={pagination.perPage}
-                    paginationRowsPerPageOptions={[10, 25, 50, 100]}
-                    onChangePage={handlePageChange}
-                    onChangeRowsPerPage={handlePerPageChange}
-                    customStyles={{
-                      ...customTableStyles,
-                      table: {
-                        style: {
-                          minHeight: '100%',
-                          height: '100%',
-                          width: '100%',
-                          display: 'flex',
-                          flexDirection: 'column',
-                        },
-                      },
-                      headRow: {
-                        style: {
-                          flex: '0 0 auto',
-                        },
-                      },
-                      body: {
-                        style: {
-                          flex: '1 1 auto',
-                          minHeight: '250px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          justifyContent: 'stretch',
-                          width: '100%',
-                        },
-                      },
-                      rows: {
-                        style: {
-                          minHeight: '48px',
-                          flex: '1 0 auto',
-                          width: '100%',
-                        },
-                      },
-                    }}
-                    noDataComponent={
-                      <div className="text-center py-12">
+        <div className="bg-white rounded-lg shadow-lg border border-gray-100 relative">
+          {/* Table Header with scroll indicator */}
+          <div className="bg-gradient-to-r from-red-50 to-rose-50 px-4 py-2 border-b border-gray-200">
+            <div className="flex items-center justify-between text-sm text-gray-600">
+              <span className="flex items-center gap-2">
+                <Users className="w-4 h-4" />
+                Data Pedagang
+              </span>
+            </div>
+          </div>
+          
+          {/* Scrollable Table Content */}
+          <div
+            className="w-full overflow-x-auto max-w-full table-scroll-container"
+            style={{
+              maxHeight: '75vh',
+              scrollBehavior: 'smooth',
+              WebkitOverflowScrolling: 'touch',
+              minHeight: '600px',
+            }}
+          >
+            <div style={{ minWidth: '1500px' }}>
+              <DataTable
+                key={`datatable-${pagination.currentPage}-${pedagangList.length}`}
+                className="pedagang-table"
+                columns={columns}
+                data={pedagangList}
+                pagination={false}
+                customStyles={customTableStyles}
+                wrapperStyle={{ 'data-table-wrapper': 'true' }}
+                progressPending={loading}
+                progressComponent={
+                  <div className="text-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto"></div>
+                    <p className="text-gray-500 text-sm mt-2">Memuat data...</p>
+                  </div>
+                }
+                noDataComponent={
+                  <div className="text-center py-12">
+                    {error ? (
+                      <div className="text-red-600">
+                        <p className="text-lg font-semibold">Error</p>
+                        <p className="text-sm">{error}</p>
+                      </div>
+                    ) : searchTerm ? (
+                      <div className="text-gray-500">
+                        <p className="text-lg font-semibold">Tidak ada hasil untuk "{searchTerm}"</p>
+                        <p className="text-sm mt-2">Coba gunakan kata kunci yang berbeda</p>
+                      </div>
+                    ) : (
+                      <div className="text-gray-500">
                         <Users className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                         <p className="text-gray-500 text-lg">Tidak ada data pedagang ditemukan</p>
                       </div>
-                    }
-                    responsive
-                    highlightOnHover={true}
-                    pointerOnHover={true}
-                  />
+                    )}
+                  </div>
+                }
+                responsive={false}
+                highlightOnHover={true}
+                pointerOnHover={true}
+              />
+            </div>
+          </div>
+          
+          {/* Fixed Pagination */}
+          <div className="bg-white px-4 py-3 border-t border-gray-200 rounded-b-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs text-gray-500">
+                <span className="text-green-600 bg-green-50 px-2 py-1 rounded-md">Scroll horizontal untuk melihat semua kolom</span>
+              </div>
+              
+              {/* Pagination Controls */}
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-700">Items per page:</span>
+                  <select
+                    value={pagination.perPage}
+                    onChange={(e) => handlePerPageChange(parseInt(e.target.value))}
+                    className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                  >
+                    {[10, 25, 50, 100].map(size => (
+                      <option key={size} value={size}>{size}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <span className="text-sm text-gray-700">
+                  {((pagination.currentPage - 1) * pagination.perPage) + 1}-{Math.min(pagination.currentPage * pagination.perPage, pagination.totalItems)} of {pagination.totalItems}
+                </span>
+
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => handlePageChange(1)}
+                    disabled={pagination.currentPage === 1}
+                    className="px-2 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    «
+                  </button>
+                  <button
+                    onClick={() => handlePageChange(pagination.currentPage - 1)}
+                    disabled={pagination.currentPage === 1}
+                    className="px-2 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    ‹
+                  </button>
+                  <span className="px-3 py-1 text-sm border border-gray-300 bg-red-50 text-red-600 rounded">
+                    {pagination.currentPage}
+                  </span>
+                  <button
+                    onClick={() => handlePageChange(pagination.currentPage + 1)}
+                    disabled={pagination.currentPage === pagination.totalPages}
+                    className="px-2 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    ›
+                  </button>
+                  <button
+                    onClick={() => handlePageChange(pagination.totalPages)}
+                    disabled={pagination.currentPage === pagination.totalPages}
+                    className="px-2 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    »
+                  </button>
                 </div>
               </div>
-            )}
+            </div>
           </div>
         </div>
       </div>
@@ -611,6 +826,7 @@ const PedagangPage = () => {
         loading={isDeleting}
       />
     </div>
+    </>
   );
 };
 
