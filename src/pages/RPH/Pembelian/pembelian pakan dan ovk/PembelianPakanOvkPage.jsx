@@ -480,7 +480,7 @@ const filteredData = useMemo(() => {
         cell: (row) => <div className="text-sm font-medium text-gray-700">{formatDate(row.tanggal)}</div>
       },
       {
-        name: activeTab === 'ovk' ? 'Jenis OVK' : 'Jenis Pakan',
+        name: activeTab === 'ovk' ? 'Jenis OVK' : 'Jenis Bahan Baku',
         selector: (row) => row.jenisItem,
         sortable: true,
         minWidth: '220px',
@@ -553,10 +553,10 @@ const filteredData = useMemo(() => {
             </div>
             <div>
             <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
-            Pembelian Pakan & OVK
+            Pembelian Bahan Baku & OVK
             </h1>
             <p className="mt-1 text-sm text-gray-500 sm:text-base">
-            Kelola transaksi pembelian pakan, obat, vitamin, dan kebutuhan OVK untuk operasional RPH.
+            Kelola transaksi pembelian bahan baku, obat, vitamin, dan kebutuhan OVK untuk operasional RPH.
             </p>
             </div>
             </div>
@@ -569,7 +569,7 @@ const filteredData = useMemo(() => {
             className="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-200 bg-white px-5 py-3 text-sm font-semibold text-emerald-700 shadow-sm transition-all hover:bg-emerald-50 sm:text-base"
             >
             <PlusCircle className="h-5 w-5" />
-            Tambah Pembelian Pakan
+            Tambah Pembelian Bahan Baku
             </button>
             ) : (
             <button
@@ -587,30 +587,30 @@ const filteredData = useMemo(() => {
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
             <SummaryCard
-            title={activeTab === 'ovk' ? 'Total Pembelian OVK' : 'Total Pembelian Pakan'}
+            title={activeTab === 'ovk' ? 'Total Pembelian OVK' : 'Total Pembelian Bahan Baku'}
             value={stats.totalTransaksi}
-            subtext={activeTab === 'ovk' ? 'Jumlah transaksi pembelian OVK' : 'Jumlah transaksi pembelian Pakan'}
+            subtext={activeTab === 'ovk' ? 'Jumlah transaksi pembelian OVK' : 'Jumlah transaksi pembelian Bahan Baku'}
             icon={ClipboardList}
             gradientClass="bg-gradient-to-br from-emerald-500 to-emerald-600"
             />
             <SummaryCard
-            title={activeTab === 'ovk' ? 'Jenis OVK' : 'Jenis Pakan'}
+            title={activeTab === 'ovk' ? 'Jenis OVK' : 'Jenis Bahan Baku'}
             value={stats.jenisAktif}
-            subtext={activeTab === 'ovk' ? 'Jenis OVK yang tercatat pada daftar' : 'Jenis Pakan yang tercatat pada daftar'}
+            subtext={activeTab === 'ovk' ? 'Jenis OVK yang tercatat pada daftar' : 'Jenis Bahan Baku yang tercatat pada daftar'}
             icon={Pill}
             gradientClass="bg-gradient-to-br from-blue-500 to-cyan-600"
             />
             <SummaryCard
-            title={activeTab === 'ovk' ? 'Total Jumlah OVK' : 'Total Jumlah Pakan'}
+            title={activeTab === 'ovk' ? 'Total Jumlah OVK' : 'Total Jumlah Bahan Baku'}
             value={stats.totalUnit}
-            subtext={activeTab === 'ovk' ? 'Akumulasi unit OVK yang dibeli' : 'Akumulasi unit Pakan yang dibeli'}
+            subtext={activeTab === 'ovk' ? 'Akumulasi unit OVK yang dibeli' : 'Akumulasi unit Bahan Baku yang dibeli'}
             icon={Package}
             gradientClass="bg-gradient-to-br from-violet-500 to-purple-600"
             />
             <SummaryCard
             title="Total Harga"
             value={formatCurrency(stats.totalNominal)}
-            subtext={activeTab === 'ovk' ? 'Akumulasi nilai pembelian OVK' : 'Akumulasi nilai pembelian Pakan'}
+            subtext={activeTab === 'ovk' ? 'Akumulasi nilai pembelian OVK' : 'Akumulasi nilai pembelian Bahan Baku'}
             icon={Wallet}
             gradientClass="bg-gradient-to-br from-amber-500 to-orange-500"
             />
@@ -628,7 +628,7 @@ const filteredData = useMemo(() => {
           : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
           }`}
           >
-          <span className="relative z-10">Pembelian Pakan</span>
+          <span className="relative z-10">Pembelian Bahan Baku</span>
           {activeTab === 'pakan' && (
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-400 to-cyan-400"></div>
           )}
@@ -670,7 +670,7 @@ const filteredData = useMemo(() => {
                     type="text"
                     value={searchTerm}
                     onChange={(event) => setSearchTerm(event.target.value)}
-                    placeholder={activeTab === 'ovk' ? 'Cari pembelian OVK...' : 'Cari pembelian Pakan...'}
+                    placeholder={activeTab === 'ovk' ? 'Cari pembelian OVK...' : 'Cari pembelian Bahan Baku...'}
                     className={`w-full rounded-full border border-gray-200 py-3 pl-12 pr-12 text-sm shadow-sm outline-none transition-all focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 sm:text-base`}
                   />
                 </div>
@@ -699,7 +699,7 @@ const filteredData = useMemo(() => {
                   <div className="py-12 text-center">
                     <p className="text-base font-semibold text-gray-600">Tidak ada data ditemukan</p>
                     <p className="mt-1 text-sm text-gray-400">
-                    Coba ubah kata kunci pencarian untuk menemukan data {activeTab === 'ovk' ? 'OVK' : 'Pakan'} yang sesuai.
+                    Coba ubah kata kunci pencarian untuk menemukan data {activeTab === 'ovk' ? 'OVK' : 'Bahan Baku'} yang sesuai.
                     </p>
                   </div>
                 }
@@ -722,7 +722,7 @@ const filteredData = useMemo(() => {
                 <div className="rounded-2xl border border-dashed border-gray-200 px-4 py-10 text-center">
                   <p className="font-semibold text-gray-600">Tidak ada data ditemukan</p>
                   <p className="mt-1 text-sm text-gray-400">
-                  Coba ubah kata kunci pencarian untuk menemukan data {activeTab === 'ovk' ? 'OVK' : 'Pakan'} yang sesuai.
+                  Coba ubah kata kunci pencarian untuk menemukan data {activeTab === 'ovk' ? 'OVK' : 'Bahan Baku'} yang sesuai.
                   </p>
                 </div>
                     ) : (

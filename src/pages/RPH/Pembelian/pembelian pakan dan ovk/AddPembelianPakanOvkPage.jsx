@@ -43,22 +43,22 @@ const PAGE_VARIANTS = {
   },
   pakan: {
     key: 'pakan',
-    entityName: 'Pakan',
-    pageTitle: 'Tambah Pembelian Pakan',
+    entityName: 'Bahan Baku',
+    pageTitle: 'Tambah Pembelian Bahan Baku',
     subtitle:
-      'Ajukan kebutuhan pembelian pakan RPH dengan alur yang ringkas, jelas, dan mudah ditindaklanjuti.',
-    itemFieldLabel: 'Pilih Pakan',
-    itemSelectLabel: 'Pakan',
-    itemPlaceholder: 'Pilih Pakan',
+      'Ajukan kebutuhan pembelian bahan baku RPH dengan alur yang ringkas, jelas, dan mudah ditindaklanjuti.',
+    itemFieldLabel: 'Pilih Bahan Baku',
+    itemSelectLabel: 'Bahan Baku',
+    itemPlaceholder: 'Pilih Bahan Baku',
     mengetahuiLabel: 'Mengetahui',
     notesLabel: 'Catatan',
-    notesPlaceholder: 'Tambahkan catatan pembelian pakan bila diperlukan',
+    notesPlaceholder: 'Tambahkan catatan pembelian bahan baku bila diperlukan',
     ctaText: 'Ajukan ke Feedmill & Simpan',
-    helperTitle: 'Persediaan Pakan',
+    helperTitle: 'Persediaan Bahan Baku',
     helperDescription:
-      'Klik area ini untuk membuka modal pemilihan item atau melihat persediaan pakan yang tersedia.',
-    emptySelectionText: 'Belum ada pakan yang dipilih',
-    itemPreviewLabel: 'Pakan terpilih',
+      'Klik area ini untuk membuka modal pemilihan item atau melihat persediaan bahan baku yang tersedia.',
+    emptySelectionText: 'Belum ada bahan baku yang dipilih',
+    itemPreviewLabel: 'Bahan Baku terpilih',
     accentClass: 'from-emerald-500 via-green-500 to-cyan-500',
     softAccentClass: 'from-emerald-50 via-white to-cyan-50',
     iconBgClass: 'bg-emerald-100 text-emerald-700',
@@ -461,16 +461,6 @@ const FormField = ({ label, helperText, required = false, children }) => (
                   </p>
                 </div>
 
-                <div className="hidden rounded-2xl bg-slate-50 px-4 py-3 text-right sm:block">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                    Tipe Form
-                  </p>
-                  <p className="mt-1 text-sm font-semibold text-slate-700">
-                    {selectedJenisPembelian
-                      ? config.entityName
-                      : 'Belum dipilih'}
-                  </p>
-                </div>
               </div>
 
               <div className="mt-6 grid gap-5 md:grid-cols-2">
@@ -485,31 +475,6 @@ const FormField = ({ label, helperText, required = false, children }) => (
                     options={jenisPembelianOptions}
                     placeholder="Pilih Jenis Pembelian"
                   />
-                </FormField>
-
-                <FormField
-                  label={config.itemFieldLabel}
-                  helperText={`Gunakan field ini untuk memilih ${config.itemSelectLabel.toLowerCase()} yang akan diajukan.`}
-                  required
-                >
-                  <button
-                    type="button"
-                    onClick={() => setIsItemModalOpen(true)}
-                    disabled={isItemSelectionDisabled}
-                    className={`w-full rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-3 text-left text-sm transition focus:outline-none focus:ring-4 focus:ring-emerald-100 ${
-                      isItemSelectionDisabled
-                        ? 'cursor-not-allowed text-slate-400 opacity-60'
-                        : 'text-slate-600 hover:border-emerald-300 hover:bg-white'
-                    }`}
-                  >
-                    {selectedItems.length === 0 ? (
-                      <span className="text-slate-400">{config.itemPlaceholder}</span>
-                    ) : (
-                      <span className="text-slate-600">
-                        {selectedItems.length} item dipilih • klik untuk ubah pilihan
-                      </span>
-                    )}
-                  </button>
                 </FormField>
 
                 <FormField

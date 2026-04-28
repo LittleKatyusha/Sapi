@@ -30,7 +30,7 @@ const PilihPakanOvkModal = ({
     initialSelected.forEach((item) => {
       next[item.id] = {
         selected: true,
-        qty: item.qty || 1,
+        qty: item.qty ?? '',
         price: item.price || getDefaultPrice(item)
       };
     });
@@ -39,9 +39,13 @@ const PilihPakanOvkModal = ({
   }, [isOpen, initialSelected]);
 
   const filteredItems = useMemo(() => {
-    if (!searchTerm.trim()) return items;
+    const withStock = items.filter((item) => {
+      const stock = Number(item.qty ?? item.stock ?? 0);
+      return stock > 0;
+    });
+    if (!searchTerm.trim()) return withStock;
     const lower = searchTerm.toLowerCase();
-    return items.filter((item) =>
+    return withStock.filter((item) =>
       [item.name, item.product]
         .filter(Boolean)
         .some((value) => value.toLowerCase().includes(lower))
@@ -54,7 +58,7 @@ const PilihPakanOvkModal = ({
       filteredItems.forEach((item) => {
         next[item.id] = {
           selected: true,
-          qty: next[item.id]?.qty || 1,
+          qty: next[item.id]?.qty ?? '',
           price: next[item.id]?.price || getDefaultPrice(item)
         };
       });
@@ -82,7 +86,7 @@ const PilihPakanOvkModal = ({
       }
       next[item.id] = {
         selected: true,
-        qty: current?.qty || 1,
+        qty: current?.qty ?? '',
         price: current?.price || getDefaultPrice(item)
       };
       return next;
@@ -94,7 +98,7 @@ const PilihPakanOvkModal = ({
       ...prev,
       [item.id]: {
         selected: true,
-        qty: Math.max(1, qty || 1),
+        qty: qty === '' ? '' : qty,
         price: prev[item.id]?.price || getDefaultPrice(item)
       }
     }));
@@ -105,7 +109,7 @@ const PilihPakanOvkModal = ({
       ...prev,
       [item.id]: {
         selected: true,
-        qty: prev[item.id]?.qty || 1,
+        qty: prev[item.id]?.qty ?? '',
         price: Number(price)
       }
     }));
@@ -252,9 +256,9 @@ const PilihPakanOvkModal = ({
                       <td className="px-3 py-2">
                         <input
                           type="number"
-                          min="1"
-                          value={current?.qty ?? 1}
-                          onChange={(event) => handleQtyChange(item, Number(event.target.value))}
+                          min="0"
+                          value={current?.qty ?? ''}
+                          onChange={(event) => handleQtyChange(item, event.target.value === '' ? '' : Number(event.target.value))}
                           className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-700"
                         />
                       </td>
