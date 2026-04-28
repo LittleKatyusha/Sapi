@@ -1,9 +1,9 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Save, User, MapPin, Phone, Store, Hash, Calendar,
   ChevronDown, ChevronUp, DollarSign, Building2, ArrowLeft,
-  CheckCircle, XCircle,
+  CheckCircle, XCircle, Wallet, Snowflake, Lock,
 } from 'lucide-react';
 import { CUT_PARTS, getEmptyHarga } from './constants/cutParts';
 import usePedagang from './hooks/usePedagang';
@@ -36,6 +36,21 @@ const initialFormData = {
   pasar: '',
   saldo_awal: '',
   id_office: '',
+  tabungan: '',
+  kulit: '',
+  saldo_beku: '',
+};
+
+const formatCurrency = (value) => {
+  if (value === '' || value === null || value === undefined) return '';
+  const num = Number(value);
+  if (isNaN(num)) return '';
+  return num.toLocaleString('id-ID');
+};
+
+const parseCurrency = (value) => {
+  if (value === '') return '';
+  return Number(value.replace(/[^\d]/g, '')) || 0;
 };
 
 const AddPedagangPage = () => {
@@ -50,6 +65,24 @@ const AddPedagangPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hargaExpanded, setHargaExpanded] = useState(false);
   const [notification, setNotification] = useState({ show: false, message: '', type: '' });
+
+  // Calculated fields (read-only)
+  const calculatedValues = useMemo(() => {
+    const saldoAwal = Number(formData.saldo_awal) || 0;
+    const tabungan = Number(formData.tabungan) || 0;
+    const kulit = Number(formData.kulit) || 0;
+    const saldoBeku = Number(formData.saldo_beku) || 0;
+
+    const saldoAkhir = saldoAwal + tabungan + kulit;
+    const depositPedagang = tabungan;
+    const saldoKeseluruhan = saldoAkhir - saldoBeku;
+
+    return {
+      saldo_akhir: saldoAkhir,
+      deposit_pedagang: depositPedagang,
+      saldo_keseluruhan: saldoKeseluruhan,
+    };
+  }, [formData.saldo_awal, formData.tabungan, formData.kulit, formData.saldo_beku]);
 
   const showNotification = useCallback((message, type = 'success') => {
     setNotification({ show: true, message, type });
@@ -131,6 +164,16 @@ const AddPedagangPage = () => {
       }
       if (payload.status_rumah !== '') {
         payload.status_rumah = Number(payload.status_rumah);
+      }
+      // Convert new saldo fields
+      if (payload.tabungan !== '') {
+        payload.tabungan = Number(payload.tabungan);
+      }
+      if (payload.kulit !== '') {
+        payload.kulit = Number(payload.kulit);
+      }
+      if (payload.saldo_beku !== '') {
+        payload.saldo_beku = Number(payload.saldo_beku);
       }
 
       // Add nested harga object
@@ -226,6 +269,53 @@ const AddPedagangPage = () => {
           <option key={opt.value} value={opt.value}>{opt.label}</option>
         ))}
       </select>
+    </div>
+  );
+
+  const renderCurrencyInput = (name, label, icon = null, required = false, placeholder = '0') => (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor={`pedagang-${name}`}>
+        {icon && <span className="inline mr-2">{icon}</span>}
+        {label} {required && '*'}
+      </label>
+      <div className="relative">
+        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm">Rp</span>
+        <input
+          id={`pedagang-${name}`}
+          type="text"
+          name={name}
+          value={formatCurrency(formData[name])}
+          onChange={(e) => {
+            const rawValue = e.target.value.replace(/[^\d]/g, '');
+            handleInputChange({ target: { name, value: rawValue, type: 'number' } });
+          }}
+          className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors ${
+            errors[name] ? 'border-red-500' : 'border-gray-300'
+          }`}
+          placeholder={placeholder}
+          disabled={isSubmitting}
+          inputMode="numeric"
+        />
+      </div>
+      {errors[name] && <p className="mt-1 text-sm text-red-600">{errors[name]}</p>}
+    </div>
+  );
+
+  const renderReadOnlyField = (label, value, icon = null) => (
+    <div>
+      <label className="block text-sm font-medium text-gray-500 mb-2">
+        {icon && <span className="inline mr-2">{icon}</span>}
+        {label}
+      </label>
+      <div className="relative">
+        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm">Rp</span>
+        <input
+          type="text"
+          value={formatCurrency(value)}
+          readOnly
+          className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-gray-600 cursor-not-allowed"
+        />
+      </div>
     </div>
   );
 
@@ -346,10 +436,33 @@ const AddPedagangPage = () => {
 
             {/* Tab: Pasar & Saldo */}
             {activeTab === 'pasar' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {renderInput('pasar', 'Pasar', 'text', <Store className="w-4 h-4 inline" />, false, 'Nama pasar')}
-                {renderInput('saldo_awal', 'Saldo Awal', 'number', <DollarSign className="w-4 h-4 inline" />, false, '0', { min: 0 })}
-                {renderSelect('id_office', 'Office', officeOptions, <Building2 className="w-4 h-4 inline" />, 'Pilih Office')}
+              <div className="space-y-6">
+                {/* Basic Info */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {renderInput('pasar', 'Pasar', 'text', <Store className="w-4 h-4 inline" />, false, 'Nama pasar')}
+                  {renderSelect('id_office', 'Office', officeOptions, <Building2 className="w-4 h-4 inline" />, 'Pilih Office')}
+                </div>
+
+                {/* Editable Saldo Fields */}
+                <div className="border-t border-gray-200 pt-6">
+                  <h4 className="text-sm font-medium text-gray-700 mb-4">Saldo editable</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {renderInput('saldo_awal', 'Saldo Awal', 'number', <DollarSign className="w-4 h-4 inline" />, false, '0', { min: 0 })}
+                    {renderCurrencyInput('tabungan', 'Tabungan', <Wallet className="w-4 h-4 inline" />)}
+                    {renderCurrencyInput('kulit', 'Kulit', <Snowflake className="w-4 h-4 inline" />)}
+                    {renderCurrencyInput('saldo_beku', 'Saldo Beku', <Lock className="w-4 h-4 inline" />)}
+                  </div>
+                </div>
+
+                {/* Read-only Calculated Fields */}
+                <div className="border-t border-gray-200 pt-6">
+                  <h4 className="text-sm font-medium text-gray-700 mb-4">Saldo Terhitung</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {renderReadOnlyField('Saldo Akhir', calculatedValues.saldo_akhir, <DollarSign className="w-4 h-4 inline" />)}
+                    {renderReadOnlyField('Deposit Pedagang', calculatedValues.deposit_pedagang, <Wallet className="w-4 h-4 inline" />)}
+                    {renderReadOnlyField('Saldo Keseluruhan', calculatedValues.saldo_keseluruhan, <Lock className="w-4 h-4 inline" />)}
+                  </div>
+                </div>
               </div>
             )}
 

@@ -13,7 +13,7 @@ const TABS = [
 
 const PersediaanOvkPage = () => {
   const [activeTab, setActiveTab] = useState('pengguna');
-  useDocumentTitle('Persediaan OVK - RPH');
+  useDocumentTitle('Persediaan OVK dan Resep - RPH');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/40 to-cyan-50/60">
@@ -26,7 +26,7 @@ const PersediaanOvkPage = () => {
             </div>
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
-                Persediaan OVK
+                Persediaan OVK dan Resep
               </h1>
               <p className="mt-1 text-sm text-gray-500 sm:text-base">
                 Kelola persediaan dan penggunaan obat-obatan, vitamin, dan kebutuhan kesehatan hewan (OVK).

@@ -7,6 +7,25 @@ import { CUT_PARTS, getEmptyHarga } from '../constants/cutParts';
 import PedagangService from '../../../../services/pedagangService';
 import useOfficeData from '../../../ho/tandaTerima/hooks/useOfficeData';
 
+// Format number to Rupiah display (e.g. 5700000 → "5.700.000")
+const formatRupiah = (value) => {
+  if (value === '' || value === null || value === undefined) return '';
+  const num = typeof value === 'string' ? value.replace(/[^0-9-]/g, '') : String(value);
+  if (!num || num === '-') return num;
+  const isNegative = num.startsWith('-');
+  const absNum = isNegative ? num.slice(1) : num;
+  const formatted = absNum.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return isNegative ? `-${formatted}` : formatted;
+};
+
+// Parse formatted Rupiah string back to number (e.g. "5.700.000" → 5700000)
+const parseRupiah = (str) => {
+  if (!str || str === '') return '';
+  const cleaned = String(str).replace(/[^0-9-]/g, '');
+  if (!cleaned) return '';
+  return Number(cleaned);
+};
+
 const TABS = [
   { key: 'identitas', label: 'Identitas', icon: User },
   { key: 'alamat', label: 'Alamat', icon: MapPin },
@@ -33,6 +52,9 @@ const initialFormData = {
   alamat: '',
   pasar: '',
   saldo_awal: '',
+  tabungan: '',
+  kulit: '',
+  saldo_beku: '',
   id_office: '',
 };
 
@@ -83,6 +105,9 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
                 alamat: d.alamat || '',
                 pasar: d.pasar || '',
                 saldo_awal: d.saldo_awal || '',
+                tabungan: d.tabungan || '',
+                kulit: d.kulit || '',
+                saldo_beku: d.saldo_beku || '',
                 id_office: d.id_office || '',
               });
               if (d.harga) {
@@ -121,6 +146,8 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
     }
   }, [isOpen, editData]);
 
+  const CURRENCY_FIELDS = ['saldo_awal', 'tabungan', 'kulit', 'saldo_beku'];
+
   const handleInputChange = useCallback((e) => {
     const { name, value, type } = e.target;
     let finalValue = value;
@@ -131,6 +158,9 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
       finalValue = value.replace(/[^0-9]/g, '').slice(0, 16);
     } else if (name === 'no_hp') {
       finalValue = value.replace(/[^0-9+\-\s()]/g, '').slice(0, 16);
+    } else if (CURRENCY_FIELDS.includes(name)) {
+      // Store raw number for currency fields
+      finalValue = parseRupiah(value);
     } else if (type === 'number') {
       finalValue = value === '' ? '' : Number(value);
     }
@@ -143,7 +173,8 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
   }, [errors]);
 
   const handleHargaChange = useCallback((key, value) => {
-    const numericValue = value === '' ? '' : Number(value);
+    // Parse formatted Rupiah string back to number
+    const numericValue = parseRupiah(value);
     setHarga(prev => ({ ...prev, [key]: numericValue }));
   }, []);
 
@@ -178,6 +209,15 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
       // Convert numeric fields
       if (payload.saldo_awal !== '') {
         payload.saldo_awal = Number(payload.saldo_awal);
+      }
+      if (payload.tabungan !== '') {
+        payload.tabungan = Number(payload.tabungan);
+      }
+      if (payload.kulit !== '') {
+        payload.kulit = Number(payload.kulit);
+      }
+      if (payload.saldo_beku !== '') {
+        payload.saldo_beku = Number(payload.saldo_beku);
       }
       if (payload.id_office !== '') {
         payload.id_office = Number(payload.id_office);
@@ -244,6 +284,33 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
         aria-required={required}
         {...extraProps}
       />
+      {errors[name] && <p className="mt-1 text-sm text-red-600">{errors[name]}</p>}
+    </div>
+  );
+
+  const renderCurrencyInput = (name, label, icon = null, required = false, placeholder = '0') => (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor={`pedagang-${name}`}>
+        {icon && <span className="inline mr-2">{icon}</span>}
+        {label} {required && '*'}
+      </label>
+      <div className="relative">
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400 font-medium">Rp</span>
+        <input
+          id={`pedagang-${name}`}
+          type="text"
+          name={name}
+          value={formatRupiah(formData[name])}
+          onChange={handleInputChange}
+          inputMode="numeric"
+          className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors ${
+            errors[name] ? 'border-red-500' : 'border-gray-300'
+          }`}
+          placeholder={placeholder}
+          disabled={isSubmitting || detailLoading}
+          aria-required={required}
+        />
+      </div>
       {errors[name] && <p className="mt-1 text-sm text-red-600">{errors[name]}</p>}
     </div>
   );
@@ -401,10 +468,26 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
 
               {/* Tab: Pasar & Saldo */}
               {activeTab === 'pasar' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {renderInput('pasar', 'Pasar', 'text', <Store className="w-4 h-4 inline" />, false, 'Nama pasar')}
-                  {renderInput('saldo_awal', 'Saldo Awal', 'number', <DollarSign className="w-4 h-4 inline" />, false, '0', { min: 0 })}
-                  {renderSelect('id_office', 'Office', officeOptions, <Building2 className="w-4 h-4 inline" />, 'Pilih Office')}
+                <div className="space-y-6">
+                  {/* Pasar & Office */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {renderInput('pasar', 'Pasar', 'text', <Store className="w-4 h-4 inline" />, false, 'Nama pasar')}
+                    {renderSelect('id_office', 'Office', officeOptions, <Building2 className="w-4 h-4 inline" />, 'Pilih Office')}
+                  </div>
+
+                  {/* Saldo Section */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                      <DollarSign className="w-4 h-4 text-red-500" />
+                      Informasi Saldo
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {renderCurrencyInput('saldo_awal', 'Saldo Awal', <DollarSign className="w-4 h-4 inline" />)}
+                      {renderCurrencyInput('tabungan', 'Tabungan', <DollarSign className="w-4 h-4 inline" />)}
+                      {renderCurrencyInput('kulit', 'Kulit', <DollarSign className="w-4 h-4 inline" />)}
+                      {renderCurrencyInput('saldo_beku', 'Saldo Beku', <DollarSign className="w-4 h-4 inline" />)}
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -438,12 +521,11 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">Rp</span>
                             <input
                               id={`harga-${key}`}
-                              type="number"
-                              value={harga[key]}
+                              type="text"
+                              value={formatRupiah(harga[key])}
                               onChange={(e) => handleHargaChange(key, e.target.value)}
                               className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
                               placeholder="0"
-                              min="0"
                               disabled={isSubmitting}
                               inputMode="numeric"
                             />
