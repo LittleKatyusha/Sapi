@@ -13,6 +13,7 @@ class PersediaanPakanService {
   static API_UPDATE = '/api/rph/persediaan/pakan/update';
   static API_DELETE = '/api/rph/persediaan/pakan/hapus';
   static API_REKAP = '/api/rph/persediaan/pakan/datarekap';
+  static API_SHOW = '/api/rph/persediaan/pakan/show';
 
   /**
    * Get stok bahan baku (raw material stock) list
@@ -20,7 +21,9 @@ class PersediaanPakanService {
    */
   static async getStokBahanBaku() {
     try {
-      const response = await HttpClient.get(this.API_STOK_BAHAN_BAKU);
+      // Add timestamp to prevent caching
+      const url = `${this.API_STOK_BAHAN_BAKU}?_ts=${Date.now()}`;
+      const response = await HttpClient.get(url);
       const rawData = Array.isArray(response?.data)
         ? response.data
         : Array.isArray(response)
@@ -194,6 +197,30 @@ class PersediaanPakanService {
         success: false,
         data: null,
         message: errorData?.message || error?.message || 'Gagal menghapus resep pakan'
+      };
+    }
+  }
+
+  /**
+   * Get resep pakan detail by ID
+   * @param {string} pid - Recipe ID (encrypted)
+   * @returns {Promise} API response with recipe detail including items
+   */
+  static async showResep(pid) {
+    try {
+      const response = await HttpClient.post(this.API_SHOW, { pid });
+      return {
+        success: true,
+        data: response?.data ?? response,
+        message: response?.message || 'Data resep pakan berhasil dimuat'
+      };
+    } catch (error) {
+      const errorData = error?.data ?? error?.response?.data ?? null;
+      console.error('Error fetching resep pakan detail:', error);
+      return {
+        success: false,
+        data: null,
+        message: errorData?.message || error?.message || 'Gagal memuat data resep pakan'
       };
     }
   }

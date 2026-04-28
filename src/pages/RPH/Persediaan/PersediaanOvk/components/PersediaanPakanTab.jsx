@@ -6,6 +6,7 @@ import BuatResepPakanModal from '../modals/BuatResepPakanModal';
 import PersediaanPakanActionButton from './PersediaanPakanActionButton';
 import CustomPagination from './CustomPagination';
 import { enhancedTableStyles } from '../constants/tableStyles';
+import PersediaanPakanService from '../../../../../services/persediaanPakanService';
 
 const NOTIFICATION_TIMEOUT = 5000;
 
@@ -163,10 +164,23 @@ const PersediaanPakanTab = () => {
     };
 
     // Handle edit
-    const handleEdit = (item) => {
-        setEditingItem(item);
-        setIsModalOpen(true);
+    const handleEdit = async (item) => {
         setOpenMenuId(null);
+        setNotification({ type: 'info', message: 'Memuat data resep...' });
+        
+        try {
+            const response = await PersediaanPakanService.showResep(item.pid);
+            
+            if (response.success && response.data) {
+                setEditingItem(response.data);
+                setIsModalOpen(true);
+                setNotification(null);
+            } else {
+                setNotification({ type: 'error', message: response.message || 'Gagal memuat data resep' });
+            }
+        } catch (err) {
+            setNotification({ type: 'error', message: err.message || 'Terjadi kesalahan saat memuat data' });
+        }
     };
 
     // Handle delete
@@ -182,7 +196,6 @@ const PersediaanPakanTab = () => {
         try {
             setNotification({ type: 'info', message: 'Menghapus data...' });
             
-            const PersediaanPakanService = require('../../../../../services/persediaanPakanService').default;
             const response = await PersediaanPakanService.deleteResep(deleteItem.pid);
             
             if (response.success) {

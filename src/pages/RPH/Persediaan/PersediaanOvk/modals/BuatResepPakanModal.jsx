@@ -40,13 +40,16 @@ const BuatResepPakanModal = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
 
-  // Fetch stok bahan baku on modal open
+  // Fetch stok bahan baku on modal open - always fetch fresh data without caching
   useEffect(() => {
     if (!isOpen) return;
 
     const fetchStokBahanBaku = async () => {
       setLoadingStok(true);
       setErrorStok('');
+      // Clear previous data to ensure fresh fetch
+      setStokBahanBaku([]);
+      
       try {
         const response = await PersediaanPakanService.getStokBahanBaku();
         if (response.success) {
@@ -61,6 +64,7 @@ const BuatResepPakanModal = ({
       }
     };
 
+    // Always fetch fresh stok bahan baku data when modal opens
     fetchStokBahanBaku();
 
     // Reset form for add mode
@@ -72,15 +76,26 @@ const BuatResepPakanModal = ({
       });
       setSelectedMap({});
     } else {
-      // Set form for edit mode
+      // Set form for edit mode with data from /show endpoint
       setFormData({
         name: editData.name || '',
         tgl_aktif: editData.tgl_aktif || '',
         keterangan: editData.keterangan || '',
       });
-      // Note: For edit mode, we would need to fetch the detail items from backend
-      // For now, we'll start with empty selection
-      setSelectedMap({});
+      
+      // Populate selectedMap with detail items from /show response
+      if (editData.detail && Array.isArray(editData.detail)) {
+        const initialSelectedMap = {};
+        editData.detail.forEach((item) => {
+          initialSelectedMap[item.id_produk] = {
+            selected: true,
+            jumlah: item.jumlah || 1,
+          };
+        });
+        setSelectedMap(initialSelectedMap);
+      } else {
+        setSelectedMap({});
+      }
     }
 
     setSearchTerm('');
@@ -232,7 +247,7 @@ const BuatResepPakanModal = ({
 
       let response;
       if (isEditMode) {
-        payload.pid = editData.pid;
+        payload.pid = editData.pid || editData.pubid;
         response = await PersediaanPakanService.updateResep(payload);
       } else {
         response = await PersediaanPakanService.storeResep(payload);
