@@ -140,6 +140,8 @@ const usePembelianFeedmil = () => {
                     satuan: 'item', // Default unit
                     berat_total: item.berat_total,
                     biaya_total: item.biaya_total,
+                    harga_beli: item.harga_beli, // Harga Beli from backend
+                    harga_jual: item.harga_jual, // Harga Jual from backend
                     total_belanja: item.total_belanja, // Add total_belanja field from backend
                     biaya_lain: item.biaya_lain,
                     biaya_truk: item.biaya_truk,
@@ -208,8 +210,8 @@ const usePembelianFeedmil = () => {
             formData.append('jumlah', pembelianData.total_feedmil || pembelianData.totalJumlah || 0);
             formData.append('biaya_truk', pembelianData.biaya_truck || pembelianData.biaya_truk || 0); // Fixed: backend expects 'biaya_truk'
             formData.append('biaya_lain', pembelianData.biaya_lain || 0);
-            formData.append('biaya_total', pembelianData.harga_total || pembelianData.totalHPP || 0); // Backend expects 'biaya_total'
-            formData.append('berat_total', pembelianData.berat_total || pembelianData.totalBerat || 0);
+            formData.append('harga_jual', pembelianData.harga_jual || pembelianData.totalHargaJual || 0); // harga_jual = sum of Harga Jual from detail items
+            formData.append('harga_beli', pembelianData.harga_beli || pembelianData.totalHargaBeli || 0); // harga_beli = sum of Harga Beli from detail items
             // Map values to integers as per backend validation
             // Handle both string values from dropdown and integer values from API
             const mapTipePembelian = (tipe) => {
@@ -226,8 +228,6 @@ const usePembelianFeedmil = () => {
             formData.append('id_syarat_pembelian', pembelianData.id_syarat_pembelian || ''); // Required field
             formData.append('tipe_pembayaran', pembelianData.tipe_pembayaran || ''); // Added: Tipe pembayaran
             formData.append('due_date', pembelianData.due_date || ''); // Added: Jatuh tempo
-            formData.append('jumlah', pembelianData.jumlah || 0); // Added: Jumlah
-            formData.append('biaya_total', pembelianData.biaya_total || 0); // Added: Total biaya
             
             // Add file if exists
             if (pembelianData.file && pembelianData.file instanceof File) {
@@ -367,8 +367,8 @@ const usePembelianFeedmil = () => {
             formData.append('jumlah', data.total_feedmil || data.totalJumlah || 0);
             formData.append('biaya_truk', data.biaya_truck || data.biaya_truk || 0); // Fixed: backend expects 'biaya_truk'
             formData.append('biaya_lain', data.biaya_lain || 0);
-            formData.append('biaya_total', data.harga_total || data.totalHPP || 0); // Backend expects 'biaya_total'
-            formData.append('berat_total', data.berat_total || data.totalBerat || 0);
+            formData.append('harga_jual', data.harga_jual || data.totalHargaJual || 0); // harga_jual = sum of Harga Jual from detail items
+            formData.append('harga_beli', data.harga_beli || data.totalHargaBeli || 0); // harga_beli = sum of Harga Beli from detail items
             // Map values to integers as per backend validation
             // Handle both string values from dropdown and integer values from API
             const mapTipePembelian = (tipe) => {
@@ -385,8 +385,6 @@ const usePembelianFeedmil = () => {
             formData.append('id_syarat_pembelian', data.id_syarat_pembelian || ''); // Required field
             formData.append('tipe_pembayaran', data.tipe_pembayaran || ''); // Added: Tipe pembayaran
             formData.append('due_date', data.due_date || ''); // Added: Jatuh tempo
-            formData.append('jumlah', data.jumlah || 0); // Added: Jumlah
-            formData.append('biaya_total', data.biaya_total || 0); // Added: Total biaya
             
             // Add file if exists
             if (data.file && data.file instanceof File) {

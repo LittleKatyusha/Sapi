@@ -414,31 +414,19 @@ const PembelianFeedmilPage = () => {
             )
         },
         {
-            name: 'Berat Total',
-            selector: row => row.berat_total,
-            sortable: true,
-            width: '140px',
-            wrap: true,
-            cell: row => (
-                <span className="text-gray-900 font-medium">
-                    {row.berat_total ? `${parseFloat(row.berat_total).toFixed(1)} kg` : '-'}
-                </span>
-            )
-        },
-        {
-            name: 'Biaya Total',
-            selector: row => row.biaya_total,
+            name: 'Harga Beli',
+            selector: row => row.harga_beli || row.biaya_total,
             sortable: true,
             width: '160px',
             wrap: true,
             cell: row => (
                 <span className="inline-flex px-3 py-2 text-sm font-semibold rounded-lg bg-green-100 text-green-800">
-                    {row.biaya_total ? new Intl.NumberFormat('id-ID', {
+                    {(row.harga_beli || row.biaya_total) ? new Intl.NumberFormat('id-ID', {
                         style: 'currency',
                         currency: 'IDR',
                         minimumFractionDigits: 0,
-                        maximumFractionDigits: 0
-                    }).format(row.biaya_total) : 'Rp 0'}
+                        maximumFractionDigits: 2
+                    }).format(row.harga_beli || row.biaya_total) : 'Rp 0'}
                 </span>
             )
         },
@@ -454,7 +442,7 @@ const PembelianFeedmilPage = () => {
                         style: 'currency',
                         currency: 'IDR',
                         minimumFractionDigits: 0,
-                        maximumFractionDigits: 0
+                        maximumFractionDigits: 2
                     }).format(row.biaya_lain) : 'Rp 0'}
                 </span>
             )
@@ -471,8 +459,25 @@ const PembelianFeedmilPage = () => {
                         style: 'currency',
                         currency: 'IDR',
                         minimumFractionDigits: 0,
-                        maximumFractionDigits: 0
+                        maximumFractionDigits: 2
                     }).format(row.biaya_truk) : 'Rp 0'}
+                </span>
+            )
+        },
+        {
+            name: 'Harga Jual',
+            selector: row => row.harga_jual,
+            sortable: true,
+            width: '160px',
+            wrap: true,
+            cell: row => (
+                <span className="inline-flex px-3 py-2 text-sm font-semibold rounded-lg bg-emerald-100 text-emerald-800">
+                    {row.harga_jual ? new Intl.NumberFormat('id-ID', {
+                        style: 'currency',
+                        currency: 'IDR',
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 2
+                    }).format(row.harga_jual) : 'Rp 0'}
                 </span>
             )
         },

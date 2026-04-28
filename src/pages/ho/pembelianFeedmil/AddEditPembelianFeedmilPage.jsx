@@ -1118,9 +1118,13 @@ const AddEditPembelianFeedmilPage = () => {
 
             const submissionData = {
                 ...headerData,
+                // Auto-calculated values from detail items
+                total_feedmil: detailItems.length, // jumlah = count of detail items
+                harga_jual: totals.totalHargaJual, // harga_jual = sum of Harga Jual from detail items
+                harga_beli: totals.totalHargaBeli, // harga_beli = sum of Harga Beli from detail items
                 totalJumlah: totals.totalJumlah,
                 totalBerat: 0, // No longer calculating weight sum, but keeping field for backend compat
-                totalHPP: 0, // No longer calculating HPP sum, but keeping field for backend compat
+                totalHPP: totals.totalHPP, // Use calculated total HPP from detail items
                 detailItems: detailItems,
                 tipe_pembelian: headerData.tipePembelian, // Backend expects tipe_pembelian as integer
                 supplier: selectedSupplier ? selectedSupplier.label : '',
@@ -1464,44 +1468,6 @@ const AddEditPembelianFeedmilPage = () => {
 
                         {/* Berat Total - REMOVED */}
                         {/* Field kept in state for backend compatibility but removed from UI */}
-
-                        {/* Harga Total */}
-                        <div>
-                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <DollarSign className="w-4 h-4" />
-                                Harga Total (Rp)
-                            </label>
-                            <input
-                                type="text"
-                                value={formatNumber(headerData.harga_total)}
-                                onChange={(e) => handleHeaderChange('harga_total', parseNumber(e.target.value))}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                placeholder=""
-                            />
-                            <p className="text-xs text-blue-600 mt-1">
-                                💡 Total harga keseluruhan pembelian
-                            </p>
-                        </div>
-
-                        {/* Total Feedmil */}
-                        <div>
-                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <Package className="w-4 h-4" />
-                                Total Feedmil
-                            </label>
-                            <input
-                                type="number"
-                                value={headerData.total_feedmil}
-                                onChange={(e) => handleHeaderChange('total_feedmil', e.target.value)}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                placeholder=""
-                                min="0"
-                            />
-                            <p className="text-xs text-blue-600 mt-1">
-                                💡 Total jumlah feedmil dalam pembelian ini
-                            </p>
-                        </div>
-
 
                         {/* Farm */}
                         <div>
