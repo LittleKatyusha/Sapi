@@ -116,7 +116,12 @@ const BuatResepPakanModal = ({
   // Calculate selected items and total
   const selectedItems = useMemo(() => {
     return Object.entries(selectedMap)
-      .filter(([, value]) => value.selected && value.jumlah > 0)
+      .filter(([, value]) => {
+        if (!value.selected) return false;
+        // Only include items with valid positive numbers
+        const jumlah = value.jumlah;
+        return typeof jumlah === 'number' && jumlah > 0;
+      })
       .map(([id, value]) => {
         const item = stokBahanBaku.find((entry) => entry.id === Number(id));
         if (!item) return null;
@@ -139,7 +144,7 @@ const BuatResepPakanModal = ({
       filteredItems.forEach((item) => {
         next[item.id] = {
           selected: true,
-          jumlah: next[item.id]?.jumlah || 1,
+          jumlah: next[item.id]?.jumlah !== undefined ? next[item.id].jumlah : '',
         };
       });
       return next;
@@ -165,7 +170,7 @@ const BuatResepPakanModal = ({
       } else {
         next[item.id] = {
           selected: true,
-          jumlah: current?.jumlah || 1,
+          jumlah: current?.jumlah !== undefined ? current.jumlah : '',
         };
       }
       return next;
@@ -173,11 +178,27 @@ const BuatResepPakanModal = ({
   };
 
   const handleJumlahChange = (item, jumlah) => {
-    const numJumlah = Math.max(0, Number(jumlah) || 0);
+    // Allow empty string when user clears the input
+    if (jumlah === '' || jumlah === null || jumlah === undefined) {
+      setSelectedMap((prev) => ({
+        ...prev,
+        [item.id]: {
+          selected: true,
+          jumlah: '', // Store as empty string
+        },
+      }));
+      return;
+    }
+
+    const numJumlah = Number(jumlah);
     
-    // Validate against stock
+    // Validate against stock - don't allow exceeding stock
     if (numJumlah > item.jumlah) {
-      // Don't allow exceeding stock
+      return;
+    }
+
+    // Only allow non-negative numbers
+    if (numJumlah < 0) {
       return;
     }
 
@@ -207,17 +228,43 @@ const BuatResepPakanModal = ({
     if (!formData.keterangan.trim()) {
       return 'Keterangan harus diisi';
     }
-    if (selectedItems.length === 0) {
-      return 'Pilih minimal satu bahan baku';
+    
+    // Check if there are any selected items with valid quantities
+    const validItems = Object.entries(selectedMap)
+      .filter(([, value]) => value.selected)
+      .filter(([, value]) => {
+        const jumlah = value.jumlah;
+        // Check if jumlah is a valid positive number
+        return typeof jumlah === 'number' && jumlah > 0;
+      });
+    
+    if (validItems.length === 0) {
+      return 'Pilih minimal satu bahan baku dengan jumlah lebih dari 0';
     }
     
-    // Validate quantities
-    for (const item of selectedItems) {
-      if (item.jumlah <= 0) {
+    // Validate quantities against stock
+    for (const [id, value] of Object.entries(selectedMap)) {
+      if (!value.selected) continue;
+      
+      const item = stokBahanBaku.find((entry) => entry.id === Number(id));
+      if (!item) continue;
+      
+      const jumlah = value.jumlah;
+      
+      // Skip if empty (will be caught by validItems check above)
+      if (jumlah === '' || jumlah === null || jumlah === undefined) continue;
+      
+      // Check if it's a valid number
+      if (typeof jumlah !== 'number' || isNaN(jumlah)) {
+        return `Jumlah untuk ${item.name} tidak valid`;
+      }
+      
+      if (jumlah <= 0) {
         return `Jumlah untuk ${item.name} harus lebih dari 0`;
       }
-      if (item.jumlah > item.jumlah) {
-        return `Jumlah untuk ${item.name} melebihi stok tersedia`;
+      
+      if (jumlah > item.jumlah) {
+        return `Jumlah untuk ${item.name} melebihi stok tersedia (${item.jumlah})`;
       }
     }
 
@@ -422,8 +469,9 @@ const BuatResepPakanModal = ({
                 {!loadingStok && !errorStok && filteredItems.map((item) => {
                   const current = selectedMap[item.id];
                   const isSelected = Boolean(current?.selected);
-                  const jumlahValue = current?.jumlah || 0;
-                  const isOverStock = jumlahValue > item.jumlah;
+                  // Display empty string if jumlah is empty or not set, otherwise show the number
+                  const jumlahValue = current?.jumlah !== undefined ? current.jumlah : '';
+                  const isOverStock = typeof jumlahValue === 'number' && jumlahValue > item.jumlah;
 
                   return (
                     <tr
