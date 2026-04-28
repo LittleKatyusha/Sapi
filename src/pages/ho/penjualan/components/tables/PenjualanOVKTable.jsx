@@ -206,7 +206,7 @@ const PenjualanOVKTable = ({
     // Handle edit action
     const handleEdit = useCallback((row) => {
         const id = row.id || row.pid;
-        navigate(PENJUALAN_ROUTES.EDIT(id));
+        navigate(PENJUALAN_ROUTES.EDIT, { state: { pid: id } });
     }, [navigate]);
 
     // Handle delete action - open confirmation modal

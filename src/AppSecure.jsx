@@ -345,7 +345,7 @@ function AppSecure() {
               {/* HO Penjualan Routes */}
               <Route path="/ho/penjualan" element={<PenjualanHOPage />} />
               <Route path="/ho/penjualan/add" element={<AddEditPenjualanHOPage />} />
-              <Route path="/ho/penjualan/edit/:id" element={<AddEditPenjualanHOPage />} />
+              <Route path="/ho/penjualan/edit" element={<AddEditPenjualanHOPage />} />
 
               {/* Pembayaran Doka Routes */}
               <Route path="/pembayaran/doka/detail/:id" element={<PembayaranDetailPage />} />

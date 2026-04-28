@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { AlertTriangle, CheckCircle, Info, X } from 'lucide-react';
 
 const Notification = ({ notification, onClose }) => {
     useEffect(() => {
@@ -12,77 +13,97 @@ const Notification = ({ notification, onClose }) => {
 
     if (!notification) return null;
 
-    const getStyles = () => {
+    const getConfig = () => {
         switch (notification.type) {
             case 'success':
                 return {
-                    container: 'border-green-400 bg-green-50 text-green-800',
-                    bgIcon: 'bg-green-100',
-                    iconColor: 'text-green-600',
-                    title: 'Berhasil!'
+                    container: 'bg-gradient-to-r from-emerald-50 to-green-50 border-emerald-300',
+                    icon: <CheckCircle size={22} className="text-emerald-500" />,
+                    iconBg: 'bg-emerald-100',
+                    title: 'Berhasil!',
+                    titleColor: 'text-emerald-800',
+                    textColor: 'text-emerald-700',
+                    dotColor: 'bg-emerald-400',
                 };
             case 'error':
                 return {
-                    container: 'border-red-400 bg-red-50 text-red-800',
-                    bgIcon: 'bg-red-100',
-                    iconColor: 'text-red-600',
-                    title: 'Error!'
+                    container: 'bg-gradient-to-r from-red-50 to-rose-50 border-red-300',
+                    icon: <AlertTriangle size={22} className="text-red-500" />,
+                    iconBg: 'bg-red-100',
+                    title: 'Gagal!',
+                    titleColor: 'text-red-800',
+                    textColor: 'text-red-700',
+                    dotColor: 'bg-red-400',
                 };
             case 'info':
             default:
                 return {
-                    container: 'border-blue-400 bg-blue-50 text-blue-800',
-                    bgIcon: 'bg-blue-100',
-                    iconColor: 'text-blue-600',
-                    title: 'Informasi'
+                    container: 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-300',
+                    icon: <Info size={22} className="text-blue-500" />,
+                    iconBg: 'bg-blue-100',
+                    title: 'Informasi',
+                    titleColor: 'text-blue-800',
+                    textColor: 'text-blue-700',
+                    dotColor: 'bg-blue-400',
                 };
         }
     };
 
-    const styles = getStyles();
+    const config = getConfig();
+
+    // Normalize details into an array of strings
+    const detailItems = notification.details
+        ? Array.isArray(notification.details)
+            ? notification.details.map(d => (typeof d === 'string' ? d : JSON.stringify(d)))
+            : typeof notification.details === 'string'
+                ? notification.details.split('\n').filter(Boolean)
+                : Object.values(notification.details).map(v => (typeof v === 'string' ? v : JSON.stringify(v)))
+        : [];
+
+    const hasDetails = detailItems.length > 0;
 
     return (
         <div className="fixed top-4 right-4 z-50 animate-fade-in-up">
-            <div className={`max-w-sm w-full shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden border-l-4 ${styles.container}`}>
-                <div className="p-4">
-                    <div className="flex items-start">
-                        <div className="flex-shrink-0">
-                            <div className={`w-6 h-6 ${styles.bgIcon} rounded-full flex items-center justify-center`}>
-                                {notification.type === 'success' ? (
-                                    <svg className={`w-4 h-4 ${styles.iconColor}`} fill="currentColor" viewBox="0 0 20 20">
-                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                    </svg>
-                                ) : notification.type === 'error' ? (
-                                    <svg className={`w-4 h-4 ${styles.iconColor}`} fill="currentColor" viewBox="0 0 20 20">
-                                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                                    </svg>
-                                ) : (
-                                    <div className={`animate-spin rounded-full h-4 w-4 border-b-2 ${styles.iconColor}`}></div>
-                                )}
-                            </div>
+            <div className={`max-w-md w-full rounded-xl shadow-xl border ${config.container} backdrop-blur-sm`}>
+                <div className="p-5">
+                    {/* Header row */}
+                    <div className="flex items-start gap-3">
+                        <div className={`flex-shrink-0 w-10 h-10 ${config.iconBg} rounded-lg flex items-center justify-center`}>
+                            {config.icon}
                         </div>
-                        <div className="ml-3 w-0 flex-1 pt-0.5">
-                            <p className="text-sm font-medium">
-                                {styles.title}
-                            </p>
-                            <p className="mt-1 text-sm opacity-90">
+                        <div className="flex-1 min-w-0">
+                            <h3 className={`text-base font-bold ${config.titleColor}`}>
+                                {config.title}
+                            </h3>
+                            <p className={`mt-1 text-sm leading-relaxed ${config.textColor}`}>
                                 {notification.message}
                             </p>
                         </div>
                         {onClose && (
-                            <div className="ml-4 flex-shrink-0 flex">
-                                <button
-                                    onClick={onClose}
-                                    className="rounded-md inline-flex text-gray-400 hover:text-gray-500 focus:outline-none"
-                                >
-                                    <span className="sr-only">Tutup</span>
-                                    <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                                    </svg>
-                                </button>
-                            </div>
+                            <button
+                                onClick={onClose}
+                                className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${config.iconBg} hover:opacity-70 transition-opacity`}
+                            >
+                                <X size={16} className={config.textColor} />
+                            </button>
                         )}
                     </div>
+
+                    {/* Details list */}
+                    {hasDetails && (
+                        <div className="mt-4 ml-[52px]">
+                            <div className={`rounded-lg border ${config.iconBg} p-3 space-y-2`}>
+                                {detailItems.map((detail, index) => (
+                                    <div key={index} className="flex items-start gap-2.5">
+                                        <span className={`mt-2 w-1.5 h-1.5 rounded-full ${config.dotColor} flex-shrink-0`}></span>
+                                        <p className={`text-sm leading-relaxed ${config.textColor}`}>
+                                            {detail}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

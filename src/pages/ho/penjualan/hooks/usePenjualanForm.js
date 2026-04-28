@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import HttpClient from '../../../../services/httpClient';
 import { extractApiData } from '../utils/apiHelpers';
 import { PENJUALAN_ROUTES } from '../constants/routes';
@@ -11,8 +11,9 @@ import { API_ENDPOINTS } from '../../../../config/api';
  */
 const usePenjualanForm = () => {
     const navigate = useNavigate();
-    const { id } = useParams();
-    const isEditMode = !!id;
+    const location = useLocation();
+    const pid = location.state?.pid || null;
+    const isEditMode = !!pid;
     const hasFetchedRef = useRef(false);
 
     const [formData, setFormData] = useState({
@@ -40,12 +41,12 @@ const usePenjualanForm = () => {
 
     // Fetch existing penjualan data in edit mode
     useEffect(() => {
-        if (isEditMode && id && !hasFetchedRef.current) {
+        if (isEditMode && pid && !hasFetchedRef.current) {
             hasFetchedRef.current = true;
             const fetchPenjualanDetail = async () => {
                 setLoading(true);
                 try {
-                    const response = await HttpClient.post('/api/ho/penjualan/show', { pid: id });
+                    const response = await HttpClient.post('/api/ho/penjualan/show', { pid: pid });
 
                     // The API returns { status, data: [...], message }
                     // Extract the first record from data array
@@ -243,7 +244,7 @@ const usePenjualanForm = () => {
             };
             fetchPenjualanDetail();
         }
-    }, [isEditMode, id, jenisPenjualanOptions]);
+    }, [isEditMode, pid, jenisPenjualanOptions]);
 
     // Notification auto-dismiss logic
     useEffect(() => {
@@ -393,7 +394,7 @@ const usePenjualanForm = () => {
             };
 
             if (isEditMode) {
-                await HttpClient.post(`/api/ho/penjualan/update/${id}`, payload);
+                await HttpClient.post('/api/ho/penjualan/update', { ...payload, pid });
                 setNotification({ type: 'success', message: 'Penjualan berhasil diperbarui!' });
             } else {
                 await HttpClient.post('/api/ho/penjualan/store', payload);
@@ -402,11 +403,20 @@ const usePenjualanForm = () => {
 
             setTimeout(() => navigate(PENJUALAN_ROUTES.LIST), 1500);
         } catch (error) {
-            setNotification({ type: 'error', message: error.message || 'Terjadi kesalahan saat menyimpan data' });
+            const errData = error?.response?.data || error?.data || {};
+            const rawDetails = errData.data?.details || errData.details || null;
+            const hasDetails = rawDetails != null && rawDetails !== '';
+
+            // If details exist, show a friendly message with only the detail items
+            const message = hasDetails
+                ? 'Stok tidak mencukupi untuk produk berikut:'
+                : (errData.message || error.message || 'Terjadi kesalahan saat menyimpan data');
+            const details = hasDetails ? rawDetails : null;
+            setNotification({ type: 'error', message, details });
         } finally {
             setLoading(false);
         }
-    }, [formData, detailProduk, isEditMode, id, navigate]);
+    }, [formData, detailProduk, isEditMode, pid, navigate]);
 
     const handleBack = useCallback(() => {
         navigate(PENJUALAN_ROUTES.LIST);
@@ -422,7 +432,7 @@ const usePenjualanForm = () => {
         editingIndex,
         isEditMode,
         priceInfo,
-        id,
+        pid,
 
         // Handlers
         handleSelectChange,
