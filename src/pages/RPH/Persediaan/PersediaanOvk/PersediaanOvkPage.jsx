@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { Package, ClipboardList } from 'lucide-react';
+import { Package, ClipboardList, Wheat } from 'lucide-react';
 import useDocumentTitle from '../../../../hooks/useDocumentTitle';
 import PenggunaOvkTab from './components/PenggunaOvkTab';
 import PersediaanOvkTab from './components/PersediaanOvkTab';
+import PersediaanPakanTab from './components/PersediaanPakanTab';
 
 const TABS = [
   { id: 'pengguna', label: 'Pengguna OVK', icon: ClipboardList },
   { id: 'persediaan', label: 'Persediaan OVK', icon: Package },
+  { id: 'persediaan-pakan', label: 'Persediaan Pakan', icon: Wheat },
 ];
 
 const PersediaanOvkPage = () => {
@@ -66,6 +68,7 @@ const PersediaanOvkPage = () => {
           <div className="bg-gradient-to-br from-slate-50/30 to-blue-50/30 p-6">
             {activeTab === 'pengguna' && <PenggunaOvkTab />}
             {activeTab === 'persediaan' && <PersediaanOvkTab />}
+            {activeTab === 'persediaan-pakan' && <PersediaanPakanTab />}
           </div>
         </div>
       </div>
