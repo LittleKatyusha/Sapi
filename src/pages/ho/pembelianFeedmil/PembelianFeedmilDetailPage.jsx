@@ -135,9 +135,10 @@ const PembelianFeedmilDetailPage = () => {
                                 biaya_lain: parseFloat(headerData.biaya_lain) || 0,
                                 biaya_truk: parseFloat(headerData.biaya_truk) || 0,
                                 biaya_total: parseFloat(headerData.biaya_total) || 0,
+                                harga_beli: parseFloat(headerData.harga_beli) || 0,
+                                harga_jual: parseFloat(headerData.harga_jual) || 0,
                                 jumlah: parseInt(headerData.jumlah) || 0,
                                 satuan: headerData.satuan || 'item',
-                                berat_total: parseFloat(headerData.berat_total) || 0,
                                 jenis_pembelian: headerData.jenis_pembelian || 'INTERNAL',
                                 file: headerData.file || null
                             });
@@ -160,9 +161,10 @@ const PembelianFeedmilDetailPage = () => {
                                 biaya_lain: parseFloat(firstItem.biaya_lain) || 0,
                                 biaya_truk: parseFloat(firstItem.biaya_truk) || 0,
                                 biaya_total: parseFloat(firstItem.biaya_total) || 0,
+                                harga_beli: parseFloat(firstItem.harga_beli) || 0,
+                                harga_jual: parseFloat(firstItem.harga_jual) || 0,
                                 jumlah: parseInt(firstItem.jumlah) || 0,
                                 satuan: 'item',
-                                berat_total: parseFloat(firstItem.berat_total) || 0,
                                 jenis_pembelian: firstItem.jenis_pembelian || 'INTERNAL',
                                 file: firstItem.file || null
                             });
@@ -197,9 +199,10 @@ const PembelianFeedmilDetailPage = () => {
                             plat_nomor: '',
                             biaya_lain: 0,
                             biaya_total: 0,
+                            harga_beli: 0,
+                            harga_jual: 0,
                             jumlah: 0,
                             satuan: 'item',
-                            berat_total: 0,
                             jenis_pembelian: 'INTERNAL' // Default to first option
                         });
                         setDetailData([]);
@@ -609,13 +612,33 @@ const PembelianFeedmilDetailPage = () => {
                             </p>
                         </div>
 
-                        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-lg">
+                        <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg">
                             <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <Weight className="w-4 h-4 inline mr-1" />
-                                Berat Total
+                                <DollarSign className="w-4 h-4 inline mr-1" />
+                                Harga Beli
                             </label>
                             <p className="text-lg font-bold text-gray-900">
-                                {pembelianData.berat_total ? `${parseFloat(pembelianData.berat_total).toFixed(1)} kg` : '-'}
+                                {pembelianData.harga_beli ? new Intl.NumberFormat('id-ID', {
+                                    style: 'currency',
+                                    currency: 'IDR',
+                                    minimumFractionDigits: 0,
+                                    maximumFractionDigits: 2
+                                }).format(pembelianData.harga_beli) : 'Rp 0'}
+                            </p>
+                        </div>
+
+                        <div className="bg-gradient-to-r from-emerald-50 to-teal-50 p-4 rounded-lg">
+                            <label className="block text-sm font-medium text-gray-600 mb-2">
+                                <DollarSign className="w-4 h-4 inline mr-1" />
+                                Harga Jual
+                            </label>
+                            <p className="text-lg font-bold text-gray-900">
+                                {pembelianData.harga_jual ? new Intl.NumberFormat('id-ID', {
+                                    style: 'currency',
+                                    currency: 'IDR',
+                                    minimumFractionDigits: 0,
+                                    maximumFractionDigits: 2
+                                }).format(pembelianData.harga_jual) : 'Rp 0'}
                             </p>
                         </div>
 
@@ -629,7 +652,7 @@ const PembelianFeedmilDetailPage = () => {
                                     style: 'currency',
                                     currency: 'IDR',
                                     minimumFractionDigits: 0,
-                                    maximumFractionDigits: 0
+                                    maximumFractionDigits: 2
                                 }).format(pembelianData.biaya_lain) : 'Rp 0'}
                             </p>
                         </div>
