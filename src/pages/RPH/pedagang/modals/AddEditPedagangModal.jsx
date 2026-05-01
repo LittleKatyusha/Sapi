@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   X, Save, User, MapPin, Phone, Store, Hash, Calendar,
-  ChevronDown, ChevronUp, DollarSign, Building2,
+  ChevronDown, ChevronUp, DollarSign, Building2, Briefcase,
 } from 'lucide-react';
 import { CUT_PARTS, getEmptyHarga } from '../constants/cutParts';
 import PedagangService from '../../../../services/pedagangService';
+import HttpClient from '../../../../services/httpClient';
+import { API_ENDPOINTS } from '../../../../config/api';
 import useOfficeData from '../../../ho/tandaTerima/hooks/useOfficeData';
 import useWilayah from '../hooks/useWilayah';
 import SearchableSelect from '../../../../components/shared/SearchableSelect';
@@ -71,9 +73,36 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hargaExpanded, setHargaExpanded] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [pekerjaanOptions, setPekerjaanOptions] = useState([]);
+  const [loadingPekerjaan, setLoadingPekerjaan] = useState(false);
 
   // Office data for dropdown
   const { officeOptions } = useOfficeData();
+
+  // Fetch pekerjaan options from parameter API
+  const fetchPekerjaanOptions = useCallback(async () => {
+    if (pekerjaanOptions.length > 0) return; // Already loaded
+    
+    setLoadingPekerjaan(true);
+    try {
+      const response = await HttpClient.post(`${API_ENDPOINTS.SYSTEM.PARAMETERS}/dataByGroup`, {
+        group: 'pekerjaan'
+      });
+      
+      if (response.data && Array.isArray(response.data)) {
+        const options = response.data.map(item => ({
+          value: parseInt(item.value),
+          label: item.name
+        }));
+        setPekerjaanOptions(options);
+      }
+    } catch (err) {
+      console.error('Error fetching pekerjaan options:', err);
+      setPekerjaanOptions([]);
+    } finally {
+      setLoadingPekerjaan(false);
+    }
+  }, [pekerjaanOptions.length]);
 
   // Wilayah cascading dropdowns
   const wilayahInitialValues = useMemo(() => ({
@@ -99,6 +128,9 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
   // Reset form when modal opens/closes or editData changes
   useEffect(() => {
     if (isOpen) {
+      // Fetch pekerjaan options when modal opens
+      fetchPekerjaanOptions();
+      
       if (editData) {
         setFormData({ ...initialFormData });
         setHarga(getEmptyHarga());
@@ -170,7 +202,7 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
       }
       setErrors({});
     }
-  }, [isOpen, editData]);
+  }, [isOpen, editData, fetchPekerjaanOptions]);
 
 
   const CURRENCY_FIELDS = ['saldo_awal', 'tabungan', 'kulit', 'saldo_beku'];
@@ -505,7 +537,7 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
                     { value: 5, label: 'Buddha' },
                     { value: 6, label: 'Konghucu' },
                   ])}
-                  {renderInput('pekerjaan', 'Pekerjaan', 'text', null, false, 'Pekerjaan')}
+                  {renderSelect('pekerjaan', 'Pekerjaan', pekerjaanOptions, <Briefcase className="w-4 h-4 inline" />, loadingPekerjaan ? 'Memuat...' : 'Pilih Pekerjaan')}
                   {renderSelect('status_kawin', 'Status Kawin', [
                     { value: 1, label: 'Belum Kawin' },
                     { value: 2, label: 'Kawin' },
