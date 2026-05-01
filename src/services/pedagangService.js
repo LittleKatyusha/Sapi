@@ -52,7 +52,9 @@ class PedagangService {
    */
   static async show(pid) {
     try {
-      const response = await HttpClient.post(`${PEDAGANG_BASE}/show`, { pid });
+      const params = new URLSearchParams();
+      params.append('_ts', Date.now());
+      const response = await HttpClient.post(`${PEDAGANG_BASE}/show?${params.toString()}`, { pid });
       return {
         success: true,
         data: response?.data ?? response,
@@ -96,21 +98,17 @@ class PedagangService {
    * @param {Object} payload - Form data including pid and nested harga object
    * @returns {Promise} API response
    */
-  static async update(payload = {}) {
+  static async update(payload) {
     try {
-      const response = await HttpClient.post(`${PEDAGANG_BASE}/update`, payload);
-      return {
-        success: true,
-        data: response?.data ?? response,
-        message: response?.message || 'Pedagang berhasil diperbarui',
-      };
+      const { pid, ...data } = payload;
+      const params = new URLSearchParams();
+      if (pid) params.append('pid', pid);
+      params.append('_ts', Date.now());
+      const response = await HttpClient.post(`${PEDAGANG_BASE}/update?${params.toString()}`, data);
+      return { success: true, data: response?.data ?? response, message: 'Pedagang berhasil diperbarui' };
     } catch (error) {
       const errorData = error?.data ?? error?.response?.data ?? null;
-      return {
-        success: false,
-        data: errorData,
-        message: errorData?.message || error?.message || 'Gagal memperbarui pedagang',
-      };
+      return { success: false, data: errorData, message: errorData?.message || error?.message || 'Gagal memperbarui pedagang' };
     }
   }
 

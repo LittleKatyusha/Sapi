@@ -1,13 +1,15 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Save, User, MapPin, Phone, Store, Hash, Calendar,
   ChevronDown, ChevronUp, DollarSign, Building2, ArrowLeft,
-  CheckCircle, XCircle,
+  CheckCircle, XCircle, Wallet, Snowflake, Lock,
 } from 'lucide-react';
 import { CUT_PARTS, getEmptyHarga } from './constants/cutParts';
 import usePedagang from './hooks/usePedagang';
 import useOfficeData from '../../ho/tandaTerima/hooks/useOfficeData';
+import useWilayah from './hooks/useWilayah';
+import SearchableSelect from '../../../components/shared/SearchableSelect';
 import PedagangService from '../../../services/pedagangService';
 
 const TABS = [
@@ -37,6 +39,9 @@ const initialFormData = {
   pasar: '',
   saldo_awal: '',
   id_office: '',
+  tabungan: '',
+  kulit: '',
+  saldo_beku: '',
 };
 
 const EditPedagangPage = () => {
@@ -44,6 +49,26 @@ const EditPedagangPage = () => {
   const { id } = useParams();
   const { updatePedagang } = usePedagang();
   const { officeOptions } = useOfficeData();
+
+  const wilayahInitialValues = useMemo(() => ({
+    id_provinsi: formData.id_provinsi,
+    id_kabupaten: formData.id_kabupaten,
+    id_kecamatan: formData.id_kecamatan,
+  }), [formData.id_provinsi, formData.id_kabupaten, formData.id_kecamatan]);
+
+  const {
+    provinsiOptions,
+    kabupatenOptions,
+    kecamatanOptions,
+    kelurahanOptions,
+    loadingProvinsi,
+    loadingKabupaten,
+    loadingKecamatan,
+    loadingKelurahan,
+    fetchKabupaten,
+    fetchKecamatan,
+    fetchKelurahan,
+  } = useWilayah(wilayahInitialValues);
 
   const [activeTab, setActiveTab] = useState('identitas');
   const [formData, setFormData] = useState({ ...initialFormData });
@@ -53,6 +78,78 @@ const EditPedagangPage = () => {
   const [hargaExpanded, setHargaExpanded] = useState(false);
   const [detailLoading, setDetailLoading] = useState(true);
   const [notification, setNotification] = useState({ show: false, message: '', type: '' });
+
+  // Calculated fields (read-only)
+  const calculatedValues = useMemo(() => {
+    const saldoAwal = Number(formData.saldo_awal) || 0;
+    const tabungan = Number(formData.tabungan) || 0;
+    const kulit = Number(formData.kulit) || 0;
+    const saldoBeku = Number(formData.saldo_beku) || 0;
+
+    const saldoAkhir = saldoAwal + tabungan + kulit;
+    const depositPedagang = tabungan;
+    const saldoKeseluruhan = saldoAkhir - saldoBeku;
+
+    return {
+      saldo_akhir: saldoAkhir,
+      deposit_pedagang: depositPedagang,
+      saldo_keseluruhan: saldoKeseluruhan,
+    };
+  }, [formData.saldo_awal, formData.tabungan, formData.kulit, formData.saldo_beku]);
+
+  const renderReadOnlyField = (label, value, icon = null) => (
+    <div>
+      <label className="block text-sm font-medium text-gray-500 mb-2">
+        {icon && <span className="inline mr-2">{icon}</span>}
+        {label}
+      </label>
+      <div className="relative">
+        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm">Rp</span>
+        <input
+          type="text"
+          value={formatCurrency(value)}
+          readOnly
+          className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-gray-600 cursor-not-allowed"
+        />
+      </div>
+    </div>
+  );
+
+  const formatCurrency = (value) => {
+    if (value === '' || value === null || value === undefined) return '';
+    const num = Number(value);
+    if (isNaN(num)) return '';
+    return num.toLocaleString('id-ID');
+  };
+
+  const renderCurrencyInput = (name, label, icon = null, required = false, placeholder = '0') => (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor={`pedagang-${name}`}>
+        {icon && <span className="inline mr-2">{icon}</span>}
+        {label} {required && '*'}
+      </label>
+      <div className="relative">
+        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm">Rp</span>
+        <input
+          id={`pedagang-${name}`}
+          type="text"
+          name={name}
+          value={formatCurrency(formData[name])}
+          onChange={(e) => {
+            const rawValue = e.target.value.replace(/[^\d]/g, '');
+            handleInputChange({ target: { name, value: rawValue, type: 'number' } });
+          }}
+          className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors ${
+            errors[name] ? 'border-red-500' : 'border-gray-300'
+          }`}
+          placeholder={placeholder}
+          disabled={isSubmitting}
+          inputMode="numeric"
+        />
+      </div>
+      {errors[name] && <p className="mt-1 text-sm text-red-600">{errors[name]}</p>}
+    </div>
+  );
 
   // Fetch pedagang detail on mount
   useEffect(() => {
@@ -82,6 +179,9 @@ const EditPedagangPage = () => {
             pasar: d.pasar || '',
             saldo_awal: d.saldo_awal || '',
             id_office: d.id_office || '',
+            tabungan: d.tabungan ?? '',
+            kulit: d.kulit ?? '',
+            saldo_beku: d.saldo_beku ?? '',
           });
           if (d.harga) {
             const filledHarga = getEmptyHarga();
@@ -144,6 +244,49 @@ const EditPedagangPage = () => {
     setHarga(prev => ({ ...prev, [key]: numericValue }));
   }, []);
 
+  const handleProvinsiChange = useCallback((value) => {
+    setFormData(prev => ({
+      ...prev,
+      id_provinsi: value || '',
+      id_kabupaten: '',
+      id_kecamatan: '',
+      id_kelurahan: '',
+    }));
+    if (value) {
+      fetchKabupaten(value);
+    }
+  }, [fetchKabupaten]);
+
+  const handleKabupatenChange = useCallback((value) => {
+    setFormData(prev => ({
+      ...prev,
+      id_kabupaten: value || '',
+      id_kecamatan: '',
+      id_kelurahan: '',
+    }));
+    if (value) {
+      fetchKecamatan(value);
+    }
+  }, [fetchKecamatan]);
+
+  const handleKecamatanChange = useCallback((value) => {
+    setFormData(prev => ({
+      ...prev,
+      id_kecamatan: value || '',
+      id_kelurahan: '',
+    }));
+    if (value) {
+      fetchKelurahan(value);
+    }
+  }, [fetchKelurahan]);
+
+  const handleKelurahanChange = useCallback((value) => {
+    setFormData(prev => ({
+      ...prev,
+      id_kelurahan: value || '',
+    }));
+  }, []);
+
   const validateForm = useCallback(() => {
     const newErrors = {};
 
@@ -193,6 +336,16 @@ const EditPedagangPage = () => {
       }
       if (payload.status_rumah !== '') {
         payload.status_rumah = Number(payload.status_rumah);
+      }
+      // Convert new saldo fields
+      if (payload.tabungan !== '') {
+        payload.tabungan = Number(payload.tabungan);
+      }
+      if (payload.kulit !== '') {
+        payload.kulit = Number(payload.kulit);
+      }
+      if (payload.saldo_beku !== '') {
+        payload.saldo_beku = Number(payload.saldo_beku);
       }
 
       // Add pid for update
@@ -399,10 +552,62 @@ const EditPedagangPage = () => {
                 {/* Tab: Alamat */}
                 {activeTab === 'alamat' && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {renderInput('id_provinsi', 'Provinsi', 'text', <MapPin className="w-4 h-4 inline" />, false, 'Kode provinsi')}
-                    {renderInput('id_kabupaten', 'Kabupaten/Kota', 'text', <MapPin className="w-4 h-4 inline" />, false, 'Kode kabupaten')}
-                    {renderInput('id_kecamatan', 'Kecamatan', 'text', <MapPin className="w-4 h-4 inline" />, false, 'Kode kecamatan')}
-                    {renderInput('id_kelurahan', 'Kelurahan/Desa', 'text', <MapPin className="w-4 h-4 inline" />, false, 'Kode kelurahan')}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <MapPin className="w-4 h-4 inline mr-2" />
+                        Provinsi
+                      </label>
+                      <SearchableSelect
+                        options={provinsiOptions}
+                        value={formData.id_provinsi}
+                        onChange={handleProvinsiChange}
+                        isLoading={loadingProvinsi}
+                        placeholder="Pilih Provinsi..."
+                        isDisabled={isSubmitting || detailLoading}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <MapPin className="w-4 h-4 inline mr-2" />
+                        Kabupaten/Kota
+                      </label>
+                      <SearchableSelect
+                        options={kabupatenOptions}
+                        value={formData.id_kabupaten}
+                        onChange={handleKabupatenChange}
+                        isLoading={loadingKabupaten}
+                        placeholder="Pilih Kabupaten/Kota..."
+                        isDisabled={isSubmitting || detailLoading || !formData.id_provinsi}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <MapPin className="w-4 h-4 inline mr-2" />
+                        Kecamatan
+                      </label>
+                      <SearchableSelect
+                        options={kecamatanOptions}
+                        value={formData.id_kecamatan}
+                        onChange={handleKecamatanChange}
+                        isLoading={loadingKecamatan}
+                        placeholder="Pilih Kecamatan..."
+                        isDisabled={isSubmitting || detailLoading || !formData.id_kabupaten}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <MapPin className="w-4 h-4 inline mr-2" />
+                        Kelurahan/Desa
+                      </label>
+                      <SearchableSelect
+                        options={kelurahanOptions}
+                        value={formData.id_kelurahan}
+                        onChange={handleKelurahanChange}
+                        isLoading={loadingKelurahan}
+                        placeholder="Pilih Kelurahan/Desa..."
+                        isDisabled={isSubmitting || detailLoading || !formData.id_kecamatan}
+                      />
+                    </div>
                     {renderSelect('status_rumah', 'Status Rumah', [
                       { value: 1, label: 'Milik Sendiri' },
                       { value: 2, label: 'Kontrak' },
@@ -418,10 +623,33 @@ const EditPedagangPage = () => {
 
                 {/* Tab: Pasar & Saldo */}
                 {activeTab === 'pasar' && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {renderInput('pasar', 'Pasar', 'text', <Store className="w-4 h-4 inline" />, false, 'Nama pasar')}
-                    {renderInput('saldo_awal', 'Saldo Awal', 'number', <DollarSign className="w-4 h-4 inline" />, false, '0', { min: 0 })}
-                    {renderSelect('id_office', 'Office', officeOptions, <Building2 className="w-4 h-4 inline" />, 'Pilih Office')}
+                  <div className="space-y-6">
+                    {/* Basic Info */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {renderInput('pasar', 'Pasar', 'text', <Store className="w-4 h-4 inline" />, false, 'Nama pasar')}
+                      {renderSelect('id_office', 'Office', officeOptions, <Building2 className="w-4 h-4 inline" />, 'Pilih Office')}
+                    </div>
+
+                    {/* Editable Saldo Fields */}
+                    <div className="border-t border-gray-200 pt-6">
+                      <h4 className="text-sm font-medium text-gray-700 mb-4">Saldo editable</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {renderInput('saldo_awal', 'Saldo Awal', 'number', <DollarSign className="w-4 h-4 inline" />, false, '0', { min: 0 })}
+                        {renderCurrencyInput('tabungan', 'Tabungan', <Wallet className="w-4 h-4 inline" />)}
+                        {renderCurrencyInput('kulit', 'Kulit', <Snowflake className="w-4 h-4 inline" />)}
+                        {renderCurrencyInput('saldo_beku', 'Saldo Beku', <Lock className="w-4 h-4 inline" />)}
+                      </div>
+                    </div>
+
+                    {/* Read-only Calculated Fields */}
+                    <div className="border-t border-gray-200 pt-6">
+                      <h4 className="text-sm font-medium text-gray-700 mb-4">Saldo Terhitung</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {renderReadOnlyField('Saldo Akhir', calculatedValues.saldo_akhir, <DollarSign className="w-4 h-4 inline" />)}
+                        {renderReadOnlyField('Deposit Pedagang', calculatedValues.deposit_pedagang, <Wallet className="w-4 h-4 inline" />)}
+                        {renderReadOnlyField('Saldo Keseluruhan', calculatedValues.saldo_keseluruhan, <Lock className="w-4 h-4 inline" />)}
+                      </div>
+                    </div>
                   </div>
                 )}
 

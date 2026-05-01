@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   X, Save, User, MapPin, Phone, Store, Hash, Calendar,
   ChevronDown, ChevronUp, DollarSign, Building2,
@@ -6,16 +6,21 @@ import {
 import { CUT_PARTS, getEmptyHarga } from '../constants/cutParts';
 import PedagangService from '../../../../services/pedagangService';
 import useOfficeData from '../../../ho/tandaTerima/hooks/useOfficeData';
+import useWilayah from '../hooks/useWilayah';
+import SearchableSelect from '../../../../components/shared/SearchableSelect';
 
 // Format number to Rupiah display (e.g. 5700000 → "5.700.000")
+// Handles decimal strings from backend (e.g. "300.00" → "300")
 const formatRupiah = (value) => {
   if (value === '' || value === null || value === undefined) return '';
-  const num = typeof value === 'string' ? value.replace(/[^0-9-]/g, '') : String(value);
-  if (!num || num === '-') return num;
-  const isNegative = num.startsWith('-');
-  const absNum = isNegative ? num.slice(1) : num;
-  const formatted = absNum.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-  return isNegative ? `-${formatted}` : formatted;
+  // Parse as float first to handle decimal strings like "300.00"
+  const numValue = typeof value === 'string' ? parseFloat(value) : value;
+  if (isNaN(numValue)) return '';
+  // Round to integer (harga values should be integers)
+  const intValue = Math.round(numValue);
+  const absNum = Math.abs(intValue);
+  const formatted = String(absNum).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return intValue < 0 ? `-${formatted}` : formatted;
 };
 
 // Parse formatted Rupiah string back to number (e.g. "5.700.000" → 5700000)
@@ -70,6 +75,27 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
   // Office data for dropdown
   const { officeOptions } = useOfficeData();
 
+  // Wilayah cascading dropdowns
+  const wilayahInitialValues = useMemo(() => ({
+    id_provinsi: formData.id_provinsi,
+    id_kabupaten: formData.id_kabupaten,
+    id_kecamatan: formData.id_kecamatan,
+  }), [formData.id_provinsi, formData.id_kabupaten, formData.id_kecamatan]);
+
+  const {
+    provinsiOptions,
+    kabupatenOptions,
+    kecamatanOptions,
+    kelurahanOptions,
+    loadingProvinsi,
+    loadingKabupaten,
+    loadingKecamatan,
+    loadingKelurahan,
+    fetchKabupaten,
+    fetchKecamatan,
+    fetchKelurahan,
+  } = useWilayah(wilayahInitialValues);
+
   // Reset form when modal opens/closes or editData changes
   useEffect(() => {
     if (isOpen) {
@@ -89,19 +115,19 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
               setFormData({
                 nama_identitas: d.nama_identitas || '',
                 nama_alias: d.nama_alias || '',
-                nik: d.nik || '',
+                nik: d.nik != null ? String(d.nik) : '',
                 tempat_lahir: d.tempat_lahir || '',
                 tanggal_lahir: d.tanggal_lahir || '',
                 jenis_kelamin: d.jenis_kelamin || '',
                 agama: d.agama || '',
                 pekerjaan: d.pekerjaan || '',
                 status_kawin: d.status_kawin || '',
-                id_provinsi: d.id_provinsi || '',
-                id_kabupaten: d.id_kabupaten || '',
-                id_kecamatan: d.id_kecamatan || '',
-                id_kelurahan: d.id_kelurahan || '',
+                id_provinsi: d.id_provinsi ? Number(d.id_provinsi) : '',
+                id_kabupaten: d.id_kabupaten ? Number(d.id_kabupaten) : '',
+                id_kecamatan: d.id_kecamatan ? Number(d.id_kecamatan) : '',
+                id_kelurahan: d.id_kelurahan != null ? String(d.id_kelurahan) : '',
                 status_rumah: d.status_rumah || '',
-                no_hp: d.no_hp || '',
+                no_hp: d.no_hp != null ? String(d.no_hp) : '',
                 alamat: d.alamat || '',
                 pasar: d.pasar || '',
                 saldo_awal: d.saldo_awal || '',
@@ -126,8 +152,8 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
               ...prev,
               nama_identitas: editData.nama_identitas || '',
               nama_alias: editData.nama_alias || '',
-              nik: editData.nik || '',
-              no_hp: editData.no_hp || '',
+              nik: editData.nik != null ? String(editData.nik) : '',
+              no_hp: editData.no_hp != null ? String(editData.no_hp) : '',
               alamat: editData.alamat || '',
               pasar: editData.pasar || '',
             }));
@@ -145,6 +171,7 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
       setErrors({});
     }
   }, [isOpen, editData]);
+
 
   const CURRENCY_FIELDS = ['saldo_awal', 'tabungan', 'kulit', 'saldo_beku'];
 
@@ -176,6 +203,49 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
     // Parse formatted Rupiah string back to number
     const numericValue = parseRupiah(value);
     setHarga(prev => ({ ...prev, [key]: numericValue }));
+  }, []);
+
+  const handleProvinsiChange = useCallback((value) => {
+    setFormData(prev => ({
+      ...prev,
+      id_provinsi: value || '',
+      id_kabupaten: '',
+      id_kecamatan: '',
+      id_kelurahan: '',
+    }));
+    if (value) {
+      fetchKabupaten(value);
+    }
+  }, [fetchKabupaten]);
+
+  const handleKabupatenChange = useCallback((value) => {
+    setFormData(prev => ({
+      ...prev,
+      id_kabupaten: value || '',
+      id_kecamatan: '',
+      id_kelurahan: '',
+    }));
+    if (value) {
+      fetchKecamatan(value);
+    }
+  }, [fetchKecamatan]);
+
+  const handleKecamatanChange = useCallback((value) => {
+    setFormData(prev => ({
+      ...prev,
+      id_kecamatan: value || '',
+      id_kelurahan: '',
+    }));
+    if (value) {
+      fetchKelurahan(value);
+    }
+  }, [fetchKelurahan]);
+
+  const handleKelurahanChange = useCallback((value) => {
+    setFormData(prev => ({
+      ...prev,
+      id_kelurahan: value || '',
+    }));
   }, []);
 
   const validateForm = useCallback(() => {
@@ -448,11 +518,62 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
               {/* Tab: Alamat */}
               {activeTab === 'alamat' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* TODO: Replace with cascading region selects when region API is available */}
-                  {renderInput('id_provinsi', 'Provinsi', 'text', <MapPin className="w-4 h-4 inline" />, false, 'Kode provinsi')}
-                  {renderInput('id_kabupaten', 'Kabupaten/Kota', 'text', <MapPin className="w-4 h-4 inline" />, false, 'Kode kabupaten')}
-                  {renderInput('id_kecamatan', 'Kecamatan', 'text', <MapPin className="w-4 h-4 inline" />, false, 'Kode kecamatan')}
-                  {renderInput('id_kelurahan', 'Kelurahan/Desa', 'text', <MapPin className="w-4 h-4 inline" />, false, 'Kode kelurahan')}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <MapPin className="w-4 h-4 inline mr-2" />
+                      Provinsi
+                    </label>
+                    <SearchableSelect
+                      options={provinsiOptions}
+                      value={formData.id_provinsi}
+                      onChange={handleProvinsiChange}
+                      isLoading={loadingProvinsi}
+                      placeholder="Pilih Provinsi..."
+                      isDisabled={isSubmitting || detailLoading}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <MapPin className="w-4 h-4 inline mr-2" />
+                      Kabupaten/Kota
+                    </label>
+                    <SearchableSelect
+                      options={kabupatenOptions}
+                      value={formData.id_kabupaten}
+                      onChange={handleKabupatenChange}
+                      isLoading={loadingKabupaten}
+                      placeholder="Pilih Kabupaten/Kota..."
+                      isDisabled={isSubmitting || detailLoading || !formData.id_provinsi}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <MapPin className="w-4 h-4 inline mr-2" />
+                      Kecamatan
+                    </label>
+                    <SearchableSelect
+                      options={kecamatanOptions}
+                      value={formData.id_kecamatan}
+                      onChange={handleKecamatanChange}
+                      isLoading={loadingKecamatan}
+                      placeholder="Pilih Kecamatan..."
+                      isDisabled={isSubmitting || detailLoading || !formData.id_kabupaten}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <MapPin className="w-4 h-4 inline mr-2" />
+                      Kelurahan/Desa
+                    </label>
+                    <SearchableSelect
+                      options={kelurahanOptions}
+                      value={formData.id_kelurahan}
+                      onChange={handleKelurahanChange}
+                      isLoading={loadingKelurahan}
+                      placeholder="Pilih Kelurahan/Desa..."
+                      isDisabled={isSubmitting || detailLoading || !formData.id_kecamatan}
+                    />
+                  </div>
                   {renderSelect('status_rumah', 'Status Rumah', [
                     { value: 1, label: 'Milik Sendiri' },
                     { value: 2, label: 'Kontrak' },

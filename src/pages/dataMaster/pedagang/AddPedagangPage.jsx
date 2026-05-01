@@ -8,6 +8,8 @@ import {
 import { CUT_PARTS, getEmptyHarga } from './constants/cutParts';
 import usePedagang from './hooks/usePedagang';
 import useOfficeData from '../../ho/tandaTerima/hooks/useOfficeData';
+import useWilayah from './hooks/useWilayah';
+import SearchableSelect from '../../../components/shared/SearchableSelect';
 
 const TABS = [
   { key: 'identitas', label: 'Identitas', icon: User },
@@ -57,6 +59,19 @@ const AddPedagangPage = () => {
   const navigate = useNavigate();
   const { createPedagang } = usePedagang();
   const { officeOptions } = useOfficeData();
+  const {
+    provinsiOptions,
+    kabupatenOptions,
+    kecamatanOptions,
+    kelurahanOptions,
+    loadingProvinsi,
+    loadingKabupaten,
+    loadingKecamatan,
+    loadingKelurahan,
+    fetchKabupaten,
+    fetchKecamatan,
+    fetchKelurahan,
+  } = useWilayah();
 
   const [activeTab, setActiveTab] = useState('identitas');
   const [formData, setFormData] = useState({ ...initialFormData });
@@ -113,6 +128,49 @@ const AddPedagangPage = () => {
   const handleHargaChange = useCallback((key, value) => {
     const numericValue = value === '' ? '' : Number(value);
     setHarga(prev => ({ ...prev, [key]: numericValue }));
+  }, []);
+
+  const handleProvinsiChange = useCallback((value) => {
+    setFormData(prev => ({
+      ...prev,
+      id_provinsi: value || '',
+      id_kabupaten: '',
+      id_kecamatan: '',
+      id_kelurahan: '',
+    }));
+    if (value) {
+      fetchKabupaten(value);
+    }
+  }, [fetchKabupaten]);
+
+  const handleKabupatenChange = useCallback((value) => {
+    setFormData(prev => ({
+      ...prev,
+      id_kabupaten: value || '',
+      id_kecamatan: '',
+      id_kelurahan: '',
+    }));
+    if (value) {
+      fetchKecamatan(value);
+    }
+  }, [fetchKecamatan]);
+
+  const handleKecamatanChange = useCallback((value) => {
+    setFormData(prev => ({
+      ...prev,
+      id_kecamatan: value || '',
+      id_kelurahan: '',
+    }));
+    if (value) {
+      fetchKelurahan(value);
+    }
+  }, [fetchKelurahan]);
+
+  const handleKelurahanChange = useCallback((value) => {
+    setFormData(prev => ({
+      ...prev,
+      id_kelurahan: value || '',
+    }));
   }, []);
 
   const validateForm = useCallback(() => {
@@ -417,10 +475,62 @@ const AddPedagangPage = () => {
             {/* Tab: Alamat */}
             {activeTab === 'alamat' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {renderInput('id_provinsi', 'Provinsi', 'text', <MapPin className="w-4 h-4 inline" />, false, 'Kode provinsi')}
-                {renderInput('id_kabupaten', 'Kabupaten/Kota', 'text', <MapPin className="w-4 h-4 inline" />, false, 'Kode kabupaten')}
-                {renderInput('id_kecamatan', 'Kecamatan', 'text', <MapPin className="w-4 h-4 inline" />, false, 'Kode kecamatan')}
-                {renderInput('id_kelurahan', 'Kelurahan/Desa', 'text', <MapPin className="w-4 h-4 inline" />, false, 'Kode kelurahan')}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <MapPin className="w-4 h-4 inline mr-2" />
+                    Provinsi
+                  </label>
+                  <SearchableSelect
+                    options={provinsiOptions}
+                    value={formData.id_provinsi}
+                    onChange={handleProvinsiChange}
+                    isLoading={loadingProvinsi}
+                    placeholder="Pilih Provinsi..."
+                    isDisabled={isSubmitting}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <MapPin className="w-4 h-4 inline mr-2" />
+                    Kabupaten/Kota
+                  </label>
+                  <SearchableSelect
+                    options={kabupatenOptions}
+                    value={formData.id_kabupaten}
+                    onChange={handleKabupatenChange}
+                    isLoading={loadingKabupaten}
+                    placeholder="Pilih Kabupaten/Kota..."
+                    isDisabled={isSubmitting || !formData.id_provinsi}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <MapPin className="w-4 h-4 inline mr-2" />
+                    Kecamatan
+                  </label>
+                  <SearchableSelect
+                    options={kecamatanOptions}
+                    value={formData.id_kecamatan}
+                    onChange={handleKecamatanChange}
+                    isLoading={loadingKecamatan}
+                    placeholder="Pilih Kecamatan..."
+                    isDisabled={isSubmitting || !formData.id_kabupaten}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <MapPin className="w-4 h-4 inline mr-2" />
+                    Kelurahan/Desa
+                  </label>
+                  <SearchableSelect
+                    options={kelurahanOptions}
+                    value={formData.id_kelurahan}
+                    onChange={handleKelurahanChange}
+                    isLoading={loadingKelurahan}
+                    placeholder="Pilih Kelurahan/Desa..."
+                    isDisabled={isSubmitting || !formData.id_kecamatan}
+                  />
+                </div>
                 {renderSelect('status_rumah', 'Status Rumah', [
                   { value: 1, label: 'Milik Sendiri' },
                   { value: 2, label: 'Kontrak' },
