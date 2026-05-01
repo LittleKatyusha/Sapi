@@ -1,8 +1,8 @@
 import React, { useRef, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Eye, Edit, Trash2, Scissors, Wallet } from 'lucide-react';
+import { Eye, Edit, Trash2 } from 'lucide-react';
 
-const ActionMenu = ({ row, onEdit, onDelete, onDetail, onTransaksi, onSetoran, onClose, buttonRef }) => {
+const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef }) => {
     const menuRef = useRef(null);
     const [menuStyle, setMenuStyle] = useState(null);
 
@@ -55,26 +55,6 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onTransaksi, onSetoran, o
             bg: 'bg-amber-100',
             hoverBg: 'group-hover:bg-amber-200',
             text: 'text-amber-600',
-        },
-        {
-            label: 'Transaksi/Angkatan',
-            icon: Scissors,
-            onClick: () => onTransaksi(row),
-            className: 'text-gray-700',
-            description: 'Kelola transaksi',
-            bg: 'bg-purple-100',
-            hoverBg: 'group-hover:bg-purple-200',
-            text: 'text-purple-600',
-        },
-        {
-            label: 'Setoran',
-            icon: Wallet,
-            onClick: () => onSetoran(row),
-            className: 'text-gray-700',
-            description: 'Catat setoran',
-            bg: 'bg-green-100',
-            hoverBg: 'group-hover:bg-green-200',
-            text: 'text-green-600',
         },
         {
             divider: true

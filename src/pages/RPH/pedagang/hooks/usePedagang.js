@@ -175,46 +175,6 @@ const usePedagang = () => {
   }, [fetchPedagang, fetchStatistics, pagination.currentPage, pagination.perPage]);
 
   /**
-   * Record transaksi (angkatan)
-   */
-  const storeTransaksi = useCallback(async (payload) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await PedagangService.storeTransaksi(payload);
-      if (result.success) {
-        await fetchPedagang(pagination.currentPage, pagination.perPage);
-        await fetchStatistics();
-      }
-      return result;
-    } catch (err) {
-      return { success: false, message: err.message };
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchPedagang, fetchStatistics, pagination.currentPage, pagination.perPage]);
-
-  /**
-   * Record setoran (payment)
-   */
-  const storeSetoran = useCallback(async (payload) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await PedagangService.storeSetoran(payload);
-      if (result.success) {
-        await fetchPedagang(pagination.currentPage, pagination.perPage);
-        await fetchStatistics();
-      }
-      return result;
-    } catch (err) {
-      return { success: false, message: err.message };
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchPedagang, fetchStatistics, pagination.currentPage, pagination.perPage]);
-
-  /**
    * Handle page change
    */
   const handlePageChange = useCallback((page) => {
@@ -257,8 +217,6 @@ const usePedagang = () => {
     createPedagang,
     updatePedagang,
     deletePedagang,
-    storeTransaksi,
-    storeSetoran,
     handlePageChange,
     handlePerPageChange,
     resetFilters,

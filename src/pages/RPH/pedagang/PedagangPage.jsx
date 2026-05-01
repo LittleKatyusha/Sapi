@@ -11,8 +11,6 @@ import { formatCurrency, getStatusBadgeClasses, getStatusLabel, PEDAGANG_STATUS_
 
 import AddEditPedagangModal from './modals/AddEditPedagangModal';
 import PedagangDetailModal from './modals/PedagangDetailModal';
-import TransaksiModal from './modals/TransaksiModal';
-import SetoranModal from './modals/SetoranModal';
 import DeleteConfirmationModal from './modals/DeleteConfirmationModal';
 import ActionMenu from './components/ActionMenu';
 
@@ -35,8 +33,6 @@ const PedagangPage = () => {
     createPedagang,
     updatePedagang,
     deletePedagang,
-    storeTransaksi,
-    storeSetoran,
     handlePageChange,
     handlePerPageChange,
     resetFilters,
@@ -46,13 +42,9 @@ const PedagangPage = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [showTransaksiModal, setShowTransaksiModal] = useState(false);
-  const [showSetoranModal, setShowSetoranModal] = useState(false);
   const [editData, setEditData] = useState(null);
   const [detailData, setDetailData] = useState(null);
   const [deleteData, setDeleteData] = useState(null);
-  const [transaksiData, setTransaksiData] = useState(null);
-  const [setoranData, setSetoranData] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [notification, setNotification] = useState({ show: false, message: '', type: '' });
   
@@ -91,16 +83,6 @@ const PedagangPage = () => {
   const handleDetail = useCallback(async (item) => {
     setDetailData(item);
     setShowDetailModal(true);
-  }, []);
-
-  const handleTransaksi = useCallback((item) => {
-    setTransaksiData(item);
-    setShowTransaksiModal(true);
-  }, []);
-
-  const handleSetoran = useCallback((item) => {
-    setSetoranData(item);
-    setShowSetoranModal(true);
   }, []);
 
   const handleDelete = useCallback((item) => {
@@ -146,36 +128,6 @@ const PedagangPage = () => {
     }
   }, [editData, updatePedagang, createPedagang, showNotification]);
 
-  const handleTransaksiSubmit = useCallback(async (payload) => {
-    try {
-      const result = await storeTransaksi(payload);
-      if (result.success) {
-        showNotification(result.message || 'Transaksi berhasil dicatat');
-        setShowTransaksiModal(false);
-        setTransaksiData(null);
-      } else {
-        showNotification(result.message || 'Gagal mencatat transaksi', 'error');
-      }
-    } catch {
-      showNotification('Terjadi kesalahan saat mencatat transaksi', 'error');
-    }
-  }, [storeTransaksi, showNotification]);
-
-  const handleSetoranSubmit = useCallback(async (payload) => {
-    try {
-      const result = await storeSetoran(payload);
-      if (result.success) {
-        showNotification(result.message || 'Setoran berhasil dicatat');
-        setShowSetoranModal(false);
-        setSetoranData(null);
-      } else {
-        showNotification(result.message || 'Gagal mencatat setoran', 'error');
-      }
-    } catch {
-      showNotification('Terjadi kesalahan saat mencatat setoran', 'error');
-    }
-  }, [storeSetoran, showNotification]);
-
   const handleRefresh = useCallback(() => {
     fetchPedagang(pagination.currentPage, pagination.perPage);
     fetchStatistics();
@@ -217,8 +169,6 @@ const PedagangPage = () => {
                 onEdit={handleEdit}
                 onDelete={handleDelete}
                 onDetail={handleDetail}
-                onTransaksi={handleTransaksi}
-                onSetoran={handleSetoran}
                 onClose={() => setOpenMenuId(null)}
                 buttonRef={{ current: actionButtonRefs.current[menuId] }}
               />
@@ -311,7 +261,7 @@ const PedagangPage = () => {
         </span>
       ),
     },
-  ], [pagination.currentPage, pagination.perPage, openMenuId, handleDetail, handleEdit, handleTransaksi, handleSetoran, handleDelete]);
+  ], [pagination.currentPage, pagination.perPage, openMenuId, handleDetail, handleEdit, handleDelete]);
 
   return (
     <>
@@ -793,28 +743,6 @@ const PedagangPage = () => {
           setDetailData(null);
         }}
         data={detailData}
-      />
-
-      <TransaksiModal
-        isOpen={showTransaksiModal}
-        onClose={() => {
-          setShowTransaksiModal(false);
-          setTransaksiData(null);
-        }}
-        data={transaksiData}
-        onSubmit={handleTransaksiSubmit}
-        loading={loading}
-      />
-
-      <SetoranModal
-        isOpen={showSetoranModal}
-        onClose={() => {
-          setShowSetoranModal(false);
-          setSetoranData(null);
-        }}
-        data={setoranData}
-        onSubmit={handleSetoranSubmit}
-        loading={loading}
       />
 
       <DeleteConfirmationModal

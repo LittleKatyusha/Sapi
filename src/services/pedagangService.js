@@ -136,52 +136,6 @@ class PedagangService {
   }
 
   /**
-   * Record a daily cut transaction (angkatan)
-   * @param {Object} payload - Transaction data with pid, qty_*, ekor_karkas
-   * @returns {Promise} API response
-   */
-  static async storeTransaksi(payload = {}) {
-    try {
-      const response = await HttpClient.post(`${PEDAGANG_BASE}/transaksi`, payload);
-      return {
-        success: true,
-        data: response?.data ?? response,
-        message: response?.message || 'Transaksi berhasil dicatat',
-      };
-    } catch (error) {
-      const errorData = error?.data ?? error?.response?.data ?? null;
-      return {
-        success: false,
-        data: errorData,
-        message: errorData?.message || error?.message || 'Gagal mencatat transaksi',
-      };
-    }
-  }
-
-  /**
-   * Record a payment (setoran)
-   * @param {Object} payload - Payment data with pid, nominal, note
-   * @returns {Promise} API response
-   */
-  static async storeSetoran(payload = {}) {
-    try {
-      const response = await HttpClient.post(`${PEDAGANG_BASE}/setoran`, payload);
-      return {
-        success: true,
-        data: response?.data ?? response,
-        message: response?.message || 'Setoran berhasil dicatat',
-      };
-    } catch (error) {
-      const errorData = error?.data ?? error?.response?.data ?? null;
-      return {
-        success: false,
-        data: errorData,
-        message: errorData?.message || error?.message || 'Gagal mencatat setoran',
-      };
-    }
-  }
-
-  /**
    * Get dashboard statistics
    * @param {Object} params - Filter params (start_date, end_date, pasar)
    * @returns {Promise} API response with statistics
