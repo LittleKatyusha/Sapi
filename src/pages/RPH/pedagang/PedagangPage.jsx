@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import DataTable from 'react-data-table-component';
 import {
   Search, PlusCircle, CheckCircle, XCircle, Users, Activity,
   RefreshCw, Filter, Phone, Store, MoreVertical, Wallet,
+  BarChart3,
 } from 'lucide-react';
 
 import usePedagang from './hooks/usePedagang';
@@ -15,6 +17,7 @@ import DeleteConfirmationModal from './modals/DeleteConfirmationModal';
 import ActionMenu from './components/ActionMenu';
 
 const PedagangPage = () => {
+  const navigate = useNavigate();
   const {
     pedagangList,
     loading,
@@ -461,6 +464,13 @@ const PedagangPage = () => {
               </p>
             </div>
             <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
+              <button
+                onClick={() => navigate('/RPH/pedagang/statistik')}
+                className="bg-white border border-gray-300 text-gray-700 px-4 py-2 sm:px-6 sm:py-3 rounded-xl hover:bg-gray-50 transition-all duration-300 flex items-center gap-2 font-medium text-sm sm:text-base"
+              >
+                <BarChart3 className="w-5 h-5" />
+                Statistik
+              </button>
               <button
                 onClick={handleRefresh}
                 className="bg-gray-100 text-gray-700 px-4 py-2 sm:px-6 sm:py-3 rounded-xl hover:bg-gray-200 transition-all duration-300 flex items-center gap-2 font-medium text-sm sm:text-base"

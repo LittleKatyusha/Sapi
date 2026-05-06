@@ -43,6 +43,7 @@ const PersetujuanRphPage = lazy(() => import('./pages/dataMaster/PersetujuanRphP
 const SatuanPage = lazy(() => import('./pages/dataMaster/SatuanPage'));
 const BarangPage = lazy(() => import('./pages/dataMaster/BarangPage'));
 const PedagangPage = lazy(() => import('./pages/RPH/pedagang'));
+const StatistikPedagangPage = lazy(() => import('./pages/RPH/pedagang/StatistikPedagangPage'));
 
 // Boning Pages - Lazy loaded
 const BoningLayout = lazy(() => import('./pages/boning/BoningLayout'));
@@ -254,6 +255,7 @@ function AppSecure() {
               <Route path="/master-data/satuan" element={<SatuanPage />} />
               <Route path="/master-data/barang" element={<BarangPage />} />
               <Route path="/rph/pedagang" element={<PedagangPage />} />
+              <Route path="/rph/pedagang/statistik" element={<StatistikPedagangPage />} />
 
               {/* Boning Routes */}
               <Route path="/boning/*" element={<BoningLayout />}>
