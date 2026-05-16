@@ -70,7 +70,11 @@ export const API_ENDPOINTS = {
     PERSETUJUAN_FEEDMIL: '/api/master/persetujuanfeedmil',
     PERSETUJUAN_RPH: '/api/master/persetujuanrph',
     SATUAN: '/api/master/satuan',
-    BARANG: '/api/master/barang'
+    BARANG: '/api/master/barang',
+    PEMBELI_HO: '/api/master/pembeliho',
+    TARIF_DOF: '/api/master/tarifdof',
+    BONING: '/api/master/boning',
+    DAGING: '/api/master/daging'
   },
 
   // Reports

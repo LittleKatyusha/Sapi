@@ -42,6 +42,10 @@ const PersetujuanFeedmilPage = lazy(() => import('./pages/dataMaster/Persetujuan
 const PersetujuanRphPage = lazy(() => import('./pages/dataMaster/PersetujuanRphPage'));
 const SatuanPage = lazy(() => import('./pages/dataMaster/SatuanPage'));
 const BarangPage = lazy(() => import('./pages/dataMaster/BarangPage'));
+const PembeliHoPage = lazy(() => import('./pages/dataMaster/PembeliHoPage'));
+const TarifDofPage = lazy(() => import('./pages/dataMaster/TarifDofPage'));
+const BoningMasterPage = lazy(() => import('./pages/dataMaster/BoningMasterPage'));
+const DagingMasterPage = lazy(() => import('./pages/dataMaster/DagingMasterPage'));
 const PedagangPage = lazy(() => import('./pages/RPH/pedagang'));
 const StatistikPedagangPage = lazy(() => import('./pages/RPH/pedagang/StatistikPedagangPage'));
 
@@ -276,6 +280,10 @@ function AppSecure() {
               <Route path="/master-data/persetujuan-rph" element={<PersetujuanRphPage />} />
               <Route path="/master-data/satuan" element={<SatuanPage />} />
               <Route path="/master-data/barang" element={<BarangPage />} />
+              <Route path="/master-data/pembeli-ho" element={<PembeliHoPage />} />
+              <Route path="/master-data/tarif-dof" element={<TarifDofPage />} />
+              <Route path="/master-data/boning" element={<BoningMasterPage />} />
+              <Route path="/master-data/daging" element={<DagingMasterPage />} />
               <Route path="/rph/pedagang" element={<PedagangPage />} />
               <Route path="/rph/pedagang/statistik" element={<StatistikPedagangPage />} />
 
