@@ -93,6 +93,9 @@ const BahanPembantuRphDetailPage = lazy(() => import('./pages/RPH/BahanPembantuR
 // RPH Persediaan OVK Page - Lazy loaded
 const PersediaanOvkPage = lazy(() => import('./pages/RPH/Persediaan/PersediaanOvk/PersediaanOvkPage'));
 
+// RPH Persediaan Pakan Page - Lazy loaded
+const PersediaanPakanPage = lazy(() => import('./pages/RPH/Persediaan/PersediaanPakan/PersediaanPakanPage'));
+
 // RPH Stok Sapi Page - Lazy loaded
 const StokSapi = lazy(() => import('./pages/RPH/StokSapi/StokSapiPage'));
 
@@ -161,6 +164,12 @@ const PiutangCabangPage = lazy(() => import('./pages/ho/piutangCabang/PiutangCab
 // HO Stok Pages - Lazy loaded
 const StokFeedmilHoPage = lazy(() => import('./pages/ho/stokFeedmil/StokFeedmilHoPage'));
 const StokOvkHoPage = lazy(() => import('./pages/ho/stokOvk/StokOvkHoPage'));
+
+// HO Bank Deposit Page - Lazy loaded
+const BankDepositPage = lazy(() => import('./pages/ho/bankDeposit/BankDepositPage'));
+
+// HO Payment Page - Lazy loaded
+const PaymentHoPage = lazy(() => import('./pages/ho/paymentHo/PaymentHoPage'));
 
 const AppWrapperSecure = () => (
   <Router>
@@ -316,6 +325,9 @@ function AppSecure() {
                 </Suspense>
               } />
 
+              {/* RPH Persediaan Pakan Route */}
+              <Route path="/rph/persediaan-pakan" element={<PersediaanPakanPage />} />
+
               {/* HO Feedmil and OVK Routes */}
               <Route path="/ho/pembelian-feedmil" element={<PembelianFeedmilPage />} />
               <Route path="/ho/pembelian-feedmil/add" element={<AddEditPembelianFeedmilPage />} />
@@ -387,6 +399,12 @@ function AppSecure() {
               {/* HO Stok Routes */}
               <Route path="/ho/stok-feedmil" element={<StokFeedmilHoPage />} />
               <Route path="/ho/stok-ovk" element={<StokOvkHoPage />} />
+
+              {/* HO Bank Deposit Routes */}
+              <Route path="/ho/bank-deposit" element={<BankDepositPage />} />
+
+              {/* HO Payment Routes */}
+              <Route path="/ho/pembayaran" element={<PaymentHoPage />} />
 
               {/* HO Penjualan Sapi Routes */}
               <Route path="/ho/penjualan-sapi" element={<PenjualanSapiHOPage />} />

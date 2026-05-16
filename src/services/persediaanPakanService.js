@@ -233,6 +233,10 @@ class PersediaanPakanService {
   static async getRekapData(params = {}) {
     try {
       const queryParams = new URLSearchParams({
+        draw: params.draw || 1,
+        start: params.start || 0,
+        length: params.length || 10,
+        'search[value]': params.search || '',
         _ts: Date.now(),
       });
 
