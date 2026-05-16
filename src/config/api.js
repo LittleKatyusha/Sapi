@@ -151,7 +151,19 @@ export const API_ENDPOINTS = {
     PENGELUARAN: {
       BASE: '/api/ho/pengeluaran',
       SHOW: '/api/ho/pengeluaran/show'
-    }
+    },
+    HUTANG_VENDOR: {
+      DATA: '/api/ho/hutang/vendor/data',
+      SUMMARY: '/api/ho/hutang/vendor/summary',
+      RIWAYAT: '/api/ho/hutang/vendor/riwayat',
+      SHOW: '/api/ho/hutang/vendor/show',
+    },
+    PIUTANG_CABANG: {
+      DATA: '/api/ho/piutang/cabang/data',
+      SUMMARY: '/api/ho/piutang/cabang/summary',
+      RIWAYAT: '/api/ho/piutang/cabang/riwayat',
+      SHOW: '/api/ho/piutang/cabang/show',
+    },
   },
 
   // RPH (Rumah Potong Hewan)

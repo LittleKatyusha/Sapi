@@ -154,6 +154,10 @@ const PembayaranKulitDetailPage = lazy(() => import('./pages/pembayaran/pembayar
 // Pembayaran Lain-Lain Pages - Lazy loaded
 const PembayaranLainLainDetailPage = lazy(() => import('./pages/pembayaran/pembayaranLainLain/PembayaranDetailPage'));
 
+// HO Hutang & Piutang Pages - Lazy loaded
+const HutangVendorPage = lazy(() => import('./pages/ho/hutangVendor/HutangVendorPage'));
+const PiutangCabangPage = lazy(() => import('./pages/ho/piutangCabang/PiutangCabangPage'));
+
 const AppWrapperSecure = () => (
   <Router>
     <AppSecure />
@@ -372,6 +376,10 @@ function AppSecure() {
               <Route path="/ho/penjualan/edit/:id" element={<AddEditPenjualanPage />} />
               <Route path="/ho/penjualan/detail/:id" element={<PenjualanDetailPage />} /> */}
               
+              {/* HO Hutang & Piutang Routes */}
+              <Route path="/ho/hutang-vendor" element={<HutangVendorPage />} />
+              <Route path="/ho/piutang-cabang" element={<PiutangCabangPage />} />
+
               {/* HO Penjualan Sapi Routes */}
               <Route path="/ho/penjualan-sapi" element={<PenjualanSapiHOPage />} />
               {/* Add and Edit routes removed - handled by modals in the main page */}
