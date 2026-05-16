@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Package, ClipboardList, Users, Scale, Banknote, Tag } from 'lucide-react';
-import useDocumentTitle from '../../../../hooks/useDocumentTitle';
+import useDocumentTitle from '../../../hooks/useDocumentTitle';
 import StokRingkasTab from './components/StokRingkasTab';
 import StokDetailTab from './components/StokDetailTab';
 import { statCards } from './constants/dummyData';

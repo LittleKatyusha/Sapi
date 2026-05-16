@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Package, ClipboardList, Wheat } from 'lucide-react';
-import useDocumentTitle from '../../../../hooks/useDocumentTitle';
 import PenggunaOvkTab from './components/PenggunaOvkTab';
 import PersediaanOvkTab from './components/PersediaanOvkTab';
 import PersediaanPakanTab from './components/PersediaanPakanTab';
@@ -13,7 +12,7 @@ const TABS = [
 
 const PersediaanOvkPage = () => {
   const [activeTab, setActiveTab] = useState('pengguna');
-  useDocumentTitle('Persediaan OVK dan Resep - RPH');
+  useEffect(() => { document.title = 'Persediaan OVK dan Resep - RPH | TernaSys'; }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/40 to-cyan-50/60">
