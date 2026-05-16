@@ -122,6 +122,8 @@ const PembelianKulitDetailPage = lazy(() => import('./pages/ho/pembelianKulit/Pe
 const PembelianLainLainPage = lazy(() => import('./pages/ho/pembelianLainLain/PembelianLainLainPage'));
 const AddEditPembelianLainLainPage = lazy(() => import('./pages/ho/pembelianLainLain/addEditPembelianLainLain'));
 const PembelianLainLainDetailPage = lazy(() => import('./pages/ho/pembelianLainLain/PembelianLainLainDetailPage'));
+const PembelianBebanBiayaPage = lazy(() => import('./pages/ho/pembelianBebanBiaya/PembelianBebanBiayaPage'));
+const PembelianBahanPembantuPage = lazy(() => import('./pages/ho/pembelianBahanPembantu/PembelianBahanPembantuPage'));
 
 // Tanda Terima Pages - Lazy loaded
 const TandaTerimaPage = lazy(() => import('./pages/ho/tandaTerima/TandaTerimaPage'));
@@ -349,6 +351,8 @@ function AppSecure() {
               <Route path="/ho/pembelian-lain-lain/add" element={<AddEditPembelianLainLainPage />} />
               <Route path="/ho/pembelian-lain-lain/edit/:id" element={<AddEditPembelianLainLainPage />} />
               <Route path="/ho/pembelian-lain-lain/detail/:id" element={<PembelianLainLainDetailPage />} />
+              <Route path="/ho/pembelian-beban-biaya" element={<PembelianBebanBiayaPage />} />
+              <Route path="/ho/pembelian-bahan-pembantu" element={<PembelianBahanPembantuPage />} />
               
               {/* HO Tanda Terima Routes */}
               <Route path="/ho/tanda-terima" element={<TandaTerimaPage />} />
