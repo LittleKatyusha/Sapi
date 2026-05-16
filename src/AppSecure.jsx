@@ -158,6 +158,10 @@ const PembayaranLainLainDetailPage = lazy(() => import('./pages/pembayaran/pemba
 const HutangVendorPage = lazy(() => import('./pages/ho/hutangVendor/HutangVendorPage'));
 const PiutangCabangPage = lazy(() => import('./pages/ho/piutangCabang/PiutangCabangPage'));
 
+// HO Stok Pages - Lazy loaded
+const StokFeedmilHoPage = lazy(() => import('./pages/ho/stokFeedmil/StokFeedmilHoPage'));
+const StokOvkHoPage = lazy(() => import('./pages/ho/stokOvk/StokOvkHoPage'));
+
 const AppWrapperSecure = () => (
   <Router>
     <AppSecure />
@@ -379,6 +383,10 @@ function AppSecure() {
               {/* HO Hutang & Piutang Routes */}
               <Route path="/ho/hutang-vendor" element={<HutangVendorPage />} />
               <Route path="/ho/piutang-cabang" element={<PiutangCabangPage />} />
+
+              {/* HO Stok Routes */}
+              <Route path="/ho/stok-feedmil" element={<StokFeedmilHoPage />} />
+              <Route path="/ho/stok-ovk" element={<StokOvkHoPage />} />
 
               {/* HO Penjualan Sapi Routes */}
               <Route path="/ho/penjualan-sapi" element={<PenjualanSapiHOPage />} />

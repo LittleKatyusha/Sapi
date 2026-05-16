@@ -164,6 +164,14 @@ export const API_ENDPOINTS = {
       RIWAYAT: '/api/ho/piutang/cabang/riwayat',
       SHOW: '/api/ho/piutang/cabang/show',
     },
+    STOK_FEEDMIL: {
+      DATA: '/api/ho/stok/feedmil/data',
+      SUMMARY: '/api/ho/stok/feedmil/summary',
+    },
+    STOK_OVK: {
+      DATA: '/api/ho/stok/ovk/data',
+      SUMMARY: '/api/ho/stok/ovk/summary',
+    },
   },
 
   // RPH (Rumah Potong Hewan)
