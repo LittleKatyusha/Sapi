@@ -93,6 +93,9 @@ const BahanPembantuRphDetailPage = lazy(() => import('./pages/RPH/BahanPembantuR
 // RPH Persediaan OVK Page - Lazy loaded
 const PersediaanOvkPage = lazy(() => import('./pages/RPH/Persediaan/PersediaanOvk/PersediaanOvkPage'));
 
+// RPH Stok Sapi Page - Lazy loaded
+const StokSapi = lazy(() => import('./pages/RPH/StokSapi/StokSapiPage'));
+
 // Reporting Pages - Lazy loaded
 const LaporanNotaSupplierPage = lazy(() => import('./pages/reporting/LaporanNotaSupplierPage'));
 const LaporanSemuaSupplierPage = lazy(() => import('./pages/reporting/LaporanSemuaSupplierPage'));
@@ -295,6 +298,9 @@ function AppSecure() {
               <Route path="/rph/bahan-pembantu-rph/biaya/edit/:id" element={<AddEditBiayaRphPage />} />
               <Route path="/rph/bahan-pembantu-rph/detail/:id" element={<BahanPembantuRphDetailPage />} />
 
+              {/* RPH Stok Sapi Route */}
+              <Route path="/rph/stok-sapi" element={<StokSapi />} />
+              
               {/* RPH Persediaan OVK Route */}
               <Route path="/rph/persediaan-ovk" element={
                 <Suspense fallback={<LoadingSpinner />}>

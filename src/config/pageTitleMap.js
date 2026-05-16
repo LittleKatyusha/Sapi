@@ -87,4 +87,5 @@ export const pageTitleMap = {
   '/rph/persediaan-ovk': 'Persediaan OVK dan Resep - RPH',
   '/rph/persediaan-pakan': 'Persediaan Pakan - RPH',
   '/rph/pedagang': 'Pedagang - RPH',
-};
+  '/rph/stok-sapi': 'Stok Sapi RPH',
+  };
