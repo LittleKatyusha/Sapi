@@ -1,101 +1,146 @@
-import React, { useState, useMemo } from 'react';
-import { ArrowDownCircle, ArrowUpCircle } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import ActionButton from './ActionButton';
 import {
-  sapiMasukData,
-  sapiKeluarData,
+  stokDetailData,
   generateDateHeaders,
   formatCurrency,
 } from '../constants/dummyData';
 
-const SUB_TABS = [
-  { id: 'masuk', label: 'Sapi Masuk', icon: ArrowDownCircle },
-  { id: 'keluar', label: 'Sapi Keluar', icon: ArrowUpCircle },
-];
-
 const StokDetailTab = () => {
-  const [activeSubTab, setActiveSubTab] = useState('masuk');
+  const [openMenuId, setOpenMenuId] = useState(null);
   const dateHeaders = useMemo(() => generateDateHeaders(), []);
-
-  const currentData = activeSubTab === 'masuk' ? sapiMasukData : sapiKeluarData;
 
   // Calculate totals for the bottom row
   const totals = useMemo(() => {
-    const dateKeys = dateHeaders.map((d) => d.key);
-    return currentData.reduce(
-      (acc, row) => {
-        dateKeys.forEach((key) => {
-          acc[key] = (acc[key] || 0) + (row[key] || 0);
-        });
-        acc.totalNilaiBeli += row.totalNilaiBeli || 0;
-        return acc;
-      },
-      { totalNilaiBeli: 0 }
-    );
-  }, [currentData, dateHeaders]);
+    const masukTotals = dateHeaders.map(() => 0);
+    const keluarTotals = dateHeaders.map(() => 0);
+    let totalNilaiBeli = 0;
+
+    stokDetailData.forEach((row) => {
+      row.harian.forEach((day, i) => {
+        masukTotals[i] += day.masuk;
+        keluarTotals[i] += day.keluar;
+      });
+      totalNilaiBeli += row.totalNilaiBeli || 0;
+    });
+
+    return { masukTotals, keluarTotals, totalNilaiBeli };
+  }, [dateHeaders]);
 
   return (
     <div className="space-y-4">
-      {/* Sub-tab Bar */}
-      <div className="flex border-b-2 border-gray-200">
-        {SUB_TABS.map((tab) => {
-          const Icon = tab.icon;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveSubTab(tab.id)}
-              className={`relative flex-1 px-8 py-4 text-base font-bold transition-all duration-300 ${
-                activeSubTab === tab.id
-                  ? 'text-white bg-gradient-to-r from-emerald-600 to-teal-600 shadow-lg'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-              }`}
-            >
-              <span className="relative z-10 flex items-center justify-center gap-2">
-                <Icon className="h-5 w-5" />
-                {tab.label}
-              </span>
-              {activeSubTab === tab.id && (
-                <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-400 to-teal-400" />
-              )}
-            </button>
-          );
-        })}
-      </div>
+      <style>{`
+        .stok-detail-table-wrapper::-webkit-scrollbar {
+          height: 6px;
+        }
+        .stok-detail-table-wrapper::-webkit-scrollbar-track {
+          background: #f1f5f9;
+          border-radius: 3px;
+        }
+        .stok-detail-table-wrapper::-webkit-scrollbar-thumb {
+          background: #94a3b8;
+          border-radius: 3px;
+        }
+        .stok-detail-table-wrapper::-webkit-scrollbar-thumb:hover {
+          background: #64748b;
+        }
+      `}</style>
 
       {/* Complex Table with horizontal scroll for mobile */}
-      <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
-        <table className="w-full text-sm border-collapse">
+      <div className="stok-detail-table-wrapper overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
+        <table className="w-full text-sm border-collapse" style={{ minWidth: '800px' }}>
           <thead>
+            {/* Row 1: Main headers */}
             <tr className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white">
-              <th className="py-3 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap">
+              <th
+                rowSpan={2}
+                className="py-3 px-3 text-center font-semibold border border-emerald-500 whitespace-nowrap sticky left-0 z-20 bg-gradient-to-r from-emerald-600 to-teal-600"
+                style={{ width: '60px', minWidth: '60px' }}
+              >
+                No
+              </th>
+              <th
+                rowSpan={2}
+                className="py-3 px-3 text-center font-semibold border border-emerald-500 whitespace-nowrap sticky z-20 bg-gradient-to-r from-emerald-600 to-teal-600"
+                style={{ left: '60px', width: '80px', minWidth: '80px' }}
+              >
+                Aksi
+              </th>
+              <th
+                rowSpan={2}
+                className="py-3 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap"
+              >
                 JENIS SAPI
               </th>
-              <th className="py-3 px-3 text-center font-semibold border border-emerald-500 whitespace-nowrap">
+              <th
+                rowSpan={2}
+                className="py-3 px-3 text-center font-semibold border border-emerald-500 whitespace-nowrap"
+              >
                 STOK AWAL
               </th>
-              <th className="py-3 px-3 text-center font-semibold border border-emerald-500 whitespace-nowrap">
+              <th
+                rowSpan={2}
+                className="py-3 px-3 text-center font-semibold border border-emerald-500 whitespace-nowrap"
+              >
                 SATUAN
               </th>
               {dateHeaders.map((date) => (
                 <th
                   key={date.key}
+                  colSpan={2}
                   className="py-3 px-3 text-center font-semibold border border-emerald-500 whitespace-nowrap"
                 >
                   {date.label}
                 </th>
               ))}
-              <th className="py-3 px-3 text-center font-semibold border border-emerald-500 whitespace-nowrap">
+              <th
+                rowSpan={2}
+                className="py-3 px-3 text-center font-semibold border border-emerald-500 whitespace-nowrap"
+              >
                 TOTAL NILAI BELI
               </th>
             </tr>
+
+            {/* Row 2: Sub-headers (Masuk / Keluar) under each date */}
+            <tr className="bg-emerald-700 text-white">
+              {dateHeaders.map((date) => (
+                <React.Fragment key={`sub-${date.key}`}>
+                  <th className="py-2 px-2 text-center text-xs font-semibold border border-emerald-600 bg-emerald-100 text-emerald-800 whitespace-nowrap">
+                    Masuk
+                  </th>
+                  <th className="py-2 px-2 text-center text-xs font-semibold border border-emerald-600 bg-rose-100 text-rose-800 whitespace-nowrap">
+                    Keluar
+                  </th>
+                </React.Fragment>
+              ))}
+            </tr>
           </thead>
+
           <tbody>
-            {currentData.map((row, index) => (
+            {stokDetailData.map((row, index) => (
               <tr
                 key={row.id}
                 className={`border-b border-gray-100 hover:bg-emerald-50/50 transition-colors ${
                   index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'
                 }`}
               >
+                <td className="py-3 px-3 text-center font-medium text-gray-600 border border-gray-100 sticky left-0 z-20 bg-inherit"
+                    style={{ width: '60px', minWidth: '60px' }}>
+                  {index + 1}
+                </td>
+                <td className="py-3 px-3 text-center border border-gray-100 sticky z-20 bg-inherit"
+                  style={{ left: '60px', width: '80px', minWidth: '80px' }}>
+                  <div className="flex items-center justify-center">
+                    <ActionButton
+                      row={row}
+                      openMenuId={openMenuId}
+                      setOpenMenuId={setOpenMenuId}
+                      onDetail={() => console.log('Detail', row)}
+                      onEdit={() => console.log('Edit', row)}
+                      onDelete={() => console.log('Delete', row)}
+                    />
+                  </div>
+                </td>
                 <td className="py-3 px-3 font-semibold text-gray-800 border border-gray-100">
                   {row.jenisSapi}
                 </td>
@@ -105,26 +150,31 @@ const StokDetailTab = () => {
                 <td className="py-3 px-3 text-center text-gray-600 border border-gray-100">
                   {row.satuan}
                 </td>
-                {dateHeaders.map((date) => {
-                  const value = row[date.key] || 0;
-                  return (
+                {row.harian.map((day, i) => (
+                  <React.Fragment key={`data-${row.id}-${i}`}>
                     <td
-                      key={date.key}
-                      className={`py-3 px-3 text-center font-medium border border-gray-100 ${
-                        value > 0
-                          ? activeSubTab === 'masuk'
-                            ? 'text-emerald-700'
-                            : 'text-rose-700'
-                          : 'text-gray-400'
+                      className={`py-3 px-2 text-center font-medium border border-gray-100 ${
+                        day.masuk > 0
+                          ? 'text-emerald-700 font-medium'
+                          : 'text-gray-300'
                       }`}
                     >
-                      {value}
+                      {day.masuk}
                     </td>
-                  );
-                })}
+                    <td
+                      className={`py-3 px-2 text-center font-medium border border-gray-100 ${
+                        day.keluar > 0
+                          ? 'text-rose-700 font-medium'
+                          : 'text-gray-300'
+                      }`}
+                    >
+                      {day.keluar}
+                    </td>
+                  </React.Fragment>
+                ))}
                 <td
                   className={`py-3 px-3 text-right font-semibold border border-gray-100 whitespace-nowrap ${
-                    row.totalNilaiBeli > 0 ? 'text-teal-700' : 'text-gray-400'
+                    row.totalNilaiBeli > 0 ? 'text-teal-700' : 'text-gray-300'
                   }`}
                 >
                   {formatCurrency(row.totalNilaiBeli)}
@@ -135,18 +185,20 @@ const StokDetailTab = () => {
             {/* Total Row */}
             <tr className="bg-gradient-to-r from-emerald-50 to-teal-50 font-bold border-t-2 border-emerald-300">
               <td
-                colSpan="3"
+                colSpan={5}
                 className="py-3 px-3 text-right text-emerald-800 border border-emerald-200"
               >
                 Total
               </td>
-              {dateHeaders.map((date) => (
-                <td
-                  key={date.key}
-                  className="py-3 px-3 text-center text-emerald-800 border border-emerald-200"
-                >
-                  {totals[date.key] || 0}
-                </td>
+              {dateHeaders.map((date, i) => (
+                <React.Fragment key={`total-${date.key}`}>
+                  <td className="py-3 px-2 text-center text-emerald-800 border border-emerald-200">
+                    {totals.masukTotals[i]}
+                  </td>
+                  <td className="py-3 px-2 text-center text-rose-800 border border-emerald-200">
+                    {totals.keluarTotals[i]}
+                  </td>
+                </React.Fragment>
               ))}
               <td className="py-3 px-3 text-right text-emerald-800 border border-emerald-200 whitespace-nowrap">
                 {formatCurrency(totals.totalNilaiBeli)}
