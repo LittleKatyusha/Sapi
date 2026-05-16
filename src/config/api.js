@@ -30,8 +30,8 @@ export const API_ENDPOINTS = {
   // Authentication
   AUTH: {
     LOGIN: '/api/login',
-    LOGOUT: '/api/logout',
-    REFRESH_TOKEN: '/api/refresh-token',
+    LOGOUT: '/api/auth/logout',
+    REFRESH_TOKEN: '/api/auth/refresh',
     PROFILE: '/api/profile',
     CHANGE_PASSWORD: '/api/change-password',
     USER: '/api/user'
@@ -51,7 +51,7 @@ export const API_ENDPOINTS = {
     EARTAG: '/api/master/eartag',
     OFFICE: '/api/master/office',
     SUPPLIER: '/api/master/supplier',
-    PELANGGAN: '/api/master/pelanggan',
+    PELANGGAN: '/api/master/pedagang',
     OUTLET: '/api/master/outlet',
     JENIS_HEWAN: '/api/master/jenishewan',
     KLASIFIKASI_HEWAN: '/api/master/klasifikasihewan',
@@ -60,7 +60,7 @@ export const API_ENDPOINTS = {
     ITEM_FEEDMIL: '/api/master/itemfeedmil',
     ITEM_OVK: '/api/master/itemovk',
     ITEM_LAIN_LAIN: '/api/master/itemlainlain',
-    KLASIFIKASI_KULIT: '/api/master/klasifikasikulit',
+    // KLASIFIKASI_KULIT: tidak ada route backend — dihapus
     KLASIFIKASI_OVK: '/api/master/klasifikasiovk',
     KLASIFIKASI_LAIN_LAIN: '/api/master/klasifikasilainlain',
     PARAMETER: '/api/master/parameter',

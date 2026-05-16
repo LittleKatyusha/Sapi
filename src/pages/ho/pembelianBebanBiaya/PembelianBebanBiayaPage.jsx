@@ -5,7 +5,7 @@ import { PlusCircle, Search, X, Loader2, TrendingUp, Calendar, RefreshCw, Eye, E
 import usePembelianBeban from '../pembelianLainLain/hooks/usePembelianBeban';
 import useDivisiData from '../pembelianLainLain/hooks/useDivisiData';
 import useJenisPembelianLainLain from '../pembelianLainLain/hooks/useJenisPembelianLainLain';
-import useTipePembayaranLazy from '../../hooks/useTipePembayaranLazy';
+import useTipePembayaranLazy from '../../../hooks/useTipePembayaranLazy';
 import { API_ENDPOINTS } from '../../../config/api';
 import HttpClient from '../../../services/httpClient';
 import enhancedLainLainTableStyles from '../pembelianLainLain/constants/tableStyles';

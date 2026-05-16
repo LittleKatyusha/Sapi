@@ -6,8 +6,8 @@ import usePembelianBahanPembantu from '../pembelianLainLain/hooks/usePembelianBa
 import useDivisiData from '../pembelianLainLain/hooks/useDivisiData';
 import useJenisPembelianAPI from '../pembelianLainLain/hooks/useJenisPembelianAPI';
 import useSatuanAPI from '../pembelianLainLain/hooks/useSatuanAPI';
-import useTipePembayaranLazy from '../../hooks/useTipePembayaranLazy';
-import useBanksAPILazy from '../../hooks/useBanksAPILazy';
+import useTipePembayaranLazy from '../../../hooks/useTipePembayaranLazy';
+import useBanksAPILazy from '../../../hooks/useBanksAPILazy';
 import { API_ENDPOINTS } from '../../../config/api';
 import HttpClient from '../../../services/httpClient';
 import enhancedLainLainTableStyles from '../pembelianLainLain/constants/tableStyles';
