@@ -220,6 +220,24 @@ export const API_ENDPOINTS = {
       DATA: '/api/rph/persediaan/ovk/data',
       SUMMARY: '/api/rph/persediaan/ovk/summary',
     },
+    PENJUALAN_BONING: {
+      DATA: '/api/rph/penjualan/boning/data',
+      STORE: '/api/rph/penjualan/boning/store',
+      SHOW: '/api/rph/penjualan/boning/show',
+      UPDATE: '/api/rph/penjualan/boning/update',
+      DELETE: '/api/rph/penjualan/boning/hapus',
+      GET_PEDAGANG: '/api/rph/penjualan/boning/getpedagang',
+      GET_HARGA: '/api/rph/penjualan/boning/getharga',
+      GET_BONING: '/api/rph/penjualan/boning/getboning',
+    },
+    PENJUALAN_KARKAS: {
+      DATA: '/api/rph/penjualan/karkas/data',
+      STORE: '/api/rph/penjualan/karkas/store',
+      SHOW: '/api/rph/penjualan/karkas/show',
+      UPDATE: '/api/rph/penjualan/karkas/update',
+      DELETE: '/api/rph/penjualan/karkas/hapus',
+      GET_HARGA: '/api/rph/penjualan/karkas/getharga',
+    },
   },
 
   // SDM (Human Resources)
