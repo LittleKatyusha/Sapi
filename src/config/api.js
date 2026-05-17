@@ -220,6 +220,14 @@ export const API_ENDPOINTS = {
       DATA: '/api/rph/persediaan/ovk/data',
       SUMMARY: '/api/rph/persediaan/ovk/summary',
     },
+    DOF: {
+      DATA: '/api/rph/dof/data',
+      STORE: '/api/rph/dof/store',
+      SHOW: '/api/rph/dof/show',
+      UPDATE: '/api/rph/dof/update',
+      DELETE: '/api/rph/dof/hapus',
+      GET_TARIF: '/api/rph/dof/gettarif',
+    },
     PENJUALAN_BONING: {
       DATA: '/api/rph/penjualan/boning/data',
       STORE: '/api/rph/penjualan/boning/store',

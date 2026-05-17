@@ -100,6 +100,9 @@ const PersediaanOvkPage = lazy(() => import('./pages/RPH/Persediaan/PersediaanOv
 // RPH Persediaan Pakan Page - Lazy loaded
 const PersediaanPakanPage = lazy(() => import('./pages/RPH/Persediaan/PersediaanPakan/PersediaanPakanPage'));
 
+// RPH DOF Page - Lazy loaded
+const DofRphPage = lazy(() => import('./pages/RPH/Dof/DofRphPage'));
+
 // RPH Stok Sapi Page - Lazy loaded
 const StokSapi = lazy(() => import('./pages/RPH/StokSapi/StokSapiPage'));
 
@@ -337,6 +340,9 @@ function AppSecure() {
 
               {/* RPH Persediaan Pakan Route */}
               <Route path="/rph/persediaan-pakan" element={<PersediaanPakanPage />} />
+
+              {/* RPH DOF Route */}
+              <Route path="/rph/dof" element={<DofRphPage />} />
 
               {/* HO Feedmil and OVK Routes */}
               <Route path="/ho/pembelian-feedmil" element={<PembelianFeedmilPage />} />
