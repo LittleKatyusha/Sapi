@@ -215,10 +215,10 @@ export const API_ENDPOINTS = {
       SUMMARY_MONTHLY: '/api/rph/bahanpembantu/summary-monthly',
     },
     PERSEDIAAN_OVK: {
-      BASE: '/api/rph/persediaan-ovk',
-      PENGGUNA: '/api/rph/persediaan-ovk/pengguna',
-      DATA: '/api/rph/persediaan-ovk/data',
-      SUMMARY: '/api/rph/persediaan-ovk/summary',
+      BASE: '/api/rph/persediaan/ovk',
+      PENGGUNA: '/api/rph/persediaan/ovk/pengguna',
+      DATA: '/api/rph/persediaan/ovk/data',
+      SUMMARY: '/api/rph/persediaan/ovk/summary',
     },
   },
 
