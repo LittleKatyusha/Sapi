@@ -3,7 +3,7 @@
  * Handles authentication, encryption, and secure communication
  */
 
-import { API_BASE_URL } from '../../config/api';
+import { API_BASE_URL, API_ENDPOINTS } from '../../config/api';
 
 class WebSocketSecurity {
   constructor() {
@@ -260,7 +260,7 @@ class WebSocketSecurity {
    * Refresh authentication token
    */
   async refreshToken(refreshToken) {
-    const response = await fetch(`${API_BASE_URL}/api/refresh-token`, {
+    const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.AUTH.REFRESH_TOKEN}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

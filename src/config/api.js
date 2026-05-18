@@ -30,8 +30,8 @@ export const API_ENDPOINTS = {
   // Authentication
   AUTH: {
     LOGIN: '/api/login',
-    LOGOUT: '/api/logout',
-    REFRESH_TOKEN: '/api/refresh-token',
+    LOGOUT: '/api/auth/logout',
+    REFRESH_TOKEN: '/api/auth/refresh',
     PROFILE: '/api/profile',
     CHANGE_PASSWORD: '/api/change-password',
     USER: '/api/user'
@@ -51,7 +51,7 @@ export const API_ENDPOINTS = {
     EARTAG: '/api/master/eartag',
     OFFICE: '/api/master/office',
     SUPPLIER: '/api/master/supplier',
-    PELANGGAN: '/api/master/pelanggan',
+    PELANGGAN: '/api/master/pedagang',
     OUTLET: '/api/master/outlet',
     JENIS_HEWAN: '/api/master/jenishewan',
     KLASIFIKASI_HEWAN: '/api/master/klasifikasihewan',
@@ -60,7 +60,7 @@ export const API_ENDPOINTS = {
     ITEM_FEEDMIL: '/api/master/itemfeedmil',
     ITEM_OVK: '/api/master/itemovk',
     ITEM_LAIN_LAIN: '/api/master/itemlainlain',
-    KLASIFIKASI_KULIT: '/api/master/klasifikasikulit',
+    // KLASIFIKASI_KULIT: tidak ada route backend — dihapus
     KLASIFIKASI_OVK: '/api/master/klasifikasiovk',
     KLASIFIKASI_LAIN_LAIN: '/api/master/klasifikasilainlain',
     PARAMETER: '/api/master/parameter',
@@ -70,7 +70,11 @@ export const API_ENDPOINTS = {
     PERSETUJUAN_FEEDMIL: '/api/master/persetujuanfeedmil',
     PERSETUJUAN_RPH: '/api/master/persetujuanrph',
     SATUAN: '/api/master/satuan',
-    BARANG: '/api/master/barang'
+    BARANG: '/api/master/barang',
+    PEMBELI_HO: '/api/master/pembeliho',
+    TARIF_DOF: '/api/master/tarifdof',
+    BONING: '/api/master/boning',
+    DAGING: '/api/master/daging'
   },
 
   // Reports
@@ -211,10 +215,36 @@ export const API_ENDPOINTS = {
       SUMMARY_MONTHLY: '/api/rph/bahanpembantu/summary-monthly',
     },
     PERSEDIAAN_OVK: {
-      BASE: '/api/rph/persediaan-ovk',
-      PENGGUNA: '/api/rph/persediaan-ovk/pengguna',
-      DATA: '/api/rph/persediaan-ovk/data',
-      SUMMARY: '/api/rph/persediaan-ovk/summary',
+      BASE: '/api/rph/persediaan/ovk',
+      PENGGUNA: '/api/rph/persediaan/ovk/pengguna',
+      DATA: '/api/rph/persediaan/ovk/data',
+      SUMMARY: '/api/rph/persediaan/ovk/summary',
+    },
+    DOF: {
+      DATA: '/api/rph/dof/data',
+      STORE: '/api/rph/dof/store',
+      SHOW: '/api/rph/dof/show',
+      UPDATE: '/api/rph/dof/update',
+      DELETE: '/api/rph/dof/hapus',
+      GET_TARIF: '/api/rph/dof/gettarif',
+    },
+    PENJUALAN_BONING: {
+      DATA: '/api/rph/penjualan/boning/data',
+      STORE: '/api/rph/penjualan/boning/store',
+      SHOW: '/api/rph/penjualan/boning/show',
+      UPDATE: '/api/rph/penjualan/boning/update',
+      DELETE: '/api/rph/penjualan/boning/hapus',
+      GET_PEDAGANG: '/api/rph/penjualan/boning/getpedagang',
+      GET_HARGA: '/api/rph/penjualan/boning/getharga',
+      GET_BONING: '/api/rph/penjualan/boning/getboning',
+    },
+    PENJUALAN_KARKAS: {
+      DATA: '/api/rph/penjualan/karkas/data',
+      STORE: '/api/rph/penjualan/karkas/store',
+      SHOW: '/api/rph/penjualan/karkas/show',
+      UPDATE: '/api/rph/penjualan/karkas/update',
+      DELETE: '/api/rph/penjualan/karkas/hapus',
+      GET_HARGA: '/api/rph/penjualan/karkas/getharga',
     },
   },
 

@@ -7,8 +7,8 @@ import HttpClient from './httpClient';
 
 class PersediaanOvkService {
   // API endpoints — matched to backend PersediaanRphController routes
-  static API_DATA = '/api/rph/persediaan/data';
-  static API_REKAP = '/api/rph/persediaan/datarekap';
+  static API_DATA = '/api/rph/persediaan/ovk/data';
+  static API_REKAP = '/api/rph/persediaan/ovk/datarekap';
 
   /**
    * Get pengguna (usage) data for selected date range

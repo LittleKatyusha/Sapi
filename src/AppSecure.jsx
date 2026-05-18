@@ -42,6 +42,10 @@ const PersetujuanFeedmilPage = lazy(() => import('./pages/dataMaster/Persetujuan
 const PersetujuanRphPage = lazy(() => import('./pages/dataMaster/PersetujuanRphPage'));
 const SatuanPage = lazy(() => import('./pages/dataMaster/SatuanPage'));
 const BarangPage = lazy(() => import('./pages/dataMaster/BarangPage'));
+const PembeliHoPage = lazy(() => import('./pages/dataMaster/PembeliHoPage'));
+const TarifDofPage = lazy(() => import('./pages/dataMaster/TarifDofPage'));
+const BoningMasterPage = lazy(() => import('./pages/dataMaster/BoningMasterPage'));
+const DagingMasterPage = lazy(() => import('./pages/dataMaster/DagingMasterPage'));
 const PedagangPage = lazy(() => import('./pages/RPH/pedagang'));
 const StatistikPedagangPage = lazy(() => import('./pages/RPH/pedagang/StatistikPedagangPage'));
 
@@ -95,6 +99,9 @@ const PersediaanOvkPage = lazy(() => import('./pages/RPH/Persediaan/PersediaanOv
 
 // RPH Persediaan Pakan Page - Lazy loaded
 const PersediaanPakanPage = lazy(() => import('./pages/RPH/Persediaan/PersediaanPakan/PersediaanPakanPage'));
+
+// RPH DOF Page - Lazy loaded
+const DofRphPage = lazy(() => import('./pages/RPH/Dof/DofRphPage'));
 
 // RPH Stok Sapi Page - Lazy loaded
 const StokSapi = lazy(() => import('./pages/RPH/StokSapi/StokSapiPage'));
@@ -276,6 +283,10 @@ function AppSecure() {
               <Route path="/master-data/persetujuan-rph" element={<PersetujuanRphPage />} />
               <Route path="/master-data/satuan" element={<SatuanPage />} />
               <Route path="/master-data/barang" element={<BarangPage />} />
+              <Route path="/master-data/pembeli-ho" element={<PembeliHoPage />} />
+              <Route path="/master-data/tarif-dof" element={<TarifDofPage />} />
+              <Route path="/master-data/boning" element={<BoningMasterPage />} />
+              <Route path="/master-data/daging" element={<DagingMasterPage />} />
               <Route path="/rph/pedagang" element={<PedagangPage />} />
               <Route path="/rph/pedagang/statistik" element={<StatistikPedagangPage />} />
 
@@ -329,6 +340,9 @@ function AppSecure() {
 
               {/* RPH Persediaan Pakan Route */}
               <Route path="/rph/persediaan-pakan" element={<PersediaanPakanPage />} />
+
+              {/* RPH DOF Route */}
+              <Route path="/rph/dof" element={<DofRphPage />} />
 
               {/* HO Feedmil and OVK Routes */}
               <Route path="/ho/pembelian-feedmil" element={<PembelianFeedmilPage />} />
