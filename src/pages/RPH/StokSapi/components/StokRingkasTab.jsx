@@ -1,115 +1,287 @@
-import React, { useMemo } from 'react';
-import DataTable from 'react-data-table-component';
-import { stokRingkasData, formatCurrency, formatNumber } from '../constants/dummyData';
-import customTableStyles from '../constants/tableStyles';
+import React, { useMemo, useState } from 'react';
+import ActionButton from './ActionButton';
+import { formatCurrency, formatNumber } from '../constants/dummyData';
 
-const StokRingkasTab = () => {
-  // Calculate totals for summary row
-  const totals = useMemo(() => {
-    return stokRingkasData.reduce(
-      (acc, row) => ({
-        jumlahEkor: acc.jumlahEkor + row.jumlahEkor,
-        berat: acc.berat + row.berat,
-        harga: acc.harga + row.harga,
-      }),
-      { jumlahEkor: 0, berat: 0, harga: 0 }
-    );
-  }, []);
-
-  const columns = [
-    {
-      name: 'No',
-      selector: (row, index) => index + 1,
-      width: '60px',
-      center: true,
-      style: {
-        fontWeight: '600',
-        color: '#6b7280',
-      },
-    },
-    {
-      name: 'Jenis Sapi',
-      selector: (row) => row.jenisSapi,
-      sortable: true,
-      style: {
-        fontWeight: '600',
-        color: '#1f2937',
-      },
-    },
-    {
-      name: 'Jumlah Ekor',
-      selector: (row) => row.jumlahEkor,
-      sortable: true,
-      center: true,
-      cell: (row) => (
-        <span className="font-semibold text-emerald-700">
-          {formatNumber(row.jumlahEkor)} ekor
-        </span>
-      ),
-    },
-    {
-      name: 'Berat (kg)',
-      selector: (row) => row.berat,
-      sortable: true,
-      center: true,
-      cell: (row) => (
-        <span className="font-medium text-gray-700">
-          {formatNumber(row.berat)} kg
-        </span>
-      ),
-    },
-    {
-      name: 'Harga',
-      selector: (row) => row.harga,
-      sortable: true,
-      right: true,
-      cell: (row) => (
-        <span className="font-semibold text-teal-700">
-          {formatCurrency(row.harga)}
-        </span>
-      ),
-    },
+/** Format a date string (YYYY-MM-DD) to Indonesian short format e.g. "31 Mei" */
+const formatDateLabel = (dateStr) => {
+  const months = [
+    '', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+    'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
   ];
+  const d = new Date(dateStr + 'T00:00:00');
+  return `${d.getDate()} ${months[d.getMonth() + 1]}`;
+};
+
+const StokRingkasTab = ({ data, loading }) => {
+  const [openMenuId, setOpenMenuId] = useState(null);
+
+  const dates = useMemo(() => data?.dates || [], [data]);
+  const rows = useMemo(() => data?.rows || [], [data]);
+
+  // Calculate totals for the bottom summary row
+  const totals = useMemo(() => {
+    const masukTotals = dates.map(() => 0);
+    const keluarTotals = dates.map(() => 0);
+    let totalNilaiBeli = 0;
+
+    rows.forEach((row) => {
+      dates.forEach((date, i) => {
+        const dayData = row.daily?.[date] || {};
+        masukTotals[i] += Number(dayData.masuk) || 0;
+        keluarTotals[i] += Number(dayData.keluar) || 0;
+      });
+      totalNilaiBeli += Number(row.total_nilai_beli) || 0;
+    });
+
+    return { masukTotals, keluarTotals, totalNilaiBeli };
+  }, [dates, rows]);
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <div className="flex items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
+          <span className="text-sm text-gray-500">Memuat data stok ringkas...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Empty state
+  if (!rows.length) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+        <svg className="h-16 w-16 mb-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+        </svg>
+        <p className="text-lg font-medium">Tidak ada data stok sapi</p>
+        <p className="text-sm mt-1">Silakan pilih rentang tanggal lain</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
-      {/* DataTable */}
-      <DataTable
-        columns={columns}
-        data={stokRingkasData}
-        customStyles={customTableStyles}
-        highlightOnHover
-        pointerOnHover={false}
-        noDataComponent={
-          <div className="py-8 text-center text-gray-400">
-            Tidak ada data stok sapi
-          </div>
+      <style>{`
+        .stok-ringkas-table-wrapper::-webkit-scrollbar {
+          height: 6px;
         }
-      />
+        .stok-ringkas-table-wrapper::-webkit-scrollbar-track {
+          background: #f1f5f9;
+          border-radius: 3px;
+        }
+        .stok-ringkas-table-wrapper::-webkit-scrollbar-thumb {
+          background: #94a3b8;
+          border-radius: 3px;
+        }
+        .stok-ringkas-table-wrapper::-webkit-scrollbar-thumb:hover {
+          background: #64748b;
+        }
+      `}</style>
 
-      {/* Summary Row */}
-      <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-4 border border-emerald-200">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="text-center sm:text-left">
-            <p className="text-xs text-gray-500 font-medium">Total Ekor</p>
-            <p className="text-lg font-bold text-emerald-700">
-              {formatNumber(totals.jumlahEkor)} ekor
-            </p>
-          </div>
-          <div className="text-center sm:text-left">
-            <p className="text-xs text-gray-500 font-medium">Total Berat</p>
-            <p className="text-lg font-bold text-emerald-700">
-              {formatNumber(totals.berat)} kg
-            </p>
-          </div>
-          <div className="text-center sm:text-left">
-            <p className="text-xs text-gray-500 font-medium">Total Nilai</p>
-            <p className="text-lg font-bold text-teal-700">
-              {formatCurrency(totals.harga)}
-            </p>
+      {/* Pivot Table with horizontal scroll for mobile */}
+      <div className="stok-ringkas-table-wrapper overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
+        <table className="w-full text-sm border-collapse" style={{ minWidth: '800px' }}>
+          <thead>
+            {/* Row 1: Main headers */}
+            <tr className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white">
+              <th
+                rowSpan={2}
+                className="py-3 px-3 text-center font-semibold border border-emerald-500 whitespace-nowrap sticky left-0 z-20 bg-gradient-to-r from-emerald-600 to-teal-600"
+                style={{ width: '60px', minWidth: '60px' }}
+              >
+                No
+              </th>
+              <th
+                rowSpan={2}
+                className="py-3 px-3 text-center font-semibold border border-emerald-500 whitespace-nowrap sticky z-20 bg-gradient-to-r from-emerald-600 to-teal-600"
+                style={{ left: '60px', width: '80px', minWidth: '80px' }}
+              >
+                Aksi
+              </th>
+              <th
+                rowSpan={2}
+                className="py-3 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap sticky z-20 bg-gradient-to-r from-emerald-600 to-teal-600"
+                style={{ left: '140px', minWidth: '140px' }}
+              >
+                JENIS SAPI
+              </th>
+              {dates.map((date) => (
+                <th
+                  key={date}
+                  colSpan={2}
+                  className="py-3 px-3 text-center font-semibold border border-emerald-500 whitespace-nowrap"
+                >
+                  {formatDateLabel(date)}
+                </th>
+              ))}
+              <th
+                rowSpan={2}
+                className="py-3 px-3 text-center font-semibold border border-emerald-500 whitespace-nowrap"
+              >
+                TOTAL MASUK
+              </th>
+              <th
+                rowSpan={2}
+                className="py-3 px-3 text-center font-semibold border border-emerald-500 whitespace-nowrap"
+              >
+                TOTAL KELUAR
+              </th>
+              <th
+                rowSpan={2}
+                className="py-3 px-3 text-center font-semibold border border-emerald-500 whitespace-nowrap"
+              >
+                TOTAL NILAI BELI
+              </th>
+            </tr>
+
+            {/* Row 2: Sub-headers (Masuk / Keluar) under each date */}
+            <tr className="bg-emerald-700 text-white">
+              {dates.map((date) => (
+                <React.Fragment key={`sub-${date}`}>
+                  <th className="py-2 px-2 text-center text-xs font-semibold border border-emerald-600 bg-emerald-100 text-emerald-800 whitespace-nowrap">
+                    Masuk
+                  </th>
+                  <th className="py-2 px-2 text-center text-xs font-semibold border border-emerald-600 bg-rose-100 text-rose-800 whitespace-nowrap">
+                    Keluar
+                  </th>
+                </React.Fragment>
+              ))}
+            </tr>
+          </thead>
+
+          <tbody>
+            {rows.map((row, index) => (
+              <tr
+                key={index}
+                className={`border-b border-gray-100 hover:bg-emerald-50/50 transition-colors ${
+                  index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'
+                }`}
+              >
+                <td
+                  className="py-3 px-3 text-center font-medium text-gray-600 border border-gray-100 sticky left-0 z-20 bg-inherit"
+                  style={{ width: '60px', minWidth: '60px' }}
+                >
+                  {row.no_urut || index + 1}
+                </td>
+                <td
+                  className="py-3 px-3 text-center border border-gray-100 sticky z-20 bg-inherit"
+                  style={{ left: '60px', width: '80px', minWidth: '80px' }}
+                >
+                  <div className="flex items-center justify-center">
+                    <ActionButton
+                      row={{ id: row.action || row.no_urut, ...row }}
+                      openMenuId={openMenuId}
+                      setOpenMenuId={setOpenMenuId}
+                      onDetail={() => console.log('Detail', row)}
+                      onEdit={() => console.log('Edit', row)}
+                      onDelete={() => console.log('Delete', row)}
+                    />
+                  </div>
+                </td>
+                <td
+                  className="py-3 px-3 font-semibold text-gray-800 border border-gray-100 sticky z-20 bg-inherit"
+                  style={{ left: '140px', minWidth: '140px' }}
+                >
+                  {row.jenis_sapi}
+                </td>
+                {dates.map((date) => {
+                  const dayData = row.daily?.[date] || {};
+                  const masuk = Number(dayData.masuk) || 0;
+                  const keluar = Number(dayData.keluar) || 0;
+                  return (
+                    <React.Fragment key={`data-${index}-${date}`}>
+                      <td
+                        className={`py-3 px-2 text-center font-medium border border-gray-100 ${
+                          masuk > 0 ? 'text-emerald-700' : 'text-gray-300'
+                        }`}
+                      >
+                        {masuk}
+                      </td>
+                      <td
+                        className={`py-3 px-2 text-center font-medium border border-gray-100 ${
+                          keluar > 0 ? 'text-rose-700' : 'text-gray-300'
+                        }`}
+                      >
+                        {keluar}
+                      </td>
+                    </React.Fragment>
+                  );
+                })}
+                <td className="py-3 px-3 text-center font-semibold border border-gray-100 whitespace-nowrap text-emerald-700">
+                  {formatNumber(Number(row.total_masuk) || 0)}
+                </td>
+                <td className="py-3 px-3 text-center font-semibold border border-gray-100 whitespace-nowrap text-rose-700">
+                  {formatNumber(Number(row.total_keluar) || 0)}
+                </td>
+                <td
+                  className={`py-3 px-3 text-right font-semibold border border-gray-100 whitespace-nowrap ${
+                    Number(row.total_nilai_beli) > 0 ? 'text-teal-700' : 'text-gray-300'
+                  }`}
+                >
+                  {formatCurrency(Number(row.total_nilai_beli) || 0)}
+                </td>
+              </tr>
+            ))}
+
+            {/* Total Row */}
+            <tr className="bg-gradient-to-r from-emerald-50 to-teal-50 font-bold border-t-2 border-emerald-300">
+              <td
+                colSpan={3}
+                className="py-3 px-3 text-right text-emerald-800 border border-emerald-200"
+              >
+                Total
+              </td>
+              {dates.map((date, i) => (
+                <React.Fragment key={`total-${date}`}>
+                  <td className="py-3 px-2 text-center text-emerald-800 border border-emerald-200">
+                    {totals.masukTotals[i]}
+                  </td>
+                  <td className="py-3 px-2 text-center text-rose-800 border border-emerald-200">
+                    {totals.keluarTotals[i]}
+                  </td>
+                </React.Fragment>
+              ))}
+              <td className="py-3 px-3 text-center text-emerald-800 border border-emerald-200 whitespace-nowrap">
+                {formatNumber(totals.masukTotals.reduce((a, b) => a + b, 0))}
+              </td>
+              <td className="py-3 px-3 text-center text-rose-800 border border-emerald-200 whitespace-nowrap">
+                {formatNumber(totals.keluarTotals.reduce((a, b) => a + b, 0))}
+              </td>
+              <td className="py-3 px-3 text-right text-emerald-800 border border-emerald-200 whitespace-nowrap">
+                {formatCurrency(totals.totalNilaiBeli)}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      {/* Summary Card */}
+      {rows.length > 0 && (
+        <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-4 border border-emerald-200">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="text-center sm:text-left">
+              <p className="text-xs text-gray-500 font-medium">Total Masuk</p>
+              <p className="text-lg font-bold text-emerald-700">
+                {formatNumber(totals.masukTotals.reduce((a, b) => a + b, 0))} ekor
+              </p>
+            </div>
+            <div className="text-center sm:text-left">
+              <p className="text-xs text-gray-500 font-medium">Total Keluar</p>
+              <p className="text-lg font-bold text-rose-700">
+                {formatNumber(totals.keluarTotals.reduce((a, b) => a + b, 0))} ekor
+              </p>
+            </div>
+            <div className="text-center sm:text-left">
+              <p className="text-xs text-gray-500 font-medium">Total Nilai Beli</p>
+              <p className="text-lg font-bold text-teal-700">
+                {formatCurrency(totals.totalNilaiBeli)}
+              </p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

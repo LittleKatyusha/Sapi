@@ -1,31 +1,62 @@
 import React, { useMemo, useState } from 'react';
 import ActionButton from './ActionButton';
-import {
-  stokDetailData,
-  generateDateHeaders,
-  formatCurrency,
-} from '../constants/dummyData';
+import { formatNumber } from '../constants/dummyData';
 
-const StokDetailTab = () => {
+const StokDetailTab = ({ data, loading }) => {
   const [openMenuId, setOpenMenuId] = useState(null);
-  const dateHeaders = useMemo(() => generateDateHeaders(), []);
 
-  // Calculate totals for the bottom row
-  const totals = useMemo(() => {
-    const masukTotals = dateHeaders.map(() => 0);
-    const keluarTotals = dateHeaders.map(() => 0);
-    let totalNilaiBeli = 0;
+  const rows = useMemo(() => data?.rows || [], [data]);
 
-    stokDetailData.forEach((row) => {
-      row.harian.forEach((day, i) => {
-        masukTotals[i] += day.masuk;
-        keluarTotals[i] += day.keluar;
-      });
-      totalNilaiBeli += row.totalNilaiBeli || 0;
-    });
+  // Loading state
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <div className="flex items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
+          <span className="text-sm text-gray-500">Memuat data stok detail...</span>
+        </div>
+      </div>
+    );
+  }
 
-    return { masukTotals, keluarTotals, totalNilaiBeli };
-  }, [dateHeaders]);
+  // Empty state
+  if (!rows.length) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+        <svg className="h-16 w-16 mb-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+        </svg>
+        <p className="text-lg font-medium">Tidak ada data stok sapi</p>
+        <p className="text-sm mt-1">Silakan pilih rentang tanggal lain</p>
+      </div>
+    );
+  }
+
+  /** Render status badge based on status_sapi value */
+  const renderStatusBadge = (status) => {
+    if (!status) return <span className="text-gray-300">-</span>;
+    const upper = String(status).toUpperCase();
+    if (upper === 'PEMELIHARAAN') {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
+          {status}
+        </span>
+      );
+    }
+    if (upper.includes('SIAP') || upper.includes('POTONG')) {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800 border border-indigo-200">
+          {status}
+        </span>
+      );
+    }
+    // Default badge for other statuses
+    return (
+      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-200">
+        {status}
+      </span>
+    );
+  };
 
   return (
     <div className="space-y-4">
@@ -46,93 +77,75 @@ const StokDetailTab = () => {
         }
       `}</style>
 
-      {/* Complex Table with horizontal scroll for mobile */}
+      {/* Detail Table with horizontal scroll */}
       <div className="stok-detail-table-wrapper overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
-        <table className="w-full text-sm border-collapse" style={{ minWidth: '800px' }}>
+        <table className="w-full text-sm border-collapse" style={{ minWidth: '2000px' }}>
           <thead>
-            {/* Row 1: Main headers */}
             <tr className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white">
+              {/* Sticky columns */}
               <th
-                rowSpan={2}
                 className="py-3 px-3 text-center font-semibold border border-emerald-500 whitespace-nowrap sticky left-0 z-20 bg-gradient-to-r from-emerald-600 to-teal-600"
-                style={{ width: '60px', minWidth: '60px' }}
+                style={{ width: '50px', minWidth: '50px' }}
               >
                 No
               </th>
               <th
-                rowSpan={2}
                 className="py-3 px-3 text-center font-semibold border border-emerald-500 whitespace-nowrap sticky z-20 bg-gradient-to-r from-emerald-600 to-teal-600"
-                style={{ left: '60px', width: '80px', minWidth: '80px' }}
+                style={{ left: '50px', width: '70px', minWidth: '70px' }}
               >
                 Aksi
               </th>
               <th
-                rowSpan={2}
-                className="py-3 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap"
+                className="py-3 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap sticky z-20 bg-gradient-to-r from-emerald-600 to-teal-600"
+                style={{ left: '120px', minWidth: '120px' }}
               >
-                JENIS SAPI
+                Jenis Sapi
               </th>
-              <th
-                rowSpan={2}
-                className="py-3 px-3 text-center font-semibold border border-emerald-500 whitespace-nowrap"
-              >
-                STOK AWAL
-              </th>
-              <th
-                rowSpan={2}
-                className="py-3 px-3 text-center font-semibold border border-emerald-500 whitespace-nowrap"
-              >
-                SATUAN
-              </th>
-              {dateHeaders.map((date) => (
-                <th
-                  key={date.key}
-                  colSpan={2}
-                  className="py-3 px-3 text-center font-semibold border border-emerald-500 whitespace-nowrap"
-                >
-                  {date.label}
-                </th>
-              ))}
-              <th
-                rowSpan={2}
-                className="py-3 px-3 text-center font-semibold border border-emerald-500 whitespace-nowrap"
-              >
-                TOTAL NILAI BELI
-              </th>
-            </tr>
-
-            {/* Row 2: Sub-headers (Masuk / Keluar) under each date */}
-            <tr className="bg-emerald-700 text-white">
-              {dateHeaders.map((date) => (
-                <React.Fragment key={`sub-${date.key}`}>
-                  <th className="py-2 px-2 text-center text-xs font-semibold border border-emerald-600 bg-emerald-100 text-emerald-800 whitespace-nowrap">
-                    Masuk
-                  </th>
-                  <th className="py-2 px-2 text-center text-xs font-semibold border border-emerald-600 bg-rose-100 text-rose-800 whitespace-nowrap">
-                    Keluar
-                  </th>
-                </React.Fragment>
-              ))}
+              {/* Scrollable columns */}
+              <th className="py-3 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap">Eartag</th>
+              <th className="py-3 px-3 text-center font-semibold border border-emerald-500 whitespace-nowrap">Bobot</th>
+              <th className="py-3 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap">Lokasi Sapi</th>
+              <th className="py-3 px-3 text-right font-semibold border border-emerald-500 whitespace-nowrap">Harga Beli</th>
+              <th className="py-3 px-3 text-center font-semibold border border-emerald-500 whitespace-nowrap">DOF</th>
+              <th className="py-3 px-3 text-center font-semibold border border-emerald-500 whitespace-nowrap">Kg Pakan</th>
+              <th className="py-3 px-3 text-right font-semibold border border-emerald-500 whitespace-nowrap">Nilai Pakan</th>
+              <th className="py-3 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap">OVK</th>
+              <th className="py-3 px-3 text-right font-semibold border border-emerald-500 whitespace-nowrap">Nilai OVK</th>
+              <th className="py-3 px-3 text-right font-semibold border border-emerald-500 whitespace-nowrap">Total</th>
+              <th className="py-3 px-3 text-center font-semibold border border-emerald-500 whitespace-nowrap">Status Sapi</th>
+              <th className="py-3 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap">Pemasok</th>
+              <th className="py-3 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap">Nomor Nota</th>
+              <th className="py-3 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap">Pengirim</th>
+              <th className="py-3 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap">Tgl Kedatangan</th>
+              <th className="py-3 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap">Penerima</th>
+              <th className="py-3 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap">Kondisi Sapi</th>
+              <th className="py-3 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap">Keterangan</th>
             </tr>
           </thead>
 
           <tbody>
-            {stokDetailData.map((row, index) => (
+            {rows.map((row, index) => (
               <tr
-                key={row.id}
+                key={row.pid || index}
                 className={`border-b border-gray-100 hover:bg-emerald-50/50 transition-colors ${
                   index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'
                 }`}
               >
-                <td className="py-3 px-3 text-center font-medium text-gray-600 border border-gray-100 sticky left-0 z-20 bg-inherit"
-                    style={{ width: '60px', minWidth: '60px' }}>
-                  {index + 1}
+                {/* Sticky: No */}
+                <td
+                  className="py-3 px-3 text-center font-medium text-gray-600 border border-gray-100 sticky left-0 z-10 bg-inherit"
+                  style={{ width: '50px', minWidth: '50px' }}
+                >
+                  {row.no_urut || index + 1}
                 </td>
-                <td className="py-3 px-3 text-center border border-gray-100 sticky z-20 bg-inherit"
-                  style={{ left: '60px', width: '80px', minWidth: '80px' }}>
+                {/* Sticky: Aksi */}
+                <td
+                  className="py-3 px-3 text-center border border-gray-100 sticky z-10 bg-inherit"
+                  style={{ left: '50px', width: '70px', minWidth: '70px' }}
+                >
                   <div className="flex items-center justify-center">
                     <ActionButton
-                      row={row}
+                      row={{ id: row.pid || row.no_urut, ...row }}
                       openMenuId={openMenuId}
                       setOpenMenuId={setOpenMenuId}
                       onDetail={() => console.log('Detail', row)}
@@ -141,72 +154,101 @@ const StokDetailTab = () => {
                     />
                   </div>
                 </td>
-                <td className="py-3 px-3 font-semibold text-gray-800 border border-gray-100">
-                  {row.jenisSapi}
-                </td>
-                <td className="py-3 px-3 text-center font-medium text-gray-700 border border-gray-100">
-                  {row.stokAwal}
-                </td>
-                <td className="py-3 px-3 text-center text-gray-600 border border-gray-100">
-                  {row.satuan}
-                </td>
-                {row.harian.map((day, i) => (
-                  <React.Fragment key={`data-${row.id}-${i}`}>
-                    <td
-                      className={`py-3 px-2 text-center font-medium border border-gray-100 ${
-                        day.masuk > 0
-                          ? 'text-emerald-700 font-medium'
-                          : 'text-gray-300'
-                      }`}
-                    >
-                      {day.masuk}
-                    </td>
-                    <td
-                      className={`py-3 px-2 text-center font-medium border border-gray-100 ${
-                        day.keluar > 0
-                          ? 'text-rose-700 font-medium'
-                          : 'text-gray-300'
-                      }`}
-                    >
-                      {day.keluar}
-                    </td>
-                  </React.Fragment>
-                ))}
+                {/* Sticky: Jenis Sapi */}
                 <td
-                  className={`py-3 px-3 text-right font-semibold border border-gray-100 whitespace-nowrap ${
-                    row.totalNilaiBeli > 0 ? 'text-teal-700' : 'text-gray-300'
-                  }`}
+                  className="py-3 px-3 font-semibold text-gray-800 border border-gray-100 whitespace-nowrap sticky z-10 bg-inherit"
+                  style={{ left: '120px', minWidth: '120px' }}
                 >
-                  {formatCurrency(row.totalNilaiBeli)}
+                  {row.jenis_sapi}
+                </td>
+                {/* Eartag */}
+                <td className="py-3 px-3 text-gray-700 border border-gray-100 whitespace-nowrap">
+                  {row.eartag || '-'}
+                </td>
+                {/* Bobot */}
+                <td className="py-3 px-3 text-center text-gray-700 border border-gray-100 whitespace-nowrap">
+                  {row.bobot ? `${Number(row.bobot)} KG` : '-'}
+                </td>
+                {/* Lokasi Sapi */}
+                <td className="py-3 px-3 text-gray-700 border border-gray-100 whitespace-nowrap">
+                  {row.lokasi_sapi || '-'}
+                </td>
+                {/* Harga Beli */}
+                <td className="py-3 px-3 text-right font-medium text-gray-700 border border-gray-100 whitespace-nowrap">
+                  {row.harga_beli || '-'}
+                </td>
+                {/* DOF */}
+                <td className="py-3 px-3 text-center text-gray-700 border border-gray-100 whitespace-nowrap">
+                  {row.dof_hari || '-'}
+                </td>
+                {/* Kg Pakan */}
+                <td className="py-3 px-3 text-center text-gray-700 border border-gray-100 whitespace-nowrap">
+                  {row.kg || '-'}
+                </td>
+                {/* Nilai Pakan */}
+                <td className="py-3 px-3 text-right text-gray-700 border border-gray-100 whitespace-nowrap">
+                  {row.nilai_pakan || '-'}
+                </td>
+                {/* OVK */}
+                <td className="py-3 px-3 text-gray-700 border border-gray-100 whitespace-nowrap max-w-[150px] truncate" title={row.ovk}>
+                  {row.ovk || '-'}
+                </td>
+                {/* Nilai OVK */}
+                <td className="py-3 px-3 text-right text-gray-700 border border-gray-100 whitespace-nowrap">
+                  {row.nilai_ovk || '-'}
+                </td>
+                {/* Total */}
+                <td className="py-3 px-3 text-right font-semibold text-teal-700 border border-gray-100 whitespace-nowrap">
+                  {row.total || '-'}
+                </td>
+                {/* Status Sapi */}
+                <td className="py-3 px-3 text-center border border-gray-100 whitespace-nowrap">
+                  {renderStatusBadge(row.status_sapi)}
+                </td>
+                {/* Pemasok */}
+                <td className="py-3 px-3 text-gray-700 border border-gray-100 whitespace-nowrap">
+                  {row.pemasok || '-'}
+                </td>
+                {/* Nomor Nota */}
+                <td className="py-3 px-3 text-gray-700 border border-gray-100 whitespace-nowrap">
+                  {row.nomor_nota || '-'}
+                </td>
+                {/* Pengirim */}
+                <td className="py-3 px-3 text-gray-700 border border-gray-100 whitespace-nowrap">
+                  {row.pengirim || '-'}
+                </td>
+                {/* Tanggal Kedatangan */}
+                <td className="py-3 px-3 text-gray-700 border border-gray-100 whitespace-nowrap">
+                  {row.tanggal_kedatangan || '-'}
+                </td>
+                {/* Penerima */}
+                <td className="py-3 px-3 text-gray-700 border border-gray-100 whitespace-nowrap">
+                  {row.penerima || '-'}
+                </td>
+                {/* Kondisi Sapi */}
+                <td className="py-3 px-3 text-gray-700 border border-gray-100 whitespace-nowrap">
+                  {row.kondisi_sapi || '-'}
+                </td>
+                {/* Keterangan */}
+                <td className="py-3 px-3 text-gray-600 border border-gray-100 whitespace-nowrap max-w-[150px] truncate" title={row.keterangan_kondisi}>
+                  {row.keterangan_kondisi || '-'}
                 </td>
               </tr>
             ))}
-
-            {/* Total Row */}
-            <tr className="bg-gradient-to-r from-emerald-50 to-teal-50 font-bold border-t-2 border-emerald-300">
-              <td
-                colSpan={5}
-                className="py-3 px-3 text-right text-emerald-800 border border-emerald-200"
-              >
-                Total
-              </td>
-              {dateHeaders.map((date, i) => (
-                <React.Fragment key={`total-${date.key}`}>
-                  <td className="py-3 px-2 text-center text-emerald-800 border border-emerald-200">
-                    {totals.masukTotals[i]}
-                  </td>
-                  <td className="py-3 px-2 text-center text-rose-800 border border-emerald-200">
-                    {totals.keluarTotals[i]}
-                  </td>
-                </React.Fragment>
-              ))}
-              <td className="py-3 px-3 text-right text-emerald-800 border border-emerald-200 whitespace-nowrap">
-                {formatCurrency(totals.totalNilaiBeli)}
-              </td>
-            </tr>
           </tbody>
         </table>
       </div>
+
+      {/* Summary footer */}
+      {rows.length > 0 && (
+        <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-4 border border-emerald-200">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-gray-500 font-medium">
+              Total {formatNumber(rows.length)} data sapi
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
