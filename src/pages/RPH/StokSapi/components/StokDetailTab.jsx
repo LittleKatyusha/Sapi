@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import ActionButton from './ActionButton';
 import { formatNumber } from '../constants/dummyData';
 
-const StokDetailTab = ({ data, loading }) => {
+const StokDetailTab = ({ data, loading, onRefresh, onOvk, onPotongPaksa, onSapiMati }) => {
   const [openMenuId, setOpenMenuId] = useState(null);
 
   const rows = useMemo(() => data?.rows || [], [data]);
@@ -140,7 +140,7 @@ const StokDetailTab = ({ data, loading }) => {
                 </td>
                 {/* Sticky: Aksi */}
                 <td
-                  className="py-3 px-3 text-center border border-gray-100 sticky z-10 bg-inherit"
+                  className="py-3 px-3 text-center border border-gray-100 sticky z-20 bg-inherit"
                   style={{ left: '50px', width: '70px', minWidth: '70px' }}
                 >
                   <div className="flex items-center justify-center">
@@ -151,6 +151,9 @@ const StokDetailTab = ({ data, loading }) => {
                       onDetail={() => console.log('Detail', row)}
                       onEdit={() => console.log('Edit', row)}
                       onDelete={() => console.log('Delete', row)}
+                      onOvk={() => onOvk(row)}
+                      onPotongPaksa={() => onPotongPaksa(row)}
+                      onSapiMati={() => onSapiMati(row)}
                     />
                   </div>
                 </td>

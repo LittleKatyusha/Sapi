@@ -105,6 +105,10 @@ const DofRphPage = lazy(() => import('./pages/RPH/Dof/DofRphPage'));
 
 // RPH Stok Sapi Page - Lazy loaded
 const StokSapi = lazy(() => import('./pages/RPH/StokSapi/StokSapiPage'));
+const PemberianPakanSapiPage = lazy(() => import('./pages/RPH/StokSapi/PemberianPakanSapiPage'));
+const AddEditPemberianPakanSapiPage = lazy(() => import('./pages/RPH/StokSapi/AddEditPemberianPakanSapiPage'));
+const PemberianOvkSapiPage = lazy(() => import('./pages/RPH/StokSapi/PemberianOvkSapiPage'));
+const AddEditPemberianOvkSapiPage = lazy(() => import('./pages/RPH/StokSapi/AddEditPemberianOvkSapiPage'));
 
 // Reporting Pages - Lazy loaded
 const LaporanNotaSupplierPage = lazy(() => import('./pages/reporting/LaporanNotaSupplierPage'));
@@ -330,6 +334,12 @@ function AppSecure() {
 
               {/* RPH Stok Sapi Route */}
               <Route path="/rph/stok-sapi" element={<StokSapi />} />
+              <Route path="/rph/pemberian-pakan-sapi" element={<PemberianPakanSapiPage />} />
+              <Route path="/rph/pemberian-pakan-sapi/add" element={<AddEditPemberianPakanSapiPage />} />
+              <Route path="/rph/pemberian-pakan-sapi/edit/:pid" element={<AddEditPemberianPakanSapiPage />} />
+              <Route path="/rph/pemberian-ovk-sapi" element={<PemberianOvkSapiPage />} />
+              <Route path="/rph/pemberian-ovk-sapi/add" element={<AddEditPemberianOvkSapiPage />} />
+              <Route path="/rph/pemberian-ovk-sapi/edit/:pid" element={<AddEditPemberianOvkSapiPage />} />
               
               {/* RPH Persediaan OVK Route */}
               <Route path="/rph/persediaan-ovk" element={
@@ -445,3 +455,4 @@ function AppSecure() {
 }
 
 export default AppWrapperSecure;
+

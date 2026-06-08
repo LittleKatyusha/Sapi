@@ -12,15 +12,14 @@ import {
   Eye,
   Loader2,
   MoreVertical,
-  Plus,
   RefreshCw,
   Search,
   Trash2,
-  Wheat,
+  Package,
   X,
 } from 'lucide-react';
 import useDocumentTitle from '../../../hooks/useDocumentTitle';
-import PemberianPakanSapiService from '../../../services/pemberianPakanSapiService';
+import PemberianOvkSapiService from '../../../services/pemberianOvkSapiService';
 
 const getToday = () => {
   const date = new Date();
@@ -205,28 +204,27 @@ const Toast = ({ notification, onClose }) => {
 const DetailModal = ({ row, onClose, onEdit }) => {
   if (!row) return null;
 
-  const cowDetails = Array.isArray(row.detail) ? row.detail : [];
-
   const detailItems = [
-    ['Resep Pakan', row.nama_resep_pakan],
-    ['Tanggal Pemberian', row.tgl_pemberian_pakan],
-    ['Jam Pemberian', row.jam_pemberian_pakan],
+    ['OVK / Deskripsi', row.nama_ovk || row.nama_produk || `OVK #${row.id_pembelian_rph_detail}`],
+    ['Tanggal Pemberian', row.tgl_pemberian_ovk],
+    ['Jam Pemberian', String(row.jam_pemberian_ovk || '').slice(0, 5)],
     ['Nama Peternak', row.nama_peternak],
     ['Harga', formatCurrency(row.harga)],
-    ['Total Sapi', cowDetails.length ? `${cowDetails.length} ekor` : '-'],
+    ['Eartag Sapi', row.eartag_sapi || row.eartag || '-'],
+    ['Nama Sapi', row.nama_sapi || '-'],
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="detail-pakan-title">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="detail-ovk-title">
       <div className="w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-2xl">
         <div className="flex items-start justify-between gap-4 border-b border-slate-100 p-5 sm:p-6">
           <div className="flex items-start gap-3">
-            <div className="rounded-2xl bg-emerald-100 p-3 text-emerald-700">
-              <Wheat className="h-6 w-6" />
+            <div className="rounded-2xl bg-teal-100 p-3 text-teal-700">
+              <Package className="h-6 w-6" />
             </div>
             <div>
-              <h2 id="detail-pakan-title" className="text-xl font-bold text-slate-900">Detail Pemberian Pakan</h2>
-              <p className="mt-1 text-sm text-slate-500">Informasi pemberian pakan sapi RPH.</p>
+              <h2 id="detail-ovk-title" className="text-xl font-bold text-slate-900">Detail Pemberian OVK</h2>
+              <p className="mt-1 text-sm text-slate-500">Informasi detail pemberian OVK sapi RPH.</p>
             </div>
           </div>
           <button
@@ -246,36 +244,6 @@ const DetailModal = ({ row, onClose, onEdit }) => {
               <p className="mt-1 break-words text-sm font-semibold text-slate-800">{value || '-'}</p>
             </div>
           ))}
-        </div>
-
-        <div className="px-5 pb-5 sm:px-6 sm:pb-6">
-          <div className="overflow-hidden rounded-2xl border border-slate-100">
-            <div className="bg-slate-50 px-4 py-3">
-              <p className="text-sm font-bold text-slate-800">Daftar Sapi</p>
-            </div>
-            <div className="max-h-64 overflow-auto">
-              {cowDetails.length ? (
-                <table className="min-w-full divide-y divide-slate-100 text-sm">
-                  <thead className="bg-white text-xs uppercase tracking-wide text-slate-400">
-                    <tr>
-                      <th className="px-4 py-3 text-left font-semibold">Nama Sapi</th>
-                      <th className="px-4 py-3 text-left font-semibold">Eartag</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {cowDetails.map((detail) => (
-                      <tr key={detail.pubid || detail.id}>
-                        <td className="px-4 py-3 font-medium text-slate-700">{detail.nama_sapi || '-'}</td>
-                        <td className="px-4 py-3 font-mono text-slate-600">{detail.eartag_sapi || '-'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : (
-                <p className="px-4 py-6 text-center text-sm text-slate-400">Detail sapi belum tersedia.</p>
-              )}
-            </div>
-          </div>
         </div>
 
         <div className="flex flex-col-reverse gap-2 border-t border-slate-100 p-5 sm:flex-row sm:justify-end sm:p-6">
@@ -304,15 +272,15 @@ const DeleteModal = ({ row, loading, onClose, onConfirm }) => {
   if (!row) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="delete-pakan-title">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="delete-ovk-title">
       <div className="w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl">
         <div className="p-6 text-center">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-red-50 text-red-600">
             <Trash2 className="h-7 w-7" />
           </div>
-          <h2 id="delete-pakan-title" className="mt-4 text-xl font-bold text-slate-900">Hapus Data Pemberian Pakan?</h2>
+          <h2 id="delete-ovk-title" className="mt-4 text-xl font-bold text-slate-900">Hapus Data Pemberian OVK?</h2>
           <p className="mt-2 text-sm leading-6 text-slate-500">
-            Catatan pemberian pakan <span className="font-semibold text-slate-700">{row.nama_resep_pakan || 'ini'}</span> pada tanggal {row.tgl_pemberian_pakan || '-'} akan dihapus. Tindakan ini tidak dapat dibatalkan.
+            Catatan pemberian OVK <span className="font-semibold text-slate-700">{row.nama_ovk || row.nama_produk || 'ini'}</span> untuk Sapi {row.eartag_sapi || row.eartag || ''} akan dihapus. Tindakan ini tidak dapat dibatalkan.
           </p>
         </div>
         <div className="flex flex-col-reverse gap-2 border-t border-slate-100 p-5 sm:flex-row sm:justify-end">
@@ -448,7 +416,7 @@ const RowActionButton = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onD
           onToggle(row.pid);
         }}
         className={`rounded-lg border p-2 text-gray-600 shadow-sm transition-all hover:scale-105 hover:bg-blue-50 hover:text-blue-600 ${isOpen ? 'border-blue-400 bg-blue-50 text-blue-600' : 'border-gray-300 bg-white'}`}
-        aria-label={`Menu aksi ${row.nama_sapi || 'pemberian pakan'}`}
+        aria-label="Menu aksi pemberian OVK"
         aria-expanded={isOpen}
       >
         <MoreVertical className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
@@ -467,11 +435,11 @@ const RowActionButton = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onD
   );
 };
 
-const PemberianPakanSapiPage = () => {
+const PemberianOvkSapiPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  useDocumentTitle('Pemberian Pakan Sapi RPH');
+  useDocumentTitle('Pemberian OVK Sapi RPH');
 
   const [rows, setRows] = useState([]);
   const [totalRows, setTotalRows] = useState(0);
@@ -488,6 +456,7 @@ const PemberianPakanSapiPage = () => {
   const [detailRow, setDetailRow] = useState(null);
   const [deleteRow, setDeleteRow] = useState(null);
   const [openActionMenuPid, setOpenActionMenuPid] = useState(null);
+  const [ovkNamesMap, setOvkNamesMap] = useState({});
 
   useEffect(() => {
     if (location.state?.message) {
@@ -502,18 +471,33 @@ const PemberianPakanSapiPage = () => {
     return () => clearTimeout(timer);
   }, [notification]);
 
+  // Fetch OVK items options once to map names
+  useEffect(() => {
+    const loadOvkMapping = async () => {
+      const res = await PemberianOvkSapiService.getOvkOptions();
+      if (res.success && Array.isArray(res.data)) {
+        const mapping = {};
+        res.data.forEach((item) => {
+          mapping[item.value] = item.label;
+        });
+        setOvkNamesMap(mapping);
+      }
+    };
+    loadOvkMapping();
+  }, []);
+
   const fetchData = useCallback(async ({ page = currentPage, limit = perPage, query = search } = {}) => {
     setLoading(true);
     setError(null);
 
-    const response = await PemberianPakanSapiService.getData({
+    const response = await PemberianOvkSapiService.getData({
       draw: page,
       start: (page - 1) * limit,
       length: limit,
       search: query,
       startDate,
       endDate,
-      orderColumn: 6,
+      orderColumn: 5,
       orderDir: 'desc',
     });
 
@@ -523,7 +507,7 @@ const PemberianPakanSapiPage = () => {
     } else {
       setRows([]);
       setTotalRows(0);
-      setError(response.message || 'Gagal memuat data pemberian pakan sapi');
+      setError(response.message || 'Gagal memuat data pemberian OVK sapi');
     }
 
     setLoading(false);
@@ -549,7 +533,7 @@ const PemberianPakanSapiPage = () => {
   };
 
   const handleEdit = async (row) => {
-    const detailResponse = await PemberianPakanSapiService.show(row.pid);
+    const detailResponse = await PemberianOvkSapiService.show(row.pid);
     const record = detailResponse.success ? { ...row, ...(detailResponse.data || {}) } : row;
 
     if (!detailResponse.success) {
@@ -559,7 +543,7 @@ const PemberianPakanSapiPage = () => {
       });
     }
 
-    navigate(`/rph/pemberian-pakan-sapi/edit/${encodeURIComponent(row.pid)}`, {
+    navigate(`/rph/pemberian-ovk-sapi/edit/${encodeURIComponent(row.pid)}`, {
       state: { record },
     });
     setOpenActionMenuPid(null);
@@ -567,10 +551,13 @@ const PemberianPakanSapiPage = () => {
 
   const handleDetail = async (row) => {
     setNotification({ type: 'info', message: 'Memuat detail data...' });
-    const detailResponse = await PemberianPakanSapiService.show(row.pid);
+    const detailResponse = await PemberianOvkSapiService.show(row.pid);
 
     if (detailResponse.success) {
-      setDetailRow({ ...row, ...(detailResponse.data || {}) });
+      const detailed = { ...row, ...(detailResponse.data || {}) };
+      // Map OVK product name
+      detailed.nama_ovk = ovkNamesMap[detailed.id_pembelian_rph_detail] || detailed.nama_produk || `OVK #${detailed.id_pembelian_rph_detail}`;
+      setDetailRow(detailed);
       setNotification(null);
       return;
     }
@@ -583,7 +570,7 @@ const PemberianPakanSapiPage = () => {
 
   const handleDeleteConfirm = async (row) => {
     setDeleteLoading(true);
-    const response = await PemberianPakanSapiService.delete(row.pid);
+    const response = await PemberianOvkSapiService.delete(row.pid);
     setDeleteLoading(false);
 
     if (response.success) {
@@ -598,13 +585,13 @@ const PemberianPakanSapiPage = () => {
 
   const statCards = useMemo(() => {
     const totalHarga = rows.reduce((sum, row) => sum + (Number(row.harga) || 0), 0);
-    const uniqueResep = new Set(rows.map((row) => row.nama_resep_pakan).filter(Boolean)).size;
+    const uniqueOvkIds = new Set(rows.map((row) => row.id_pembelian_rph_detail).filter(Boolean));
 
     return [
       { label: 'Data Ditampilkan', value: `${rows.length} data`, tone: 'emerald' },
       { label: 'Total Terfilter', value: `${totalRows} data`, tone: 'cyan' },
-      { label: 'Resep Pakan', value: `${uniqueResep} resep`, tone: 'amber' },
-      { label: 'Total Harga', value: formatCurrency(totalHarga), tone: 'violet' },
+      { label: 'Varian OVK Diberikan', value: `${uniqueOvkIds.size} produk`, tone: 'amber' },
+      { label: 'Total Biaya OVK', value: formatCurrency(totalHarga), tone: 'violet' },
     ];
   }, [rows, totalRows]);
 
@@ -634,33 +621,43 @@ const PemberianPakanSapiPage = () => {
       ),
     },
     {
-      name: 'Resep Pakan',
-      selector: (row) => row.nama_resep_pakan,
+      name: 'OVK / Produk',
+      selector: (row) => row.id_pembelian_rph_detail,
       sortable: true,
       minWidth: '180px',
-      cell: (row) => <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">{row.nama_resep_pakan || '-'}</span>,
+      cell: (row) => {
+        const name = ovkNamesMap[row.id_pembelian_rph_detail] || row.nama_produk || `OVK #${row.id_pembelian_rph_detail}`;
+        return <span className="rounded-full bg-teal-50 px-2.5 py-1 text-xs font-semibold text-teal-700">{name}</span>;
+      },
+    },
+    {
+      name: 'Sapi (Eartag)',
+      selector: (row) => row.eartag_sapi || row.eartag,
+      sortable: true,
+      minWidth: '150px',
+      cell: (row) => <span className="font-mono text-xs font-bold text-slate-700">{row.eartag_sapi || row.eartag || '-'}</span>,
     },
     {
       name: 'Tanggal',
-      selector: (row) => row.tgl_pemberian_pakan,
+      selector: (row) => row.tgl_pemberian_ovk,
       sortable: true,
-      minWidth: '140px',
+      minWidth: '130px',
       cell: (row) => (
         <span className="inline-flex items-center gap-1.5 text-slate-700">
           <Calendar className="h-4 w-4 text-emerald-500" />
-          {row.tgl_pemberian_pakan || '-'}
+          {row.tgl_pemberian_ovk || '-'}
         </span>
       ),
     },
     {
       name: 'Jam',
-      selector: (row) => row.jam_pemberian_pakan,
+      selector: (row) => row.jam_pemberian_ovk,
       center: true,
       width: '110px',
       cell: (row) => (
         <span className="inline-flex items-center gap-1.5 rounded-full bg-cyan-50 px-2.5 py-1 font-mono text-xs font-semibold text-cyan-700">
           <Clock className="h-3.5 w-3.5" />
-          {String(row.jam_pemberian_pakan || '-').slice(0, 5)}
+          {String(row.jam_pemberian_ovk || '-').slice(0, 5)}
         </span>
       ),
     },
@@ -668,7 +665,7 @@ const PemberianPakanSapiPage = () => {
       name: 'Peternak',
       selector: (row) => row.nama_peternak,
       sortable: true,
-      minWidth: '160px',
+      minWidth: '150px',
       cell: (row) => <span className="text-slate-700">{row.nama_peternak || '-'}</span>,
     },
     {
@@ -678,7 +675,7 @@ const PemberianPakanSapiPage = () => {
       minWidth: '130px',
       cell: (row) => <span className="font-semibold text-emerald-700">{formatCurrency(row.harga)}</span>,
     },
-  ], [currentPage, handleDetail, handleEdit, openActionMenuPid, perPage]);
+  ], [currentPage, handleDetail, handleEdit, openActionMenuPid, perPage, ovkNamesMap]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50/40 via-white to-cyan-50/30">
@@ -694,22 +691,15 @@ const PemberianPakanSapiPage = () => {
               >
                 <ArrowLeft className="h-5 w-5" />
               </button>
-              <div className="rounded-2xl bg-emerald-100 p-3 text-emerald-700">
-                <Wheat className="h-7 w-7" />
+              <div className="rounded-2xl bg-teal-100 p-3 text-teal-700">
+                <Package className="h-7 w-7" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Pemberian Pakan Sapi RPH</h1>
-                <p className="mt-1 text-sm text-gray-500 sm:text-base">Kelola pencatatan pemberian pakan untuk sapi aktif di RPH.</p>
+                <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Pemberian OVK Sapi RPH</h1>
+                <p className="mt-1 text-sm text-gray-500 sm:text-base">Kelola pencatatan pemberian Obat, Vitamin, dan Konsentrat untuk sapi aktif di RPH.</p>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => navigate('/rph/pemberian-pakan-sapi/add')}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 px-5 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:from-emerald-600 hover:to-teal-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
-            >
-              <Plus className="h-4 w-4" />
-              Tambah Pemberian Pakan
-            </button>
+            
           </div>
         </section>
 
@@ -765,7 +755,7 @@ const PemberianPakanSapiPage = () => {
                   onKeyDown={(event) => {
                     if (event.key === 'Enter') handleApplySearch();
                   }}
-                  placeholder="Cari resep atau peternak..."
+                  placeholder="Cari peternak..."
                   className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-10 text-sm text-slate-700 outline-none transition focus:border-emerald-300 focus:bg-white focus:ring-4 focus:ring-emerald-100"
                 />
                 {searchInput ? (
@@ -819,12 +809,12 @@ const PemberianPakanSapiPage = () => {
             progressComponent={(
               <div className="flex items-center gap-2 py-12 text-sm text-slate-400">
                 <Loader2 className="h-5 w-5 animate-spin" />
-                Memuat data pemberian pakan...
+                Memuat data pemberian OVK...
               </div>
             )}
             noDataComponent={(
               <div className="py-12 text-center text-sm text-slate-400">
-                Belum ada data pemberian pakan sapi pada filter saat ini.
+                Belum ada data pemberian OVK sapi pada filter saat ini.
               </div>
             )}
             pagination
@@ -867,4 +857,4 @@ const PemberianPakanSapiPage = () => {
   );
 };
 
-export default PemberianPakanSapiPage;
+export default PemberianOvkSapiPage;

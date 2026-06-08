@@ -1,8 +1,8 @@
 import React, { useRef, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Eye, Edit, Trash2 } from 'lucide-react';
+import { Eye, Edit, Trash2, Package, Scissors, AlertTriangle } from 'lucide-react';
 
-const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef }) => {
+const ActionMenu = ({ row, onEdit, onDelete, onDetail, onOvk, onPotongPaksa, onSapiMati, onClose, buttonRef }) => {
   const menuRef = useRef(null);
   const [menuStyle, setMenuStyle] = useState(null);
 
@@ -66,6 +66,51 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef }) => 
       hoverBg: 'group-hover:bg-amber-200',
       text: 'text-amber-600',
     },
+    ...(onOvk ? [
+      {
+        label: 'Pemberian OVK',
+        icon: Package,
+        onClick: () => {
+          onOvk(row);
+          onClose();
+        },
+        className: 'text-emerald-700',
+        description: 'Beri obat/vitamin/konsentrat',
+        bg: 'bg-emerald-100',
+        hoverBg: 'group-hover:bg-emerald-200',
+        text: 'text-emerald-600',
+      }
+    ] : []),
+    ...(onPotongPaksa ? [
+      {
+        label: 'Potong Paksa',
+        icon: Scissors,
+        onClick: () => {
+          onPotongPaksa(row);
+          onClose();
+        },
+        className: 'text-red-700',
+        description: 'Potong paksa sapi',
+        bg: 'bg-red-100',
+        hoverBg: 'group-hover:bg-red-200',
+        text: 'text-red-600',
+      }
+    ] : []),
+    ...(onSapiMati ? [
+      {
+        label: 'Sapi Mati',
+        icon: AlertTriangle,
+        onClick: () => {
+          onSapiMati(row);
+          onClose();
+        },
+        className: 'text-slate-700',
+        description: 'Lihat data sapi mati',
+        bg: 'bg-slate-100',
+        hoverBg: 'group-hover:bg-slate-200',
+        text: 'text-slate-600',
+      }
+    ] : []),
     {
       divider: true,
     },

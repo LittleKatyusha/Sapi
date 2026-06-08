@@ -5,6 +5,8 @@ import useDocumentTitle from '../../../hooks/useDocumentTitle';
 import StokSapiService from '../../../services/stokSapiService';
 import StokRingkasTab from './components/StokRingkasTab';
 import StokDetailTab from './components/StokDetailTab';
+import PotongPaksaModal from './modals/PotongPaksaModal';
+import SapiMatiModal from './modals/SapiMatiModal';
 import { formatCurrency, formatNumber } from './constants/dummyData';
 
 const TABS = [
@@ -34,15 +36,11 @@ const getDaysAgo = (n) => {
 
 const formatDateYMD = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
-const getDiffInDays = (fromDate, toDate) => {
-  const from = new Date(fromDate);
-  const to = new Date(toDate);
-  return Math.round((to - from) / (1000 * 60 * 60 * 24));
-};
+const MAX_RANGE_DAYS = 7;
 
-const shiftDate = (baseDate, deltaDays) => {
-  const d = new Date(baseDate);
-  d.setDate(d.getDate() + deltaDays);
+const addDays = (dateString, days) => {
+  const d = new Date(dateString);
+  d.setDate(d.getDate() + days);
   return formatDateYMD(d);
 };
 
@@ -60,6 +58,11 @@ const StokSapiPage = () => {
   const [ringkasData, setRingkasData] = useState(null); // from stoksapibyjenis
   const [detailData, setDetailData] = useState(null); // from stoksapi
 
+  // Modal state
+  const [potongPaksaModalOpen, setPotongPaksaModalOpen] = useState(false);
+  const [sapiMatiModalOpen, setSapiMatiModalOpen] = useState(false);
+  const [selectedCowForAction, setSelectedCowForAction] = useState(null);
+
   /** Validate date range (max 7 days) */
   const validateDateRange = useCallback((start, end) => {
     const startD = new Date(start);
@@ -71,7 +74,7 @@ const StokSapiPage = () => {
       return 'Tanggal mulai tidak boleh lebih besar dari tanggal akhir';
     }
     const diffDays = Math.ceil((endD - startD) / (1000 * 60 * 60 * 24));
-    if (diffDays > 7) {
+    if (diffDays > MAX_RANGE_DAYS - 1) {
       return 'Rentang tanggal maksimal 7 hari';
     }
     return null;
@@ -94,20 +97,23 @@ const StokSapiPage = () => {
         StokSapiService.getStokDetail(startDate, endDate),
       ]);
 
+      let nextError = null;
+
       if (!ringkasRes.success) {
-        setError(ringkasRes.message);
+        nextError = ringkasRes.message;
         setRingkasData(null);
       } else {
         setRingkasData(ringkasRes.data);
       }
 
       if (!detailRes.success) {
-        // Only set error if ringkas didn't already set one
-        if (!error) setError(detailRes.message);
+        if (!nextError) nextError = detailRes.message;
         setDetailData(null);
       } else {
         setDetailData(detailRes.data);
       }
+
+      setError(nextError);
     } catch (err) {
       setError(err?.message || 'Terjadi kesalahan saat mengambil data');
       setRingkasData(null);
@@ -125,8 +131,15 @@ const StokSapiPage = () => {
   /** Handle date change with validation */
   const handleStartDateChange = (e) => {
     const newStart = e.target.value;
-    const delta = getDiffInDays(startDate, newStart);
-    const newEnd = shiftDate(endDate, delta);
+    let newEnd = endDate;
+
+    if (new Date(newStart) > new Date(newEnd)) {
+      newEnd = newStart;
+    } else if (!validateDateRange(newStart, newEnd)) {
+      newEnd = endDate;
+    } else {
+      newEnd = addDays(newStart, MAX_RANGE_DAYS - 1);
+    }
 
     setStartDate(newStart);
     setEndDate(newEnd);
@@ -138,16 +151,50 @@ const StokSapiPage = () => {
 
   const handleEndDateChange = (e) => {
     const newEnd = e.target.value;
-    const delta = getDiffInDays(endDate, newEnd);
-    const newStart = shiftDate(startDate, delta);
+    let newStart = startDate;
+
+    if (new Date(newStart) > new Date(newEnd)) {
+      newStart = newEnd;
+    } else if (validateDateRange(newStart, newEnd)) {
+      newStart = addDays(newEnd, -(MAX_RANGE_DAYS - 1));
+    }
 
     setEndDate(newEnd);
     setStartDate(newStart);
 
-    const validationError = validateDateRange(newStart, newEnd);
+const validationError = validateDateRange(newStart, newEnd);
     if (validationError) setError(validationError);
     else setError(null);
   };
+
+  /** Handle potong paksa action */
+  const handlePotongPaksa = useCallback((cow) => {
+    setSelectedCowForAction(cow);
+    setPotongPaksaModalOpen(true);
+  }, []);
+
+  /** Handle sapi mati action */
+  const handleSapiMati = useCallback((cow) => {
+    setSelectedCowForAction(cow);
+    setSapiMatiModalOpen(true);
+  }, []);
+
+  /** Handle potong paksa success */
+  const handlePotongPaksaSuccess = useCallback(() => {
+    fetchData();
+  }, [fetchData]);
+
+  /** Handle potong paksa modal close */
+  const handlePotongPaksaClose = useCallback(() => {
+    setPotongPaksaModalOpen(false);
+    setSelectedCowForAction(null);
+  }, []);
+
+  /** Handle sapi mati modal close */
+  const handleSapiMatiClose = useCallback(() => {
+    setSapiMatiModalOpen(false);
+    setSelectedCowForAction(null);
+  }, []);
 
   /** Compute stat cards from real API data (ringkas / stoksapibyjenis) */
   const statCards = useMemo(() => {
@@ -156,7 +203,11 @@ const StokSapiPage = () => {
     const totalMasuk = rows.reduce((sum, r) => sum + (Number(r.total_masuk) || 0), 0);
     const totalKeluar = rows.reduce((sum, r) => sum + (Number(r.total_keluar) || 0), 0);
     const totalNilaiBeli = rows.reduce((sum, r) => sum + (Number(r.total_nilai_beli) || 0), 0);
-    const jenisCount = rows.length;
+    const jenisCount = rows.filter((r) => (
+      (Number(r.total_masuk) || 0) > 0
+      || (Number(r.total_keluar) || 0) > 0
+      || (Number(r.total_nilai_beli) || 0) > 0
+    )).length;
 
     return [
       {
@@ -216,6 +267,14 @@ const StokSapiPage = () => {
                 <Wheat className="h-4 w-4" />
                 Pemberian Pakan
               </button>
+              <button
+                type="button"
+                onClick={() => navigate('/rph/pemberian-ovk-sapi')}
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-teal-200 bg-teal-50 px-4 py-2 text-sm font-semibold text-teal-700 shadow-sm transition hover:bg-teal-100 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
+              >
+                <Package className="h-4 w-4" />
+                Pemberian OVK
+              </button>
               <div className="flex items-center gap-2">
                 <label htmlFor="startDate" className="text-sm font-medium text-gray-600 whitespace-nowrap">
                   Dari:
@@ -245,7 +304,7 @@ const StokSapiPage = () => {
               </div>
               <button
                 onClick={fetchData}
-                disabled={loading || !!error}
+                disabled={loading || !!validateDateRange(startDate, endDate)}
                 className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:from-emerald-600 hover:to-teal-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
                 <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
@@ -325,11 +384,31 @@ const StokSapiPage = () => {
               <StokRingkasTab data={ringkasData} loading={loading} />
             )}
             {activeTab === 'detail' && (
-              <StokDetailTab data={detailData} loading={loading} />
+              <StokDetailTab
+                data={detailData}
+                loading={loading}
+                onRefresh={fetchData}
+                onOvk={(cow) => navigate('/rph/pemberian-ovk-sapi/add', { state: { cow } })}
+                onPotongPaksa={handlePotongPaksa}
+                onSapiMati={handleSapiMati}
+              />
             )}
           </div>
         </div>
       </div>
+
+      {/* Modals */}
+      <PotongPaksaModal
+        isOpen={potongPaksaModalOpen}
+        onClose={handlePotongPaksaClose}
+        onSuccess={handlePotongPaksaSuccess}
+        cowData={selectedCowForAction}
+      />
+      <SapiMatiModal
+        isOpen={sapiMatiModalOpen}
+        onClose={handleSapiMatiClose}
+        cowData={selectedCowForAction}
+      />
     </div>
   );
 };

@@ -1,10 +1,10 @@
 /**
- * Pemberian Pakan Sapi RPH Service
- * Service layer for recording cattle feed distribution at RPH.
+ * Pemberian OVK Sapi RPH Service
+ * Service layer for recording veterinary supplies (OVK) administration at RPH.
  */
 
 import HttpClient from './httpClient';
-import PersediaanPakanService from './persediaanPakanService';
+import PersediaanOvkService from './persediaanOvkService';
 
 const normalizeErrorMessage = (error, fallback) => {
   const message = error?.data?.message || error?.response?.data?.message || error?.message || fallback;
@@ -14,12 +14,13 @@ const normalizeErrorMessage = (error, fallback) => {
   return message;
 };
 
-class PemberianPakanSapiService {
+class PemberianOvkSapiService {
   static API_BASES = [
-    '/api/rph/persediaan/pemberianpakan',
-    '/api/rph/persediaan/pakan/pemberian-sapi',
-    '/api/rph/persediaan/pakan/pemberian-pakan-sapi',
-    '/api/rph/persediaan/pakan/pemberian-pakan-sapi-rph',
+    '/api/rph/persediaan/pemberianovk',
+    '/api/rph/persediaan/ovk/pemberian-sapi',
+    '/api/rph/persediaan/ovk/pemberian-ovk',
+    '/api/rph/persediaan/ovk/pemberian-ovk-sapi-rph',
+    '/api/rph/persediaan/ovk/pemberianovk',
   ];
 
   static shouldTryNextEndpoint(error) {
@@ -58,7 +59,7 @@ class PemberianPakanSapiService {
       start: params.start || 0,
       length: params.length || 10,
       'search[value]': params.search || '',
-      'order[0][column]': params.orderColumn || 6,
+      'order[0][column]': params.orderColumn || 5,
       'order[0][dir]': params.orderDir || 'desc',
       _ts: Date.now(),
     });
@@ -73,11 +74,11 @@ class PemberianPakanSapiService {
     return {
       ...item,
       pid: item.pid,
-      nama_sapi: item.nama_sapi || '-',
-      eartag_sapi: item.eartag_sapi || '-',
-      nama_resep_pakan: item.nama_resep_pakan || item.nama_pakan || '-',
-      tgl_pemberian_pakan: item.tgl_pemberian_pakan || '-',
-      jam_pemberian_pakan: item.jam_pemberian_pakan || '-',
+      id_rph: item.id_rph,
+      id_pembelian_ho_detail: item.id_pembelian_ho_detail,
+      id_pembelian_rph_detail: item.id_pembelian_rph_detail,
+      tgl_pemberian_ovk: item.tgl_pemberian_ovk || '-',
+      jam_pemberian_ovk: item.jam_pemberian_ovk || '-',
       nama_peternak: item.nama_peternak || '-',
       harga: item.harga ?? null,
     };
@@ -103,13 +104,13 @@ class PemberianPakanSapiService {
         draw: response?.draw,
       };
     } catch (error) {
-      console.error('PemberianPakanSapiService.getData error:', error);
+      console.error('PemberianOvkSapiService.getData error:', error);
       return {
         success: false,
         data: [],
         recordsTotal: 0,
         recordsFiltered: 0,
-        message: normalizeErrorMessage(error, 'Gagal memuat data pemberian pakan sapi'),
+        message: normalizeErrorMessage(error, 'Gagal memuat data pemberian OVK sapi'),
       };
     }
   }
@@ -123,11 +124,11 @@ class PemberianPakanSapiService {
         message: response?.message || 'Data berhasil dimuat',
       };
     } catch (error) {
-      console.error('PemberianPakanSapiService.show error:', error);
+      console.error('PemberianOvkSapiService.show error:', error);
       return {
         success: false,
         data: null,
-        message: normalizeErrorMessage(error, 'Gagal memuat detail pemberian pakan sapi'),
+        message: normalizeErrorMessage(error, 'Gagal memuat detail pemberian OVK sapi'),
       };
     }
   }
@@ -138,14 +139,14 @@ class PemberianPakanSapiService {
       return {
         success: true,
         data: response?.data ?? response,
-        message: response?.message || 'Data pemberian pakan sapi berhasil disimpan',
+        message: response?.message || 'Data pemberian OVK sapi berhasil disimpan',
       };
     } catch (error) {
-      console.error('PemberianPakanSapiService.store error:', error);
+      console.error('PemberianOvkSapiService.store error:', error);
       return {
         success: false,
         data: error?.data ?? null,
-        message: normalizeErrorMessage(error, 'Gagal menyimpan data pemberian pakan sapi'),
+        message: normalizeErrorMessage(error, 'Gagal menyimpan data pemberian OVK sapi'),
       };
     }
   }
@@ -156,14 +157,14 @@ class PemberianPakanSapiService {
       return {
         success: true,
         data: response?.data ?? response,
-        message: response?.message || 'Data pemberian pakan sapi berhasil diperbarui',
+        message: response?.message || 'Data pemberian OVK sapi berhasil diperbarui',
       };
     } catch (error) {
-      console.error('PemberianPakanSapiService.update error:', error);
+      console.error('PemberianOvkSapiService.update error:', error);
       return {
         success: false,
         data: error?.data ?? null,
-        message: normalizeErrorMessage(error, 'Gagal memperbarui data pemberian pakan sapi'),
+        message: normalizeErrorMessage(error, 'Gagal memperbarui data pemberian OVK sapi'),
       };
     }
   }
@@ -177,51 +178,49 @@ class PemberianPakanSapiService {
       return {
         success: true,
         data: response?.data ?? response,
-        message: response?.message || 'Data pemberian pakan sapi berhasil dihapus',
+        message: response?.message || 'Data pemberian OVK sapi berhasil dihapus',
       };
     } catch (error) {
-      console.error('PemberianPakanSapiService.delete error:', error);
+      console.error('PemberianOvkSapiService.delete error:', error);
       return {
         success: false,
         data: null,
-        message: normalizeErrorMessage(error, 'Gagal menghapus data pemberian pakan sapi'),
+        message: normalizeErrorMessage(error, 'Gagal menghapus data pemberian OVK sapi'),
       };
     }
   }
 
-  static async getResepPakanOptions() {
-    const response = await PersediaanPakanService.getResepData({
-      draw: 1,
-      start: 0,
-      length: 1000,
-      search: '',
-      orderColumn: 1,
-      orderDir: 'asc',
-    });
+  static async getOvkOptions() {
+    try {
+      const response = await PersediaanOvkService.getSummary();
+      if (!response.success) {
+        return {
+          success: false,
+          data: [],
+          message: response.message || 'Gagal memuat daftar OVK',
+        };
+      }
 
-    if (!response.success) {
+      return {
+        success: true,
+        data: (response.data || []).map((item) => ({
+          value: item.id_produk || item.id, // backend product ID
+          label: item.nama_produk || item.namaOvk || 'OVK',
+          satuan: item.satuan,
+          stok: item.jumlah ?? item.stok ?? 0,
+          harga: item.harga ?? 0,
+        })),
+        message: 'Daftar OVK berhasil dimuat',
+      };
+    } catch (error) {
+      console.error('PemberianOvkSapiService.getOvkOptions error:', error);
       return {
         success: false,
         data: [],
-        message: response.message || 'Gagal memuat daftar resep pakan',
+        message: normalizeErrorMessage(error, 'Gagal memuat daftar OVK'),
       };
     }
-
-    return {
-      success: true,
-      data: (response.data || [])
-        .filter((item) => item.pid)
-        .map((item) => ({
-          value: item.pid,
-          label: item.name || item.nama_resep_pakan || 'Resep Pakan',
-          description: item.keterangan,
-          total_jumlah: item.total_jumlah,
-          harga_total: item.harga_total,
-          tgl_aktif: item.tgl_aktif,
-        })),
-      message: 'Daftar resep pakan berhasil dimuat',
-    };
   }
 }
 
-export default PemberianPakanSapiService;
+export default PemberianOvkSapiService;
