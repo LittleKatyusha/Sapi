@@ -118,6 +118,20 @@ const LaporanPembelianLainLainPage = lazy(() => import('./pages/reporting/Lapora
 const ReportHoPage = lazy(() => import('./pages/reporting/ho/ReportHoPage'));
 const EartagHoPage = lazy(() => import('./pages/ho/eartag/EartagHoPage'));
 
+// RPH Hutang Piutang & Payment (P4)
+const HutangRphPage = lazy(() => import('./pages/RPH/hutangPiutang/HutangRphPage'));
+const PiutangRphPage = lazy(() => import('./pages/RPH/hutangPiutang/PiutangRphPage'));
+const PaymentRphPage = lazy(() => import('./pages/RPH/payment/PaymentRphPage'));
+
+// Warehouse (P5)
+const StokFeedmilWarehousePage = lazy(() => import('./pages/warehouse/stok/StokFeedmilWarehousePage'));
+const StokOvkWarehousePage = lazy(() => import('./pages/warehouse/stok/StokOvkWarehousePage'));
+const PenerimaanWarehousePage = lazy(() => import('./pages/warehouse/penerimaan/PenerimaanWarehousePage'));
+const DistribusiWarehousePage = lazy(() => import('./pages/warehouse/distribusi/DistribusiWarehousePage'));
+
+// Laporan RPH (P6)
+const ReportRphPage = lazy(() => import('./pages/reporting/rph/ReportRphPage'));
+
 // New HO Pages - Lazy loaded
 const PembelianFeedmilPage = lazy(() => import('./pages/ho/pembelianFeedmil/PembelianFeedmilPage'));
 const AddEditPembelianFeedmilPage = lazy(() => import('./pages/ho/pembelianFeedmil/AddEditPembelianFeedmilPage'));
@@ -261,6 +275,14 @@ function AppSecure() {
               <Route path="/reports/pembelian-lain-lain" element={<LaporanPembelianLainLainPage />} />
               <Route path="/reports/ho" element={<ReportHoPage />} />
               <Route path="/ho/eartag" element={<EartagHoPage />} />
+              <Route path="/rph/hutang" element={<HutangRphPage />} />
+              <Route path="/rph/piutang" element={<PiutangRphPage />} />
+              <Route path="/rph/payment" element={<PaymentRphPage />} />
+              <Route path="/warehouse/stok/feedmil" element={<StokFeedmilWarehousePage />} />
+              <Route path="/warehouse/stok/ovk" element={<StokOvkWarehousePage />} />
+              <Route path="/warehouse/penerimaan" element={<PenerimaanWarehousePage />} />
+              <Route path="/warehouse/distribusi" element={<DistribusiWarehousePage />} />
+              <Route path="/reports/rph" element={<ReportRphPage />} />
 
               {/* HR Routes */}
               <Route path="/hr/employees" element={<EmployeePage />} />

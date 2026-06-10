@@ -102,6 +102,52 @@ export const API_ENDPOINTS = {
       HO_DELIVERY: '/api/report/penjualan/ho-delivery',
       HO_HANDOVER: '/api/report/penjualan/ho-handover',
       HO_RECEIPT: '/api/report/penjualan/ho-receipt'
+    },
+    RPH: {
+      PENJUALAN_BONING: '/api/report/rph/penjualan-boning',
+      PENJUALAN_KARKAS: '/api/report/rph/penjualan-karkas',
+      PENJUALAN_QURBAN: '/api/report/rph/penjualan-qurban',
+      PIUTANG_PEDAGANG: '/api/report/rph/piutang-pedagang',
+      SALDO_PEDAGANG: '/api/report/rph/saldo-pedagang',
+      STOK_TERNAK: '/api/report/rph/stok-ternak',
+      STOK_FEEDMIL: '/api/report/rph/stok-feedmil',
+      STOK_OVK: '/api/report/rph/stok-ovk'
+    }
+  },
+
+  // Warehouse
+  WAREHOUSE: {
+    STOK: {
+      FEEDMIL: '/api/warehouse/stok/feedmil/data',
+      OVK: '/api/warehouse/stok/ovk/data'
+    },
+    PENERIMAAN: {
+      FEEDMIL: {
+        DATA: '/api/warehouse/penerimaan/feedmil/data',
+        STORE: '/api/warehouse/penerimaan/feedmil/store',
+        SHOW: '/api/warehouse/penerimaan/feedmil/show',
+        DELETE: '/api/warehouse/penerimaan/feedmil/hapus'
+      },
+      OVK: {
+        DATA: '/api/warehouse/penerimaan/ovk/data',
+        STORE: '/api/warehouse/penerimaan/ovk/store',
+        SHOW: '/api/warehouse/penerimaan/ovk/show',
+        DELETE: '/api/warehouse/penerimaan/ovk/hapus'
+      }
+    },
+    DISTRIBUSI: {
+      FEEDMIL: {
+        DATA: '/api/warehouse/distribusi/feedmil/data',
+        STORE: '/api/warehouse/distribusi/feedmil/store',
+        SHOW: '/api/warehouse/distribusi/feedmil/show',
+        DELETE: '/api/warehouse/distribusi/feedmil/hapus'
+      },
+      OVK: {
+        DATA: '/api/warehouse/distribusi/ovk/data',
+        STORE: '/api/warehouse/distribusi/ovk/store',
+        SHOW: '/api/warehouse/distribusi/ovk/show',
+        DELETE: '/api/warehouse/distribusi/ovk/hapus'
+      }
     }
   },
 
@@ -222,6 +268,17 @@ export const API_ENDPOINTS = {
     PEMBELIAN: {
       BASE: '/api/rph/pembelian',
       SAPI: '/api/rph/pembelian/sapi'
+    },
+    HUTANG_PIUTANG: {
+      HUTANG: '/api/rph/hutangpiutang/hutang',
+      PIUTANG: '/api/rph/hutangpiutang/piutang'
+    },
+    PAYMENT: {
+      BASE: '/api/rph/payment',
+      DATA: '/api/rph/payment/data',
+      SHOW: '/api/rph/payment/show',
+      STORE: '/api/rph/payment/store',
+      DELETE: '/api/rph/payment/hapus'
     },
     BAHAN_PEMBANTU: {
       DATA: '/api/rph/bahanpembantu/data',
