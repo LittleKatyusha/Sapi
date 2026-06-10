@@ -85,7 +85,18 @@ export const API_ENDPOINTS = {
       CASH: '/api/report/pengeluaran/ho-spend-cash'
     },
     PEMBELIAN: {
+      NOTA_FEEDMIL: '/api/report/pembelian/nota-feedmil',
+      NOTA_OVK: '/api/report/pembelian/nota-ovk',
+      OTHER_HO: '/api/report/pembelian/other-ho',
+      OTHER_HO_DAILY_ASSISTANCE: '/api/report/pembelian/other-ho-daily-assistance',
+      OTHER_HO_MONTHLY_ASSISTANCE: '/api/report/pembelian/other-ho-monthly-assistance',
+      OTHER_HO_LOAD_OTHER_DAILY: '/api/report/pembelian/other-ho-load-other-daily',
+      OTHER_HO_LOAD_OTHER_MONTHLY: '/api/report/pembelian/other-ho-load-other-monthly',
       OTHER_HO_RECEIPT: '/api/report/pembelian/other-ho-receipt'
+    },
+    PENGAJUAN: {
+      HO_SUBMIT_WAITING: '/api/report/pengajuan/ho-submit-waiting',
+      HO_SUBMIT_APPROVED: '/api/report/pengajuan/ho-submit-approved'
     },
     PENJUALAN: {
       HO_DELIVERY: '/api/report/penjualan/ho-delivery',
@@ -151,6 +162,13 @@ export const API_ENDPOINTS = {
       DETAIL_UPDATE: '/api/ho/payment/detail/update',
       DETAIL_DELETE: '/api/ho/payment/detail/hapus',
       ADD_PAYMENT: '/api/ho/payment/detail/store'
+    },
+    EARTAG: {
+      BASE: '/api/ho/eartag',
+      DATA: '/api/ho/eartag/data',
+      SHOW: '/api/ho/eartag/show',
+      STORE: '/api/ho/eartag/store',
+      DELETE: '/api/ho/eartag/hapus'
     },
     PENGELUARAN: {
       BASE: '/api/ho/pengeluaran',

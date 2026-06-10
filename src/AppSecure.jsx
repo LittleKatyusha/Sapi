@@ -115,6 +115,8 @@ const LaporanNotaSupplierPage = lazy(() => import('./pages/reporting/LaporanNota
 const LaporanSemuaSupplierPage = lazy(() => import('./pages/reporting/LaporanSemuaSupplierPage'));
 const LaporanPajakPage = lazy(() => import('./pages/reporting/LaporanPajakPage'));
 const LaporanPembelianLainLainPage = lazy(() => import('./pages/reporting/LaporanPembelianLainLainPage'));
+const ReportHoPage = lazy(() => import('./pages/reporting/ho/ReportHoPage'));
+const EartagHoPage = lazy(() => import('./pages/ho/eartag/EartagHoPage'));
 
 // New HO Pages - Lazy loaded
 const PembelianFeedmilPage = lazy(() => import('./pages/ho/pembelianFeedmil/PembelianFeedmilPage'));
@@ -257,6 +259,8 @@ function AppSecure() {
               <Route path="/reports/semua-supplier" element={<LaporanSemuaSupplierPage />} />
               <Route path="/reports/pajak" element={<LaporanPajakPage />} />
               <Route path="/reports/pembelian-lain-lain" element={<LaporanPembelianLainLainPage />} />
+              <Route path="/reports/ho" element={<ReportHoPage />} />
+              <Route path="/ho/eartag" element={<EartagHoPage />} />
 
               {/* HR Routes */}
               <Route path="/hr/employees" element={<EmployeePage />} />
