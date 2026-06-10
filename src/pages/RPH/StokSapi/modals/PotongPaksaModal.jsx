@@ -82,16 +82,13 @@ const PotongPaksaModal = ({ isOpen, onClose, onSuccess, cowData }) => {
   const [idSebabPotongPaksa, setIdSebabPotongPaksa] = useState(null);
   const [bobotSelisih, setBobotSelisih] = useState('');
   const [idMengetahui, setIdMengetahui] = useState(null);
-  const [idStatusSapiQurban, setIdStatusSapiQurban] = useState(null);
   const [keterangan, setKeterangan] = useState('');
 
   const [sebabOptions, setSebabOptions] = useState([]);
   const [mengetahuiOptions, setMengetahuiOptions] = useState([]);
-  const [statusSapiQurbanOptions, setStatusSapiQurbanOptions] = useState([]);
 
   const [loadingSebab, setLoadingSebab] = useState(false);
   const [loadingMengetahui, setLoadingMengetahui] = useState(false);
-  const [loadingStatus, setLoadingStatus] = useState(false);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [notification, setNotification] = useState(null);
@@ -117,13 +114,13 @@ const PotongPaksaModal = ({ isOpen, onClose, onSuccess, cowData }) => {
   const fetchMengetahuiOptions = useCallback(async () => {
     setLoadingMengetahui(true);
     try {
-      const response = await HttpClient.post(`${API_ENDPOINTS.SYSTEM.PARAMETERS}/dataByGroup`, {
-        group: 'mengetahui'
+      const response = await HttpClient.get(`${API_ENDPOINTS.MASTER.PERSETUJUAN_RPH}/data`, {
+        cache: true
       });
       if (response.data && Array.isArray(response.data)) {
         setMengetahuiOptions(response.data.map(item => ({
-          value: parseInt(item.value),
-          label: item.name
+          value: item.id,
+          label: item.name || 'Unknown'
         })));
       }
     } catch (err) {
@@ -132,31 +129,12 @@ const PotongPaksaModal = ({ isOpen, onClose, onSuccess, cowData }) => {
     setLoadingMengetahui(false);
   }, []);
 
-  const fetchStatusSapiQurbanOptions = useCallback(async () => {
-    setLoadingStatus(true);
-    try {
-      const response = await HttpClient.post(`${API_ENDPOINTS.SYSTEM.PARAMETERS}/dataByGroup`, {
-        group: 'status_sapi_qurban'
-      });
-      if (response.data && Array.isArray(response.data)) {
-        setStatusSapiQurbanOptions(response.data.map(item => ({
-          value: parseInt(item.value),
-          label: item.name
-        })));
-      }
-    } catch (err) {
-      console.error('Error fetching status sapi qurban options:', err);
-    }
-    setLoadingStatus(false);
-  }, []);
-
   useEffect(() => {
     if (isOpen) {
       fetchSebabOptions();
       fetchMengetahuiOptions();
-      fetchStatusSapiQurbanOptions();
     }
-  }, [isOpen, fetchSebabOptions, fetchMengetahuiOptions, fetchStatusSapiQurbanOptions]);
+  }, [isOpen, fetchSebabOptions, fetchMengetahuiOptions]);
 
   useEffect(() => {
     if (!notification || notification.type === 'info') return undefined;
@@ -170,7 +148,6 @@ const PotongPaksaModal = ({ isOpen, onClose, onSuccess, cowData }) => {
     setIdSebabPotongPaksa(null);
     setBobotSelisih('');
     setIdMengetahui(null);
-    setIdStatusSapiQurban(null);
     setKeterangan('');
     setNotification(null);
     onClose();
@@ -199,11 +176,6 @@ const PotongPaksaModal = ({ isOpen, onClose, onSuccess, cowData }) => {
       return;
     }
 
-    if (!idStatusSapiQurban) {
-      setNotification({ type: 'error', message: 'Status sapi qurban wajib dipilih.' });
-      return;
-    }
-
     setIsSubmitting(true);
     setNotification({ type: 'info', message: 'Menyimpan data potong paksa...' });
 
@@ -213,9 +185,11 @@ const PotongPaksaModal = ({ isOpen, onClose, onSuccess, cowData }) => {
       id_sebab_potong_paksa: parseInt(idSebabPotongPaksa),
       bobot_selisih_potong_paksa: parseInt(bobotSelisih),
       id_mengetahui: parseInt(idMengetahui),
-      id_status_sapi_qurban: parseInt(idStatusSapiQurban),
       keterangan: keterangan.trim() || null,
     };
+
+    console.log('Potong Paksa payload:', payload);
+    console.log('cowData:', cowData);
 
     const response = await StokSapiService.potongPaksa(payload);
 
@@ -326,17 +300,6 @@ const PotongPaksaModal = ({ isOpen, onClose, onSuccess, cowData }) => {
                 placeholder={loadingSebab ? 'Memuat...' : 'Pilih sebab potong paksa'}
                 isLoading={loadingSebab}
                 isDisabled={loadingSebab || isSubmitting}
-              />
-            </Field>
-
-            <Field label="Status Sapi Qurban" required>
-              <SearchableSelect
-                options={statusSapiQurbanOptions}
-                value={idStatusSapiQurban}
-                onChange={setIdStatusSapiQurban}
-                placeholder={loadingStatus ? 'Memuat...' : 'Pilih status sapi qurban'}
-                isLoading={loadingStatus}
-                isDisabled={loadingStatus || isSubmitting}
               />
             </Field>
 

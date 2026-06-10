@@ -133,14 +133,14 @@ const StokDetailTab = ({ data, loading, onRefresh, onOvk, onPotongPaksa, onSapiM
               >
                 {/* Sticky: No */}
                 <td
-                  className="py-3 px-3 text-center font-medium text-gray-600 border border-gray-100 sticky left-0 z-10 bg-inherit"
+                  className={`py-3 px-3 text-center font-medium text-gray-600 border border-gray-100 sticky left-0 z-10 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
                   style={{ width: '50px', minWidth: '50px' }}
                 >
                   {row.no_urut || index + 1}
                 </td>
                 {/* Sticky: Aksi */}
                 <td
-                  className="py-3 px-3 text-center border border-gray-100 sticky z-20 bg-inherit"
+                  className={`py-3 px-3 text-center border border-gray-100 sticky z-20 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
                   style={{ left: '50px', width: '70px', minWidth: '70px' }}
                 >
                   <div className="flex items-center justify-center">
@@ -159,7 +159,7 @@ const StokDetailTab = ({ data, loading, onRefresh, onOvk, onPotongPaksa, onSapiM
                 </td>
                 {/* Sticky: Jenis Sapi */}
                 <td
-                  className="py-3 px-3 font-semibold text-gray-800 border border-gray-100 whitespace-nowrap sticky z-10 bg-inherit"
+                  className={`py-3 px-3 font-semibold text-gray-800 border border-gray-100 whitespace-nowrap sticky z-10 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
                   style={{ left: '120px', minWidth: '120px' }}
                 >
                   {row.jenis_sapi}

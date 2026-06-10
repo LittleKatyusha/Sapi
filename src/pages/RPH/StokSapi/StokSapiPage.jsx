@@ -1,25 +1,21 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Package, ClipboardList, Users, Scale, Banknote, Tag, AlertCircle, RefreshCw, Wheat } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Package, ClipboardList, RefreshCw, Wheat, AlertCircle, Scale, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import useDocumentTitle from '../../../hooks/useDocumentTitle';
 import StokSapiService from '../../../services/stokSapiService';
 import StokRingkasTab from './components/StokRingkasTab';
 import StokDetailTab from './components/StokDetailTab';
+import PotongPaksaTab from './components/PotongPaksaTab';
+import SapiMatiTab from './components/SapiMatiTab';
 import PotongPaksaModal from './modals/PotongPaksaModal';
 import SapiMatiModal from './modals/SapiMatiModal';
-import { formatCurrency, formatNumber } from './constants/dummyData';
 
 const TABS = [
   { id: 'ringkas', label: 'Stok Ringkas', icon: Package },
   { id: 'detail', label: 'Stok Detail', icon: ClipboardList },
+  { id: 'potongpaksa', label: 'Potong Paksa', icon: Scale },
+  { id: 'sapimati', label: 'Sapi Mati', icon: AlertTriangle },
 ];
-
-const ICON_MAP = {
-  Users,
-  Scale,
-  Banknote,
-  Tag,
-};
 
 /** Get today's date string in YYYY-MM-DD format (local timezone) */
 const getToday = () => {
@@ -50,7 +46,6 @@ const StokSapiPage = () => {
 
   const [activeTab, setActiveTab] = useState('ringkas');
   const [startDate, setStartDate] = useState(() => getDaysAgo(6));
-  const [endDate, setEndDate] = useState(() => getToday());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -63,38 +58,16 @@ const StokSapiPage = () => {
   const [sapiMatiModalOpen, setSapiMatiModalOpen] = useState(false);
   const [selectedCowForAction, setSelectedCowForAction] = useState(null);
 
-  /** Validate date range (max 7 days) */
-  const validateDateRange = useCallback((start, end) => {
-    const startD = new Date(start);
-    const endD = new Date(end);
-    if (isNaN(startD.getTime()) || isNaN(endD.getTime())) {
-      return 'Format tanggal tidak valid';
-    }
-    if (startD > endD) {
-      return 'Tanggal mulai tidak boleh lebih besar dari tanggal akhir';
-    }
-    const diffDays = Math.ceil((endD - startD) / (1000 * 60 * 60 * 24));
-    if (diffDays > MAX_RANGE_DAYS - 1) {
-      return 'Rentang tanggal maksimal 7 hari';
-    }
-    return null;
-  }, []);
-
   /** Fetch both endpoints */
   const fetchData = useCallback(async () => {
-    const validationError = validateDateRange(startDate, endDate);
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-
     setLoading(true);
     setError(null);
 
     try {
+      const end = addDays(startDate, MAX_RANGE_DAYS - 1);
       const [ringkasRes, detailRes] = await Promise.all([
-        StokSapiService.getStokByJenis(startDate, endDate),
-        StokSapiService.getStokDetail(startDate, endDate),
+        StokSapiService.getStokByJenis(startDate, end),
+        StokSapiService.getStokDetail(startDate, end),
       ]);
 
       let nextError = null;
@@ -121,50 +94,16 @@ const StokSapiPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [startDate, endDate, validateDateRange]);
+  }, [startDate]);
 
   /** Fetch data on mount and when dates change */
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  /** Handle date change with validation */
+  /** Handle date change */
   const handleStartDateChange = (e) => {
-    const newStart = e.target.value;
-    let newEnd = endDate;
-
-    if (new Date(newStart) > new Date(newEnd)) {
-      newEnd = newStart;
-    } else if (!validateDateRange(newStart, newEnd)) {
-      newEnd = endDate;
-    } else {
-      newEnd = addDays(newStart, MAX_RANGE_DAYS - 1);
-    }
-
-    setStartDate(newStart);
-    setEndDate(newEnd);
-
-    const validationError = validateDateRange(newStart, newEnd);
-    if (validationError) setError(validationError);
-    else setError(null);
-  };
-
-  const handleEndDateChange = (e) => {
-    const newEnd = e.target.value;
-    let newStart = startDate;
-
-    if (new Date(newStart) > new Date(newEnd)) {
-      newStart = newEnd;
-    } else if (validateDateRange(newStart, newEnd)) {
-      newStart = addDays(newEnd, -(MAX_RANGE_DAYS - 1));
-    }
-
-    setEndDate(newEnd);
-    setStartDate(newStart);
-
-const validationError = validateDateRange(newStart, newEnd);
-    if (validationError) setError(validationError);
-    else setError(null);
+    setStartDate(e.target.value);
   };
 
   /** Handle potong paksa action */
@@ -196,46 +135,10 @@ const validationError = validateDateRange(newStart, newEnd);
     setSelectedCowForAction(null);
   }, []);
 
-  /** Compute stat cards from real API data (ringkas / stoksapibyjenis) */
-  const statCards = useMemo(() => {
-    const rows = ringkasData?.rows || [];
-
-    const totalMasuk = rows.reduce((sum, r) => sum + (Number(r.total_masuk) || 0), 0);
-    const totalKeluar = rows.reduce((sum, r) => sum + (Number(r.total_keluar) || 0), 0);
-    const totalNilaiBeli = rows.reduce((sum, r) => sum + (Number(r.total_nilai_beli) || 0), 0);
-    const jenisCount = rows.filter((r) => (
-      (Number(r.total_masuk) || 0) > 0
-      || (Number(r.total_keluar) || 0) > 0
-      || (Number(r.total_nilai_beli) || 0) > 0
-    )).length;
-
-    return [
-      {
-        id: 'totalMasuk',
-        label: 'Total Masuk',
-        value: `${formatNumber(totalMasuk)} ekor`,
-        icon: 'Users',
-      },
-      {
-        id: 'totalKeluar',
-        label: 'Total Keluar',
-        value: `${formatNumber(totalKeluar)} ekor`,
-        icon: 'Scale',
-      },
-      {
-        id: 'totalNilai',
-        label: 'Total Nilai Beli',
-        value: formatCurrency(totalNilaiBeli),
-        icon: 'Banknote',
-      },
-      {
-        id: 'jenisSapi',
-        label: 'Jenis Sapi',
-        value: `${jenisCount} jenis`,
-        icon: 'Tag',
-      },
-    ];
-  }, [ringkasData]);
+  /** Handle sapi mati success */
+  const handleSapiMatiSuccess = useCallback(() => {
+    fetchData();
+  }, [fetchData]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/40 to-cyan-50/60">
@@ -259,15 +162,7 @@ const validationError = validateDateRange(newStart, newEnd);
 
             {/* Date Range Filter */}
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <button
-                type="button"
-                onClick={() => navigate('/rph/pemberian-pakan-sapi')}
-                className="inline-flex items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 shadow-sm transition hover:bg-emerald-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
-              >
-                <Wheat className="h-4 w-4" />
-                Pemberian Pakan
-              </button>
-              <button
+<button
                 type="button"
                 onClick={() => navigate('/rph/pemberian-ovk-sapi')}
                 className="inline-flex items-center justify-center gap-2 rounded-lg border border-teal-200 bg-teal-50 px-4 py-2 text-sm font-semibold text-teal-700 shadow-sm transition hover:bg-teal-100 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
@@ -277,39 +172,17 @@ const validationError = validateDateRange(newStart, newEnd);
               </button>
               <div className="flex items-center gap-2">
                 <label htmlFor="startDate" className="text-sm font-medium text-gray-600 whitespace-nowrap">
-                  Dari:
+                  Tanggal:
                 </label>
                 <input
                   id="startDate"
                   type="date"
                   value={startDate}
                   onChange={handleStartDateChange}
-                  max={endDate}
                   className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-colors"
                 />
               </div>
-              <span className="text-gray-400 text-sm hidden sm:inline">—</span>
-              <div className="flex items-center gap-2">
-                <label htmlFor="endDate" className="text-sm font-medium text-gray-600 whitespace-nowrap">
-                  Sampai:
-                </label>
-                <input
-                  id="endDate"
-                  type="date"
-                  value={endDate}
-                  onChange={handleEndDateChange}
-                  min={startDate}
-                  className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-colors"
-                />
-              </div>
-              <button
-                onClick={fetchData}
-                disabled={loading || !!validateDateRange(startDate, endDate)}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:from-emerald-600 hover:to-teal-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-              >
-                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-                {loading ? 'Memuat...' : 'Terapkan'}
-              </button>
+              <span className="text-sm text-slate-500">({MAX_RANGE_DAYS} hari)</span>
             </div>
           </div>
         </div>
@@ -325,28 +198,7 @@ const validationError = validateDateRange(newStart, newEnd);
           </div>
         )}
 
-        {/* Stat Cards */}
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-          {statCards.map((card) => {
-            const Icon = ICON_MAP[card.icon];
-            return (
-              <div
-                key={card.id}
-                className="bg-white rounded-xl p-4 shadow-md border border-gray-100 hover:shadow-lg transition-shadow"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg">
-                    <Icon className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 font-medium">{card.label}</p>
-                    <p className="text-lg font-bold text-gray-800">{card.value}</p>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        
 
         {/* Main Tabbed Card */}
         <div className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg">
@@ -393,6 +245,12 @@ const validationError = validateDateRange(newStart, newEnd);
                 onSapiMati={handleSapiMati}
               />
             )}
+            {activeTab === 'potongpaksa' && (
+              <PotongPaksaTab onRefresh={fetchData} />
+            )}
+            {activeTab === 'sapimati' && (
+              <SapiMatiTab onRefresh={fetchData} />
+            )}
           </div>
         </div>
       </div>
@@ -407,6 +265,7 @@ const validationError = validateDateRange(newStart, newEnd);
       <SapiMatiModal
         isOpen={sapiMatiModalOpen}
         onClose={handleSapiMatiClose}
+        onSuccess={handleSapiMatiSuccess}
         cowData={selectedCowForAction}
       />
     </div>
