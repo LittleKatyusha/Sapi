@@ -23,9 +23,12 @@ export default function HutangRphPage() {
   useEffect(() => { fetch(); }, [fetch]);
 
   const columns = useMemo(() => [
-    { name: 'ID', selector: r => r.id ?? '-', sortable: true },
-    { name: 'Vendor / HO', selector: r => r.vendor ?? '-', sortable: true },
-    { name: 'Amount', selector: r => r.amount ?? '-', sortable: true },
+    { name: 'ID', selector: r => r.id ?? '-', sortable: true, width: '80px' },
+    { name: 'Tipe Pembelian', selector: r => r.purchase_type ?? '-', sortable: true },
+    { name: 'Jatuh Tempo', selector: r => r.due_date ? new Date(r.due_date).toLocaleDateString('id-ID') : '-', sortable: true },
+    { name: 'Tagihan', selector: r => r.total_tagihan ? new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(r.total_tagihan) : '-', sortable: true },
+    { name: 'Terbayar', selector: r => r.total_terbayar ? new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(r.total_terbayar) : '-', sortable: true },
+    { name: 'Status', selector: r => r.payment_status === 1 ? 'Lunas' : 'Belum Lunas', sortable: true },
   ], []);
 
   return (

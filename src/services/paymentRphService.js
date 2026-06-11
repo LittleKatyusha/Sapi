@@ -11,12 +11,12 @@ class PaymentRphService {
     return HttpClient.post(API_ENDPOINTS.RPH.PAYMENT.STORE, data);
   }
 
-  static show(id) {
-    return HttpClient.post(API_ENDPOINTS.RPH.PAYMENT.SHOW, { id });
+  static show(pubid) {
+    return HttpClient.post(API_ENDPOINTS.RPH.PAYMENT.SHOW, { pubid });
   }
 
-  static delete(id) {
-    return HttpClient.post(API_ENDPOINTS.RPH.PAYMENT.DELETE, { id });
+  static delete(pubid) {
+    return HttpClient.post(API_ENDPOINTS.RPH.PAYMENT.DELETE, { pubid });
   }
 }
 
