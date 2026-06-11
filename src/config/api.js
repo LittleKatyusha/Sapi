@@ -323,54 +323,6 @@ export const API_ENDPOINTS = {
     },
   },
 
-  // Warehouse
-  WAREHOUSE: {
-    STOK: {
-      FEEDMIL: '/api/warehouse/stok/feedmil/data',
-      OVK: '/api/warehouse/stok/ovk/data',
-    },
-    PENERIMAAN: {
-      FEEDMIL: {
-        DATA: '/api/warehouse/penerimaan/feedmil/data',
-        STORE: '/api/warehouse/penerimaan/feedmil/store',
-        SHOW: '/api/warehouse/penerimaan/feedmil/show',
-        DELETE: '/api/warehouse/penerimaan/feedmil/hapus',
-      },
-      OVK: {
-        DATA: '/api/warehouse/penerimaan/ovk/data',
-        STORE: '/api/warehouse/penerimaan/ovk/store',
-        SHOW: '/api/warehouse/penerimaan/ovk/show',
-        DELETE: '/api/warehouse/penerimaan/ovk/hapus',
-      },
-    },
-    DISTRIBUSI: {
-      FEEDMIL: {
-        DATA: '/api/warehouse/distribusi/feedmil/data',
-        STORE: '/api/warehouse/distribusi/feedmil/store',
-        SHOW: '/api/warehouse/distribusi/feedmil/show',
-        DELETE: '/api/warehouse/distribusi/feedmil/hapus',
-      },
-      OVK: {
-        DATA: '/api/warehouse/distribusi/ovk/data',
-        STORE: '/api/warehouse/distribusi/ovk/store',
-        SHOW: '/api/warehouse/distribusi/ovk/show',
-        DELETE: '/api/warehouse/distribusi/ovk/hapus',
-      },
-    },
-  },
-
-  // Laporan RPH
-  REPORT_RPH: {
-    PENJUALAN_BONING: '/api/report/rph/penjualan-boning',
-    PENJUALAN_KARKAS: '/api/report/rph/penjualan-karkas',
-    PENJUALAN_QURBAN: '/api/report/rph/penjualan-qurban',
-    PIUTANG_PEDAGANG: '/api/report/rph/piutang-pedagang',
-    SALDO_PEDAGANG: '/api/report/rph/saldo-pedagang',
-    STOK_TERNAK: '/api/report/rph/stok-ternak',
-    STOK_FEEDMIL: '/api/report/rph/stok-feedmil',
-    STOK_OVK: '/api/report/rph/stok-ovk',
-  },
-
   // SDM (Human Resources)
   SDM: {
     KARYAWAN: '/api/system/pegawai'
