@@ -26,7 +26,9 @@ export default function DistribusiWarehousePage() {
   const columns = useMemo(() => [
     { name: 'ID', selector: r => r.id ?? '-', sortable: true },
     { name: 'Tanggal', selector: r => r.tanggal ?? '-', sortable: true },
-    { name: 'Nota', selector: r => r.nota ?? '-', sortable: true },
+    { name: 'Nomor Nota', selector: r => r.nomor_nota ?? '-', sortable: true },
+    { name: 'Keterangan', selector: r => r.keterangan ?? '-', sortable: true },
+    { name: 'Total Qty', selector: r => r.total_qty ?? 0, sortable: true },
   ], []);
 
   return (
