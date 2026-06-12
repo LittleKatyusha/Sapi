@@ -146,7 +146,7 @@ const handleResponseError = async (response) => {
         errorDetails = errorData;
       } else {
         // For non-JSON responses (like HTML error pages)
-        const responseText = await response.text();
+        await response.text(); // Consume text to avoid memory leaks if needed, but not assigning to avoid warnings
         
         // Provide more user-friendly error messages for common HTTP errors
         if (response.status === 500) {
@@ -448,9 +448,8 @@ class HttpClient {
    */
   static clearCache(pattern = null) {
     if (pattern) {
-      const regex = new RegExp(pattern);
       for (const [key] of requestCache) {
-        if (regex.test(key)) {
+        if (key.includes(pattern)) {
           requestCache.delete(key);
         }
       }
@@ -531,3 +530,4 @@ if (typeof window !== 'undefined') {
 }
 
 export default HttpClient;
+

@@ -1,8 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { AlertCircle, CheckCircle2, Loader2, RefreshCw, Calendar, Scale, User } from 'lucide-react';
+import { AlertCircle, Loader2, RefreshCw, Scale, Edit, Trash2 } from 'lucide-react';
 import StokSapiService from '../../../../services/stokSapiService';
+import PotongPaksaModal from '../modals/PotongPaksaModal';
+import ActionButton from './ActionButton';
 
 const PotongPaksaTab = ({ onRefresh }) => {
+  const [openMenuId, setOpenMenuId] = useState(null);
+
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -16,6 +20,10 @@ const PotongPaksaTab = ({ onRefresh }) => {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   });
 
+  // Modal State
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState(null);
+
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -26,10 +34,17 @@ const PotongPaksaTab = ({ onRefresh }) => {
         end_date: endDate,
         start: 0,
         length: 100,
+        _t: Date.now(),
       });
 
-      if (response.success && Array.isArray(response.data?.data)) {
-        setData(response.data.data);
+      if (response.success) {
+        if (Array.isArray(response.data)) {
+          setData(response.data);
+        } else if (response.data && Array.isArray(response.data.data)) {
+          setData(response.data.data);
+        } else {
+          setData([]);
+        }
       } else {
         setError(response.message || 'Gagal memuat data');
         setData([]);
@@ -49,6 +64,45 @@ const PotongPaksaTab = ({ onRefresh }) => {
   const handleRefresh = () => {
     fetchData();
     if (onRefresh) onRefresh();
+  };
+
+  const handleEdit = (record) => {
+    // Transform record back to match cowData format expected by PotongPaksaModal
+    // The table record has `pid`, `sapi` (eartag), `klasifikasi_hewan`
+    // We need to build a mock cowData object that the modal uses
+    const cowData = {
+      pid: record.pid,
+      pubid: record.pubid,
+      sapi: record.sapi,
+      eartag_supplier: record.sapi,
+      klasifikasi_hewan: record.klasifikasi_hewan,
+    };
+    setSelectedRecord({ ...record, cowData });
+    setEditModalOpen(true);
+  };
+
+  const handleEditSuccess = () => {
+    handleRefresh();
+  };
+
+  const handleDelete = async (pid) => {
+    if (!window.confirm('Apakah Anda yakin ingin menghapus data potong paksa ini?')) {
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      const res = await StokSapiService.deletePotongPaksa(pid);
+      if (res.success) {
+        handleRefresh();
+      } else {
+        setError(res.message || 'Gagal menghapus data');
+      }
+    } catch (err) {
+      setError(err?.message || 'Terjadi kesalahan saat menghapus data');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -96,6 +150,8 @@ const PotongPaksaTab = ({ onRefresh }) => {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gradient-to-r from-red-50 to-rose-50">
             <tr>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider w-16">No</th>
+              <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider w-24">Aksi</th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Tanggal</th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Eartag / Sapi</th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Klasifikasi</th>
@@ -108,14 +164,14 @@ const PotongPaksaTab = ({ onRefresh }) => {
           <tbody className="divide-y divide-gray-200">
             {loading ? (
               <tr>
-                <td colSpan={7} className="px-4 py-12 text-center">
+                <td colSpan={9} className="px-4 py-12 text-center">
                   <Loader2 className="h-8 w-8 animate-spin text-slate-400 mx-auto" />
                   <p className="mt-2 text-sm text-slate-500">Memuat data...</p>
                 </td>
               </tr>
             ) : !loading && data.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-12 text-center">
+                <td colSpan={9} className="px-4 py-12 text-center">
                   <div className="flex flex-col items-center justify-center">
                     <div className="rounded-full bg-slate-100 p-4 mb-3">
                       <Scale className="h-10 w-10 text-slate-400" />
@@ -128,6 +184,20 @@ const PotongPaksaTab = ({ onRefresh }) => {
             ) : (
               data.map((item, index) => (
                 <tr key={item.pubid || index} className="hover:bg-slate-50 transition-colors">
+                  <td className="px-4 py-3 text-center text-sm font-medium text-slate-700 whitespace-nowrap">
+                    {index + 1}
+                  </td>
+                  <td className="px-4 py-3 text-center border-gray-100 whitespace-nowrap">
+                    <div className="flex items-center justify-center">
+                      <ActionButton
+                        row={{ id: item.pid || index, ...item }}
+                        openMenuId={openMenuId}
+                        setOpenMenuId={setOpenMenuId}
+                        onEdit={() => handleEdit(item)}
+                        onDelete={() => handleDelete(item.pid)}
+                      />
+                    </div>
+                  </td>
                   <td className="px-4 py-3 text-sm text-slate-700 whitespace-nowrap">
                     {item.tgl_potong_paksa || '-'}
                   </td>
@@ -155,6 +225,19 @@ const PotongPaksaTab = ({ onRefresh }) => {
           </tbody>
         </table>
       </div>
+
+      {editModalOpen && (
+        <PotongPaksaModal
+          isOpen={editModalOpen}
+          onClose={() => {
+            setEditModalOpen(false);
+            setSelectedRecord(null);
+          }}
+          onSuccess={handleEditSuccess}
+          cowData={selectedRecord?.cowData}
+          editData={selectedRecord}
+        />
+      )}
     </div>
   );
 };

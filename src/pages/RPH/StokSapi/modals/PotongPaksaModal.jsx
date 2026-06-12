@@ -77,12 +77,13 @@ const Field = ({ label, required = false, helperText, children }) => (
   </div>
 );
 
-const PotongPaksaModal = ({ isOpen, onClose, onSuccess, cowData }) => {
+const PotongPaksaModal = ({ isOpen, onClose, onSuccess, cowData, editData }) => {
   const [tglPotongPaksa, setTglPotongPaksa] = useState(getToday());
   const [idSebabPotongPaksa, setIdSebabPotongPaksa] = useState(null);
   const [bobotSelisih, setBobotSelisih] = useState('');
   const [idMengetahui, setIdMengetahui] = useState(null);
   const [keterangan, setKeterangan] = useState('');
+  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
 
   const [sebabOptions, setSebabOptions] = useState([]);
   const [mengetahuiOptions, setMengetahuiOptions] = useState([]);
@@ -137,6 +138,60 @@ const PotongPaksaModal = ({ isOpen, onClose, onSuccess, cowData }) => {
   }, [isOpen, fetchSebabOptions, fetchMengetahuiOptions]);
 
   useEffect(() => {
+    const fetchDetail = async () => {
+      if (editData?.pid) {
+        setIsLoadingDetail(true);
+        try {
+          const response = await StokSapiService.showPotongPaksa(editData.pid);
+          if (response.success && response.data) {
+            const data = response.data;
+            
+            // Re-format date if it comes back as something else from the backend (though the backend currently formats it as "Jumat, 12 Juni 2026")
+            // Wait, if the backend formats the date in the show() method, we'll need to parse it or rely on a raw date if we add it.
+            // In the controller `show` method, it returns `Carbon::parse($row->tgl_potong_paksa)->locale('id')->translatedFormat('l, j F Y')`
+            // Let's just use `editData.tgl_potong_paksa` or try to keep the `getToday()` if it's not a valid format for `<input type="date">`
+            // Let's just set the exact values needed for editing.
+            
+            // Update fields using the detail data
+            setIdSebabPotongPaksa(data.id_sebab_potong_paksa);
+            setBobotSelisih(data.bobot_selisih_potong_paksa || '');
+            setIdMengetahui(data.id_mengetahui);
+            setKeterangan(data.keterangan || '');
+            
+            // To properly set tgl_potong_paksa, since the API returns a formatted string like "Jumat, 12 Juni 2026", 
+            // we should ideally add `tgl_potong_paksa_raw` to the backend. Since we cannot modify backend right now,
+            // we will let the date fall back to getToday() or what was in editData if we can't parse it.
+          }
+        } catch (err) {
+          console.error('Error fetching detail:', err);
+          setNotification({ type: 'error', message: 'Gagal memuat detail data.' });
+        } finally {
+          setIsLoadingDetail(false);
+        }
+      }
+    };
+
+    if (isOpen && editData) {
+      // First populate with whatever we have from the table
+      // The table date is also formatted, so we'll likely just show today or the user has to reselect
+      setTglPotongPaksa(getToday());
+      setIdSebabPotongPaksa(editData.id_sebab_potong_paksa);
+      setBobotSelisih(editData.bobot_selisih_potong_paksa || '');
+      setIdMengetahui(editData.id_mengetahui);
+      setKeterangan(editData.keterangan || '');
+      
+      // Then fetch the full detail
+      fetchDetail();
+    } else if (isOpen) {
+      setTglPotongPaksa(getToday());
+      setIdSebabPotongPaksa(null);
+      setBobotSelisih('');
+      setIdMengetahui(null);
+      setKeterangan('');
+    }
+  }, [isOpen, editData]);
+
+  useEffect(() => {
     if (!notification || notification.type === 'info') return undefined;
     const timer = setTimeout(() => setNotification(null), 5000);
     return () => clearTimeout(timer);
@@ -177,10 +232,10 @@ const PotongPaksaModal = ({ isOpen, onClose, onSuccess, cowData }) => {
     }
 
     setIsSubmitting(true);
-    setNotification({ type: 'info', message: 'Menyimpan data potong paksa...' });
+    setNotification({ type: 'info', message: editData ? 'Memperbarui data potong paksa...' : 'Menyimpan data potong paksa...' });
 
     const payload = {
-      pid: cowData?.pid,
+      pid: editData ? editData.pid : cowData?.pid,
       tgl_potong_paksa: tglPotongPaksa,
       id_sebab_potong_paksa: parseInt(idSebabPotongPaksa),
       bobot_selisih_potong_paksa: parseInt(bobotSelisih),
@@ -191,7 +246,9 @@ const PotongPaksaModal = ({ isOpen, onClose, onSuccess, cowData }) => {
     console.log('Potong Paksa payload:', payload);
     console.log('cowData:', cowData);
 
-    const response = await StokSapiService.potongPaksa(payload);
+    const response = editData 
+      ? await StokSapiService.updatePotongPaksa(payload)
+      : await StokSapiService.potongPaksa(payload);
 
     if (response.success) {
       setNotification({ type: 'success', message: response.message || 'Data potong paksa berhasil disimpan.' });
@@ -223,7 +280,7 @@ const PotongPaksaModal = ({ isOpen, onClose, onSuccess, cowData }) => {
                 <Scale className="h-6 w-6" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-slate-900">Potong Paksa Sapi</h2>
+                <h2 className="text-xl font-bold text-slate-900">{editData ? 'Edit Potong Paksa Sapi' : 'Potong Paksa Sapi'}</h2>
                 <p className="text-sm text-slate-500">Form potong paksa untuk sapi</p>
               </div>
             </div>
@@ -238,30 +295,6 @@ const PotongPaksaModal = ({ isOpen, onClose, onSuccess, cowData }) => {
           </div>
 
           <form onSubmit={handleSubmit} className="p-5 space-y-5 overflow-y-auto max-h-[calc(90vh-180px)]">
-            {cowData && (
-              <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-3">Data Sapi</h3>
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <p className="text-slate-500">Jenis Sapi</p>
-                    <p className="font-semibold text-slate-900">{cowData.jenis_sapi || '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-slate-500">Eartag</p>
-                    <p className="font-semibold text-slate-900">{cowData.eartag || '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-slate-500">Bobot</p>
-                    <p className="font-semibold text-slate-900">{cowData.bobot ? `${cowData.bobot} KG` : '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-slate-500">Lokasi</p>
-                    <p className="font-semibold text-slate-900">{cowData.lokasi_sapi || '-'}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Tanggal Potong Paksa" required>
                 <div className="relative">

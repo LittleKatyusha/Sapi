@@ -40,19 +40,21 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onOvk, onPotongPaksa, onS
   }, [onClose, buttonRef]);
 
   const actions = [
-    {
-      label: 'Lihat Detail',
-      icon: Eye,
-      onClick: () => {
-        onDetail(row);
-        onClose();
-      },
-      className: 'text-gray-700',
-      description: 'Informasi lengkap',
-      bg: 'bg-blue-100',
-      hoverBg: 'group-hover:bg-blue-200',
-      text: 'text-blue-600',
-    },
+    ...(onDetail ? [
+      {
+        label: 'Lihat Detail',
+        icon: Eye,
+        onClick: () => {
+          onDetail(row);
+          onClose();
+        },
+        className: 'text-gray-700',
+        description: 'Informasi lengkap',
+        bg: 'bg-blue-100',
+        hoverBg: 'group-hover:bg-blue-200',
+        text: 'text-blue-600',
+      }
+    ] : []),
     {
       label: 'Edit',
       icon: Edit,
