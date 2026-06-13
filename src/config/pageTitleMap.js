@@ -90,6 +90,7 @@ export const pageTitleMap = {
   '/rph/persediaan-pakan': 'Persediaan Pakan - RPH',
   '/rph/pedagang': 'Pedagang - RPH',
   '/rph/stok-sapi': 'Stok Sapi RPH',
+  '/reports/rph': 'Laporan RPH',
   '/rph/hutang': 'RPH: Hutang ke HO',
   '/rph/piutang': 'RPH: Piutang Pedagang',
   '/rph/payment': 'RPH: Payment',
