@@ -1,8 +1,8 @@
 import React, { useRef, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Eye, Edit, Trash2, Package, Scissors, AlertTriangle } from 'lucide-react';
+import { Eye, Edit, Trash2, Package, Scissors, AlertTriangle, Beef } from 'lucide-react';
 
-const ActionMenu = ({ row, onEdit, onDelete, onDetail, onOvk, onPotongPaksa, onSapiMati, onClose, buttonRef }) => {
+const ActionMenu = ({ row, onEdit, onDelete, onDetail, onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, onClose, buttonRef }) => {
   const menuRef = useRef(null);
   const [menuStyle, setMenuStyle] = useState(null);
 
@@ -55,19 +55,21 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onOvk, onPotongPaksa, onS
         text: 'text-blue-600',
       }
     ] : []),
-    {
-      label: 'Edit',
-      icon: Edit,
-      onClick: () => {
-        onEdit(row);
-        onClose();
-      },
-      className: 'text-gray-700',
-      description: 'Ubah data',
-      bg: 'bg-amber-100',
-      hoverBg: 'group-hover:bg-amber-200',
-      text: 'text-amber-600',
-    },
+    ...(onEdit ? [
+      {
+        label: 'Edit',
+        icon: Edit,
+        onClick: () => {
+          onEdit(row);
+          onClose();
+        },
+        className: 'text-gray-700',
+        description: 'Ubah data',
+        bg: 'bg-amber-100',
+        hoverBg: 'group-hover:bg-amber-200',
+        text: 'text-amber-600',
+      }
+    ] : []),
     ...(onOvk ? [
       {
         label: 'Pemberian OVK',
@@ -81,6 +83,21 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onOvk, onPotongPaksa, onS
         bg: 'bg-emerald-100',
         hoverBg: 'group-hover:bg-emerald-200',
         text: 'text-emerald-600',
+      }
+    ] : []),
+    ...(onPotongSapiBiasa ? [
+      {
+        label: 'Potong Sapi Biasa',
+        icon: Beef,
+        onClick: () => {
+          onPotongSapiBiasa(row);
+          onClose();
+        },
+        className: 'text-indigo-700',
+        description: 'Potong sapi biasa',
+        bg: 'bg-indigo-100',
+        hoverBg: 'group-hover:bg-indigo-200',
+        text: 'text-indigo-600',
       }
     ] : []),
     ...(onPotongPaksa ? [

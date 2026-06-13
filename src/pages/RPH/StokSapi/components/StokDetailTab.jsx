@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import ActionButton from './ActionButton';
 import { formatNumber } from '../constants/dummyData';
 
-const StokDetailTab = ({ data, loading, onRefresh, onOvk, onPotongPaksa, onSapiMati }) => {
+const StokDetailTab = ({ data, loading, onRefresh, onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati }) => {
   const [openMenuId, setOpenMenuId] = useState(null);
 
   const rows = useMemo(() => data?.rows || [], [data]);
@@ -145,15 +145,16 @@ const StokDetailTab = ({ data, loading, onRefresh, onOvk, onPotongPaksa, onSapiM
                 >
                   <div className="flex items-center justify-center">
                     <ActionButton
-                      row={{ id: row.pid || row.no_urut, ...row }}
-                      openMenuId={openMenuId}
-                      setOpenMenuId={setOpenMenuId}
-                      onDetail={() => console.log('Detail', row)}
-                      onEdit={() => console.log('Edit', row)}
-                      onDelete={() => console.log('Delete', row)}
-                      onOvk={() => onOvk(row)}
-                      onPotongPaksa={() => onPotongPaksa(row)}
-                      onSapiMati={() => onSapiMati(row)}
+                       row={{ id: row.pid || row.no_urut, ...row }}
+                       openMenuId={openMenuId}
+                       setOpenMenuId={setOpenMenuId}
+                       onDetail={() => console.log('Detail', row)}
+                       onEdit={() => console.log('Edit', row)}
+                       onDelete={() => console.log('Delete', row)}
+                        onOvk={() => onOvk(row)}
+                        onPotongPaksa={() => onPotongPaksa(row)}
+                        onPotongSapiBiasa={() => onPotongSapiBiasa(row)}
+                        onSapiMati={() => onSapiMati(row)}
                     />
                   </div>
                 </td>

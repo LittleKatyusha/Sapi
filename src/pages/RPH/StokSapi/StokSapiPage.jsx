@@ -9,6 +9,7 @@ import PotongPaksaTab from './components/PotongPaksaTab';
 import SapiMatiTab from './components/SapiMatiTab';
 import PotongPaksaModal from './modals/PotongPaksaModal';
 import SapiMatiModal from './modals/SapiMatiModal';
+import PotongSapiBiasaModal from './modals/PotongSapiBiasaModal';
 
 const TABS = [
   { id: 'ringkas', label: 'Stok Ringkas', icon: Package },
@@ -56,6 +57,7 @@ const StokSapiPage = () => {
   // Modal state
   const [potongPaksaModalOpen, setPotongPaksaModalOpen] = useState(false);
   const [sapiMatiModalOpen, setSapiMatiModalOpen] = useState(false);
+  const [potongSapiBiasaModalOpen, setPotongSapiBiasaModalOpen] = useState(false);
   const [selectedCowForAction, setSelectedCowForAction] = useState(null);
 
   /** Fetch both endpoints */
@@ -139,6 +141,23 @@ const StokSapiPage = () => {
   const handleSapiMatiSuccess = useCallback(() => {
     fetchData();
   }, [fetchData]);
+
+  /** Handle potong sapi biasa action */
+  const handlePotongSapiBiasa = useCallback((cow) => {
+    setSelectedCowForAction(cow);
+    setPotongSapiBiasaModalOpen(true);
+  }, []);
+
+  /** Handle potong sapi biasa success */
+  const handlePotongSapiBiasaSuccess = useCallback(() => {
+    fetchData();
+  }, [fetchData]);
+
+  /** Handle potong sapi biasa modal close */
+  const handlePotongSapiBiasaClose = useCallback(() => {
+    setPotongSapiBiasaModalOpen(false);
+    setSelectedCowForAction(null);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/40 to-cyan-50/60">
@@ -242,6 +261,7 @@ const StokSapiPage = () => {
                 onRefresh={fetchData}
                 onOvk={(cow) => navigate('/rph/pemberian-ovk-sapi/add', { state: { cow } })}
                 onPotongPaksa={handlePotongPaksa}
+                onPotongSapiBiasa={handlePotongSapiBiasa}
                 onSapiMati={handleSapiMati}
               />
             )}
@@ -266,6 +286,12 @@ const StokSapiPage = () => {
         isOpen={sapiMatiModalOpen}
         onClose={handleSapiMatiClose}
         onSuccess={handleSapiMatiSuccess}
+        cowData={selectedCowForAction}
+      />
+      <PotongSapiBiasaModal
+        isOpen={potongSapiBiasaModalOpen}
+        onClose={handlePotongSapiBiasaClose}
+        onSuccess={handlePotongSapiBiasaSuccess}
         cowData={selectedCowForAction}
       />
     </div>
