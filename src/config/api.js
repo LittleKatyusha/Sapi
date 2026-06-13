@@ -78,6 +78,12 @@ export const API_ENDPOINTS = {
     DAGING: '/api/master/daging'
   },
 
+  DASHBOARD: {
+    HO: '/api/dashboard/ho',
+    RPH: '/api/dashboard/rph',
+    WAREHOUSE: '/api/dashboard/warehouse'
+  },
+
   // Reports
   REPORT: {
     PENGELUARAN: {
@@ -215,6 +221,7 @@ export const API_ENDPOINTS = {
       DATA: '/api/ho/eartag/data',
       SHOW: '/api/ho/eartag/show',
       STORE: '/api/ho/eartag/store',
+      HAPUS: '/api/ho/eartag/hapus',
       DELETE: '/api/ho/eartag/hapus'
     },
     PENGELUARAN: {
@@ -279,6 +286,7 @@ export const API_ENDPOINTS = {
       DATA: '/api/rph/payment/data',
       SHOW: '/api/rph/payment/show',
       STORE: '/api/rph/payment/store',
+      UPDATE: '/api/rph/payment/update',
       DELETE: '/api/rph/payment/hapus'
     },
     BAHAN_PEMBANTU: {

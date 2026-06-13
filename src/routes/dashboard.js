@@ -1,6 +1,6 @@
 import { lazy } from 'react';
 
-const DashboardPage = lazy(() => import('../pages/DashboardPage'));
+const DashboardPage = lazy(() => import('../pages/AdvancedAnalyticsPage'));
 
 export const dashboardRoutes = [
   {

@@ -21,7 +21,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "start:dev": "REACT_APP_ENV=development react-scripts start",
+    "start:dev": "DANGEROUSLY_DISABLE_HOST_CHECK=true REACT_APP_ENV=development react-scripts start",
     "start:prod": "REACT_APP_ENV=production react-scripts start",
     "build": "react-scripts build",
     "build:dev": "REACT_APP_ENV=development react-scripts build",

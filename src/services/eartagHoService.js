@@ -1,24 +1,43 @@
 import HttpClient from './httpClient';
 import { API_ENDPOINTS } from '../config/api';
 
-const EARTAG_HO_BASE = '/api/ho/eartag';
-
 class EartagHoService {
-  static getData(params = {}) {
-    const qs = new URLSearchParams(params).toString();
-    return HttpClient.get(qs ? `${EARTAG_HO_BASE}/data?${qs}` : `${EARTAG_HO_BASE}/data`);
+  static async getData(params = {}) {
+    const response = await HttpClient.get(API_ENDPOINTS.HO.EARTAG.DATA, { params });
+    return {
+      success: true,
+      data: response.data || [],
+      message: response.message || 'ok',
+      ...response,
+    };
   }
 
-  static store(data) {
-    return HttpClient.post(`${EARTAG_HO_BASE}/store`, data);
+  static async store(payload) {
+    const response = await HttpClient.post(API_ENDPOINTS.HO.EARTAG.STORE, payload);
+    return {
+      success: true,
+      data: response.data,
+      message: response.message || 'Eartag berhasil dipasang',
+    };
   }
 
-  static show(pubid) {
-    return HttpClient.post(`${EARTAG_HO_BASE}/show`, { pubid });
+  static async show(payload) {
+    const response = await HttpClient.post(API_ENDPOINTS.HO.EARTAG.SHOW, payload);
+    const data = Array.isArray(response.data) ? response.data[0] : response.data;
+    return {
+      success: true,
+      data: data || null,
+      message: response.message || 'ok',
+    };
   }
 
-  static delete(pubid) {
-    return HttpClient.post(`${EARTAG_HO_BASE}/hapus`, { pubid });
+  static async hapus(payload) {
+    const response = await HttpClient.post(API_ENDPOINTS.HO.EARTAG.HAPUS, payload);
+    return {
+      success: true,
+      data: response.data,
+      message: response.message || 'Eartag berhasil dilepas',
+    };
   }
 }
 

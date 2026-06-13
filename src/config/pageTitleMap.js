@@ -1,6 +1,6 @@
 export const pageTitleMap = {
   '/login': 'Secure Login',
-  '/dashboard': 'Dashboard Aman',
+  '/dashboard': 'Advanced Analytics',
   '/sales': 'Penjualan',
   '/purchases': 'Pembelian',
   '/delivery-orders': 'Surat Jalan',
@@ -26,6 +26,8 @@ export const pageTitleMap = {
   '/ho/pembelian/add': 'Tambah Pembelian Doka & Sapi',
   '/ho/pembelian/edit/:id': 'Edit Pembelian Doka & Sapi',
   '/ho/pembelian/detail/:id': 'Detail Pembelian Doka & Sapi',
+  '/reports/ho': 'Head Office: Laporan',
+  '/ho/eartag': 'Head Office: Eartag',
   '/ho/distribusi/:id': 'Head Office: Distribusi Ternak',
   '/ho/penjualan': 'Head Office: Penjualan',
   '/ho/penjualan/add': 'Head Office: Tambah Penjualan',
@@ -88,4 +90,7 @@ export const pageTitleMap = {
   '/rph/persediaan-pakan': 'Persediaan Pakan - RPH',
   '/rph/pedagang': 'Pedagang - RPH',
   '/rph/stok-sapi': 'Stok Sapi RPH',
+  '/rph/hutang': 'RPH: Hutang ke HO',
+  '/rph/piutang': 'RPH: Piutang Pedagang',
+  '/rph/payment': 'RPH: Payment',
   };
