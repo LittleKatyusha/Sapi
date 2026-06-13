@@ -18,7 +18,7 @@ const useProdukGDS = () => {
             const rows = Array.isArray(response.data) ? response.data : [];
             const mappedData = rows.map(item => ({
                 id: item.id || item.pubid || item.kode,
-                pubid: item.pubid,
+                pubid: item.pid || item.pubid, // Use encrypted pid if available for update/delete
                 name: item.name || item.nama || '-',
                 category: item.category_name || item.category || item.id_category || 'GDS',
                 price: Number(item.price || item.harga || 0),
@@ -29,7 +29,8 @@ const useProdukGDS = () => {
                 description: item.description || item.keterangan || '',
                 lastUpdated: item.updated_at || item.created_at,
                 minimumStock: Number(item.min_stock || item.minimum_stock || 10),
-                location: item.location || item.lokasi || 'Warehouse'
+                location: item.location || item.lokasi || 'Warehouse',
+                pid: item.pid || item.pubid // Ensure pid is available for update/delete calls
             }));
             setProdukGDS(mappedData);
         } catch (err) {
