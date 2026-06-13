@@ -217,6 +217,114 @@ class StokSapiService {
       };
     }
   }
+
+  static async potongSapiBiasa(data) {
+    try {
+      const response = await HttpClient.post('/api/rph/persediaan/potongsapi/store', data);
+      HttpClient.clearCache('potongsapi');
+      return { success: true, data: response.data, message: response.data?.message || response.message || 'Data created successfully' };
+    } catch (error) {
+      console.error('StokSapiService.potongSapiBiasa error:', error);
+      let errorMessage = 'Failed to create potong sapi biasa';
+      if (error?.data?.data) {
+        const validationErrors = error.data.data;
+        const messages = Object.values(validationErrors).flat();
+        errorMessage = messages.join(', ');
+      } else if (error?.data?.message) {
+        errorMessage = error.data.message;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      return {
+        success: false,
+        data: null,
+        message: errorMessage,
+      };
+    }
+  }
+
+  static async getBoningItems() {
+    try {
+      const response = await HttpClient.get('/api/master/itemboning/data', { cache: true });
+      return { success: true, data: response.data || [], message: 'Data retrieved successfully' };
+    } catch (error) {
+      console.error('StokSapiService.getBoningItems error:', error);
+      return { success: false, data: [], message: error?.data?.message || error?.message || 'Failed to fetch boning items' };
+    }
+  }
+
+  static async showBoning(pid) {
+    try {
+      const response = await HttpClient.post('/api/master/itemboning/show', { pid });
+      return { success: true, data: response.data || null, message: 'Data retrieved successfully' };
+    } catch (error) {
+      console.error('StokSapiService.showBoning error:', error);
+      return { success: false, data: null, message: error?.data?.message || error?.message || 'Failed to fetch boning detail' };
+    }
+  }
+
+  static async getKarkasItems() {
+    try {
+      const response = await HttpClient.get('/api/master/karkas/data', { cache: true });
+      return { success: true, data: response.data || [], message: 'Data retrieved successfully' };
+    } catch (error) {
+      console.error('StokSapiService.getKarkasItems error:', error);
+      return { success: false, data: [], message: error?.data?.message || error?.message || 'Failed to fetch karkas items' };
+    }
+  }
+
+  static async showKarkas(pid) {
+    try {
+      const response = await HttpClient.post('/api/master/karkas/show', { pid });
+      return { success: true, data: response.data || null, message: 'Data retrieved successfully' };
+    } catch (error) {
+      console.error('StokSapiService.showKarkas error:', error);
+      return { success: false, data: null, message: error?.data?.message || error?.message || 'Failed to fetch karkas detail' };
+    }
+  }
+
+  static async getPotongSapiBiasaData(params = {}) {
+    try {
+      const response = await HttpClient.get('/api/rph/persediaan/potongsapi/data', { params: { ...params, _t: Date.now() }, cache: false });
+      return { success: true, data: response.data, message: 'Data retrieved successfully' };
+    } catch (error) {
+      console.error('StokSapiService.getPotongSapiBiasaData error:', error);
+      return {
+        success: false,
+        data: null,
+        message: error?.data?.message || error?.message || 'Failed to fetch potong sapi biasa data',
+      };
+    }
+  }
+
+  static async showPotongSapiBiasa(pid) {
+    try {
+      const response = await HttpClient.post('/api/rph/persediaan/potongsapi/show', { pid });
+      return { success: true, data: response.data, message: 'Data retrieved successfully' };
+    } catch (error) {
+      console.error('StokSapiService.showPotongSapiBiasa error:', error);
+      return {
+        success: false,
+        data: null,
+        message: error?.data?.message || error?.message || 'Failed to fetch potong sapi biasa detail',
+      };
+    }
+  }
+
+  static async deletePotongSapiBiasa(pid) {
+    try {
+      const response = await HttpClient.post('/api/rph/persediaan/potongsapi/hapus', { pid });
+      HttpClient.clearCache('potongsapi');
+      return { success: true, data: response.data, message: response.message || 'Data deleted successfully' };
+    } catch (error) {
+      console.error('StokSapiService.deletePotongSapiBiasa error:', error);
+      return {
+        success: false,
+        data: null,
+        message: error?.data?.message || error?.message || 'Failed to delete potong sapi biasa',
+      };
+    }
+  }
 }
 
 export default StokSapiService;
