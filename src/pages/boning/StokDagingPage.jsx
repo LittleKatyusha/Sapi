@@ -162,6 +162,7 @@ const AddEditModal = ({ mode, initial, onClose, onSaved }) => {
   const [loadingHarga, setLoadingHarga] = useState(false);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
+  const [selectedPedagangType, setSelectedPedagangType] = useState(null);
 
   useEffect(() => {
     if (!idOffice) return;
@@ -192,11 +193,19 @@ const AddEditModal = ({ mode, initial, onClose, onSaved }) => {
         });
         setDetails(rows);
       }
+      if (initial.tipe_pedagang) {
+        setSelectedPedagangType(initial.tipe_pedagang);
+      }
     }
   }, [mode, initial]);
 
   const handlePedagangChange = async (pid) => {
     setForm((f) => ({ ...f, pid_pedagang: pid }));
+    const pedagang = pedagangList.find(p => String(p.pid) === pid);
+    const type = pedagang?.tipe_pedagang || null;
+    setSelectedPedagangType(type);
+    if (type === 2) setForm((f) => ({ ...f, tipe_pembayaran: '1' }));
+
     if (!pid) { setHargaKarkas(null); return; }
     setLoadingHarga(true);
     const r = await PenjualanKarkasService.getHarga(pid);
@@ -317,7 +326,7 @@ const AddEditModal = ({ mode, initial, onClose, onSaved }) => {
               <select value={form.tipe_pembayaran} onChange={(e) => setF('tipe_pembayaran', e.target.value)}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
                 <option value="1">Cash</option>
-                <option value="2">Kredit</option>
+                <option value="2" disabled={selectedPedagangType === 2}>Kredit</option>
               </select>
             </Field>
 

@@ -50,6 +50,8 @@ const initialFormData = {
   agama: '',
   pekerjaan: '',
   status_kawin: '',
+  tipe_pedagang: '', // New field for Pedagang classification
+
   id_provinsi: '',
   id_kabupaten: '',
   id_kecamatan: '',
@@ -167,6 +169,8 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
                 kulit: d.kulit || '',
                 saldo_beku: d.saldo_beku || '',
                 id_office: d.id_office || '',
+                tipe_pedagang: d.tipe_pedagang != null ? String(d.tipe_pedagang) : '', // Pedagang classification
+
               });
               if (d.harga) {
                 const filledHarga = getEmptyHarga();
@@ -338,6 +342,9 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
       }
       if (payload.status_rumah !== '') {
         payload.status_rumah = Number(payload.status_rumah);
+      }
+      if (payload.tipe_pedagang !== '') {
+        payload.tipe_pedagang = Number(payload.tipe_pedagang);
       }
 
       // Add pid for update
@@ -544,6 +551,10 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
                     { value: 3, label: 'Cerai Hidup' },
                     { value: 4, label: 'Cerai Mati' },
                   ])}
+                  {renderSelect('tipe_pedagang', 'Tipe Pedagang', [
+                    { value: 1, label: 'Terdaftar (Tipe 1)' },
+                    { value: 2, label: 'Non-Terdaftar/Umum (Tipe 2)' },
+                  ], <User className="w-4 h-4 inline" />, 'Pilih Tipe Pedagang')}
                 </div>
               )}
 

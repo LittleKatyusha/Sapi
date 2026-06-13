@@ -154,6 +154,7 @@ const AddEditModal = ({ mode, initial, onClose, onSaved }) => {
   const [loadingPedagang, setLoadingPedagang] = useState(false);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
+  const [selectedPedagangType, setSelectedPedagangType] = useState(null);
 
   // Load pedagang & boning items on mount
   useEffect(() => {
@@ -186,6 +187,9 @@ const AddEditModal = ({ mode, initial, onClose, onSaved }) => {
           berat: d.berat_bersih || '',
           harga: d.harga_satuan || '',
         })));
+      }
+      if (initial.tipe_pedagang) {
+        setSelectedPedagangType(initial.tipe_pedagang);
       }
     }
   }, [mode, initial]);
@@ -285,7 +289,14 @@ const AddEditModal = ({ mode, initial, onClose, onSaved }) => {
             </Field>
 
             <Field label="Pedagang" error={errors.pid_pedagang} required>
-              <select value={form.pid_pedagang} onChange={(e) => setF('pid_pedagang', e.target.value)} disabled={loadingPedagang}
+              <select value={form.pid_pedagang} onChange={e => {
+                const selectedPid = e.target.value;
+                setF('pid_pedagang', selectedPid);
+                const pedagang = pedagangList.find(p => String(p.pid) === selectedPid);
+                const type = pedagang?.tipe_pedagang || null;
+                setSelectedPedagangType(type);
+                if (type === 2) setF('tipe_pembayaran', '1');
+              }} disabled={loadingPedagang}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500">
                 <option value="">{loadingPedagang ? 'Memuat...' : '-- Pilih Pedagang --'}</option>
                 {pedagangList.map((p) => (
@@ -298,7 +309,7 @@ const AddEditModal = ({ mode, initial, onClose, onSaved }) => {
               <select value={form.tipe_pembayaran} onChange={(e) => setF('tipe_pembayaran', e.target.value)}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500">
                 <option value="1">Cash</option>
-                <option value="2">Kredit</option>
+                <option value="2" disabled={selectedPedagangType === 2}>Kredit</option>
               </select>
             </Field>
 

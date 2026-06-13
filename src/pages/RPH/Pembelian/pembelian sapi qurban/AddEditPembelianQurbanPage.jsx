@@ -71,9 +71,30 @@ const AddEditPembelianQurbanPage = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoadingDetail, setIsLoadingDetail] = useState(false);
     const isBank = String(formData.tipe_pembayaran) === '2';
+    const [isQurbanSeason, setIsQurbanSeason] = useState(true);
+    const [qurbanSeasonLoading, setQurbanSeasonLoading] = useState(true);
 
-    useEffect(() => { formData.id_pemasok ? fetchNota(formData.id_pemasok) : setAvailableNota([]); }, [formData.id_pemasok, fetchNota]);
-
+    useEffect(() => {
+        (async () => {
+            setQurbanSeasonLoading(true);
+            try {
+                const response = await HttpClient.post(`${API_ENDPOINTS.SYSTEM.PARAMETERS}/dataByGroup`, {
+                    group: 'system'
+                });
+                if (response.success && Array.isArray(response.data)) {
+                    const seasonParam = response.data.find(p => p.name === 'is_qurban_season');
+                    setIsQurbanSeason(seasonParam?.value === 'true');
+                } else {
+                    setIsQurbanSeason(true);
+                }
+            } catch (err) {
+                console.error('Error fetching is_qurban_season:', err);
+                setIsQurbanSeason(true);
+            } finally {
+                setQurbanSeasonLoading(false);
+            }
+        })();
+    }, []);
     useEffect(() => {
         if (!isEditMode || !id) return;
         (async () => {
@@ -321,9 +342,10 @@ const AddEditPembelianQurbanPage = () => {
                 <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-100">
                     <div className="flex flex-col sm:flex-row gap-3 justify-end">
                         <button onClick={handleBack} className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors text-sm font-medium">Batal</button>
-                        <button onClick={handleSubmit} disabled={isSubmitting} className="flex items-center justify-center gap-2 px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">
+                        <button onClick={handleSubmit}                         disabled={isSubmitting || qurbanSeasonLoading || !isQurbanSeason}
+ className="flex items-center justify-center gap-2 px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">
                             {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                            {isSubmitting ? 'Menyimpan...' : (isEditMode ? 'Perbarui Data' : 'Simpan Data')}
+                            {isSubmitting ? 'Menyimpan...' : qurbanSeasonLoading ? 'Memeriksa musim...' : !isQurbanSeason ? 'Musim Qurban Berakhir' : (isEditMode ? 'Perbarui Data' : 'Simpan Data')}
                         </button>
                     </div>
                 </div>
