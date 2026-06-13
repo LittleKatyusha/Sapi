@@ -1,22 +1,32 @@
 import HttpClient from './httpClient';
 import { API_ENDPOINTS } from '../config/api';
 
+const normalize = (response, fallbackMessage) => ({
+  success: true,
+  data: Array.isArray(response?.data) ? response.data : [],
+  message: response?.message || fallbackMessage,
+  raw: response,
+});
+
 class PaymentRphService {
-  static getData(params = {}) {
-    const qs = new URLSearchParams(params).toString();
-    return HttpClient.get(qs ? `${API_ENDPOINTS.RPH.PAYMENT.DATA}?${qs}` : API_ENDPOINTS.RPH.PAYMENT.DATA);
+  static async getData(params = {}) {
+    const response = await HttpClient.get(API_ENDPOINTS.RPH.PAYMENT.DATA, { params });
+    return normalize(response, 'Data Payment RPH berhasil dimuat');
   }
 
-  static store(data) {
-    return HttpClient.post(API_ENDPOINTS.RPH.PAYMENT.STORE, data);
+  static async store(data) {
+    const response = await HttpClient.post(API_ENDPOINTS.RPH.PAYMENT.STORE, data);
+    return { success: true, data: response?.data, message: response?.message || 'Payment RPH berhasil disimpan', raw: response };
   }
 
-  static show(pubid) {
-    return HttpClient.post(API_ENDPOINTS.RPH.PAYMENT.SHOW, { pubid });
+  static async show(pubid) {
+    const response = await HttpClient.post(API_ENDPOINTS.RPH.PAYMENT.SHOW, { pubid });
+    return { success: true, data: response?.data || null, message: response?.message || 'Detail payment dimuat', raw: response };
   }
 
-  static delete(pubid) {
-    return HttpClient.post(API_ENDPOINTS.RPH.PAYMENT.DELETE, { pubid });
+  static async delete(pubid) {
+    const response = await HttpClient.post(API_ENDPOINTS.RPH.PAYMENT.DELETE, { pubid });
+    return { success: true, data: response?.data, message: response?.message || 'Payment RPH berhasil dihapus', raw: response };
   }
 }
 
