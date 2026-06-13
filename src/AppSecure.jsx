@@ -274,7 +274,6 @@ function AppSecure() {
               <Route path="/reports/pajak" element={<LaporanPajakPage />} />
               <Route path="/reports/pembelian-lain-lain" element={<LaporanPembelianLainLainPage />} />
               <Route path="/reports/ho" element={<ReportHoPage />} />
-              <Route path="/ho/eartag" element={<EartagHoPage />} />
               <Route path="/rph/hutang" element={<HutangRphPage />} />
               <Route path="/rph/piutang" element={<PiutangRphPage />} />
               <Route path="/rph/payment" element={<PaymentRphPage />} />
@@ -446,6 +445,9 @@ function AppSecure() {
               <Route path="/ho/penjualan/edit/:id" element={<AddEditPenjualanPage />} />
               <Route path="/ho/penjualan/detail/:id" element={<PenjualanDetailPage />} /> */}
               
+              {/* HO Eartag Route */}
+              <Route path="/ho/eartag" element={<EartagHoPage />} />
+
               {/* HO Hutang & Piutang Routes */}
               <Route path="/ho/hutang-vendor" element={<HutangVendorPage />} />
               <Route path="/ho/piutang-cabang" element={<PiutangCabangPage />} />

@@ -220,6 +220,7 @@ export const API_ENDPOINTS = {
       DATA: '/api/ho/eartag/data',
       SHOW: '/api/ho/eartag/show',
       STORE: '/api/ho/eartag/store',
+      HAPUS: '/api/ho/eartag/hapus',
       DELETE: '/api/ho/eartag/hapus'
     },
     PENGELUARAN: {
