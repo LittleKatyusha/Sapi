@@ -74,6 +74,7 @@ export const API_ENDPOINTS = {
     PEMBELI_HO: '/api/master/pembeliho',
     TARIF_DOF: '/api/master/tarifdof',
     BONING: '/api/master/boning',
+    KARKAS: '/api/master/karkas',
     DAGING: '/api/master/daging'
   },
 
