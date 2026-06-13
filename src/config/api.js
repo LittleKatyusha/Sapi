@@ -77,6 +77,12 @@ export const API_ENDPOINTS = {
     DAGING: '/api/master/daging'
   },
 
+  DASHBOARD: {
+    HO: '/api/dashboard/ho',
+    RPH: '/api/dashboard/rph',
+    WAREHOUSE: '/api/dashboard/warehouse'
+  },
+
   // Reports
   REPORT: {
     PENGELUARAN: {
