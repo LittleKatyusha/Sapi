@@ -26,6 +26,7 @@ export const pageTitleMap = {
   '/ho/pembelian/add': 'Tambah Pembelian Doka & Sapi',
   '/ho/pembelian/edit/:id': 'Edit Pembelian Doka & Sapi',
   '/ho/pembelian/detail/:id': 'Detail Pembelian Doka & Sapi',
+  '/reports/ho': 'Head Office: Laporan',
   '/ho/eartag': 'Head Office: Eartag',
   '/ho/distribusi/:id': 'Head Office: Distribusi Ternak',
   '/ho/penjualan': 'Head Office: Penjualan',
