@@ -123,7 +123,7 @@ export default function ReportHoPage() {
         <div className="grid gap-6 lg:grid-cols-2">
           <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-gray-800">15 Endpoint Prioritas P1</h2>
+              <h2 className="font-semibold text-gray-800">18 Endpoint Prioritas P1</h2>
               <span className="text-xs text-gray-500">Server response / json preview</span>
             </div>
             <div className="space-y-2 max-h-[520px] overflow-auto pr-1">
