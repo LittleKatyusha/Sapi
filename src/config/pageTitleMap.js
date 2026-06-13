@@ -1,6 +1,6 @@
 export const pageTitleMap = {
   '/login': 'Secure Login',
-  '/dashboard': 'Dashboard Aman',
+  '/dashboard': 'Advanced Analytics',
   '/sales': 'Penjualan',
   '/purchases': 'Pembelian',
   '/delivery-orders': 'Surat Jalan',

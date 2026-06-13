@@ -10,7 +10,7 @@ import LoadingSpinner from './components/LoadingSpinner';
 import useDocumentTitle from './hooks/useDocumentTitle';
 
 // Lazy load components for better performance
-const DashboardPage = lazy(() => import('./pages/DashboardPage'));
+const DashboardPage = lazy(() => import('./pages/AdvancedAnalyticsPage'));
 const SalesPage = lazy(() => import('./pages/operations/SalesPage'));
 const PurchasePage = lazy(() => import('./pages/operations/PurchasePage'));
 const LivestockStockPage = lazy(() => import('./pages/inventory/LivestockStockPage'));
@@ -208,7 +208,7 @@ const AppWrapperSecure = () => (
 
 function AppSecure() {
   const location = useLocation();
-  const title = pageTitleMap[location.pathname] || 'Dashboard Aman';
+  const title = pageTitleMap[location.pathname] || 'Advanced Analytics';
   const isLoginPage = location.pathname === '/login';
 
   // Initialize security monitoring
