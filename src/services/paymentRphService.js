@@ -19,6 +19,11 @@ class PaymentRphService {
     return { success: true, data: response?.data, message: response?.message || 'Payment RPH berhasil disimpan', raw: response };
   }
 
+  static async update(data) {
+    const response = await HttpClient.post(API_ENDPOINTS.RPH.PAYMENT.UPDATE, data);
+    return { success: true, data: response?.data, message: response?.message || 'Payment RPH berhasil diperbarui', raw: response };
+  }
+
   static async show(pubid) {
     const response = await HttpClient.post(API_ENDPOINTS.RPH.PAYMENT.SHOW, { pubid });
     return { success: true, data: response?.data || null, message: response?.message || 'Detail payment dimuat', raw: response };

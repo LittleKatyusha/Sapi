@@ -285,6 +285,7 @@ export const API_ENDPOINTS = {
       DATA: '/api/rph/payment/data',
       SHOW: '/api/rph/payment/show',
       STORE: '/api/rph/payment/store',
+      UPDATE: '/api/rph/payment/update',
       DELETE: '/api/rph/payment/hapus'
     },
     BAHAN_PEMBANTU: {
