@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import SearchableSelect from '../../../../components/shared/SearchableSelect';
 import usePersetujuanRphSelect from '../Pembelian Sapi/hooks/usePersetujuanRphSelect';
+import useParameterSelect from '../Pembelian Sapi/hooks/useParameterSelect';
 import PilihPakanOvkModal from './modals/PilihPakanOvkModal';
 import RphPembelianService from '../../../../services/rphPembelianService';
 
@@ -86,6 +87,29 @@ const PAGE_VARIANTS = {
     softAccentClass: 'from-violet-50 via-white to-cyan-50',
     iconBgClass: 'bg-violet-100 text-violet-700',
     ctaClass: 'from-violet-500 to-cyan-600 hover:from-violet-600 hover:to-cyan-700'
+  },
+  hewan: {
+    key: 'hewan',
+    entityName: 'Hewan',
+    pageTitle: 'Tambah Pembelian Hewan',
+    subtitle:
+      'Beli hewan secara langsung dari vendor sebagai reseller RPH dengan mudah.',
+    itemFieldLabel: 'Pilih Hewan',
+    itemSelectLabel: 'Jenis Hewan',
+    itemPlaceholder: 'Pilih Hewan',
+    mengetahuiLabel: 'Mengetahui',
+    notesLabel: 'Catatan',
+    notesPlaceholder: 'Tambahkan catatan pembelian hewan bila diperlukan',
+    ctaText: 'Ajukan Hewan & Simpan',
+    helperTitle: 'Jenis Hewan',
+    helperDescription:
+      'Klik area ini untuk membuka modal pemilihan jenis hewan yang akan dibeli.',
+    emptySelectionText: 'Belum ada jenis hewan yang dipilih',
+    itemPreviewLabel: 'Hewan terpilih',
+    accentClass: 'from-amber-500 via-orange-500 to-red-500',
+    softAccentClass: 'from-amber-50 via-white to-orange-50',
+    iconBgClass: 'bg-amber-100 text-amber-700',
+    ctaClass: 'from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700'
   }
 };
 
@@ -121,14 +145,15 @@ const FormField = ({ label, helperText, required = false, children }) => (
   const jenisPembelianOptions = useMemo(
     () => [
       { label: 'Feedmill', value: 1 },
-      { label: 'OVK', value: 2 }
+      { label: 'OVK', value: 2 },
+      { label: 'Hewan', value: 3 }
     ],
     []
   );
   const tipePembayaranOptions = useMemo(
     () => [
       { label: 'Kas', value: 1 },
-      { label: 'Bank', value: 2 }
+      { label: 'Kredit', value: 2 }
     ],
     []
   );
@@ -137,7 +162,9 @@ const FormField = ({ label, helperText, required = false, children }) => (
     ? PAGE_VARIANTS.pakan
     : selectedJenisPembelian === 2
       ? PAGE_VARIANTS.ovk
-      : baseConfig;
+      : selectedJenisPembelian === 3
+        ? PAGE_VARIANTS.hewan
+        : baseConfig;
   const [selectedItems, setSelectedItems] = useState([]);
   const [selectedMengetahui, setSelectedMengetahui] = useState(null);
   const [tipePembayaran, setTipePembayaran] = useState(1);
@@ -157,6 +184,8 @@ const FormField = ({ label, helperText, required = false, children }) => (
   const isPersetujuanDisabled = isItemSelectionDisabled;
 
   const { persetujuanOptions, loading: persetujuanLoading } = usePersetujuanRphSelect();
+  const { officeOptions: supplierOptions, loading: supplierLoading } = useParameterSelect(isEditMode);
+  const [selectedSupplier, setSelectedSupplier] = useState(null);
 
   useEffect(() => {
     let isActive = true;
@@ -315,6 +344,7 @@ const FormField = ({ label, helperText, required = false, children }) => (
       id_jenis_pembelian_rph: selectedJenisPembelian ?? null,
       id_persetujuan_rph: selectedMengetahui ?? null,
       tipe_pembayaran: tipePembayaran ?? null,
+      id_pemasok: selectedSupplier ?? null,
       keterangan: notes?.trim() || null,
       items: selectedItems.map((item) => {
         const parsedId = Number(
@@ -511,6 +541,18 @@ const FormField = ({ label, helperText, required = false, children }) => (
                     isDisabled={isItemSelectionDisabled}
                   />
                 </FormField>
+                
+                {tipePembayaran === 2 && (
+                    <FormField label="Pilih Supplier" required>
+                        <SearchableSelect 
+                            value={selectedSupplier}
+                            onChange={setSelectedSupplier}
+                            options={supplierOptions}
+                            placeholder="Pilih Supplier"
+                            isLoading={supplierLoading}
+                        />
+                    </FormField>
+                )}
 
                 <div className="md:col-span-2">
                   <FormField
