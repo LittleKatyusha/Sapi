@@ -85,11 +85,11 @@ const AddEditPembelianQurbanPage = () => {
                     const seasonParam = response.data.find(p => p.name === 'is_qurban_season');
                     setIsQurbanSeason(seasonParam?.value === 'true');
                 } else {
-                    setIsQurbanSeason(true);
+                    setIsQurbanSeason(false);
                 }
             } catch (err) {
                 console.error('Error fetching is_qurban_season:', err);
-                setIsQurbanSeason(true);
+                setIsQurbanSeason(false);
             } finally {
                 setQurbanSeasonLoading(false);
             }
