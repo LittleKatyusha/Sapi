@@ -71,7 +71,7 @@ const AddEditPembelianQurbanPage = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoadingDetail, setIsLoadingDetail] = useState(false);
     const isBank = String(formData.tipe_pembayaran) === '2';
-    const [isQurbanSeason, setIsQurbanSeason] = useState(true);
+    const [isQurbanSeason, setIsQurbanSeason] = useState(false);
     const [qurbanSeasonLoading, setQurbanSeasonLoading] = useState(true);
 
     useEffect(() => {
