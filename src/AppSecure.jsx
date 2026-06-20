@@ -100,6 +100,9 @@ const PersediaanOvkPage = lazy(() => import('./pages/RPH/Persediaan/PersediaanOv
 // RPH Persediaan Pakan Page - Lazy loaded
 const PersediaanPakanPage = lazy(() => import('./pages/RPH/Persediaan/PersediaanPakan/PersediaanPakanPage'));
 
+// RPH Persediaan Hasil Potong Page - Lazy loaded
+const PersediaanHasilPotongRphPage = lazy(() => import('./pages/RPH/Persediaan/PersediaanHasilPotongRph/PersediaanHasilPotongRphPage'));
+
 // RPH DOF Page - Lazy loaded
 const DofRphPage = lazy(() => import('./pages/RPH/Dof/DofRphPage'));
 
@@ -375,6 +378,9 @@ function AppSecure() {
 
               {/* RPH Persediaan Pakan Route */}
               <Route path="/rph/persediaan-pakan" element={<PersediaanPakanPage />} />
+
+              {/* RPH Persediaan Hasil Potong Route */}
+              <Route path="/rph/persediaan-hasil-potong" element={<PersediaanHasilPotongRphPage />} />
 
               {/* RPH DOF Route */}
               <Route path="/rph/dof" element={<DofRphPage />} />
