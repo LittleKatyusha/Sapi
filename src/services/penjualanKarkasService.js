@@ -109,6 +109,128 @@ class PenjualanKarkasService {
       return { success: false, data: null, message: err?.message || 'Gagal memuat data harga' };
     }
   }
+
+  /**
+   * Print Surat Jalan document data
+   */
+  static async printSuratJalan(pid) {
+    try {
+      const res = await HttpClient.post(EP.PRINT_SURAT_JALAN, { pid });
+      return { success: true, data: res.data };
+    } catch (err) {
+      return { success: false, message: err?.message || 'Gagal memuat surat jalan' };
+    }
+  }
+
+  /**
+   * Print Faktur document data
+   */
+  static async printFaktur(pid) {
+    try {
+      const res = await HttpClient.post(EP.PRINT_FAKTUR, { pid });
+      return { success: true, data: res.data };
+    } catch (err) {
+      return { success: false, message: err?.message || 'Gagal memuat faktur' };
+    }
+  }
+
+  /**
+   * Print SSTB document data
+   */
+  static async printSstb(pid) {
+    try {
+      const res = await HttpClient.post(EP.PRINT_SSTB, { pid });
+      return { success: true, data: res.data };
+    } catch (err) {
+      return { success: false, message: err?.message || 'Gagal memuat SSTB' };
+    }
+  }
+
+  /**
+   * Get setoran list for a penjualan
+   */
+  static async getSetoran(pid) {
+    try {
+      const res = await HttpClient.get(`${EP.GET_SETORAN}?pid=${encodeURIComponent(pid)}`);
+      return { success: true, data: res.data };
+    } catch (err) {
+      return { success: false, data: [], message: err?.message || 'Gagal memuat setoran' };
+    }
+  }
+
+  /**
+   * Create new setoran record
+   */
+  static async storeSetoran(payload) {
+    try {
+      const res = await HttpClient.post(EP.STORE_SETORAN, payload);
+      return { success: true, data: res.data, message: res.message || 'Setoran berhasil ditambahkan' };
+    } catch (err) {
+      return { success: false, message: err?.message || 'Gagal menambah setoran' };
+    }
+  }
+
+  /**
+   * Delete setoran record
+   */
+  static async deleteSetoran(pid) {
+    try {
+      const res = await HttpClient.post(EP.DELETE_SETORAN, { pid });
+      return { success: true, message: res.message || 'Setoran berhasil dihapus' };
+    } catch (err) {
+      return { success: false, message: err?.message || 'Gagal menghapus setoran' };
+    }
+  }
+
+  /**
+   * Get master data dropdowns (payment terms, drivers, vehicles, etc.)
+   */
+  static async getMasterData() {
+    try {
+      const res = await HttpClient.get(EP.MASTER_DATA);
+      return { success: true, data: res.data };
+    } catch (err) {
+      return { success: false, data: {}, message: err?.message || 'Gagal memuat master data' };
+    }
+  }
+
+  /**
+   * Calculate HPP (profit/loss)
+   */
+  static async calculateHpp(payload) {
+    try {
+      const res = await HttpClient.post(EP.CALCULATE_HPP, payload);
+      return { success: true, data: res.data };
+    } catch (err) {
+      return { success: false, data: null, message: err?.message || 'Gagal menghitung HPP' };
+    }
+  }
+
+  /**
+   * Get pedagang options with saldo tracking
+   */
+  static async getPedagangOptions(idOffice) {
+    try {
+      const q = idOffice ? `?id_office=${idOffice}` : '';
+      const res = await HttpClient.get(`${EP.PEDAGANG_OPTIONS}${q}`);
+      return { success: true, data: res.data };
+    } catch (err) {
+      return { success: false, data: [], message: err?.message || 'Gagal memuat pedagang' };
+    }
+  }
+
+  /**
+   * Get cattle options with eartag
+   */
+  static async getCattleOptions(idOffice) {
+    try {
+      const q = idOffice ? `?id_office=${idOffice}` : '';
+      const res = await HttpClient.get(`${EP.CATTLE_OPTIONS}${q}`);
+      return { success: true, data: res.data };
+    } catch (err) {
+      return { success: false, data: [], message: err?.message || 'Gagal memuat data sapi' };
+    }
+  }
 }
 
 export default PenjualanKarkasService;
