@@ -14,6 +14,7 @@ import { formatCurrency, getStatusBadgeClasses, getStatusLabel, PEDAGANG_STATUS_
 import AddEditPedagangModal from './modals/AddEditPedagangModal';
 import PedagangDetailModal from './modals/PedagangDetailModal';
 import DeleteConfirmationModal from './modals/DeleteConfirmationModal';
+import RekeningPedagangModal from './modals/RekeningPedagangModal';
 import ActionMenu from './components/ActionMenu';
 
 const PedagangPage = () => {
@@ -50,6 +51,8 @@ const PedagangPage = () => {
   const [deleteData, setDeleteData] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [notification, setNotification] = useState({ show: false, message: '', type: '' });
+  const [showRekeningModal, setShowRekeningModal] = useState(false);
+  const [rekeningData, setRekeningData] = useState(null);
   
   // ActionMenu state
   const [openMenuId, setOpenMenuId] = useState(null);
@@ -90,6 +93,11 @@ const PedagangPage = () => {
 
   const handleDelete = useCallback((item) => {
     setDeleteData(item);
+  }, []);
+
+  const handleRekening = useCallback((item) => {
+    setRekeningData(item);
+    setShowRekeningModal(true);
   }, []);
 
   const handleConfirmDelete = useCallback(async () => {
@@ -172,6 +180,7 @@ const PedagangPage = () => {
                 onEdit={handleEdit}
                 onDelete={handleDelete}
                 onDetail={handleDetail}
+                onRekening={handleRekening}
                 onClose={() => setOpenMenuId(null)}
                 buttonRef={{ current: actionButtonRefs.current[menuId] }}
               />
@@ -762,6 +771,27 @@ const PedagangPage = () => {
         title={`Hapus Pedagang "${deleteData?.nama_alias || ''}"?`}
         description="Tindakan ini akan menghapus data pedagang secara permanen dan tidak dapat dibatalkan."
         loading={isDeleting}
+      />
+
+      <RekeningPedagangModal
+        isOpen={showRekeningModal}
+        onClose={() => { setShowRekeningModal(false); setRekeningData(null); }}
+        pedagangData={rekeningData}
+        onCetak={async ({ pid, bulan, tahun, nama_alias }) => {
+          try {
+            const PedagangService = (await import('../../../services/pedagangService')).default;
+            const result = await PedagangService.cetakRekening({ pid, bulan, tahun });
+            if (result.success) {
+              showNotification(`Rekening ${nama_alias} periode ${bulan}/${tahun} berhasil dicetak`);
+              setShowRekeningModal(false);
+              setRekeningData(null);
+            } else {
+              showNotification(result.message || 'Gagal mencetak rekening', 'error');
+            }
+          } catch {
+            showNotification('Terjadi kesalahan saat mencetak rekening', 'error');
+          }
+        }}
       />
     </div>
     </>

@@ -1,8 +1,8 @@
 import React, { useRef, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Eye, Edit, Trash2 } from 'lucide-react';
+import { Eye, Edit, Trash2, FileText } from 'lucide-react';
 
-const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef }) => {
+const ActionMenu = ({ row, onEdit, onDelete, onDetail, onRekening, onClose, buttonRef }) => {
     const menuRef = useRef(null);
     const [menuStyle, setMenuStyle] = useState(null);
 
@@ -55,6 +55,16 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef }) => 
             bg: 'bg-amber-100',
             hoverBg: 'group-hover:bg-amber-200',
             text: 'text-amber-600',
+        },
+        {
+            label: 'Unduh Rekening',
+            icon: FileText,
+            onClick: () => onRekening(row),
+            className: 'text-gray-700',
+            description: 'Cetak rekening pedagang',
+            bg: 'bg-emerald-100',
+            hoverBg: 'group-hover:bg-emerald-200',
+            text: 'text-emerald-600',
         },
         {
             divider: true

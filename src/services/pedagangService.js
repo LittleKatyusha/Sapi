@@ -164,6 +164,24 @@ class PedagangService {
       };
     }
   }
+
+  static async cetakRekening({ pid, bulan, tahun }) {
+    try {
+      const response = await HttpClient.post(`${PEDAGANG_BASE}/rekening`, { pid, bulan, tahun });
+      return {
+        success: true,
+        data: response?.data ?? response,
+        message: response?.message || 'Rekening berhasil dimuat',
+      };
+    } catch (error) {
+      const errorData = error?.data ?? error?.response?.data ?? null;
+      return {
+        success: false,
+        data: null,
+        message: errorData?.message || error?.message || 'Gagal mencetak rekening',
+      };
+    }
+  }
 }
 
 export default PedagangService;
