@@ -20,6 +20,7 @@ const PersetujuanFeedmilPage = lazy(() => import('../pages/dataMaster/Persetujua
 const PersetujuanRphPage = lazy(() => import('../pages/dataMaster/PersetujuanRphPage'));
 const SatuanPage = lazy(() => import('../pages/dataMaster/SatuanPage'));
 const BarangPage = lazy(() => import('../pages/dataMaster/BarangPage'));
+const MasterResellerPage = lazy(() => import('../pages/dataMaster/MasterResellerPage'));
 
 export const masterDataRoutes = [
   {
@@ -101,5 +102,9 @@ export const masterDataRoutes = [
   {
     path: '/master-data/barang',
     element: <BarangPage />
+  },
+  {
+    path: '/master-data/reseller',
+    element: <MasterResellerPage />
   }
 ];

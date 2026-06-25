@@ -42,6 +42,7 @@ const PersetujuanFeedmilPage = lazy(() => import('./pages/dataMaster/Persetujuan
 const PersetujuanRphPage = lazy(() => import('./pages/dataMaster/PersetujuanRphPage'));
 const SatuanPage = lazy(() => import('./pages/dataMaster/SatuanPage'));
 const BarangPage = lazy(() => import('./pages/dataMaster/BarangPage'));
+const MasterResellerPage = lazy(() => import('./pages/dataMaster/MasterResellerPage'));
 const PembeliHoPage = lazy(() => import('./pages/dataMaster/PembeliHoPage'));
 const TarifDofPage = lazy(() => import('./pages/dataMaster/TarifDofPage'));
 const BoningMasterPage = lazy(() => import('./pages/dataMaster/BoningMasterPage'));
@@ -105,6 +106,15 @@ const PersediaanHasilPotongRphPage = lazy(() => import('./pages/RPH/Persediaan/P
 
 // RPH DOF Page - Lazy loaded
 const DofRphPage = lazy(() => import('./pages/RPH/Dof/DofRphPage'));
+
+// RPH Penjualan Sapi Utuh Pages - Lazy loaded
+const PenjualanSapiUtuhPage = lazy(() => import('./pages/RPH/PenjualanSapiUtuh/PenjualanSapiUtuhPage'));
+const AddPenjualanSapiUtuhPage = lazy(() => import('./pages/RPH/PenjualanSapiUtuh/AddPenjualanSapiUtuhPageV2'));
+const DetailPenjualanSapiUtuhPage = lazy(() => import('./pages/RPH/PenjualanSapiUtuh/DetailPenjualanSapiUtuhPage'));
+
+// RPH Keuangan Pengeluaran Page - Lazy loaded
+const PengeluaranRphPage = lazy(() => import('./pages/RPH/Keuangan/Pengeluaran/PengeluaranRphPage'));
+const BayarPage = lazy(() => import('./pages/RPH/Keuangan/Pengeluaran/Bayar/BayarPage'));
 
 // RPH Stok Sapi Page - Lazy loaded
 const StokSapi = lazy(() => import('./pages/RPH/StokSapi/StokSapiPage'));
@@ -315,6 +325,7 @@ function AppSecure() {
               <Route path="/master-data/persetujuan-rph" element={<PersetujuanRphPage />} />
               <Route path="/master-data/satuan" element={<SatuanPage />} />
               <Route path="/master-data/barang" element={<BarangPage />} />
+              <Route path="/master-data/reseller" element={<MasterResellerPage />} />
               <Route path="/master-data/pembeli-ho" element={<PembeliHoPage />} />
               <Route path="/master-data/tarif-dof" element={<TarifDofPage />} />
               <Route path="/master-data/boning" element={<BoningMasterPage />} />
@@ -384,6 +395,16 @@ function AppSecure() {
 
               {/* RPH DOF Route */}
               <Route path="/rph/dof" element={<DofRphPage />} />
+
+              {/* RPH Penjualan Sapi Utuh Routes */}
+              <Route path="/rph/penjualan-sapi-utuh" element={<PenjualanSapiUtuhPage />} />
+              <Route path="/rph/penjualan-sapi-utuh/add" element={<AddPenjualanSapiUtuhPage />} />
+              <Route path="/rph/penjualan-sapi-utuh/detail/:pid" element={<DetailPenjualanSapiUtuhPage />} />
+              <Route path="/rph/penjualan-sapi-utuh/edit/:pid" element={<AddPenjualanSapiUtuhPage />} />
+
+              {/* RPH Keuangan Routes */}
+              <Route path="/rph/keuangan/pengeluaran" element={<PengeluaranRphPage />} />
+              <Route path="/rph/keuangan/pengeluaran/bayar/:pid" element={<BayarPage />} />
 
               {/* HO Feedmil and OVK Routes */}
               <Route path="/ho/pembelian-feedmil" element={<PembelianFeedmilPage />} />

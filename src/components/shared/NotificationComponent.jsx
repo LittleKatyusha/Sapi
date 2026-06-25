@@ -3,9 +3,9 @@ import { AlertTriangle, CheckCircle, Info, X } from 'lucide-react';
 
 const Notification = ({ notification, onClose }) => {
     useEffect(() => {
-        if (notification && !onClose) {
+        if (notification) {
             const timer = setTimeout(() => {
-                // Auto-hide if no onClose provided (though it should be provided)
+                if (onClose) onClose();
             }, 5000);
             return () => clearTimeout(timer);
         }

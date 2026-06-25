@@ -70,6 +70,7 @@ const clearFailedRequest = (url) => {
  */
 const DEFAULT_HEADERS = {
   ...CORS_CONFIG.defaultHeaders,
+  'Accept': 'application/json',
   'X-Requested-With': 'XMLHttpRequest'
 };
 
