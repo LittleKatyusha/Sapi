@@ -84,6 +84,7 @@ const PembelianSapiDetailPage = lazy(() => import('./pages/RPH/Pembelian/Pembeli
 // RPH Pembelian Sapi Qurban Pages - Lazy loaded
 const PembelianSapiQurbanPage = lazy(() => import('./pages/RPH/Pembelian/pembelian sapi qurban/PembelianSapiQurbanPage'));
 const AddEditPembelianQurbanPage = lazy(() => import('./pages/RPH/Pembelian/pembelian sapi qurban/AddEditPembelianQurbanPage'));
+const DetailSapiQurbanPage = lazy(() => import('./pages/RPH/Pembelian/pembelian sapi qurban/DetailSapiQurbanPage'));
 
 // RPH Pembelian Pakan dan OVK Page - Lazy loaded
 const PembelianPakanOvkPage = lazy(() => import('./pages/RPH/Pembelian/pembelian pakan dan ovk/PembelianPakanOvkPage'));
@@ -115,6 +116,7 @@ const DetailPenjualanSapiUtuhPage = lazy(() => import('./pages/RPH/PenjualanSapi
 // RPH Keuangan Pengeluaran Page - Lazy loaded
 const PengeluaranRphPage = lazy(() => import('./pages/RPH/Keuangan/Pengeluaran/PengeluaranRphPage'));
 const BayarPage = lazy(() => import('./pages/RPH/Keuangan/Pengeluaran/Bayar/BayarPage'));
+const PengirimanPage = lazy(() => import('./pages/RPH/PenjualanSapiUtuh/Pengiriman/PengirimanPage'));
 
 // RPH Stok Sapi Page - Lazy loaded
 const StokSapi = lazy(() => import('./pages/RPH/StokSapi/StokSapiPage'));
@@ -357,6 +359,7 @@ function AppSecure() {
               <Route path="/rph/pembelian-sapi-qurban" element={<PembelianSapiQurbanPage />} />
               <Route path="/rph/pembelian-sapi-qurban/add" element={<AddEditPembelianQurbanPage />} />
               <Route path="/rph/pembelian-sapi-qurban/edit/:id" element={<AddEditPembelianQurbanPage />} />
+              <Route path="/rph/pembelian-sapi-qurban/detail-sapi/:id" element={<DetailSapiQurbanPage />} />
 
               {/* RPH Pembelian Pakan dan OVK Routes */}
               <Route path="/rph/pembelian-pakan-ovk" element={<PembelianPakanOvkPage />} />
@@ -405,6 +408,9 @@ function AppSecure() {
               {/* RPH Keuangan Routes */}
               <Route path="/rph/keuangan/pengeluaran" element={<PengeluaranRphPage />} />
               <Route path="/rph/keuangan/pengeluaran/bayar/:pid" element={<BayarPage />} />
+
+              {/* RPH Penjualan Sapi Utuh Pengiriman Route */}
+              <Route path="/rph/penjualan-sapi-utuh/pengiriman/:pid" element={<PengirimanPage />} />
 
               {/* HO Feedmil and OVK Routes */}
               <Route path="/ho/pembelian-feedmil" element={<PembelianFeedmilPage />} />

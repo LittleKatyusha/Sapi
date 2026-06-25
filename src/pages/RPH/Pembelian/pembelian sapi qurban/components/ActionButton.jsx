@@ -2,7 +2,7 @@ import React, { useRef, useState, useMemo } from "react";
 import { MoreHorizontal } from "lucide-react";
 import ActionMenu from "./ActionMenu";
 
-const ActionButton = ({ row, openMenuId, setOpenMenuId, onEdit, onDelete, onUnduhBerkas, isActive }) => {
+const ActionButton = ({ row, openMenuId, setOpenMenuId, onEdit, onDelete, onUnduhBerkas, onDetailSapi, isActive }) => {
   const buttonRef = useRef(null);
   const [isAnimating, setIsAnimating] = useState(false);
 
@@ -53,6 +53,7 @@ const ActionButton = ({ row, openMenuId, setOpenMenuId, onEdit, onDelete, onUndu
           onEdit={onEdit}
           onDelete={onDelete}
           onUnduhBerkas={onUnduhBerkas}
+          onDetailSapi={onDetailSapi}
           onClose={() => setOpenMenuId(null)}
           buttonRef={buttonRef}
         />

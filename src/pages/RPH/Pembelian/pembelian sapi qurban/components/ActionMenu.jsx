@@ -1,8 +1,8 @@
 import React, { useRef, useState, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
-import { Pencil, Trash2, Download } from "lucide-react";
+import { Pencil, Trash2, Download, Beef } from "lucide-react";
 
-const ActionMenu = ({ row, onEdit, onDelete, onUnduhBerkas, onClose, buttonRef }) => {
+const ActionMenu = ({ row, onEdit, onDelete, onUnduhBerkas, onDetailSapi, onClose, buttonRef }) => {
   const menuRef = useRef(null);
   const [menuStyle, setMenuStyle] = useState(null);
 
@@ -47,6 +47,14 @@ const ActionMenu = ({ row, onEdit, onDelete, onUnduhBerkas, onClose, buttonRef }
       description: "Ubah data pembelian qurban.",
       bg: "bg-amber-100",
       text: "text-amber-600",
+    },
+    {
+      label: "Detail Sapi",
+      icon: Beef,
+      onClick: () => onDetailSapi(row),
+      description: "Lihat sapi by name & address.",
+      bg: "bg-blue-100",
+      text: "text-blue-600",
     },
     {
       label: "Unduh Berkas",

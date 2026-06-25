@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft, Save, PlusCircle, Trash2, ShoppingCart,
-  User, Truck, Scissors, CreditCard, Beef,
+  User, Scissors, CreditCard, Beef,
 } from 'lucide-react';
 
 import usePenjualanSapiUtuh from '../../../hooks/usePenjualanSapiUtuh';
@@ -25,14 +25,6 @@ const JANGKA_WAKTU_OPTIONS = [
   ...Array.from({ length: 12 }, (_, i) => ({ value: `${i + 1} bulan`, label: `${i + 1} bulan` })),
 ];
 
-const PENGIRIMAN_OPTIONS = [
-  { value: 'dikirim', label: 'Dikirim' },
-  { value: 'dipotong_rph_dikirim', label: 'Dipotong di RPH dan Dikirim' },
-  { value: 'dipotong_rph_diambil', label: 'Dipotong di RPH dan Diambil' },
-  { value: 'diambil', label: 'Diambil' },
-  { value: 'belum_diketahui', label: 'Belum Diketahui' },
-];
-
 const JENIS_PEMOTONGAN_OPTIONS = [
   { value: 'dibelah_4', label: 'Dibelah 4' },
   { value: 'dibelah_8', label: 'Dibelah 8' },
@@ -52,9 +44,8 @@ const METODE_PEMBAYARAN_OPTIONS = [
 
 const defaultFormData = {
   pic: '', penjual: 'cv_puput', reseller_id: '', nama_pembeli: '', no_hp_pembeli: '',
-  tanggal_transaksi: new Date().toISOString().split('T')[0], tipe_penjualan: 'tunai', jangka_waktu: '',
-  pengiriman: 'belum_diketahui', tanggal_terima: '', tempat_terima: '', biaya_kirim: '',
-  alamat_pengiriman: '', nama_penerima: '', no_hp_penerima: '',
+  tanggal_transaksi: new Date().toISOString().split('T')[0], tipe_penjualan: 'tunai', jangka_waktu: '', jenis_transaksi: 'sapi_utuh',
+  biaya_kirim: '',
   jenis_pemotongan: '', biaya_potong: '', tanggal_potong: '', packing: 'tidak', catatan: '',
   nominal_pembayaran: '', metode_pembayaran: '', nama_pembayar: '', bukti_bayar: null,
   details: [],
@@ -297,11 +288,9 @@ const AddPenjualanSapiUtuhPageV2 = () => {
         pic: d.pic || '', penjual: d.penjual || 'cv_puput', reseller_id: d.reseller_id || '',
         nama_pembeli: d.nama_pembeli || '', no_hp_pembeli: d.no_hp_pembeli || '',
         tanggal_transaksi: d.tanggal_transaksi || new Date().toISOString().split('T')[0],
-        tipe_penjualan: d.tipe_penjualan || 'tunai', jangka_waktu: d.jangka_waktu || '',
-        pengiriman: d.pengiriman || 'belum_diketahui', tanggal_terima: d.tanggal_terima || '',
-        tempat_terima: d.tempat_terima || '', biaya_kirim: d.biaya_kirim || '',
-        alamat_pengiriman: d.alamat_pengiriman || '', nama_penerima: d.nama_penerima || '',
-        no_hp_penerima: d.no_hp_penerima || '', jenis_pemotongan: d.jenis_pemotongan || '',
+        tipe_penjualan: d.tipe_penjualan || 'tunai', jangka_waktu: d.jangka_waktu || '', jenis_transaksi: d.jenis_transaksi || 'sapi_utuh',
+        biaya_kirim: d.biaya_kirim || '',
+        jenis_pemotongan: d.jenis_pemotongan || '',
         biaya_potong: d.biaya_potong || '', tanggal_potong: d.tanggal_potong ? d.tanggal_potong.slice(0, 16) : '',
         packing: d.packing || 'tidak', catatan: d.catatan || '',
         nominal_pembayaran: d.nominal_pembayaran || '', metode_pembayaran: d.metode_pembayaran || '',
@@ -408,7 +397,6 @@ const AddPenjualanSapiUtuhPageV2 = () => {
     if (!formData.tanggal_transaksi) newErrors.tanggal_transaksi = 'Tanggal transaksi wajib diisi';
     if (!formData.tipe_penjualan) newErrors.tipe_penjualan = 'Tipe penjualan wajib dipilih';
     if (formData.tipe_penjualan === 'kredit' && !formData.jangka_waktu) newErrors.jangka_waktu = 'Jangka waktu wajib diisi';
-    if (!formData.pengiriman) newErrors.pengiriman = 'Pengiriman wajib dipilih';
     if (!formData.packing) newErrors.packing = 'Packing wajib dipilih';
     if (formData.details.length === 0) newErrors.details = 'Minimal harus ada 1 item sapi';
     formData.details.forEach((item, index) => {
@@ -468,10 +456,9 @@ const AddPenjualanSapiUtuhPageV2 = () => {
               {[
                 { id: 0, label: 'PIC & Penjual', icon: User, color: 'green' },
                 { id: 1, label: 'Transaksi', icon: CreditCard, color: 'blue' },
-                { id: 2, label: 'Pengiriman', icon: Truck, color: 'orange' },
-                { id: 3, label: 'Pemotongan', icon: Scissors, color: 'purple' },
-                { id: 4, label: 'Detail Sapi', icon: Beef, color: 'red' },
-                { id: 5, label: 'Pembayaran', icon: CreditCard, color: 'teal' },
+                { id: 2, label: 'Pemotongan', icon: Scissors, color: 'purple' },
+                { id: 3, label: 'Detail Sapi', icon: Beef, color: 'red' },
+                { id: 4, label: 'Pembayaran', icon: CreditCard, color: 'teal' },
               ].map((tab) => {
                 const isActive = activeTab === tab.id;
                 const c = {
@@ -557,37 +544,26 @@ const AddPenjualanSapiUtuhPageV2 = () => {
                         placeholder="Pilih jangka waktu"
                       />
                     )}
+                    <SearchableSelect
+                      label="Jenis Transaksi"
+                      required
+                      value={formData.jenis_transaksi}
+                      options={[
+                        { value: 'qurban', label: 'Qurban' },
+                        { value: 'sapi_utuh', label: 'Sapi Utuh' },
+                      ]}
+                      onSelect={(val) => {
+                        setFormData((prev) => ({ ...prev, jenis_transaksi: val }));
+                        if (errors.jenis_transaksi) setErrors((prev) => ({ ...prev, jenis_transaksi: '' }));
+                      }}
+                      error={errors.jenis_transaksi}
+                      placeholder="Pilih jenis transaksi"
+                    />
+                    <CurrencyInput label="Biaya Kirim" name="biaya_kirim" value={formData.biaya_kirim} error={errors.biaya_kirim} onChange={handleChange} placeholder="0" />
                   </div>
                 </div>
               )}
               {activeTab === 2 && (
-                <div>
-                  <h3 className="text-lg font-bold text-orange-800 mb-4 flex items-center gap-2"><Truck className="w-5 h-5" />Pengiriman</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <SearchableSelect
-                      label="Pengiriman"
-                      required
-                      value={formData.pengiriman}
-                      options={PENGIRIMAN_OPTIONS}
-                      onSelect={(val) => {
-                        setFormData((prev) => ({ ...prev, pengiriman: val }));
-                        if (errors.pengiriman) setErrors((prev) => ({ ...prev, pengiriman: '' }));
-                      }}
-                      error={errors.pengiriman}
-                      placeholder="Pilih Pengiriman"
-                    />
-                    <InputField label="Tanggal Penerimaan" name="tanggal_terima" type="date" value={formData.tanggal_terima} error={errors.tanggal_terima} onChange={handleChange} />
-                    <InputField label="Tempat Menerima" name="tempat_terima" value={formData.tempat_terima} error={errors.tempat_terima} onChange={handleChange} placeholder="Alamat / Lokasi" />
-                    <CurrencyInput label="Biaya Kirim" name="biaya_kirim" value={formData.biaya_kirim} error={errors.biaya_kirim} onChange={handleChange} placeholder="0" />
-                    <div className="md:col-span-2">
-                      <InputField label="Alamat Pengiriman" name="alamat_pengiriman" type="textarea" value={formData.alamat_pengiriman} error={errors.alamat_pengiriman} onChange={handleChange} placeholder="Alamat lengkap pengiriman" />
-                    </div>
-                    <InputField label="Nama Penerima" name="nama_penerima" value={formData.nama_penerima} error={errors.nama_penerima} onChange={handleChange} placeholder="Nama penerima" />
-                    <InputField label="No HP Penerima" name="no_hp_penerima" type="tel" value={formData.no_hp_penerima} error={errors.no_hp_penerima} onChange={handleChange} placeholder="081234567890" />
-                  </div>
-                </div>
-              )}
-              {activeTab === 3 && (
                 <div>
                   <h3 className="text-lg font-bold text-purple-800 mb-4 flex items-center gap-2"><Scissors className="w-5 h-5" />Pemotongan</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -622,7 +598,7 @@ const AddPenjualanSapiUtuhPageV2 = () => {
                   </div>
                 </div>
               )}
-              {activeTab === 4 && (
+              {activeTab === 3 && (
                 <div>
                   <h3 className="text-lg font-bold text-red-800 mb-4 flex items-center gap-2"><Beef className="w-5 h-5" />Detail Sapi</h3>
                   <div className="flex items-center justify-between mb-4">
@@ -676,7 +652,7 @@ const AddPenjualanSapiUtuhPageV2 = () => {
                   </div>
                 </div>
               )}
-              {activeTab === 5 && (
+              {activeTab === 4 && (
                 <div>
                   <h3 className="text-lg font-bold text-teal-800 mb-4 flex items-center gap-2"><CreditCard className="w-5 h-5" />Pembayaran</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

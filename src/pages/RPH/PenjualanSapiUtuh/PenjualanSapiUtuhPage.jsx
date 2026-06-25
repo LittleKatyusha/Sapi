@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import DataTable from 'react-data-table-component';
-import { PlusCircle, Search, ShoppingCart, Eye, Edit2, CheckCircle, XCircle, MoreVertical } from 'lucide-react';
+import { PlusCircle, Search, ShoppingCart, Eye, Edit2, CheckCircle, XCircle, MoreVertical, Truck, Beef } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import usePenjualanSapiUtuh from '../../../hooks/usePenjualanSapiUtuh';
@@ -73,6 +73,14 @@ const ActionMenuCell = ({ row, setDeleteData, handleConfirm, handleCancel }) => 
             <CheckCircle className="w-4 h-4 text-green-500" /> Konfirmasi
           </button>
         </>
+      )}
+      {row.status_transaksi === 'confirmed' && (
+        <button
+          onClick={() => { setIsOpen(false); navigate(`/rph/penjualan-sapi-utuh/pengiriman/${row.pid}`); }}
+          className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-orange-50 flex items-center gap-2 transition"
+        >
+          <Truck className="w-4 h-4 text-orange-500" /> Pengiriman
+        </button>
       )}
       {row.status_transaksi === 'confirmed' && (row.nominal_pembayaran || 0) === 0 && (
         <button
@@ -181,6 +189,19 @@ const PenjualanSapiUtuhPage = () => {
 
   const columns = useMemo(() => [
     {
+      name: '',
+      center: true,
+      width: '50px',
+      cell: (row) => (
+        <ActionMenuCell
+          row={row}
+          setDeleteData={setDeleteData}
+          handleConfirm={handleConfirm}
+          handleCancel={handleCancel}
+        />
+      ),
+    },
+    {
       name: 'Transaksi',
       selector: (row) => row.no_transaksi,
       sortable: true,
@@ -209,10 +230,29 @@ const PenjualanSapiUtuhPage = () => {
       ),
     },
     {
+      name: 'Jenis',
+      selector: (row) => row.jenis_transaksi,
+      sortable: true,
+      width: '90px',
+      center: true,
+      cell: (row) => {
+        const j = {
+          qurban: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-100', label: 'Qurban' },
+          sapi_utuh: { bg: 'bg-slate-50', text: 'text-slate-700', border: 'border-slate-200', label: 'Utuh' },
+        };
+        const c = j[row.jenis_transaksi] || j.sapi_utuh;
+        return (
+          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${c.bg} ${c.text} border ${c.border}`}>
+            {c.label}
+          </span>
+        );
+      },
+    },
+    {
       name: 'Pihak',
       selector: (row) => row.nama_pembeli,
       sortable: true,
-      minWidth: '200px',
+      minWidth: '140px',
       cell: (row) => {
         const penjualLabels = { cv_puput: 'CV Puput', reseller: 'Reseller' };
         return (
@@ -257,6 +297,13 @@ const PenjualanSapiUtuhPage = () => {
         const grandTotal = (row.total_harga || 0) + (row.biaya_kirim || 0) + (row.biaya_potong || 0);
         return (
           <div className="text-right py-1 space-y-1.5">
+            {/* Row 0: Sapi count */}
+            <div className="flex items-center justify-end">
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-red-50 text-red-700 px-2 py-0.5 rounded-full border border-red-100">
+                <Beef className="w-3 h-3" />
+                {row.jumlah_ekor || 0} Ekor
+              </span>
+            </div>
             {/* Row 1: Total + Costs + Grand Total */}
             <div className="flex items-center justify-end gap-2">
               <span className="text-[10px] text-gray-400">Harga Sapi <span className="text-gray-700 font-semibold">Rp {row.total_harga?.toLocaleString('id-ID')}</span></span>
@@ -281,7 +328,7 @@ const PenjualanSapiUtuhPage = () => {
       name: 'Tipe / Bayar',
       selector: (row) => row.tipe_penjualan,
       sortable: true,
-      width: '210px',
+      width: '260px',
       center: true,
       cell: (row) => {
         const bayarConfigs = {
@@ -343,17 +390,26 @@ const PenjualanSapiUtuhPage = () => {
       },
     },
     {
-      name: '',
+      name: 'Kirim',
+      selector: (row) => row.status_pengiriman,
+      sortable: true,
+      width: '120px',
       center: true,
-      width: '50px',
-      cell: (row) => (
-        <ActionMenuCell
-          row={row}
-          setDeleteData={setDeleteData}
-          handleConfirm={handleConfirm}
-          handleCancel={handleCancel}
-        />
-      ),
+      cell: (row) => {
+        const k = {
+          belum_berangkat: { bg: 'bg-gray-50', text: 'text-gray-500', border: 'border-gray-200', dot: 'bg-gray-400', label: 'Belum' },
+          sudah_berangkat: { bg: 'bg-sky-50', text: 'text-sky-700', border: 'border-sky-100', dot: 'bg-sky-500', label: 'Berangkat' },
+          sudah_diterima: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-100', dot: 'bg-emerald-500', label: 'Diterima' },
+          return: { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-100', dot: 'bg-red-500', label: 'Return' },
+        };
+        const c = k[row.status_pengiriman] || k.belum_berangkat;
+        return (
+          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${c.bg} ${c.text} border ${c.border}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
+            {c.label}
+          </span>
+        );
+      },
     },
   ], [handleConfirm, handleCancel]);
 
@@ -414,7 +470,7 @@ const PenjualanSapiUtuhPage = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 p-6">
-      <div className="max-w-[1440px] mx-auto space-y-6">
+      <div className="max-w-[1200px] mx-auto space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>

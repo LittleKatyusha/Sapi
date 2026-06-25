@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import DataTable from 'react-data-table-component';
-import { PlusCircle, Search, X, Loader2, Package, TrendingUp, DollarSign, ShoppingCart, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { PlusCircle, Search, X, Loader2, Package, TrendingUp, DollarSign, ShoppingCart, AlertCircle, CheckCircle2, Download } from 'lucide-react';
 import useQurban from './hooks/useQurban';
 import ActionButton from './components/ActionButton';
 import QurbanCard from './components/QurbanCard';
@@ -122,9 +122,47 @@ const PembelianSapiQurbanPage = () => {
         navigate('/rph/pembelian-sapi-qurban/add');
     };
 
+    const handleDownloadCSV = () => {
+        if (!filteredData || filteredData.length === 0) {
+            setNotification({ type: 'info', message: 'Tidak ada data untuk diunduh' });
+            return;
+        }
+        const headers = ['No', 'Nota Sistem', 'Tanggal Pesanan', 'Jenis Pembelian', 'Jumlah Hewan', 'Total Harga', 'Pemasok', 'Penerima', 'Tempat Tiba', 'Pengirim', 'Plat Nomor'];
+        const rows = filteredData.map((row, i) => [
+            (serverPagination.currentPage - 1) * serverPagination.perPage + i + 1,
+            row.nota_sistem || '',
+            row.tanggal_pemesanan || '',
+            row.jenis_pembelian || '',
+            row.jumlah_hewan || 0,
+            row.total_harga || 0,
+            row.pemasok || '',
+            row.nama_penerima || '',
+            row.tempat_tiba || '',
+            row.pengirim || '',
+            row.plat_nomor || ''
+        ]);
+        const csvContent = [headers.join(','), ...rows.map(r => r.map(field => `"${String(field).replace(/"/g, '""')}"`).join(','))].join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `pembelian-sapi-qurban-${new Date().toISOString().slice(0,10)}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        setNotification({ type: 'success', message: 'CSV berhasil diunduh' });
+    };
+
     const handleEdit = (item) => {
         const id = item.pid || item.encryptedPid || item.pubid;
         navigate(`/rph/pembelian-sapi-qurban/edit/${id}`, { state: { item } });
+        setOpenMenuId(null);
+    };
+
+    const handleDetailSapi = (item) => {
+        const id = item.pid || item.encryptedPid || item.pubid;
+        navigate(`/rph/pembelian-sapi-qurban/detail-sapi/${id}`);
         setOpenMenuId(null);
     };
 
@@ -161,7 +199,7 @@ const PembelianSapiQurbanPage = () => {
         },
         {
             name: 'Pilih', width: '70px', ignoreRowClick: true, center: true,
-            cell: row => <div className="flex justify-center w-full"><ActionButton row={row} openMenuId={openMenuId} setOpenMenuId={setOpenMenuId} onEdit={handleEdit} onDelete={handleDelete} onUnduhBerkas={handleUnduhBerkas} isActive={openMenuId === (row.pid || row.encryptedPid || row.pubid)} /></div>
+            cell: row => <div className="flex justify-center w-full"><ActionButton row={row} openMenuId={openMenuId} setOpenMenuId={setOpenMenuId} onEdit={handleEdit} onDelete={handleDelete} onUnduhBerkas={handleUnduhBerkas} onDetailSapi={handleDetailSapi} isActive={openMenuId === (row.pid || row.encryptedPid || row.pubid)} /></div>
         },
         {
             name: 'Nomor Pesanan', selector: row => row.nota_sistem, sortable: true, width: '180px', center: true,
@@ -235,7 +273,7 @@ const PembelianSapiQurbanPage = () => {
                 </div>
             ),
         },
-    ], [openMenuId, serverPagination]);
+    ], [openMenuId, serverPagination, handleEdit, handleDetailSapi, handleDelete, handleUnduhBerkas]);
 
     const safeStats = stats || {};
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
@@ -255,10 +293,16 @@ const PembelianSapiQurbanPage = () => {
                                 <p className="text-gray-400 text-xs sm:text-sm mt-0.5">Kelola data Pembelian Sapi Qurban</p>
                             </div>
                         </div>
-                        <button onClick={handleAdd} className="flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 bg-red-500 hover:bg-red-600 text-white rounded-full font-semibold shadow-md hover:shadow-lg transition-all duration-300 text-sm sm:text-base">
-                            <PlusCircle className="w-5 h-5" />
-                            <span>Tambah Pembelian</span>
-                        </button>
+                        <div className="flex items-center gap-2">
+                            <button onClick={handleDownloadCSV} className="flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 bg-white border border-gray-200 hover:border-gray-300 text-gray-700 hover:text-gray-900 rounded-full font-semibold shadow-sm hover:shadow transition-all duration-200 text-sm sm:text-base">
+                                <Download className="w-5 h-5 text-blue-600" />
+                                <span className="hidden sm:inline">Unduh CSV</span>
+                            </button>
+                            <button onClick={handleAdd} className="flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 bg-red-500 hover:bg-red-600 text-white rounded-full font-semibold shadow-md hover:shadow-lg transition-all duration-300 text-sm sm:text-base">
+                                <PlusCircle className="w-5 h-5" />
+                                <span>Tambah Pembelian</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

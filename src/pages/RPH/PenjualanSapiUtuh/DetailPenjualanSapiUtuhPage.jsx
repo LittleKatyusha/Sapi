@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft, ShoppingCart, User, Truck, Scissors, CreditCard,
   Beef, Calendar, Phone, MapPin, Package, FileText, Image,
-  Edit2, Printer
+  Edit2, Printer, AlertCircle
 } from 'lucide-react';
 import usePenjualanSapiUtuh from '../../../hooks/usePenjualanSapiUtuh';
 
@@ -147,13 +147,22 @@ const DetailPenjualanSapiUtuhPage = () => {
             <div className="grid grid-cols-2 gap-x-6">
               <DetailRow label="Metode" value={data.pengiriman} icon={Truck} />
               <DetailRow label="Tanggal Terima" value={data.tanggal_terima || '-'} icon={Calendar} />
-              <DetailRow label="Tempat Terima" value={data.tempat_terima} />
-              <DetailRow label="Penerima" value={data.nama_penerima || '-'} icon={User} />
-              <DetailRow label="No HP Penerima" value={data.no_hp_penerima || '-'} icon={Phone} />
-              <DetailRow label="Biaya Kirim" value={data.biaya_kirim ? `Rp ${data.biaya_kirim.toLocaleString('id-ID')}` : '-'} icon={CreditCard} />
-              {data.alamat_pengiriman && (
+              <DetailRow label="Tempat Terima" value={data.tempat_terima || '-'} />
+              {(data.pengiriman === 'dikirim' || data.pengiriman === 'dipotong_rph_dikirim') && (
+                <>
+                  <DetailRow label="Penerima" value={data.nama_penerima || '-'} icon={User} />
+                  <DetailRow label="No HP Penerima" value={data.no_hp_penerima || '-'} icon={Phone} />
+                  <DetailRow label="Biaya Kirim" value={data.biaya_kirim ? `Rp ${data.biaya_kirim.toLocaleString('id-ID')}` : '-'} icon={CreditCard} />
+                </>
+              )}
+              {(data.pengiriman === 'dikirim' || data.pengiriman === 'dipotong_rph_dikirim') && data.alamat_pengiriman && (
                 <div className="col-span-2 pt-2 mt-2 border-t border-gray-50">
                   <DetailRow label="Alamat Pengiriman" value={data.alamat_pengiriman} icon={MapPin} />
+                </div>
+              )}
+              {data.status_pengiriman === 'return' && data.alasan_return && (
+                <div className="col-span-2 pt-2 mt-2 border-t border-red-100">
+                  <DetailRow label="Alasan Return" value={data.alasan_return} icon={AlertCircle} />
                 </div>
               )}
             </div>

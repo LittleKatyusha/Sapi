@@ -267,6 +267,29 @@ class PenjualanSapiUtuhService {
       };
     }
   }
+
+  /**
+   * Update delivery status & details
+   * @param {Object} payload - Delivery data with pid and status
+   * @returns {Promise} API response
+   */
+  static async updateDelivery(payload) {
+    try {
+      const response = await HttpClient.post(`${BASE_URL}/update-delivery`, payload);
+      return {
+        success: true,
+        data: response?.data ?? response,
+        message: response?.message || 'Data pengiriman berhasil diperbarui',
+      };
+    } catch (error) {
+      const errorData = error?.data ?? error?.response?.data ?? null;
+      return {
+        success: false,
+        data: null,
+        message: errorData?.message || error?.message || 'Gagal memperbarui data pengiriman',
+      };
+    }
+  }
 }
 
 export default PenjualanSapiUtuhService;

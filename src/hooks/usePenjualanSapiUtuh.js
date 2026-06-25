@@ -230,6 +230,27 @@ export const usePenjualanSapiUtuh = () => {
   }, []);
 
   /**
+   * Update delivery status & details
+   */
+  const updateDelivery = useCallback(async (payload) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await PenjualanSapiUtuhService.updateDelivery(payload);
+      if (!result.success) {
+        setError(result.message);
+      }
+      return result;
+    } catch (err) {
+      const errorMessage = err?.message || 'Gagal memperbarui data pengiriman';
+      setError(errorMessage);
+      return { success: false, message: errorMessage };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  /**
    * Clear current transaction
    */
   const clearCurrent = useCallback(() => {
@@ -258,6 +279,7 @@ export const usePenjualanSapiUtuh = () => {
     cancel,
     bayar,
     fetchPembayaranHistory,
+    updateDelivery,
     clearCurrent,
     clearError,
   };
