@@ -21,12 +21,44 @@ const PersetujuanRphPage = lazy(() => import('../pages/dataMaster/PersetujuanRph
 const SatuanPage = lazy(() => import('../pages/dataMaster/SatuanPage'));
 const BarangPage = lazy(() => import('../pages/dataMaster/BarangPage'));
 const MasterResellerPage = lazy(() => import('../pages/dataMaster/MasterResellerPage'));
+const BoningMasterPage = lazy(() => import('../pages/dataMaster/BoningMasterPage'));
+const DagingMasterPage = lazy(() => import('../pages/dataMaster/DagingMasterPage'));
+const PembeliHoPage = lazy(() => import('../pages/dataMaster/PembeliHoPage'));
+const TarifDofPage = lazy(() => import('../pages/dataMaster/TarifDofPage'));
 
+// ============================================================
+// MASTER DATA ROUTES — TERURUT & LENGKAP
+// ============================================================
+// 1. Organisasi → 2. Hewan → 3. Item & Barang → 4. Boning & Daging
+// 5. Persetujuan → 6. Lainnya
 export const masterDataRoutes = [
+  // 1. Organisasi
   {
     path: '/master-data/kandang-office',
     element: <KandangOfficePage />
   },
+  {
+    path: '/master-data/outlet',
+    element: <OutletPage />
+  },
+  {
+    path: '/master-data/supplier',
+    element: <SupplierPage />
+  },
+  {
+    path: '/master-data/pelanggan',
+    element: <PelangganPage />
+  },
+  {
+    path: '/master-data/pembeli-ho',
+    element: <PembeliHoPage />
+  },
+  {
+    path: '/master-data/reseller',
+    element: <MasterResellerPage />
+  },
+
+  // 2. Hewan & Klasifikasi
   {
     path: '/master-data/jenis-hewan',
     element: <JenisHewanPage />
@@ -36,17 +68,11 @@ export const masterDataRoutes = [
     element: <KlasifikasiHewanPage />
   },
   {
-    path: '/master-data/klasifikasi-ovk',
-    element: <KlasifikasiOvkPage />
+    path: '/master-data/eartag',
+    element: <EartagPage />
   },
-  {
-    path: '/master-data/klasifikasi-feedmil',
-    element: <KlasifikasiFeedmilPage />
-  },
-  {
-    path: '/data-master/klasifikasi-lain-lain',
-    element: <KlasifikasiLainLainPage />
-  },
+
+  // 3. Item & Barang
   {
     path: '/master-data/item-kulit',
     element: <ItemKulitPage />
@@ -60,51 +86,61 @@ export const masterDataRoutes = [
     element: <ItemOvkPage />
   },
   {
+    path: '/master-data/klasifikasi-feedmil',
+    element: <KlasifikasiFeedmilPage />
+  },
+  {
+    path: '/master-data/klasifikasi-ovk',
+    element: <KlasifikasiOvkPage />
+  },
+  {
     path: '/master-data/item-lain-lain',
     element: <ItemLainLainPage />
   },
   {
-    path: '/master-data/supplier',
-    element: <SupplierPage />
-  },
-  {
-    path: '/master-data/pelanggan',
-    element: <PelangganPage />
-  },
-  {
-    path: '/master-data/outlet',
-    element: <OutletPage />
-  },
-  {
-    path: '/master-data/produk-gds',
-    element: <ProdukGDSPage />
-  },
-  {
-    path: '/master-data/eartag',
-    element: <EartagPage />
-  },
-  {
-    path: '/master-data/persetujuan-ho',
-    element: <PersetujuanHoPage />
-  },
-  {
-    path: '/master-data/persetujuan-feedmil',
-    element: <PersetujuanFeedmilPage />
-  },
-  {
-    path: '/master-data/persetujuan-rph',
-    element: <PersetujuanRphPage />
-  },
-  {
-    path: '/master-data/satuan',
-    element: <SatuanPage />
+    path: '/master-data/klasifikasi-lain-lain',
+    element: <KlasifikasiLainLainPage />
   },
   {
     path: '/master-data/barang',
     element: <BarangPage />
   },
   {
-    path: '/master-data/reseller',
-    element: <MasterResellerPage />
+    path: '/master-data/satuan',
+    element: <SatuanPage />
+  },
+  {
+    path: '/master-data/produk-gds',
+    element: <ProdukGDSPage />
+  },
+
+  // 4. Boning & Daging
+  {
+    path: '/master-data/boning',
+    element: <BoningMasterPage />
+  },
+  {
+    path: '/master-data/daging',
+    element: <DagingMasterPage />
+  },
+
+  // 5. Persetujuan
+  {
+    path: '/master-data/persetujuan-ho',
+    element: <PersetujuanHoPage />
+  },
+  {
+    path: '/master-data/persetujuan-rph',
+    element: <PersetujuanRphPage />
+  },
+  {
+    path: '/master-data/persetujuan-feedmil',
+    element: <PersetujuanFeedmilPage />
+  },
+
+  // 6. Lainnya
+  {
+    path: '/master-data/tarif-dof',
+    element: <TarifDofPage />
   }
 ];
