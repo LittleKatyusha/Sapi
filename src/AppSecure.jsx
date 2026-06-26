@@ -126,6 +126,9 @@ const DetailPenawaranPage = lazy(() => import('./pages/RPH/Penawaran/DetailPenaw
 // RPH Qurban Pages - Lazy loaded
 const StokSapiQurbanPage = lazy(() => import('./pages/RPH/Qurban/StokSapiQurbanPage'));
 
+// RPH Perpindahan Ternak Page - Lazy loaded
+const PerpindahanTernakPage = lazy(() => import('./pages/RPH/Perpindahan/PerpindahanTernakPage'));
+
 // RPH Stok Sapi Page - Lazy loaded
 const StokSapi = lazy(() => import('./pages/RPH/StokSapi/StokSapiPage'));
 const PemberianPakanSapiPage = lazy(() => import('./pages/RPH/StokSapi/PemberianPakanSapiPage'));
@@ -428,6 +431,9 @@ function AppSecure() {
 
               {/* RPH Qurban Routes */}
               <Route path="/rph/stok-sapi-qurban" element={<StokSapiQurbanPage />} />
+
+              {/* RPH Perpindahan Ternak Route */}
+              <Route path="/rph/perpindahan-ternak" element={<PerpindahanTernakPage />} />
 
               {/* HO Feedmil and OVK Routes */}
               <Route path="/ho/pembelian-feedmil" element={<PembelianFeedmilPage />} />

@@ -1,41 +1,4 @@
-import axios from 'axios';
-
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
-
-// Create axios instance with default config
-const api = axios.create({
-    baseURL: API_BASE_URL,
-    timeout: 10000,
-    headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-    }
-});
-
-// Request interceptor to add auth token
-api.interceptors.request.use(
-    (config) => {
-        const token = localStorage.getItem('authToken');
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-    },
-    (error) => Promise.reject(error)
-);
-
-// Response interceptor to handle errors
-api.interceptors.response.use(
-    (response) => response,
-    (error) => {
-        if (error.response?.status === 401) {
-            // Handle unauthorized access
-            localStorage.removeItem('authToken');
-            window.location.href = '/login';
-        }
-        return Promise.reject(error);
-    }
-);
+import httpClient from './httpClient';
 
 class SystemService {
     // =============================================
@@ -45,8 +8,8 @@ class SystemService {
     // Get all users with DataTables parameters
     async getUsers(params = {}) {
         try {
-            const response = await api.get('/system/pegawai/data', { params });
-            return response.data;
+            const response = await httpClient.get('/api/system/pegawai/data', { params });
+            return response;
         } catch (error) {
             console.error('Error fetching users:', error);
             throw error;
@@ -56,8 +19,8 @@ class SystemService {
     // Create new user
     async createUser(data) {
         try {
-            const response = await api.post('/system/pegawai/store', data);
-            return response.data;
+            const response = await httpClient.post('/api/system/pegawai/store', data);
+            return response;
         } catch (error) {
             console.error('Error creating user:', error);
             throw error;
@@ -67,8 +30,8 @@ class SystemService {
     // Update existing user
     async updateUser(data) {
         try {
-            const response = await api.post('/system/pegawai/update', data);
-            return response.data;
+            const response = await httpClient.post('/api/system/pegawai/update', data);
+            return response;
         } catch (error) {
             console.error('Error updating user:', error);
             throw error;
@@ -78,8 +41,8 @@ class SystemService {
     // Delete user
     async deleteUser(pid) {
         try {
-            const response = await api.post('/system/pegawai/hapus', { pid });
-            return response.data;
+            const response = await httpClient.post('/api/system/pegawai/hapus', { pid });
+            return response;
         } catch (error) {
             console.error('Error deleting user:', error);
             throw error;
@@ -89,8 +52,8 @@ class SystemService {
     // Get user detail
     async getUserDetail(pid) {
         try {
-            const response = await api.post('/system/pegawai/detail', { pid });
-            return response.data;
+            const response = await httpClient.post('/api/system/pegawai/detail', { pid });
+            return response;
         } catch (error) {
             console.error('Error getting user detail:', error);
             throw error;
@@ -100,8 +63,8 @@ class SystemService {
     // Reset user password
     async resetUserPassword(pid) {
         try {
-            const response = await api.post('/system/pegawai/reset-password', { pid });
-            return response.data;
+            const response = await httpClient.post('/api/system/pegawai/reset-password', { pid });
+            return response;
         } catch (error) {
             console.error('Error resetting user password:', error);
             throw error;
@@ -111,8 +74,8 @@ class SystemService {
     // Get available roles/jabatan
     async getRoles() {
         try {
-            const response = await api.get('/system/pegawai/jabatan');
-            return response.data;
+            const response = await httpClient.get('/api/system/pegawai/jabatan');
+            return response;
         } catch (error) {
             console.error('Error fetching roles:', error);
             throw error;
@@ -122,8 +85,8 @@ class SystemService {
     // Get user profile image URL
     async getUserImageUrl(pid) {
         try {
-            const response = await api.post('/system/pegawai/foto-profil', { pid });
-            return response.data;
+            const response = await httpClient.post('/api/system/pegawai/foto-profil', { pid });
+            return response;
         } catch (error) {
             console.error('Error getting user image URL:', error);
             throw error;
@@ -137,8 +100,8 @@ class SystemService {
     // Get all permissions with DataTables parameters
     async getPermissions(params = {}) {
         try {
-            const response = await api.get('/system/permissions/data', { params });
-            return response.data;
+            const response = await httpClient.get('/api/system/permissions/data', { params });
+            return response;
         } catch (error) {
             console.error('Error fetching permissions:', error);
             throw error;
@@ -148,8 +111,8 @@ class SystemService {
     // Create new permission
     async createPermission(data) {
         try {
-            const response = await api.post('/system/permissions/store', data);
-            return response.data;
+            const response = await httpClient.post('/api/system/permissions/store', data);
+            return response;
         } catch (error) {
             console.error('Error creating permission:', error);
             throw error;
@@ -159,8 +122,8 @@ class SystemService {
     // Update existing permission
     async updatePermission(data) {
         try {
-            const response = await api.post('/system/permissions/update', data);
-            return response.data;
+            const response = await httpClient.post('/api/system/permissions/update', data);
+            return response;
         } catch (error) {
             console.error('Error updating permission:', error);
             throw error;
@@ -170,8 +133,8 @@ class SystemService {
     // Delete permission
     async deletePermission(pid) {
         try {
-            const response = await api.post('/system/permissions/hapus', { pid });
-            return response.data;
+            const response = await httpClient.post('/api/system/permissions/hapus', { pid });
+            return response;
         } catch (error) {
             console.error('Error deleting permission:', error);
             throw error;
@@ -185,8 +148,8 @@ class SystemService {
     // Get all parameters
     async getParameters(params = {}) {
         try {
-            const response = await api.get('/system/parameter/data', { params });
-            return response.data;
+            const response = await httpClient.get('/api/system/parameter/data', { params });
+            return response;
         } catch (error) {
             console.error('Error fetching parameters:', error);
             throw error;
@@ -196,8 +159,8 @@ class SystemService {
     // Create new parameter
     async createParameter(data) {
         try {
-            const response = await api.post('/system/parameter/store', data);
-            return response.data;
+            const response = await httpClient.post('/api/system/parameter/store', data);
+            return response;
         } catch (error) {
             console.error('Error creating parameter:', error);
             throw error;
@@ -207,8 +170,8 @@ class SystemService {
     // Update existing parameter
     async updateParameter(data) {
         try {
-            const response = await api.post('/system/parameter/update', data);
-            return response.data;
+            const response = await httpClient.post('/api/system/parameter/update', data);
+            return response;
         } catch (error) {
             console.error('Error updating parameter:', error);
             throw error;
@@ -218,8 +181,8 @@ class SystemService {
     // Delete parameter
     async deleteParameter(pid) {
         try {
-            const response = await api.post('/system/parameter/hapus', { pid });
-            return response.data;
+            const response = await httpClient.post('/api/system/parameter/hapus', { pid });
+            return response;
         } catch (error) {
             console.error('Error deleting parameter:', error);
             throw error;
@@ -229,8 +192,8 @@ class SystemService {
     // Get parameters by group
     async getParametersByGroup(group) {
         try {
-            const response = await api.post('/system/parameter/dataByGroup', { group });
-            return response.data;
+            const response = await httpClient.post('/api/system/parameter/dataByGroup', { group });
+            return response;
         } catch (error) {
             console.error('Error fetching parameters by group:', error);
             throw error;
@@ -287,6 +250,48 @@ class SystemService {
             updatedAt: parameter.updated_at
         };
     }
+
+    // =============================================
+    // OFFICE / LOKASI METHODS
+    // =============================================
+
+    async getOffice() {
+        try {
+            const response = await httpClient.get('/api/master/office/data');
+            return {
+                success: true,
+                data: response.data || response,
+            };
+        } catch (error) {
+            console.error('Error fetching office:', error);
+            return {
+                success: false,
+                message: error?.message || 'Gagal mengambil data office',
+                data: [],
+            };
+        }
+    }
+
+    // =============================================
+    // PARAMETER BY GROUP METHODS
+    // =============================================
+
+    async getParameterByGroup(group) {
+        try {
+            const response = await httpClient.post('/api/system/parameter/dataByGroup', { group });
+            return {
+                success: true,
+                data: response.data || response,
+            };
+        } catch (error) {
+            console.error('Error fetching parameter by group:', error);
+            return {
+                success: false,
+                message: error?.message || 'Gagal mengambil data parameter',
+                data: [],
+            };
+        }
+    }
 }
 
-export default SystemService;
+export default new SystemService();

@@ -225,6 +225,7 @@ export const useDynamicMenu = () => {
             'penjualan-sapi-utuh': '/rph/penjualan-sapi-utuh',
             'penawaran': '/rph/penawaran',
             'stok-sapi-qurban': '/rph/stok-sapi-qurban',
+            'perpindahan-ternak': '/rph/perpindahan-ternak',
             'nota-supplier': '/reports/nota-supplier',
             'semua-supplier': '/reports/semua-supplier',
             'pajak': '/reports/pajak',

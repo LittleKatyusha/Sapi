@@ -127,10 +127,8 @@ const PerpindahanTernakPage = () => {
   const totalPages = Math.ceil(totalRecords / pageSize);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/40 to-cyan-50/60">
-      <div className="mx-auto max-w-full space-y-6 p-4 sm:p-6">
-        {/* Header */}
-        <div className="rounded-2xl border border-blue-100 bg-white p-5 shadow-lg sm:p-6">
+    <div className="space-y-5">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 sm:p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex items-start gap-3">
               <div className="rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-600 p-3 text-white">
@@ -299,7 +297,6 @@ const PerpindahanTernakPage = () => {
             </div>
           )}
         </div>
-      </div>
 
       {/* Modal */}
       {modalOpen && (

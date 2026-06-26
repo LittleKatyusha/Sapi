@@ -16,6 +16,7 @@ const PenawaranPage = lazy(() => import('../pages/RPH/Penawaran/PenawaranPage'))
 const AddEditPenawaranPage = lazy(() => import('../pages/RPH/Penawaran/AddEditPenawaranPage'));
 const DetailPenawaranPage = lazy(() => import('../pages/RPH/Penawaran/DetailPenawaranPage'));
 const StokSapiQurbanPage = lazy(() => import('../pages/RPH/Qurban/StokSapiQurbanPage'));
+const PerpindahanTernakPage = lazy(() => import('../pages/RPH/Perpindahan/PerpindahanTernakPage'));
 
 export const rphRoutes = [
   {
@@ -89,5 +90,9 @@ export const rphRoutes = [
   {
     path: '/rph/stok-sapi-qurban',
     element: <StokSapiQurbanPage />
+  },
+  {
+    path: '/rph/perpindahan-ternak',
+    element: <PerpindahanTernakPage />
   }
 ];

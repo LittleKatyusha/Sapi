@@ -115,4 +115,5 @@ export const pageTitleMap = {
   '/rph/penawaran/edit/:pid': 'RPH: Edit Penawaran',
   '/rph/penawaran/detail/:pid': 'RPH: Detail Penawaran',
   '/rph/stok-sapi-qurban': 'RPH: Stok Sapi Qurban',
+  '/rph/perpindahan-ternak': 'RPH: Perpindahan Ternak',
   };
