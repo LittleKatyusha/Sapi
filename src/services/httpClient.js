@@ -78,15 +78,10 @@ const DEFAULT_HEADERS = {
  * Get authentication token from secureStorage (matching useAuthSecure)
  */
 const getAuthToken = () => {
-  // First try the secure storage method used by useAuthSecure
-  try {
-    const stored = localStorage.getItem('token');
-    if (stored) {
-      return JSON.parse(stored);
-    }
-  } catch (e) {
-    // If JSON parsing fails, try as plain string
-    return localStorage.getItem('token');
+  // Get token from localStorage (JWT is a plain string, not JSON)
+  const token = localStorage.getItem('token');
+  if (token && token !== 'cookie-based') {
+    return token;
   }
   
   // Fallback to old keys for backward compatibility

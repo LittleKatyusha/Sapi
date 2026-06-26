@@ -40,10 +40,18 @@ export const useAuthSecure = () => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // Use localStorage directly
+        // Check if user data and token exist
         const storedToken = localStorage.getItem('token');
         const storedUser = JSON.parse(localStorage.getItem('user') || 'null');
         const authStatus = localStorage.getItem('isAuthenticated') === 'true';
+        
+        // Clear invalid token markers from previous sessions
+        if (storedToken === 'cookie-based') {
+          console.log('Clearing stale cookie-based token marker');
+          await clearAuthData();
+          setLoading(false);
+          return;
+        }
         
         if (storedToken && storedUser && authStatus === true) {
           // Token validation handled by backend
@@ -52,7 +60,7 @@ export const useAuthSecure = () => {
           setIsAuthenticated(true);
           setUser(storedUser);
 
-          console.log('Auth restored for user:', storedUser?.id);
+          console.log('Auth restored for user:', storedUser?.pid);
         } else {
           await clearAuthData();
         }
@@ -110,14 +118,15 @@ export const useAuthSecure = () => {
       
       const result = await HttpClient.post(API_ENDPOINTS.AUTH.LOGIN, loginData);
 
-      if (result.data && result.data.token) {
-        const { token, user } = result.data;
+      if (result.data && result.data.success && result.data.user) {
+        const { user, token } = result.data;
         
         // Reset state on success
         setLoginAttempts(0);
         setIsBlocked(false);
         
-        // Store in localStorage
+        // Store user info and token in localStorage (backward compatibility)
+        // Token also sent as httpOnly cookie for enhanced security
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(user));
         localStorage.setItem('isAuthenticated', 'true');
@@ -127,7 +136,7 @@ export const useAuthSecure = () => {
         setUser(user);
         setIsAuthenticated(true);
         
-        console.log('Login success for user:', user.id);
+        console.log('Login success for user:', user.pid);
         
         return { success: true, token, user };
       } else {
@@ -135,7 +144,7 @@ export const useAuthSecure = () => {
         
         return {
           success: false,
-          message: 'Email atau password salah'
+          message: result.data?.message || 'Email atau password salah'
         };
       }
     } catch (error) {
