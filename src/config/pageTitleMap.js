@@ -110,4 +110,9 @@ export const pageTitleMap = {
   '/rph/payment': 'RPH: Payment',
   '/rph/keuangan/penerimaan': 'RPH: Penerimaan Piutang',
   '/rph/keuangan/penerimaan/bayar/:pid': 'RPH: Bayar Piutang',
+  '/rph/penawaran': 'RPH: Penawaran Penjualan',
+  '/rph/penawaran/add': 'RPH: Buat Penawaran',
+  '/rph/penawaran/edit/:pid': 'RPH: Edit Penawaran',
+  '/rph/penawaran/detail/:pid': 'RPH: Detail Penawaran',
+  '/rph/stok-sapi-qurban': 'RPH: Stok Sapi Qurban',
   };

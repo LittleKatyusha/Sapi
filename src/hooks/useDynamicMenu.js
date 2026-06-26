@@ -223,6 +223,8 @@ export const useDynamicMenu = () => {
             'bank': '/master-data/bank',
             'parameter': '/master-data/parameter',
             'penjualan-sapi-utuh': '/rph/penjualan-sapi-utuh',
+            'penawaran': '/rph/penawaran',
+            'stok-sapi-qurban': '/rph/stok-sapi-qurban',
             'nota-supplier': '/reports/nota-supplier',
             'semua-supplier': '/reports/semua-supplier',
             'pajak': '/reports/pajak',

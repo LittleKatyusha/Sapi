@@ -118,6 +118,14 @@ const PenerimaanRphPage = lazy(() => import('./pages/RPH/Keuangan/Penerimaan/Pen
 const BayarPage = lazy(() => import('./pages/RPH/Keuangan/Penerimaan/Bayar/BayarPage'));
 const PengirimanPage = lazy(() => import('./pages/RPH/PenjualanSapiUtuh/Pengiriman/PengirimanPage'));
 
+// RPH Penawaran Pages - Lazy loaded
+const PenawaranPage = lazy(() => import('./pages/RPH/Penawaran/PenawaranPage'));
+const AddEditPenawaranPage = lazy(() => import('./pages/RPH/Penawaran/AddEditPenawaranPage'));
+const DetailPenawaranPage = lazy(() => import('./pages/RPH/Penawaran/DetailPenawaranPage'));
+
+// RPH Qurban Pages - Lazy loaded
+const StokSapiQurbanPage = lazy(() => import('./pages/RPH/Qurban/StokSapiQurbanPage'));
+
 // RPH Stok Sapi Page - Lazy loaded
 const StokSapi = lazy(() => import('./pages/RPH/StokSapi/StokSapiPage'));
 const PemberianPakanSapiPage = lazy(() => import('./pages/RPH/StokSapi/PemberianPakanSapiPage'));
@@ -411,6 +419,15 @@ function AppSecure() {
 
               {/* RPH Penjualan Sapi Utuh Pengiriman Route */}
               <Route path="/rph/penjualan-sapi-utuh/pengiriman/:pid" element={<PengirimanPage />} />
+
+              {/* RPH Penawaran Routes */}
+              <Route path="/rph/penawaran" element={<PenawaranPage />} />
+              <Route path="/rph/penawaran/add" element={<AddEditPenawaranPage />} />
+              <Route path="/rph/penawaran/edit/:pid" element={<AddEditPenawaranPage />} />
+              <Route path="/rph/penawaran/detail/:pid" element={<DetailPenawaranPage />} />
+
+              {/* RPH Qurban Routes */}
+              <Route path="/rph/stok-sapi-qurban" element={<StokSapiQurbanPage />} />
 
               {/* HO Feedmil and OVK Routes */}
               <Route path="/ho/pembelian-feedmil" element={<PembelianFeedmilPage />} />

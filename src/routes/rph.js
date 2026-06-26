@@ -12,6 +12,10 @@ const DetailPenjualanSapiUtuhPage = lazy(() => import('../pages/RPH/PenjualanSap
 const PenerimaanRphPage = lazy(() => import('../pages/RPH/Keuangan/Penerimaan/PenerimaanRphPage'));
 const BayarPage = lazy(() => import('../pages/RPH/Keuangan/Penerimaan/Bayar/BayarPage'));
 const PengirimanPage = lazy(() => import('../pages/RPH/PenjualanSapiUtuh/Pengiriman/PengirimanPage'));
+const PenawaranPage = lazy(() => import('../pages/RPH/Penawaran/PenawaranPage'));
+const AddEditPenawaranPage = lazy(() => import('../pages/RPH/Penawaran/AddEditPenawaranPage'));
+const DetailPenawaranPage = lazy(() => import('../pages/RPH/Penawaran/DetailPenawaranPage'));
+const StokSapiQurbanPage = lazy(() => import('../pages/RPH/Qurban/StokSapiQurbanPage'));
 
 export const rphRoutes = [
   {
@@ -65,5 +69,25 @@ export const rphRoutes = [
   {
     path: '/rph/penjualan-sapi-utuh/pengiriman/:pid',
     element: <PengirimanPage />
+  },
+  {
+    path: '/rph/penawaran',
+    element: <PenawaranPage />
+  },
+  {
+    path: '/rph/penawaran/add',
+    element: <AddEditPenawaranPage />
+  },
+  {
+    path: '/rph/penawaran/edit/:pid',
+    element: <AddEditPenawaranPage />
+  },
+  {
+    path: '/rph/penawaran/detail/:pid',
+    element: <DetailPenawaranPage />
+  },
+  {
+    path: '/rph/stok-sapi-qurban',
+    element: <StokSapiQurbanPage />
   }
 ];
