@@ -9,8 +9,8 @@ const PersediaanHasilPotongRphPage = lazy(() => import('../pages/RPH/Persediaan/
 const PenjualanSapiUtuhPage = lazy(() => import('../pages/RPH/PenjualanSapiUtuh/PenjualanSapiUtuhPage'));
 const AddPenjualanSapiUtuhPage = lazy(() => import('../pages/RPH/PenjualanSapiUtuh/AddPenjualanSapiUtuhPageV2'));
 const DetailPenjualanSapiUtuhPage = lazy(() => import('../pages/RPH/PenjualanSapiUtuh/DetailPenjualanSapiUtuhPage'));
-const PengeluaranRphPage = lazy(() => import('../pages/RPH/Keuangan/Pengeluaran/PengeluaranRphPage'));
-const BayarPage = lazy(() => import('../pages/RPH/Keuangan/Pengeluaran/Bayar/BayarPage'));
+const PenerimaanRphPage = lazy(() => import('../pages/RPH/Keuangan/Penerimaan/PenerimaanRphPage'));
+const BayarPage = lazy(() => import('../pages/RPH/Keuangan/Penerimaan/Bayar/BayarPage'));
 const PengirimanPage = lazy(() => import('../pages/RPH/PenjualanSapiUtuh/Pengiriman/PengirimanPage'));
 
 export const rphRoutes = [
@@ -55,11 +55,11 @@ export const rphRoutes = [
     element: <AddPenjualanSapiUtuhPage />
   },
   {
-    path: '/rph/keuangan/pengeluaran',
-    element: <PengeluaranRphPage />
+    path: '/rph/keuangan/penerimaan',
+    element: <PenerimaanRphPage />
   },
   {
-    path: '/rph/keuangan/pengeluaran/bayar/:pid',
+    path: '/rph/keuangan/penerimaan/bayar/:pid',
     element: <BayarPage />
   },
   {

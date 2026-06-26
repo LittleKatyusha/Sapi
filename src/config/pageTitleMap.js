@@ -108,4 +108,6 @@ export const pageTitleMap = {
   '/rph/hutang': 'RPH: Hutang ke HO',
   '/rph/piutang': 'RPH: Piutang Pedagang',
   '/rph/payment': 'RPH: Payment',
+  '/rph/keuangan/penerimaan': 'RPH: Penerimaan Piutang',
+  '/rph/keuangan/penerimaan/bayar/:pid': 'RPH: Bayar Piutang',
   };

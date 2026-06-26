@@ -117,7 +117,7 @@ const SummaryCard = ({ label, value, icon: Icon, color }) => {
   );
 };
 
-const PengeluaranRphPage = () => {
+const PenerimaanRphPage = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('belum-lunas');
   const [jenisSelected, setJenisSelected] = useState(false);
@@ -298,7 +298,7 @@ const PengeluaranRphPage = () => {
         <ActionMenuCell
           row={row}
           onDetail={(r) => navigate(`/rph/penjualan-sapi-utuh/detail/${r.pid}`)}
-          onBayar={(r) => navigate(`/rph/keuangan/pengeluaran/bayar/${r.pid}`)}
+          onBayar={(r) => navigate(`/rph/keuangan/penerimaan/bayar/${r.pid}`)}
         />
       ),
     },
@@ -321,7 +321,7 @@ const PengeluaranRphPage = () => {
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 flex items-center gap-3">
                 <Wallet className="w-8 h-8 text-emerald-600" />
-                Pengeluaran
+                Penerimaan
               </h1>
               <p className="text-gray-500 text-sm mt-1">Daftar piutang & pelunasan penjualan sapi</p>
             </div>
@@ -482,4 +482,4 @@ const PengeluaranRphPage = () => {
   );
 };
 
-export default PengeluaranRphPage;
+export default PenerimaanRphPage;
