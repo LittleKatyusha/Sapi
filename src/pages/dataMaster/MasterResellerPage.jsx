@@ -1,9 +1,10 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import DataTable from 'react-data-table-component';
-import { PlusCircle, Search, Users, MoreVertical, Edit2, Trash2 } from 'lucide-react';
+import { PlusCircle, Search, Users } from 'lucide-react';
 
 import useReseller from '../../hooks/useReseller';
 import ResellerFormModal from './reseller/ResellerFormModal';
+import ResellerActionButton from './reseller/ResellerActionButton';
 import DeleteConfirmationModal from '../../components/shared/modals/DeleteConfirmationModal';
 import Notification from '../../components/shared/Notification';
 
@@ -12,7 +13,6 @@ const MasterResellerPage = () => {
   const [editData, setEditData] = useState(null);
   const [deleteData, setDeleteData] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [openMenuId, setOpenMenuId] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [notification, setNotification] = useState({ isVisible: false, type: 'info', message: '' });
 
@@ -91,46 +91,14 @@ const MasterResellerPage = () => {
     );
   }, [tableData, searchTerm]);
 
-  const ActionButton = ({ item }) => {
-    const isOpen = openMenuId === item.pid;
+  const handleEditItem = useCallback((item) => {
+    setEditData(item);
+    setShowModal(true);
+  }, []);
 
-    return (
-      <div className="relative">
-        <button
-          onClick={() => setOpenMenuId(isOpen ? null : item.pid)}
-          className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
-        >
-          <MoreVertical className="w-4 h-4 text-gray-600" />
-        </button>
-
-        {isOpen && (
-          <div className="absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
-            <button
-              onClick={() => {
-                setEditData(item);
-                setShowModal(true);
-                setOpenMenuId(null);
-              }}
-              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 text-gray-700"
-            >
-              <Edit2 className="w-4 h-4" />
-              Edit
-            </button>
-            <button
-              onClick={() => {
-                setDeleteData(item);
-                setOpenMenuId(null);
-              }}
-              className="w-full px-4 py-2 text-left text-sm hover:bg-red-50 flex items-center gap-2 text-red-600"
-            >
-              <Trash2 className="w-4 h-4" />
-              Hapus
-            </button>
-          </div>
-        )}
-      </div>
-    );
-  };
+  const handleDeleteItem = useCallback((item) => {
+    setDeleteData(item);
+  }, []);
 
   const columns = useMemo(() => [
     {
@@ -172,7 +140,6 @@ const MasterResellerPage = () => {
       selector: (row) => row.status,
       sortable: true,
       width: '100px',
-      center: true,
       cell: (row) => (
         <span
           className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -187,13 +154,16 @@ const MasterResellerPage = () => {
     },
     {
       name: 'Aksi',
-      center: true,
       width: '80px',
-      allowOverflow: true,
-      ignoreRowClick: true,
-      cell: (row) => <ActionButton item={row} />,
+      cell: (row) => (
+        <ResellerActionButton
+          item={row}
+          onEdit={handleEditItem}
+          onDelete={handleDeleteItem}
+        />
+      ),
     },
-  ], []);
+  ], [handleEditItem, handleDeleteItem]);
 
   const customTableStyles = {
     headRow: {

@@ -1,12 +1,135 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import DataTable from 'react-data-table-component';
-import { PlusCircle, Search, ShoppingCart, Eye, Edit2, CheckCircle, XCircle, MoreVertical, Truck, Beef } from 'lucide-react';
+import { PlusCircle, Search, ShoppingCart, Eye, Edit2, CheckCircle, XCircle, MoreVertical, Truck, Beef, ChevronDown, ChevronUp, Banknote, CreditCard, Package, Calendar, MapPin, Phone, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import usePenjualanSapiUtuh from '../../../hooks/usePenjualanSapiUtuh';
 import DeleteConfirmationModal from '../../../components/shared/modals/DeleteConfirmationModal';
 import Notification from '../../../components/shared/Notification';
+
+// Expandable row component for detailed view
+const ExpandableRow = ({ data }) => {
+  const grandTotal = (data.total_harga || 0) + (data.biaya_kirim || 0) + (data.biaya_potong || 0);
+  const sisa = data.sisa_pembayaran || 0;
+
+  return (
+    <div className="bg-slate-50/80 border-b border-gray-100">
+      <div className="p-5 grid grid-cols-1 lg:grid-cols-3 gap-5 max-w-[1400px]">
+        {/* Rincian Harga */}
+        <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+          <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+            <Package className="w-3.5 h-3.5" /> Rincian Harga
+          </h4>
+          <div className="space-y-2.5">
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-gray-500">Harga Sapi</span>
+              <span className="font-semibold text-gray-800">Rp {(data.total_harga || 0).toLocaleString('id-ID')}</span>
+            </div>
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-gray-500">Biaya Kirim</span>
+              <span className="font-medium text-gray-600">Rp {(data.biaya_kirim || 0).toLocaleString('id-ID')}</span>
+            </div>
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-gray-500">Biaya Potong</span>
+              <span className="font-medium text-gray-600">Rp {(data.biaya_potong || 0).toLocaleString('id-ID')}</span>
+            </div>
+            <div className="border-t border-gray-100 pt-2.5 flex justify-between items-center">
+              <span className="text-sm font-bold text-gray-700">Grand Total</span>
+              <span className="text-base font-bold text-emerald-600">Rp {grandTotal.toLocaleString('id-ID')}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Pembayaran */}
+        <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+          <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+            <Banknote className="w-3.5 h-3.5" /> Pembayaran
+          </h4>
+          <div className="space-y-2.5">
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-gray-500">Metode</span>
+              <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold ${
+                data.metode_pembayaran === 'transfer'
+                  ? 'bg-violet-50 text-violet-700'
+                  : data.metode_pembayaran === 'tunai'
+                  ? 'bg-emerald-50 text-emerald-700'
+                  : 'bg-gray-50 text-gray-500'
+              }`}>
+                {data.metode_pembayaran === 'transfer' ? 'Transfer' : data.metode_pembayaran === 'tunai' ? 'Tunai' : '—'}
+              </span>
+            </div>
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-gray-500">Nominal Dibayar</span>
+              <span className="font-semibold text-emerald-600">Rp {(data.nominal_pembayaran || 0).toLocaleString('id-ID')}</span>
+            </div>
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-gray-500">Sisa Pembayaran</span>
+              <span className={`font-bold ${sisa > 0 ? 'text-red-500' : 'text-emerald-600'}`}>
+                Rp {sisa.toLocaleString('id-ID')}
+              </span>
+            </div>
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-gray-500">Tipe Penjualan</span>
+              <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold ${
+                data.tipe_penjualan === 'tunai'
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                  : 'bg-sky-50 text-sky-700 border border-sky-100'
+              }`}>
+                {data.tipe_penjualan?.toUpperCase()}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Info Tambahan */}
+        <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+          <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+            <MapPin className="w-3.5 h-3.5" /> Info Pengiriman & Lainnya
+          </h4>
+          <div className="space-y-2.5">
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-gray-500">Status Pengiriman</span>
+              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                data.status_pengiriman === 'sudah_diterima' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
+                data.status_pengiriman === 'sudah_berangkat' ? 'bg-sky-50 text-sky-700 border border-sky-100' :
+                data.status_pengiriman === 'return' ? 'bg-red-50 text-red-700 border border-red-100' :
+                'bg-gray-50 text-gray-500 border border-gray-200'
+              }`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${
+                  data.status_pengiriman === 'sudah_diterima' ? 'bg-emerald-500' :
+                  data.status_pengiriman === 'sudah_berangkat' ? 'bg-sky-500' :
+                  data.status_pengiriman === 'return' ? 'bg-red-500' : 'bg-gray-400'
+                }`} />
+                {data.status_pengiriman === 'sudah_diterima' ? 'Diterima' :
+                 data.status_pengiriman === 'sudah_berangkat' ? 'Berangkat' :
+                 data.status_pengiriman === 'return' ? 'Return' : 'Belum'}
+              </span>
+            </div>
+            {data.tanggal_kirim && (
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-gray-500">Tanggal Kirim</span>
+                <span className="font-medium text-gray-700">{data.tanggal_kirim}</span>
+              </div>
+            )}
+            {data.alamat_pengiriman && (
+              <div className="flex justify-between items-start text-sm">
+                <span className="text-gray-500 shrink-0">Alamat</span>
+                <span className="font-medium text-gray-700 text-right text-xs leading-relaxed max-w-[200px]">{data.alamat_pengiriman}</span>
+              </div>
+            )}
+            {data.keterangan && (
+              <div className="flex justify-between items-start text-sm">
+                <span className="text-gray-500 shrink-0">Keterangan</span>
+                <span className="font-medium text-gray-700 text-right text-xs leading-relaxed max-w-[200px]">{data.keterangan}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // Standalone action menu cell with portal to escape table overflow clipping
 const ActionMenuCell = ({ row, setDeleteData, handleConfirm, handleCancel }) => {
@@ -116,6 +239,7 @@ const PenjualanSapiUtuhPage = () => {
   const [notification, setNotification] = useState({ isVisible: false, type: 'info', message: '' });
   const [tableData, setTableData] = useState([]);
   const [statusFilter, setStatusFilter] = useState('');
+  const [rowExpanded, setRowExpanded] = useState({});
 
   const { loading, error, fetchData, remove, confirm, cancel } = usePenjualanSapiUtuh();
 
@@ -191,7 +315,21 @@ const PenjualanSapiUtuhPage = () => {
     {
       name: '',
       center: true,
-      width: '50px',
+      width: '40px',
+      cell: (row) => (
+        <div className="flex items-center justify-center">
+          {rowExpanded[row.pid] ? (
+            <ChevronUp className="w-4 h-4 text-emerald-500" />
+          ) : (
+            <ChevronDown className="w-4 h-4 text-gray-400" />
+          )}
+        </div>
+      ),
+    },
+    {
+      name: '',
+      center: true,
+      width: '56px',
       cell: (row) => (
         <ActionMenuCell
           row={row}
@@ -205,24 +343,23 @@ const PenjualanSapiUtuhPage = () => {
       name: 'Transaksi',
       selector: (row) => row.no_transaksi,
       sortable: true,
-      minWidth: '220px',
+      minWidth: '200px',
       cell: (row) => (
         <div className="flex items-center gap-3 py-1">
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-green-600 flex items-center justify-center text-white text-sm font-bold shrink-0 shadow-sm">
             {(row.pic || '?').charAt(0).toUpperCase()}
           </div>
           <div className="min-w-0">
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">No.</span>
+            <div className="flex items-center gap-2">
               <span className="inline-block bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-md text-[11px] font-bold tracking-wide border border-indigo-100">
                 {row.no_transaksi}
               </span>
             </div>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Tgl</span>
+            <div className="flex items-center gap-1.5 mt-1">
+              <Calendar className="w-3 h-3 text-gray-400" />
               <span className="text-xs text-gray-500">{row.tanggal_transaksi}</span>
-              <span className="text-gray-300">|</span>
-              <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">PIC</span>
+              <span className="text-gray-300 mx-1">·</span>
+              <User className="w-3 h-3 text-gray-400" />
               <span className="text-xs text-gray-500">{row.pic || '-'}</span>
             </div>
           </div>
@@ -233,7 +370,7 @@ const PenjualanSapiUtuhPage = () => {
       name: 'Jenis',
       selector: (row) => row.jenis_transaksi,
       sortable: true,
-      width: '90px',
+      width: '85px',
       center: true,
       cell: (row) => {
         const j = {
@@ -242,7 +379,7 @@ const PenjualanSapiUtuhPage = () => {
         };
         const c = j[row.jenis_transaksi] || j.sapi_utuh;
         return (
-          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${c.bg} ${c.text} border ${c.border}`}>
+          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold ${c.bg} ${c.text} border ${c.border}`}>
             {c.label}
           </span>
         );
@@ -252,32 +389,23 @@ const PenjualanSapiUtuhPage = () => {
       name: 'Pihak',
       selector: (row) => row.nama_pembeli,
       sortable: true,
-      minWidth: '140px',
+      minWidth: '180px',
       cell: (row) => {
         const penjualLabels = { cv_puput: 'CV Puput', reseller: 'Reseller' };
         return (
           <div className="py-1">
             <div className="flex items-center gap-1.5">
-              <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wider shrink-0">Pembeli</span>
               <span className="text-sm font-semibold text-gray-800 truncate">{row.nama_pembeli || '-'}</span>
             </div>
-            <div className="flex items-center gap-1.5 mt-1">
+            <div className="flex items-center gap-2 mt-1.5">
               {row.reseller ? (
-                <>
-                  <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wider shrink-0">Reseller</span>
-                  <span className="text-[11px] text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100 truncate max-w-[100px]">
-                    {row.reseller.nama}
-                  </span>
-                </>
+                <span className="text-[11px] text-gray-500 bg-gray-50 px-2 py-0.5 rounded border border-gray-100 truncate max-w-[120px]">
+                  {row.reseller.nama}
+                </span>
               ) : (
-                <>
-                  <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wider shrink-0">Reseller</span>
-                  <span className="text-[11px] text-gray-300 italic">—</span>
-                </>
+                <span className="text-[11px] text-gray-300 italic">—</span>
               )}
-              <span className="text-gray-300">|</span>
-              <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wider shrink-0">Dari</span>
-              <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${
+              <span className={`text-[10px] px-2 py-0.5 rounded-md font-semibold ${
                 row.penjual === 'reseller' ? 'bg-amber-50 text-amber-600 border border-amber-100' : 'bg-violet-50 text-violet-600 border border-violet-100'
               }`}>
                 {penjualLabels[row.penjual] || row.penjual}
@@ -288,82 +416,26 @@ const PenjualanSapiUtuhPage = () => {
       },
     },
     {
-      name: 'Detail',
-      selector: (row) => row.total_harga,
+      name: 'Total',
+      selector: (row) => (row.total_harga || 0) + (row.biaya_kirim || 0) + (row.biaya_potong || 0),
       sortable: true,
-      minWidth: '160px',
+      minWidth: '150px',
       right: true,
       cell: (row) => {
         const grandTotal = (row.total_harga || 0) + (row.biaya_kirim || 0) + (row.biaya_potong || 0);
         return (
-          <div className="text-right py-1 space-y-1.5">
-            {/* Row 0: Sapi count */}
-            <div className="flex items-center justify-end">
+          <div className="text-right py-1">
+            <div className="text-base font-bold text-gray-900">Rp {grandTotal.toLocaleString('id-ID')}</div>
+            <div className="flex items-center justify-end gap-1.5 mt-1">
               <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-red-50 text-red-700 px-2 py-0.5 rounded-full border border-red-100">
                 <Beef className="w-3 h-3" />
                 {row.jumlah_ekor || 0} Ekor
               </span>
-            </div>
-            {/* Row 1: Total + Costs + Grand Total */}
-            <div className="flex items-center justify-end gap-2">
-              <span className="text-[10px] text-gray-400">Harga Sapi <span className="text-gray-700 font-semibold">Rp {row.total_harga?.toLocaleString('id-ID')}</span></span>
-              <span className="text-gray-300">|</span>
-              <span className="text-[10px] text-gray-400">Kirim <span className="text-gray-500 font-medium">Rp {row.biaya_kirim?.toLocaleString('id-ID') || 0}</span></span>
-              <span className="text-gray-300">|</span>
-              <span className="text-[10px] text-gray-400">Potong <span className="text-gray-500 font-medium">Rp {row.biaya_potong?.toLocaleString('id-ID') || 0}</span></span>
-              <span className="text-gray-300">|</span>
-              <span className="text-[10px] text-gray-500 font-bold">Grand <span className="text-gray-800 font-bold">Rp {grandTotal.toLocaleString('id-ID')}</span></span>
-            </div>
-            {/* Row 2: Payment method + Nominal + Sisa */}
-            <div className="flex items-center justify-end gap-3">
-              <span className="text-[10px] text-gray-400">{row.metode_pembayaran ? (row.metode_pembayaran === 'transfer' ? 'Transfer' : 'Tunai') : 'Bayar'} <span className="text-emerald-500 font-medium">Rp {row.nominal_pembayaran?.toLocaleString('id-ID') || 0}</span></span>
-              <span className="text-gray-300">|</span>
-              <span className="text-[10px] text-gray-400">Sisa <span className={`font-medium ${(row.sisa_pembayaran || 0) > 0 ? 'text-red-500' : 'text-gray-500'}`}>Rp {row.sisa_pembayaran?.toLocaleString('id-ID') || 0}</span></span>
-            </div>
-          </div>
-        );
-      },
-    },
-    {
-      name: 'Tipe / Bayar',
-      selector: (row) => row.tipe_penjualan,
-      sortable: true,
-      width: '260px',
-      center: true,
-      cell: (row) => {
-        const bayarConfigs = {
-          lunas: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-100', label: 'Lunas' },
-          dp: { bg: 'bg-sky-50', text: 'text-sky-700', border: 'border-sky-100', label: 'DP' },
-          belum_bayar: { bg: 'bg-gray-50', text: 'text-gray-500', border: 'border-gray-200', label: 'Belum' },
-        };
-        const b = bayarConfigs[row.status_pembayaran] || bayarConfigs.belum_bayar;
-        const metodeLabel = row.metode_pembayaran === 'transfer' ? 'Transfer' : row.metode_pembayaran === 'tunai' ? 'Tunai' : null;
-        return (
-          <div className="flex items-center justify-center gap-3 py-1">
-            <div className="flex flex-col items-center gap-0.5">
-              <span className="text-[9px] text-gray-400">Tipe</span>
-              <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold ${
-                row.tipe_penjualan === 'tunai'
-                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-                  : 'bg-sky-50 text-sky-700 border border-sky-100'
-              }`}>
-                {row.tipe_penjualan?.toUpperCase()}
+              <span className="text-gray-300">·</span>
+              <span className="text-[10px] text-gray-400">
+                Sisa <span className={`font-semibold ${(row.sisa_pembayaran || 0) > 0 ? 'text-red-500' : 'text-emerald-600'}`}>Rp {(row.sisa_pembayaran || 0).toLocaleString('id-ID')}</span>
               </span>
             </div>
-            <div className="flex flex-col items-center gap-0.5">
-              <span className="text-[9px] text-gray-400">Bayar</span>
-              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${b.bg} ${b.text} border ${b.border}`}>
-                {b.label}
-              </span>
-            </div>
-            {metodeLabel && (
-              <div className="flex flex-col items-center gap-0.5">
-                <span className="text-[9px] text-gray-400">Metode</span>
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-50 text-violet-700 border border-violet-100">
-                  {metodeLabel}
-                </span>
-              </div>
-            )}
           </div>
         );
       },
@@ -372,46 +444,35 @@ const PenjualanSapiUtuhPage = () => {
       name: 'Status',
       selector: (row) => row.status_transaksi,
       sortable: true,
-      width: '125px',
+      width: '180px',
       center: true,
       cell: (row) => {
-        const configs = {
+        const txConfigs = {
           draft: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-100', dot: 'bg-amber-400', label: 'Draft' },
           confirmed: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-100', dot: 'bg-emerald-400', label: 'Confirmed' },
           cancelled: { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-100', dot: 'bg-red-400', label: 'Batal' },
         };
-        const c = configs[row.status_transaksi] || configs.draft;
-        return (
-          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold ${c.bg} ${c.text} border ${c.border}`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
-            {c.label}
-          </span>
-        );
-      },
-    },
-    {
-      name: 'Kirim',
-      selector: (row) => row.status_pengiriman,
-      sortable: true,
-      width: '120px',
-      center: true,
-      cell: (row) => {
-        const k = {
-          belum_berangkat: { bg: 'bg-gray-50', text: 'text-gray-500', border: 'border-gray-200', dot: 'bg-gray-400', label: 'Belum' },
-          sudah_berangkat: { bg: 'bg-sky-50', text: 'text-sky-700', border: 'border-sky-100', dot: 'bg-sky-500', label: 'Berangkat' },
-          sudah_diterima: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-100', dot: 'bg-emerald-500', label: 'Diterima' },
-          return: { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-100', dot: 'bg-red-500', label: 'Return' },
+        const bayarConfigs = {
+          lunas: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-100', label: 'Lunas' },
+          dp: { bg: 'bg-sky-50', text: 'text-sky-700', border: 'border-sky-100', label: 'DP' },
+          belum_bayar: { bg: 'bg-gray-50', text: 'text-gray-500', border: 'border-gray-200', label: 'Belum' },
         };
-        const c = k[row.status_pengiriman] || k.belum_berangkat;
+        const tx = txConfigs[row.status_transaksi] || txConfigs.draft;
+        const by = bayarConfigs[row.status_pembayaran] || bayarConfigs.belum_bayar;
         return (
-          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${c.bg} ${c.text} border ${c.border}`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
-            {c.label}
-          </span>
+          <div className="flex flex-col items-center gap-1 py-1">
+            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${tx.bg} ${tx.text} border ${tx.border}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${tx.dot}`} />
+              {tx.label}
+            </span>
+            <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${by.bg} ${by.text} border ${by.border}`}>
+              {by.label}
+            </span>
+          </div>
         );
       },
     },
-  ], [handleConfirm, handleCancel]);
+  ], [handleConfirm, handleCancel, rowExpanded]);
 
   const customTableStyles = {
     table: {
@@ -441,7 +502,8 @@ const PenjualanSapiUtuhPage = () => {
       style: {
         fontSize: '14px',
         backgroundColor: '#ffffff',
-        minHeight: '64px',
+        minHeight: '56px',
+        cursor: 'pointer',
         '&:hover': {
           backgroundColor: '#F8FAFC',
         },
@@ -449,7 +511,12 @@ const PenjualanSapiUtuhPage = () => {
     },
     cells: {
       style: {
-        padding: '12px 16px',
+        padding: '10px 16px',
+      },
+    },
+    expandableRows: {
+      style: {
+        backgroundColor: '#F8FAFC',
       },
     },
     pagination: {
@@ -469,8 +536,8 @@ const PenjualanSapiUtuhPage = () => {
   }), [tableData]);
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
-      <div className="max-w-[1200px] mx-auto space-y-6">
+    <div className="min-h-screen bg-slate-50 p-4 sm:p-6">
+      <div className="max-w-[1600px] mx-auto space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
@@ -560,6 +627,13 @@ const PenjualanSapiUtuhPage = () => {
             paginationRowsPerPageOptions={[10, 15, 25, 50]}
             highlightOnHover
             responsive
+            expandableRows
+            expandableRowsComponent={({ data }) => <ExpandableRow data={data} />}
+            expandOnRowClicked
+            expandableRowExpanded={(row) => rowExpanded[row.pid]}
+            onRowExpandToggled={(expanded, row) => {
+              setRowExpanded((prev) => ({ ...prev, [row.pid]: expanded }));
+            }}
             noDataComponent={
               <div className="py-16 text-center">
                 <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
