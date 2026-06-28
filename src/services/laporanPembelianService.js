@@ -393,6 +393,15 @@ class LaporanPembelianService {
   }
 
   /**
+   * Download PDF report for pembelian lain-lain
+   * @param {string} id - ID pembelian lain-lain
+   * @returns {Promise} - Blob response
+   */
+  static async downloadReportNotaLainLain(id) {
+    return await this.downloadPdfReport('nota-lain-lain', { id });
+  }
+
+  /**
    * Download PDF report for all suppliers
    * @param {string} startDate - Start date (YYYY-MM-DD)
    * @param {string} endDate - End date (YYYY-MM-DD)

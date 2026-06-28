@@ -1,7 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import HttpClient from '../../../../services/httpClient';
 import { API_ENDPOINTS, API_BASE_URL } from '../../../../config/api';
-import useJenisPembelianLainLain from './useJenisPembelianLainLain';
 
 const usePembelianLainLain = () => {
     const [pembelian, setPembelian] = useState([]);
@@ -13,15 +12,23 @@ const usePembelianLainLain = () => {
     const [searchError, setSearchError] = useState(null);
     const [deleteLoading, setDeleteLoading] = useState(null);
 
-    // Get jenis pembelian options for mapping
-    const { jenisPembelianOptions } = useJenisPembelianLainLain();
-
     // Server-side pagination state
     const [serverPagination, setServerPagination] = useState({
         currentPage: 1,
         totalPages: 1,
         totalItems: 0,
         perPage: 10
+    });
+
+    // Advanced filters state
+    const [advancedFilters, setAdvancedFilters] = useState({
+        nota_sistem: '',
+        nota: '',
+        nama_supplier: '',
+        plat_nomor: '',
+        jenis_pembelian: '',
+        startDate: '',
+        endDate: ''
     });
 
     // API stats state
@@ -31,53 +38,62 @@ const usePembelianLainLain = () => {
     });
 
     // Fetch pembelian Lain-Lain data from API
-    const fetchPembelian = useCallback(async (page = 1, perPage = null, search = null, filter = null, isSearchRequest = false, forceRefresh = false) => {
+    const fetchPembelian = useCallback(async (page = 1, perPage = null, search = null, filter = null, isSearchRequest = false, forceRefresh = false, filters = null) => {
+        console.log('Lain-Lain Hook: fetchPembelian called with params:', { page, perPage, search, isSearchRequest, forceRefresh, filters });
         setLoading(true);
         setError(null);
         setSearchError(null);
-        
+
         if (isSearchRequest) {
             setIsSearching(true);
         }
-        
+
         try {
             // Build DataTable request parameters similar to backend expectation
             const currentPage = page || serverPagination.currentPage;
             const currentPerPage = perPage || serverPagination.perPage;
             const currentSearch = search !== null ? search : searchTerm;
-            
-            const params = {
-                draw: 1,
-                start: (currentPage - 1) * currentPerPage,
-                length: currentPerPage,
-                'search[value]': currentSearch || '',
-                'search[regex]': false,
-                'order[0][column]': 0,
-                'order[0][dir]': 'desc'
-            };
+            const activeFilters = filters || advancedFilters;
 
-            // Call real API endpoint for Lain-Lain data
-            // Add cache-busting parameter when forceRefresh is true
-            const finalParams = forceRefresh ? { ...params, _t: Date.now() } : params;
-            const responseData = await HttpClient.get(`${API_ENDPOINTS.HO.LAINLAIN.PEMBELIAN}/data`, {
-                params: finalParams
+            const params = new URLSearchParams({
+                draw: '1',
+                start: ((currentPage - 1) * currentPerPage).toString(),
+                length: currentPerPage.toString(),
+                'search[value]': currentSearch || '',
+                'order[0][column]': '3', // tgl_masuk column
+                'order[0][dir]': 'desc'
             });
-            
+
+            // Add advanced filters
+            if (activeFilters?.nota_sistem) params.append('filter_nota_sistem', activeFilters.nota_sistem);
+            if (activeFilters?.nota) params.append('filter_nota', activeFilters.nota);
+            if (activeFilters?.nama_supplier) params.append('filter_nama_supplier', activeFilters.nama_supplier);
+            if (activeFilters?.plat_nomor) params.append('filter_plat_nomor', activeFilters.plat_nomor);
+            if (activeFilters?.jenis_pembelian) params.append('filter_jenis_pembelian', activeFilters.jenis_pembelian);
+            if (activeFilters?.startDate) params.append('start_date', activeFilters.startDate);
+            if (activeFilters?.endDate) params.append('end_date', activeFilters.endDate);
+
+            // Add cache-busting parameter when forceRefresh is true
+            const finalParams = forceRefresh ? `${params}&_t=${Date.now()}` : params;
+            const responseData = await HttpClient.get(`${API_ENDPOINTS.HO.LAINLAIN.PEMBELIAN}/data?${finalParams}`);
+
             if (responseData.recordsTotal !== undefined) {
                 // DataTable response format
                 const processedData = responseData.data.map(item => ({
                     ...item,
-                    encryptedPid: item.pid || item.id, // Use backend encrypted ID
+                    id: item.pid, // Use backend encrypted ID
+                    encryptedPid: item.pid || item.id,
                     satuan: 'item' // Default unit for Lain-Lain
                 }));
 
                 setPembelian(processedData);
-                
+
                 // Update pagination state
                 setServerPagination({
                     currentPage: currentPage,
                     totalPages: Math.ceil(responseData.recordsFiltered / currentPerPage),
                     totalItems: responseData.recordsFiltered,
+                    recordsTotal: responseData.recordsTotal,
                     perPage: currentPerPage
                 });
 
@@ -86,16 +102,16 @@ const usePembelianLainLain = () => {
                     recordsTotal: responseData.recordsTotal,
                     recordsFiltered: responseData.recordsFiltered
                 });
-                
+
             } else {
                 throw new Error('Invalid response format from server');
             }
-            
+
         } catch (err) {
             console.error('API call failed:', err.message);
             setError(err.message || 'Failed to fetch data');
             setPembelian([]);
-            
+
             // Update pagination state for empty data
             setServerPagination({
                 currentPage: 1,
@@ -103,7 +119,7 @@ const usePembelianLainLain = () => {
                 totalItems: 0,
                 perPage: perPage || serverPagination.perPage
             });
-            
+
             setApiStats({
                 recordsTotal: 0,
                 recordsFiltered: 0
@@ -112,7 +128,7 @@ const usePembelianLainLain = () => {
             setLoading(false);
             setIsSearching(false);
         }
-    }, [searchTerm, filterJenisPembelian, serverPagination.currentPage, serverPagination.perPage]);
+    }, [searchTerm, serverPagination.currentPage, serverPagination.perPage, advancedFilters]);
 
     // Create pembelian Lain-Lain - handle header + details array format with file upload support
     const createPembelian = useCallback(async (pembelianData) => {
@@ -390,7 +406,7 @@ const usePembelianLainLain = () => {
             setDeleteLoading(null);
             setLoading(false);
         }
-    }, [fetchPembelian, serverPagination.currentPage, serverPagination.perPage, searchTerm, filterJenisPembelian]);
+    }, [fetchPembelian, serverPagination.currentPage, serverPagination.perPage, serverPagination.totalItems, searchTerm, filterJenisPembelian]);
 
     // Get pembelian detail
     const getPembelianDetail = useCallback(async (encryptedPid) => {
@@ -511,31 +527,38 @@ const usePembelianLainLain = () => {
 
     // Computed stats
     const stats = useMemo(() => {
-        // Calculate from current filtered data - sum up jumlah (total items)
-        const totalLainLain = pembelian.reduce((sum, item) => sum + (item.jumlah || 0), 0);
-        
-        // Today's purchases from current data
+        const total = pembelian.length;
+        const totalLainLainQty = pembelian.reduce((sum, item) => sum + (item.jumlah || 0), 0);
+
+        // Today's purchases
         const today = new Date().toDateString();
         const todayPurchases = pembelian.filter(item => {
             const itemDate = new Date(item.tgl_masuk).toDateString();
             return itemDate === today;
         }).length;
-        
-        // This month's purchases from current data
-        const thisMonth = new Date().getMonth();
-        const thisYear = new Date().getFullYear();
+
+        // This month's purchases
+        const currentMonth = new Date().getMonth();
+        const currentYear = new Date().getFullYear();
         const thisMonthPurchases = pembelian.filter(item => {
             const itemDate = new Date(item.tgl_masuk);
-            return itemDate.getMonth() === thisMonth && itemDate.getFullYear() === thisYear;
+            return itemDate.getMonth() === currentMonth && itemDate.getFullYear() === currentYear;
         }).length;
-        
+
+        // This year's purchases
+        const thisYearPurchases = pembelian.filter(item => {
+            const itemDate = new Date(item.tgl_masuk);
+            return itemDate.getFullYear() === currentYear;
+        }).length;
+
         return {
-            total: apiStats.recordsTotal,
-            totalLainLain: totalLainLain, // Total items (jumlah)
+            total: serverPagination.recordsTotal || serverPagination.totalItems || total,
+            totalLainLain: totalLainLainQty,
             today: todayPurchases,
-            thisMonth: thisMonthPurchases
+            thisMonth: thisMonthPurchases,
+            thisYear: thisYearPurchases
         };
-    }, [apiStats.recordsTotal, pembelian]);
+    }, [pembelian, serverPagination.totalItems, serverPagination.recordsTotal]);
 
     // Enhanced debounced search handler
     const searchTimeoutRef = useRef(null);
@@ -543,33 +566,33 @@ const usePembelianLainLain = () => {
     const handleSearch = useCallback((newSearchTerm) => {
         setSearchTerm(newSearchTerm);
         setSearchError(null);
-        
+
         if (searchTimeoutRef.current) {
             clearTimeout(searchTimeoutRef.current);
         }
-        
+
         if (!newSearchTerm.trim()) {
-            fetchPembelian(1, serverPagination.perPage, '', filterJenisPembelian, false);
+            fetchPembelian(1, serverPagination.perPage, '', filterJenisPembelian, false, false, advancedFilters);
             return;
         }
-        
+
         searchTimeoutRef.current = setTimeout(() => {
-            fetchPembelian(1, serverPagination.perPage, newSearchTerm, filterJenisPembelian, true);
+            fetchPembelian(1, serverPagination.perPage, newSearchTerm, filterJenisPembelian, true, false, advancedFilters);
         }, 300);
-    }, [fetchPembelian, serverPagination.perPage, filterJenisPembelian]);
-    
+    }, [fetchPembelian, serverPagination.perPage, filterJenisPembelian, advancedFilters]);
+
     // Clear search function
     const clearSearch = useCallback(() => {
         setSearchTerm('');
         setSearchError(null);
-        
+
         if (searchTimeoutRef.current) {
             clearTimeout(searchTimeoutRef.current);
         }
-        
-        fetchPembelian(1, serverPagination.perPage, '', filterJenisPembelian, false);
-    }, [fetchPembelian, serverPagination.perPage, filterJenisPembelian]);
-    
+
+        fetchPembelian(1, serverPagination.perPage, '', filterJenisPembelian, false, false, advancedFilters);
+    }, [fetchPembelian, serverPagination.perPage, filterJenisPembelian, advancedFilters]);
+
     // Cleanup timeout on unmount
     useEffect(() => {
         return () => {
@@ -583,17 +606,38 @@ const usePembelianLainLain = () => {
     const handleFilter = useCallback((newFilter) => {
         setFilterJenisPembelian(newFilter);
         setSearchError(null);
-        fetchPembelian(1, serverPagination.perPage, searchTerm, newFilter, false);
-    }, [fetchPembelian, serverPagination.perPage, searchTerm]);
+        fetchPembelian(1, serverPagination.perPage, searchTerm, newFilter, false, false, advancedFilters);
+    }, [fetchPembelian, serverPagination.perPage, searchTerm, advancedFilters]);
+
+    // Advanced filter handlers
+    const handleAdvancedFilters = useCallback((newFilters) => {
+        setAdvancedFilters(newFilters);
+        fetchPembelian(1, serverPagination.perPage, searchTerm, filterJenisPembelian, false, true, newFilters);
+    }, [fetchPembelian, serverPagination.perPage, searchTerm, filterJenisPembelian]);
+
+    const clearAdvancedFilters = useCallback(() => {
+        const emptyFilters = {
+            nota_sistem: '',
+            nota: '',
+            nama_supplier: '',
+            plat_nomor: '',
+            jenis_pembelian: '',
+            startDate: '',
+            endDate: ''
+        };
+        setAdvancedFilters(emptyFilters);
+        fetchPembelian(1, serverPagination.perPage, searchTerm, filterJenisPembelian, false, true, emptyFilters);
+        return emptyFilters;
+    }, [fetchPembelian, serverPagination.perPage, searchTerm, filterJenisPembelian]);
 
     // Pagination handlers
     const handlePageChange = useCallback((newPage) => {
-        fetchPembelian(newPage, serverPagination.perPage, searchTerm, filterJenisPembelian, false);
-    }, [fetchPembelian, serverPagination.perPage, searchTerm, filterJenisPembelian]);
+        fetchPembelian(newPage, serverPagination.perPage, searchTerm, filterJenisPembelian, false, false, advancedFilters);
+    }, [fetchPembelian, serverPagination.perPage, searchTerm, filterJenisPembelian, advancedFilters]);
 
     const handlePerPageChange = useCallback((newPerPage) => {
-        fetchPembelian(1, newPerPage, searchTerm, filterJenisPembelian, false);
-    }, [fetchPembelian, searchTerm, filterJenisPembelian]);
+        fetchPembelian(1, newPerPage, searchTerm, filterJenisPembelian, false, false, advancedFilters);
+    }, [fetchPembelian, searchTerm, filterJenisPembelian, advancedFilters]);
 
     return {
         pembelian,
@@ -610,6 +654,9 @@ const usePembelianLainLain = () => {
         apiStats,
         serverPagination,
         fetchPembelian,
+        advancedFilters,
+        handleAdvancedFilters,
+        clearAdvancedFilters,
         handleSearch,
         clearSearch,
         handleFilter,
