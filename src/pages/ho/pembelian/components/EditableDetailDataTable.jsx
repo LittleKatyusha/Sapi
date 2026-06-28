@@ -68,6 +68,12 @@ const customStyles = {
 const inputClass =
   'w-full text-[13px] border border-gray-300 rounded-[8px] px-2 py-[6px] focus:ring-2 focus:ring-purple-400 focus:border-purple-400 transition-all duration-150 bg-white min-h-[32px] h-[32px]';
 
+const golonganOptions = [
+  { value: 1, label: 'Boning' },
+  { value: 2, label: 'Karkas' },
+  { value: 3, label: 'Qurban' },
+];
+
 const EditableDetailDataTable = ({
   data,
   eartagOptions,
@@ -78,6 +84,7 @@ const EditableDetailDataTable = ({
   onSaveDetail,
   formatNumber,
   parseNumber,
+  isSupplierPerorangan = false,
 }) => {
   const columns = [
     {
@@ -200,6 +207,51 @@ const EditableDetailDataTable = ({
           }}
         />
       ),
+      center: true,
+      grow: 1,
+      minWidth: '160px',
+      wrap: true,
+      sortable: false,
+    },
+    {
+      name: 'Golongan',
+      cell: (row) => {
+        const filteredOptions = isSupplierPerorangan
+          ? golonganOptions.filter((opt) => opt.value === 3)
+          : golonganOptions.filter((opt) => opt.value !== 3);
+        const currentValue = row.golongan ? Number(row.golongan) : null;
+        return (
+          <Select
+            value={filteredOptions.find((opt) => opt.value === currentValue) || null}
+            onChange={(opt) =>
+              onDetailChange(row.id, 'golongan', opt ? opt.value : '')
+            }
+            options={filteredOptions}
+            isDisabled={parameterLoading}
+            isClearable
+            placeholder="Pilih Golongan"
+            classNamePrefix="react-select"
+            menuPortalTarget={
+              typeof window !== 'undefined' ? document.body : null
+            }
+            menuPosition="fixed"
+            maxMenuHeight={180}
+            styles={{
+              container: (base) => ({ ...base, width: '100%' }),
+              control: (base) => ({
+                ...base,
+                minHeight: 32,
+                fontSize: 13,
+                borderRadius: 8,
+                width: '100%',
+                padding: '4px',
+              }),
+              menu: (base) => ({ ...base, zIndex: 9999, width: '100%' }),
+              option: (base) => ({ ...base, fontSize: 13 }),
+            }}
+          />
+        );
+      },
       center: true,
       grow: 1,
       minWidth: '160px',

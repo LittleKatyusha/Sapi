@@ -54,8 +54,6 @@ export const useAuthSecure = () => {
         }
         
         if (storedToken && storedUser && authStatus === true) {
-          // Token validation handled by backend
-
           setToken(storedToken);
           setIsAuthenticated(true);
           setUser(storedUser);
@@ -90,6 +88,26 @@ export const useAuthSecure = () => {
       refreshTimer.current = null;
     }
   }, []);
+
+  // Listen for auth:logout events from httpClient (401 handler)
+  useEffect(() => {
+    const handleAuthLogout = (event) => {
+      console.log('Auth logout event received:', event.detail);
+      if (isAuthenticated) {
+        clearAuthData();
+        navigate('/login', {
+          state: {
+            message: 'Sesi Anda telah berakhir. Silakan login kembali.',
+            type: 'warning'
+          },
+          replace: true
+        });
+      }
+    };
+
+    window.addEventListener('auth:logout', handleAuthLogout);
+    return () => window.removeEventListener('auth:logout', handleAuthLogout);
+  }, [isAuthenticated, clearAuthData, navigate]);
 
   // Auto logout handler
   const handleAutoLogout = useCallback(async (reason) => {

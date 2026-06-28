@@ -164,8 +164,11 @@ const handleResponseError = async (response) => {
       localStorage.removeItem('authToken');
       localStorage.removeItem('secureAuthToken');
       localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('isAuthenticated');
       errorMessage = 'Sesi Anda telah berakhir. Silakan login kembali.';
-      // Don't redirect here to avoid issues, let components handle it
+      // Notify auth hooks to sync state
+      window.dispatchEvent(new CustomEvent('auth:logout', { detail: { reason: '401', timestamp: Date.now() } }));
     }
     
     // Handle 419 - Token mismatch (should not occur with JWT)

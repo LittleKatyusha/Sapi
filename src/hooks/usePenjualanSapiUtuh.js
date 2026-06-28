@@ -41,11 +41,11 @@ export const usePenjualanSapiUtuh = () => {
   /**
    * Fetch available sapi for dropdown
    */
-  const fetchAvailableSapi = useCallback(async () => {
+  const fetchAvailableSapi = useCallback(async (jenisTransaksi = 'sapi_utuh', transactionId = null) => {
     setLoading(true);
     setError(null);
     try {
-      const result = await PenjualanSapiUtuhService.getAvailableSapi();
+      const result = await PenjualanSapiUtuhService.getAvailableSapi(jenisTransaksi, transactionId);
       if (!result.success) {
         setError(result.message);
       }
@@ -251,6 +251,63 @@ export const usePenjualanSapiUtuh = () => {
   }, []);
 
   /**
+   * Get faktur print data
+   */
+  const printFaktur = useCallback(async (pid) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await PenjualanSapiUtuhService.printFaktur(pid);
+      if (!result.success) setError(result.message);
+      return result;
+    } catch (err) {
+      const errorMessage = err?.message || 'Gagal memuat data faktur';
+      setError(errorMessage);
+      return { success: false, message: errorMessage };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  /**
+   * Get invoice print data
+   */
+  const printInvoice = useCallback(async (pid) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await PenjualanSapiUtuhService.printInvoice(pid);
+      if (!result.success) setError(result.message);
+      return result;
+    } catch (err) {
+      const errorMessage = err?.message || 'Gagal memuat data invoice';
+      setError(errorMessage);
+      return { success: false, message: errorMessage };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  /**
+   * Get surat jalan print data
+   */
+  const printSuratJalan = useCallback(async (pid) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await PenjualanSapiUtuhService.printSuratJalan(pid);
+      if (!result.success) setError(result.message);
+      return result;
+    } catch (err) {
+      const errorMessage = err?.message || 'Gagal memuat data surat jalan';
+      setError(errorMessage);
+      return { success: false, message: errorMessage };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  /**
    * Clear current transaction
    */
   const clearCurrent = useCallback(() => {
@@ -280,6 +337,9 @@ export const usePenjualanSapiUtuh = () => {
     bayar,
     fetchPembayaranHistory,
     updateDelivery,
+    printFaktur,
+    printInvoice,
+    printSuratJalan,
     clearCurrent,
     clearError,
   };

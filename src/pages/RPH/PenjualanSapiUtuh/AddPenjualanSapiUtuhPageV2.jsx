@@ -20,16 +20,12 @@ const TIPE_PENJUALAN_OPTIONS = [
   { value: 'kredit', label: 'KREDIT' },
 ];
 
-const JANGKA_WAKTU_OPTIONS = [
-  ...Array.from({ length: 30 }, (_, i) => ({ value: `${i + 1} hari`, label: `${i + 1} hari` })),
-  ...Array.from({ length: 12 }, (_, i) => ({ value: `${i + 1} bulan`, label: `${i + 1} bulan` })),
-];
-
 const JENIS_PEMOTONGAN_OPTIONS = [
   { value: 'dibelah_4', label: 'Dibelah 4' },
   { value: 'dibelah_8', label: 'Dibelah 8' },
   { value: 'prosot', label: 'Prosot' },
-  { value: 'cash', label: 'Cash' },
+  { value: 'cacah', label: 'Cacah' },
+  { value: 'Tidak Dipotong', label: 'Tidak Dipotong' },
 ];
 
 const PACKING_OPTIONS = [
@@ -39,7 +35,9 @@ const PACKING_OPTIONS = [
 
 const METODE_PEMBAYARAN_OPTIONS = [
   { value: 'tunai', label: 'Tunai' },
-  { value: 'transfer', label: 'Transfer' }
+  { value: 'transfer_bca', label: 'Transfer BCA' },
+  { value: 'transfer_bni', label: 'Transfer BNI' },
+  { value: 'transfer_bri', label: 'Transfer BRI' },
 ];
 
 const defaultFormData = {
@@ -274,11 +272,15 @@ const AddPenjualanSapiUtuhPageV2 = () => {
 
   useEffect(() => {
     const loadSapi = async () => {
-      const result = await fetchAvailableSapi();
+      // eslint-disable-next-line no-console
+      console.log('Loading sapi for jenis_transaksi:', formData.jenis_transaksi);
+      const result = await fetchAvailableSapi(formData.jenis_transaksi);
+      // eslint-disable-next-line no-console
+      console.log('Available sapi result:', result);
       if (result.success) setAvailableSapi(result.data || []);
     };
     loadSapi();
-  }, [fetchAvailableSapi]);
+  }, [fetchAvailableSapi, formData.jenis_transaksi]);
 
   const loadEditData = useCallback(async () => {
     const result = await fetchDetail(pid);
@@ -531,17 +533,15 @@ const AddPenjualanSapiUtuhPageV2 = () => {
                       placeholder="Pilih Tipe Penjualan"
                     />
                     {isJangkaWaktuVisible && (
-                      <SearchableSelect
-                        label="Jangka Waktu"
+                      <InputField
+                        label="Jatuh Tempo"
+                        name="jangka_waktu"
+                        type="date"
                         required
                         value={formData.jangka_waktu}
-                        options={JANGKA_WAKTU_OPTIONS}
-                        onSelect={(val) => {
-                          setFormData((prev) => ({ ...prev, jangka_waktu: val }));
-                          if (errors.jangka_waktu) setErrors((prev) => ({ ...prev, jangka_waktu: '' }));
-                        }}
                         error={errors.jangka_waktu}
-                        placeholder="Pilih jangka waktu"
+                        onChange={handleChange}
+                        min={formData.tanggal_transaksi}
                       />
                     )}
                     <SearchableSelect

@@ -262,7 +262,10 @@ export const useDynamicMenu = () => {
         throw new Error(response.message || 'Failed to load menu tree');
       }
     } catch (err) {
-      setError(err.message);
+      // Don't show menu error on 401 — auth system handles redirect
+      if (err.status !== 401 && !err.message?.includes('Sesi Anda telah berakhir')) {
+        setError(err.message);
+      }
       
       // Fallback ke cache jika ada
       const cached = loadFromCache();

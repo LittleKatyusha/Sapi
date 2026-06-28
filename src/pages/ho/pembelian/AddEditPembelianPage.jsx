@@ -258,6 +258,7 @@ const AddEditPembelianPage = () => {
     // Default data state for batch operations
     const [defaultData, setDefaultData] = useState({
         idKlasifikasiHewan: '',
+        golongan: '', // Default golongan: 1=Boning, 2=Karkas, 3=Qurban
         berat: 0, // Start with 0 like harga total pattern
         harga: 0 // Also change to 0 for consistency
         // markup removed - no longer used
@@ -559,6 +560,7 @@ const AddEditPembelianPage = () => {
                             eartag: eartagValue,
                             eartagSupplier: eartagSupplierValue, // Use the debugged value
                             idKlasifikasiHewan: klasifikasiIdFromId || item.id_klasifikasi_hewan || item.klasifikasi_id || item.klasifikasi_hewan_pubid || item.klasifikasihewan_id || item.pubid_klasifikasi || '', // Try multiple sources, prioritize ID match
+                            golongan: item.golongan ? Number(item.golongan) : '', // Load golongan from detail backend
                             harga: harga,
                             berat: item.berat && parseInt(item.berat) > 0 ? parseInt(item.berat) : '',
                             persentase: item.persentase || calculatedPersentase, // Use backend persentase or calculate from harga/hpp
@@ -650,6 +652,34 @@ const AddEditPembelianPage = () => {
                label.includes('PERORANGAN') && 
                label.includes('2');
     }, [headerData.tipePembelian, tipePembelianOptions]);
+
+    // Reset default golongan if it becomes invalid for the current supplier type
+    useEffect(() => {
+        const currentValue = parseInt(defaultData.golongan);
+        if (!defaultData.golongan) return;
+        if (isSupplierPerorangan && currentValue !== 3) {
+            setDefaultData(prev => ({ ...prev, golongan: '' }));
+        } else if (!isSupplierPerorangan && currentValue === 3) {
+            setDefaultData(prev => ({ ...prev, golongan: '' }));
+        }
+    }, [isSupplierPerorangan, defaultData.golongan]);
+
+    // Reset existing detail golongan values that are invalid for current supplier type
+    useEffect(() => {
+        setDetailItems(prev =>
+            prev.map(item => {
+                const value = parseInt(item.golongan);
+                if (!item.golongan) return item;
+                if (isSupplierPerorangan && value !== 3) {
+                    return { ...item, golongan: '' };
+                }
+                if (!isSupplierPerorangan && value === 3) {
+                    return { ...item, golongan: '' };
+                }
+                return item;
+            })
+        );
+    }, [isSupplierPerorangan]);
 
     // Calculate total weight for SUPPLIER (PERORANGAN): Total Berat = Jumlah Ekor × Berat per Sapi
     const calculatedBeratTotal = useMemo(() => {
@@ -929,7 +959,9 @@ const AddEditPembelianPage = () => {
         
         setDetailItems(prev => prev.map(item => {
             if (item.id === itemId) {
-                const updatedItem = { ...item, [field]: value };
+                // Normalize golongan to number
+                const normalizedValue = field === 'golongan' && value ? Number(value) : value;
+                const updatedItem = { ...item, [field]: normalizedValue };
                 
                 // 
                 
@@ -1032,6 +1064,7 @@ const AddEditPembelianPage = () => {
             eartag: tnEartagOption ? tnEartagOption.value : (eartagOptions.length > 0 ? eartagOptions[0].value : 'AUTO'), // Default to T/N or first option
             eartagSupplier: '', // Default to empty for new items
             idKlasifikasiHewan: defaultData.idKlasifikasiHewan || '',
+            golongan: defaultData.golongan ? Number(defaultData.golongan) : '', // Default golongan from batch settings
             harga: harga,
             berat: berat,
             persentase: persentase,
@@ -1090,6 +1123,7 @@ const AddEditPembelianPage = () => {
                 eartag: tnEartagOption ? tnEartagOption.value : (eartagOptions.length > 0 ? eartagOptions[0].value : 'AUTO'), // Default to T/N or first option
                 eartagSupplier: '', // Default to empty for new items
                 idKlasifikasiHewan: defaultData.idKlasifikasiHewan || '',
+                golongan: defaultData.golongan || '', // Default golongan from batch settings
                 harga: harga,
                 berat: berat,
                 persentase: persentase,
@@ -1114,7 +1148,7 @@ const AddEditPembelianPage = () => {
     const handleDefaultDataChange = (field, value) => {
         setDefaultData(prev => ({
             ...prev,
-            [field]: value
+            [field]: field === 'golongan' && value ? Number(value) : value
         }));
     };
 
@@ -1254,6 +1288,7 @@ const AddEditPembelianPage = () => {
                 eartag: String(item.eartag || ''),
                 eartag_supplier: String(item.eartagSupplier || ''),
                 id_klasifikasi_hewan: parseInt(item.idKlasifikasiHewan) || 0,
+                golongan: item.golongan ? parseInt(item.golongan) : null,
                 harga: parseFloat(item.harga) || 0,
                 berat: parseInt(item.berat) || 0,
                 persentase: parseFloat(item.persentase) || 0,
@@ -1290,6 +1325,7 @@ const AddEditPembelianPage = () => {
                     eartag: detailData.eartag,
                     eartagSupplier: detailData.eartag_supplier,
                     idKlasifikasiHewan: detailData.id_klasifikasi_hewan,
+                    golongan: detailData.golongan,
                     harga: detailData.harga,
                     berat: detailData.berat,
                     persentase: detailData.persentase,
@@ -1319,6 +1355,7 @@ const AddEditPembelianPage = () => {
                     eartag: detailData.eartag,
                     eartagSupplier: detailData.eartag_supplier,
                     idKlasifikasiHewan: detailData.id_klasifikasi_hewan,
+                    golongan: detailData.golongan,
                     harga: detailData.harga,
                     berat: detailData.berat,
                     persentase: detailData.persentase,
@@ -1508,6 +1545,7 @@ const AddEditPembelianPage = () => {
                             eartag: String(item.eartag),
                             eartag_supplier: String(item.eartagSupplier || ''), // Add eartag_supplier
                             id_klasifikasi_hewan: parseInt(item.idKlasifikasiHewan),
+                            golongan: item.golongan ? parseInt(item.golongan) : null,
                             harga: parseFloat(item.harga),
                             berat: parseInt(item.berat),
                             persentase: parseFloat(item.persentase) || 0,
@@ -1548,6 +1586,7 @@ const AddEditPembelianPage = () => {
                             eartag: String(item.eartag),
                             eartag_supplier: String(item.eartagSupplier || ''),
                             id_klasifikasi_hewan: parseInt(item.idKlasifikasiHewan),
+                            golongan: item.golongan ? parseInt(item.golongan) : null,
                             harga: parseFloat(item.harga),
                             berat: parseInt(item.berat),
                             persentase: parseFloat(item.persentase) || 0,
@@ -1757,6 +1796,7 @@ const AddEditPembelianPage = () => {
                 eartag: String(item.eartag),
                 eartag_supplier: String(item.eartagSupplier || ''), // Add eartag_supplier
                 id_klasifikasi_hewan: parseInt(item.idKlasifikasiHewan),
+                golongan: item.golongan ? parseInt(item.golongan) : null,
                 harga: parseFloat(item.harga),
                 berat: parseInt(item.berat),
                 persentase: parseFloat(item.persentase) || 0,
@@ -2440,6 +2480,32 @@ const AddEditPembelianPage = () => {
                             />
                         </div>
 
+                        {/* Golongan Default */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Golongan Default
+                            </label>
+                            <SearchableSelect
+                                value={defaultData.golongan}
+                                onChange={(value) => handleDefaultDataChange('golongan', value)}
+                                options={
+                                    isSupplierPerorangan
+                                        ? [{ value: 3, label: 'Qurban' }]
+                                        : [
+                                            { value: 1, label: 'Boning' },
+                                            { value: 2, label: 'Karkas' },
+                                        ]
+                                }
+                                placeholder="Pilih Golongan Default"
+                                className="w-full"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                                {isSupplierPerorangan
+                                    ? '💡 Supplier perorangan hanya boleh Qurban'
+                                    : '💡 Supplier perusahaan hanya boleh Boning atau Karkas'}
+                            </p>
+                        </div>
+
                         {/* Berat Default */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -2644,6 +2710,7 @@ const AddEditPembelianPage = () => {
                                 onSaveDetail={handleSaveDetailItem}
                                 formatNumber={formatNumber}
                                 parseNumber={parseNumber}
+                                isSupplierPerorangan={isSupplierPerorangan}
                             />
                         </div>
                         

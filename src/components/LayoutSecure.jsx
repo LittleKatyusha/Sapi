@@ -25,7 +25,8 @@ const LayoutSecure = ({ children, title }) => {
   
   const {
     user,
-    logout
+    logout,
+    isAuthenticated
   } = useAuthSecure();
 
   const {
@@ -121,9 +122,9 @@ const LayoutSecure = ({ children, title }) => {
   // Determine if sidebar should be shown as expanded (either manually opened or hovered)
   const shouldShowExpanded = sidebarOpen || isHovering;
 
-  // Show menu error notification
+  // Show menu error notification (only when authenticated)
   useEffect(() => {
-    if (menuError && !notification) {
+    if (menuError && !notification && isAuthenticated) {
       setNotification({
         message: 'Gagal memuat menu dari server.',
         type: 'error'
@@ -131,7 +132,7 @@ const LayoutSecure = ({ children, title }) => {
       // Auto hide notification after 5 seconds
       setTimeout(() => setNotification(null), 5000);
     }
-  }, [menuError, notification]);
+  }, [menuError, notification, isAuthenticated]);
 
 
   return (

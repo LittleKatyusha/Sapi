@@ -25,6 +25,10 @@ class PenjualanSapiUtuhService {
         ...(params.status_transaksi && { status_transaksi: params.status_transaksi }),
         ...(params.exclude_status_transaksi && { exclude_status_transaksi: params.exclude_status_transaksi }),
         ...(params.status_pembayaran && { status_pembayaran: params.status_pembayaran }),
+        ...(params.pengiriman && { pengiriman: params.pengiriman }),
+        ...(params.status_pengiriman && { status_pengiriman: params.status_pengiriman }),
+        ...(params.pic && { pic: params.pic }),
+        ...(params.no_transaksi && { no_transaksi: params.no_transaksi }),
         ...(params.start_date && { start_date: params.start_date }),
         ...(params.end_date && { end_date: params.end_date }),
         _ts: Date.now(),
@@ -52,9 +56,15 @@ class PenjualanSapiUtuhService {
    * Get available sapi for dropdown selection
    * @returns {Promise} API response with available sapi list
    */
-  static async getAvailableSapi() {
+  static async getAvailableSapi(jenisTransaksi = 'sapi_utuh', transactionId = null) {
     try {
       const params = new URLSearchParams();
+      if (jenisTransaksi) {
+        params.append('jenis_transaksi', jenisTransaksi);
+      }
+      if (transactionId) {
+        params.append('transaction_id', transactionId);
+      }
       params.append('_ts', Date.now());
       const response = await HttpClient.get(`${BASE_URL}/available-sapi?${params.toString()}`);
       return {
@@ -287,6 +297,75 @@ class PenjualanSapiUtuhService {
         success: false,
         data: null,
         message: errorData?.message || error?.message || 'Gagal memperbarui data pengiriman',
+      };
+    }
+  }
+
+  /**
+   * Get faktur print data
+   * @param {string} pid - Encrypted PID
+   * @returns {Promise} API response with faktur data
+   */
+  static async printFaktur(pid) {
+    try {
+      const response = await HttpClient.post(`${BASE_URL}/print-faktur`, { pid });
+      return {
+        success: true,
+        data: response?.data ?? response,
+        message: response?.message || 'Data faktur berhasil dimuat',
+      };
+    } catch (error) {
+      const errorData = error?.data ?? error?.response?.data ?? null;
+      return {
+        success: false,
+        data: null,
+        message: errorData?.message || error?.message || 'Gagal memuat data faktur',
+      };
+    }
+  }
+
+  /**
+   * Get invoice print data
+   * @param {string} pid - Encrypted PID
+   * @returns {Promise} API response with invoice data
+   */
+  static async printInvoice(pid) {
+    try {
+      const response = await HttpClient.post(`${BASE_URL}/print-invoice`, { pid });
+      return {
+        success: true,
+        data: response?.data ?? response,
+        message: response?.message || 'Data invoice berhasil dimuat',
+      };
+    } catch (error) {
+      const errorData = error?.data ?? error?.response?.data ?? null;
+      return {
+        success: false,
+        data: null,
+        message: errorData?.message || error?.message || 'Gagal memuat data invoice',
+      };
+    }
+  }
+
+  /**
+   * Get surat jalan print data
+   * @param {string} pid - Encrypted PID
+   * @returns {Promise} API response with surat jalan data
+   */
+  static async printSuratJalan(pid) {
+    try {
+      const response = await HttpClient.post(`${BASE_URL}/print-surat-jalan`, { pid });
+      return {
+        success: true,
+        data: response?.data ?? response,
+        message: response?.message || 'Data surat jalan berhasil dimuat',
+      };
+    } catch (error) {
+      const errorData = error?.data ?? error?.response?.data ?? null;
+      return {
+        success: false,
+        data: null,
+        message: errorData?.message || error?.message || 'Gagal memuat data surat jalan',
       };
     }
   }

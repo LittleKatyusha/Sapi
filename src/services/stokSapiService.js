@@ -44,7 +44,7 @@ class StokSapiService {
 
   static async show(pid) {
     try {
-      const response = await HttpClient.post(`${this.API_PREFIX}/stoksapi/show`, { pid });
+      const response = await HttpClient.post(`${this.API_PREFIX}/show`, { pid });
       return { success: true, data: response.data, message: 'Data retrieved successfully' };
     } catch (error) {
       console.error('StokSapiService.show error:', error);
