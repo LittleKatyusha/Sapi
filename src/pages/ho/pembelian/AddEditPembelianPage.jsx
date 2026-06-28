@@ -1845,24 +1845,24 @@ const AddEditPembelianPage = () => {
 
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-2 sm:p-4 md:p-6">
-            <div className="w-full max-w-none mx-0 space-y-6 sm:space-y-8">
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-2 sm:p-3">
+            <div className="w-full max-w-none mx-0 space-y-4 sm:space-y-5">
                 {/* Header */}
-                <div className="bg-white rounded-none sm:rounded-none p-4 sm:p-8 shadow-xl border border-gray-100">
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="flex items-center gap-4">
+                <div className="bg-white rounded-none sm:rounded-none p-3 sm:p-4 shadow-md border border-gray-100">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex items-center gap-3">
                             <button
                                 onClick={handleBack}
-                                className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                             >
-                                <ArrowLeft size={24} />
+                                <ArrowLeft size={20} />
                             </button>
                             <div>
-                                <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-1 sm:mb-2 flex items-center gap-2">
-                                    <Package size={28} />
+                                <h1 className="text-lg sm:text-xl font-bold text-gray-800 mb-0.5 flex items-center gap-2">
+                                    <Package size={20} />
                                     {isEdit ? 'Edit Pembelian Doka & Sapi' : 'Tambah Pembelian Doka & Sapi'}
                                 </h1>
-                                <p className="text-gray-600 text-sm sm:text-base">
+                                <p className="text-gray-600 text-xs sm:text-sm">
                                     {isEdit ? 'Ubah data pembelian dan detail ternak' : 'Buat pembelian baru dengan detail ternak'}
                                 </p>
                             </div>
@@ -1870,10 +1870,10 @@ const AddEditPembelianPage = () => {
                         
                         {/* Action Buttons in Header for Edit Mode */}
                         {isEdit && (
-                            <div className="flex gap-4">
+                            <div className="flex gap-3">
                                 <button
                                     onClick={handleBack}
-                                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm"
                                     disabled={isSubmitting}
                                 >
                                     Batal
@@ -1883,13 +1883,13 @@ const AddEditPembelianPage = () => {
                                 <button
                                     onClick={handleSubmit}
                                     disabled={isSubmitting}
-                                    className="px-8 py-3 bg-gradient-to-r from-red-500 to-rose-600 text-white rounded-lg hover:from-red-600 hover:to-rose-700 transition-all duration-300 flex items-center gap-3 font-medium shadow-lg"
+                                    className="px-6 py-2 bg-gradient-to-r from-red-500 to-rose-600 text-white rounded-lg hover:from-red-600 hover:to-rose-700 transition-all duration-300 flex items-center gap-2 font-medium shadow-md text-sm"
                                     title="Simpan pembelian dan detail ternak"
                                 >
-                                    <Save className="w-5 h-5" />
+                                    <Save className="w-4 h-4" />
                                     {isSubmitting ? (
                                         <div className="flex items-center gap-2">
-                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                            <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-white"></div>
                                             Menyimpan...
                                         </div>
                                     ) : 'Simpan Pembelian'}
@@ -1900,15 +1900,15 @@ const AddEditPembelianPage = () => {
                 </div>
 
                 {/* Header Form */}
-                <div className="bg-white rounded-none sm:rounded-none p-4 sm:p-8 shadow-xl border border-gray-100">
-                    <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                        <Building2 className="w-6 h-6 text-blue-600" />
+                <div className="bg-white rounded-none sm:rounded-none p-3 sm:p-4 shadow-md border border-gray-100">
+                    <h2 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <Building2 className="w-4 h-4 text-blue-600" />
                         Informasi Pembelian
                     </h2>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-5 lg:grid-cols-5 gap-3">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
                                 <Hash className="w-4 h-4 inline mr-1" />
                                 Nomor Nota *
                             </label>
@@ -1916,7 +1916,7 @@ const AddEditPembelianPage = () => {
                                 type="text"
                                 value={headerData.nota}
                                 onChange={(e) => handleHeaderChange('nota', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
                                 placeholder="Masukkan nomor nota"
                                 required
                             />
@@ -1924,7 +1924,7 @@ const AddEditPembelianPage = () => {
 
                         {/* Office - Searchable Select */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
                                 <Building2 className="w-4 h-4 inline mr-1" />
                                 Office *
                             </label>
@@ -1946,7 +1946,7 @@ const AddEditPembelianPage = () => {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
                                 Tipe Pembelian *
                                 {isSupplierPerorangan && (
                                     <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
@@ -1975,7 +1975,7 @@ const AddEditPembelianPage = () => {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
                                 <Building2 className="w-4 h-4 inline mr-1" />
                                 Supplier *
                                 {headerData.tipePembelian && supplierOptions.length > 0 && (
@@ -2015,7 +2015,7 @@ const AddEditPembelianPage = () => {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
                                 <Calendar className="w-4 h-4 inline mr-1" />
                                 Tanggal Masuk *
                             </label>
@@ -2023,13 +2023,13 @@ const AddEditPembelianPage = () => {
                                 type="date"
                                 value={headerData.tglMasuk}
                                 onChange={(e) => handleHeaderChange('tglMasuk', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
                                 required
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
                                 <User className="w-4 h-4 inline mr-1" />
                                 Nama Sopir *
                             </label>
@@ -2037,14 +2037,14 @@ const AddEditPembelianPage = () => {
                                 type="text"
                                 value={headerData.namaSupir}
                                 onChange={(e) => handleHeaderChange('namaSupir', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
                                 placeholder="Masukkan nama supir"
                                 required
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
                                 <Truck className="w-4 h-4 inline mr-1" />
                                 Plat Nomor *
                             </label>
@@ -2052,14 +2052,14 @@ const AddEditPembelianPage = () => {
                                 type="text"
                                 value={headerData.platNomor}
                                 onChange={(e) => handleHeaderChange('platNomor', e.target.value.toUpperCase())}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
                                 placeholder="B1234XX"
                                 required
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
                                 <Truck className="w-4 h-4 inline mr-1" />
                                 Biaya Truck (Rp) *
                             </label>
@@ -2070,7 +2070,7 @@ const AddEditPembelianPage = () => {
                                     const rawValue = parseNumber(e.target.value);
                                     handleHeaderChange('biayaTruck', rawValue);
                                 }}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
                                 placeholder="1.000.000"
                                 required
                             />
@@ -2080,7 +2080,7 @@ const AddEditPembelianPage = () => {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
                                 <Truck className="w-4 h-4 inline mr-1" />
                                 Biaya Lain (Rp)
                             </label>
@@ -2091,7 +2091,7 @@ const AddEditPembelianPage = () => {
                                     const rawValue = parseNumber(e.target.value);
                                     handleHeaderChange('biayaLain', rawValue);
                                 }}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
                                 placeholder="0"
                             />
                             <p className="text-xs text-gray-500 mt-1">
@@ -2100,7 +2100,7 @@ const AddEditPembelianPage = () => {
                         </div>
 
                         <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Berat Total (kg)
                                         {isSupplierPerorangan && !isSupplierPerorangan2 && (
                                             <span className="ml-2 text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full">
@@ -2115,7 +2115,7 @@ const AddEditPembelianPage = () => {
                                             const rawValue = parseNumber(e.target.value);
                                             handleHeaderChange('beratTotal', rawValue);
                                         }}
-                                        className={`w-full px-3 py-2 border rounded-lg ${
+                                        className={`w-full px-2.5 py-1.5 border rounded-lg ${
                                             isSupplierPerorangan && !isSupplierPerorangan2
                                                 ? 'border-orange-300 bg-orange-50 text-gray-600 cursor-not-allowed' 
                                                 : isSupplierPerorangan2
@@ -2140,7 +2140,7 @@ const AddEditPembelianPage = () => {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Harga Total (Rp)
                                     </label>
                                     <input
@@ -2150,7 +2150,7 @@ const AddEditPembelianPage = () => {
                                             const rawValue = parseNumber(e.target.value);
                                             handleHeaderChange('hargaTotal', rawValue);
                                         }}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                        className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
                                         placeholder="0"
                                     />
                                     <p className="text-xs text-gray-500 mt-1">
@@ -2159,7 +2159,7 @@ const AddEditPembelianPage = () => {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Total Ternak (ekor)
                                     </label>
                                     <input
@@ -2169,7 +2169,7 @@ const AddEditPembelianPage = () => {
                                             const rawValue = parseNumber(e.target.value);
                                             handleHeaderChange('totalSapi', rawValue);
                                         }}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                        className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
                                         placeholder="0"
                                         min="0"
                                     />
@@ -2180,7 +2180,7 @@ const AddEditPembelianPage = () => {
 
                                 {/* Farm Field - Moved before Tipe Pembayaran */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
                                         <Building2 className="w-4 h-4 inline mr-1" />
                                         Farm
                                     </label>
@@ -2200,14 +2200,14 @@ const AddEditPembelianPage = () => {
 
                                 {/* Tipe Pembayaran */}
                                 <div>
-                                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1">
                                         <Building2 className="w-4 h-4" />
                                         Tipe Pembayaran *
                                     </label>
                                     <select
                                         value={headerData.purchase_type}
                                         onChange={(e) => handleHeaderChange('purchase_type', e.target.value)}
-                                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
                                         required
                                     >
                                         <option value="">Pilih Tipe Pembayaran</option>
@@ -2226,7 +2226,7 @@ const AddEditPembelianPage = () => {
 
                                 {/* Syarat Pembelian - Moved after Tipe Pembayaran */}
                                 <div>
-                                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1">
                                         <Hash className="w-4 h-4" />
                                         Syarat Pembelian *
                                     </label>
@@ -2249,7 +2249,7 @@ const AddEditPembelianPage = () => {
 
                                 {/* Tanggal Jatuh Tempo */}
                                 <div>
-                                    <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center justify-between mb-1">
                                         <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
                                             <Calendar className="w-4 h-4" />
                                             Tanggal Jatuh Tempo {headerData.purchase_type && parseInt(headerData.purchase_type) === 2 ? ' *' : ''}
@@ -2259,7 +2259,7 @@ const AddEditPembelianPage = () => {
                                         type="date"
                                         value={headerData.due_date}
                                         onChange={(e) => handleHeaderChange('due_date', e.target.value)}
-                                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
                                         required={headerData.purchase_type && parseInt(headerData.purchase_type) === 2}
                                     />
                                     {tipePembayaranLoading && (
@@ -2287,54 +2287,54 @@ const AddEditPembelianPage = () => {
 
         
                                 <div className="md:col-span-2">
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
                                         File Dokumen (Opsional)
                                     </label>
                                     
-                                    <div className="space-y-3">
+                                    <div className="space-y-2">
                                         {/* File Upload Button */}
-                                        <div className="flex items-center gap-3">
+                                        <div className="flex items-center gap-2">
                                             <button
                                                 type="button"
                                                 onClick={openFileModal}
-                                                className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg"
+                                                className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 shadow-sm hover:shadow-md text-sm"
                                             >
-                                                <Package className="w-5 h-5" />
+                                                <Package className="w-4 h-4" />
                                                 Upload File Dokumen
                                             </button>
                                             
                                             {selectedFile && (
                                                 <button
                                                     onClick={removeFile}
-                                                    className="px-3 py-3 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors border border-red-200 hover:border-red-300"
+                                                    className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors border border-red-200 hover:border-red-300"
                                                     title="Hapus file"
                                                 >
-                                                    <X size={20} />
+                                                    <X size={18} />
                                                 </button>
                                             )}
                                         </div>
 
                                         {/* Existing File from Backend (Edit Mode) */}
                                         {isEdit && headerData.file && !selectedFile && (
-                                            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 shadow-lg">
-                                                <div className="flex items-center gap-4">
+                                            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-3 shadow-sm">
+                                                <div className="flex items-center gap-3">
                                                     <div className="flex-shrink-0">
-                                                        <div className="relative w-16 h-16 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl flex items-center justify-center border-2 border-blue-200 shadow-md">
-                                                            <span className="text-2xl">{getFileIcon(getFileTypeFromPath(headerData.file))}</span>
+                                                        <div className="relative w-12 h-12 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-lg flex items-center justify-center border-2 border-blue-200 shadow-sm">
+                                                            <span className="text-xl">{getFileIcon(getFileTypeFromPath(headerData.file))}</span>
                                                         </div>
                                                     </div>
                                                     
                                                     <div className="flex-1 min-w-0">
                                                         <div className="flex items-start justify-between">
                                                             <div className="min-w-0 flex-1">
-                                                                <h4 className="text-sm font-bold text-blue-800 mb-1 truncate">
+                                                                <h4 className="text-xs font-semibold text-blue-800 mb-1 truncate">
                                                                     📂 File Tersimpan
                                                                 </h4>
-                                                                <p className="text-sm text-blue-600 mb-2 break-all">
+                                                                <p className="text-xs text-blue-600 mb-1 break-all">
                                                                     {headerData.file.split('/').pop() || 'File dokumen'}
                                                                 </p>
-                                                                <div className="flex flex-wrap gap-2">
-                                                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                                <div className="flex flex-wrap gap-1.5">
+                                                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 text-blue-800">
                                                                         {getFileTypeFromPath(headerData.file).toUpperCase()}
                                                                     </span>
                                                                 </div>
@@ -2346,7 +2346,7 @@ const AddEditPembelianPage = () => {
                                                         <button
                                                             type="button"
                                                             onClick={() => viewUploadedFile(headerData.file)}
-                                                            className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium"
+                                                            className="px-2.5 py-1.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium"
                                                             title="Lihat file"
                                                         >
                                                             👁️ Lihat
@@ -2354,7 +2354,7 @@ const AddEditPembelianPage = () => {
                                                         <button
                                                             type="button"
                                                             onClick={removeExistingFile}
-                                                            className="px-3 py-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors border border-red-200 hover:border-red-300"
+                                                            className="px-2.5 py-1.5 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors border border-red-200 hover:border-red-300"
                                                             title="Hapus file"
                                                         >
                                                             <X size={16} />
@@ -2366,23 +2366,23 @@ const AddEditPembelianPage = () => {
 
                                         {/* New File Upload Display */}
                                         {selectedFile && (
-                                            <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 shadow-lg">
-                                                <div className="flex items-center gap-4">
+                                            <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-3 shadow-sm">
+                                                <div className="flex items-center gap-3">
                                                     <div className="flex-shrink-0">
                                                         {filePreview ? (
                                                             <div className="relative">
-                                                                <img src={filePreview} alt="Preview" className="w-16 h-16 object-cover rounded-xl border-2 border-green-200 shadow-md" />
-                                                                <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                                                                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                                <img src={filePreview} alt="Preview" className="w-12 h-12 object-cover rounded-lg border-2 border-green-200 shadow-sm" />
+                                                                <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+                                                                    <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
                                                                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                                                     </svg>
                                                                 </div>
                                                             </div>
                                                         ) : (
-                                                            <div className="relative w-16 h-16 bg-gradient-to-br from-green-400 to-emerald-500 rounded-xl flex items-center justify-center border-2 border-green-200 shadow-md">
-                                                                <Package className="w-8 h-8 text-white" />
-                                                                <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                                                                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                            <div className="relative w-12 h-12 bg-gradient-to-br from-green-400 to-emerald-500 rounded-lg flex items-center justify-center border-2 border-green-200 shadow-sm">
+                                                                <Package className="w-6 h-6 text-white" />
+                                                                <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+                                                                    <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
                                                                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                                                     </svg>
                                                                 </div>
@@ -2390,18 +2390,18 @@ const AddEditPembelianPage = () => {
                                                         )}
                                                     </div>
                                                     <div className="flex-1 min-w-0">
-                                                        <h4 className="text-lg font-bold text-green-800 truncate">
+                                                        <h4 className="text-sm font-semibold text-green-800 truncate">
                                                             {selectedFile.name}
                                                         </h4>
-                                                        <div className="flex items-center gap-4 mt-1">
-                                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                        <div className="flex items-center gap-2 mt-0.5">
+                                                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-green-100 text-green-800">
                                                                 📄 {(selectedFile.size / 1024 / 1024)} MB
                                                             </span>
-                                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 text-blue-800">
                                                                 🏷️ {selectedFile.type.split('/')[1]?.toUpperCase() || 'FILE'}
                                                             </span>
                                                         </div>
-                                                        <p className="text-sm text-green-600 mt-2">
+                                                        <p className="text-xs text-green-600 mt-1">
                                                             ✅ File berhasil dipilih dan siap diupload
                                                         </p>
                                                     </div>
@@ -2413,16 +2413,16 @@ const AddEditPembelianPage = () => {
 
                             {/* Note / Catatan - Full Width */}
                             <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
                                     <Hash className="w-4 h-4 inline mr-1" />
                                     Catatan
                                 </label>
                                 <textarea
                                     value={headerData.note}
                                     onChange={(e) => handleHeaderChange('note', e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                    className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
                                     placeholder="Masukkan catatan tambahan (opsional)"
-                                    rows="3"
+                                    rows="2"
                                 />
                             </div>
         
@@ -2432,16 +2432,16 @@ const AddEditPembelianPage = () => {
 
 
                 {/* Default Data & Batch Add Container */}
-                <div className="bg-white rounded-none sm:rounded-none p-4 sm:p-8 shadow-xl border border-gray-100">
-                    <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                        <Settings className="w-6 h-6 text-orange-600" />
+                <div className="bg-white rounded-none sm:rounded-none p-3 sm:p-4 shadow-md border border-gray-100">
+                    <h2 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <Settings className="w-4 h-4 text-orange-600" />
                         Data Default & Batch Add
                     </h2>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <div className="grid grid-cols-1 md:grid-cols-5 lg:grid-cols-5 gap-3 mb-4">
                         {/* Klasifikasi Default */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
                                 Klasifikasi Default
                             </label>
                             <SearchableSelect
@@ -2457,7 +2457,7 @@ const AddEditPembelianPage = () => {
 
                         {/* Golongan Default */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
                                 Golongan Default
                             </label>
                             <SearchableSelect
@@ -2478,7 +2478,7 @@ const AddEditPembelianPage = () => {
 
                         {/* Berat Default */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
                                 Berat per ekor Default (kg)
                                 {isSupplierPerorangan2 && (
                                     <span className="ml-2 text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full">
@@ -2495,7 +2495,7 @@ const AddEditPembelianPage = () => {
                                         handleDefaultDataChange('berat', rawValue);
                                     }
                                 }}
-                                className={`w-full px-3 py-2 border rounded-lg ${
+                                className={`w-full px-2.5 py-1.5 border rounded-lg ${
                                     isSupplierPerorangan2
                                         ? 'border-purple-300 bg-purple-50 text-gray-700 cursor-not-allowed'
                                         : 'border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500'
@@ -2513,7 +2513,7 @@ const AddEditPembelianPage = () => {
 
                         {/* Harga Default */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
                                 Harga Default (Rp Per Kilo)
                                 {isSupplierPerorangan && !isSupplierPerorangan2 && (
                                     <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
@@ -2535,7 +2535,7 @@ const AddEditPembelianPage = () => {
                                         handleDefaultDataChange('harga', rawValue);
                                     }
                                 }}
-                                className={`w-full px-3 py-2 border rounded-lg ${
+                                className={`w-full px-2.5 py-1.5 border rounded-lg ${
                                     isSupplierPerorangan && !isSupplierPerorangan2
                                         ? 'border-blue-300 bg-blue-50 text-gray-700 cursor-not-allowed' 
                                         : isSupplierPerorangan2
@@ -2560,14 +2560,14 @@ const AddEditPembelianPage = () => {
 
                         {/* Markup Percentage Input */}
                         <div className="col-span-1">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
                                 Markup Percentage (%)
                             </label>
                             <input
                                 type="number"
                                 value={markupPercentage}
                                 onChange={(e) => handleMarkupPercentageChange(e.target.value)}
-                                className="w-full px-3 py-2 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                                className="w-full px-2.5 py-1.5 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                                 placeholder="12"
                                 min="0"
                                 max="100"
@@ -2580,7 +2580,7 @@ const AddEditPembelianPage = () => {
                     </div>
 
                     {/* Batch Add Section */}
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-lg border border-orange-200">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-3 bg-gradient-to-r from-orange-50 to-amber-50 rounded-lg border border-orange-200">
                         <div className="flex items-center gap-2">
                             <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
                                 Jumlah Batch:
@@ -2600,7 +2600,7 @@ const AddEditPembelianPage = () => {
                         
                         <button
                             onClick={handleBatchAdd}
-                            className="bg-gradient-to-r from-orange-500 to-amber-600 text-white px-4 py-2 rounded-lg hover:from-orange-600 hover:to-amber-700 transition-all duration-300 flex items-center gap-2 text-sm font-medium shadow-md hover:shadow-lg"
+                            className="bg-gradient-to-r from-orange-500 to-amber-600 text-white px-3 py-1.5 rounded-lg hover:from-orange-600 hover:to-amber-700 transition-all duration-300 flex items-center gap-1.5 text-xs font-medium shadow-sm hover:shadow-md"
                         >
                             <Plus className="w-4 h-4" />
                             Tambah {formatNumber(batchCount)} Item Batch
@@ -2609,18 +2609,17 @@ const AddEditPembelianPage = () => {
                         {/* Info Text */}
                         <div className="text-xs text-gray-600 ml-auto">
                             {isSupplierPerorangan2 ? (
-                                <div className="bg-green-50 border border-green-200 rounded-lg p-2">
-                                    <p className="text-green-800 font-medium">🧮 SUPPLIER (PERORANGAN) 2 Mode</p>
-                                    <p className="text-green-700">🔄 Semua data default otomatis dari perhitungan</p>
-                                    <p className="text-teal-700">💰 Harga per ekor otomatis: <span className="font-semibold">Rp {formatNumber(defaultData.harga)}</span> (dari Harga per Kilo)</p>
-                                    <p className="text-purple-700">⚖️ Berat per ekor otomatis: <span className="font-semibold">{beratPerSarpi > 0 ? beratPerSarpi : '0'} kg</span> (dari Berat per Sarpi)</p>
-                                    <p className="text-green-700">🧮 Perhitungan otomatis: Berat per Sarpi & Harga per Kilo</p>
+                                <div className="bg-green-50 border border-green-200 rounded-lg p-1.5">
+                                    <p className="text-green-800 font-medium text-xs">🧮 SUPPLIER (PERORANGAN) 2 Mode</p>
+                                    <p className="text-green-700 text-xs">🔄 Semua data default otomatis dari perhitungan</p>
+                                    <p className="text-teal-700 text-xs">💰 Harga per ekor otomatis: <span className="font-semibold">Rp {formatNumber(defaultData.harga)}</span></p>
+                                    <p className="text-purple-700 text-xs">⚖️ Berat per ekor otomatis: <span className="font-semibold">{beratPerSarpi > 0 ? beratPerSarpi : '0'} kg</span></p>
                                 </div>
                             ) : isSupplierPerorangan ? (
-                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-2">
-                                    <p className="text-blue-800 font-medium">🔄 SUPPLIER (PERORANGAN) Mode</p>
-                                    <p className="text-blue-700">💡 Harga default otomatis diperbarui</p>
-                                    <p className="text-blue-700">📝 Batch menggunakan harga per kilo: <span className="font-semibold">Rp {formatNumber(defaultData.harga)}</span></p>
+                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-1.5">
+                                    <p className="text-blue-800 font-medium text-xs">🔄 SUPPLIER (PERORANGAN) Mode</p>
+                                    <p className="text-blue-700 text-xs">💡 Harga default otomatis diperbarui</p>
+                                    <p className="text-blue-700 text-xs">📝 Batch harga per kilo: <span className="font-semibold">Rp {formatNumber(defaultData.harga)}</span></p>
                                 </div>
                             ) : (
                                 <>
@@ -2634,31 +2633,31 @@ const AddEditPembelianPage = () => {
 
                 {/* Parameter Loading/Error State */}
                 {parameterLoading && (
-                    <div className="bg-blue-50 p-4 rounded-lg flex items-center gap-2">
-                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
-                        <span className="text-blue-700">Memuat data parameter...</span>
+                    <div className="bg-blue-50 p-3 rounded-lg flex items-center gap-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                        <span className="text-blue-700 text-sm">Memuat data parameter...</span>
                     </div>
                 )}
                 
                 {parameterError && (
-                    <div className="bg-red-50 p-4 rounded-lg flex items-center gap-2">
-                        <AlertCircle className="w-5 h-5 text-red-600" />
-                        <span className="text-red-700">Error loading parameters: {parameterError}</span>
+                    <div className="bg-red-50 p-3 rounded-lg flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 text-red-600" />
+                        <span className="text-red-700 text-sm">Error loading parameters: {parameterError}</span>
                     </div>
                 )}
 
                 {/* Detail Items - Now always shown */}
                 {true && (
-                    <div className="bg-white rounded-none sm:rounded-none shadow-xl border border-gray-100 overflow-hidden">
-                        <div className="p-4 sm:p-8">
-                            <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                                    <Package className="w-6 h-6 text-purple-600" />
+                    <div className="bg-white rounded-none sm:rounded-none shadow-md border border-gray-100 overflow-hidden">
+                        <div className="p-3 sm:p-4">
+                            <div className="flex items-center justify-between mb-4">
+                                <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+                                    <Package className="w-4 h-4 text-purple-600" />
                                     Detail Ternak ({detailItems.length} item)
                                 </h2>
                                 <button
                                     onClick={addDetailItem}
-                                    className="bg-gradient-to-r from-purple-500 to-purple-600 text-white px-4 py-2 rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all duration-300 flex items-center gap-2 text-sm font-medium"
+                                    className="bg-gradient-to-r from-purple-500 to-purple-600 text-white px-3 py-1.5 rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all duration-300 flex items-center gap-1.5 text-xs font-medium"
                                 >
                                     <Plus className="w-4 h-4" />
                                     Tambah Detail
@@ -2715,19 +2714,19 @@ const AddEditPembelianPage = () => {
                             )}
 
                             {/* Summary */}
-                            <div className="mt-6 bg-gradient-to-r from-gray-50 to-slate-100 p-4 rounded-lg">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-center">
+                            <div className="mt-4 bg-gradient-to-r from-gray-50 to-slate-100 p-3 rounded-lg">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-center">
                                     <div>
-                                        <p className="text-2xl font-bold text-indigo-600">
+                                        <p className="text-xl font-bold text-indigo-600">
                                             {detailItems.length}
                                         </p>
-                                        <p className="text-sm text-gray-600">Total Ternak</p>
+                                        <p className="text-xs text-gray-600">Total Ternak</p>
                                     </div>
                                     <div>
-                                        <p className="text-2xl font-bold text-green-600">
+                                        <p className="text-xl font-bold text-green-600">
                                             {detailItems.reduce((sum, item) => sum + (parseFloat(item.berat) || 0), 0)} kg
                                         </p>
-                                        <p className="text-sm text-gray-600">Total Berat</p>
+                                        <p className="text-xs text-gray-600">Total Berat</p>
                                     </div>
                                 </div>
                             </div>
@@ -2735,10 +2734,10 @@ const AddEditPembelianPage = () => {
 
                         {/* Action Buttons at Bottom - Only for Add Mode */}
                         {!isEdit && (
-                            <div className="mt-8 flex justify-end gap-4 pt-6 border-t border-gray-200">
+                            <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-gray-200">
                                 <button
                                     onClick={handleBack}
-                                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm"
                                     disabled={isSubmitting}
                                 >
                                     Batal
@@ -2748,13 +2747,13 @@ const AddEditPembelianPage = () => {
                                 <button
                                     onClick={handleSubmit}
                                     disabled={isSubmitting}
-                                    className="px-8 py-3 bg-gradient-to-r from-red-500 to-rose-600 text-white rounded-lg hover:from-red-600 hover:to-rose-700 transition-all duration-300 flex items-center gap-3 font-medium shadow-lg"
+                                    className="px-6 py-2 bg-gradient-to-r from-red-500 to-rose-600 text-white rounded-lg hover:from-red-600 hover:to-rose-700 transition-all duration-300 flex items-center gap-2 font-medium shadow-md text-sm"
                                     title="Simpan pembelian dan detail ternak"
                                 >
-                                    <Save className="w-5 h-5" />
+                                    <Save className="w-4 h-4" />
                                     {isSubmitting ? (
                                         <div className="flex items-center gap-2">
-                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                            <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-white"></div>
                                             Menyimpan...
                                         </div>
                                     ) : 'Simpan Pembelian'}

@@ -26,8 +26,8 @@ const customStyles = {
   },
   rows: {
     style: {
-      minHeight: '48px',
-      fontSize: '14px',
+      minHeight: '38px',
+      fontSize: '13px',
       backgroundColor: 'white',
       borderBottom: '1px solid #f3f4f6',
       transition: 'background 0.2s',
@@ -45,28 +45,28 @@ const customStyles = {
     style: {
       background: 'linear-gradient(to right, #ede9fe, #f3e8ff)',
       color: '#7c3aed',
-      fontWeight: 700,
-      fontSize: '13px',
+      fontWeight: 600,
+      fontSize: '12px',
       borderBottom: '2px solid #a5b4fc',
       position: 'sticky',
       top: 0,
       zIndex: 2,
       textAlign: 'center', // Header rata tengah
-      padding: '8px 12px',
+      padding: '6px 8px',
     },
   },
   cells: {
     style: {
-      paddingTop: '8px',
-      paddingBottom: '8px',
-      paddingLeft: '12px',
-      paddingRight: '12px',
+      paddingTop: '6px',
+      paddingBottom: '6px',
+      paddingLeft: '8px',
+      paddingRight: '8px',
     },
   },
 };
 
 const inputClass =
-  'w-full text-[13px] border border-gray-300 rounded-[8px] px-2 py-[6px] focus:ring-2 focus:ring-purple-400 focus:border-purple-400 transition-all duration-150 bg-white min-h-[32px] h-[32px]';
+  'w-full text-[12px] border border-gray-300 rounded-[6px] px-2 py-[4px] focus:ring-2 focus:ring-purple-400 focus:border-purple-400 transition-all duration-150 bg-white min-h-[28px] h-[28px]';
 
 const golonganOptions = [
   { value: 1, label: 'Boning' },
@@ -117,14 +117,14 @@ const EditableDetailDataTable = ({
             container: (base) => ({ ...base, width: '100%' }),
             control: (base) => ({
               ...base,
-              minHeight: 32,
-              fontSize: 13,
-              borderRadius: 8,
+              minHeight: 28,
+              fontSize: 12,
+              borderRadius: 6,
               width: '100%',
               padding: '4px',
             }),
             menu: (base) => ({ ...base, zIndex: 9999, width: '100%' }),
-            option: (base) => ({ ...base, fontSize: 13 }),
+            option: (base) => ({ ...base, fontSize: 12 }),
           }}
         />
       ),
@@ -150,10 +150,10 @@ const EditableDetailDataTable = ({
             placeholder="Input supplier"
             required
             style={{
-              minHeight: 32,
-              height: 32,
-              fontSize: 13,
-              borderRadius: 8,
+              minHeight: 28,
+              height: 28,
+              fontSize: 12,
+              borderRadius: 6,
             }}
           />
           {row.duplicateWarning && (
@@ -196,14 +196,14 @@ const EditableDetailDataTable = ({
             container: (base) => ({ ...base, width: '100%' }),
             control: (base) => ({
               ...base,
-              minHeight: 32,
-              fontSize: 13,
-              borderRadius: 8,
+              minHeight: 28,
+              fontSize: 12,
+              borderRadius: 6,
               width: '100%',
               padding: '4px',
             }),
             menu: (base) => ({ ...base, zIndex: 9999, width: '100%' }),
-            option: (base) => ({ ...base, fontSize: 13 }),
+            option: (base) => ({ ...base, fontSize: 12 }),
           }}
         />
       ),
@@ -237,14 +237,14 @@ const EditableDetailDataTable = ({
               container: (base) => ({ ...base, width: '100%' }),
               control: (base) => ({
                 ...base,
-                minHeight: 32,
-                fontSize: 13,
-                borderRadius: 8,
+                minHeight: 28,
+                fontSize: 12,
+                borderRadius: 6,
                 width: '100%',
                 padding: '4px',
               }),
               menu: (base) => ({ ...base, zIndex: 9999, width: '100%' }),
-              option: (base) => ({ ...base, fontSize: 13 }),
+              option: (base) => ({ ...base, fontSize: 12 }),
             }}
           />
         );
@@ -270,10 +270,10 @@ const EditableDetailDataTable = ({
           }`}
           required
           style={{
-            minHeight: 32,
-            height: 32,
-            fontSize: 13,
-            borderRadius: 8,
+            minHeight: 28,
+            height: 28,
+            fontSize: 12,
+            borderRadius: 6,
           }}
           placeholder="0"
         />
@@ -298,10 +298,10 @@ const EditableDetailDataTable = ({
           }`}
           required
           style={{
-            minHeight: 32,
-            height: 32,
-            fontSize: 13,
-            borderRadius: 8,
+            minHeight: 28,
+            height: 28,
+            fontSize: 12,
+            borderRadius: 6,
           }}
         />
       ),
@@ -325,10 +325,10 @@ const EditableDetailDataTable = ({
           step="0.1"
           required
           style={{
-            minHeight: 32,
-            height: 32,
-            fontSize: 13,
-            borderRadius: 8,
+            minHeight: 28,
+            height: 28,
+            fontSize: 12,
+            borderRadius: 6,
           }}
         />
       ),
@@ -343,12 +343,12 @@ const EditableDetailDataTable = ({
         <div
           className={`${inputClass} bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 font-medium flex items-center`}
           style={{
-            minHeight: 32,
-            height: 32,
-            borderRadius: 8,
+            minHeight: 28,
+            height: 28,
+            borderRadius: 6,
             paddingRight: 8,
             paddingLeft: 8,
-            fontSize: 'clamp(11px, 1.2vw, 13px)',
+            fontSize: 'clamp(11px, 1.2vw, 12px)',
             overflow: 'hidden',
             whiteSpace: 'nowrap',
             textOverflow: 'ellipsis',
