@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   ChevronRight,
   SearchX,
+  PlusCircle,
   Truck,
   Banknote,
   Package,
@@ -162,7 +163,7 @@ const ModernPembelianTable = ({
         <div className="flex items-center gap-1">
           {label}
           {sortKey && (
-            <ArrowUpDown className={`w-3.5 h-3.5 transition-colors ${sortConfig.key === sortKey ? 'text-red-500' : 'text-gray-300'}`} />
+            <ArrowUpDown className={`w-3.5 h-3.5 transition-colors ${sortConfig.key === sortKey ? 'text-green-600' : 'text-gray-300'}`} />
           )}
         </div>
         {caption && <span className="text-[10px] font-normal normal-case text-gray-400 mt-0.5">{caption}</span>}
@@ -205,9 +206,9 @@ const ModernPembelianTable = ({
         </p>
         <button
           onClick={() => navigate('/ho/pembelian/add')}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
         >
-          <span className="w-1.5 h-1.5 rounded-full bg-white"></span>
+          <PlusCircle className="w-4 h-4" />
           Tambah Pembelian Baru
         </button>
       </div>
@@ -216,20 +217,6 @@ const ModernPembelianTable = ({
 
   return (
     <div className="space-y-4">
-      {/* Table Header Info */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 bg-white rounded-xl border border-gray-100 px-5 py-4">
-        <div>
-          <h2 className="text-base font-semibold text-gray-900">Daftar Pembelian Ternak</h2>
-          <p className="text-sm text-gray-500 mt-0.5">
-            Menampilkan {startItem}-{endItem} dari {serverPagination.totalRecords} transaksi pembelian
-          </p>
-        </div>
-        <div className="flex items-center gap-2 text-xs text-gray-500">
-          <Info className="w-4 h-4" />
-          <span>Klik baris untuk lihat detail tambahan</span>
-        </div>
-      </div>
-
       {/* Desktop Table */}
       <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
@@ -510,7 +497,7 @@ const ModernPembelianTable = ({
                   onClick={() => onPageChange(page)}
                   className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${
                     serverPagination.currentPage === page
-                      ? 'bg-red-500 text-white'
+                      ? 'bg-green-600 text-white'
                       : 'text-gray-600 hover:bg-gray-100'
                   }`}
                   title={`Halaman ${page}`}

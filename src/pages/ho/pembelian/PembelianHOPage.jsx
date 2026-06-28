@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { PlusCircle, ShoppingCart } from 'lucide-react';
+import { PlusCircle, ShoppingCart, Truck, Calendar, CalendarDays, CalendarRange } from 'lucide-react';
 
 import usePembelianHO from './hooks/usePembelianHO';
 import useTipePembelian from './hooks/useTipePembelian';
@@ -10,15 +10,16 @@ import PembelianFilterPanel from './components/PembelianFilterPanel';
 // Import modals
 import DeleteConfirmationModal from './modals/DeleteConfirmationModal';
 
-// Constants for better maintainability
-const NOTIFICATION_TIMEOUT = 5000;
-const ITEMS_PER_PAGE_OPTIONS = [10, 25, 50, 100];
-
 // Memoized components for better performance
-const StatCard = React.memo(({ title, value, bgColor }) => (
-    <div className={`${bgColor} text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300`}>
-        <h3 className="text-sm sm:text-base font-medium opacity-90 mb-2">{title}</h3>
-        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold">{value}</p>
+const StatCard = React.memo(({ title, value, icon: Icon, accentColor }) => (
+    <div className="bg-white rounded-lg p-3 border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200">
+        <div className="flex items-center gap-2 mb-2">
+            <div className={`p-1 rounded ${accentColor}`}>
+                {Icon && <Icon className="w-3.5 h-3.5 text-white" />}
+            </div>
+            <h3 className="text-[11px] font-medium text-gray-500 uppercase tracking-wide">{title}</h3>
+        </div>
+        <p className="text-xl sm:text-2xl font-bold text-gray-900">{value ?? 0}</p>
     </div>
 ));
 
@@ -598,52 +599,24 @@ const PembelianHOPage = () => {
                     animation: progress linear forwards;
                 }
             `}</style>
-            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-2 sm:p-4 md:p-6">
-            <div className="w-full max-w-none mx-0 space-y-6 md:space-y-8">
-                <div className="bg-white rounded-none sm:rounded-none p-4 sm:p-6 shadow-xl border border-gray-100">
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                            <h1 className="text-2xl sm:text-4xl font-bold text-gray-800 mb-1 sm:mb-2 flex items-center gap-3">
-                                <ShoppingCart size={32} className="text-red-500" />
-                                Pembelian Doka & Sapi
-                            </h1>
-                            <p className="text-gray-600 text-sm sm:text-base">
-                                Kelola data pembelian ternak untuk Doka & Sapi
-                            </p>
-                        </div>
-                        <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 md:gap-6">
-                            <button
-                                onClick={() => navigate('/ho/pembelian/add')}
-                                className="bg-gradient-to-r from-red-500 to-rose-600 text-white px-4 py-2 sm:px-6 sm:py-3 md:px-7 md:py-4 lg:px-8 lg:py-4 rounded-xl sm:rounded-2xl hover:from-red-600 hover:to-rose-700 transition-all duration-300 flex items-center gap-3 font-medium shadow-lg hover:shadow-xl text-sm sm:text-base"
-                            >
-                                <PlusCircle className="w-5 h-5 sm:w-6 sm:h-6" />
-                                Tambah Pembelian
-                            </button>
-                        </div>
-                    </div>
+            <div className="min-h-screen bg-gray-50 p-4 sm:p-6 md:p-8">
+            <div className="w-full space-y-6">
+                <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+                    <StatCard title="Total Ritasi" value={serverPagination.totalItems} icon={Truck} accentColor="bg-blue-500" />
+                    <StatCard title="Total Ternak" value={stats.totalTernak} icon={ShoppingCart} accentColor="bg-emerald-500" />
+                    <StatCard title="Hari Ini" value={stats.today} icon={Calendar} accentColor="bg-amber-500" />
+                    <StatCard title="Bulan Ini" value={stats.thisMonth} icon={CalendarDays} accentColor="bg-purple-500" />
+                    <StatCard title="Tahun Ini" value={stats.thisYear} icon={CalendarRange} accentColor="bg-indigo-500" />
                 </div>
 
-                <div className="grid grid-cols-1 gap-3 sm:gap-4 md:gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
-                    <div className="bg-gradient-to-br from-blue-400 to-blue-500 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
-                        <h3 className="text-sm sm:text-base font-medium opacity-90 mb-2">Total Ritasi</h3>
-                        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold">{serverPagination.totalItems}</p>
-                    </div>
-                    <div className="bg-gradient-to-br from-emerald-400 to-emerald-500 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
-                        <h3 className="text-sm sm:text-base font-medium opacity-90 mb-2">Total Ternak</h3>
-                        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold">{stats.totalTernak}</p>
-                    </div>
-                    <div className="bg-gradient-to-br from-amber-400 to-orange-500 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
-                        <h3 className="text-sm sm:text-base font-medium opacity-90 mb-2">Hari Ini</h3>
-                        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold">{stats.today}</p>
-                    </div>
-                    <div className="bg-gradient-to-br from-purple-400 to-purple-500 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
-                        <h3 className="text-sm sm:text-base font-medium opacity-90 mb-2">Bulan Ini</h3>
-                        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold">{stats.thisMonth}</p>
-                    </div>
-                    <div className="bg-gradient-to-br from-indigo-400 to-indigo-500 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
-                        <h3 className="text-sm sm:text-base font-medium opacity-90 mb-2">Tahun Ini</h3>
-                        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold">{stats.thisYear}</p>
-                    </div>
+                <div className="flex justify-end">
+                    <button
+                        onClick={() => navigate('/ho/pembelian/add')}
+                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-lg shadow-sm hover:shadow transition-all duration-200 flex items-center gap-2 text-sm font-medium active:scale-[0.98]"
+                    >
+                        <PlusCircle className="w-4 h-4" />
+                        Tambah Pembelian
+                    </button>
                 </div>
 
                 <PembelianFilterPanel

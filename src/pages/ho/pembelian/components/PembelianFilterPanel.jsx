@@ -243,7 +243,7 @@ const PembelianFilterPanel = ({
             </button>
             <button
               onClick={handleApply}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
             >
               <Search className="w-4 h-4" />
               Cari Data
