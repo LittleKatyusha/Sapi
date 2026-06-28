@@ -34,8 +34,8 @@ const ActionButton = ({ row, openMenuId, setOpenMenuId, onEdit, onDelete, onUndu
         onClick={handleAction}
         onKeyDown={handleKeyDown}
         tabIndex={0}
-        className={`p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all duration-150 rounded-lg hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 group ${
-          isOpen ? "bg-red-50 text-red-600 scale-105" : ""
+        className={`p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors rounded-md focus:outline-none focus:ring-2 focus:ring-gray-200 group ${
+          isOpen ? "bg-gray-100 text-gray-700" : ""
         } ${isAnimating ? "animate-pulse" : ""}`}
         aria-label="Menu Aksi"
         aria-expanded={isOpen}
