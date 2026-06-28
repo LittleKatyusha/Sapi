@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { PlusCircle, ShoppingCart, Truck, Calendar, CalendarDays, CalendarRange } from 'lucide-react';
 
 import usePembelianHO from './hooks/usePembelianHO';
+import LaporanPembelianService from '../../../services/laporanPembelianService';
 import useTipePembelian from './hooks/useTipePembelian';
 import ModernPembelianTable from './components/ModernPembelianTable';
 import PembelianFilterPanel from './components/PembelianFilterPanel';
@@ -279,6 +280,45 @@ const PembelianHOPage = () => {
         }
         navigate(`/ho/pembelian/detail/${encodeURIComponent(id)}`);
     };
+
+    const handleDownload = useCallback(async (pembelian) => {
+        const id = pembelian.encryptedPid;
+        if (!id || id.startsWith('TEMP-')) {
+            setNotification({
+                type: 'error',
+                message: 'ID pembelian tidak valid untuk mengunduh laporan'
+            });
+            return;
+        }
+
+        setNotification({
+            type: 'info',
+            message: 'Mengunduh laporan nota supplier...'
+        });
+
+        try {
+            const blob = await LaporanPembelianService.downloadReportNotaSupplier(id);
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `Laporan_Nota_Supplier_${pembelian.nota || id}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+
+            setNotification({
+                type: 'success',
+                message: 'Laporan nota supplier berhasil diunduh'
+            });
+        } catch (error) {
+            console.error('Error downloading nota supplier:', error);
+            setNotification({
+                type: 'error',
+                message: error.message || 'Gagal mengunduh laporan nota supplier'
+            });
+        }
+    }, []);
 
     // Modal handlers
     const handleCloseDeleteModal = () => {
@@ -655,6 +695,7 @@ const PembelianHOPage = () => {
                         onEdit={handleEdit}
                         onDelete={handleDelete}
                         onDetail={handleDetail}
+                        onDownload={handleDownload}
                         getJenisPembelianLabel={getJenisPembelianLabel}
                     />
                 </div>

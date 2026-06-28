@@ -358,11 +358,11 @@ class LaporanPembelianService {
 
   /**
    * Download PDF report for regular pembelian (supplier)
-   * @param {string} id - ID pembelian
+   * @param {string} id - ID pembelian (encrypted pubid)
    * @returns {Promise} - Blob response
    */
-  static async downloadReportNotaSupplier(nota) {
-    return await this.downloadPdfReport('nota-supplier', { nota });
+  static async downloadReportNotaSupplier(id) {
+    return await this.downloadPdfReport('getReportNotaSupplier', { id });
   }
 
   /**

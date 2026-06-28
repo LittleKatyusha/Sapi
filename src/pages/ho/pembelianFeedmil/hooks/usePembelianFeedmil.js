@@ -664,17 +664,24 @@ const usePembelianFeedmil = () => {
         
         // This month's purchases
         const thisMonth = new Date().getMonth();
-        const thisYear = new Date().getFullYear();
+        const currentYear = new Date().getFullYear();
         const thisMonthPurchases = pembelian.filter(item => {
             const itemDate = new Date(item.tgl_masuk);
-            return itemDate.getMonth() === thisMonth && itemDate.getFullYear() === thisYear;
+            return itemDate.getMonth() === thisMonth && itemDate.getFullYear() === currentYear;
+        }).length;
+
+        // This year's purchases
+        const thisYearPurchases = pembelian.filter(item => {
+            const itemDate = new Date(item.tgl_masuk);
+            return itemDate.getFullYear() === currentYear;
         }).length;
         
         return {
             total: serverPagination.recordsTotal || serverPagination.totalItems || total, // Use recordsTotal from API response
             totalFeedmil: totalFeedmil,
             today: todayPurchases,
-            thisMonth: thisMonthPurchases
+            thisMonth: thisMonthPurchases,
+            thisYear: thisYearPurchases
         };
     }, [pembelian, serverPagination.totalItems, serverPagination.recordsTotal]);
 

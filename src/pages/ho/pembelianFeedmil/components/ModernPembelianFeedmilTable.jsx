@@ -19,9 +19,11 @@ import {
   Package,
   Wallet,
   Info,
+  File,
   Download,
   Loader2
 } from 'lucide-react';
+import LaporanPembelianService from '../../../../services/laporanPembelianService';
 
 const formatCurrency = (value) => {
   if (!value || value === 0) return 'Rp 0';
@@ -69,10 +71,9 @@ const getSupplierColor = (name) => {
 
 const getJenisPembelianStyle = (label) => {
   const text = (label || '').toLowerCase();
-  if (text.includes('perorangan')) return 'bg-orange-50 text-orange-700 border-orange-200';
-  if (text.includes('perusahaan')) return 'bg-blue-50 text-blue-700 border-blue-200';
-  if (text.includes('qurban')) return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-  if (text.includes('doka')) return 'bg-amber-50 text-amber-700 border-amber-200';
+  if (text.includes('supplier')) return 'bg-blue-50 text-blue-700 border-blue-200';
+  if (text.includes('pakan')) return 'bg-amber-50 text-amber-700 border-amber-200';
+  if (text.includes('feedmil')) return 'bg-emerald-50 text-emerald-700 border-emerald-200';
   return 'bg-purple-50 text-purple-700 border-purple-200';
 };
 
@@ -105,7 +106,7 @@ const InfoItem = ({ icon: Icon, label, value, valueClass = 'text-gray-900' }) =>
   </div>
 );
 
-const ModernPembelianTable = ({
+const ModernPembelianFeedmilTable = ({
   data,
   loading,
   serverPagination,
@@ -114,13 +115,14 @@ const ModernPembelianTable = ({
   onEdit,
   onDelete,
   onDetail,
-  onDownload,
-  getJenisPembelianLabel
+  getFarmName,
+  getBankName
 }) => {
   const navigate = useNavigate();
   const [expandedRows, setExpandedRows] = useState(new Set());
   const [openMenuId, setOpenMenuId] = useState(null);
-  const [downloadLoadingId, setDownloadLoadingId] = useState(null);
+  const [fileLoading, setFileLoading] = useState(null);
+  const [downloadLoading, setDownloadLoading] = useState(null);
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
   const toggleExpand = (id) => {
@@ -137,18 +139,6 @@ const ModernPembelianTable = ({
       key,
       direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
     }));
-  };
-
-  const handleDownload = async (row) => {
-    if (!onDownload) return;
-    const rowId = row.id || row.pubid;
-    setDownloadLoadingId(rowId);
-    setOpenMenuId(null);
-    try {
-      await onDownload(row);
-    } finally {
-      setDownloadLoadingId(null);
-    }
   };
 
   const sortedData = useMemo(() => {
@@ -187,6 +177,49 @@ const ModernPembelianTable = ({
     </th>
   );
 
+  const handleViewFile = async (row) => {
+    if (!row.file) {
+      alert('File tidak tersedia untuk pembelian ini');
+      return;
+    }
+    setFileLoading(row.id || row.encryptedPid);
+    try {
+      window.open(row.file, '_blank');
+    } catch (error) {
+      console.error('Error viewing file:', error);
+      alert('Gagal membuka file. Silakan coba lagi.');
+    } finally {
+      setFileLoading(null);
+      setOpenMenuId(null);
+    }
+  };
+
+  const handleDownload = async (row) => {
+    const reportId = row.id || row.encryptedPid;
+    if (!reportId) {
+      alert('ID pembelian tidak tersedia');
+      return;
+    }
+    setDownloadLoading(row.id || row.encryptedPid);
+    try {
+      const blob = await LaporanPembelianService.downloadReportNotaFeedmil(reportId);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Laporan_Pembelian_Feedmil_${row.nota || 'Report'}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading report:', error);
+      alert(error.message || 'Terjadi kesalahan saat mengunduh laporan');
+    } finally {
+      setDownloadLoading(null);
+      setOpenMenuId(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -218,10 +251,10 @@ const ModernPembelianTable = ({
         </div>
         <h3 className="text-lg font-semibold text-gray-900 mb-1">Belum ada data pembelian</h3>
         <p className="text-sm text-gray-500 mb-6 max-w-md mx-auto">
-          Data pembelian ternak akan muncul di sini. Coba tambahkan data baru atau ubah pencarian/filter tanggal.
+          Data pembelian feedmil akan muncul di sini. Coba tambahkan data baru atau ubah pencarian/filter.
         </p>
         <button
-          onClick={() => navigate('/ho/pembelian/add')}
+          onClick={() => navigate('/ho/pembelian-feedmil/add')}
           className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
         >
           <PlusCircle className="w-4 h-4" />
@@ -243,18 +276,18 @@ const ModernPembelianTable = ({
                 <TableHeader label="Pembelian" caption="Nota Sistem / Manual" sortKey="nota_sistem" />
                 <TableHeader label="Supplier" caption="Nama & Plat Nomor" sortKey="nama_supplier" />
                 <TableHeader label="Tanggal Masuk" caption="Tgl kedatangan" sortKey="tgl_masuk" />
-                <TableHeader label="Jumlah" caption="Jumlah ekor" sortKey="jumlah" align="right" />
-                <TableHeader label="Total Biaya" caption="Biaya + Berat" sortKey="biaya_total" align="right" />
-                <TableHeader label="Jenis Pembelian" caption="Tipe supplier" sortKey="jenis_pembelian" />
+                <TableHeader label="Jumlah" caption="Jumlah item" sortKey="jumlah" align="right" />
+                <TableHeader label="Harga Beli" caption="Harga beli detail" sortKey="harga_beli" align="right" />
+                <TableHeader label="Total Biaya" caption="Beli + Lain + Truk" align="right" />
+                <TableHeader label="Jenis" caption="Tipe supplier" sortKey="jenis_pembelian" />
                 <th className="pb-3 pt-4 pr-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {sortedData.map((row, index) => {
-                const rowId = row.id || row.pubid;
+                const rowId = row.id || row.encryptedPid;
                 const isExpanded = expandedRows.has(rowId);
                 const rowNumber = startItem + index;
-                const jenisLabel = getJenisPembelianLabel(row.jenis_pembelian);
                 return (
                   <React.Fragment key={rowId || index}>
                     <tr className="group hover:bg-gray-50/60 transition-colors">
@@ -276,10 +309,6 @@ const ModernPembelianTable = ({
                             <span className="text-xs text-gray-500 font-mono">{row.nota || '-'}</span>
                             <span className="text-[10px] text-gray-400">nota manual</span>
                           </div>
-                          <div className="text-xs text-gray-500 mt-1 flex items-center gap-1">
-                            <MapPin className="w-3 h-3" />
-                            {row.nama_office || 'Office tidak tersedia'}
-                          </div>
                         </div>
                       </td>
                       <td className="px-4 py-3.5">
@@ -290,7 +319,7 @@ const ModernPembelianTable = ({
                           <div className="min-w-0">
                             <Tooltip text={row.nama_supplier || 'Supplier tidak tersedia'}>
                               <div className="text-sm font-medium text-gray-900 truncate max-w-[180px] cursor-help">
-                                {row.nama_supplier || '-'}
+                                {row.nama_supplier || row.supplier || '-'}
                               </div>
                             </Tooltip>
                             <div className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
@@ -310,18 +339,23 @@ const ModernPembelianTable = ({
                       <td className="px-4 py-3.5 text-right">
                         <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-lg text-sm font-semibold">
                           {row.jumlah || 0}
-                          <span className="text-xs font-normal text-indigo-500">ekor</span>
+                          <span className="text-xs font-normal text-indigo-500">{row.satuan || 'item'}</span>
                         </div>
                       </td>
                       <td className="px-4 py-3.5 text-right">
-                        <div className="text-sm font-semibold text-gray-900">{formatCurrency(row.biaya_total)}</div>
+                        <div className="text-sm font-semibold text-gray-900">{formatCurrency(row.harga_beli || row.biaya_total)}</div>
+                      </td>
+                      <td className="px-4 py-3.5 text-right">
+                        <div className="text-sm font-semibold text-gray-900">
+                          {formatCurrency((row.harga_beli || row.biaya_total || 0) + (row.biaya_lain || 0) + (row.biaya_truk || 0))}
+                        </div>
                         <div className="text-xs text-gray-500 mt-0.5">
-                          {row.berat_total ? `${parseFloat(row.berat_total).toFixed(1)} kg total` : 'Berat belum tersedia'}
+                          {row.biaya_lain || row.biaya_truk ? 'termasuk biaya lain & truk' : 'harga beli saja'}
                         </div>
                       </td>
                       <td className="px-4 py-3.5">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getJenisPembelianStyle(jenisLabel)}`}>
-                          {jenisLabel}
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getJenisPembelianStyle(row.jenis_pembelian)}`}>
+                          {row.jenis_pembelian || '-'}
                         </span>
                       </td>
                       <td className="px-4 py-3.5 text-right">
@@ -334,12 +368,30 @@ const ModernPembelianTable = ({
                             <MoreHorizontal className="w-4 h-4" />
                           </button>
                           {openMenuId === rowId && (
-                            <div className="absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-lg border border-gray-100 z-50 py-1">
+                            <div className="absolute right-0 mt-1 w-44 bg-white rounded-lg shadow-lg border border-gray-100 z-50 py-1">
                               <button
                                 onClick={() => { onDetail(row); setOpenMenuId(null); }}
                                 className="w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
                               >
                                 <Eye className="w-4 h-4" /> Lihat Detail
+                              </button>
+                              {row.file && (
+                                <button
+                                  onClick={() => handleViewFile(row)}
+                                  disabled={fileLoading === rowId}
+                                  className="w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 disabled:opacity-50"
+                                >
+                                  {fileLoading === rowId ? <Loader2 className="w-4 h-4 animate-spin" /> : <File className="w-4 h-4" />}
+                                  {fileLoading === rowId ? 'Membuka...' : 'Lihat File'}
+                                </button>
+                              )}
+                              <button
+                                onClick={() => handleDownload(row)}
+                                disabled={downloadLoading === rowId}
+                                className="w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 disabled:opacity-50"
+                              >
+                                {downloadLoading === rowId ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                                {downloadLoading === rowId ? 'Mengunduh...' : 'Download Nota'}
                               </button>
                               <button
                                 onClick={() => { onEdit(row); setOpenMenuId(null); }}
@@ -347,20 +399,6 @@ const ModernPembelianTable = ({
                               >
                                 <Pencil className="w-4 h-4" /> Edit Data
                               </button>
-                              {onDownload && (
-                                <button
-                                  onClick={() => handleDownload(row)}
-                                  disabled={downloadLoadingId === rowId}
-                                  className="w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 disabled:opacity-50"
-                                >
-                                  {downloadLoadingId === rowId ? (
-                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                  ) : (
-                                    <Download className="w-4 h-4" />
-                                  )}
-                                  {downloadLoadingId === rowId ? 'Mengunduh...' : 'Download Nota'}
-                                </button>
-                              )}
                               <button
                                 onClick={() => { onDelete(row); setOpenMenuId(null); }}
                                 className="w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
@@ -374,7 +412,7 @@ const ModernPembelianTable = ({
                     </tr>
                     {isExpanded && (
                       <tr className="bg-gray-50/60">
-                        <td colSpan={8} className="px-4 py-4">
+                        <td colSpan={9} className="px-4 py-4">
                           <div className="bg-white rounded-lg border border-gray-100 p-4 shadow-sm">
                             <div className="flex items-center gap-2 mb-3">
                               <Info className="w-4 h-4 text-gray-400" />
@@ -384,7 +422,11 @@ const ModernPembelianTable = ({
                               <InfoItem icon={Truck} label="Nama Supir" value={row.nama_supir} />
                               <InfoItem icon={Banknote} label="Biaya Lain-lain" value={formatCurrency(row.biaya_lain)} valueClass="text-gray-900" />
                               <InfoItem icon={Wallet} label="Biaya Truk" value={formatCurrency(row.biaya_truk)} valueClass="text-gray-900" />
-                              <InfoItem icon={Package} label="Total Belanja" value={formatCurrency(row.total_belanja)} valueClass="text-gray-900" />
+                              <InfoItem icon={Package} label="Harga Jual" value={formatCurrency(row.harga_jual)} valueClass="text-gray-900" />
+                              <InfoItem icon={MapPin} label="Farm" value={row.farm || getFarmName(row.id_farm)} />
+                              <InfoItem icon={Banknote} label="Syarat Pembelian" value={row.syarat_pembelian || getBankName(row.id_syarat_pembelian)} />
+                              <InfoItem icon={Banknote} label="Harga Beli" value={formatCurrency(row.harga_beli)} valueClass="text-gray-900" />
+                              <InfoItem icon={Package} label="Nota HO" value={row.nota_ho} />
                             </div>
                           </div>
                         </td>
@@ -401,8 +443,7 @@ const ModernPembelianTable = ({
       {/* Mobile Cards */}
       <div className="md:hidden space-y-3">
         {sortedData.map((row, index) => {
-          const rowId = row.id || row.pubid;
-          const jenisLabel = getJenisPembelianLabel(row.jenis_pembelian);
+          const rowId = row.id || row.encryptedPid;
           return (
             <div key={rowId || index} className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 space-y-3">
               <div className="flex items-start justify-between">
@@ -421,24 +462,24 @@ const ModernPembelianTable = ({
                     <MoreHorizontal className="w-4 h-4" />
                   </button>
                   {openMenuId === rowId && (
-                    <div className="absolute right-0 mt-1 w-36 bg-white rounded-lg shadow-lg border border-gray-100 z-50 py-1">
-                      <button onClick={() => { onDetail(row); setOpenMenuId(null); }} className="w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+                    <div className="absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-lg border border-gray-100 z-50 py-1">
+                      <button onClick={() => { onDetail(row); setOpenMenuId(null); }} className="w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
                         <Eye className="w-4 h-4" /> Lihat Detail
                       </button>
-                      <button onClick={() => { onEdit(row); setOpenMenuId(null); }} className="w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
-                        <Pencil className="w-4 h-4" /> Edit Data
-                      </button>
-                      {onDownload && (
-                        <button
-                          onClick={() => handleDownload(row)}
-                          disabled={downloadLoadingId === rowId}
-                          className="w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 disabled:opacity-50"
-                        >
-                          {downloadLoadingId === rowId ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                          {downloadLoadingId === rowId ? 'Mengunduh...' : 'Download Nota'}
+                      {row.file && (
+                        <button onClick={() => handleViewFile(row)} disabled={fileLoading === rowId} className="w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 disabled:opacity-50">
+                          {fileLoading === rowId ? <Loader2 className="w-4 h-4 animate-spin" /> : <File className="w-4 h-4" />}
+                          {fileLoading === rowId ? 'Membuka...' : 'Lihat File'}
                         </button>
                       )}
-                      <button onClick={() => { onDelete(row); setOpenMenuId(null); }} className="w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
+                      <button onClick={() => handleDownload(row)} disabled={downloadLoading === rowId} className="w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 disabled:opacity-50">
+                        {downloadLoading === rowId ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                        {downloadLoading === rowId ? 'Mengunduh...' : 'Download Nota'}
+                      </button>
+                      <button onClick={() => { onEdit(row); setOpenMenuId(null); }} className="w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+                        <Pencil className="w-4 h-4" /> Edit Data
+                      </button>
+                      <button onClick={() => { onDelete(row); setOpenMenuId(null); }} className="w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
                         <Trash2 className="w-4 h-4" /> Hapus
                       </button>
                     </div>
@@ -451,15 +492,15 @@ const ModernPembelianTable = ({
                   {getInitials(row.nama_supplier)}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-gray-900 truncate">{row.nama_supplier || '-'}</div>
+                  <div className="text-sm font-medium text-gray-900 truncate">{row.nama_supplier || row.supplier || '-'}</div>
                   <div className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
                     <Truck className="w-3 h-3" />
-                    {row.plat_nomor || '-'} • {row.nama_office || '-'}
+                    {row.plat_nomor || '-'} • {row.farm || getFarmName(row.id_farm) || '-'}
                   </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-3 pt-3 border-t border-gray-50">
+              <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-50">
                 <div>
                   <div className="text-xs text-gray-500 mb-0.5 flex items-center gap-1">
                     <Calendar className="w-3 h-3" /> Tanggal
@@ -467,12 +508,18 @@ const ModernPembelianTable = ({
                   <div className="text-sm font-medium text-gray-900">{formatDateCompact(row.tgl_masuk)}</div>
                 </div>
                 <div>
-                  <div className="text-xs text-gray-500 mb-0.5">Jumlah Ekor</div>
-                  <div className="text-sm font-medium text-indigo-700">{row.jumlah || 0} ekor</div>
+                  <div className="text-xs text-gray-500 mb-0.5">Jumlah</div>
+                  <div className="text-sm font-medium text-indigo-700">{row.jumlah || 0} {row.satuan || 'item'}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-gray-500 mb-0.5">Harga Beli</div>
+                  <div className="text-sm font-semibold text-gray-900">{formatCurrency(row.harga_beli || row.biaya_total)}</div>
                 </div>
                 <div>
                   <div className="text-xs text-gray-500 mb-0.5">Total Biaya</div>
-                  <div className="text-sm font-semibold text-gray-900">{formatCurrency(row.biaya_total)}</div>
+                  <div className="text-sm font-semibold text-gray-900">
+                    {formatCurrency((row.harga_beli || row.biaya_total || 0) + (row.biaya_lain || 0) + (row.biaya_truk || 0))}
+                  </div>
                 </div>
               </div>
 
@@ -480,8 +527,8 @@ const ModernPembelianTable = ({
                 <div className="text-xs text-gray-500">
                   Berat: {row.berat_total ? `${parseFloat(row.berat_total).toFixed(1)} kg` : '-'}
                 </div>
-                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getJenisPembelianStyle(jenisLabel)}`}>
-                  {jenisLabel}
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getJenisPembelianStyle(row.jenis_pembelian)}`}>
+                  {row.jenis_pembelian || '-'}
                 </span>
               </div>
             </div>
@@ -561,4 +608,4 @@ const ModernPembelianTable = ({
   );
 };
 
-export default ModernPembelianTable;
+export default ModernPembelianFeedmilTable;
