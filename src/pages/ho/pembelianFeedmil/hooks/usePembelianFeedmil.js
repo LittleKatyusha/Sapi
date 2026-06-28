@@ -11,6 +11,15 @@ const usePembelianFeedmil = () => {
     
     const [searchTerm, setSearchTerm] = useState('');
     const [filterJenisPembelian, setFilterJenisPembelian] = useState('all');
+    const [advancedFilters, setAdvancedFilters] = useState({
+        nota_sistem: '',
+        nota: '',
+        nama_supplier: '',
+        plat_nomor: '',
+        jenis_pembelian: '',
+        startDate: '',
+        endDate: ''
+    });
     const [isSearching, setIsSearching] = useState(false);
     const [searchError, setSearchError] = useState(null);
     const [deleteLoading, setDeleteLoading] = useState(null);
@@ -94,7 +103,7 @@ const usePembelianFeedmil = () => {
     }, [klasifikasiFeedmil]);
 
     // Fetch pembelian feedmil data from API
-    const fetchPembelian = useCallback(async (page = 1, perPage = null, search = null, filter = null, isSearchRequest = false, forceRefresh = false) => {
+    const fetchPembelian = useCallback(async (page = 1, perPage = null, search = null, filter = null, isSearchRequest = false, forceRefresh = false, filters = null) => {
         setLoading(true);
         setError(null);
         setSearchError(null);
@@ -107,6 +116,7 @@ const usePembelianFeedmil = () => {
             const currentPage = page || serverPagination.currentPage;
             const currentPerPage = perPage || serverPagination.perPage;
             const currentSearch = search !== null ? search : searchTerm;
+            const currentFilters = filters || advancedFilters;
             
             // Prepare DataTables format parameters for backend
             const params = new URLSearchParams({
@@ -117,6 +127,15 @@ const usePembelianFeedmil = () => {
                 'order[0][column]': '3', // tgl_masuk column
                 'order[0][dir]': 'desc'
             });
+
+            // Add advanced filters
+            if (currentFilters.nota_sistem) params.append('filter_nota_sistem', currentFilters.nota_sistem);
+            if (currentFilters.nota) params.append('filter_nota', currentFilters.nota);
+            if (currentFilters.nama_supplier) params.append('filter_nama_supplier', currentFilters.nama_supplier);
+            if (currentFilters.plat_nomor) params.append('filter_plat_nomor', currentFilters.plat_nomor);
+            if (currentFilters.jenis_pembelian) params.append('filter_jenis_pembelian', currentFilters.jenis_pembelian);
+            if (currentFilters.startDate) params.append('start_date', currentFilters.startDate);
+            if (currentFilters.endDate) params.append('end_date', currentFilters.endDate);
             
             // Add cache-busting parameter when forceRefresh is true
             const finalParams = forceRefresh ? `${params}&_t=${Date.now()}` : params;
@@ -191,7 +210,7 @@ const usePembelianFeedmil = () => {
             setLoading(false);
             setIsSearching(false);
         }
-    }, [searchTerm, filterJenisPembelian]); // Remove serverPagination dependencies to prevent infinite loops
+    }, [searchTerm, filterJenisPembelian, advancedFilters]); // Remove serverPagination dependencies to prevent infinite loops
 
     // Create pembelian feedmil
     const createPembelian = useCallback(async (pembelianData) => {
@@ -739,14 +758,36 @@ const usePembelianFeedmil = () => {
         fetchPembelian(1, serverPagination.perPage, searchTerm, newFilter, false);
     }, [fetchPembelian, serverPagination.perPage, searchTerm]);
 
+    // Advanced filter handlers
+    const handleAdvancedFilters = useCallback((newFilters) => {
+        setAdvancedFilters(newFilters);
+        setSearchError(null);
+        fetchPembelian(1, serverPagination.perPage, '', filterJenisPembelian, false, false, newFilters);
+    }, [fetchPembelian, serverPagination.perPage, filterJenisPembelian]);
+
+    const clearAdvancedFilters = useCallback((emptyFilters = null) => {
+        const resetFilters = emptyFilters || {
+            nota_sistem: '',
+            nota: '',
+            nama_supplier: '',
+            plat_nomor: '',
+            jenis_pembelian: '',
+            startDate: '',
+            endDate: ''
+        };
+        setAdvancedFilters(resetFilters);
+        setSearchError(null);
+        fetchPembelian(1, serverPagination.perPage, '', filterJenisPembelian, false, false, resetFilters);
+    }, [fetchPembelian, serverPagination.perPage, filterJenisPembelian]);
+
     // Pagination handlers
     const handlePageChange = useCallback((newPage) => {
-        fetchPembelian(newPage, serverPagination.perPage, searchTerm, filterJenisPembelian, false);
-    }, [fetchPembelian, serverPagination.perPage, searchTerm, filterJenisPembelian]);
+        fetchPembelian(newPage, serverPagination.perPage, searchTerm, filterJenisPembelian, false, false, advancedFilters);
+    }, [fetchPembelian, serverPagination.perPage, searchTerm, filterJenisPembelian, advancedFilters]);
 
     const handlePerPageChange = useCallback((newPerPage) => {
-        fetchPembelian(1, newPerPage, searchTerm, filterJenisPembelian, false);
-    }, [fetchPembelian, searchTerm, filterJenisPembelian]);
+        fetchPembelian(1, newPerPage, searchTerm, filterJenisPembelian, false, false, advancedFilters);
+    }, [fetchPembelian, searchTerm, filterJenisPembelian, advancedFilters]);
 
     return {
         pembelian,
@@ -765,6 +806,9 @@ const usePembelianFeedmil = () => {
         handleSearch,
         clearSearch,
         handleFilter,
+        advancedFilters,
+        handleAdvancedFilters,
+        clearAdvancedFilters,
         handlePageChange,
         handlePerPageChange,
         createPembelian,

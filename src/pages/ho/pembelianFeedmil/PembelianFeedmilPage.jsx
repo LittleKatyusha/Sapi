@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { PlusCircle, Search, Filter, Package, Truck, Calendar, CalendarDays, CalendarRange, X, Loader2 } from 'lucide-react';
+import { PlusCircle, Package, Truck, Calendar, CalendarDays, CalendarRange } from 'lucide-react';
 
 import usePembelianFeedmil from './hooks/usePembelianFeedmil';
 import useFarmAPI from './hooks/useFarmAPI';
 import useBanksAPI from './hooks/useBanksAPI';
 import ModernPembelianFeedmilTable from './components/ModernPembelianFeedmilTable';
+import PembelianFeedmilFilterPanel from './components/PembelianFeedmilFilterPanel';
 
 // Import modals
 import DeleteConfirmationModal from './modals/DeleteConfirmationModal';
@@ -22,16 +23,12 @@ const PembelianFeedmilPage = () => {
         pembelian: filteredData,
         loading,
         error,
-        searchTerm,
-        filterJenisPembelian,
-        isSearching,
-        searchError,
         stats,
         serverPagination,
         fetchPembelian,
-        handleSearch,
-        clearSearch,
-        handleFilter,
+        advancedFilters,
+        handleAdvancedFilters,
+        clearAdvancedFilters,
         handlePageChange: handleServerPageChange,
         handlePerPageChange: handleServerPerPageChange,
         deletePembelian,
@@ -69,7 +66,7 @@ const PembelianFeedmilPage = () => {
                 // Check if it's been more than 30 seconds since last refresh
                 const timeSinceLastRefresh = Date.now() - lastRefreshTime;
                 if (timeSinceLastRefresh > 30000) { // 30 seconds
-                    fetchPembelian(serverPagination.currentPage, serverPagination.perPage, searchTerm, filterJenisPembelian, false, true);
+                    fetchPembelian(serverPagination.currentPage, serverPagination.perPage, '', 'all', false, true, advancedFilters);
                     setLastRefreshTime(Date.now());
                 }
             }
@@ -79,7 +76,7 @@ const PembelianFeedmilPage = () => {
             // Check if it's been more than 30 seconds since last refresh
             const timeSinceLastRefresh = Date.now() - lastRefreshTime;
             if (timeSinceLastRefresh > 30000) { // 30 seconds
-                fetchPembelian(serverPagination.currentPage, serverPagination.perPage, searchTerm, filterJenisPembelian, false, true);
+                fetchPembelian(serverPagination.currentPage, serverPagination.perPage, '', 'all', false, true, advancedFilters);
                 setLastRefreshTime(Date.now());
             }
         };
@@ -95,20 +92,20 @@ const PembelianFeedmilPage = () => {
             document.removeEventListener('visibilitychange', handleVisibilityChange);
             window.removeEventListener('focus', handleFocus);
         };
-    }, [fetchPembelian, lastRefreshTime, serverPagination.currentPage, serverPagination.perPage, searchTerm, filterJenisPembelian]);
+    }, [fetchPembelian, lastRefreshTime, serverPagination.currentPage, serverPagination.perPage, advancedFilters]);
 
     // Refresh data when returning from edit page
     useEffect(() => {
         // Check if we're returning from an edit page
         if (location.state?.fromEdit) {
             console.log('🔄 Feedmil: Auto-refreshing data after returning from edit page');
-            fetchPembelian(serverPagination.currentPage, serverPagination.perPage, searchTerm, filterJenisPembelian, false, true);
+            fetchPembelian(serverPagination.currentPage, serverPagination.perPage, '', 'all', false, true, advancedFilters);
             setLastRefreshTime(Date.now());
             
             // Clear the state to prevent unnecessary refreshes
             window.history.replaceState({}, document.title);
         }
-    }, [location.state, fetchPembelian, serverPagination.currentPage, serverPagination.perPage, searchTerm, filterJenisPembelian]);
+    }, [location.state, fetchPembelian, serverPagination.currentPage, serverPagination.perPage, advancedFilters]);
 
 
     const handleEdit = (pembelianItem) => {
@@ -373,63 +370,11 @@ const PembelianFeedmilPage = () => {
                         </button>
                     </div>
 
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                        <button
-                            className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors"
-                        >
-                            <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 rounded-lg bg-red-50 flex items-center justify-center">
-                                    <Filter className="w-4 h-4 text-red-500" />
-                                </div>
-                                <div className="text-left">
-                                    <h3 className="text-sm font-semibold text-gray-900">Filter & Pencarian</h3>
-                                    <p className="text-xs text-gray-500">Cari berdasarkan nota, supplier, atau filter jenis</p>
-                                </div>
-                            </div>
-                        </button>
-                        <div className="px-5 pb-5 border-t border-gray-100">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4">
-                                <div className="space-y-1.5">
-                                    <label className="flex items-center gap-1.5 text-xs font-medium text-gray-600">
-                                        <Search className="w-3.5 h-3.5 text-gray-400" />
-                                        Pencarian
-                                    </label>
-                                    <div className="relative">
-                                        <input
-                                            type="text"
-                                            placeholder="Cari nota, supplier, supir..."
-                                            value={searchTerm}
-                                            onChange={(e) => handleSearch(e.target.value)}
-                                            className="w-full pl-3 pr-9 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all bg-white hover:border-gray-300"
-                                        />
-                                        {isSearching && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-500 animate-spin" />}
-                                        {searchTerm && !isSearching && (
-                                            <button onClick={clearSearch} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                                                <X className="w-4 h-4" />
-                                            </button>
-                                        )}
-                                    </div>
-                                    {searchError && <p className="text-xs text-red-600">{searchError}</p>}
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="flex items-center gap-1.5 text-xs font-medium text-gray-600">
-                                        <Filter className="w-3.5 h-3.5 text-gray-400" />
-                                        Jenis Pembelian
-                                    </label>
-                                    <select
-                                        value={filterJenisPembelian}
-                                        onChange={(e) => handleFilter(e.target.value)}
-                                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all bg-white hover:border-gray-300"
-                                    >
-                                        <option value="all">Semua Jenis</option>
-                                        <option value="Feedmil">Feedmil</option>
-                                        <option value="Supplier">Supplier</option>
-                                        <option value="Pakan">Pakan</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <PembelianFeedmilFilterPanel
+                        filters={advancedFilters}
+                        onApply={handleAdvancedFilters}
+                        onReset={clearAdvancedFilters}
+                    />
 
                     <div className="space-y-4">
                         {error && (
