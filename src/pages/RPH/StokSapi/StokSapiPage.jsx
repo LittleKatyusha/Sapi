@@ -189,6 +189,14 @@ const StokSapiPage = () => {
                 <Package className="h-4 w-4" />
                 Pemberian OVK
               </button>
+              <button
+                type="button"
+                onClick={() => navigate('/rph/pemberian-pakan-sapi')}
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 shadow-sm transition hover:bg-emerald-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+              >
+                <Wheat className="h-4 w-4" />
+                Pemberian Pakan
+              </button>
               <div className="flex items-center gap-2">
                 <label htmlFor="startDate" className="text-sm font-medium text-gray-600 whitespace-nowrap">
                   Tanggal:
