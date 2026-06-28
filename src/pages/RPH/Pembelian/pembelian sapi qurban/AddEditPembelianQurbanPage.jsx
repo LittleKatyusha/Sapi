@@ -46,11 +46,11 @@ const AddEditPembelianQurbanPage = () => {
 
     const [availableNota, setAvailableNota] = useState([]);
     const [notaLoading, setNotaLoading] = useState(false);
-    const fetchNota = useCallback(async (pid) => {
-        if (!pid) { setAvailableNota([]); return; }
+    const fetchNota = useCallback(async (pid, jenisPembelian) => {
+        if (!pid || !jenisPembelian) { setAvailableNota([]); return; }
         setNotaLoading(true);
         try {
-            const r = await QurbanService.getNota({ id_pemasok: pid });
+            const r = await QurbanService.getNota({ id_pemasok: pid, jenis_pembelian: jenisPembelian });
             setAvailableNota(r.success ? r.data : []);
         } catch { setAvailableNota([]); }
         finally { setNotaLoading(false); }
@@ -72,38 +72,15 @@ const AddEditPembelianQurbanPage = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoadingDetail, setIsLoadingDetail] = useState(false);
     const isBank = String(formData.tipe_pembayaran) === '2';
-    const [isQurbanSeason, setIsQurbanSeason] = useState(false);
-    const [qurbanSeasonLoading, setQurbanSeasonLoading] = useState(true);
 
+    // Fetch available nota when pemasok or jenis_pembelian changes
     useEffect(() => {
-        (async () => {
-            setQurbanSeasonLoading(true);
-            try {
-                const response = await HttpClient.post(`${API_ENDPOINTS.SYSTEM.PARAMETERS}/dataByGroup`, {
-                    group: 'system'
-                });
-                if (response.success && Array.isArray(response.data)) {
-                    const seasonParam = response.data.find(p => p.name === 'is_qurban_season');
-                    setIsQurbanSeason(seasonParam?.value === 'true');
-                } else {
-                    setIsQurbanSeason(false);
-                }
-            } catch (err) {
-                console.error('Error fetching is_qurban_season:', err);
-                setIsQurbanSeason(false);
-            } finally {
-                setQurbanSeasonLoading(false);
-            }
-        })();
-    }, []);
-    // Fetch available nota when pemasok changes
-    useEffect(() => {
-        if (formData.id_pemasok) {
-            fetchNota(formData.id_pemasok);
+        if (formData.id_pemasok && formData.jenis_pembelian) {
+            fetchNota(formData.id_pemasok, formData.jenis_pembelian);
         } else {
             setAvailableNota([]);
         }
-    }, [formData.id_pemasok, fetchNota]);
+    }, [formData.id_pemasok, formData.jenis_pembelian, fetchNota]);
 
     useEffect(() => {
         if (!isEditMode || !id) return;
@@ -131,7 +108,7 @@ const AddEditPembelianQurbanPage = () => {
                             harga_beli: parseFloat(x.harga_beli) || 0,
                         })));
                     }
-                    if (d.id_pemasok) fetchNota(d.id_pemasok);
+                    if (d.id_pemasok) fetchNota(d.id_pemasok, d.jenis_pembelian || formData.jenis_pembelian);
                 } else {
                     setNotification({ type: 'error', message: r.message || 'Gagal memuat data detail' });
                 }
@@ -140,12 +117,13 @@ const AddEditPembelianQurbanPage = () => {
                 setNotification({ type: 'error', message: 'Gagal memuat data untuk edit' });
             } finally { setIsLoadingDetail(false); }
         })();
-    }, [isEditMode, id, fetchNota]);
+    }, [isEditMode, id, fetchNota, formData.jenis_pembelian]);
 
     const handleChange = useCallback((field, value) => {
         setFormData(prev => {
             const u = { ...prev, [field]: value };
             if (field === 'id_pemasok') { u.id_nota = ''; setSelectedSapi([]); }
+            if (field === 'jenis_pembelian') { u.id_nota = ''; setSelectedSapi([]); }
             if (field === 'id_nota') setSelectedSapi([]);
             if (field === 'tipe_pembayaran') {
                 if (String(value) === '1') {
@@ -352,10 +330,10 @@ const AddEditPembelianQurbanPage = () => {
                 <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-100">
                     <div className="flex flex-col sm:flex-row gap-3 justify-end">
                         <button onClick={handleBack} className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors text-sm font-medium">Batal</button>
-                        <button onClick={handleSubmit}                         disabled={isSubmitting || qurbanSeasonLoading || !isQurbanSeason}
+                        <button onClick={handleSubmit} disabled={isSubmitting}
  className="flex items-center justify-center gap-2 px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">
                             {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                            {isSubmitting ? 'Menyimpan...' : qurbanSeasonLoading ? 'Memeriksa musim...' : !isQurbanSeason ? 'Musim Qurban Berakhir' : (isEditMode ? 'Perbarui Data' : 'Simpan Data')}
+                            {isSubmitting ? 'Menyimpan...' : (isEditMode ? 'Perbarui Data' : 'Simpan Data')}
                         </button>
                     </div>
                 </div>
