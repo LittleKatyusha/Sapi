@@ -216,17 +216,14 @@ const EditableDetailDataTable = ({
     {
       name: 'Golongan',
       cell: (row) => {
-        const filteredOptions = isSupplierPerorangan
-          ? golonganOptions.filter((opt) => opt.value === 3)
-          : golonganOptions.filter((opt) => opt.value !== 3);
         const currentValue = row.golongan ? Number(row.golongan) : null;
         return (
           <Select
-            value={filteredOptions.find((opt) => opt.value === currentValue) || null}
+            value={golonganOptions.find((opt) => opt.value === currentValue) || null}
             onChange={(opt) =>
               onDetailChange(row.id, 'golongan', opt ? opt.value : '')
             }
-            options={filteredOptions}
+            options={golonganOptions}
             isDisabled={parameterLoading}
             isClearable
             placeholder="Pilih Golongan"

@@ -654,33 +654,7 @@ const AddEditPembelianPage = () => {
                label.includes('2');
     }, [headerData.tipePembelian, tipePembelianOptions]);
 
-    // Reset default golongan if it becomes invalid for the current supplier type
-    useEffect(() => {
-        const currentValue = parseInt(defaultData.golongan);
-        if (!defaultData.golongan) return;
-        if (isSupplierPerorangan && currentValue !== 3) {
-            setDefaultData(prev => ({ ...prev, golongan: '' }));
-        } else if (!isSupplierPerorangan && currentValue === 3) {
-            setDefaultData(prev => ({ ...prev, golongan: '' }));
-        }
-    }, [isSupplierPerorangan, defaultData.golongan]);
-
-    // Reset existing detail golongan values that are invalid for current supplier type
-    useEffect(() => {
-        setDetailItems(prev =>
-            prev.map(item => {
-                const value = parseInt(item.golongan);
-                if (!item.golongan) return item;
-                if (isSupplierPerorangan && value !== 3) {
-                    return { ...item, golongan: '' };
-                }
-                if (!isSupplierPerorangan && value === 3) {
-                    return { ...item, golongan: '' };
-                }
-                return item;
-            })
-        );
-    }, [isSupplierPerorangan]);
+    // Golongan 1, 2, 3 tersedia untuk semua tipe supplier (tidak ada filter/reset otomatis)
 
     // Calculate total weight for SUPPLIER (PERORANGAN): Total Berat = Jumlah Ekor × Berat per Sapi
     const calculatedBeratTotal = useMemo(() => {
@@ -2489,21 +2463,16 @@ const AddEditPembelianPage = () => {
                             <SearchableSelect
                                 value={defaultData.golongan}
                                 onChange={(value) => handleDefaultDataChange('golongan', value)}
-                                options={
-                                    isSupplierPerorangan
-                                        ? [{ value: 3, label: 'Qurban' }]
-                                        : [
-                                            { value: 1, label: 'Boning' },
-                                            { value: 2, label: 'Karkas' },
-                                        ]
-                                }
+                                options={[
+                                    { value: 1, label: 'Boning' },
+                                    { value: 2, label: 'Karkas' },
+                                    { value: 3, label: 'Qurban' },
+                                ]}
                                 placeholder="Pilih Golongan Default"
                                 className="w-full"
                             />
                             <p className="text-xs text-gray-500 mt-1">
-                                {isSupplierPerorangan
-                                    ? '💡 Supplier perorangan hanya boleh Qurban'
-                                    : '💡 Supplier perusahaan hanya boleh Boning atau Karkas'}
+                                💡 Pilih golongan: Boning, Karkas, atau Qurban
                             </p>
                         </div>
 
