@@ -520,6 +520,7 @@ function AppSecure() {
 
               {/* HO Penjualan Sapi Routes */}
               <Route path="/ho/penjualan-sapi" element={<PenjualanSapiHOPage />} />
+              <Route path="/penjualan-sapi" element={<Navigate to="/ho/penjualan-sapi" replace />} />
               {/* Add and Edit routes removed - handled by modals in the main page */}
 
               {/* System Routes */}

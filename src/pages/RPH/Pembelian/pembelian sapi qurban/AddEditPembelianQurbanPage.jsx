@@ -56,7 +56,8 @@ const AddEditPembelianQurbanPage = () => {
         finally { setNotaLoading(false); }
     }, []);
     const notaOptions = useMemo(() => (availableNota || []).map(n => ({
-        value: n.id || n.pubid, label: n.no_po || n.nota || n.name || `Nota #${n.id}`,
+        value: n.id_pembelian_ho || n.id || n.pubid,
+        label: n.nota || n.no_po || n.name || `Nota #${n.id_pembelian_ho || n.id}`,
     })), [availableNota]);
 
     const [formData, setFormData] = useState({
@@ -95,6 +96,15 @@ const AddEditPembelianQurbanPage = () => {
             }
         })();
     }, []);
+    // Fetch available nota when pemasok changes
+    useEffect(() => {
+        if (formData.id_pemasok) {
+            fetchNota(formData.id_pemasok);
+        } else {
+            setAvailableNota([]);
+        }
+    }, [formData.id_pemasok, fetchNota]);
+
     useEffect(() => {
         if (!isEditMode || !id) return;
         (async () => {

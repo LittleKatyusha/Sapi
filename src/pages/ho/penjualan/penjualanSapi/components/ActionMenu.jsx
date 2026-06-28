@@ -1,14 +1,10 @@
-import React, { useRef, useEffect, useState, useLayoutEffect } from 'react';
+import React, { useRef, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Eye, Download, Loader2 } from 'lucide-react';
-import LaporanPembelianService from '../../../../../services/laporanPembelianService';
-import { API_ENDPOINTS, API_BASE_URL } from '../../../../../config/api';
+import { Eye, Download } from 'lucide-react';
 
-const ActionMenu = ({ row, onDetail, onDownloadOrder, onClose, buttonRef, apiEndpoint = API_ENDPOINTS.HO.PENJUALAN }) => {
+const ActionMenu = ({ row, onDetail, onDownloadOrder, onDownloadSuratJalan, onClose, buttonRef }) => {
     const menuRef = useRef(null);
     const [menuStyle, setMenuStyle] = useState(null);
-    const [downloadLoading, setDownloadLoading] = useState(false);
-    const [fileLoading, setFileLoading] = useState(false);
 
     useLayoutEffect(() => {
         function updatePosition() {
@@ -16,7 +12,7 @@ const ActionMenu = ({ row, onDetail, onDownloadOrder, onClose, buttonRef, apiEnd
                 const btnRect = buttonRef.current.getBoundingClientRect();
                 setMenuStyle({
                     position: 'absolute',
-                    left: btnRect.left + window.scrollX,
+                    right: window.innerWidth - btnRect.right - window.scrollX,
                     top: btnRect.bottom + window.scrollY + 8,
                     zIndex: 9999
                 });
@@ -39,71 +35,36 @@ const ActionMenu = ({ row, onDetail, onDownloadOrder, onClose, buttonRef, apiEnd
         };
     }, [onClose, buttonRef]);
 
-    // Handle download order sheet functionality
-    const handleDownloadOrderSheet = async (row) => {
-        // Use pid if available, otherwise fallback to pubid
-        const reportId = row.pid || row.pubid;
-        
-        if (!reportId) {
-            alert('ID penjualan tidak tersedia');
-            return;
-        }
-
-        setDownloadLoading(true);
-        try {
-            let blob;
-            
-            // Determine report type based on API endpoint
-            if (apiEndpoint && apiEndpoint.includes('feedmil')) {
-                blob = await LaporanPembelianService.downloadReportNotaFeedmil(reportId);
-            } else if (apiEndpoint && apiEndpoint.includes('ovk')) {
-                blob = await LaporanPembelianService.downloadReportNotaOvk(reportId);
-            } else {
-                // Default to regular supplier report for penjualan
-                blob = await LaporanPembelianService.downloadReportNotaSupplier(reportId);
-            }
-            
-            // Create download link
-            const url = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            
-            // Generate appropriate filename based on sale type
-            let filename = 'Laporan_Penjualan';
-            if (apiEndpoint && apiEndpoint.includes('feedmil')) {
-                filename = 'Laporan_Penjualan_Feedmil';
-            } else if (apiEndpoint && apiEndpoint.includes('ovk')) {
-                filename = 'Laporan_Penjualan_OVK';
-            }
-            filename += `_${row.nota || 'Report'}.pdf`;
-            
-            link.download = filename;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
-            
-            // Close menu after successful download
-            onClose();
-            
-        } catch (error) {
-            console.error('Error downloading report:', error);
-            alert(error.message || 'Terjadi kesalahan saat mengunduh laporan');
-        } finally {
-            setDownloadLoading(false);
-        }
-    };
-
     const actions = [
         {
-            label: 'Proses',
+            label: 'Lihat Detail',
             icon: Eye,
-            onClick: () => onDetail(row),
+            onClick: () => { onDetail(row); onClose(); },
             className: 'text-gray-700',
-            description: 'Informasi lengkap',
+            description: 'Buka informasi lengkap',
             bg: 'bg-blue-100',
             hoverBg: 'group-hover:bg-blue-200',
             text: 'text-blue-600',
+        },
+        {
+            label: 'Unduh Surat Jalan',
+            icon: Download,
+            onClick: () => { if (onDownloadSuratJalan) onDownloadSuratJalan(row); onClose(); },
+            className: 'text-gray-700',
+            description: 'Download file surat jalan',
+            bg: 'bg-green-100',
+            hoverBg: 'group-hover:bg-green-200',
+            text: 'text-green-600',
+        },
+        {
+            label: 'Unduh Lembar Pesanan',
+            icon: Download,
+            onClick: () => { if (onDownloadOrder) onDownloadOrder(row); onClose(); },
+            className: 'text-gray-700',
+            description: 'Download lembar pesanan',
+            bg: 'bg-purple-100',
+            hoverBg: 'group-hover:bg-purple-200',
+            text: 'text-purple-600',
         },
     ];
 
@@ -133,7 +94,9 @@ const ActionMenu = ({ row, onDetail, onDownloadOrder, onClose, buttonRef, apiEnd
                     ) : (
                         <button
                             key={action.label}
-                            onClick={() => { 
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
                                 if (!action.disabled) {
                                     action.onClick();
                                     // onClose is handled individually in each action

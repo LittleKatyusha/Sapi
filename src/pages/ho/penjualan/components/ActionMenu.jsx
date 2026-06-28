@@ -12,7 +12,7 @@ const ActionMenu = ({ row, onDownload, onEdit, onDelete, onClose, buttonRef }) =
                 const btnRect = buttonRef.current.getBoundingClientRect();
                 setMenuStyle({
                     position: 'absolute',
-                    left: btnRect.left + window.scrollX,
+                    right: window.innerWidth - btnRect.right - window.scrollX,
                     top: btnRect.bottom + window.scrollY + 8,
                     zIndex: 9999
                 });
@@ -95,7 +95,9 @@ const ActionMenu = ({ row, onDownload, onEdit, onDelete, onClose, buttonRef }) =
                     ) : (
                         <button
                             key={action.label}
-                            onClick={() => {
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
                                 action.onClick();
                                 onClose();
                             }}
