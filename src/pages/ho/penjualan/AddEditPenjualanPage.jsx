@@ -62,72 +62,141 @@ const AddEditPenjualanPage = () => {
     }, [setNotification]);
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50 to-teal-100">
-            <div className="w-full space-y-0">
-                <div className="bg-white p-6 shadow-sm border-b border-gray-200">
-                    <div className="flex items-center gap-4">
-                        <button onClick={handleBack} className="p-3 text-gray-700 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all duration-200 hover:shadow-md">
-                            <ArrowLeft size={24} />
+        <div className="min-h-screen bg-slate-50 pb-24">
+            {/* Sticky Header */}
+            <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-200">
+                <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex items-center gap-3 h-14">
+                        <button
+                            type="button"
+                            onClick={handleBack}
+                            className="p-2 -ml-2 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                            aria-label="Kembali"
+                        >
+                            <ArrowLeft size={20} />
                         </button>
-                        <div>
-                            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 flex items-center gap-3">
-                                <ShoppingCart size={32} className="text-emerald-500" />
-                                {isEditMode ? 'Edit Penjualan' : 'Tambah Penjualan'}
+                        <div className="flex-1 min-w-0">
+                            <h1 className="text-base font-semibold text-gray-900 truncate">
+                                {isEditMode ? 'Edit Penjualan' : 'Penjualan Baru'}
                             </h1>
-                            <p className="text-gray-600 mt-1">{isEditMode ? 'Perbarui data penjualan' : 'Buat file penjualan baru'}</p>
+                            <p className="text-xs text-gray-500 truncate">
+                                {isEditMode ? 'Perbarui data transaksi' : 'Buat transaksi penjualan HO'}
+                            </p>
+                        </div>
+                        <div className="hidden sm:flex items-center gap-2 px-2.5 py-1 bg-gray-100 rounded-md text-xs text-gray-600">
+                            <ShoppingCart size={14} />
+                            <span>{detailProduk.length} item</span>
                         </div>
                     </div>
                 </div>
+            </header>
 
-                <form onSubmit={handleSubmit} className="space-y-0">
-                    <div className="bg-white p-6 shadow-sm border-b border-gray-200">
-                        <h2 className="text-lg font-bold text-gray-800 mb-6 pb-4 border-b border-gray-200">Informasi Penjualan</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="md:col-span-2">
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Jenis Penjualan <span className="text-red-500">*</span></label>
-                                <Select value={formData.jenisPenjualan} onChange={(v) => handleSelectChange('jenisPenjualan', v)} options={jenisPenjualanOptions} placeholder="Pilih jenis penjualan..." isClearable isSearchable styles={selectStyles} noOptionsMessage={() => 'Tidak ada opsi'} />
-                            </div>
-                            <div className="md:col-span-2">
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Pembeli <span className="text-red-500">*</span></label>
-                                <Select value={formData.pembeli} onChange={(v) => handleSelectChange('pembeli', v)} options={pembeliOptions} placeholder="Cari dan pilih pembeli..." isClearable isSearchable isLoading={pembeliLoading} loadingMessage={() => 'Memuat data pembeli...'} styles={selectStyles} noOptionsMessage={() => 'Pembeli tidak ditemukan'} />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Nama Supir <span className="text-red-500">*</span></label>
-                                <input type="text" name="namaSupir" value={formData.namaSupir} onChange={handleInputChange} placeholder="Masukkan nama supir..." className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all duration-200 text-gray-800" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Plat Nomor <span className="text-red-500">*</span></label>
-                                <input type="text" name="platNomor" value={formData.platNomor} onChange={handleInputChange} placeholder="Masukkan plat nomor kendaraan..." className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all duration-200 text-gray-800 uppercase" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Tipe Pembayaran <span className="text-red-500">*</span></label>
-                                <Select value={formData.tipePembayaran} onChange={(v) => handleSelectChange('tipePembayaran', v)} options={tipePembayaranOptions} placeholder="Pilih tipe pembayaran..." isClearable isSearchable isLoading={tipePembayaranLoading} loadingMessage={() => 'Memuat data tipe pembayaran...'} styles={selectStyles} noOptionsMessage={() => 'Tidak ada opsi'} />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Syarat Pembayaran <span className="text-red-500">*</span></label>
+            <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
+                <form onSubmit={handleSubmit} className="space-y-5">
+                    {/* Informasi Penjualan */}
+                    <section className="bg-white rounded-xl border border-gray-200/70 shadow-sm">
+                        <div className="px-5 py-3.5 border-b border-gray-100">
+                            <h2 className="text-sm font-semibold text-gray-900">Informasi Penjualan</h2>
+                            <p className="text-xs text-gray-500 mt-0.5">Isi informasi utama transaksi penjualan.</p>
+                        </div>
+                        <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-4">
+                            <Field label="Jenis Penjualan" required>
+                                <Select
+                                    value={formData.jenisPenjualan}
+                                    onChange={(v) => handleSelectChange('jenisPenjualan', v)}
+                                    options={jenisPenjualanOptions}
+                                    placeholder="Pilih jenis..."
+                                    isClearable
+                                    isSearchable
+                                    styles={selectStyles}
+                                    noOptionsMessage={() => 'Tidak ada opsi'}
+                                />
+                            </Field>
+                            <Field label="Pembeli" required>
+                                <Select
+                                    value={formData.pembeli}
+                                    onChange={(v) => handleSelectChange('pembeli', v)}
+                                    options={pembeliOptions}
+                                    placeholder="Cari pembeli..."
+                                    isClearable
+                                    isSearchable
+                                    isLoading={pembeliLoading}
+                                    loadingMessage={() => 'Memuat data pembeli...'}
+                                    styles={selectStyles}
+                                    noOptionsMessage={() => 'Pembeli tidak ditemukan'}
+                                />
+                            </Field>
+                            <Field label="Tipe Pembayaran" required>
+                                <Select
+                                    value={formData.tipePembayaran}
+                                    onChange={(v) => handleSelectChange('tipePembayaran', v)}
+                                    options={tipePembayaranOptions}
+                                    placeholder="Pilih tipe..."
+                                    isClearable
+                                    isSearchable
+                                    isLoading={tipePembayaranLoading}
+                                    loadingMessage={() => 'Memuat data...'}
+                                    styles={selectStyles}
+                                    noOptionsMessage={() => 'Tidak ada opsi'}
+                                />
+                            </Field>
+                            <Field label="Syarat Pembayaran" required>
                                 <Select
                                     value={formData.syaratPembayaran}
                                     onChange={(v) => handleSelectChange('syaratPembayaran', v)}
                                     options={syaratPembayaranOptions}
-                                    placeholder={filterType === 'KAS' ? 'Pilih Kas...' : (filterType === 'BANK' ? 'Pilih Bank...' : 'Cari dan pilih syarat pembayaran...')}
+                                    placeholder={filterType === 'KAS' ? 'Pilih kas...' : (filterType === 'BANK' ? 'Pilih bank...' : 'Pilih syarat...')}
                                     isClearable
                                     isSearchable
                                     isLoading={syaratPembayaranLoading}
-                                    loadingMessage={() => 'Memuat data syarat pembayaran...'}
+                                    loadingMessage={() => 'Memuat data...'}
                                     styles={selectStyles}
-                                    noOptionsMessage={() => 'Syarat pembayaran tidak ditemukan'}
+                                    noOptionsMessage={() => 'Syarat tidak ditemukan'}
+                                    isDisabled={!formData.tipePembayaran}
                                 />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Nama Penerima</label>
-                                <input type="text" name="namaPenerima" value={formData.namaPenerima} onChange={handleInputChange} placeholder="Masukkan nama penerima..." className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all duration-200 text-gray-800" />
-                            </div>
-                            <div className="md:col-span-2">
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Keterangan</label>
-                                <input type="text" name="keterangan" value={formData.keterangan} onChange={handleInputChange} placeholder="Masukkan keterangan (opsional)..." className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all duration-200 text-gray-800" />
-                            </div>
+                            </Field>
+                            <Field label="Nama Supir" required>
+                                <input
+                                    type="text"
+                                    name="namaSupir"
+                                    value={formData.namaSupir}
+                                    onChange={handleInputChange}
+                                    placeholder="Nama supir"
+                                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-colors"
+                                />
+                            </Field>
+                            <Field label="Plat Nomor" required>
+                                <input
+                                    type="text"
+                                    name="platNomor"
+                                    value={formData.platNomor}
+                                    onChange={handleInputChange}
+                                    placeholder="Plat nomor"
+                                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-colors uppercase"
+                                />
+                            </Field>
+                            <Field label="Nama Penerima">
+                                <input
+                                    type="text"
+                                    name="namaPenerima"
+                                    value={formData.namaPenerima}
+                                    onChange={handleInputChange}
+                                    placeholder="Nama penerima"
+                                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-colors"
+                                />
+                            </Field>
+                            <Field label="Keterangan">
+                                <input
+                                    type="text"
+                                    name="keterangan"
+                                    value={formData.keterangan}
+                                    onChange={handleInputChange}
+                                    placeholder="Keterangan (opsional)"
+                                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-colors"
+                                />
+                            </Field>
                         </div>
-                    </div>
+                    </section>
 
                     <ProdukDetailTable
                         detailProduk={detailProduk}
@@ -138,23 +207,39 @@ const AddEditPenjualanPage = () => {
                     />
 
                     <PriceInfoPanel priceInfo={priceInfo} />
+                </form>
+            </main>
 
-                    <div className="flex justify-end p-6 bg-white">
-                        <button type="submit" disabled={loading} className="flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl hover:from-emerald-600 hover:to-teal-700 transition-all duration-200 shadow-lg hover:shadow-xl font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed">
+            {/* Sticky Bottom Action Bar */}
+            <div className="fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-gray-200 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+                <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+                    <div className="flex items-center justify-between gap-4">
+                        <div className="min-w-0">
+                            <p className="text-xs text-gray-500">Total Penjualan</p>
+                            <p className="text-lg font-bold text-gray-900 tabular-nums">
+                                {priceInfo.hargaJual.toLocaleString('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 })}
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={handleSubmit}
+                            disabled={loading}
+                            className="flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 active:bg-green-800 transition-colors text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed shadow-sm whitespace-nowrap"
+                        >
                             {loading ? (
                                 <>
-                                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                                     Menyimpan...
                                 </>
                             ) : (
                                 <>
-                                    <Save size={22} />
-                                    {isEditMode ? 'Perbarui Penjualan' : 'Buat File Penjualan'}
+                                    <Save size={18} />
+                                    {isEditMode ? 'Simpan Perubahan' : 'Simpan Penjualan'}
                                 </>
                             )}
                         </button>
                     </div>
-                </form>
+                </div>
             </div>
 
             <Notification
@@ -172,5 +257,15 @@ const AddEditPenjualanPage = () => {
         </div>
     );
 };
+
+const Field = ({ label, required, children }) => (
+    <div>
+        <label className="block text-xs font-medium text-gray-700 mb-1.5">
+            {label}
+            {required && <span className="text-red-500 ml-0.5">*</span>}
+        </label>
+        {children}
+    </div>
+);
 
 export default AddEditPenjualanPage;

@@ -21,7 +21,9 @@ const useEartagMapping = () => {
             let result;
             try {
                 console.log('🔄 Trying centralized parameter endpoint...');
-                result = await HttpClient.get(`${API_ENDPOINTS.MASTER.PARAMETER}/data`);
+                result = await HttpClient.get(`${API_ENDPOINTS.MASTER.PARAMETER}/data`, {
+                    params: { groups: 'eartag' }
+                });
                 
                 // Check if this endpoint has eartag data
                 if (result.data && Array.isArray(result.data) && result.data.length > 0) {

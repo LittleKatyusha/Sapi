@@ -55,6 +55,12 @@ const usePenjualan = (activeTab = 'bahan-baku') => {
     const [searchError, setSearchError] = useState(null);
     const [cardData, setCardData] = useState(null);
     const [cardLoading, setCardLoading] = useState(false);
+    const [summary, setSummary] = useState({
+        total_jumlah: 0,
+        total_harga: 0,
+        total_harga_beli: 0,
+        total_selisih: 0
+    });
 
     // Pagination state
     const [serverPagination, setServerPagination] = useState({
@@ -105,6 +111,13 @@ const usePenjualan = (activeTab = 'bahan-baku') => {
             const filteredRecords = result.recordsFiltered || totalRecords;
 
             setPenjualan(dataArray);
+
+            setSummary({
+                total_jumlah: result.total ?? 0,
+                total_harga: result.total_harga ?? 0,
+                total_harga_beli: result.total_harga_beli ?? 0,
+                total_selisih: result.total_selisih ?? 0
+            });
 
             setServerPagination({
                 currentPage: currentPage,
@@ -235,7 +248,10 @@ const usePenjualan = (activeTab = 'bahan-baku') => {
         // Pagination
         serverPagination,
         handlePageChange,
-        handlePerPageChange
+        handlePerPageChange,
+
+        // Summary totals
+        summary
     };
 };
 

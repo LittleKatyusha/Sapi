@@ -21,13 +21,17 @@ class QurbanService {
    * Get available nota/pesanan from HO
    * @param {Object} params - Request parameters
    * @param {number} params.id_pemasok - Pemasok/Supplier ID to filter nota
+   * @param {number} params.jenis_pembelian - Jenis pembelian (1 = Import, 2 = Lokal)
    * @returns {Promise} API response with available nota list
    */
   static async getNota(params = {}) {
     try {
       const response = await HttpClient.post(
         API_ENDPOINTS.RPH?.QURBAN?.NOTA || `${this.API_BASE}/getnota`,
-        { id_pemasok: params.id_pemasok }
+        {
+          id_pemasok: params.id_pemasok,
+          jenis_pembelian: params.jenis_pembelian,
+        }
       );
 
       return {

@@ -1,117 +1,26 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import DataTable from 'react-data-table-component';
-import { PlusCircle, Search, ShoppingCart, X, Loader2, Calendar } from 'lucide-react';
+import { PlusCircle, ShoppingCart, Truck, Calendar, CalendarDays, CalendarRange } from 'lucide-react';
 
 import usePembelianHO from './hooks/usePembelianHO';
+import LaporanPembelianService from '../../../services/laporanPembelianService';
 import useTipePembelian from './hooks/useTipePembelian';
-import ActionButton from './components/ActionButton';
-import PembelianCard from './components/PembelianCard';
-import CustomPagination from './components/CustomPagination';
-import { enhancedTableStyles } from './constants/tableStyles';
+import ModernPembelianTable from './components/ModernPembelianTable';
+import PembelianFilterPanel from './components/PembelianFilterPanel';
 
 // Import modals
 import DeleteConfirmationModal from './modals/DeleteConfirmationModal';
 
-// Constants for better maintainability
-const NOTIFICATION_TIMEOUT = 5000;
-const ITEMS_PER_PAGE_OPTIONS = [10, 25, 50, 100];
-
 // Memoized components for better performance
-const StatCard = React.memo(({ title, value, bgColor }) => (
-    <div className={`${bgColor} text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300`}>
-        <h3 className="text-sm sm:text-base font-medium opacity-90 mb-2">{title}</h3>
-        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold">{value}</p>
-    </div>
-));
-
-const SearchInput = React.memo(({ 
-    searchTerm, 
-    isSearching, 
-    searchError, 
-    onSearch, 
-    onClear 
-}) => (
-    <div className="relative flex-1 max-w-full sm:max-w-md lg:max-w-lg">
-        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-        
-        {isSearching && (
-            <Loader2 className="absolute right-12 top-1/2 transform -translate-y-1/2 w-4 h-4 text-red-500 animate-spin" />
-        )}
-        
-        {searchTerm && !isSearching && (
-            <button
-                onClick={onClear}
-                className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 hover:text-gray-600 transition-colors duration-200"
-                title="Clear search"
-            >
-                <X className="w-4 h-4" />
-            </button>
-        )}
-        
-        <input
-            type="text"
-            placeholder="Cari berdasarkan nota, supplier, office, supir, atau plat nomor..."
-            value={searchTerm}
-            onChange={(e) => onSearch(e.target.value)}
-            className={`w-full pl-12 ${searchTerm || isSearching ? 'pr-12' : 'pr-4'} py-2.5 sm:py-3 md:py-4 border ${
-                searchError 
-                    ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
-                    : 'border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-red-500'
-            } rounded-full transition-all duration-200 text-sm sm:text-base shadow-sm hover:shadow-md`}
-        />
-        
-        {searchError && (
-            <div className="absolute top-full left-0 right-0 mt-1 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-                {searchError}
+const StatCard = React.memo(({ title, value, icon: Icon, accentColor }) => (
+    <div className="bg-white rounded-lg p-3 border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200">
+        <div className="flex items-center gap-2 mb-2">
+            <div className={`p-1 rounded ${accentColor}`}>
+                {Icon && <Icon className="w-3.5 h-3.5 text-white" />}
             </div>
-        )}
-    </div>
-));
-
-const DateRangeFilter = React.memo(({ 
-    dateRange, 
-    onDateRangeChange, 
-    onClearDateRange 
-}) => (
-    <div className="flex items-center gap-2 md:gap-3 flex-wrap">
-        <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
-        <div className="flex items-center gap-2">
-            <input
-                id="startDateInput"
-                type="date"
-                value={dateRange.startDate}
-                onChange={(e) => {
-                    const newDateRange = { ...dateRange, startDate: e.target.value };
-                    onDateRangeChange(newDateRange);
-                }}
-                className="px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 text-sm sm:text-base shadow-sm hover:shadow-md hover:border-gray-400 transition-all duration-200 cursor-pointer w-full"
-                style={{ minWidth: '150px' }}
-                title="Pilih Tanggal Mulai"
-            />
-            <span className="text-gray-500 text-sm font-medium">s/d</span>
-            <input
-                id="endDateInput"
-                type="date"
-                value={dateRange.endDate}
-                onChange={(e) => {
-                    const newDateRange = { ...dateRange, endDate: e.target.value };
-                    onDateRangeChange(newDateRange);
-                }}
-                className="px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 text-sm sm:text-base shadow-sm hover:shadow-md hover:border-gray-400 transition-all duration-200 cursor-pointer w-full"
-                style={{ minWidth: '150px' }}
-                title="Pilih Tanggal Akhir"
-            />
-            {(dateRange.startDate || dateRange.endDate) && (
-                <button
-                    onClick={onClearDateRange}
-                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all duration-200"
-                    title="Hapus Filter Tanggal"
-                >
-                    <X className="w-4 h-4" />
-                </button>
-            )}
+            <h3 className="text-[11px] font-medium text-gray-500 uppercase tracking-wide">{title}</h3>
         </div>
+        <p className="text-xl sm:text-2xl font-bold text-gray-900">{value ?? 0}</p>
     </div>
 ));
 
@@ -200,7 +109,6 @@ const Notification = React.memo(({ notification, onClose }) => {
 const PembelianHOPage = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const [openMenuId, setOpenMenuId] = useState(null);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [selectedPembelian, setSelectedPembelian] = useState(null);
     const [notification, setNotification] = useState(null);
@@ -213,26 +121,14 @@ const PembelianHOPage = () => {
         pembelian: filteredData,
         loading,
         error,
-        searchTerm,
-        setSearchTerm,
-        filterStatus,
-        setFilterStatus,
-        dateRange,
-        setDateRange,
-        isSearching,
-        searchError,
+        advancedFilters,
         stats,
         serverPagination,
         fetchPembelian,
-        handleSearch,
-        clearSearch,
-        handleFilter,
-        handleDateRangeFilter,
-        clearDateRange,
+        handleAdvancedFilters,
+        clearAdvancedFilters,
         handlePageChange: handleServerPageChange,
         handlePerPageChange: handleServerPerPageChange,
-        createPembelian,
-        updatePembelian,
         deletePembelian,
     } = usePembelianHO();
 
@@ -364,14 +260,12 @@ const PembelianHOPage = () => {
             return;
         }
         navigate(`/ho/pembelian/edit/${encodeURIComponent(id)}`);
-        setOpenMenuId(null);
     };
 
 
     const handleDelete = (pembelian) => {
         setSelectedPembelian(pembelian);
         setIsDeleteModalOpen(true);
-        setOpenMenuId(null);
     };
 
     const handleDetail = (pembelian) => {
@@ -385,8 +279,46 @@ const PembelianHOPage = () => {
             return;
         }
         navigate(`/ho/pembelian/detail/${encodeURIComponent(id)}`);
-        setOpenMenuId(null);
     };
+
+    const handleDownload = useCallback(async (pembelian) => {
+        const id = pembelian.encryptedPid;
+        if (!id || id.startsWith('TEMP-')) {
+            setNotification({
+                type: 'error',
+                message: 'ID pembelian tidak valid untuk mengunduh laporan'
+            });
+            return;
+        }
+
+        setNotification({
+            type: 'info',
+            message: 'Mengunduh laporan nota supplier...'
+        });
+
+        try {
+            const blob = await LaporanPembelianService.downloadReportNotaSupplier(id);
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `Laporan_Nota_Supplier_${pembelian.nota || id}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+
+            setNotification({
+                type: 'success',
+                message: 'Laporan nota supplier berhasil diunduh'
+            });
+        } catch (error) {
+            console.error('Error downloading nota supplier:', error);
+            setNotification({
+                type: 'error',
+                message: error.message || 'Gagal mengunduh laporan nota supplier'
+            });
+        }
+    }, []);
 
     // Modal handlers
     const handleCloseDeleteModal = () => {
@@ -446,16 +378,6 @@ const PembelianHOPage = () => {
         }
     }, [deletePembelian]);
 
-    // Pagination handlers for mobile cards - using server-side pagination
-    const handlePageChange = (page) => {
-
-        handleServerPageChange(page);
-    };
-
-    const handleItemsPerPageChange = (newItemsPerPage) => {
-        handleServerPerPageChange(newItemsPerPage);
-    };
-
     // Auto-hide notification
     useEffect(() => {
         if (notification) {
@@ -466,239 +388,6 @@ const PembelianHOPage = () => {
         }
     }, [notification]);
 
-    const columns = useMemo(() => [
-        {
-            name: 'No',
-            selector: (row, index) => index + 1,
-            sortable: false,
-            width: '60px',
-            ignoreRowClick: true,
-            cell: (row, index) => (
-                <div className="flex items-center justify-center w-full h-full font-semibold text-gray-600">
-                    {(serverPagination.currentPage - 1) * serverPagination.perPage + index + 1}
-                </div>
-            )
-        },
-        {
-            name: 'Pilih',
-            width: '80px',
-            cell: row => (
-                <ActionButton
-                    row={row}
-                    openMenuId={openMenuId}
-                    setOpenMenuId={setOpenMenuId}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                    onDetail={handleDetail}
-                    isActive={openMenuId === (row.id || row.pubid)}
-                />
-            ),
-            ignoreRowClick: true,
-        },
-        {
-            name: 'Nota',
-            selector: row => row.nota,
-            sortable: true,
-            width: '150px',
-            wrap: true,
-            cell: row => (
-                <div className="w-full px-2 flex items-center justify-center">
-                    <div className="font-mono text-sm bg-gray-50 px-3 py-2 rounded-lg text-center break-words whitespace-normal leading-tight">
-                        {row.nota || '-'}
-                    </div>
-                </div>
-            )
-        },
-        {
-            name: 'Nota Sistem',
-            selector: row => row.nota_sistem,
-            sortable: true,
-            width: '150px',
-            wrap: true,
-            cell: row => (
-                <div className="w-full px-2 flex items-center justify-center">
-                    <div className="font-mono text-sm bg-blue-50 px-3 py-2 rounded-lg text-center break-words whitespace-normal leading-tight text-blue-700">
-                        {row.nota_sistem || '-'}
-                    </div>
-                </div>
-            )
-        },
-        {
-            name: 'Tanggal Masuk',
-            selector: row => row.tgl_masuk,
-            sortable: true,
-            width: '140px', // Further increased to prevent header truncation
-            wrap: true,
-            cell: row => (
-                <div className="flex items-center justify-center w-full h-full min-h-[40px]">
-                    <div className="text-center font-medium text-gray-800 no-wrap">
-                        {row.tgl_masuk ? new Date(row.tgl_masuk).toLocaleDateString('id-ID', {
-                            day: '2-digit',
-                            month: '2-digit', 
-                            year: 'numeric'
-                        }) : '-'}
-                    </div>
-                </div>
-            )
-        },
-        {
-            name: 'Nama Sopir',
-            selector: row => row.nama_supir,
-            sortable: true,
-            width: '200px', // Increased for longer names
-            wrap: true,
-            cell: row => (
-                <div className="flex items-center justify-center w-full h-full min-h-[40px] px-2">
-                    <div className="text-center font-medium text-gray-800 force-wrap">
-                        {row.nama_supir || '-'}
-                    </div>
-                </div>
-            )
-        },
-        {
-            name: 'Plat Nomor',
-            selector: row => row.plat_nomor,
-            sortable: true,
-            width: '140px', // Increased for license plates
-            wrap: true,
-            cell: row => (
-                <div className="flex items-center justify-center w-full h-full min-h-[40px]">
-                    <div className="font-mono text-sm bg-gray-50 px-3 py-2 rounded-lg inline-block whitespace-nowrap">
-                        {row.plat_nomor || '-'}
-                    </div>
-                </div>
-            )
-        },
-        {
-            name: 'Jumlah',
-            selector: row => row.jumlah,
-            sortable: true,
-            width: '100px', // Slightly increased
-            wrap: true,
-            cell: row => (
-                <div className="flex items-center justify-center w-full h-full min-h-[40px]">
-                    <div className="bg-indigo-50 text-indigo-700 px-3 py-2 rounded-lg font-semibold text-center min-w-[80px]">
-                        {row.jumlah || 0}<br/>
-                        <span className="text-xs text-indigo-500">ekor</span>
-                    </div>
-                </div>
-            )
-        },
-        {
-            name: 'Nama Supplier',
-            selector: row => row.nama_supplier,
-            sortable: true,
-            width: '260px', // Further increased for header text and long supplier names
-            wrap: true,
-            cell: row => (
-                <div className="flex items-center justify-center w-full h-full min-h-[40px] px-2">
-                    <div className="text-center font-medium text-gray-800 leading-tight force-wrap">
-                        {row.nama_supplier || '-'}
-                    </div>
-                </div>
-            )
-        },
-        {
-            name: 'Nama Office',
-            selector: row => row.nama_office,
-            sortable: true,
-            width: '160px', // Increased for office names
-            wrap: true,
-            cell: row => (
-                <div className="flex items-center justify-center w-full h-full min-h-[40px] px-2">
-                    <div className="text-center font-medium text-gray-800 force-wrap">
-                        {row.nama_office || '-'}
-                    </div>
-                </div>
-            )
-        },
-        {
-            name: 'Biaya Total',
-            selector: row => row.biaya_total,
-            sortable: true,
-            width: '200px', // Increased to accommodate full currency display
-            wrap: true,
-            cell: row => (
-                <div className="flex items-center justify-center w-full h-full min-h-[40px] px-1">
-                    <div className="bg-green-50 text-green-700 px-3 py-2 rounded-lg font-semibold text-center text-xs leading-tight">
-                        {row.total_belanja ? new Intl.NumberFormat('id-ID', {
-                            style: 'currency',
-                            currency: 'IDR',
-                            minimumFractionDigits: 0,
-                            maximumFractionDigits: 0
-                        }).format(row.biaya_total) : 'Rp 0'}
-                    </div>
-                </div>
-            )
-        },
-        {
-            name: 'Biaya Lain',
-            selector: row => row.biaya_lain,
-            sortable: true,
-            width: '180px', // Increased to accommodate full currency display
-            wrap: true,
-            cell: row => (
-                <div className="flex items-center justify-center w-full h-full min-h-[40px] px-1">
-                    <div className="bg-orange-50 text-orange-700 px-3 py-2 rounded-lg font-semibold text-center text-xs leading-tight">
-                        {row.biaya_lain ? new Intl.NumberFormat('id-ID', {
-                            style: 'currency',
-                            currency: 'IDR',
-                            minimumFractionDigits: 0,
-                            maximumFractionDigits: 0
-                        }).format(row.biaya_lain) : 'Rp 0'}
-                    </div>
-                </div>
-            )
-        },
-        {
-            name: 'Biaya Truk',
-            selector: row => row.biaya_truk,
-            sortable: true,
-            width: '180px', // Same width as biaya_lain for consistency
-            wrap: true,
-            cell: row => (
-                <div className="flex items-center justify-center w-full h-full min-h-[40px] px-1">
-                    <div className="bg-blue-50 text-blue-700 px-3 py-2 rounded-lg font-semibold text-center text-xs leading-tight">
-                        {row.biaya_truk ? new Intl.NumberFormat('id-ID', {
-                            style: 'currency',
-                            currency: 'IDR',
-                            minimumFractionDigits: 0,
-                            maximumFractionDigits: 0
-                        }).format(row.biaya_truk) : 'Rp 0'}
-                    </div>
-                </div>
-            )
-        },
-        {
-            name: 'Berat Total',
-            selector: row => row.berat_total,
-            sortable: true,
-            width: '140px', // Further increased for header text
-            wrap: true,
-            cell: row => (
-                <div className="flex items-center justify-center w-full h-full min-h-[40px]">
-                    <div className="bg-gray-50 text-gray-700 px-3 py-2 rounded-lg font-semibold text-center">
-                        {row.berat_total ? `${parseFloat(row.berat_total).toFixed(1)}` : '-'}<br/>
-                        <span className="text-xs text-gray-500">kg</span>
-                    </div>
-                </div>
-            )
-        },
-        {
-            name: 'Jenis Pembelian',
-            selector: row => row.jenis_pembelian,
-            sortable: true,
-            width: '190px', // Further increased for header text
-            wrap: true,
-            cell: row => (
-                <div className="flex items-center justify-center w-full h-full min-h-[40px] px-2">
-                    <div className="bg-purple-50 text-purple-700 px-3 py-2 rounded-lg font-medium text-center text-xs leading-tight force-wrap">
-                        {getJenisPembelianLabel(row.jenis_pembelian)}
-                    </div>
-                </div>
-            )
-        },
-    ], [openMenuId, filteredData, serverPagination]);
 
     return (
         <>
@@ -950,291 +639,65 @@ const PembelianHOPage = () => {
                     animation: progress linear forwards;
                 }
             `}</style>
-            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-2 sm:p-4 md:p-6">
-            <div className="w-full max-w-none mx-0 space-y-6 md:space-y-8">
-                <div className="bg-white rounded-none sm:rounded-none p-4 sm:p-6 shadow-xl border border-gray-100">
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                            <h1 className="text-2xl sm:text-4xl font-bold text-gray-800 mb-1 sm:mb-2 flex items-center gap-3">
-                                <ShoppingCart size={32} className="text-red-500" />
-                                Pembelian Doka & Sapi
-                            </h1>
-                            <p className="text-gray-600 text-sm sm:text-base">
-                                Kelola data pembelian ternak untuk Doka & Sapi
-                            </p>
-                        </div>
-                        <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 md:gap-6">
-                            <button
-                                onClick={() => navigate('/ho/pembelian/add')}
-                                className="bg-gradient-to-r from-red-500 to-rose-600 text-white px-4 py-2 sm:px-6 sm:py-3 md:px-7 md:py-4 lg:px-8 lg:py-4 rounded-xl sm:rounded-2xl hover:from-red-600 hover:to-rose-700 transition-all duration-300 flex items-center gap-3 font-medium shadow-lg hover:shadow-xl text-sm sm:text-base"
-                            >
-                                <PlusCircle className="w-5 h-5 sm:w-6 sm:h-6" />
-                                Tambah Pembelian
-                            </button>
-                        </div>
-                    </div>
+            <div className="min-h-screen bg-gray-50 p-4 sm:p-6 md:p-8">
+            <div className="w-full space-y-6">
+                <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+                    <StatCard title="Total Ritasi" value={serverPagination.totalItems} icon={Truck} accentColor="bg-blue-500" />
+                    <StatCard title="Total Ternak" value={stats.totalTernak} icon={ShoppingCart} accentColor="bg-emerald-500" />
+                    <StatCard title="Hari Ini" value={stats.today} icon={Calendar} accentColor="bg-amber-500" />
+                    <StatCard title="Bulan Ini" value={stats.thisMonth} icon={CalendarDays} accentColor="bg-purple-500" />
+                    <StatCard title="Tahun Ini" value={stats.thisYear} icon={CalendarRange} accentColor="bg-indigo-500" />
                 </div>
 
-                <div className="grid grid-cols-1 gap-3 sm:gap-4 md:gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
-                    <div className="bg-gradient-to-br from-blue-400 to-blue-500 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
-                        <h3 className="text-sm sm:text-base font-medium opacity-90 mb-2">Total Ritasi</h3>
-                        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold">{serverPagination.totalItems}</p>
-                    </div>
-                    <div className="bg-gradient-to-br from-emerald-400 to-emerald-500 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
-                        <h3 className="text-sm sm:text-base font-medium opacity-90 mb-2">Total Ternak</h3>
-                        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold">{stats.totalTernak}</p>
-                    </div>
-                    <div className="bg-gradient-to-br from-amber-400 to-orange-500 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
-                        <h3 className="text-sm sm:text-base font-medium opacity-90 mb-2">Hari Ini</h3>
-                        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold">{stats.today}</p>
-                    </div>
-                    <div className="bg-gradient-to-br from-purple-400 to-purple-500 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
-                        <h3 className="text-sm sm:text-base font-medium opacity-90 mb-2">Bulan Ini</h3>
-                        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold">{stats.thisMonth}</p>
-                    </div>
-                    <div className="bg-gradient-to-br from-indigo-400 to-indigo-500 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
-                        <h3 className="text-sm sm:text-base font-medium opacity-90 mb-2">Tahun Ini</h3>
-                        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold">{stats.thisYear}</p>
-                    </div>
+                <div className="flex justify-end">
+                    <button
+                        onClick={() => navigate('/ho/pembelian/add')}
+                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-lg shadow-sm hover:shadow transition-all duration-200 flex items-center gap-2 text-sm font-medium active:scale-[0.98]"
+                    >
+                        <PlusCircle className="w-4 h-4" />
+                        Tambah Pembelian
+                    </button>
                 </div>
 
-                <div className="bg-white rounded-none sm:rounded-none p-4 sm:p-6 shadow-lg border border-gray-100">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 md:gap-6 sm:items-center sm:justify-between">
-                        <SearchInput
-                            searchTerm={searchTerm}
-                            isSearching={isSearching}
-                            searchError={searchError}
-                            onSearch={handleSearch}
-                            onClear={clearSearch}
-                        />
+                <PembelianFilterPanel
+                    filters={advancedFilters}
+                    onApply={handleAdvancedFilters}
+                    onReset={clearAdvancedFilters}
+                    tipePembelianOptions={tipePembelianOptions}
+                />
 
-                        <div className="flex flex-wrap gap-2 sm:gap-3 md:gap-4">
-                            <DateRangeFilter
-                                dateRange={dateRange}
-                                onDateRangeChange={handleDateRangeFilter}
-                                onClearDateRange={clearDateRange}
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                {/* Desktop Table View - Hidden on mobile */}
-                <div className="bg-white rounded-xl shadow-lg border border-gray-100 relative hidden md:block overflow-hidden">
-                    {/* Scroll Indicator */}
-                    <div className="px-6 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-                        <div className="flex items-center text-sm text-gray-600">
-                            <svg className="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16l-4-4m0 0l4-4m-4 4h18"></path>
-                            </svg>
-                            Scroll horizontal untuk melihat semua kolom
-                            <svg className="w-4 h-4 ml-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m0-4H3"></path>
-                            </svg>
-                        </div>
-                        <div className="text-xs text-gray-500">
-                            {filteredData.length} item{filteredData.length !== 1 ? 's' : ''}
-                        </div>
-                    </div>
-                    
-                    {/* Table Container with proper scroll */}
-                    <div className="w-full overflow-x-auto max-w-full table-scroll-container" style={{maxHeight: '60vh'}}>
-                        <div className="min-w-full">
-                        <DataTable
-                            key={`datatable-${serverPagination.currentPage}-${filteredData.length}`}
-                            columns={columns}
-                            data={filteredData}
-                            pagination={false}
-                            customStyles={enhancedTableStyles}
-                            progressPending={loading}
-                            progressComponent={
-                                <div className="text-center py-12">
-                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto"></div>
-                                    <p className="text-gray-500 text-sm mt-2">Memuat data...</p>
-                                </div>
-                            }
-                            noDataComponent={
-                                <div className="text-center py-12">
-                                    {error ? (
-                                        <div className="text-red-600">
-                                            <p className="text-lg font-semibold">Error</p>
-                                            <p className="text-sm">{error}</p>
-                                        </div>
-                                    ) : searchTerm ? (
-                                        <div className="text-gray-500">
-                                            <p className="text-lg font-semibold">Tidak ada hasil untuk "{searchTerm}"</p>
-                                            <p className="text-sm mt-2">Coba gunakan kata kunci yang berbeda</p>
-                                            <button
-                                                onClick={clearSearch}
-                                                className="mt-3 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors duration-200 text-sm"
-                                            >
-                                                Clear Search
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <p className="text-gray-500 text-lg">Tidak ada data pembelian ditemukan</p>
-                                    )}
-                                </div>
-                            }
-                            responsive={false}
-                            highlightOnHover
-                            pointerOnHover
-                        />
-                        </div>
-                    </div>
-                    
-                    {/* Custom Pagination - Fixed outside scroll area */}
-                    <div className="border-t border-gray-200 bg-gray-50 px-6 py-4 flex items-center justify-between">
-                        <div className="flex items-center text-sm text-gray-700">
-                            <span>
-                                Menampilkan{' '}
-                                <span className="font-semibold">
-                                    {((serverPagination.currentPage - 1) * serverPagination.perPage) + 1}
-                                </span>
-                                {' '}sampai{' '}
-                                <span className="font-semibold">
-                                    {Math.min(serverPagination.currentPage * serverPagination.perPage, serverPagination.totalItems)}
-                                </span>
-                                {' '}dari{' '}
-                                <span className="font-semibold">{serverPagination.totalItems}</span>
-                                {' '}hasil
-                            </span>
-                        </div>
-                        
-                        <div className="flex items-center space-x-2">
-                            {/* Rows per page selector */}
-                            <div className="flex items-center space-x-2">
-                                <span className="text-sm text-gray-700">Rows per page:</span>
-                                <select
-                                    value={serverPagination.perPage}
-                                    onChange={(e) => handleServerPerPageChange(parseInt(e.target.value))}
-                                    className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
-                                >
-                                    <option value={10}>10</option>
-                                    <option value={25}>25</option>
-                                    <option value={50}>50</option>
-                                    <option value={100}>100</option>
-                                </select>
+                {/* Modern Table + Mobile Cards */}
+                <div className="space-y-4">
+                    {error && (
+                        <div className="bg-white rounded-xl shadow-sm border border-red-100 p-4 flex items-center gap-3 text-red-700">
+                            <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
                             </div>
-                            
-                            {/* Pagination buttons */}
-                            <div className="flex items-center space-x-1">
-                                <button
-                                    onClick={() => handleServerPageChange(1)}
-                                    disabled={serverPagination.currentPage === 1}
-                                    className="p-2 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    title="First page"
-                                >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-                                    </svg>
-                                </button>
-                                <button
-                                    onClick={() => handleServerPageChange(serverPagination.currentPage - 1)}
-                                    disabled={serverPagination.currentPage === 1}
-                                    className="p-2 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    title="Previous page"
-                                >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-                                    </svg>
-                                </button>
-                                
-                                <span className="px-3 py-1 text-sm font-medium">
-                                    {serverPagination.currentPage} of {serverPagination.totalPages}
-                                </span>
-                                
-                                <button
-                                    onClick={() => handleServerPageChange(serverPagination.currentPage + 1)}
-                                    disabled={serverPagination.currentPage === serverPagination.totalPages}
-                                    className="p-2 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    title="Next page"
-                                >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                                    </svg>
-                                </button>
-                                <button
-                                    onClick={() => handleServerPageChange(serverPagination.totalPages)}
-                                    disabled={serverPagination.currentPage === serverPagination.totalPages}
-                                    className="p-2 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    title="Last page"
-                                >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Mobile Card View - Visible on mobile only */}
-                <div className="md:hidden">
-                    {loading ? (
-                        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
-                            <div className="text-center">
-                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto"></div>
-                                <p className="text-gray-500 text-sm mt-2">Memuat data...</p>
-                            </div>
-                        </div>
-                    ) : error ? (
-                        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
-                            <div className="text-center text-red-600">
-                                <p className="text-lg font-semibold">Error</p>
-                                <p className="text-sm">{error}</p>
-                            </div>
-                        </div>
-                    ) : filteredData.length === 0 ? (
-                        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
-                            <div className="text-center">
-                                {searchTerm ? (
-                                    <div className="text-gray-500">
-                                        <p className="text-lg font-semibold">Tidak ada hasil untuk "{searchTerm}"</p>
-                                        <p className="text-sm mt-2">Coba gunakan kata kunci yang berbeda</p>
-                                        <button
-                                            onClick={clearSearch}
-                                            className="mt-3 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors duration-200 text-sm"
-                                        >
-                                            Clear Search
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <p className="text-gray-500 text-lg">Tidak ada data pembelian ditemukan</p>
-                                )}
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="space-y-4">
-                            {/* Cards Container */}
-                            <div className="space-y-3">
-                                {filteredData.map((item, index) => (
-                                    <PembelianCard
-                                        key={item.pubid || item.id}
-                                        data={item}
-                                        index={(serverPagination.currentPage - 1) * serverPagination.perPage + index}
-                                        onEdit={handleEdit}
-                                        onDelete={handleDelete}
-                                        getJenisPembelianLabel={getJenisPembelianLabel}
-                                        onDetail={handleDetail}
-                                    />
-                                ))}
-                            </div>
-
-                            {/* Custom Pagination for Mobile - Server-side */}
-                            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                                <CustomPagination
-                                    currentPage={serverPagination.currentPage}
-                                    totalPages={serverPagination.totalPages}
-                                    totalItems={serverPagination.totalItems}
-                                    itemsPerPage={serverPagination.perPage}
-                                    onPageChange={handlePageChange}
-                                    onItemsPerPageChange={handleItemsPerPageChange}
-                                    itemsPerPageOptions={[10, 25, 50, 100]}
-                                    loading={loading}
-                                />
+                            <div>
+                                <div className="text-sm font-semibold">Gagal memuat data</div>
+                                <div className="text-xs text-red-600">{error}</div>
                             </div>
                         </div>
                     )}
+
+                    <ModernPembelianTable
+                        data={filteredData}
+                        loading={loading}
+                        serverPagination={{
+                            currentPage: serverPagination.currentPage,
+                            perPage: serverPagination.perPage,
+                            totalRecords: serverPagination.totalItems || serverPagination.totalRecords || 0
+                        }}
+                        onPageChange={handleServerPageChange}
+                        onPerPageChange={handleServerPerPageChange}
+                        onEdit={handleEdit}
+                        onDelete={handleDelete}
+                        onDetail={handleDetail}
+                        onDownload={handleDownload}
+                        getJenisPembelianLabel={getJenisPembelianLabel}
+                    />
                 </div>
             </div>
 

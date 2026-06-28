@@ -11,6 +11,15 @@ const usePembelianOVK = () => {
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterJenisPembelian, setFilterJenisPembelian] = useState('all');
+    const [advancedFilters, setAdvancedFilters] = useState({
+        nota_sistem: '',
+        nota: '',
+        nama_supplier: '',
+        plat_nomor: '',
+        jenis_pembelian: '',
+        startDate: '',
+        endDate: ''
+    });
     const [isSearching, setIsSearching] = useState(false);
     const [searchError, setSearchError] = useState(null);
     const [deleteLoading, setDeleteLoading] = useState(null);
@@ -44,63 +53,8 @@ const usePembelianOVK = () => {
         recordsFiltered: 0
     });
 
-    // Mock data untuk sementara - nanti bisa diganti dengan API call
-    const mockData = [
-        {
-            id: 1,
-            encryptedPid: 'encrypted_1',
-            nota: 'OVK-001-2024',
-            nota_sistem: 'PI1202509260013',
-            nama_supplier: 'PT Farmasi Veteriner',
-            tgl_masuk: '2024-01-15',
-            nama_supir: 'Budi Santoso',
-            plat_nomor: 'B 1234 AB',
-            jumlah: 20,
-            satuan: 'btl',
-            berat_total: 100,
-            biaya_total: 2000000,
-            biaya_lain: 100000,
-            tipe_pembelian: 1, // Will be mapped to jenis_pembelian
-            jenis_pembelian: 'INTERNAL'
-        },
-        {
-            id: 2,
-            encryptedPid: 'encrypted_2',
-            nota: 'OVK-002-2024',
-            nota_sistem: 'PI1202509260014',
-            nama_supplier: 'CV Medikamen Ternak',
-            tgl_masuk: '2024-01-16',
-            nama_supir: 'Sukarno',
-            plat_nomor: 'B 5678 CD',
-            jumlah: 15,
-            satuan: 'btl',
-            berat_total: 75,
-            biaya_total: 1500000,
-            biaya_lain: 75000,
-            tipe_pembelian: 2, // Will be mapped to jenis_pembelian
-            jenis_pembelian: 'INTERNAL'
-        },
-        {
-            id: 3,
-            encryptedPid: 'encrypted_3',
-            nota: 'OVK-003-2024',
-            nota_sistem: 'PI1202509260015',
-            nama_supplier: 'PT Vitamin Ternak',
-            tgl_masuk: '2024-01-17',
-            nama_supir: 'Joko Widodo',
-            plat_nomor: 'B 9999 EF',
-            jumlah: 30,
-            satuan: 'pack',
-            berat_total: 150,
-            biaya_total: 3000000,
-            biaya_lain: 150000,
-            tipe_pembelian: 3, // Will be mapped to jenis_pembelian
-            jenis_pembelian: 'INTERNAL'
-        }
-    ];
-
     // Fetch pembelian OVK data from API
-    const fetchPembelian = useCallback(async (page = 1, perPage = null, search = null, filter = null, isSearchRequest = false, forceRefresh = false) => {
+    const fetchPembelian = useCallback(async (page = 1, perPage = null, search = null, filter = null, isSearchRequest = false, forceRefresh = false, filters = null) => {
         setLoading(true);
         setError(null);
         setSearchError(null);
@@ -110,108 +64,77 @@ const usePembelianOVK = () => {
         }
         
         try {
-            // Build DataTable request parameters similar to backend expectation
             const currentPage = page || serverPagination.currentPage;
             const currentPerPage = perPage || serverPagination.perPage;
             const currentSearch = search !== null ? search : searchTerm;
+            const currentFilters = filters || advancedFilters;
             
-            const params = {
-                draw: 1,
-                start: (currentPage - 1) * currentPerPage,
-                length: currentPerPage,
+            const params = new URLSearchParams({
+                draw: '1',
+                start: ((currentPage - 1) * currentPerPage).toString(),
+                length: currentPerPage.toString(),
                 'search[value]': currentSearch || '',
-                'search[regex]': false,
-                'order[0][column]': 0,
+                'order[0][column]': '3', // tgl_masuk column
                 'order[0][dir]': 'desc'
-            };
-
-            // Call real API endpoint for OVK data
-            // Add cache-busting parameter when forceRefresh is true
-            const finalParams = forceRefresh ? { ...params, _t: Date.now() } : params;
-            const responseData = await HttpClient.get(`${API_ENDPOINTS.HO.OVK.PEMBELIAN}/data`, {
-                params: finalParams
             });
+
+            if (currentFilters.nota_sistem) params.append('filter_nota_sistem', currentFilters.nota_sistem);
+            if (currentFilters.nota) params.append('filter_nota', currentFilters.nota);
+            if (currentFilters.nama_supplier) params.append('filter_nama_supplier', currentFilters.nama_supplier);
+            if (currentFilters.plat_nomor) params.append('filter_plat_nomor', currentFilters.plat_nomor);
+            if (currentFilters.jenis_pembelian) params.append('filter_jenis_pembelian', currentFilters.jenis_pembelian);
+            if (currentFilters.startDate) params.append('start_date', currentFilters.startDate);
+            if (currentFilters.endDate) params.append('end_date', currentFilters.endDate);
+
+            const finalParams = forceRefresh ? `${params}&_t=${Date.now()}` : params;
+            const responseData = await HttpClient.get(`${API_ENDPOINTS.HO.OVK.PEMBELIAN}/data?${finalParams}`);
             
-            if (responseData.recordsTotal !== undefined) {
-                // Debug: Log raw API response to check nota_sistem field
+            if (responseData && responseData.data) {
                 console.log('🔍 OVK API Response Sample:', responseData.data[0]);
                 console.log('🔍 OVK nota_sistem field:', responseData.data[0]?.nota_sistem);
                 
-                // DataTable response format
                 const processedData = responseData.data.map(item => ({
                     ...item,
-                    encryptedPid: item.pid || item.id, // Use backend encrypted ID
-                    satuan: 'item' // Default unit for OVK
+                    encryptedPid: item.pid || item.id,
+                    satuan: 'item'
                 }));
 
                 setPembelian(processedData);
                 
-                // Update pagination state
                 setServerPagination({
                     currentPage: currentPage,
-                    totalPages: Math.ceil(responseData.recordsFiltered / currentPerPage),
-                    totalItems: responseData.recordsFiltered,
+                    totalPages: Math.ceil((responseData.recordsFiltered || 0) / currentPerPage),
+                    totalItems: responseData.recordsFiltered || 0,
+                    recordsTotal: responseData.recordsTotal || 0,
                     perPage: currentPerPage
                 });
 
-                // Update API stats
                 setApiStats({
-                    recordsTotal: responseData.recordsTotal,
-                    recordsFiltered: responseData.recordsFiltered
+                    recordsTotal: responseData.recordsTotal || 0,
+                    recordsFiltered: responseData.recordsFiltered || 0
                 });
                 
             } else {
-                throw new Error('Invalid response format from server');
+                setPembelian([]);
+                setServerPagination(prev => ({ ...prev, totalItems: 0, totalPages: 0 }));
             }
             
         } catch (err) {
-            // Fallback to mock data for development
-            console.warn('API call failed, using mock data:', err.message);
+            console.error('Fetch pembelian OVK error:', err);
+            const errorMessage = err.message || 'Terjadi kesalahan saat mengambil data pembelian OVK';
             
-            // Use mock data sebagai fallback
-            let filteredData = [...mockData];
-            
-            // Apply search filter
-            const currentSearch = search !== null ? search : searchTerm;
-            if (currentSearch && currentSearch.trim()) {
-                filteredData = filteredData.filter(item => 
-                    item.nota.toLowerCase().includes(currentSearch.toLowerCase()) ||
-                    item.nama_supplier.toLowerCase().includes(currentSearch.toLowerCase()) ||
-                    item.nama_supir.toLowerCase().includes(currentSearch.toLowerCase()) ||
-                    item.plat_nomor.toLowerCase().includes(currentSearch.toLowerCase())
-                );
+            if (isSearchRequest) {
+                setSearchError(errorMessage);
+            } else {
+                setError(errorMessage);
             }
             
-            // Apply jenis pembelian filter
-            const currentFilter = filter !== null ? filter : filterJenisPembelian;
-            if (currentFilter && currentFilter !== 'all') {
-                filteredData = filteredData.filter(item => item.jenis_pembelian === currentFilter);
-            }
-            
-            // Apply pagination
-            const currentPage = page || serverPagination.currentPage;
-            const currentPerPage = perPage || serverPagination.perPage;
-            const totalItems = filteredData.length;
-            const totalPages = Math.ceil(totalItems / currentPerPage);
-            const startIndex = (currentPage - 1) * currentPerPage;
-            const endIndex = startIndex + currentPerPage;
-            const paginatedData = filteredData.slice(startIndex, endIndex);
-            
-            // Update pagination state
-            setServerPagination({
-                currentPage: currentPage,
-                totalPages: totalPages,
-                totalItems: totalItems,
-                perPage: currentPerPage
-            });
-            
-            setPembelian(paginatedData);
-            
+            setPembelian([]);
         } finally {
             setLoading(false);
             setIsSearching(false);
         }
-    }, [searchTerm, filterJenisPembelian, serverPagination.currentPage, serverPagination.perPage]);
+    }, [searchTerm, filterJenisPembelian, advancedFilters]);
 
     // Create pembelian OVK - handle header + details array format with file upload support
     const createPembelian = useCallback(async (pembelianData) => {
@@ -418,51 +341,10 @@ const usePembelianOVK = () => {
             }
             
         } catch (err) {
-            // Fallback to mock data for development
-            console.warn('API call failed, using mock data:', err.message);
-            
-            // Calculate pagination for mock data
-            const currentPage = serverPagination.currentPage;
-            const currentPerPage = serverPagination.perPage;
-            const totalItemsAfterDelete = Math.max(0, serverPagination.totalItems - 1);
-            const totalPagesAfterDelete = Math.ceil(totalItemsAfterDelete / currentPerPage);
-            
-            // If current page is empty after deletion, go to previous page
-            let targetPage = currentPage;
-            if (currentPage > totalPagesAfterDelete && totalPagesAfterDelete > 0) {
-                targetPage = totalPagesAfterDelete;
-            }
-            
-            // Remove from mock data
-            const index = mockData.findIndex(item => item.encryptedPid === encryptedPid);
-            if (index !== -1) {
-                mockData.splice(index, 1);
-            }
-            
-            // Update pagination state
-            setServerPagination(prev => ({
-                ...prev,
-                totalItems: totalItemsAfterDelete,
-                totalPages: totalPagesAfterDelete,
-                currentPage: targetPage
-            }));
-            
-            // Refresh data with the correct page
-            try {
-                await fetchPembelian(targetPage, currentPerPage, searchTerm, filterJenisPembelian, false, true);
-            } catch (refreshError) {
-                console.warn('Refresh after delete failed:', refreshError);
-                // If refresh fails, try to refresh the first page
-                try {
-                    await fetchPembelian(1, currentPerPage, searchTerm, filterJenisPembelian, false, true);
-                } catch (fallbackError) {
-                    console.error('Fallback refresh also failed:', fallbackError);
-                }
-            }
-            
+            console.error('Delete pembelian OVK error:', err);
             return {
-                success: true,
-                message: 'Data berhasil dihapus (mock data)'
+                success: false,
+                message: err.message || 'Gagal menghapus data pembelian OVK'
             };
         } finally {
             setDeleteLoading(null);
@@ -502,25 +384,12 @@ const usePembelianOVK = () => {
             }
             
         } catch (err) {
-            // Fallback to mock data for development
-            console.warn('API call failed, using mock data:', err.message);
-            
-            const item = mockData.find(item => item.encryptedPid === encryptedPid);
-            
-            // Map tipe_pembelian to jenis_pembelian in mock data if needed
-            let headerData = item;
-            if (item && item.tipe_pembelian) {
-                headerData = {
-                    ...item,
-                    jenis_pembelian: mapTipePembelianToJenis(item.tipe_pembelian)
-                };
-            }
-            
+            console.error('Get pembelian OVK detail error:', err);
             return {
-                success: true,
-                data: item ? [item] : [],
-                header: headerData || null, // Use item as header for mock data with mapped jenis_pembelian
-                message: 'Detail pembelian berhasil diambil (mock data)'
+                success: false,
+                data: [],
+                header: null,
+                message: err.message || 'Gagal mengambil detail pembelian OVK'
             };
         } finally {
             setLoading(false);
@@ -709,62 +578,35 @@ const usePembelianOVK = () => {
 
     // Computed stats
     const stats = useMemo(() => {
-        // Use API data if available, fallback to mock data
-        const useApiData = apiStats.recordsTotal > 0;
+        const total = serverPagination.recordsTotal || serverPagination.totalItems || pembelian.length;
+        const totalOVK = pembelian.reduce((sum, item) => sum + (item.jumlah || 0), 0);
         
-        if (useApiData) {
-            // Calculate from current filtered data for other stats
-            const totalOVK = pembelian.reduce((sum, item) => sum + (item.jumlah || 0), 0);
-            
-            // Today's purchases from current data
-            const today = new Date().toDateString();
-            const todayPurchases = pembelian.filter(item => {
-                const itemDate = new Date(item.tgl_masuk).toDateString();
-                return itemDate === today;
-            }).length;
-            
-            // This month's purchases from current data
-            const thisMonth = new Date().getMonth();
-            const thisYear = new Date().getFullYear();
-            const thisMonthPurchases = pembelian.filter(item => {
-                const itemDate = new Date(item.tgl_masuk);
-                return itemDate.getMonth() === thisMonth && itemDate.getFullYear() === thisYear;
-            }).length;
-            
-            return {
-                total: apiStats.recordsTotal, // Use recordsTotal from API
-                totalOVK: totalOVK,
-                today: todayPurchases,
-                thisMonth: thisMonthPurchases
-            };
-        } else {
-            // Fallback to mock data calculations
-            const total = mockData.length;
-            const totalOVK = mockData.reduce((sum, item) => sum + (item.jumlah || 0), 0);
-            
-            // Today's purchases
-            const today = new Date().toDateString();
-            const todayPurchases = mockData.filter(item => {
-                const itemDate = new Date(item.tgl_masuk).toDateString();
-                return itemDate === today;
-            }).length;
-            
-            // This month's purchases
-            const thisMonth = new Date().getMonth();
-            const thisYear = new Date().getFullYear();
-            const thisMonthPurchases = mockData.filter(item => {
-                const itemDate = new Date(item.tgl_masuk);
-                return itemDate.getMonth() === thisMonth && itemDate.getFullYear() === thisYear;
-            }).length;
-            
-            return {
-                total: total,
-                totalOVK: totalOVK,
-                today: todayPurchases,
-                thisMonth: thisMonthPurchases
-            };
-        }
-    }, [apiStats.recordsTotal, pembelian]);
+        const today = new Date().toDateString();
+        const todayPurchases = pembelian.filter(item => {
+            const itemDate = new Date(item.tgl_masuk).toDateString();
+            return itemDate === today;
+        }).length;
+        
+        const currentMonth = new Date().getMonth();
+        const currentYear = new Date().getFullYear();
+        const thisMonthPurchases = pembelian.filter(item => {
+            const itemDate = new Date(item.tgl_masuk);
+            return itemDate.getMonth() === currentMonth && itemDate.getFullYear() === currentYear;
+        }).length;
+        
+        const thisYearPurchases = pembelian.filter(item => {
+            const itemDate = new Date(item.tgl_masuk);
+            return itemDate.getFullYear() === currentYear;
+        }).length;
+        
+        return {
+            total: total,
+            totalOVK: totalOVK,
+            today: todayPurchases,
+            thisMonth: thisMonthPurchases,
+            thisYear: thisYearPurchases
+        };
+    }, [pembelian, serverPagination.totalItems, serverPagination.recordsTotal]);
 
     // Enhanced debounced search handler
     const searchTimeoutRef = useRef(null);
@@ -815,14 +657,36 @@ const usePembelianOVK = () => {
         fetchPembelian(1, serverPagination.perPage, searchTerm, newFilter, false);
     }, [fetchPembelian, serverPagination.perPage, searchTerm]);
 
+    // Advanced filter handlers
+    const handleAdvancedFilters = useCallback((newFilters) => {
+        setAdvancedFilters(newFilters);
+        setSearchError(null);
+        fetchPembelian(1, serverPagination.perPage, '', filterJenisPembelian, false, false, newFilters);
+    }, [fetchPembelian, serverPagination.perPage, filterJenisPembelian]);
+
+    const clearAdvancedFilters = useCallback((emptyFilters = null) => {
+        const resetFilters = emptyFilters || {
+            nota_sistem: '',
+            nota: '',
+            nama_supplier: '',
+            plat_nomor: '',
+            jenis_pembelian: '',
+            startDate: '',
+            endDate: ''
+        };
+        setAdvancedFilters(resetFilters);
+        setSearchError(null);
+        fetchPembelian(1, serverPagination.perPage, '', filterJenisPembelian, false, false, resetFilters);
+    }, [fetchPembelian, serverPagination.perPage, filterJenisPembelian]);
+
     // Pagination handlers
     const handlePageChange = useCallback((newPage) => {
-        fetchPembelian(newPage, serverPagination.perPage, searchTerm, filterJenisPembelian, false);
-    }, [fetchPembelian, serverPagination.perPage, searchTerm, filterJenisPembelian]);
+        fetchPembelian(newPage, serverPagination.perPage, searchTerm, filterJenisPembelian, false, false, advancedFilters);
+    }, [fetchPembelian, serverPagination.perPage, searchTerm, filterJenisPembelian, advancedFilters]);
 
     const handlePerPageChange = useCallback((newPerPage) => {
-        fetchPembelian(1, newPerPage, searchTerm, filterJenisPembelian, false);
-    }, [fetchPembelian, searchTerm, filterJenisPembelian]);
+        fetchPembelian(1, newPerPage, searchTerm, filterJenisPembelian, false, false, advancedFilters);
+    }, [fetchPembelian, searchTerm, filterJenisPembelian, advancedFilters]);
 
     return {
         pembelian,
@@ -842,6 +706,9 @@ const usePembelianOVK = () => {
         handleSearch,
         clearSearch,
         handleFilter,
+        advancedFilters,
+        handleAdvancedFilters,
+        clearAdvancedFilters,
         handlePageChange,
         handlePerPageChange,
         createPembelian,

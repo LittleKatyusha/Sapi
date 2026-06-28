@@ -70,7 +70,7 @@ export const ROUTE_PATHS = Object.freeze({
   MASTER_KLASIFIKASI_HEWAN: '/master-data/klasifikasi-hewan',
   MASTER_KLASIFIKASI_OVK: '/master-data/klasifikasi-ovk',
   MASTER_KLASIFIKASI_FEEDMIL: '/master-data/klasifikasi-feedmil',
-  MASTER_KLASIFIKASI_LAIN_LAIN: '/data-master/klasifikasi-lain-lain',
+  MASTER_KLASIFIKASI_LAIN_LAIN: '/master-data/klasifikasi-lain-lain',
   MASTER_ITEM_KULIT: '/master-data/item-kulit',
   MASTER_ITEM_FEEDMIL: '/master-data/item-feedmil',
   MASTER_ITEM_OVK: '/master-data/item-ovk',
@@ -85,6 +85,10 @@ export const ROUTE_PATHS = Object.freeze({
   MASTER_PERSETUJUAN_RPH: '/master-data/persetujuan-rph',
   MASTER_SATUAN: '/master-data/satuan',
   MASTER_BARANG: '/master-data/barang',
+  MASTER_PEMBELI_HO: '/master-data/pembeli-ho',
+  MASTER_BONING: '/master-data/boning',
+  MASTER_DAGING: '/master-data/daging',
+  MASTER_TARIF_DOF: '/master-data/tarif-dof',
 
   // Payments
   PAYMENT_DOKA_DETAIL: '/pembayaran/doka/detail/:id',

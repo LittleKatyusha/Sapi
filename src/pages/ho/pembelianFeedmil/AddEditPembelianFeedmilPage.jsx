@@ -47,7 +47,7 @@ const AddEditPembelianFeedmilPage = () => {
         farmOptions,
         loading: parameterLoading,
         error: parameterError
-    } = useParameterSelect(isEdit, { kategoriSupplier: 2 });
+    } = useParameterSelect(isEdit, { kategoriSupplier: 2 }, [], null, ['supplier', 'office', 'farm', 'klasifikasifeedmil', 'itemfeedmil']);
 
     // Jenis Pembelian Feedmil API integration
     const {

@@ -184,7 +184,7 @@ const FormField = ({ label, helperText, required = false, children }) => (
   const isPersetujuanDisabled = isItemSelectionDisabled;
 
   const { persetujuanOptions, loading: persetujuanLoading } = usePersetujuanRphSelect();
-  const { officeOptions: supplierOptions, loading: supplierLoading } = useParameterSelect(isEditMode);
+  const { officeOptions: supplierOptions, loading: supplierLoading } = useParameterSelect(isEditMode, {}, [], null, ['office']);
   const [selectedSupplier, setSelectedSupplier] = useState(null);
 
   useEffect(() => {

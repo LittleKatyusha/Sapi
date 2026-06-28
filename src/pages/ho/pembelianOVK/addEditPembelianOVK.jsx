@@ -42,7 +42,7 @@ const AddEditPembelianOVKPage = () => {
         farmOptions,
         loading: parameterLoading,
         error: parameterError
-    } = useParameterSelect(isEdit, { kategoriSupplier: 3 });
+    } = useParameterSelect(isEdit, { kategoriSupplier: 3 }, [], null, ['supplier', 'office', 'farm', 'klasifikasiovk', 'itemovk']);
 
     // Jenis Pembelian OVK API integration
     const {

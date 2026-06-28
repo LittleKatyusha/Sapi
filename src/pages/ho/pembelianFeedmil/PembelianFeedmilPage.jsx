@@ -1,15 +1,12 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import DataTable from 'react-data-table-component';
-import { PlusCircle, Search, Filter, Package, Building2, Truck, User, X, Loader2 } from 'lucide-react';
+import { PlusCircle, Package, Truck, Calendar, CalendarDays, CalendarRange } from 'lucide-react';
 
 import usePembelianFeedmil from './hooks/usePembelianFeedmil';
 import useFarmAPI from './hooks/useFarmAPI';
 import useBanksAPI from './hooks/useBanksAPI';
-import ActionButton from './components/ActionButton';
-import PembelianFeedmilCard from './components/PembelianFeedmilCard';
-import CustomPagination from './components/CustomPagination';
-import customTableStyles from './constants/tableStyles';
+import ModernPembelianFeedmilTable from './components/ModernPembelianFeedmilTable';
+import PembelianFeedmilFilterPanel from './components/PembelianFeedmilFilterPanel';
 
 // Import modals
 import DeleteConfirmationModal from './modals/DeleteConfirmationModal';
@@ -17,33 +14,23 @@ import DeleteConfirmationModal from './modals/DeleteConfirmationModal';
 const PembelianFeedmilPage = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const [openMenuId, setOpenMenuId] = useState(null);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [selectedPembelian, setSelectedPembelian] = useState(null);
     const [notification, setNotification] = useState(null);
-    const [scrollPosition, setScrollPosition] = useState({ canScrollLeft: false, canScrollRight: false });
     const [lastRefreshTime, setLastRefreshTime] = useState(Date.now());
     
     const {
         pembelian: filteredData,
         loading,
         error,
-        searchTerm,
-        setSearchTerm,
-        filterJenisPembelian,
-        setFilterJenisPembelian,
-        isSearching,
-        searchError,
         stats,
         serverPagination,
         fetchPembelian,
-        handleSearch,
-        clearSearch,
-        handleFilter,
+        advancedFilters,
+        handleAdvancedFilters,
+        clearAdvancedFilters,
         handlePageChange: handleServerPageChange,
         handlePerPageChange: handleServerPerPageChange,
-        createPembelian,
-        updatePembelian,
         deletePembelian,
     } = usePembelianFeedmil();
 
@@ -79,7 +66,7 @@ const PembelianFeedmilPage = () => {
                 // Check if it's been more than 30 seconds since last refresh
                 const timeSinceLastRefresh = Date.now() - lastRefreshTime;
                 if (timeSinceLastRefresh > 30000) { // 30 seconds
-                    fetchPembelian(serverPagination.currentPage, serverPagination.perPage, searchTerm, filterJenisPembelian, false, true);
+                    fetchPembelian(serverPagination.currentPage, serverPagination.perPage, '', 'all', false, true, advancedFilters);
                     setLastRefreshTime(Date.now());
                 }
             }
@@ -89,7 +76,7 @@ const PembelianFeedmilPage = () => {
             // Check if it's been more than 30 seconds since last refresh
             const timeSinceLastRefresh = Date.now() - lastRefreshTime;
             if (timeSinceLastRefresh > 30000) { // 30 seconds
-                fetchPembelian(serverPagination.currentPage, serverPagination.perPage, searchTerm, filterJenisPembelian, false, true);
+                fetchPembelian(serverPagination.currentPage, serverPagination.perPage, '', 'all', false, true, advancedFilters);
                 setLastRefreshTime(Date.now());
             }
         };
@@ -105,20 +92,20 @@ const PembelianFeedmilPage = () => {
             document.removeEventListener('visibilitychange', handleVisibilityChange);
             window.removeEventListener('focus', handleFocus);
         };
-    }, [fetchPembelian, lastRefreshTime, serverPagination.currentPage, serverPagination.perPage, searchTerm, filterJenisPembelian]);
+    }, [fetchPembelian, lastRefreshTime, serverPagination.currentPage, serverPagination.perPage, advancedFilters]);
 
     // Refresh data when returning from edit page
     useEffect(() => {
         // Check if we're returning from an edit page
         if (location.state?.fromEdit) {
             console.log('🔄 Feedmil: Auto-refreshing data after returning from edit page');
-            fetchPembelian(serverPagination.currentPage, serverPagination.perPage, searchTerm, filterJenisPembelian, false, true);
+            fetchPembelian(serverPagination.currentPage, serverPagination.perPage, '', 'all', false, true, advancedFilters);
             setLastRefreshTime(Date.now());
             
             // Clear the state to prevent unnecessary refreshes
             window.history.replaceState({}, document.title);
         }
-    }, [location.state, fetchPembelian, serverPagination.currentPage, serverPagination.perPage, searchTerm, filterJenisPembelian]);
+    }, [location.state, fetchPembelian, serverPagination.currentPage, serverPagination.perPage, advancedFilters]);
 
 
     const handleEdit = (pembelianItem) => {
@@ -131,7 +118,6 @@ const PembelianFeedmilPage = () => {
             return;
         }
         navigate(`/ho/pembelian-feedmil/edit/${encodeURIComponent(id)}`);
-        setOpenMenuId(null);
     };
 
     const handleDetail = (pembelianItem) => {
@@ -144,13 +130,11 @@ const PembelianFeedmilPage = () => {
             return;
         }
         navigate(`/ho/pembelian-feedmil/detail/${encodeURIComponent(id)}`);
-        setOpenMenuId(null);
     };
 
     const handleDelete = (pembelianItem) => {
         setSelectedPembelian(pembelianItem);
         setIsDeleteModalOpen(true);
-        setOpenMenuId(null);
     };
 
 
@@ -209,15 +193,6 @@ const PembelianFeedmilPage = () => {
         }
     }, [deletePembelian]);
 
-    // Pagination handlers for mobile cards
-    const handlePageChange = (page) => {
-        handleServerPageChange(page);
-    };
-
-    const handleItemsPerPageChange = (newItemsPerPage) => {
-        handleServerPerPageChange(newItemsPerPage);
-    };
-
     // Auto-hide notification
     useEffect(() => {
         if (notification) {
@@ -228,369 +203,26 @@ const PembelianFeedmilPage = () => {
         }
     }, [notification]);
 
-    // Handle table scroll for visual feedback
-    const handleTableScroll = useCallback((e) => {
-        const { scrollLeft, scrollWidth, clientWidth } = e.target;
-        setScrollPosition({
-            canScrollLeft: scrollLeft > 0,
-            canScrollRight: scrollLeft < scrollWidth - clientWidth - 1
-        });
-    }, []);
-
-    // Check initial scroll state when data loads
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            const tableWrapper = document.querySelector('[data-table-wrapper="true"]');
-            if (tableWrapper) {
-                const { scrollWidth, clientWidth } = tableWrapper;
-                setScrollPosition({
-                    canScrollLeft: false,
-                    canScrollRight: scrollWidth > clientWidth
-                });
-            }
-        }, 100);
-        return () => clearTimeout(timer);
-    }, [filteredData]);
-
-    const columns = useMemo(() => [
-        {
-            name: 'No',
-            selector: (row, index) => index + 1,
-            sortable: false,
-            width: '60px',
-            ignoreRowClick: true,
-            cell: (row, index) => (
-                <div className="font-semibold text-gray-600">
-                    {index + 1}
+    // Memoized stat card
+    const StatCard = React.memo(({ title, value, icon: Icon, accentColor }) => (
+        <div className="bg-white rounded-lg p-3 border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200">
+            <div className="flex items-center gap-2 mb-2">
+                <div className={`p-1 rounded ${accentColor}`}>
+                    {Icon && <Icon className="w-3.5 h-3.5 text-white" />}
                 </div>
-            )
-        },
-        {
-            name: 'Pilih',
-            width: '80px',
-            cell: row => (
-                <ActionButton
-                    row={row}
-                    openMenuId={openMenuId}
-                    setOpenMenuId={setOpenMenuId}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                    onDetail={handleDetail}
-                    isActive={openMenuId === (row.id || row.encryptedPid)}
-                />
-            ),
-            ignoreRowClick: true,
-        },
-        {
-            name: 'Nota',
-            selector: row => row.nota,
-            sortable: true,
-            width: '150px',
-            wrap: true,
-            cell: row => (
-                <span className="font-mono text-sm bg-gray-100 px-3 py-1.5 rounded-lg" title={row.nota}>
-                    {row.nota || '-'}
-                </span>
-            )
-        },
-        {
-            name: 'Nota Sistem',
-            selector: row => row.nota_sistem,
-            sortable: true,
-            width: '150px',
-            wrap: true,
-            cell: row => (
-                <span className="font-mono text-sm bg-blue-50 px-3 py-1.5 rounded-lg text-blue-700" title={row.nota_sistem}>
-                    {row.nota_sistem || '-'}
-                </span>
-            )
-        },
-        {
-            name: 'Nota HO',
-            selector: row => row.nota_ho,
-            sortable: true,
-            width: '150px',
-            wrap: true,
-            cell: row => (
-                <span className="font-mono text-sm bg-gray-100 px-3 py-1.5 rounded-lg" title={row.nota_ho}>
-                    {row.nota_ho || '-'}
-                </span>
-            )
-        },
-        {
-            name: 'Tanggal Masuk',
-            selector: row => row.tgl_masuk,
-            sortable: true,
-            width: '140px',
-            wrap: true,
-            cell: row => (
-                <span className="text-gray-900">
-                    {row.tgl_masuk ? new Date(row.tgl_masuk).toLocaleDateString('id-ID') : '-'}
-                </span>
-            )
-        },
-        {
-            name: 'Nama Sopir',
-            selector: row => row.nama_supir,
-            sortable: true,
-            width: '180px',
-            wrap: true,
-            cell: row => (
-                <div className="font-medium text-gray-900" title={row.nama_supir}>
-                    {row.nama_supir || '-'}
-                </div>
-            )
-        },
-        {
-            name: 'Plat Nomor',
-            selector: row => row.plat_nomor,
-            sortable: true,
-            width: '130px',
-            wrap: true,
-            cell: row => (
-                <span className="font-mono text-sm" title={row.plat_nomor}>
-                    {row.plat_nomor || '-'}
-                </span>
-            )
-        },
-        {
-            name: 'Jenis Pembelian',
-            selector: row => row.jenis_pembelian,
-            sortable: true,
-            width: '140px',
-            wrap: true,
-            cell: row => (
-                <span className="inline-flex px-3 py-1.5 text-xs font-medium rounded-lg bg-purple-100 text-purple-800">
-                    {row.jenis_pembelian || '-'}
-                </span>
-            )
-        },
-        {
-            name: 'Jumlah',
-            selector: row => row.jumlah,
-            sortable: true,
-            width: '120px',
-            wrap: true,
-            cell: row => (
-                <span className="inline-flex px-3 py-1.5 text-sm font-semibold rounded-lg bg-indigo-100 text-indigo-800">
-                    {row.jumlah || 0} {row.satuan || 'Item'}
-                </span>
-            )
-        },
-        {
-            name: 'Nama Supplier',
-            selector: row => row.nama_supplier || row.supplier,
-            sortable: true,
-            width: '200px',
-            wrap: true,
-            cell: row => (
-                <div className="font-medium text-gray-900" title={row.nama_supplier || row.supplier}>
-                    {row.nama_supplier || row.supplier || '-'}
-                </div>
-            )
-        },
-        {
-            name: 'Farm',
-            selector: row => row.farm,
-            sortable: true,
-            width: '150px',
-            wrap: true,
-            cell: row => (
-                <span className="inline-flex px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-100 text-blue-800">
-                    {row.farm || getFarmName(row.id_farm) || '-'}
-                </span>
-            )
-        },
-        {
-            name: 'Syarat Pembelian',
-            selector: row => row.syarat_pembelian,
-            sortable: true,
-            width: '160px',
-            wrap: true,
-            cell: row => (
-                <span className="inline-flex px-3 py-1.5 text-xs font-medium rounded-lg bg-green-100 text-green-800">
-                    {row.syarat_pembelian || getBankName(row.id_syarat_pembelian) || '-'}
-                </span>
-            )
-        },
-        {
-            name: 'Harga Beli',
-            selector: row => row.harga_beli || row.biaya_total,
-            sortable: true,
-            width: '160px',
-            wrap: true,
-            cell: row => (
-                <span className="inline-flex px-3 py-2 text-sm font-semibold rounded-lg bg-green-100 text-green-800">
-                    {(row.harga_beli || row.biaya_total) ? new Intl.NumberFormat('id-ID', {
-                        style: 'currency',
-                        currency: 'IDR',
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 2
-                    }).format(row.harga_beli || row.biaya_total) : 'Rp 0'}
-                </span>
-            )
-        },
-        {
-            name: 'Biaya Lain',
-            selector: row => row.biaya_lain,
-            sortable: true,
-            width: '150px',
-            wrap: true,
-            cell: row => (
-                <span className="inline-flex px-3 py-2 text-sm font-semibold rounded-lg bg-orange-100 text-orange-800">
-                    {row.biaya_lain ? new Intl.NumberFormat('id-ID', {
-                        style: 'currency',
-                        currency: 'IDR',
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 2
-                    }).format(row.biaya_lain) : 'Rp 0'}
-                </span>
-            )
-        },
-        {
-            name: 'Biaya Truk',
-            selector: row => row.biaya_truk,
-            sortable: true,
-            width: '150px',
-            wrap: true,
-            cell: row => (
-                <span className="inline-flex px-3 py-2 text-sm font-semibold rounded-lg bg-cyan-100 text-cyan-800">
-                    {row.biaya_truk ? new Intl.NumberFormat('id-ID', {
-                        style: 'currency',
-                        currency: 'IDR',
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 2
-                    }).format(row.biaya_truk) : 'Rp 0'}
-                </span>
-            )
-        },
-        {
-            name: 'Harga Jual',
-            selector: row => row.harga_jual,
-            sortable: true,
-            width: '160px',
-            wrap: true,
-            cell: row => (
-                <span className="inline-flex px-3 py-2 text-sm font-semibold rounded-lg bg-emerald-100 text-emerald-800">
-                    {row.harga_jual ? new Intl.NumberFormat('id-ID', {
-                        style: 'currency',
-                        currency: 'IDR',
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 2
-                    }).format(row.harga_jual) : 'Rp 0'}
-                </span>
-            )
-        },
-    ], [openMenuId, filteredData, getFarmName, getBankName]);
+                <h3 className="text-[11px] font-medium text-gray-500 uppercase tracking-wide">{title}</h3>
+            </div>
+            <p className="text-xl sm:text-2xl font-bold text-gray-900">{value ?? 0}</p>
+        </div>
+    ));
 
     return (
         <>
-            {/* Custom CSS for horizontal scrollbar styling and sticky action column */}
             <style>{`
-                .horizontal-scroll-container::-webkit-scrollbar {
-                    height: 12px;
-                }
-                .horizontal-scroll-container::-webkit-scrollbar-track {
-                    background: #f1f5f9;
-                    border-radius: 6px;
-                }
-                .horizontal-scroll-container::-webkit-scrollbar-thumb {
-                    background: #94a3b8;
-                    border-radius: 6px;
-                    border: 2px solid #f1f5f9;
-                }
-                .horizontal-scroll-container::-webkit-scrollbar-thumb:hover {
-                    background: #64748b;
-                }
-                .horizontal-scroll-container::-webkit-scrollbar-corner {
-                    background: #f1f5f9;
-                }
-                
-                /* Sticky Action Column Styles - Specific to Pembelian Feedmill Page */
-                .pembelian-feedmill-table .rdt_TableHeadRow .rdt_TableCol:nth-child(2),
-                .pembelian-feedmill-table .rdt_TableHeadRow th:nth-child(2) {
-                    position: sticky !important;
-                    left: 60px !important;
-                    z-index: 1001 !important;
-                    background-color: #f8fafc !important;
-                    border-right: 2px solid #e5e7eb !important;
-                    box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
-                    will-change: transform !important;
-                    min-width: 80px !important;
-                    max-width: 80px !important;
-                }
-                
-                .pembelian-feedmill-table .rdt_TableBodyRow .rdt_TableCell:nth-child(2),
-                .pembelian-feedmill-table .rdt_TableBodyRow td:nth-child(2) {
-                    position: sticky !important;
-                    left: 60px !important;
-                    z-index: 998 !important;
-                    background-color: #ffffff !important;
-                    border-right: 2px solid #e5e7eb !important;
-                    box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
-                    will-change: transform !important;
-                    min-width: 80px !important;
-                    max-width: 80px !important;
-                }
-                
-                .pembelian-feedmill-table .rdt_TableBodyRow:hover .rdt_TableCell:nth-child(2),
-                .pembelian-feedmill-table .rdt_TableBodyRow:hover td:nth-child(2) {
-                    background-color: #f9fafb !important;
-                }
-                
-                /* Additional selectors for better compatibility */
-                .pembelian-feedmill-table table thead tr th:nth-child(2) {
-                    position: sticky !important;
-                    left: 60px !important;
-                    z-index: 1001 !important;
-                    background-color: #f8fafc !important;
-                    border-right: 2px solid #e5e7eb !important;
-                    box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
-                    will-change: transform !important;
-                    min-width: 80px !important;
-                    max-width: 80px !important;
-                }
-                
-                .pembelian-feedmill-table table tbody tr td:nth-child(2) {
-                    position: sticky !important;
-                    left: 60px !important;
-                    z-index: 998 !important;
-                    background-color: #ffffff !important;
-                    border-right: 2px solid #e5e7eb !important;
-                    box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
-                    will-change: transform !important;
-                    min-width: 80px !important;
-                    max-width: 80px !important;
-                }
-                
-                .pembelian-feedmill-table table tbody tr:hover td:nth-child(2) {
-                    background-color: #f9fafb !important;
-                }
-                
-                /* Custom scrollbar styling for table container */
-                .table-scroll-container::-webkit-scrollbar {
-                    height: 8px;
-                }
-                
-                .table-scroll-container::-webkit-scrollbar-track {
-                    background: #f1f5f9;
-                    border-radius: 4px;
-                }
-                
-                .table-scroll-container::-webkit-scrollbar-thumb {
-                    background: #cbd5e1;
-                    border-radius: 4px;
-                    transition: background 0.2s ease;
-                }
-                
-                .table-scroll-container::-webkit-scrollbar-thumb:hover {
-                    background: #94a3b8;
-                }
-                
-                /* Hide scrollbar on Firefox while keeping functionality */
-                .table-scroll-container {
-                    scrollbar-width: thin;
-                    scrollbar-color: #cbd5e1 #f1f5f9;
+                .word-break-all {
+                    word-break: break-all;
+                    overflow-wrap: break-word;
+                    hyphens: auto;
                 }
                 
                 /* Enhanced Notification Animations */
@@ -650,460 +282,220 @@ const PembelianFeedmilPage = () => {
                 .animate-progress {
                     animation: progress linear forwards;
                 }
+                
+                .no-wrap {
+                    white-space: nowrap;
+                    overflow: visible;
+                    text-overflow: clip;
+                }
+                
+                .force-wrap {
+                    white-space: normal;
+                    word-wrap: break-word;
+                    overflow-wrap: break-word;
+                }
+                
+                /* Custom scrollbar styling */
+                .table-scroll-container::-webkit-scrollbar {
+                    height: 8px;
+                }
+                
+                .table-scroll-container::-webkit-scrollbar-track {
+                    background: #f1f5f9;
+                    border-radius: 4px;
+                }
+                
+                .table-scroll-container::-webkit-scrollbar-thumb {
+                    background: #cbd5e1;
+                    border-radius: 4px;
+                    transition: background 0.2s ease;
+                }
+                
+                .table-scroll-container::-webkit-scrollbar-thumb:hover {
+                    background: #94a3b8;
+                }
+                
+                /* Hide scrollbar on Firefox while keeping functionality */
+                .table-scroll-container {
+                    scrollbar-width: thin;
+                    scrollbar-color: #cbd5e1 #f1f5f9;
+                }
+                
+                /* Force header center alignment override */
+                .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol {
+                    text-align: center !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                }
+                
+                .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol > div {
+                    text-align: center !important;
+                    width: 100% !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                }
+                
+                /* Override sort buttons and text alignment */
+                .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol .rdt_TableCol_Sortable {
+                    text-align: center !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    width: 100% !important;
+                }
+                
+                .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol span {
+                    text-align: center !important;
+                }
             `}</style>
-            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-2 sm:p-4 md:p-6">
-            <div className="w-full max-w-none mx-0 space-y-6 md:space-y-8">
-                <div className="bg-white rounded-none sm:rounded-none p-4 sm:p-6 shadow-xl border border-gray-100">
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                            <h1 className="text-2xl sm:text-4xl font-bold text-gray-800 mb-1 sm:mb-2 flex items-center gap-3">
-                                <Package size={32} className="text-blue-500" />
-                                Pembelian Feedmil
-                            </h1>
-                            <p className="text-gray-600 text-sm sm:text-base">
-                                Kelola data pembelian feedmil untuk ternak
-                            </p>
-                        </div>
-                        <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 md:gap-6">
-                            <button
-                                onClick={() => navigate('/ho/pembelian-feedmil/add')}
-                                className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white px-4 py-2 sm:px-6 sm:py-3 md:px-7 md:py-4 lg:px-8 lg:py-4 rounded-xl sm:rounded-2xl hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 flex items-center gap-3 font-medium shadow-lg hover:shadow-xl text-sm sm:text-base"
-                            >
-                                <PlusCircle className="w-5 h-5 sm:w-6 sm:h-6" />
-                                Tambah Pembelian
-                            </button>
-                        </div>
+            <div className="min-h-screen bg-gray-50 p-4 sm:p-6 md:p-8">
+                <div className="w-full space-y-6">
+                    <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+                        <StatCard title="Total Pembelian" value={serverPagination.totalItems} icon={Truck} accentColor="bg-blue-500" />
+                        <StatCard title="Total Feedmil" value={stats.totalFeedmil} icon={Package} accentColor="bg-emerald-500" />
+                        <StatCard title="Hari Ini" value={stats.today} icon={Calendar} accentColor="bg-amber-500" />
+                        <StatCard title="Bulan Ini" value={stats.thisMonth} icon={CalendarDays} accentColor="bg-purple-500" />
+                        <StatCard title="Tahun Ini" value={stats.thisYear} icon={CalendarRange} accentColor="bg-indigo-500" />
                     </div>
-                </div>
 
-                <div className="grid grid-cols-1 gap-3 sm:gap-4 md:gap-6 sm:grid-cols-2 md:grid-cols-4">
-                    <div className="bg-gradient-to-br from-blue-400 to-blue-500 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
-                        <h3 className="text-sm sm:text-base font-medium opacity-90 mb-2">Total Pembelian</h3>
-                        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold">{stats.total}</p>
+                    <div className="flex justify-end">
+                        <button
+                            onClick={() => navigate('/ho/pembelian-feedmil/add')}
+                            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-lg shadow-sm hover:shadow transition-all duration-200 flex items-center gap-2 text-sm font-medium active:scale-[0.98]"
+                        >
+                            <PlusCircle className="w-4 h-4" />
+                            Tambah Pembelian
+                        </button>
                     </div>
-                    <div className="bg-gradient-to-br from-emerald-400 to-emerald-500 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
-                        <h3 className="text-sm sm:text-base font-medium opacity-90 mb-2">Total Feedmil</h3>
-                        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold">{stats.totalFeedmil}</p>
-                    </div>
-                    <div className="bg-gradient-to-br from-amber-400 to-orange-500 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
-                        <h3 className="text-sm sm:text-base font-medium opacity-90 mb-2">Hari Ini</h3>
-                        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold">{stats.today}</p>
-                    </div>
-                    <div className="bg-gradient-to-br from-purple-400 to-purple-500 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
-                        <h3 className="text-sm sm:text-base font-medium opacity-90 mb-2">Bulan Ini</h3>
-                        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold">{stats.thisMonth}</p>
-                    </div>
-                </div>
 
-                <div className="bg-white rounded-none sm:rounded-none p-4 sm:p-6 shadow-lg border border-gray-100">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 md:gap-6 sm:items-center sm:justify-between">
-                        <div className="relative flex-1 max-w-full sm:max-w-md lg:max-w-lg">
-                            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                            
-                            {isSearching && (
-                                <Loader2 className="absolute right-12 top-1/2 transform -translate-y-1/2 w-4 h-4 text-blue-500 animate-spin" />
-                            )}
-                            
-                            {searchTerm && !isSearching && (
-                                <button
-                                    onClick={clearSearch}
-                                    className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 hover:text-gray-600 transition-colors duration-200"
-                                    title="Clear search"
-                                >
-                                    <X className="w-4 h-4" />
-                                </button>
-                            )}
-                            
-                            <input
-                                type="text"
-                                placeholder="Cari berdasarkan nota, supplier, supir, atau plat nomor..."
-                                value={searchTerm}
-                                onChange={(e) => handleSearch(e.target.value)}
-                                className={`w-full pl-12 ${searchTerm || isSearching ? 'pr-12' : 'pr-4'} py-2.5 sm:py-3 md:py-4 border ${searchError ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'} rounded-full transition-all duration-200 text-sm sm:text-base shadow-sm hover:shadow-md`}
-                            />
-                            
-                            {searchError && (
-                                <div className="absolute top-full left-0 right-0 mt-1 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-                                    {searchError}
+                    <PembelianFeedmilFilterPanel
+                        filters={advancedFilters}
+                        onApply={handleAdvancedFilters}
+                        onReset={clearAdvancedFilters}
+                    />
+
+                    <div className="space-y-4">
+                        {error && (
+                            <div className="bg-white rounded-xl shadow-sm border border-red-100 p-4 flex items-center gap-3 text-red-700">
+                                <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
                                 </div>
-                            )}
-                        </div>
-
-                        <div className="flex flex-wrap gap-2 sm:gap-3 md:gap-4">
-                            <div className="flex items-center gap-2 md:gap-3">
-                                <Filter className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
-                                <select
-                                    value={filterJenisPembelian}
-                                    onChange={(e) => handleFilter(e.target.value)}
-                                    className="px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm sm:text-base shadow-sm hover:shadow-md transition-all duration-200"
-                                >
-                                    <option value="all">Semua Jenis</option>
-                                    <option value="Feedmil">Feedmil</option>
-                                    <option value="Supplier">Supplier</option>
-                                    <option value="Pakan">Pakan</option>
-                                </select>
+                                <div>
+                                    <div className="text-sm font-semibold">Gagal memuat data</div>
+                                    <div className="text-xs text-red-600">{error}</div>
+                                </div>
                             </div>
-                        </div>
-                    </div>
-                </div>
+                        )}
 
-                {/* Desktop Table View - Hidden on mobile */}
-                <div className="bg-white rounded-lg shadow-lg border border-gray-100 relative hidden md:block">
-                    {/* Table Header */}
-                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-4 py-2 border-b border-gray-200">
-                        <div className="flex items-center justify-between text-sm text-gray-600">
-                            <span className="flex items-center gap-2">
-                                <Package className="w-4 h-4" />
-                                Data Pembelian Feedmil
-                            </span>
-                            <div className="flex items-center gap-2 text-xs">
-                                {scrollPosition.canScrollLeft && (
-                                    <span className="text-blue-600 animate-pulse">Scroll kiri untuk melihat kolom sebelumnya</span>
-                                )}
-                                {scrollPosition.canScrollRight && (
-                                    <span className="text-blue-600 animate-pulse">Scroll kanan untuk melihat kolom lainnya</span>
-                                )}
-                                {!scrollPosition.canScrollLeft && !scrollPosition.canScrollRight && (
-                                    <span className="text-green-600">Semua kolom terlihat</span>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    {/* Scrollable Table Content */}
-                    <div 
-                        className="w-full overflow-x-auto max-w-full table-scroll-container" 
-                        onScroll={handleTableScroll} 
-                        style={{ 
-                            maxHeight: '60vh',
-                            scrollBehavior: 'smooth',
-                            WebkitOverflowScrolling: 'touch',
-                        }}
-                    >
-                        <div style={{ minWidth: '1850px' }}>
-                            <DataTable
-                            key={`datatable-${serverPagination.currentPage}-${filteredData.length}`}
-                            columns={columns}
+                        <ModernPembelianFeedmilTable
                             data={filteredData}
-                            pagination={false}
-                            className="pembelian-feedmill-table"
-                            customStyles={{
-                                ...customTableStyles,
-                                tableWrapper: {
-                                    ...customTableStyles.tableWrapper,
-                                    style: {
-                                        ...customTableStyles.tableWrapper.style,
-                                        overflow: 'visible',
-                                        scrollBehavior: 'smooth',
-                                    }
-                                },
-                                table: {
-                                    style: {
-                                        minWidth: '1850px',
-                                    }
-                                },
-                                headCells: {
-                                    style: {
-                                        ...customTableStyles.headCells.style,
-                                        // Ensure sticky positioning for action column
-                                        '&:nth-child(2)': {
-                                            position: 'sticky',
-                                            left: '60px',
-                                            zIndex: 1001,
-                                            backgroundColor: '#f8fafc',
-                                            borderRight: '2px solid #e5e7eb',
-                                            boxShadow: '1px 0 2px rgba(0, 0, 0, 0.05)',
-                                            minWidth: '80px',
-                                            maxWidth: '80px',
-                                        }
-                                    }
-                                },
-                                cells: {
-                                    style: {
-                                        ...customTableStyles.cells.style,
-                                        // Ensure sticky positioning for action column
-                                        '&:nth-child(2)': {
-                                            position: 'sticky',
-                                            left: '60px',
-                                            zIndex: 998,
-                                            backgroundColor: '#ffffff',
-                                            borderRight: '2px solid #e5e7eb',
-                                            boxShadow: '1px 0 2px rgba(0, 0, 0, 0.05)',
-                                            minWidth: '80px',
-                                            maxWidth: '80px',
-                                        }
-                                    }
-                                }
+                            loading={loading}
+                            serverPagination={{
+                                currentPage: serverPagination.currentPage,
+                                perPage: serverPagination.perPage,
+                                totalRecords: serverPagination.totalItems || serverPagination.totalRecords || 0
                             }}
-                            wrapperStyle={{ 'data-table-wrapper': 'true' }}
-                            progressPending={loading}
-                            progressComponent={
-                                <div className="text-center py-12">
-                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                                    <p className="text-gray-500 text-sm mt-2">Memuat data...</p>
-                                </div>
-                            }
-                            noDataComponent={
-                                <div className="text-center py-12">
-                                    {error ? (
-                                        <div className="text-red-600">
-                                            <p className="text-lg font-semibold">Error</p>
-                                            <p className="text-sm">{error}</p>
-                                        </div>
-                                    ) : searchTerm ? (
-                                        <div className="text-gray-500">
-                                            <p className="text-lg font-semibold">Tidak ada hasil untuk "{searchTerm}"</p>
-                                            <p className="text-sm mt-2">Coba gunakan kata kunci yang berbeda</p>
-                                            <button
-                                                onClick={clearSearch}
-                                                className="mt-3 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200 text-sm"
-                                            >
-                                                Clear Search
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <p className="text-gray-500 text-lg">Tidak ada data pembelian feedmil ditemukan</p>
-                                    )}
-                                </div>
-                            }
-                            responsive={false}
-                            highlightOnHover
-                            pointerOnHover
+                            onPageChange={handleServerPageChange}
+                            onPerPageChange={handleServerPerPageChange}
+                            onEdit={handleEdit}
+                            onDelete={handleDelete}
+                            onDetail={handleDetail}
+                            getFarmName={getFarmName}
+                            getBankName={getBankName}
                         />
-                        </div>
-                    </div>
-                    
-                    {/* Fixed Pagination */}
-                    <div className="bg-white px-4 py-3 border-t border-gray-200 rounded-b-lg">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2 text-xs text-gray-500">
-                                {scrollPosition.canScrollLeft && (
-                                    <span className="text-blue-600 bg-blue-50 px-2 py-1 rounded-md">Geser kiri untuk melihat kolom sebelumnya</span>
-                                )}
-                                {scrollPosition.canScrollRight && (
-                                    <span className="text-blue-600 bg-blue-50 px-2 py-1 rounded-md">Geser kanan untuk melihat kolom lainnya</span>
-                                )}
-                                {!scrollPosition.canScrollLeft && !scrollPosition.canScrollRight && (
-                                    <span className="text-green-600 bg-green-50 px-2 py-1 rounded-md">Semua kolom terlihat</span>
-                                )}
-                            </div>
-                            
-                            {/* Custom Pagination Controls */}
-                            <div className="flex items-center gap-4">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-sm text-gray-700">Items per page:</span>
-                                    <select
-                                        value={serverPagination.perPage}
-                                        onChange={(e) => handleServerPerPageChange(parseInt(e.target.value))}
-                                        className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                    >
-                                        {[10, 25, 50, 100].map(size => (
-                                            <option key={size} value={size}>{size}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                
-                                <span className="text-sm text-gray-700">
-                                    {((serverPagination.currentPage - 1) * serverPagination.perPage) + 1}-{Math.min(serverPagination.currentPage * serverPagination.perPage, serverPagination.totalItems)} of {serverPagination.totalItems}
-                                </span>
-                                
-                                <div className="flex items-center gap-1">
-                                    <button
-                                        onClick={() => handleServerPageChange(1)}
-                                        disabled={serverPagination.currentPage === 1}
-                                        className="px-2 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        «
-                                    </button>
-                                    <button
-                                        onClick={() => handleServerPageChange(serverPagination.currentPage - 1)}
-                                        disabled={serverPagination.currentPage === 1}
-                                        className="px-2 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        ‹
-                                    </button>
-                                    <span className="px-3 py-1 text-sm border border-gray-300 bg-blue-50 text-blue-600 rounded">
-                                        {serverPagination.currentPage}
-                                    </span>
-                                    <button
-                                        onClick={() => handleServerPageChange(serverPagination.currentPage + 1)}
-                                        disabled={serverPagination.currentPage === serverPagination.totalPages}
-                                        className="px-2 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        ›
-                                    </button>
-                                    <button
-                                        onClick={() => handleServerPageChange(serverPagination.totalPages)}
-                                        disabled={serverPagination.currentPage === serverPagination.totalPages}
-                                        className="px-2 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        »
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
 
-                {/* Mobile Card View - Visible on mobile only */}
-                <div className="md:hidden">
-                    {loading ? (
-                        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
-                            <div className="text-center">
-                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                                <p className="text-gray-500 text-sm mt-2">Memuat data...</p>
-                            </div>
-                        </div>
-                    ) : error ? (
-                        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
-                            <div className="text-center text-red-600">
-                                <p className="text-lg font-semibold">Error</p>
-                                <p className="text-sm">{error}</p>
-                            </div>
-                        </div>
-                    ) : filteredData.length === 0 ? (
-                        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
-                            <div className="text-center">
-                                {searchTerm ? (
-                                    <div className="text-gray-500">
-                                        <p className="text-lg font-semibold">Tidak ada hasil untuk "{searchTerm}"</p>
-                                        <p className="text-sm mt-2">Coba gunakan kata kunci yang berbeda</p>
+                {notification && (
+                    <div className="fixed top-4 right-4 z-50 animate-slide-in-right">
+                        <div className={`max-w-md w-full bg-white shadow-2xl rounded-xl pointer-events-auto overflow-hidden transform transition-all duration-300 hover:scale-105 ${
+                            notification.type === 'success' ? 'border-l-4 border-green-500' :
+                            notification.type === 'info' ? 'border-l-4 border-blue-500' :
+                            'border-l-4 border-red-500'
+                        }`}>
+                            <div className={`p-4 ${
+                                notification.type === 'success' ? 'bg-gradient-to-r from-green-50 to-white' :
+                                notification.type === 'info' ? 'bg-gradient-to-r from-blue-50 to-white' :
+                                'bg-gradient-to-r from-red-50 to-white'
+                            }`}>
+                                <div className="flex items-start">
+                                    <div className="flex-shrink-0">
+                                        {notification.type === 'success' ? (
+                                            <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center shadow-lg animate-bounce-once">
+                                                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                                                </svg>
+                                            </div>
+                                        ) : notification.type === 'info' ? (
+                                            <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center shadow-lg">
+                                                <svg className="w-6 h-6 text-white animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                                </svg>
+                                            </div>
+                                        ) : (
+                                            <div className="w-10 h-10 bg-gradient-to-br from-red-400 to-red-600 rounded-full flex items-center justify-center shadow-lg animate-shake">
+                                                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                                </svg>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="ml-4 flex-1">
+                                        <p className={`text-base font-bold ${
+                                            notification.type === 'success' ? 'text-green-800' :
+                                            notification.type === 'info' ? 'text-blue-800' :
+                                            'text-red-800'
+                                        }`}>
+                                            {notification.type === 'success' ? '✓ Berhasil!' :
+                                             notification.type === 'info' ? '⏳ Memproses...' : '⚠ Error!'}
+                                        </p>
+                                        <p className="mt-1 text-sm text-gray-700 leading-relaxed">{notification.message}</p>
+                                    </div>
+                                    <div className="ml-4 flex-shrink-0">
                                         <button
-                                            onClick={clearSearch}
-                                            className="mt-3 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200 text-sm"
+                                            onClick={() => setNotification(null)}
+                                            className={`rounded-lg p-1.5 inline-flex items-center justify-center transition-all duration-200 ${
+                                                notification.type === 'success' ? 'text-green-600 hover:bg-green-100' :
+                                                notification.type === 'info' ? 'text-blue-600 hover:bg-blue-100' :
+                                                'text-red-600 hover:bg-red-100'
+                                            }`}
                                         >
-                                            Clear Search
+                                            <span className="sr-only">Close</span>
+                                            <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                            </svg>
                                         </button>
                                     </div>
-                                ) : (
-                                    <p className="text-gray-500 text-lg">Tidak ada data pembelian feedmil ditemukan</p>
-                                )}
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="space-y-4">
-                            {/* Cards Container */}
-                            <div className="space-y-3">
-                                {filteredData.map((item, index) => (
-                                    <PembelianFeedmilCard
-                                        key={item.encryptedPid || item.id}
-                                        data={item}
-                                        index={(serverPagination.currentPage - 1) * serverPagination.perPage + index}
-                                        onEdit={handleEdit}
-                                        onDelete={handleDelete}
-                                        onDetail={handleDetail}
-                                        cardType="feedmil"
-                                    />
-                                ))}
-                            </div>
-
-                            {/* Custom Pagination for Mobile - Server-side */}
-                            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                                <CustomPagination
-                                    currentPage={serverPagination.currentPage}
-                                    totalPages={serverPagination.totalPages}
-                                    totalItems={serverPagination.totalItems}
-                                    itemsPerPage={serverPagination.perPage}
-                                    onPageChange={handlePageChange}
-                                    onItemsPerPageChange={handleItemsPerPageChange}
-                                    itemsPerPageOptions={[10, 25, 50, 100]}
-                                    loading={loading}
-                                />
-                            </div>
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Enhanced Notification */}
-            {notification && (
-                <div className="fixed top-4 right-4 z-50 animate-slide-in-right">
-                    <div className={`max-w-md w-full bg-white shadow-2xl rounded-xl pointer-events-auto overflow-hidden transform transition-all duration-300 hover:scale-105 ${
-                        notification.type === 'success' ? 'border-l-4 border-green-500' :
-                        notification.type === 'info' ? 'border-l-4 border-blue-500' :
-                        'border-l-4 border-red-500'
-                    }`}>
-                        <div className={`p-4 ${
-                            notification.type === 'success' ? 'bg-gradient-to-r from-green-50 to-white' :
-                            notification.type === 'info' ? 'bg-gradient-to-r from-blue-50 to-white' :
-                            'bg-gradient-to-r from-red-50 to-white'
-                        }`}>
-                            <div className="flex items-start">
-                                <div className="flex-shrink-0">
-                                    {notification.type === 'success' ? (
-                                        <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center shadow-lg animate-bounce-once">
-                                            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
-                                            </svg>
-                                        </div>
-                                    ) : notification.type === 'info' ? (
-                                        <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center shadow-lg">
-                                            <svg className="w-6 h-6 text-white animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                            </svg>
-                                        </div>
-                                    ) : (
-                                        <div className="w-10 h-10 bg-gradient-to-br from-red-400 to-red-600 rounded-full flex items-center justify-center shadow-lg animate-shake">
-                                            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                            </svg>
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="ml-4 flex-1">
-                                    <p className={`text-base font-bold ${
-                                        notification.type === 'success' ? 'text-green-800' :
-                                        notification.type === 'info' ? 'text-blue-800' :
-                                        'text-red-800'
-                                    }`}>
-                                        {notification.type === 'success' ? '✓ Berhasil!' :
-                                         notification.type === 'info' ? '⏳ Memproses...' : '⚠ Error!'}
-                                    </p>
-                                    <p className="mt-1 text-sm text-gray-700 leading-relaxed">{notification.message}</p>
-                                </div>
-                                <div className="ml-4 flex-shrink-0">
-                                    <button
-                                        onClick={() => setNotification(null)}
-                                        className={`rounded-lg p-1.5 inline-flex items-center justify-center transition-all duration-200 ${
-                                            notification.type === 'success' ? 'text-green-600 hover:bg-green-100' :
-                                            notification.type === 'info' ? 'text-blue-600 hover:bg-blue-100' :
-                                            'text-red-600 hover:bg-red-100'
-                                        }`}
-                                    >
-                                        <span className="sr-only">Close</span>
-                                        <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                                        </svg>
-                                    </button>
                                 </div>
                             </div>
-                        </div>
-                        {/* Progress bar */}
-                        <div className={`h-1 ${
-                            notification.type === 'success' ? 'bg-green-200' :
-                            notification.type === 'info' ? 'bg-blue-200' :
-                            'bg-red-200'
-                        }`}>
-                            <div className={`h-full animate-progress ${
-                                notification.type === 'success' ? 'bg-green-500' :
-                                notification.type === 'info' ? 'bg-blue-500' :
-                                'bg-red-500'
-                            }`} style={{animationDuration: '5s'}}></div>
+                            <div className={`h-1 ${
+                                notification.type === 'success' ? 'bg-green-200' :
+                                notification.type === 'info' ? 'bg-blue-200' :
+                                'bg-red-200'
+                            }`}>
+                                <div className={`h-full animate-progress ${
+                                    notification.type === 'success' ? 'bg-green-500' :
+                                    notification.type === 'info' ? 'bg-blue-500' :
+                                    'bg-red-500'
+                                }`} style={{animationDuration: '5s'}}></div>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )}
 
-            {/* Modals */}
-            <DeleteConfirmationModal
-                isOpen={isDeleteModalOpen}
-                onClose={handleCloseDeleteModal}
-                onConfirm={handleDeletePembelian}
-                data={selectedPembelian}
-                loading={loading}
-                type="pembelian"
-            />
-        </div>
+                <DeleteConfirmationModal
+                    isOpen={isDeleteModalOpen}
+                    onClose={handleCloseDeleteModal}
+                    onConfirm={handleDeletePembelian}
+                    data={selectedPembelian}
+                    loading={loading}
+                    type="pembelian"
+                />
+            </div>
         </>
     );
 };

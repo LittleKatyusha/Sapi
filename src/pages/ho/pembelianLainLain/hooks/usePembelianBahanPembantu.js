@@ -18,6 +18,17 @@ const usePembelianBahanPembantu = () => {
         totalItems: 0
     });
 
+    // Advanced filters state
+    const [advancedFilters, setAdvancedFilters] = useState({
+        nama_office: '',
+        nama_produk: '',
+        peruntukan: '',
+        pemasok: '',
+        tipe_pembayaran: '',
+        startDate: '',
+        endDate: ''
+    });
+
     /**
      * Fetch pembelian bahan pembantu data from server
      */
@@ -26,7 +37,8 @@ const usePembelianBahanPembantu = () => {
         perPage = 10,
         search = '',
         silent = false,
-        isRefresh = false
+        isRefresh = false,
+        filters = advancedFilters
     ) => {
         if (!silent && !isRefresh) {
             setLoading(true);
@@ -36,6 +48,7 @@ const usePembelianBahanPembantu = () => {
         try {
             // Build query parameters in the format expected by DataTables
             const searchValue = search || '';
+            const activeFilters = filters || advancedFilters;
             const params = {
                 draw: 1,
                 start: (page - 1) * perPage,
@@ -43,7 +56,14 @@ const usePembelianBahanPembantu = () => {
                 'search[value]': searchValue,
                 'search[regex]': false,
                 'order[0][column]': 0,
-                'order[0][dir]': 'desc'
+                'order[0][dir]': 'desc',
+                ...(activeFilters.nama_office ? { filter_nama_office: activeFilters.nama_office } : {}),
+                ...(activeFilters.nama_produk ? { filter_nama_produk: activeFilters.nama_produk } : {}),
+                ...(activeFilters.peruntukan ? { filter_peruntukan: activeFilters.peruntukan } : {}),
+                ...(activeFilters.pemasok ? { filter_pemasok: activeFilters.pemasok } : {}),
+                ...(activeFilters.tipe_pembayaran ? { filter_tipe_pembayaran: activeFilters.tipe_pembayaran } : {}),
+                ...(activeFilters.startDate ? { start_date: activeFilters.startDate } : {}),
+                ...(activeFilters.endDate ? { end_date: activeFilters.endDate } : {})
             };
 
             const response = await HttpClient.get(`${API_ENDPOINTS.HO.BAHAN_PEMBANTU.PEMBELIAN}/data`, {
@@ -79,7 +99,32 @@ const usePembelianBahanPembantu = () => {
                 setLoading(false);
             }
         }
-    }, []);
+    }, [advancedFilters]);
+
+    /**
+     * Handle advanced filters apply
+     */
+    const handleAdvancedFilters = useCallback((newFilters) => {
+        setAdvancedFilters(newFilters);
+        fetchPembelianBahanPembantu(1, serverPagination.perPage, searchTerm, false, false, newFilters);
+    }, [fetchPembelianBahanPembantu, serverPagination.perPage, searchTerm]);
+
+    /**
+     * Clear advanced filters
+     */
+    const clearAdvancedFilters = useCallback((emptyFilters) => {
+        const resetFilters = emptyFilters || {
+            nama_office: '',
+            nama_produk: '',
+            peruntukan: '',
+            pemasok: '',
+            tipe_pembayaran: '',
+            startDate: '',
+            endDate: ''
+        };
+        setAdvancedFilters(resetFilters);
+        fetchPembelianBahanPembantu(1, serverPagination.perPage, searchTerm, false, false, resetFilters);
+    }, [fetchPembelianBahanPembantu, serverPagination.perPage, searchTerm]);
 
     /**
      * Handle search with debouncing
@@ -104,22 +149,22 @@ const usePembelianBahanPembantu = () => {
     const clearSearch = useCallback(() => {
         setSearchTerm('');
         setSearchError(null);
-        fetchPembelianBahanPembantu(1, serverPagination.perPage, '', false, false);
-    }, [fetchPembelianBahanPembantu, serverPagination.perPage]);
+        fetchPembelianBahanPembantu(1, serverPagination.perPage, '', false, false, advancedFilters);
+    }, [fetchPembelianBahanPembantu, serverPagination.perPage, advancedFilters]);
 
     /**
      * Handle page change
      */
     const handlePageChange = useCallback((newPage) => {
-        fetchPembelianBahanPembantu(newPage, serverPagination.perPage, searchTerm, false, false);
-    }, [fetchPembelianBahanPembantu, serverPagination.perPage, searchTerm]);
+        fetchPembelianBahanPembantu(newPage, serverPagination.perPage, searchTerm, false, false, advancedFilters);
+    }, [fetchPembelianBahanPembantu, serverPagination.perPage, searchTerm, advancedFilters]);
 
     /**
      * Handle per page change
      */
     const handlePerPageChange = useCallback((newPerPage) => {
-        fetchPembelianBahanPembantu(1, newPerPage, searchTerm, false, false);
-    }, [fetchPembelianBahanPembantu, searchTerm]);
+        fetchPembelianBahanPembantu(1, newPerPage, searchTerm, false, false, advancedFilters);
+    }, [fetchPembelianBahanPembantu, searchTerm, advancedFilters]);
 
     /**
      * Create new pembelian bahan pembantu
@@ -146,7 +191,7 @@ const usePembelianBahanPembantu = () => {
                 HttpClient.clearCache('bahanpembantu/pembelian');
                 
                 // Refresh data after successful creation with force refresh
-                await fetchPembelianBahanPembantu(serverPagination.currentPage, serverPagination.perPage, searchTerm, false, true);
+                await fetchPembelianBahanPembantu(serverPagination.currentPage, serverPagination.perPage, searchTerm, false, true, advancedFilters);
                 
                 return {
                     success: true,
@@ -168,7 +213,7 @@ const usePembelianBahanPembantu = () => {
         } finally {
             setLoading(false);
         }
-    }, [fetchPembelianBahanPembantu, serverPagination.currentPage, serverPagination.perPage, searchTerm]);
+    }, [fetchPembelianBahanPembantu, serverPagination.currentPage, serverPagination.perPage, searchTerm, advancedFilters]);
 
     /**
      * Update pembelian bahan pembantu
@@ -198,7 +243,7 @@ const usePembelianBahanPembantu = () => {
                 HttpClient.clearCache('bahanpembantu/pembelian');
                 
                 // Refresh data after successful update with force refresh
-                await fetchPembelianBahanPembantu(serverPagination.currentPage, serverPagination.perPage, searchTerm, false, true);
+                await fetchPembelianBahanPembantu(serverPagination.currentPage, serverPagination.perPage, searchTerm, false, true, advancedFilters);
                 
                 return {
                     success: true,
@@ -220,7 +265,7 @@ const usePembelianBahanPembantu = () => {
         } finally {
             setLoading(false);
         }
-    }, [fetchPembelianBahanPembantu, serverPagination.currentPage, serverPagination.perPage, searchTerm]);
+    }, [fetchPembelianBahanPembantu, serverPagination.currentPage, serverPagination.perPage, searchTerm, advancedFilters]);
 
     /**
      * Delete pembelian bahan pembantu
@@ -245,7 +290,7 @@ const usePembelianBahanPembantu = () => {
                 HttpClient.clearCache('bahanpembantu/pembelian');
                 
                 // Refresh data after successful deletion with force refresh
-                await fetchPembelianBahanPembantu(serverPagination.currentPage, serverPagination.perPage, searchTerm, false, true);
+                await fetchPembelianBahanPembantu(serverPagination.currentPage, serverPagination.perPage, searchTerm, false, true, advancedFilters);
                 
                 return {
                     success: true,
@@ -266,7 +311,7 @@ const usePembelianBahanPembantu = () => {
         } finally {
             setLoading(false);
         }
-    }, [fetchPembelianBahanPembantu, serverPagination.currentPage, serverPagination.perPage, searchTerm]);
+    }, [fetchPembelianBahanPembantu, serverPagination.currentPage, serverPagination.perPage, searchTerm, advancedFilters]);
 
     return {
         pembelianBahanPembantu,
@@ -277,6 +322,9 @@ const usePembelianBahanPembantu = () => {
         isSearching,
         searchError,
         serverPagination,
+        advancedFilters,
+        handleAdvancedFilters,
+        clearAdvancedFilters,
         fetchPembelianBahanPembantu,
         handleSearch,
         clearSearch,

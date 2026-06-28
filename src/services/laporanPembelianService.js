@@ -358,11 +358,11 @@ class LaporanPembelianService {
 
   /**
    * Download PDF report for regular pembelian (supplier)
-   * @param {string} id - ID pembelian
+   * @param {string} id - ID pembelian (encrypted pubid)
    * @returns {Promise} - Blob response
    */
-  static async downloadReportNotaSupplier(nota) {
-    return await this.downloadPdfReport('nota-supplier', { nota });
+  static async downloadReportNotaSupplier(id) {
+    return await this.downloadPdfReport('getReportNotaSupplier', { id });
   }
 
   /**
@@ -381,6 +381,24 @@ class LaporanPembelianService {
    */
   static async downloadReportNotaOvk(id) {
     return await this.downloadPdfReport('nota-ovk', { id });
+  }
+
+  /**
+   * Download PDF report for pembelian kulit
+   * @param {string} id - ID pembelian kulit
+   * @returns {Promise} - Blob response
+   */
+  static async downloadReportNotaKulit(id) {
+    return await this.downloadPdfReport('nota-kulit', { id });
+  }
+
+  /**
+   * Download PDF report for pembelian lain-lain
+   * @param {string} id - ID pembelian lain-lain
+   * @returns {Promise} - Blob response
+   */
+  static async downloadReportNotaLainLain(id) {
+    return await this.downloadPdfReport('nota-lain-lain', { id });
   }
 
   /**

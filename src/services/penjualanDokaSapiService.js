@@ -156,8 +156,8 @@ class PenjualanDokaSapiService {
       
       // Additional fields for compatibility
       nama_office: 'Head Office',
-      nama_supir: '-',
-      plat_nomor: '-',
+      nama_supir: item.nama_supir || item.supir || item.nama_driver || item.driver || '-',
+      plat_nomor: item.plat_nomor || item.plat || item.no_plat || '-',
       biaya_lain: 0,
       biaya_truk: 0,
       berat_total: 0,

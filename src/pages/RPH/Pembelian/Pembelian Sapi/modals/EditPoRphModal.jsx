@@ -29,7 +29,7 @@ const EditPoRphModal = ({
     officePoOptions,
     loading: officeLoading,
     error: officeError
-  } = useParameterSelect();
+  } = useParameterSelect(false, {}, [], null, ['officepo']);
   
   const { 
     persetujuanOptions, 

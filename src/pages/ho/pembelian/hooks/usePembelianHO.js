@@ -66,6 +66,18 @@ const usePembelianHO = () => {
         endDate: ''
     });
 
+    // Advanced filter state
+    const [advancedFilters, setAdvancedFilters] = useState({
+        nota_sistem: '',
+        nota: '',
+        nama_supplier: '',
+        plat_nomor: '',
+        jumlah: '',
+        jenis_pembelian: '',
+        startDate: '',
+        endDate: ''
+    });
+
     // Server-side pagination state
     const [serverPagination, setServerPagination] = useState({
         currentPage: 1,
@@ -83,6 +95,16 @@ const usePembelianHO = () => {
         searchTerm: '',
         filterStatus: 'all',
         dateRange: { startDate: '', endDate: '' },
+        advancedFilters: {
+            nota_sistem: '',
+            nota: '',
+            nama_supplier: '',
+            plat_nomor: '',
+            jumlah: '',
+            jenis_pembelian: '',
+            startDate: '',
+            endDate: ''
+        },
         serverPagination: { currentPage: 1, totalPages: 1, totalItems: 0, perPage: DEFAULT_PER_PAGE }
     });
 
@@ -93,7 +115,8 @@ const usePembelianHO = () => {
         search = null, 
         filter = null, 
         dateRangeFilter = null, 
-        isSearchRequest = false
+        isSearchRequest = false,
+        advancedFiltersData = null
     ) => {
         // Cancel previous request if still pending
         if (abortControllerRef.current) {
@@ -118,6 +141,7 @@ const usePembelianHO = () => {
             const currentSearch = search !== null ? search : currentStateRef.current.searchTerm;
             const currentFilter = filter !== null ? filter : currentStateRef.current.filterStatus;
             const currentDateRange = dateRangeFilter !== null ? dateRangeFilter : currentStateRef.current.dateRange;
+            const currentAdvancedFilters = advancedFiltersData !== null ? advancedFiltersData : currentStateRef.current.advancedFilters;
             
             // Build API parameters
             const start = (currentPage - 1) * currentPerPage;
@@ -127,7 +151,7 @@ const usePembelianHO = () => {
                 'draw': currentPage.toString(),
                 'search[value]': currentSearch || '',
                 'order[0][column]': '0',
-                'order[0][dir]': 'asc',
+                'order[0][dir]': 'desc',
                 '_': Date.now() // Cache buster
             };
             
@@ -141,6 +165,34 @@ const usePembelianHO = () => {
             }
             if (currentDateRange.endDate) {
                 params.end_date = currentDateRange.endDate;
+            }
+
+            // Add advanced filters date range (takes priority if set)
+            if (currentAdvancedFilters.startDate) {
+                params.start_date = currentAdvancedFilters.startDate;
+            }
+            if (currentAdvancedFilters.endDate) {
+                params.end_date = currentAdvancedFilters.endDate;
+            }
+
+            // Add advanced filters
+            if (currentAdvancedFilters.nota_sistem) {
+                params.filter_nota_sistem = currentAdvancedFilters.nota_sistem;
+            }
+            if (currentAdvancedFilters.nota) {
+                params.filter_nota = currentAdvancedFilters.nota;
+            }
+            if (currentAdvancedFilters.nama_supplier) {
+                params.filter_nama_supplier = currentAdvancedFilters.nama_supplier;
+            }
+            if (currentAdvancedFilters.plat_nomor) {
+                params.filter_plat_nomor = currentAdvancedFilters.plat_nomor;
+            }
+            if (currentAdvancedFilters.jumlah) {
+                params.filter_jumlah = currentAdvancedFilters.jumlah;
+            }
+            if (currentAdvancedFilters.jenis_pembelian) {
+                params.filter_jenis_pembelian = currentAdvancedFilters.jenis_pembelian;
             }
             
             const result = await HttpClient.get(`${API_ENDPOINTS.HO.PEMBELIAN}/data`, {
@@ -371,6 +423,7 @@ const usePembelianHO = () => {
                     eartag: data.eartag,
                     eartag_supplier: data.eartagSupplier || data.eartag_supplier || '',
                     id_klasifikasi_hewan: data.idKlasifikasiHewan || data.id_klasifikasi_hewan,
+                    golongan: data.golongan ? parseInt(data.golongan) : null,
                     harga: data.harga,
                     persentase: data.persentase,
                     berat: data.berat,
@@ -604,6 +657,29 @@ const usePembelianHO = () => {
         fetchPembelian(1, null, null, null, emptyDateRange, false);
     }, []);
 
+    // Advanced filter handlers
+    const handleAdvancedFilters = useCallback((newFilters) => {
+        setAdvancedFilters(newFilters);
+        setSearchError(null);
+        fetchPembelian(1, null, null, null, null, false, newFilters);
+    }, []);
+
+    const clearAdvancedFilters = useCallback((filters = null) => {
+        const emptyFilters = filters || {
+            nota_sistem: '',
+            nota: '',
+            nama_supplier: '',
+            plat_nomor: '',
+            jumlah: '',
+            jenis_pembelian: '',
+            startDate: '',
+            endDate: ''
+        };
+        setAdvancedFilters(emptyFilters);
+        setSearchError(null);
+        fetchPembelian(1, null, null, null, null, false, emptyFilters);
+    }, []);
+
     const handlePageChange = useCallback((newPage) => {
         fetchPembelian(newPage, null, null, null, null, false);
     }, []);
@@ -624,6 +700,10 @@ const usePembelianHO = () => {
     useEffect(() => {
         currentStateRef.current.dateRange = dateRange;
     }, [dateRange]);
+
+    useEffect(() => {
+        currentStateRef.current.advancedFilters = advancedFilters;
+    }, [advancedFilters]);
 
     useEffect(() => {
         currentStateRef.current.serverPagination = serverPagination;
@@ -653,6 +733,7 @@ const usePembelianHO = () => {
                 eartag: String(detailData.eartag),
                 eartag_supplier: String(detailData.eartagSupplier || ''),
                 id_klasifikasi_hewan: parseInt(detailData.idKlasifikasiHewan),
+                golongan: detailData.golongan ? parseInt(detailData.golongan) : null,
                 harga: parseFloat(detailData.harga),
                 persentase: parseFloat(detailData.persentase) || 0,
                 berat: parseInt(detailData.berat),
@@ -685,6 +766,7 @@ const usePembelianHO = () => {
                 eartag: String(detailData.eartag),
                 eartag_supplier: String(detailData.eartagSupplier || ''),
                 id_klasifikasi_hewan: parseInt(detailData.idKlasifikasiHewan),
+                golongan: detailData.golongan ? parseInt(detailData.golongan) : null,
                 harga: parseFloat(detailData.harga),
                 persentase: detailData.persentase || 0,
                 berat: parseInt(detailData.berat),
@@ -844,6 +926,7 @@ const usePembelianHO = () => {
                     eartag: String(item.eartag),
                     eartag_supplier: String(item.eartag_supplier || item.eartagSupplier || ''),
                     id_klasifikasi_hewan: parseInt(item.id_klasifikasi_hewan),
+                    golongan: item.golongan ? parseInt(item.golongan) : null,
                     harga: parseFloat(item.harga),
                     berat: parseInt(item.berat),
                     persentase: parseFloat(item.persentase) || 0,
@@ -887,6 +970,8 @@ const usePembelianHO = () => {
         setFilterStatus,
         dateRange,
         setDateRange,
+        advancedFilters,
+        setAdvancedFilters,
         isSearching,
         searchError,
         stats,
@@ -897,6 +982,8 @@ const usePembelianHO = () => {
         handleFilter,
         handleDateRangeFilter,
         clearDateRange,
+        handleAdvancedFilters,
+        clearAdvancedFilters,
         handlePageChange,
         handlePerPageChange,
         createPembelian,

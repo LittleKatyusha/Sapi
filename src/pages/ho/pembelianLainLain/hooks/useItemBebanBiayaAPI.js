@@ -22,9 +22,11 @@ const useItemBebanBiayaAPI = () => {
         try {
             console.log('🔄 Fetching Item Lain-Lain from master parameter data endpoint...');
             
-            // Call the endpoint: GET /api/master/parameter/data
+            // Call the endpoint: GET /api/master/parameter/data?groups=itemlainlain
             // Extract itemlainlain from response
-            const response = await HttpClient.get('/api/master/parameter/data');
+            const response = await HttpClient.get('/api/master/parameter/data', {
+                params: { groups: 'itemlainlain' }
+            });
 
             console.log('📦 Raw Response from /api/master/parameter/data:', response);
 

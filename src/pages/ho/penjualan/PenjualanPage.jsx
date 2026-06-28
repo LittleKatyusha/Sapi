@@ -1,26 +1,58 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShoppingCart, PlusCircle } from 'lucide-react';
+import { ShoppingCart, Plus, TrendingUp, Calendar } from 'lucide-react';
 
 import usePenjualan from './hooks/usePenjualan';
 import { formatCurrency } from './utils/formatters';
+import { PENJUALAN_ROUTES } from './constants/routes';
 
-// Import table components
-import PenjualanBahanBakuTable from './components/tables/PenjualanBahanBakuTable';
-import PenjualanOVKTable from './components/tables/PenjualanOVKTable';
+import PenjualanCompactTable from './components/PenjualanCompactTable';
+import PenjualanCompactCard from './components/PenjualanCompactCard';
+import DeleteConfirmationModal from './modals/DeleteConfirmationModal';
+import PrintPenjualanModal from './modals/PrintPenjualanModal';
 
-// Import shared components
+import PenjualanService from '../../../services/penjualanService';
 import Notification from '../../../components/shared/NotificationComponent';
 
-// Import styles
-import './styles/PenjualanPage.css';
+const TAB_OPTIONS = [
+    { key: 'bahan-baku', label: 'Bahan Baku Pangan' },
+    { key: 'ovk', label: 'OVK' }
+];
+
+const MiniStatCard = ({ label, value, subtext, icon: Icon, loading }) => (
+    <div className="bg-white rounded-lg border border-gray-100 p-3 shadow-sm">
+        <div className="flex items-start justify-between">
+            <div className="flex-1 min-w-0">
+                <p className="text-[11px] text-gray-500 mb-1 truncate">{label}</p>
+                {loading ? (
+                    <div className="h-5 w-20 bg-gray-100 rounded animate-pulse" />
+                ) : (
+                    <p className="text-base font-semibold text-gray-900 truncate">{value}</p>
+                )}
+                {subtext && !loading && (
+                    <p className="text-[10px] text-gray-400 mt-0.5 truncate">{subtext}</p>
+                )}
+            </div>
+            <div className="w-7 h-7 rounded-md bg-green-50 flex items-center justify-center ml-2 shrink-0">
+                {Icon ? <Icon className="w-3.5 h-3.5 text-green-600" /> : <TrendingUp className="w-3.5 h-3.5 text-green-600" />}
+            </div>
+        </div>
+    </div>
+);
 
 const PenjualanPage = () => {
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('bahan-baku');
     const [notification, setNotification] = useState(null);
 
-    // Single hook driven by activeTab — only one API call at a time
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [selectedItem, setSelectedItem] = useState(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
+    const [printRow, setPrintRow] = useState(null);
+    const [isDownloading, setIsDownloading] = useState(false);
+
     const {
         penjualan,
         loading,
@@ -34,40 +66,30 @@ const PenjualanPage = () => {
         clearSearch,
         handlePageChange,
         handlePerPageChange,
-        cardData
+        cardData,
+        summary
     } = usePenjualan(activeTab);
 
-    // Summary cards configuration
-    const summaryCardsConfig = useMemo(() => [
-        {
-            id: 1,
-            key: 'hariIni',
-            preText: "Penjualan Hari Ini",
-            text: "transaksi",
-            gradient: "bg-gradient-to-br from-blue-400 to-blue-600",
-        },
-        {
-            id: 2,
-            key: 'mingguIni',
-            preText: "Penjualan Minggu Ini",
-            text: "transaksi",
-            gradient: "bg-gradient-to-br from-emerald-400 to-teal-500",
-        },
-        {
-            id: 3,
-            key: 'bulanIni',
-            preText: "Penjualan Bulan Ini",
-            text: "transaksi",
-            gradient: "bg-gradient-to-br from-amber-400 to-orange-500",
-        },
-        {
-            id: 4,
-            key: 'tahunIni',
-            preText: "Penjualan Tahun Ini",
-            text: "transaksi",
-            gradient: "bg-gradient-to-br from-purple-400 to-purple-600",
-        }
-    ], []);
+    const summaryCards = useMemo(() => {
+        const keys = [
+            { key: 'hariIni', label: 'Hari Ini', period: 'hari' },
+            { key: 'mingguIni', label: 'Minggu Ini', period: 'minggu' },
+            { key: 'bulanIni', label: 'Bulan Ini', period: 'bulan' },
+            { key: 'tahunIni', label: 'Tahun Ini', period: 'tahun' }
+        ];
+
+        return keys.map(item => {
+            const data = cardData?.[item.key];
+            const total = data?.total ?? 0;
+            const feedmil = data?.feedmil ?? 0;
+            const ovk = data?.ovk ?? 0;
+            return {
+                ...item,
+                value: formatCurrency(total),
+                subtext: `F: ${formatCurrency(feedmil)} | O: ${formatCurrency(ovk)}`
+            };
+        });
+    }, [cardData]);
 
     const handleTabChange = (tabName) => {
         setActiveTab(tabName);
@@ -77,122 +99,144 @@ const PenjualanPage = () => {
         navigate('/ho/penjualan/add');
     };
 
+    const handleDownload = useCallback((row) => {
+        setPrintRow(row);
+        setIsPrintModalOpen(true);
+    }, []);
+
+    const handlePrintDownload = useCallback(async ({ reportType, petugas, id }) => {
+        setIsDownloading(true);
+        try {
+            let blob;
+            if (reportType === 'surat-jalan') {
+                blob = await PenjualanService.downloadSuratJalan(id, petugas);
+            } else if (reportType === 'serah-terima') {
+                blob = await PenjualanService.downloadSerahTerimaBarang(id, petugas);
+            } else {
+                blob = await PenjualanService.downloadKwitansi(id, petugas);
+            }
+
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            const faktur = printRow?.nomor_faktur || 'penjualan';
+            link.download = `${reportType}_${faktur}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+
+            setIsPrintModalOpen(false);
+            setPrintRow(null);
+            setNotification({ type: 'success', message: 'Dokumen berhasil diunduh' });
+        } catch (error) {
+            setNotification({ type: 'error', message: error.message || 'Gagal mengunduh dokumen' });
+        } finally {
+            setIsDownloading(false);
+        }
+    }, [printRow]);
+
+    const handleEdit = useCallback((row) => {
+        const id = row.id || row.pid || row.pubid;
+        navigate(PENJUALAN_ROUTES.EDIT, { state: { pid: id } });
+    }, [navigate]);
+
+    const handleDelete = useCallback((row) => {
+        setSelectedItem(row);
+        setIsDeleteModalOpen(true);
+    }, []);
+
+    const handleConfirmDelete = useCallback(async () => {
+        if (!selectedItem) return;
+        const pid = selectedItem.pubid || selectedItem.pid || selectedItem.id;
+        setIsDeleting(true);
+        try {
+            await PenjualanService.deletePenjualan(pid);
+            setNotification({
+                type: 'success',
+                message: `Data penjualan "${selectedItem.nomor_faktur || ''}" berhasil dihapus`
+            });
+            setIsDeleteModalOpen(false);
+            setSelectedItem(null);
+            handlePageChange(serverPagination.currentPage || 1);
+        } catch (error) {
+            setNotification({
+                type: 'error',
+                message: error.message || 'Gagal menghapus data penjualan'
+            });
+        } finally {
+            setIsDeleting(false);
+        }
+    }, [selectedItem, serverPagination.currentPage, handlePageChange]);
+
     const dismissNotification = useCallback(() => {
         setNotification(null);
     }, []);
 
-    // Auto-dismiss notification
     useEffect(() => {
-        if (notification) {
-            const timer = setTimeout(() => {
-                setNotification(null);
-            }, 5000);
-            return () => clearTimeout(timer);
-        }
+        if (!notification) return;
+        const timer = setTimeout(() => setNotification(null), 5000);
+        return () => clearTimeout(timer);
     }, [notification]);
 
-    // Determine which table component to render
-    const TableComponent = activeTab === 'bahan-baku' ? PenjualanBahanBakuTable : PenjualanOVKTable;
-
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-2 sm:p-4 md:p-6">
-            <div className="w-full max-w-none mx-0 space-y-6 md:space-y-8">
-                {/* Header Section */}
-                <div className="bg-white rounded-none sm:rounded-none p-4 sm:p-6 shadow-xl border border-gray-100">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                        <div>
-                            <h1 className="text-2xl sm:text-4xl font-bold text-gray-800 mb-1 sm:mb-2 flex items-center gap-3">
-                                <ShoppingCart size={32} className="text-emerald-500" />
-                                Penjualan
-                            </h1>
-                            <p className="text-gray-600 text-sm sm:text-base">
-                                Kelola data penjualan bahan baku pangan dan OVK
-                            </p>
+        <div className="min-h-screen bg-[#f9fafb] p-3 sm:p-4 md:p-6">
+            <div className="mx-auto w-full max-w-none space-y-4">
+                {/* Header */}
+                <div className="bg-white rounded-lg border border-gray-100 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-sm">
+                    <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-green-50 flex items-center justify-center">
+                            <ShoppingCart className="w-5 h-5 text-green-600" />
                         </div>
-                        <button
-                            onClick={handleAddPenjualan}
-                            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl hover:from-emerald-600 hover:to-teal-700 transition-all duration-200 shadow-lg hover:shadow-xl font-semibold"
-                        >
-                            <PlusCircle size={20} />
-                            Tambah Penjualan
-                        </button>
+                        <div>
+                            <h1 className="text-lg font-semibold text-gray-900">Penjualan</h1>
+                            <p className="text-xs text-gray-500">Kelola data penjualan bahan baku pangan dan OVK</p>
+                        </div>
                     </div>
+                    <button
+                        onClick={handleAddPenjualan}
+                        className="flex items-center gap-1.5 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
+                    >
+                        <Plus className="w-4 h-4" /> Tambah
+                    </button>
                 </div>
 
-                {/* Info Cards Section */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                    {summaryCardsConfig.map((card) => (
-                        <div
-                            key={card.id}
-                            className={`${card.gradient} rounded-2xl shadow-lg p-5 sm:p-6 text-white hover:shadow-xl hover:scale-[1.02] transition-all duration-300`}
-                        >
-                            {cardLoading ? (
-                                /* Skeleton placeholder while loading */
-                                <div className="animate-pulse space-y-3">
-                                    <div className="h-4 w-28 bg-white/30 rounded" />
-                                    <div className="h-10 w-16 bg-white/30 rounded" />
-                                    <div className="h-3 w-32 bg-white/20 rounded" />
-                                </div>
-                            ) : (
-                                /* Actual card content */
-                                <div className="flex flex-col gap-1">
-                                    <span className="text-sm font-semibold text-white/90 tracking-wide">
-                                        {card.preText}
-                                    </span>
-                                    <div className="flex items-baseline gap-2 mt-1">
-                                        <span className="text-4xl font-extrabold leading-none">
-                                            {formatCurrency(cardData?.[card.key]?.total ?? 0)}
-                                        </span>
-                                    </div>
-                                    <div className="mt-2 pt-2 border-t border-white/20">
-                                        <span className="text-xs text-white/80">
-                                            Feedmil: {formatCurrency(cardData?.[card.key]?.feedmil ?? 0)} | OVK: {formatCurrency(cardData?.[card.key]?.ovk ?? 0)}
-                                        </span>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
+                {/* Mini Stats */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                    {summaryCards.map((stat) => (
+                        <MiniStatCard
+                            key={stat.key}
+                            label={stat.label}
+                            value={stat.value}
+                            subtext={stat.subtext}
+                            icon={Calendar}
+                            loading={cardLoading}
+                        />
                     ))}
                 </div>
 
-                {/* Tabs Section */}
-                <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
-                    {/* Tab Headers */}
-                    <div className="bg-gradient-to-r from-slate-50 to-gray-50">
-                        <div className="flex border-b-2 border-gray-200">
+                {/* Tabs */}
+                <div className="bg-white rounded-lg border border-gray-100 shadow-sm overflow-hidden">
+                    <div className="flex border-b border-gray-100">
+                        {TAB_OPTIONS.map((tab) => (
                             <button
-                                onClick={() => handleTabChange('bahan-baku')}
-                                className={`relative flex-1 px-8 py-5 text-lg font-bold transition-all duration-300 ${
-                                    activeTab === 'bahan-baku'
-                                        ? 'text-white bg-gradient-to-r from-blue-600 to-cyan-600 shadow-lg'
-                                        : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+                                key={tab.key}
+                                onClick={() => handleTabChange(tab.key)}
+                                className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+                                    activeTab === tab.key
+                                        ? 'text-green-700 bg-green-50 border-b-2 border-green-600'
+                                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                                 }`}
                             >
-                                <span className="relative z-10">Penjualan Bahan Baku Pangan</span>
-                                {activeTab === 'bahan-baku' && (
-                                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-400 to-cyan-400"></div>
-                                )}
+                                {tab.label}
                             </button>
-                            <button
-                                onClick={() => handleTabChange('ovk')}
-                                className={`relative flex-1 px-8 py-5 text-lg font-bold transition-all duration-300 ${
-                                    activeTab === 'ovk'
-                                        ? 'text-white bg-gradient-to-r from-emerald-600 to-teal-600 shadow-lg'
-                                        : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-                                }`}
-                            >
-                                <span className="relative z-10">Penjualan OVK</span>
-                                {activeTab === 'ovk' && (
-                                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-400 to-teal-400"></div>
-                                )}
-                            </button>
-                        </div>
+                        ))}
                     </div>
 
-                    {/* Tab Content */}
-                    <div className="p-6 bg-gradient-to-br from-slate-50/30 to-blue-50/30">
-                        <div className="space-y-6 animate-fadeIn" key={activeTab}>
-                            <TableComponent
+                    <div className="p-3 sm:p-4">
+                        {/* Desktop Table */}
+                        <div className="hidden md:block">
+                            <PenjualanCompactTable
                                 data={penjualan}
                                 loading={loading}
                                 error={error}
@@ -204,8 +248,46 @@ const PenjualanPage = () => {
                                 clearSearch={clearSearch}
                                 handleServerPageChange={handlePageChange}
                                 handleServerPerPageChange={handlePerPageChange}
-                                setNotification={setNotification}
+                                activeTab={activeTab}
+                                summary={summary}
+                                onDownload={handleDownload}
+                                onEdit={handleEdit}
+                                onDelete={handleDelete}
                             />
+                        </div>
+
+                        {/* Mobile Cards */}
+                        <div className="md:hidden space-y-3">
+                            {loading ? (
+                                <div className="text-center py-8">
+                                    <div className="w-8 h-8 border-2 border-gray-200 border-t-green-600 rounded-full animate-spin mx-auto" />
+                                </div>
+                            ) : error ? (
+                                <div className="text-center py-8 text-red-600 text-sm">{error}</div>
+                            ) : penjualan.length === 0 ? (
+                                <div className="text-center py-8 text-gray-500 text-sm">Tidak ada data penjualan</div>
+                            ) : (
+                                penjualan.map((item, index) => (
+                                    <PenjualanCompactCard
+                                        key={item.id || item.pid || item.pubid || index}
+                                        data={item}
+                                        index={(serverPagination.currentPage - 1) * serverPagination.perPage + index}
+                                        onDownload={handleDownload}
+                                        onEdit={handleEdit}
+                                        onDelete={handleDelete}
+                                    />
+                                ))
+                            )}
+                            {!loading && penjualan.length > 0 && (
+                                <div className="bg-white px-4 py-3 border-t border-gray-200">
+                                    <div className="flex items-center justify-between text-sm text-gray-700">
+                                        <span>
+                                            Menampilkan {(serverPagination.currentPage - 1) * serverPagination.perPage + 1} sampai{' '}
+                                            {Math.min(serverPagination.currentPage * serverPagination.perPage, serverPagination.totalRows)} dari {serverPagination.totalRows} hasil
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -214,6 +296,22 @@ const PenjualanPage = () => {
             <Notification
                 notification={notification}
                 onClose={dismissNotification}
+            />
+
+            <DeleteConfirmationModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                onConfirm={handleConfirmDelete}
+                itemName={selectedItem?.nomor_faktur || 'data penjualan'}
+                isDeleting={isDeleting}
+            />
+
+            <PrintPenjualanModal
+                isOpen={isPrintModalOpen}
+                onClose={() => setIsPrintModalOpen(false)}
+                onDownload={handlePrintDownload}
+                data={printRow}
+                isDownloading={isDownloading}
             />
         </div>
     );

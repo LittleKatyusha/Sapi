@@ -17,8 +17,8 @@ const PembelianDetailPage = () => {
         error
     } = usePembelianHO();
     
-    // Get parameter data for eartag mapping
-    const { parameterData } = useParameterSelect();
+    // Get parameter data for office mapping
+    const { parameterData } = useParameterSelect(false, {}, [], null, ['office']);
     
     // Get tipe pembelian options for mapping jenis_pembelian
     const { tipePembelianOptions } = useTipePembelian();

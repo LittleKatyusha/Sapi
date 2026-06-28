@@ -70,6 +70,7 @@ const clearFailedRequest = (url) => {
  */
 const DEFAULT_HEADERS = {
   ...CORS_CONFIG.defaultHeaders,
+  'Accept': 'application/json',
   'X-Requested-With': 'XMLHttpRequest'
 };
 
@@ -77,15 +78,10 @@ const DEFAULT_HEADERS = {
  * Get authentication token from secureStorage (matching useAuthSecure)
  */
 const getAuthToken = () => {
-  // First try the secure storage method used by useAuthSecure
-  try {
-    const stored = localStorage.getItem('token');
-    if (stored) {
-      return JSON.parse(stored);
-    }
-  } catch (e) {
-    // If JSON parsing fails, try as plain string
-    return localStorage.getItem('token');
+  // Get token from localStorage (JWT is a plain string, not JSON)
+  const token = localStorage.getItem('token');
+  if (token && token !== 'cookie-based') {
+    return token;
   }
   
   // Fallback to old keys for backward compatibility
@@ -168,8 +164,11 @@ const handleResponseError = async (response) => {
       localStorage.removeItem('authToken');
       localStorage.removeItem('secureAuthToken');
       localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('isAuthenticated');
       errorMessage = 'Sesi Anda telah berakhir. Silakan login kembali.';
-      // Don't redirect here to avoid issues, let components handle it
+      // Notify auth hooks to sync state
+      window.dispatchEvent(new CustomEvent('auth:logout', { detail: { reason: '401', timestamp: Date.now() } }));
     }
     
     // Handle 419 - Token mismatch (should not occur with JWT)

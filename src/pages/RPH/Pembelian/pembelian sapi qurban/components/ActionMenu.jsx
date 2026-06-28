@@ -1,8 +1,8 @@
 import React, { useRef, useState, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
-import { Pencil, Trash2, Download } from "lucide-react";
+import { Pencil, Trash2, Download, Beef } from "lucide-react";
 
-const ActionMenu = ({ row, onEdit, onDelete, onUnduhBerkas, onClose, buttonRef }) => {
+const ActionMenu = ({ row, onEdit, onDelete, onUnduhBerkas, onDetailSapi, onClose, buttonRef }) => {
   const menuRef = useRef(null);
   const [menuStyle, setMenuStyle] = useState(null);
 
@@ -45,16 +45,24 @@ const ActionMenu = ({ row, onEdit, onDelete, onUnduhBerkas, onClose, buttonRef }
       icon: Pencil,
       onClick: () => onEdit(row),
       description: "Ubah data pembelian qurban.",
-      bg: "bg-amber-100",
-      text: "text-amber-600",
+      bg: "bg-gray-100",
+      text: "text-gray-700",
+    },
+    {
+      label: "Detail Sapi",
+      icon: Beef,
+      onClick: () => onDetailSapi(row),
+      description: "Lihat sapi by name & address.",
+      bg: "bg-gray-100",
+      text: "text-gray-700",
     },
     {
       label: "Unduh Berkas",
       icon: Download,
       onClick: () => onUnduhBerkas(row),
       description: "Unduh dokumen pembelian.",
-      bg: "bg-green-100",
-      text: "text-green-600",
+      bg: "bg-gray-100",
+      text: "text-gray-700",
     },
     {
       divider: true,
@@ -64,7 +72,7 @@ const ActionMenu = ({ row, onEdit, onDelete, onUnduhBerkas, onClose, buttonRef }
       icon: Trash2,
       onClick: () => onDelete(row),
       description: "Hapus data pembelian qurban.",
-      bg: "bg-red-100",
+      bg: "bg-red-50",
       text: "text-red-600",
     },
   ];
@@ -81,17 +89,17 @@ const ActionMenu = ({ row, onEdit, onDelete, onUnduhBerkas, onClose, buttonRef }
         pointerEvents: "auto",
         zIndex: 99999,
       }}
-      className="w-48 bg-white/95 backdrop-blur-lg rounded-xl shadow-xl border border-gray-200/50 overflow-hidden transition-all duration-150 animate-in slide-in-from-top-2 fade-in-0"
+      className="w-44 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden"
       role="menu"
       aria-label="Menu Aksi"
     >
-      <div className="px-3 py-2 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200/50">
-        <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Menu Aksi</p>
+      <div className="px-3 py-1.5 bg-gray-50 border-b border-gray-100">
+        <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wide">Menu Aksi</p>
       </div>
       <div className="p-1">
         {actions.map((action, idx) =>
           action.divider ? (
-            <div key={idx} className="border-t border-gray-200/50 my-1"></div>
+            <div key={idx} className="border-t border-gray-100 my-1"></div>
           ) : (
             <button
               key={action.label}
@@ -99,19 +107,14 @@ const ActionMenu = ({ row, onEdit, onDelete, onUnduhBerkas, onClose, buttonRef }
                 action.onClick();
                 onClose();
               }}
-              className={`w-full text-left flex items-center px-3 py-2.5 text-sm hover:bg-gradient-to-r transition-all duration-150 rounded-lg group mt-1 text-gray-700`}
+              className="w-full text-left flex items-center px-2 py-2 text-sm hover:bg-gray-50 rounded-md group text-gray-700"
               role="menuitem"
               tabIndex={0}
             >
-              <div
-                className={`w-7 h-7 ${action.bg} rounded-lg flex items-center justify-center mr-3 group-hover:scale-105 transition-all duration-150`}
-              >
-                <action.icon size={14} className={action.text} />
+              <div className={`w-6 h-6 ${action.bg} rounded flex items-center justify-center mr-2`}>
+                <action.icon size={13} className={action.text} />
               </div>
-              <div className="flex-1">
-                <span className="font-semibold block text-xs">{action.label}</span>
-                <p className="text-xs text-gray-500 mt-0.5">{action.description}</p>
-              </div>
+              <span className="text-xs font-medium">{action.label}</span>
             </button>
           )
         )}

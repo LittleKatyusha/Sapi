@@ -33,7 +33,7 @@ const CustomPagination = ({ rowsPerPage, rowCount, onChangePage, onChangeRowsPer
                     <select
                         value={rowsPerPage}
                         onChange={e => onChangeRowsPerPage(Number(e.target.value))}
-                        className="border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-red-500"
+                        className="border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-green-500"
                     >
                         {[10, 25, 50, 100].map(size => (
                             <option key={size} value={size}>

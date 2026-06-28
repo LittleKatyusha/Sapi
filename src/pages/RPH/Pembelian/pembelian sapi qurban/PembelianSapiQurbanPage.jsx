@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import DataTable from 'react-data-table-component';
-import { PlusCircle, Search, X, Loader2, Package, TrendingUp, DollarSign, ShoppingCart, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { PlusCircle, Search, X, Loader2, Package, TrendingUp, DollarSign, AlertCircle, CheckCircle2, Download } from 'lucide-react';
 import useQurban from './hooks/useQurban';
 import ActionButton from './components/ActionButton';
 import QurbanCard from './components/QurbanCard';
@@ -12,11 +12,11 @@ import UnduhBerkasModal from './modals/UnduhBerkasModal';
 
 const NOTIFICATION_TIMEOUT = 5000;
 
-const StatCard = React.memo(({ title, icon: Icon, bgColor, children }) => (
-    <div className={`${bgColor} text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300`}>
-        <div className="flex items-start justify-between mb-2">
-            <h3 className="text-sm sm:text-base font-medium opacity-90">{title}</h3>
-            {Icon && <div className="p-2 bg-white/20 rounded-lg"><Icon className="h-5 w-5 text-white" /></div>}
+const StatCard = React.memo(({ title, icon: Icon, accentColor, children }) => (
+    <div className="bg-white rounded-lg p-3 border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200">
+        <div className="flex items-center gap-2 mb-2">
+            {Icon && <div className={`p-1 rounded ${accentColor}`}><Icon className="h-3.5 w-3.5 text-white" /></div>}
+            <h3 className="text-[11px] font-medium text-gray-500 uppercase tracking-wide">{title}</h3>
         </div>
         {children}
     </div>
@@ -69,26 +69,13 @@ const PembelianSapiQurbanPage = () => {
     const [selectedItem, setSelectedItem] = useState(null);
 
     const {
-        poList: filteredData, loading, searchTerm, dateRange,
+        poList: filteredData, loading, searchTerm,
         isSearching, searchError, stats, serverPagination,
-        fetchPoList, createPo, deletePo,
-        handleSearch, clearSearch, handleDateRangeFilter, clearDateRange,
+        fetchPoList, deletePo,
+        handleSearch, clearSearch,
         handlePageChange: handleServerPageChange,
         handlePerPageChange: handleServerPerPageChange,
     } = useQurban();
-
-    const [currentDateTime, setCurrentDateTime] = useState(new Date());
-    useEffect(() => {
-        const timer = setInterval(() => setCurrentDateTime(new Date()), 60000);
-        return () => clearInterval(timer);
-    }, []);
-
-    const formattedDateTime = useMemo(() => {
-        const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-        const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-        const d = currentDateTime;
-        return `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}, Pukul ${String(d.getHours()).padStart(2, '0')}.${String(d.getMinutes()).padStart(2, '0')} WIB`;
-    }, [currentDateTime]);
 
     useEffect(() => {
         if (!location.state?.fromEdit) fetchPoList();
@@ -122,14 +109,52 @@ const PembelianSapiQurbanPage = () => {
         navigate('/rph/pembelian-sapi-qurban/add');
     };
 
-    const handleEdit = (item) => {
+    const handleDownloadCSV = () => {
+        if (!filteredData || filteredData.length === 0) {
+            setNotification({ type: 'info', message: 'Tidak ada data untuk diunduh' });
+            return;
+        }
+        const headers = ['No', 'Nota Sistem', 'Tanggal Pesanan', 'Jenis Pembelian', 'Jumlah Hewan', 'Total Harga', 'Pemasok', 'Penerima', 'Tempat Tiba', 'Pengirim', 'Plat Nomor'];
+        const rows = filteredData.map((row, i) => [
+            (serverPagination.currentPage - 1) * serverPagination.perPage + i + 1,
+            row.nota_sistem || '',
+            row.tanggal_pemesanan || '',
+            row.jenis_pembelian || '',
+            row.jumlah_hewan || 0,
+            row.total_harga || 0,
+            row.pemasok || '',
+            row.nama_penerima || '',
+            row.tempat_tiba || '',
+            row.pengirim || '',
+            row.plat_nomor || ''
+        ]);
+        const csvContent = [headers.join(','), ...rows.map(r => r.map(field => `"${String(field).replace(/"/g, '""')}"`).join(','))].join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `pembelian-sapi-qurban-${new Date().toISOString().slice(0,10)}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        setNotification({ type: 'success', message: 'CSV berhasil diunduh' });
+    };
+
+    const handleEdit = useCallback((item) => {
         const id = item.pid || item.encryptedPid || item.pubid;
         navigate(`/rph/pembelian-sapi-qurban/edit/${id}`, { state: { item } });
         setOpenMenuId(null);
-    };
+    }, [navigate]);
 
-    const handleDelete = (item) => { setSelectedItem(item); setIsDeleteModalOpen(true); setOpenMenuId(null); };
-    const handleUnduhBerkas = (item) => { setSelectedItem(item); setIsUnduhBerkasModalOpen(true); setOpenMenuId(null); };
+    const handleDetailSapi = useCallback((item) => {
+        const id = item.pid || item.encryptedPid || item.pubid;
+        navigate(`/rph/pembelian-sapi-qurban/detail-sapi/${id}`);
+        setOpenMenuId(null);
+    }, [navigate]);
+
+    const handleDelete = useCallback((item) => { setSelectedItem(item); setIsDeleteModalOpen(true); setOpenMenuId(null); }, []);
+    const handleUnduhBerkas = useCallback((item) => { setSelectedItem(item); setIsUnduhBerkasModalOpen(true); setOpenMenuId(null); }, []);
 
     const handleConfirmDelete = async (pid) => {
         try {
@@ -150,179 +175,130 @@ const PembelianSapiQurbanPage = () => {
     };
 
     const getJenisBadge = (jenis) => {
-        const map = { 'SUPPLIER (PERUSAHAAN)': 'bg-blue-50 text-blue-700', 'PETERNAK LOKAL': 'bg-green-50 text-green-700', 'PENGUMPUL': 'bg-amber-50 text-amber-700', 'Bull': 'bg-blue-50 text-blue-700', 'SO': 'bg-green-50 text-green-700', 'Bali': 'bg-amber-50 text-amber-700', 'Madura': 'bg-purple-50 text-purple-700' };
-        return <span className={`px-3 py-1.5 ${map[jenis] || 'bg-gray-50 text-gray-700'} rounded-lg font-semibold text-sm inline-block whitespace-nowrap text-center`}>{jenis || '-'}</span>;
+        const map = { 'SUPPLIER (PERUSAHAAN)': 'bg-blue-50 text-blue-700 border-blue-100', 'PETERNAK LOKAL': 'bg-green-50 text-green-700 border-green-100', 'PENGUMPUL': 'bg-amber-50 text-amber-700 border-amber-100', 'Bull': 'bg-blue-50 text-blue-700 border-blue-100', 'SO': 'bg-green-50 text-green-700 border-green-100', 'Bali': 'bg-amber-50 text-amber-700 border-amber-100', 'Madura': 'bg-purple-50 text-purple-700 border-purple-100' };
+        return <span className={`px-2 py-0.5 ${map[jenis] || 'bg-gray-50 text-gray-700 border-gray-100'} rounded border text-xs font-medium inline-block whitespace-nowrap`}>{jenis || '-'}</span>;
     };
 
     const columns = useMemo(() => [
         {
-            name: 'No', width: '50px', sortable: false, center: true,
-            cell: (row, index) => <div className="font-semibold text-gray-600 text-center w-full">{(serverPagination.currentPage - 1) * serverPagination.perPage + index + 1}</div>
+            name: 'No', width: '45px', sortable: false, center: true,
+            cell: (row, index) => <span className="text-xs text-gray-500">{(serverPagination.currentPage - 1) * serverPagination.perPage + index + 1}</span>
         },
         {
-            name: 'Pilih', width: '70px', ignoreRowClick: true, center: true,
-            cell: row => <div className="flex justify-center w-full"><ActionButton row={row} openMenuId={openMenuId} setOpenMenuId={setOpenMenuId} onEdit={handleEdit} onDelete={handleDelete} onUnduhBerkas={handleUnduhBerkas} isActive={openMenuId === (row.pid || row.encryptedPid || row.pubid)} /></div>
+            name: 'Nomor', selector: row => row.nota_sistem, sortable: true, width: '140px', center: true,
+            cell: row => <span className="font-mono text-xs text-gray-700 whitespace-nowrap">{row.nota_sistem || '-'}</span>
         },
         {
-            name: 'Nomor Pesanan', selector: row => row.nota_sistem, sortable: true, width: '180px', center: true,
-            cell: row => <div className="flex justify-center w-full"><div className="font-mono text-sm bg-blue-50 px-3 py-1.5 rounded-lg text-blue-700 whitespace-nowrap text-center">{row.nota_sistem || '-'}</div></div>
+            name: 'Tanggal', selector: row => row.tanggal_pemesanan, sortable: true, width: '110px', center: true,
+            cell: row => <span className="text-xs text-gray-700 whitespace-nowrap">{row.tanggal_pemesanan ? new Date(row.tanggal_pemesanan).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '-'}</span>
         },
         {
-            name: 'Tanggal Pesanan', selector: row => row.tanggal_pemesanan, sortable: true, width: '160px', center: true,
-            cell: row => <div className="font-medium text-gray-800 text-center w-full whitespace-nowrap">{row.tanggal_pemesanan ? new Date(row.tanggal_pemesanan).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}</div>
+            name: 'Jenis', selector: row => row.jenis_pembelian, sortable: true, width: '150px', center: true,
+            cell: row => <div className="flex justify-center">{getJenisBadge(row.jenis_pembelian)}</div>
         },
         {
-            name: 'Jenis', selector: row => row.jenis_pembelian, sortable: true, width: '220px', center: true,
-            cell: row => <div className="flex justify-center w-full">{getJenisBadge(row.jenis_pembelian)}</div>
+            name: 'Jumlah', selector: row => row.jumlah_hewan, sortable: true, width: '80px', center: true,
+            cell: row => <span className="text-xs font-medium text-gray-900 whitespace-nowrap">{row.jumlah_hewan || 0} ekor</span>
         },
         {
-            name: 'Jumlah', selector: row => row.jumlah_hewan, sortable: true, width: '110px', center: true,
-            cell: row => <div className="flex justify-center w-full"><div className="bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg font-semibold whitespace-nowrap text-center">{row.jumlah_hewan || 0} Ekor</div></div>
+            name: 'Total', selector: row => row.total_harga, sortable: true, width: '130px', center: true,
+            cell: row => <span className="text-xs font-medium text-gray-900 whitespace-nowrap">{formatCurrency(row.total_harga)}</span>
         },
         {
-            name: 'Total Harga', selector: row => row.total_harga, sortable: true, width: '160px', center: true,
-            cell: row => <div className="flex justify-center w-full"><div className="bg-green-50 text-green-700 px-3 py-1.5 rounded-lg font-semibold text-sm whitespace-nowrap text-center">{formatCurrency(row.total_harga)}</div></div>
+            name: 'Pemasok', selector: row => row.pemasok, sortable: true, minWidth: '160px', grow: 2,
+            cell: row => <div className="text-left text-xs text-gray-700 truncate w-full" title={row.pemasok}>{row.pemasok || '-'}</div>
         },
         {
-            name: 'Pemasok', selector: row => row.pemasok, sortable: true, minWidth: '200px',
-            cell: row => <div className="text-left font-medium text-gray-800 text-sm line-clamp-2 w-full" title={row.pemasok}>{row.pemasok || '-'}</div>
+            name: '', width: '50px', ignoreRowClick: true, center: true,
+            cell: row => <ActionButton row={row} openMenuId={openMenuId} setOpenMenuId={setOpenMenuId} onEdit={handleEdit} onDelete={handleDelete} onUnduhBerkas={handleUnduhBerkas} onDetailSapi={handleDetailSapi} isActive={openMenuId === (row.pid || row.encryptedPid || row.pubid)} />
         },
-        {
-            name: 'Penerima', selector: row => row.nama_penerima, sortable: true, minWidth: '150px',
-            cell: row => <div className="text-left font-medium text-gray-800 text-sm w-full">{row.nama_penerima || '-'}</div>
-        },
-        {
-            name: 'Tempat Tiba',
-            selector: row => row.tempat_tiba,
-            sortable: true,
-            minWidth: '180px',
-            cell: row => (
-                <div className="text-sm text-gray-700">
-                    {row.tempat_tiba || '-'}
-                </div>
-            ),
-        },
-        {
-            name: 'Pengirim',
-            selector: row => row.pengirim,
-            sortable: true,
-            minWidth: '150px',
-            cell: row => (
-                <div className="text-sm text-gray-700">
-                    {row.pengirim || '-'}
-                </div>
-            ),
-        },
-        {
-            name: 'Plat Nomor',
-            selector: row => row.plat_nomor,
-            sortable: true,
-            minWidth: '130px',
-            cell: row => (
-                <div className="text-sm text-gray-700 font-medium">
-                    {row.plat_nomor || '-'}
-                </div>
-            ),
-        },
-        {
-            name: 'Tanggal Dibuat',
-            selector: row => row.created_at,
-            sortable: true,
-            minWidth: '170px',
-            cell: row => (
-                <div className="text-sm text-gray-500">
-                    {row.created_at || '-'}
-                </div>
-            ),
-        },
-    ], [openMenuId, serverPagination]);
+    ], [openMenuId, serverPagination, handleEdit, handleDetailSapi, handleDelete, handleUnduhBerkas]);
 
     const safeStats = stats || {};
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50">
+        <div className="min-h-screen bg-gray-50">
             <Notification notification={notification} onClose={() => setNotification(null)} />
 
             {/* Header */}
-            <div className="bg-white border-b border-gray-100 shadow-sm">
-                <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                            <ShoppingCart className="w-7 h-7 sm:w-8 sm:h-8 text-red-500" />
-                            <div>
-                                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 tracking-tight">Pembelian Sapi Qurban</h1>
-                                <p className="text-gray-400 text-xs sm:text-sm mt-0.5">Kelola data Pembelian Sapi Qurban</p>
-                            </div>
+            <div className="bg-white border-b border-gray-100">
+                <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                    <div className="flex items-center justify-between gap-4">
+                        <div>
+                            <h1 className="text-lg font-semibold text-gray-900">Pembelian Sapi Qurban</h1>
+                            <p className="text-xs text-gray-500 mt-0.5">Kelola data Pembelian Sapi Qurban</p>
                         </div>
-                        <button onClick={handleAdd} className="flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 bg-red-500 hover:bg-red-600 text-white rounded-full font-semibold shadow-md hover:shadow-lg transition-all duration-300 text-sm sm:text-base">
-                            <PlusCircle className="w-5 h-5" />
-                            <span>Tambah Pembelian</span>
-                        </button>
+                        <div className="flex items-center gap-2">
+                            <button onClick={handleDownloadCSV} className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-200 hover:border-gray-300 text-gray-700 hover:text-gray-900 rounded-md text-xs font-medium transition-colors">
+                                <Download className="w-3.5 h-3.5 text-gray-500" />
+                                <span className="hidden sm:inline">Unduh CSV</span>
+                            </button>
+                            <button onClick={handleAdd} className="inline-flex items-center gap-1.5 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md text-xs font-medium transition-colors shadow-sm hover:shadow active:scale-[0.98]">
+                                <PlusCircle className="w-3.5 h-3.5" />
+                                <span>+ Tambah</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+            <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-4">
                 {/* Stat Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-                    <StatCard title="HARI INI" icon={Package} bgColor="bg-gradient-to-br from-blue-600 to-blue-700">
-                        <p className="text-3xl font-bold">{safeStats.today_ekor || 0} EKOR</p>
-                        <div className="border-t border-white/20 pt-2 mt-2 space-y-1">
-                            <div className="flex justify-between text-sm"><span className="opacity-80">{safeStats.today_po || 0} PO</span></div>
-                            <div className="text-sm font-semibold">{formatCurrency(safeStats.today_total || 0)}</div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    <StatCard title="Hari Ini" icon={Package} accentColor="bg-blue-500">
+                        <p className="text-xl font-bold text-gray-900">{safeStats.today_ekor || 0} <span className="text-xs font-medium text-gray-500">ekor</span></p>
+                        <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-500">
+                            <span>{safeStats.today_po || 0} PO</span>
+                            <span>{formatCurrency(safeStats.today_total || 0)}</span>
                         </div>
                     </StatCard>
-                    <StatCard title="MINGGU INI" icon={TrendingUp} bgColor="bg-gradient-to-br from-blue-600 to-blue-700">
-                        <p className="text-3xl font-bold">{safeStats.week_ekor || 0} EKOR</p>
-                        <div className="border-t border-white/20 pt-2 mt-2 space-y-1">
-                            <div className="flex justify-between text-sm"><span className="opacity-80">{safeStats.week_po || 0} PO</span></div>
-                            <div className="text-sm font-semibold">{formatCurrency(safeStats.week_total || 0)}</div>
+                    <StatCard title="Minggu Ini" icon={TrendingUp} accentColor="bg-emerald-500">
+                        <p className="text-xl font-bold text-gray-900">{safeStats.week_ekor || 0} <span className="text-xs font-medium text-gray-500">ekor</span></p>
+                        <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-500">
+                            <span>{safeStats.week_po || 0} PO</span>
+                            <span>{formatCurrency(safeStats.week_total || 0)}</span>
                         </div>
                     </StatCard>
-                    <StatCard title="BULAN INI" icon={DollarSign} bgColor="bg-gradient-to-br from-blue-600 to-blue-700">
-                        <p className="text-3xl font-bold">{safeStats.month_ekor || 0} EKOR</p>
-                        <div className="border-t border-white/20 pt-2 mt-2 space-y-1">
-                            <div className="flex justify-between text-sm"><span className="opacity-80">{safeStats.month_po || 0} PO</span></div>
-                            <div className="text-sm font-semibold">{formatCurrency(safeStats.month_total || 0)}</div>
+                    <StatCard title="Bulan Ini" icon={DollarSign} accentColor="bg-amber-500">
+                        <p className="text-xl font-bold text-gray-900">{safeStats.month_ekor || 0} <span className="text-xs font-medium text-gray-500">ekor</span></p>
+                        <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-500">
+                            <span>{safeStats.month_po || 0} PO</span>
+                            <span>{formatCurrency(safeStats.month_total || 0)}</span>
                         </div>
                     </StatCard>
-                    <StatCard title="STATUS PO" icon={Package} bgColor="bg-gradient-to-br from-blue-600 to-blue-700">
-                        <p className="text-3xl font-bold">{safeStats.total_po || 0}</p>
-                        <div className="border-t border-white/20 pt-2 mt-2 space-y-1">
-                            <div className="flex justify-between text-sm"><span className="opacity-80">PENDING</span><span className="font-semibold">= {safeStats.pending || 0}</span></div>
-                            <div className="flex justify-between text-sm"><span className="opacity-80">APPROVED</span><span className="font-semibold">= {safeStats.approved || 0}</span></div>
-                            <div className="flex justify-between text-sm"><span className="opacity-80">REJECTED</span><span className="font-semibold">= {safeStats.rejected || 0}</span></div>
+                    <StatCard title="Status PO" icon={Package} accentColor="bg-purple-500">
+                        <p className="text-xl font-bold text-gray-900">{safeStats.total_po || 0} <span className="text-xs font-medium text-gray-500">PO</span></p>
+                        <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-500">
+                            <span>{safeStats.pending || 0} Pending</span>
+                            <span>{safeStats.approved || 0} Approved</span>
+                            <span>{safeStats.rejected || 0} Rejected</span>
                         </div>
                     </StatCard>
                 </div>
 
-                {/* Search & Filter */}
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6">
-                    <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
-                        <div className="relative flex-1 max-w-full sm:max-w-md lg:max-w-lg">
-                            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                            {isSearching && <Loader2 className="absolute right-12 top-1/2 transform -translate-y-1/2 w-4 h-4 text-green-500 animate-spin" />}
-                            {searchTerm && !isSearching && (
-                                <button onClick={clearSearch} className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
-                            )}
-                            <input
-                                type="text" placeholder="Cari berdasarkan nomor pesanan, jenis, pemasok..."
-                                value={searchTerm} onChange={(e) => handleSearch(e.target.value)}
-                                className={`w-full pl-12 ${searchTerm ? 'pr-12' : 'pr-4'} py-2.5 sm:py-3 border ${searchError ? 'border-red-300' : 'border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500'} rounded-full transition-all duration-200 text-sm sm:text-base shadow-sm hover:shadow-md`}
-                            />
-                        </div>
-                    </div>
+                {/* Search */}
+                <div className="relative max-w-md">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    {isSearching && <Loader2 className="absolute right-9 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 text-green-500 animate-spin" />}
+                    {searchTerm && !isSearching && (
+                        <button onClick={clearSearch} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"><X className="w-3.5 h-3.5" /></button>
+                    )}
+                    <input
+                        type="text" placeholder="Cari nomor pesanan, jenis, pemasok..."
+                        value={searchTerm} onChange={(e) => handleSearch(e.target.value)}
+                        className={`w-full pl-9 ${searchTerm ? 'pr-9' : 'pr-3'} py-2 border ${searchError ? 'border-red-300' : 'border-gray-200 focus:ring-2 focus:ring-green-500/20 focus:border-green-500'} rounded-lg transition-all text-sm bg-white`}
+                    />
                 </div>
 
                 {/* Data Table / Card View */}
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
                     {isMobile ? (
-                        <div className="p-4 space-y-4">
+                        <div className="p-3 space-y-3">
                             {loading ? (
-                                <div className="flex items-center justify-center py-12"><Loader2 className="w-8 h-8 text-green-500 animate-spin" /><span className="ml-3 text-gray-500">Memuat data...</span></div>
+                                <div className="flex items-center justify-center py-8"><Loader2 className="w-6 h-6 text-green-500 animate-spin" /><span className="ml-2 text-sm text-gray-500">Memuat data...</span></div>
                             ) : filteredData.length === 0 ? (
-                                <div className="text-center py-12 text-gray-500">Tidak ada data ditemukan</div>
+                                <div className="text-center py-8 text-sm text-gray-500">Tidak ada data ditemukan</div>
                             ) : (
                                 filteredData.map((item, index) => (
                                     <QurbanCard
@@ -339,8 +315,8 @@ const PembelianSapiQurbanPage = () => {
                             columns={columns} data={filteredData || []}
                             customStyles={enhancedTableStyles}
                             progressPending={loading}
-                            progressComponent={<div className="flex items-center justify-center py-12"><Loader2 className="w-8 h-8 text-green-500 animate-spin" /><span className="ml-3 text-gray-500">Memuat data...</span></div>}
-                            noDataComponent={<div className="text-center py-12 text-gray-500">Tidak ada data ditemukan</div>}
+                            progressComponent={<div className="flex items-center justify-center py-8"><Loader2 className="w-6 h-6 text-green-500 animate-spin" /><span className="ml-2 text-sm text-gray-500">Memuat data...</span></div>}
+                            noDataComponent={<div className="text-center py-8 text-sm text-gray-500">Tidak ada data ditemukan</div>}
                             pagination paginationServer
                             paginationTotalRows={serverPagination.totalRows}
                             paginationPerPage={serverPagination.perPage}
@@ -349,7 +325,7 @@ const PembelianSapiQurbanPage = () => {
                             onChangeRowsPerPage={handleServerPerPageChange}
                             paginationRowsPerPageOptions={[10, 25, 50, 100]}
                             paginationComponent={props => <CustomPagination {...props} />}
-                            highlightOnHover pointerOnHover responsive dense fixedHeader fixedHeaderScrollHeight="calc(100vh - 400px)"
+                            highlightOnHover pointerOnHover responsive dense fixedHeader fixedHeaderScrollHeight="calc(100vh - 320px)"
                         />
                     )}
                 </div>

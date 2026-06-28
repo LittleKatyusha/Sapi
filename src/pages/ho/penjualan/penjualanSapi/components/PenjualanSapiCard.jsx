@@ -1,291 +1,119 @@
-// src/components/PenjualanSapiCard.jsx
+import React, { useState } from 'react';
+import { Calendar, Package, User, Truck } from 'lucide-react';
+import ActionButton from './ActionButton';
 
-import React, { useState, useRef, useEffect } from 'react';
-import {
-  Building2,
-  User,
-  Calendar,
-  Truck,
-  Hash,
-  Package,
-  Eye,
-  MoreVertical,
-  Download,
-  Loader2
-} from 'lucide-react';
-import LaporanPembelianService from '../../../../../services/laporanPembelianService';
-import { API_ENDPOINTS, API_BASE_URL } from '../../../../../config/api';
+const formatCurrency = (amount) => {
+    if (!amount && amount !== 0) return 'Rp 0';
+    return new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+    }).format(amount);
+};
 
-const PenjualanSapiCard = ({
-    data,
-    onDetail,
-    onDownloadOrder,
-    index,
-    getJenisPenjualanLabel
-}) => {
-    const [showMenu, setShowMenu] = useState(false);
-    const [downloadLoading, setDownloadLoading] = useState(false);
-    const [fileLoading, setFileLoading] = useState(false);
-    const menuRef = useRef(null);
+const formatDate = (dateString) => {
+    if (!dateString) return '-';
+    return new Date(dateString).toLocaleDateString('id-ID', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+    });
+};
 
-    // Menangani klik di luar menu untuk menutupnya
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (menuRef.current && !menuRef.current.contains(event.target)) {
-                setShowMenu(false);
-            }
-        };
+const getStatusBadge = (status) => {
+    const s = String(status || '').toLowerCase();
+    switch (s) {
+        case 'approved':
+        case 'disetujui':
+        case 'completed':
+        case 'selesai':
+            return { text: 'Disetujui', className: 'bg-green-50 text-green-700 ring-1 ring-green-600/10' };
+        case 'pending':
+        case 'menunggu':
+            return { text: 'Menunggu', className: 'bg-yellow-50 text-yellow-700 ring-1 ring-yellow-600/10' };
+        case 'rejected':
+        case 'ditolak':
+        case 'cancelled':
+        case 'dibatalkan':
+            return { text: 'Ditolak', className: 'bg-red-50 text-red-700 ring-1 ring-red-600/10' };
+        default:
+            return { text: status || 'Unknown', className: 'bg-gray-50 text-gray-700 ring-1 ring-gray-600/10' };
+    }
+};
 
-        if (showMenu) {
-            document.addEventListener('mousedown', handleClickOutside);
-        } else {
-            document.removeEventListener('mousedown', handleClickOutside);
-        }
-
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [showMenu]);
-
-    const handleMenuToggle = () => {
-        setShowMenu(!showMenu);
-    };
-
-    const handleDetail = () => {
-        onDetail(data);
-        setShowMenu(false);
-    };
-
-    const handleDownloadOrder = () => {
-        onDownloadOrder(data);
-        setShowMenu(false);
-    };
-
+const PenjualanSapiCard = ({ data, onDetail, onDownloadOrder, onDownloadSuratJalan, index }) => {
+    const status = getStatusBadge(data.status);
+    const [openActionMenu, setOpenActionMenu] = useState(null);
 
     return (
-        <div className="bg-white rounded-2xl p-5 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 relative overflow-hidden">
-             {/* Background Accent (Opsional untuk efek visual) */}
-             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-500 to-rose-600"></div>
-             
-            {/* Header with Index and Action Menu */}
-            <div className="flex justify-between items-start mb-4">
-                {/* Index Badge */}
-                <div className="bg-gradient-to-br from-blue-100 to-indigo-100 rounded-xl w-10 h-10 flex items-center justify-center flex-shrink-0">
-                    <span className="text-base font-bold text-indigo-800">{index + 1}</span>
+        <div className="bg-white rounded-lg border border-gray-100 p-4 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs font-medium text-gray-500">#{index + 1}</span>
+                        <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-medium ${status.className}`}>
+                            {status.text}
+                        </span>
+                    </div>
+                    <h3 className="text-sm font-semibold text-gray-900 truncate">
+                        {data.nama_supplier || '-'}
+                    </h3>
+                    <p className="text-xs text-gray-500 mt-0.5">{data.nota || data.no_po || '-'}</p>
                 </div>
-                
-                {/* Action Menu */}
-                <div className="relative" ref={menuRef}>
-                    <button
-                        onClick={handleMenuToggle}
-                        className="p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-300"
-                        aria-label="Menu"
-                    >
-                        <MoreVertical className="w-5 h-5 text-gray-600" />
-                    </button>
-                    
-                    {showMenu && (
-                        <div className="absolute right-0 top-10 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-20 min-w-[180px]">
-                            <button
-                                onClick={handleDetail}
-                                className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150"
-                            >
-                                <Eye className="w-4 h-4 text-blue-500" />
-                                Lihat Detail
-                            </button>
-                            <button
-                                onClick={handleDownloadOrder}
-                                className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150"
-                            >
-                                <Download className="w-4 h-4 text-purple-500" />
-                                Unduh Lembar Pesanan
-                            </button>
-                        </div>
-                    )}
+                <div className="flex items-center justify-end">
+                    <ActionButton
+                        row={data}
+                        openMenuId={openActionMenu}
+                        setOpenMenuId={setOpenActionMenu}
+                        onDetail={onDetail}
+                        onDownloadOrder={onDownloadOrder}
+                        onDownloadSuratJalan={onDownloadSuratJalan}
+                        isActive={openActionMenu === (data.pid || data.pubid)}
+                    />
                 </div>
             </div>
 
-            {/* Card Content Grid */}
-            <div className="space-y-4">
-                 {/* Nota */}
-                <div>
-                    <div className="flex items-center gap-2 mb-1.5">
-                        <div className="p-1.5 rounded-lg bg-gray-100">
-                            <Hash className="w-4 h-4 text-gray-600" />
-                        </div>
-                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Nota</span>
-                    </div>
-                    <span className="font-mono text-sm bg-gray-100 px-3 py-1.5 rounded-lg break-words block">
-                        {data.nota || '-'}
-                    </span>
-                </div>
-
-                {/* Nota Sistem */}
-                <div>
-                    <div className="flex items-center gap-2 mb-1.5">
-                        <div className="p-1.5 rounded-lg bg-blue-100">
-                            <Hash className="w-4 h-4 text-blue-600" />
-                        </div>
-                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Nota Sistem</span>
-                    </div>
-                    <span className="font-mono text-sm bg-blue-50 px-3 py-1.5 rounded-lg break-words block text-blue-700">
-                        {data.nota_sistem || '-'}
-                    </span>
-                </div>
-
-                {/* Tanggal Masuk & Jumlah (Sebaris) */}
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <div className="flex items-center gap-2 mb-1.5">
-                            <div className="p-1.5 rounded-lg bg-gray-100">
-                                <Calendar className="w-4 h-4 text-gray-600" />
-                            </div>
-                            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Tanggal</span>
-                        </div>
-                        <span className="text-gray-900 font-medium">
-                            {data.tgl_masuk ? new Date(data.tgl_masuk).toLocaleDateString('id-ID') : '-'}
-                        </span>
+            <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-gray-50">
+                <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-md bg-gray-50 flex items-center justify-center">
+                        <Calendar className="w-3 h-3 text-gray-500" />
                     </div>
                     <div>
-                        <div className="flex items-center gap-2 mb-1.5">
-                            <div className="p-1.5 rounded-lg bg-gray-100">
-                                <Package className="w-4 h-4 text-gray-600" />
-                            </div>
-                            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Jumlah</span>
-                        </div>
-                        <span className="inline-flex px-3 py-1 text-sm font-bold rounded-full bg-indigo-100 text-indigo-800">
-                            {data.jumlah || 0} ekor
-                        </span>
+                        <p className="text-[10px] text-gray-500">Tanggal</p>
+                        <p className="text-xs font-medium text-gray-900">{formatDate(data.tgl_masuk)}</p>
                     </div>
                 </div>
-
-                {/* Nama Supir */}
-                <div>
-                    <div className="flex items-center gap-2 mb-1.5">
-                        <div className="p-1.5 rounded-lg bg-green-100">
-                            <User className="w-4 h-4 text-green-600" />
-                        </div>
-                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Supir</span>
+                <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-md bg-gray-50 flex items-center justify-center">
+                        <Package className="w-3 h-3 text-gray-500" />
                     </div>
-                    <div className="flex items-center">
-                        <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center mr-3 flex-shrink-0">
-                            <User className="w-4 h-4 text-green-600" />
-                        </div>
-                        <span className="font-semibold text-gray-900 text-base truncate">
-                            {data.nama_supir || '-'}
-                        </span>
+                    <div>
+                        <p className="text-[10px] text-gray-500">Jumlah</p>
+                        <p className="text-xs font-medium text-gray-900">{data.jumlah || 0} ekor</p>
                     </div>
                 </div>
-
-                {/* Plat Nomor */}
-                <div>
-                    <div className="flex items-center gap-2 mb-1.5">
-                        <div className="p-1.5 rounded-lg bg-gray-100">
-                            <Truck className="w-4 h-4 text-gray-600" />
-                        </div>
-                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Plat Nomor</span>
+                <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-md bg-gray-50 flex items-center justify-center">
+                        <User className="w-3 h-3 text-gray-500" />
                     </div>
-                    <span className="font-mono text-base font-medium">
-                        {data.plat_nomor || '-'}
-                    </span>
-                </div>
-
-                {/* Nama Supplier */}
-                <div>
-                    <div className="flex items-center gap-2 mb-1.5">
-                        <div className="p-1.5 rounded-lg bg-blue-100">
-                            <Building2 className="w-4 h-4 text-blue-600" />
-                        </div>
-                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Supplier</span>
-                    </div>
-                    <div className="flex items-center">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-3 flex-shrink-0">
-                            <Building2 className="w-4 h-4 text-blue-600" />
-                        </div>
-                        <span className="font-semibold text-gray-900 text-base truncate">
-                            {data.nama_supplier || '-'}
-                        </span>
+                    <div>
+                        <p className="text-[10px] text-gray-500">Supir</p>
+                        <p className="text-xs font-medium text-gray-900">{data.nama_supir || '-'}</p>
                     </div>
                 </div>
-
-                {/* Nama Office */}
-                <div>
-                    <div className="flex items-center gap-2 mb-1.5">
-                        <div className="p-1.5 rounded-lg bg-gray-100">
-                            <Building2 className="w-4 h-4 text-gray-600" />
-                        </div>
-                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Office</span>
+                <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-md bg-gray-50 flex items-center justify-center">
+                        <Truck className="w-3 h-3 text-gray-500" />
                     </div>
-                    <span className="text-gray-900 font-medium text-base">
-                        {data.nama_office || '-'}
-                    </span>
+                    <div>
+                        <p className="text-[10px] text-gray-500">Plat</p>
+                        <p className="text-xs font-medium text-gray-900 font-mono">{data.plat_nomor || '-'}</p>
+                    </div>
                 </div>
-
-                {/* Nilai Belanja */}
-                <div>
-                    <div className="flex items-center gap-2 mb-1.5">
-                        <div className="p-1.5 rounded-lg bg-green-100">
-                            <Package className="w-4 h-4 text-green-600" />
-                        </div>
-                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Nilai</span>
-                    </div>
-                    <span className="inline-flex px-4 py-2 text-base font-bold rounded-xl bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 shadow-inner">
-                        {data.total_belanja ? new Intl.NumberFormat('id-ID', {
-                            style: 'currency',
-                            currency: 'IDR',
-                            minimumFractionDigits: 0,
-                            maximumFractionDigits: 0
-                        }).format(data.total_belanja) : 'Rp 0'}
-                    </span>
-                </div>
-
-                {/* Biaya Lain */}
-                <div>
-                    <div className="flex items-center gap-2 mb-1.5">
-                        <div className="p-1.5 rounded-lg bg-orange-100">
-                            <Package className="w-4 h-4 text-orange-600" />
-                        </div>
-                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Biaya Lain</span>
-                    </div>
-                    <span className="inline-flex px-4 py-2 text-base font-bold rounded-xl bg-gradient-to-r from-orange-100 to-amber-100 text-orange-800 shadow-inner">
-                        {data.biaya_lain ? new Intl.NumberFormat('id-ID', {
-                            style: 'currency',
-                            currency: 'IDR',
-                            minimumFractionDigits: 0,
-                            maximumFractionDigits: 0
-                        }).format(data.biaya_lain) : 'Rp 0'}
-                    </span>
-                </div>
-
-                {/* Biaya Truk */}
-                <div>
-                    <div className="flex items-center gap-2 mb-1.5">
-                        <div className="p-1.5 rounded-lg bg-blue-100">
-                            <Truck className="w-4 h-4 text-blue-600" />
-                        </div>
-                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Biaya Truk</span>
-                    </div>
-                    <span className="inline-flex px-4 py-2 text-base font-bold rounded-xl bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-800 shadow-inner">
-                        {data.biaya_truk ? new Intl.NumberFormat('id-ID', {
-                            style: 'currency',
-                            currency: 'IDR',
-                            minimumFractionDigits: 0,
-                            maximumFractionDigits: 0
-                        }).format(data.biaya_truk) : 'Rp 0'}
-                    </span>
-                </div>
-
-                {/* Jenis Pembelian */}
-                <div>
-                    <div className="flex items-center gap-2 mb-1.5">
-                        <div className="p-1.5 rounded-lg bg-purple-100">
-                            <Hash className="w-4 h-4 text-purple-600" />
-                        </div>
-                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Jenis Penjualan</span>
-                    </div>
-                    <span className="inline-flex px-3 py-1.5 text-sm font-semibold rounded-full bg-purple-100 text-purple-800">
-                        {getJenisPenjualanLabel ? getJenisPenjualanLabel(data.jenis_penjualan) : (data.jenis_penjualan || '-')}
-                    </span>
+                <div className="col-span-2">
+                    <p className="text-[10px] text-gray-500">Total Harga</p>
+                    <p className="text-sm font-semibold text-gray-900">{formatCurrency(data.biaya_total)}</p>
                 </div>
             </div>
         </div>

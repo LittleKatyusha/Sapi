@@ -17,7 +17,9 @@ const useDivisiData = () => {
         
         try {
             // Use ParameterSelectController to get office/divisi data
-            const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.PARAMETER_SELECT}/data`);
+            const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.PARAMETER_SELECT}/data`, {
+                params: { groups: 'office' }
+            });
             
             // ParameterSelectController uses compact('data') which returns {data: [...]}
             if (result.data && Array.isArray(result.data) && result.data.length > 0) {

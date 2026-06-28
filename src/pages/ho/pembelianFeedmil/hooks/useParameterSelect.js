@@ -1,8 +1,8 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import HttpClient from '../../../../services/httpClient';
 import { API_ENDPOINTS } from '../../../../config/api';
 
-const useParameterSelect = (isEditMode = false, supplierFilters = {}) => {
+const useParameterSelect = (isEditMode = false, supplierFilters = {}, groups = null) => {
     const [parameterData, setParameterData] = useState({
         supplier: [],
         office: [],
@@ -12,16 +12,21 @@ const useParameterSelect = (isEditMode = false, supplierFilters = {}) => {
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-    
 
-    const fetchParameterData = async () => {
+    const stableGroups = useMemo(() => {
+        if (!groups || !Array.isArray(groups) || groups.length === 0) return null;
+        return [...groups].sort();
+    }, [groups]);
+
+    const fetchParameterData = useCallback(async () => {
         setLoading(true);
         setError(null);
-        
+
         try {
-            // Use the centralized parameter endpoint
-            const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.PARAMETER}/data`);
-            
+            const params = stableGroups ? { groups: stableGroups.join(',') } : {};
+            console.log('🔄 Fetching parameter data from API...', stableGroups ? { groups: stableGroups } : 'all groups');
+            const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.PARAMETER}/data`, { params });
+
             // Handle the response format from ParameterSelectController
             if (result.data && Array.isArray(result.data) && result.data.length > 0) {
                 const data = result.data[0]; // The controller returns data in an array
@@ -49,11 +54,11 @@ const useParameterSelect = (isEditMode = false, supplierFilters = {}) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [stableGroups]);
 
     useEffect(() => {
         fetchParameterData();
-    }, []);
+    }, [fetchParameterData]);
 
     // Filter supplier options based on frontend filters
     const supplierOptions = useMemo(() => {

@@ -6,6 +6,17 @@ const StokSapiPage = lazy(() => import('../pages/RPH/StokSapi/StokSapiPage'));
 const PenjualanBoningPage = lazy(() => import('../pages/RPH/Penjualan/Boning/PenjualanBoningPage'));
 const PenjualanKarkasPage = lazy(() => import('../pages/RPH/Penjualan/Karkas/PenjualanKarkasPage'));
 const PersediaanHasilPotongRphPage = lazy(() => import('../pages/RPH/Persediaan/PersediaanHasilPotongRph/PersediaanHasilPotongRphPage'));
+const PenjualanSapiUtuhPage = lazy(() => import('../pages/RPH/PenjualanSapiUtuh/PenjualanSapiUtuhPage'));
+const AddPenjualanSapiUtuhPage = lazy(() => import('../pages/RPH/PenjualanSapiUtuh/AddPenjualanSapiUtuhPageV2'));
+const DetailPenjualanSapiUtuhPage = lazy(() => import('../pages/RPH/PenjualanSapiUtuh/DetailPenjualanSapiUtuhPage'));
+const PenerimaanRphPage = lazy(() => import('../pages/RPH/Keuangan/Penerimaan/PenerimaanRphPage'));
+const BayarPage = lazy(() => import('../pages/RPH/Keuangan/Penerimaan/Bayar/BayarPage'));
+const PengirimanPage = lazy(() => import('../pages/RPH/PenjualanSapiUtuh/Pengiriman/PengirimanPage'));
+const PenawaranPage = lazy(() => import('../pages/RPH/Penawaran/PenawaranPage'));
+const AddEditPenawaranPage = lazy(() => import('../pages/RPH/Penawaran/AddEditPenawaranPage'));
+const DetailPenawaranPage = lazy(() => import('../pages/RPH/Penawaran/DetailPenawaranPage'));
+const StokSapiQurbanPage = lazy(() => import('../pages/RPH/Qurban/StokSapiQurbanPage'));
+const PerpindahanTernakPage = lazy(() => import('../pages/RPH/Perpindahan/PerpindahanTernakPage'));
 
 export const rphRoutes = [
   {
@@ -31,5 +42,57 @@ export const rphRoutes = [
   {
     path: '/rph/persediaan-hasil-potong',
     element: <PersediaanHasilPotongRphPage />
+  },
+  {
+    path: '/rph/penjualan-sapi-utuh',
+    element: <PenjualanSapiUtuhPage />
+  },
+  {
+    path: '/rph/penjualan-sapi-utuh/add',
+    element: <AddPenjualanSapiUtuhPage />
+  },
+  {
+    path: '/rph/penjualan-sapi-utuh/detail/:pid',
+    element: <DetailPenjualanSapiUtuhPage />
+  },
+  {
+    path: '/rph/penjualan-sapi-utuh/edit/:pid',
+    element: <AddPenjualanSapiUtuhPage />
+  },
+  {
+    path: '/rph/keuangan/penerimaan',
+    element: <PenerimaanRphPage />
+  },
+  {
+    path: '/rph/keuangan/penerimaan/bayar/:pid',
+    element: <BayarPage />
+  },
+  {
+    path: '/rph/penjualan-sapi-utuh/pengiriman/:pid',
+    element: <PengirimanPage />
+  },
+  {
+    path: '/rph/penawaran',
+    element: <PenawaranPage />
+  },
+  {
+    path: '/rph/penawaran/add',
+    element: <AddEditPenawaranPage />
+  },
+  {
+    path: '/rph/penawaran/edit/:pid',
+    element: <AddEditPenawaranPage />
+  },
+  {
+    path: '/rph/penawaran/detail/:pid',
+    element: <DetailPenawaranPage />
+  },
+  {
+    path: '/rph/stok-sapi-qurban',
+    element: <StokSapiQurbanPage />
+  },
+  {
+    path: '/rph/perpindahan-ternak',
+    element: <PerpindahanTernakPage />
   }
 ];
