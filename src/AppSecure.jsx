@@ -450,6 +450,10 @@ function AppSecure() {
               <Route path="/ho/pembelian-kulit/add" element={<AddEditPembelianKulitPage />} />
               <Route path="/ho/pembelian-kulit/edit/:id" element={<AddEditPembelianKulitPage />} />
               <Route path="/ho/pembelian-kulit/detail/:id" element={<PembelianKulitDetailPage />} />
+              <Route path="/pembelian-kulit" element={<Navigate to="/ho/pembelian-kulit" replace />} />
+              <Route path="/pembelian-kulit/add" element={<Navigate to="/ho/pembelian-kulit/add" replace />} />
+              <Route path="/pembelian-kulit/edit/:id" element={<Navigate to="/ho/pembelian-kulit/edit/:id" replace />} />
+              <Route path="/pembelian-kulit/detail/:id" element={<Navigate to="/ho/pembelian-kulit/detail/:id" replace />} />
             
               {/* HO Pembelian Lain Lain Routes */}
               <Route path="/ho/pembelian-lain-lain" element={<PembelianLainLainPage />} />

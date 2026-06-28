@@ -384,6 +384,15 @@ class LaporanPembelianService {
   }
 
   /**
+   * Download PDF report for pembelian kulit
+   * @param {string} id - ID pembelian kulit
+   * @returns {Promise} - Blob response
+   */
+  static async downloadReportNotaKulit(id) {
+    return await this.downloadPdfReport('nota-kulit', { id });
+  }
+
+  /**
    * Download PDF report for all suppliers
    * @param {string} startDate - Start date (YYYY-MM-DD)
    * @param {string} endDate - End date (YYYY-MM-DD)
