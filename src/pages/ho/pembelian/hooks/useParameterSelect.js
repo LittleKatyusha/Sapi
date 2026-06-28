@@ -1,18 +1,28 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import HttpClient from '../../../../services/httpClient';
 import { API_ENDPOINTS } from '../../../../config/api';
 
-// Module-level cache untuk mencegah multiple fetch
-let cachedData = null;
-let cachedLoading = false;
-let cachedError = null;
-let fetchInProgress = false;
+// Module-level cache keyed by requested groups to prevent duplicate fetches
+const cache = new Map();
+let fetchInProgress = new Map();
 
-const useParameterSelect = (isEditMode = false, supplierFilters = {}, tipePembelianOptions = [], selectedTipePembelian = null) => {
+const getCacheKey = (groups) => {
+    if (!groups || groups.length === 0) return 'all';
+    return [...groups].sort().join(',');
+};
+
+const useParameterSelect = (isEditMode = false, supplierFilters = {}, tipePembelianOptions = [], selectedTipePembelian = null, groups = null) => {
     // Stabilize the parameters to prevent unnecessary re-renders
     const stableTipePembelianOptions = useMemo(() => tipePembelianOptions || [], [tipePembelianOptions]);
     const stableSelectedTipePembelian = useMemo(() => selectedTipePembelian, [selectedTipePembelian]);
-    const [parameterData, setParameterData] = useState(cachedData || {
+    const stableGroups = useMemo(() => {
+        if (!groups || !Array.isArray(groups) || groups.length === 0) return null;
+        return [...groups].sort();
+    }, [groups]);
+    const cacheKey = getCacheKey(stableGroups);
+    const cached = cache.get(cacheKey);
+
+    const [parameterData, setParameterData] = useState(cached?.data || {
         eartag: [],
         supplier: [],
         office: [],
@@ -28,32 +38,32 @@ const useParameterSelect = (isEditMode = false, supplierFilters = {}, tipePembel
         outlet: [],
         jenishewan: []
     });
-    const [loading, setLoading] = useState(cachedLoading);
-    const [error, setError] = useState(cachedError);
+    const [loading, setLoading] = useState(cached ? false : true);
+    const [error, setError] = useState(cached?.error || null);
     const hasInitialized = useRef(false);
 
-
-    const fetchParameterData = async () => {
-        // Jika sudah ada data cached, gunakan data tersebut
-        if (cachedData) {
-            setParameterData(cachedData);
+    const fetchParameterData = useCallback(async () => {
+        // Jika sudah ada data cached untuk key ini, gunakan data tersebut
+        const currentCache = cache.get(cacheKey);
+        if (currentCache?.data) {
+            setParameterData(currentCache.data);
             setLoading(false);
             setError(null);
             return;
         }
 
         // Jika sedang loading, tunggu sebentar dan cek lagi
-        if (fetchInProgress) {
-            // Polling untuk menunggu fetch selesai
+        if (fetchInProgress.get(cacheKey)) {
             const checkInterval = setInterval(() => {
-                if (!fetchInProgress) {
+                if (!fetchInProgress.get(cacheKey)) {
                     clearInterval(checkInterval);
-                    if (cachedData) {
-                        setParameterData(cachedData);
+                    const resolved = cache.get(cacheKey);
+                    if (resolved?.data) {
+                        setParameterData(resolved.data);
                         setLoading(false);
                         setError(null);
-                    } else if (cachedError) {
-                        setError(cachedError);
+                    } else if (resolved?.error) {
+                        setError(resolved.error);
                         setLoading(false);
                     }
                 }
@@ -62,16 +72,16 @@ const useParameterSelect = (isEditMode = false, supplierFilters = {}, tipePembel
         }
 
         // Mulai fetch baru
-        fetchInProgress = true;
+        fetchInProgress.set(cacheKey, true);
         setLoading(true);
         setError(null);
-        cachedLoading = true;
-        cachedError = null;
-        
+        cache.set(cacheKey, { data: null, error: null, loading: true });
+
         try {
-            console.log('🔄 Fetching parameter data from API...');
-            const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.PARAMETER}/data`);
-            
+            console.log('🔄 Fetching parameter data from API...', stableGroups ? { groups: stableGroups } : 'all groups');
+            const params = stableGroups ? { groups: stableGroups.join(',') } : {};
+            const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.PARAMETER}/data`, { params });
+
             // Handle the response format from ParameterSelectController
             if (result.data && Array.isArray(result.data) && result.data.length > 0) {
                 const data = result.data[0]; // The controller returns data in an array
@@ -91,26 +101,22 @@ const useParameterSelect = (isEditMode = false, supplierFilters = {}, tipePembel
                     outlet: data.outlet || [],
                     jenishewan: data.jenishewan || []
                 };
-                
+
                 // Update cache
-                cachedData = newData;
-                cachedLoading = false;
-                cachedError = null;
-                
+                cache.set(cacheKey, { data: newData, error: null, loading: false });
+
                 // Update local state
                 setParameterData(newData);
                 setLoading(false);
                 setError(null);
-                console.log('✅ Parameter data cached successfully');
+                console.log('✅ Parameter data cached successfully for key:', cacheKey);
             } else {
                 throw new Error('Invalid response format from parameter endpoint');
             }
         } catch (err) {
             console.error('❌ Error fetching parameter data:', err);
-            cachedError = err.message;
-            cachedLoading = false;
-            cachedData = null;
-            
+            cache.set(cacheKey, { data: null, error: err.message, loading: false });
+
             setError(err.message);
             setParameterData({
                 eartag: [],
@@ -129,16 +135,16 @@ const useParameterSelect = (isEditMode = false, supplierFilters = {}, tipePembel
             });
             setLoading(false);
         } finally {
-            fetchInProgress = false;
+            fetchInProgress.set(cacheKey, false);
         }
-    };
+    }, [cacheKey, stableGroups]);
 
     useEffect(() => {
         if (!hasInitialized.current) {
             hasInitialized.current = true;
             fetchParameterData();
         }
-    }, []);
+    }, [cacheKey, fetchParameterData]);
 
     // Create select options for each parameter type
     const eartagOptions = useMemo(() => {

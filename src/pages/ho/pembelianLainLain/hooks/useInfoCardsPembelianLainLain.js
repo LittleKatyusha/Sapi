@@ -48,8 +48,21 @@ const useInfoCardsPembelianLainLain = () => {
         try {
             console.log('📊 Fetching info cards data from backend...');
             
-            // Call API endpoint
-            const response = await HttpClient.get(`${API_ENDPOINTS.MASTER.PARAMETER}/data`);
+            // Call API endpoint with specific groups for info cards
+            const response = await HttpClient.get(`${API_ENDPOINTS.MASTER.PARAMETER}/data`, {
+                params: {
+                    groups: [
+                        'pembelianasethariini',
+                        'pembelianasetbulanini',
+                        'pembelianbebanbiayakashariini',
+                        'pembelianbebanbiayakasbulanini',
+                        'pembelianbebanbiayabankhariini',
+                        'pembelianbebanbiayabankbulanini',
+                        'pembelianbahanpembantuhariini',
+                        'pembelianbahanpembantubulanini'
+                    ].join(',')
+                }
+            });
             
             // Validate response format
             if (response.data && Array.isArray(response.data) && response.data.length > 0) {

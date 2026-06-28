@@ -13,7 +13,9 @@ const useFarmAPI = () => {
         
         try {
             // Use ParameterSelectController to get farm data
-            const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.PARAMETER_SELECT}/data`);
+            const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.PARAMETER_SELECT}/data`, {
+                params: { groups: 'farm' }
+            });
             
             // ParameterSelectController uses compact('data') which returns {data: [...]}
             if (result.data && Array.isArray(result.data) && result.data.length > 0) {

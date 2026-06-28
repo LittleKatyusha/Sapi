@@ -33,7 +33,7 @@ const AddEditPembelianLainLainPage = () => {
         officeOptions,
         loading: parameterLoading,
         error: parameterError
-    } = useParameterSelect(isEdit, { kategoriSupplier: 5 });
+    } = useParameterSelect(isEdit, { kategoriSupplier: 5 }, [], null, ['supplier', 'office']);
 
     // Farm data integration - uses PARAMETER_SELECT endpoint for farm-only data
     const {

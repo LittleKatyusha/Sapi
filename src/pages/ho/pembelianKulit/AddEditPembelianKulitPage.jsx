@@ -30,7 +30,7 @@ const AddEditPembelianKulitPage = () => {
         itemKulitOptions,
         loading: parameterLoading,
         error: parameterError
-    } = useParameterSelect(isEdit, { kategoriSupplier: 4 });
+    } = useParameterSelect(isEdit, { kategoriSupplier: 4 }, [], null, ['supplier', 'office', 'farm', 'itemkulit']);
 
     // Jenis Pembelian integration - similar to OVK
     const {

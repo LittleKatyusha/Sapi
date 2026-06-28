@@ -24,7 +24,7 @@ const AddEditPembelianQurbanPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const isEditMode = Boolean(id);
-    const { officeOptions, loading: paramLoading } = useParameterSelect();
+    const { officeOptions, loading: paramLoading } = useParameterSelect(false, {}, [], null, ['office']);
     const { persetujuanOptions, loading: persetujuanLoading } = usePersetujuanRphSelect();
     const pemasokOptions = useMemo(() => officeOptions || [], [officeOptions]);
     const jenisPembelianOpts = useMemo(() => [{ value: 1, label: 'Import' }, { value: 2, label: 'Lokal' }], []);

@@ -200,6 +200,7 @@ const AddEditPembelianPage = () => {
     }, [headerData.purchase_type, bankOptions, tipePembayaranOptions]);
 
     // Get master data from centralized parameter endpoint with supplier filter
+    // Hanya request groups yang dipakai form ini untuk mengurangi payload
     const {
         parameterData,
         eartagOptions,
@@ -211,7 +212,7 @@ const AddEditPembelianPage = () => {
         error: parameterError
     } = useParameterSelect(isEdit, {
         kategoriSupplier: 1 // Filter untuk Ternak saja
-    }, tipePembelianOptions, headerData.tipePembelian);
+    }, tipePembelianOptions, headerData.tipePembelian, ['eartag', 'supplier', 'office', 'klasifikasihewan', 'farm']);
 
     // Office options now come from useParameterSelect
 

@@ -43,7 +43,9 @@ const usePembelianFeedmil = () => {
     // Fetch klasifikasi feedmil data from ParameterSelectController
     const fetchKlasifikasiFeedmil = useCallback(async () => {
         try {
-            const data = await HttpClient.get(API_ENDPOINTS.MASTER.PARAMETER + '/data');
+            const data = await HttpClient.get(API_ENDPOINTS.MASTER.PARAMETER + '/data', {
+                params: { groups: 'klasifikasifeedmil' }
+            });
             if (data && data.data && data.data.length > 0) {
                 // Get klasifikasifeedmil from ParameterSelectController
                 const klasifikasifeedmil = data.data[0].klasifikasifeedmil || [];
