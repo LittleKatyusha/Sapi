@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { AlertCircle, Loader2, RefreshCw, AlertTriangle, Filter, Search, RotateCcw } from 'lucide-react';
 import StokSapiService from '../../../../services/stokSapiService';
 import SapiMatiModal from '../modals/SapiMatiModal';
@@ -71,8 +71,14 @@ const SapiMatiTab = () => {
     setStartDate('');
     setEndDate('');
     setError(null);
-    setData([]);
+    fetchData();
   };
+
+  // Default: load all data on mount
+  useEffect(() => {
+    fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleRefresh = () => {
     fetchData();

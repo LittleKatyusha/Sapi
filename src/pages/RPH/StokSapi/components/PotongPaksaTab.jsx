@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { AlertCircle, Loader2, RefreshCw, Scale, Filter, Search, RotateCcw } from 'lucide-react';
 import StokSapiService from '../../../../services/stokSapiService';
 import PotongPaksaModal from '../modals/PotongPaksaModal';
@@ -71,8 +71,14 @@ const PotongPaksaTab = () => {
     setStartDate('');
     setEndDate('');
     setError(null);
-    setData([]);
+    fetchData();
   };
+
+  // Default: load all data on mount
+  useEffect(() => {
+    fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleRefresh = () => {
     fetchData();

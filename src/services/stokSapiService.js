@@ -34,10 +34,19 @@ class StokSapiService {
       return { success: true, data: response.data, message: 'Data retrieved successfully' };
     } catch (error) {
       console.error('StokSapiService.getStokDetail error:', error);
+      let message = 'Failed to fetch data';
+      if (error?.data?.data && typeof error.data.data === 'object') {
+        const validationMessages = Object.values(error.data.data).flat();
+        message = validationMessages.join(', ');
+      } else if (error?.data?.message) {
+        message = error.data.message;
+      } else if (error?.message) {
+        message = error.message;
+      }
       return {
         success: false,
         data: null,
-        message: error?.data?.message || error?.message || 'Failed to fetch data',
+        message,
       };
     }
   }
