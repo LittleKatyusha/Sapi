@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft, Save, PlusCircle, Trash2, ShoppingCart,
-  User, Scissors, CreditCard, Beef,
+  User, Scissors, CreditCard, Beef, Search, X, Tag, Hash, Weight, CircleDollarSign,
 } from 'lucide-react';
 
 import usePenjualanSapiUtuh from '../../../hooks/usePenjualanSapiUtuh';
@@ -174,6 +174,166 @@ const SearchableSelect = ({ label, value, options, onSelect, required, error, di
   );
 };
 
+const SapiPickerModal = ({ isOpen, onClose, onSelect, availableSapi, excludeIds = [], currentValue }) => {
+  const [search, setSearch] = useState('');
+  const searchRef = useRef(null);
+
+  useEffect(() => {
+    if (isOpen && searchRef.current) {
+      setTimeout(() => searchRef.current?.focus(), 80);
+    }
+    if (!isOpen) setSearch('');
+  }, [isOpen]);
+
+  const excludedSet = useMemo(
+    () => new Set(excludeIds.filter((id) => id !== currentValue).map(String)),
+    [excludeIds, currentValue]
+  );
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const list = availableSapi.filter((s) => !excludedSet.has(String(s.sapi_id)));
+    if (!q) return list;
+    return list.filter((s) =>
+      String(s.eartag_supplier || '').toLowerCase().includes(q) ||
+      String(s.no_eartag || '').toLowerCase().includes(q) ||
+      String(s.code_eartag || '').toLowerCase().includes(q) ||
+      String(s.jenis_sapi || '').toLowerCase().includes(q)
+    );
+  }, [availableSapi, excludedSet, search]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col">
+        {/* Header */}
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center">
+              <Beef className="w-5 h-5 text-emerald-600" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-gray-800">Pilih Sapi</h3>
+              <p className="text-xs text-gray-500">{filtered.length} sapi tersedia</p>
+            </div>
+          </div>
+          <button type="button" onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-600 transition">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Search */}
+        <div className="px-5 py-3 border-b border-gray-100 bg-gray-50/50">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              ref={searchRef}
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Cari eartag, code eartag, atau jenis sapi..."
+              className="w-full pl-10 pr-9 py-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition"
+            />
+            {search && (
+              <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Table */}
+        <div className="flex-1 overflow-auto">
+          {filtered.length === 0 ? (
+            <div className="p-12 flex flex-col items-center justify-center text-gray-400">
+              <Beef className="w-12 h-12 mb-3 opacity-40" />
+              <p className="text-sm font-medium">Tidak ada sapi tersedia</p>
+              <p className="text-xs mt-1">Coba kata kunci lain atau sapi sudah dipilih semua</p>
+            </div>
+          ) : (
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 bg-white z-10">
+                <tr className="border-b border-gray-100 text-[11px] text-gray-400 font-medium uppercase tracking-wider">
+                  <th className="text-left px-5 py-3">Eartag</th>
+                  <th className="text-left px-5 py-3">Eartag Supplier</th>
+                  <th className="text-left px-5 py-3">Code Eartag</th>
+                  <th className="text-left px-5 py-3">Jenis</th>
+                  <th className="text-right px-5 py-3">Berat</th>
+                  <th className="text-right px-5 py-3">Harga Beli</th>
+                  <th className="text-center px-5 py-3">Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((s) => {
+                  const isSelected = String(currentValue) === String(s.sapi_id);
+                  return (
+                    <tr
+                      key={s.sapi_id}
+                      className={`border-b border-gray-50 transition ${isSelected ? 'bg-emerald-50' : 'hover:bg-gray-50/60'}`}
+                    >
+                      <td className="px-5 py-3">
+                        <div className="flex items-center gap-1.5">
+                          <Tag className="w-3.5 h-3.5 text-emerald-600" />
+                          <span className="font-mono font-medium text-gray-800">{s.no_eartag || '-'}</span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3 font-mono text-gray-600">{s.eartag_supplier || '-'}</td>
+                      <td className="px-5 py-3">
+                        {s.code_eartag ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-sky-50 text-sky-700 text-xs font-mono">
+                            <Hash className="w-3 h-3" />{s.code_eartag}
+                          </span>
+                        ) : '-'}
+                      </td>
+                      <td className="px-5 py-3 text-gray-700">{s.jenis_sapi || '-'}</td>
+                      <td className="px-5 py-3 text-right">
+                        <div className="flex items-center gap-1 justify-end text-gray-700">
+                          <Weight className="w-3.5 h-3.5 text-gray-400" />
+                          {s.berat ? `${s.berat} kg` : '-'}
+                        </div>
+                      </td>
+                      <td className="px-5 py-3 text-right font-semibold text-emerald-600">
+                        {s.harga_beli ? `Rp ${Number(s.harga_beli).toLocaleString('id-ID')}` : '-'}
+                      </td>
+                      <td className="px-5 py-3 text-center">
+                        <button
+                          type="button"
+                          onClick={() => onSelect(s)}
+                          className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                            isSelected
+                              ? 'bg-emerald-600 text-white'
+                              : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                          }`}
+                        >
+                          {isSelected ? 'Terpilih' : 'Pilih'}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between">
+          <p className="text-xs text-gray-500">{filtered.length} sapi tersedia</p>
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-100 transition"
+          >
+            Tutup
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const InputField = ({ label, name, type = 'text', required, options, value, error, onChange, disabled, placeholder, accept, min, step, filePreview }) => {
   const inputClass = `w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm ${error ? 'border-red-500' : 'border-gray-300'} ${disabled ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`;
   return (
@@ -261,6 +421,7 @@ const AddPenjualanSapiUtuhPageV2 = () => {
   const [availableSapi, setAvailableSapi] = useState([]);
   const [activeTab, setActiveTab] = useState(0);
   const [buktiBayarPreview, setBuktiBayarPreview] = useState(null);
+  const [pickerModal, setPickerModal] = useState({ open: false, index: null });
 
   const { data: resellers = [] } = useQuery({
     queryKey: ['resellers'],
@@ -299,7 +460,7 @@ const AddPenjualanSapiUtuhPageV2 = () => {
         nama_pembayar: d.nama_pembayar || '', bukti_bayar: null,
         details: d.details?.map((item) => ({
           sapi_id: item.sapi_id || '', no_eartag: item.no_eartag || '', merk: item.merk || '',
-          berat: item.berat || '', harga_jual: item.harga_jual || item.subtotal || '',
+          berat: item.berat || '', harga_beli: item.harga_beli || '', harga_jual: item.harga_jual || item.subtotal || '',
           keterangan: item.keterangan || '',
         })) || [],
       });
@@ -354,7 +515,7 @@ const AddPenjualanSapiUtuhPageV2 = () => {
   const handleAddItem = () => {
     setFormData((prev) => ({
       ...prev,
-      details: [...prev.details, { sapi_id: '', no_eartag: '', merk: '', berat: '', harga_jual: '', keterangan: '' }],
+      details: [...prev.details, { sapi_id: '', no_eartag: '', code_eartag: '', eartag_supplier: '', merk: '', berat: '', harga_beli: '', harga_jual: '', keterangan: '' }],
     }));
   };
 
@@ -363,6 +524,18 @@ const AddPenjualanSapiUtuhPageV2 = () => {
   };
 
   const handleItemChange = (index, field, value) => {
+    if (field === 'sapi_id' && value) {
+      const isDuplicate = formData.details.some((it, idx) => idx !== index && String(it.sapi_id) === String(value));
+      if (isDuplicate) {
+        showNotif('error', 'Sapi dengan eartag ini sudah dipilih di baris lain. Pilih sapi yang berbeda.');
+        setFormData((prev) => {
+          const newDetails = [...prev.details];
+          newDetails[index] = { ...newDetails[index], sapi_id: '', no_eartag: '', berat: '', harga_beli: '' };
+          return { ...prev, details: newDetails };
+        });
+        return;
+      }
+    }
     setFormData((prev) => {
       const newDetails = [...prev.details];
       newDetails[index] = { ...newDetails[index], [field]: value };
@@ -370,12 +543,22 @@ const AddPenjualanSapiUtuhPageV2 = () => {
         const selectedSapi = availableSapi.find((s) => String(s.sapi_id) === String(value));
         if (selectedSapi) {
           newDetails[index].no_eartag = selectedSapi.no_eartag || '';
+          newDetails[index].code_eartag = selectedSapi.code_eartag || '';
+          newDetails[index].eartag_supplier = selectedSapi.eartag_supplier || '';
           newDetails[index].berat = selectedSapi.berat || '';
+          newDetails[index].harga_beli = selectedSapi.harga_beli || '';
         }
       }
       return { ...prev, details: newDetails };
     });
     if (errors[`detail_${index}_${field}`]) setErrors((prev) => ({ ...prev, [`detail_${index}_${field}`]: '' }));
+  };
+
+  const handlePickSapi = (sapi) => {
+    const index = pickerModal.index;
+    if (index == null) return;
+    handleItemChange(index, 'sapi_id', sapi.sapi_id);
+    setPickerModal({ open: false, index: null });
   };
 
   const totals = useMemo(() => {
@@ -613,16 +796,21 @@ const AddPenjualanSapiUtuhPageV2 = () => {
                       <div key={index} className="p-4 border border-gray-200 rounded-xl bg-gray-50 relative">
                         <button type="button" onClick={() => handleRemoveItem(index)} className="absolute top-2 right-2 p-1.5 hover:bg-red-100 rounded-lg text-red-600 transition" title="Hapus Item"><Trash2 className="w-4 h-4" /></button>
                         <div className="flex flex-col xl:flex-row gap-3 items-end">
-                          <div className="w-full xl:w-64">
-                            <SearchableSelect
-                              label="Pilih Sapi"
-                              required
-                              value={item.sapi_id}
-                              options={availableSapi.map((s) => ({ value: s.sapi_id, label: `${s.no_eartag} - ${s.jenis_sapi} (${s.berat} kg)` }))}
-                              onSelect={(val) => handleItemChange(index, 'sapi_id', val)}
-                              error={errors[`detail_${index}_sapi_id`]}
-                              placeholder="Pilih Sapi"
-                            />
+                          <div className="w-full xl:w-72">
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Pilih Sapi <span className="text-red-500">*</span></label>
+                            <button
+                              type="button"
+                              onClick={() => setPickerModal({ open: true, index })}
+                              className={`w-full px-3 py-2.5 border rounded-lg text-left text-sm flex items-center justify-between transition ${errors[`detail_${index}_sapi_id`] ? 'border-red-500 ring-1 ring-red-200' : 'border-gray-300 hover:border-emerald-400'} bg-white hover:shadow-md focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500`}
+                            >
+                              <span className={`truncate ${item.sapi_id ? 'text-gray-900' : 'text-gray-400'}`}>
+                                {item.sapi_id
+                                  ? `${item.no_eartag || '-'}${item.code_eartag ? ` [${item.code_eartag}]` : ''} • ${item.berat || 0} kg`
+                                  : 'Pilih sapi...'}
+                              </span>
+                              <Beef className="w-4 h-4 text-emerald-600 shrink-0" />
+                            </button>
+                            {errors[`detail_${index}_sapi_id`] && <p className="text-red-500 text-xs mt-1">{errors[`detail_${index}_sapi_id`]}</p>}
                           </div>
                           <div className="w-full xl:w-32">
                             <label className="block text-xs font-medium text-gray-700 mb-1">No. Eartag</label>
@@ -635,6 +823,10 @@ const AddPenjualanSapiUtuhPageV2 = () => {
                           <div className="w-full xl:w-28">
                             <label className="block text-xs font-medium text-gray-700 mb-1">Berat (kg)</label>
                             <input type="number" value={item.berat} readOnly className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-gray-100 text-gray-600" />
+                          </div>
+                          <div className="w-full xl:w-40">
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Harga Beli</label>
+                            <input type="text" value={item.harga_beli ? `Rp ${Number(item.harga_beli).toLocaleString('id-ID')}` : ''} readOnly className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-gray-100 text-gray-600" />
                           </div>
                           <div className="w-full xl:w-44">
                             <CurrencyInput label="Harga Jual" name={`detail_${index}_harga_jual`} required value={item.harga_jual} error={errors[`detail_${index}_harga_jual`]} onChange={(e) => handleItemChange(index, 'harga_jual', e.target.value)} placeholder="0" />
@@ -701,6 +893,14 @@ const AddPenjualanSapiUtuhPageV2 = () => {
           </div>
         </form>
       </div>
+      <SapiPickerModal
+        isOpen={pickerModal.open}
+        onClose={() => setPickerModal({ open: false, index: null })}
+        onSelect={handlePickSapi}
+        availableSapi={availableSapi}
+        excludeIds={formData.details.map((d) => d.sapi_id).filter(Boolean)}
+        currentValue={pickerModal.index != null ? formData.details[pickerModal.index]?.sapi_id : undefined}
+      />
       <Notification notification={notification.isVisible ? { type: notification.type, message: notification.message } : null} onClose={() => setNotification({ isVisible: false, type: 'info', message: '' })} />
     </div>
   );

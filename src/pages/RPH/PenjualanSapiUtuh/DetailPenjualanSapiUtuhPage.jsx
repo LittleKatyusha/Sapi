@@ -220,7 +220,14 @@ const DetailPenjualanSapiUtuhPage = () => {
               <tbody>
                 {data.details?.map((d, i) => (
                   <tr key={d.id || i} className="border-b border-gray-50 hover:bg-gray-50/50">
-                    <td className="px-5 py-3 font-medium text-gray-800">{d.no_eartag || '-'}</td>
+                    <td className="px-5 py-3">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="font-mono font-medium text-gray-800">{d.no_eartag || '-'}</span>
+                        {d.eartag_supplier && (
+                          <span className="font-mono text-[11px] text-gray-500">{d.eartag_supplier}</span>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-5 py-3 text-gray-600">{d.merk || '-'}</td>
                     <td className="px-5 py-3 text-right text-gray-700">{d.berat}</td>
                     <td className="px-5 py-3 text-right text-gray-700">Rp {d.harga_per_kg?.toLocaleString('id-ID')}</td>

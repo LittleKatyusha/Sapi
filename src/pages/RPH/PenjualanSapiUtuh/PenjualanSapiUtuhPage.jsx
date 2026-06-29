@@ -223,10 +223,29 @@ const ActionMenuCell = ({ row, setDeleteData, handleConfirm, handleCancel, handl
   const toggleMenu = () => {
     if (!isOpen && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
-      setMenuPos({
-        top: rect.bottom + window.scrollY + 4,
-        left: rect.left + window.scrollX - 160,
-      });
+      const menuWidth = 208; // w-52 = 13rem = 208px
+      const menuHeight = 320; // approx max height for clamping
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+
+      // Default: align menu's left edge to button's left edge, below button
+      let left = rect.left;
+      let top = rect.bottom + 4;
+
+      // Shift left if menu would overflow right edge
+      if (left + menuWidth > viewportWidth - 8) {
+        left = viewportWidth - menuWidth - 8;
+      }
+      // Clamp left if still too far left
+      if (left < 8) left = 8;
+
+      // If not enough space below, open above the button
+      if (top + menuHeight > viewportHeight - 8) {
+        top = rect.top - menuHeight - 4;
+        if (top < 8) top = 8;
+      }
+
+      setMenuPos({ top, left });
     }
     setIsOpen((prev) => !prev);
   };
