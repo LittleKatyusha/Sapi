@@ -62,6 +62,56 @@ const PedagangDetailModal = ({ isOpen, onClose, data }) => {
     setActiveSection(prev => prev === section ? null : section);
   };
 
+  const normalizeHarga = (rows = []) => {
+    if (!Array.isArray(rows)) return [];
+    return rows.map((row) => ({
+      id: row?.id ?? row?.id_item_potong ?? row?.itemPotong?.id ?? row?.item_potong?.id,
+      item_name: row?.item_name || row?.itemPotong?.name || row?.item_potong?.name || row?.name || '-',
+      nominal: row?.nominal ?? row?.harga ?? '',
+      id_jenis_potong: Number(row?.id_jenis_potong ?? row?.itemPotong?.id_jenis_potong ?? row?.item_potong?.id_jenis_potong ?? 0) || 0,
+    }));
+  };
+
+  const hargaBoning = normalizeHarga(d?.harga_boning?.length ? d.harga_boning : d?.harga).filter((row) => row.id_jenis_potong === 1);
+  const hargaKarkas = normalizeHarga(d?.harga_karkas?.length ? d.harga_karkas : d?.harga).filter((row) => row.id_jenis_potong === 2);
+
+  const renderHargaSection = (title, rows) => (
+    <div>
+      <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+        <Wallet className="w-4 h-4" />
+        {title}
+      </h4>
+      <div className="border border-gray-200 rounded-xl overflow-hidden">
+        <div className="max-h-64 overflow-y-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 sticky top-0">
+              <tr>
+                <th className="text-left px-4 py-2 text-xs font-semibold text-gray-600 uppercase">Bagian</th>
+                <th className="text-right px-4 py-2 text-xs font-semibold text-gray-600 uppercase">Harga</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {rows.length > 0 ? rows.map((item) => (
+                <tr key={`${title}-${item.id}`} className="hover:bg-gray-50">
+                  <td className="px-4 py-2 text-gray-700">{item.item_name || '-'}</td>
+                  <td className="px-4 py-2 text-right font-medium text-gray-800">
+                    {formatCurrency(item.nominal)}
+                  </td>
+                </tr>
+              )) : (
+                <tr>
+                  <td colSpan={2} className="px-4 py-6 text-center text-gray-400">
+                    Tidak ada data {title.toLowerCase()}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[1000] p-4">
       <div className="bg-white rounded-3xl w-full max-w-5xl max-h-[90vh] overflow-y-auto transform transition-all duration-300 scale-100 shadow-2xl">
@@ -168,33 +218,15 @@ const PedagangDetailModal = ({ isOpen, onClose, data }) => {
             </div>
 
             {/* Harga Table */}
-            {d?.harga && (
+            {(hargaKarkas.length > 0 || hargaBoning.length > 0) && (
               <div>
                 <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
                   <Wallet className="w-4 h-4" />
-                  Harga Karkas
+                  Harga
                 </h4>
-                <div className="border border-gray-200 rounded-xl overflow-hidden">
-                  <div className="max-h-64 overflow-y-auto">
-                    <table className="w-full text-sm">
-                      <thead className="bg-gray-50 sticky top-0">
-                        <tr>
-                          <th className="text-left px-4 py-2 text-xs font-semibold text-gray-600 uppercase">Bagian</th>
-                          <th className="text-right px-4 py-2 text-xs font-semibold text-gray-600 uppercase">Harga</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100">
-                        {CUT_PARTS.map(({ key, label }) => (
-                          <tr key={key} className="hover:bg-gray-50">
-                            <td className="px-4 py-2 text-gray-700">{label}</td>
-                            <td className="px-4 py-2 text-right font-medium text-gray-800">
-                              {formatCurrency(d.harga[key])}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                <div className="space-y-4">
+                  {hargaKarkas.length > 0 && renderHargaSection('Harga Karkas', hargaKarkas)}
+                  {hargaBoning.length > 0 && renderHargaSection('Harga Boning', hargaBoning)}
                 </div>
               </div>
             )}
