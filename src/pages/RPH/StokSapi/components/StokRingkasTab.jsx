@@ -12,7 +12,7 @@ const formatDateLabel = (dateStr) => {
   return `${d.getDate()} ${months[d.getMonth() + 1]}`;
 };
 
-const StokRingkasTab = ({ data, loading }) => {
+const StokRingkasTab = ({ data, loading, hasDateFilter }) => {
   const [openMenuId, setOpenMenuId] = useState(null);
 
   const dates = useMemo(() => data?.dates || [], [data]);
@@ -50,13 +50,24 @@ const StokRingkasTab = ({ data, loading }) => {
 
   // Empty state
   if (!rows.length) {
+    if (!hasDateFilter) {
+      return (
+        <div className="flex flex-col items-center justify-center py-12 text-gray-400">
+          <svg className="h-12 w-12 mb-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <p className="text-sm font-medium text-gray-500">Pilih rentang tanggal untuk melihat stok ringkas</p>
+          <p className="text-xs mt-1 text-gray-400">Stok ringkas menampilkan pivot harian per jenis sapi</p>
+        </div>
+      );
+    }
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-gray-400">
-        <svg className="h-16 w-16 mb-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <div className="flex flex-col items-center justify-center py-12 text-gray-400">
+        <svg className="h-12 w-12 mb-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
         </svg>
-        <p className="text-lg font-medium">Tidak ada data stok sapi</p>
-        <p className="text-sm mt-1">Silakan pilih rentang tanggal lain</p>
+        <p className="text-sm font-medium text-gray-500">Tidak ada data stok sapi</p>
+        <p className="text-xs mt-1 text-gray-400">Silakan pilih rentang tanggal lain</p>
       </div>
     );
   }
@@ -82,28 +93,28 @@ const StokRingkasTab = ({ data, loading }) => {
 
       {/* Pivot Table with horizontal scroll for mobile */}
       <div className="stok-ringkas-table-wrapper overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
-        <table className="w-full text-sm border-collapse" style={{ minWidth: '800px' }}>
+        <table className="w-full text-xs border-collapse" style={{ minWidth: '700px' }}>
           <thead>
             {/* Row 1: Main headers */}
             <tr className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white">
               <th
                 rowSpan={2}
-                className="py-3 px-3 text-center font-semibold border border-emerald-500 whitespace-nowrap sticky left-0 z-20 bg-gradient-to-r from-emerald-600 to-teal-600"
-                style={{ width: '60px', minWidth: '60px' }}
+                className="py-2 px-2 text-center font-semibold border border-emerald-500 whitespace-nowrap sticky left-0 z-20 bg-gradient-to-r from-emerald-600 to-teal-600"
+                style={{ width: '50px', minWidth: '50px' }}
               >
                 No
               </th>
               <th
                 rowSpan={2}
-                className="py-3 px-3 text-center font-semibold border border-emerald-500 whitespace-nowrap sticky z-20 bg-gradient-to-r from-emerald-600 to-teal-600"
-                style={{ left: '60px', width: '80px', minWidth: '80px' }}
+                className="py-2 px-2 text-center font-semibold border border-emerald-500 whitespace-nowrap sticky z-20 bg-gradient-to-r from-emerald-600 to-teal-600"
+                style={{ left: '50px', width: '70px', minWidth: '70px' }}
               >
                 Aksi
               </th>
               <th
                 rowSpan={2}
-                className="py-3 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap sticky z-20 bg-gradient-to-r from-emerald-600 to-teal-600"
-                style={{ left: '140px', minWidth: '140px' }}
+                className="py-2 px-2 text-left font-semibold border border-emerald-500 whitespace-nowrap sticky z-20 bg-gradient-to-r from-emerald-600 to-teal-600"
+                style={{ left: '120px', minWidth: '120px' }}
               >
                 JENIS SAPI
               </th>
@@ -111,26 +122,26 @@ const StokRingkasTab = ({ data, loading }) => {
                 <th
                   key={date}
                   colSpan={2}
-                  className="py-3 px-3 text-center font-semibold border border-emerald-500 whitespace-nowrap"
+                  className="py-2 px-2 text-center font-semibold border border-emerald-500 whitespace-nowrap"
                 >
                   {formatDateLabel(date)}
                 </th>
               ))}
               <th
                 rowSpan={2}
-                className="py-3 px-3 text-center font-semibold border border-emerald-500 whitespace-nowrap"
+                className="py-2 px-2 text-center font-semibold border border-emerald-500 whitespace-nowrap"
               >
                 TOTAL MASUK
               </th>
               <th
                 rowSpan={2}
-                className="py-3 px-3 text-center font-semibold border border-emerald-500 whitespace-nowrap"
+                className="py-2 px-2 text-center font-semibold border border-emerald-500 whitespace-nowrap"
               >
                 TOTAL KELUAR
               </th>
               <th
                 rowSpan={2}
-                className="py-3 px-3 text-center font-semibold border border-emerald-500 whitespace-nowrap"
+                className="py-2 px-2 text-center font-semibold border border-emerald-500 whitespace-nowrap"
               >
                 TOTAL NILAI BELI
               </th>
@@ -140,10 +151,10 @@ const StokRingkasTab = ({ data, loading }) => {
             <tr className="bg-emerald-700 text-white">
               {dates.map((date) => (
                 <React.Fragment key={`sub-${date}`}>
-                  <th className="py-2 px-2 text-center text-xs font-semibold border border-emerald-600 bg-emerald-100 text-emerald-800 whitespace-nowrap">
+                  <th className="py-1.5 px-1.5 text-center text-[10px] font-semibold border border-emerald-600 bg-emerald-100 text-emerald-800 whitespace-nowrap">
                     Masuk
                   </th>
-                  <th className="py-2 px-2 text-center text-xs font-semibold border border-emerald-600 bg-rose-100 text-rose-800 whitespace-nowrap">
+                  <th className="py-1.5 px-1.5 text-center text-[10px] font-semibold border border-emerald-600 bg-rose-100 text-rose-800 whitespace-nowrap">
                     Keluar
                   </th>
                 </React.Fragment>
@@ -160,14 +171,14 @@ const StokRingkasTab = ({ data, loading }) => {
                 }`}
               >
                 <td
-                  className="py-3 px-3 text-center font-medium text-gray-600 border border-gray-100 sticky left-0 z-20 bg-inherit"
-                  style={{ width: '60px', minWidth: '60px' }}
+                  className="py-2 px-2 text-center font-medium text-gray-600 border border-gray-100 sticky left-0 z-20 bg-inherit"
+                  style={{ width: '50px', minWidth: '50px' }}
                 >
                   {row.no_urut || index + 1}
                 </td>
                 <td
-                  className="py-3 px-3 text-center border border-gray-100 sticky z-20 bg-inherit"
-                  style={{ left: '60px', width: '80px', minWidth: '80px' }}
+                  className="py-2 px-2 text-center border border-gray-100 sticky z-20 bg-inherit"
+                  style={{ left: '50px', width: '70px', minWidth: '70px' }}
                 >
                   <div className="flex items-center justify-center">
                     <ActionButton
@@ -181,8 +192,8 @@ const StokRingkasTab = ({ data, loading }) => {
                   </div>
                 </td>
                 <td
-                  className="py-3 px-3 font-semibold text-gray-800 border border-gray-100 sticky z-20 bg-inherit"
-                  style={{ left: '140px', minWidth: '140px' }}
+                  className="py-2 px-2 font-semibold text-gray-800 border border-gray-100 sticky z-20 bg-inherit"
+                  style={{ left: '120px', minWidth: '120px' }}
                 >
                   {row.jenis_sapi}
                 </td>
@@ -193,14 +204,14 @@ const StokRingkasTab = ({ data, loading }) => {
                   return (
                     <React.Fragment key={`data-${index}-${date}`}>
                       <td
-                        className={`py-3 px-2 text-center font-medium border border-gray-100 ${
+                        className={`py-1.5 px-1.5 text-center font-medium border border-gray-100 ${
                           masuk > 0 ? 'text-emerald-700' : 'text-gray-300'
                         }`}
                       >
                         {masuk}
                       </td>
                       <td
-                        className={`py-3 px-2 text-center font-medium border border-gray-100 ${
+                        className={`py-1.5 px-1.5 text-center font-medium border border-gray-100 ${
                           keluar > 0 ? 'text-rose-700' : 'text-gray-300'
                         }`}
                       >
@@ -209,14 +220,14 @@ const StokRingkasTab = ({ data, loading }) => {
                     </React.Fragment>
                   );
                 })}
-                <td className="py-3 px-3 text-center font-semibold border border-gray-100 whitespace-nowrap text-emerald-700">
+                <td className="py-2 px-2 text-center font-semibold border border-gray-100 whitespace-nowrap text-emerald-700">
                   {formatNumber(Number(row.total_masuk) || 0)}
                 </td>
-                <td className="py-3 px-3 text-center font-semibold border border-gray-100 whitespace-nowrap text-rose-700">
+                <td className="py-2 px-2 text-center font-semibold border border-gray-100 whitespace-nowrap text-rose-700">
                   {formatNumber(Number(row.total_keluar) || 0)}
                 </td>
                 <td
-                  className={`py-3 px-3 text-right font-semibold border border-gray-100 whitespace-nowrap ${
+                  className={`py-2 px-2 text-right font-semibold border border-gray-100 whitespace-nowrap ${
                     Number(row.total_nilai_beli) > 0 ? 'text-teal-700' : 'text-gray-300'
                   }`}
                 >
@@ -229,27 +240,27 @@ const StokRingkasTab = ({ data, loading }) => {
             <tr className="bg-gradient-to-r from-emerald-50 to-teal-50 font-bold border-t-2 border-emerald-300">
               <td
                 colSpan={3}
-                className="py-3 px-3 text-right text-emerald-800 border border-emerald-200"
+                className="py-2 px-2 text-right text-emerald-800 border border-emerald-200"
               >
                 Total
               </td>
               {dates.map((date, i) => (
                 <React.Fragment key={`total-${date}`}>
-                  <td className="py-3 px-2 text-center text-emerald-800 border border-emerald-200">
+                  <td className="py-1.5 px-1.5 text-center text-emerald-800 border border-emerald-200">
                     {totals.masukTotals[i]}
                   </td>
-                  <td className="py-3 px-2 text-center text-rose-800 border border-emerald-200">
+                  <td className="py-1.5 px-1.5 text-center text-rose-800 border border-emerald-200">
                     {totals.keluarTotals[i]}
                   </td>
                 </React.Fragment>
               ))}
-              <td className="py-3 px-3 text-center text-emerald-800 border border-emerald-200 whitespace-nowrap">
+              <td className="py-2 px-2 text-center text-emerald-800 border border-emerald-200 whitespace-nowrap">
                 {formatNumber(totals.masukTotals.reduce((a, b) => a + b, 0))}
               </td>
-              <td className="py-3 px-3 text-center text-rose-800 border border-emerald-200 whitespace-nowrap">
+              <td className="py-2 px-2 text-center text-rose-800 border border-emerald-200 whitespace-nowrap">
                 {formatNumber(totals.keluarTotals.reduce((a, b) => a + b, 0))}
               </td>
-              <td className="py-3 px-3 text-right text-emerald-800 border border-emerald-200 whitespace-nowrap">
+              <td className="py-2 px-2 text-right text-emerald-800 border border-emerald-200 whitespace-nowrap">
                 {formatCurrency(totals.totalNilaiBeli)}
               </td>
             </tr>
@@ -259,23 +270,23 @@ const StokRingkasTab = ({ data, loading }) => {
 
       {/* Summary Card */}
       {rows.length > 0 && (
-        <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-4 border border-emerald-200">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="text-center sm:text-left">
-              <p className="text-xs text-gray-500 font-medium">Total Masuk</p>
-              <p className="text-lg font-bold text-emerald-700">
+        <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-200">
+          <div className="grid grid-cols-3 gap-3">
+            <div className="text-center">
+              <p className="text-[10px] text-gray-500 font-medium">Total Masuk</p>
+              <p className="text-sm font-bold text-emerald-700">
                 {formatNumber(totals.masukTotals.reduce((a, b) => a + b, 0))} ekor
               </p>
             </div>
-            <div className="text-center sm:text-left">
-              <p className="text-xs text-gray-500 font-medium">Total Keluar</p>
-              <p className="text-lg font-bold text-rose-700">
+            <div className="text-center">
+              <p className="text-[10px] text-gray-500 font-medium">Total Keluar</p>
+              <p className="text-sm font-bold text-rose-700">
                 {formatNumber(totals.keluarTotals.reduce((a, b) => a + b, 0))} ekor
               </p>
             </div>
-            <div className="text-center sm:text-left">
-              <p className="text-xs text-gray-500 font-medium">Total Nilai Beli</p>
-              <p className="text-lg font-bold text-teal-700">
+            <div className="text-center">
+              <p className="text-[10px] text-gray-500 font-medium">Total Nilai Beli</p>
+              <p className="text-sm font-bold text-teal-700">
                 {formatCurrency(totals.totalNilaiBeli)}
               </p>
             </div>

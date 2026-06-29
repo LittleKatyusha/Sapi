@@ -63,6 +63,7 @@ const AddEditPembelianQurbanPage = () => {
     const [formData, setFormData] = useState({
         id_pemasok: '', jenis_pembelian: '', nama_penerima: '',
         tanggal_pemesanan: new Date().toISOString().split('T')[0],
+        tanggal_kedatangan_sapi: new Date().toISOString().split('T')[0],
         id_nota: '', id_persetujuan_rph: '', tipe_pembayaran: '1',
         id_syarat_pembayaran: 1, note: '',
     });
@@ -94,6 +95,7 @@ const AddEditPembelianQurbanPage = () => {
                         id_pemasok: d.id_pemasok || '', jenis_pembelian: d.jenis_pembelian || '',
                         nama_penerima: d.nama_penerima || '',
                         tanggal_pemesanan: d.tanggal_pemesanan ? d.tanggal_pemesanan.split(' ')[0] : '',
+                        tanggal_kedatangan_sapi: d.tanggal_kedatangan_sapi ? d.tanggal_kedatangan_sapi.split(' ')[0] : new Date().toISOString().split('T')[0],
                         id_nota: d.id_nota || '', id_persetujuan_rph: d.id_persetujuan_rph || '',
                         tipe_pembayaran: d.tipe_pembayaran ? String(d.tipe_pembayaran) : '1',
                         id_syarat_pembayaran: d.id_syarat_pembayaran || '', note: d.note || '',
@@ -160,6 +162,7 @@ const AddEditPembelianQurbanPage = () => {
             [!formData.jenis_pembelian, 'Jenis Pembelian harus dipilih'],
             [!formData.nama_penerima?.trim(), 'Nama Penerima harus diisi'],
             [!formData.tanggal_pemesanan, 'Tanggal Pemesanan harus diisi'],
+            [!formData.tanggal_kedatangan_sapi, 'Tanggal Kedatangan Sapi harus diisi'],
             [!formData.id_persetujuan_rph, 'Persetujuan RPH harus dipilih'],
             [!formData.tipe_pembayaran, 'Tipe Pembayaran harus dipilih'],
             [selectedSapi.length === 0, 'Minimal harus memilih 1 sapi'],
@@ -171,7 +174,9 @@ const AddEditPembelianQurbanPage = () => {
             const totalHarga = selectedSapi.reduce((s, x) => s + Number(x.harga_beli || 0), 0);
             const payload = {
                 id_pemasok: parseInt(formData.id_pemasok), jenis_pembelian: parseInt(formData.jenis_pembelian),
-                nama_penerima: formData.nama_penerima.trim(), tanggal_pemesanan: formData.tanggal_pemesanan,
+                nama_penerima: formData.nama_penerima.trim(),
+                tanggal_pemesanan: formData.tanggal_pemesanan,
+                tanggal_kedatangan_sapi: formData.tanggal_kedatangan_sapi,
                 id_nota: formData.id_nota ? parseInt(formData.id_nota) : null,
                 id_persetujuan_rph: parseInt(formData.id_persetujuan_rph),
                 tipe_pembayaran: parseInt(formData.tipe_pembayaran),
@@ -262,6 +267,10 @@ const AddEditPembelianQurbanPage = () => {
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1.5">Tanggal Pemesanan <span className="text-red-500">*</span></label>
                             <input type="date" value={formData.tanggal_pemesanan} onChange={e => handleChange('tanggal_pemesanan', e.target.value)} className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm transition-all" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1.5">Tanggal Kedatangan Sapi <span className="text-red-500">*</span></label>
+                            <input type="date" value={formData.tanggal_kedatangan_sapi} onChange={e => handleChange('tanggal_kedatangan_sapi', e.target.value)} className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm transition-all" />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1.5">Pilih Nota</label>
