@@ -32,12 +32,6 @@ const getFirstDayOfMonth = () => {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-01`;
 };
 
-const getDaysAgo = (days) => {
-  const date = new Date();
-  date.setDate(date.getDate() - days);
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-};
-
 const formatCurrency = (value) => {
   const amount = Number(value);
   if (!Number.isFinite(amount) || amount === 0) return '-';
@@ -712,7 +706,7 @@ const PemberianPakanSapiPage = () => {
     fetchData();
   };
 
-  const handleEdit = async (row) => {
+  const handleEdit = useCallback(async (row) => {
     const detailResponse = await PemberianPakanSapiService.show(row.pid);
     const record = detailResponse.success ? { ...row, ...(detailResponse.data || {}) } : row;
 
@@ -727,9 +721,9 @@ const PemberianPakanSapiPage = () => {
       state: { record },
     });
     setOpenActionMenuPid(null);
-  };
+  }, [navigate]);
 
-  const handleDetail = async (row) => {
+  const handleDetail = useCallback(async (row) => {
     setNotification({ type: 'info', message: 'Memuat detail data...' });
     const detailResponse = await PemberianPakanSapiService.show(row.pid);
 
@@ -743,7 +737,7 @@ const PemberianPakanSapiPage = () => {
       type: 'error',
       message: detailResponse.message || 'Gagal memuat detail data',
     });
-  };
+  }, []);
 
   const handleDeleteConfirm = async (row) => {
     setDeleteLoading(true);
