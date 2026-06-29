@@ -27,6 +27,11 @@ const getToday = () => {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 };
 
+const getFirstDayOfMonth = () => {
+  const date = new Date();
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-01`;
+};
+
 const getDaysAgo = (days) => {
   const date = new Date();
   date.setDate(date.getDate() - days);
@@ -479,7 +484,7 @@ const PemberianPakanSapiPage = () => {
   const [perPage, setPerPage] = useState(10);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
-  const [startDate, setStartDate] = useState(getDaysAgo(6));
+  const [startDate, setStartDate] = useState(getFirstDayOfMonth());
   const [endDate, setEndDate] = useState(getToday());
   const [loading, setLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
