@@ -10,11 +10,32 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onOvk, onPotongPaksa, onP
     function updatePosition() {
       if (buttonRef?.current) {
         const btnRect = buttonRef.current.getBoundingClientRect();
+        const menuWidth = 224;
+        const menuHeight = 290;
+        const gap = 8;
+
+        // Default position below the button, left-aligned
+        let left = btnRect.left + window.scrollX;
+        let top = btnRect.bottom + window.scrollY + gap;
+
+        // Keep inside horizontal viewport
+        if (left + menuWidth > window.innerWidth + window.scrollX) {
+          left = btnRect.right + window.scrollX - menuWidth;
+        }
+        if (left < window.scrollX) {
+          left = window.scrollX + gap;
+        }
+
+        // Keep inside vertical viewport; flip above if needed
+        if (top + menuHeight > window.innerHeight + window.scrollY) {
+          top = btnRect.top + window.scrollY - menuHeight - gap;
+        }
+
         setMenuStyle({
           position: 'absolute',
-          left: btnRect.left + window.scrollX,
-          top: btnRect.bottom + window.scrollY + 8,
-          zIndex: 9999
+          left,
+          top,
+          zIndex: 99999
         });
       }
     }
@@ -160,7 +181,7 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onOvk, onPotongPaksa, onP
         pointerEvents: 'auto',
         zIndex: 99999
       }}
-      className={`w-48 bg-white/95 backdrop-blur-lg rounded-xl shadow-xl border border-gray-200/50 overflow-hidden transition-all duration-150 animate-in slide-in-from-top-2 fade-in-0`}
+      className={`w-56 bg-white/95 backdrop-blur-lg rounded-lg shadow-xl border border-gray-200/50 overflow-hidden transition-all duration-150 animate-in slide-in-from-top-2 fade-in-0`}
       role="menu"
       aria-label="Menu Aksi"
     >
@@ -175,18 +196,18 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onOvk, onPotongPaksa, onP
             <button
               key={action.label}
               onClick={action.onClick}
-              className={`w-full text-left flex items-center px-3 py-2.5 text-sm hover:bg-gradient-to-r transition-all duration-150 rounded-lg group mt-1 ${action.className}`}
+              className={`w-full text-left flex items-center px-3 py-2 text-sm hover:bg-gradient-to-r transition-all duration-150 rounded-md group mt-0.5 ${action.className}`}
               role="menuitem"
               tabIndex={0}
             >
               <div
-                className={`w-7 h-7 ${action.bg} rounded-lg flex items-center justify-center mr-3 ${action.hoverBg} group-hover:scale-105 transition-all duration-150`}
+                className={`w-7 h-7 ${action.bg} rounded-md flex items-center justify-center mr-2 ${action.hoverBg} group-hover:scale-105 transition-all duration-150`}
               >
                 <action.icon size={14} className={action.text} />
               </div>
-              <div className="flex-1">
-                <span className="font-semibold block text-xs">{action.label}</span>
-                <p className="text-xs text-gray-500 mt-0.5">{action.description}</p>
+              <div className="flex-1 min-w-0">
+                <span className="font-medium block text-sm leading-tight">{action.label}</span>
+                <p className="text-xs text-gray-500 leading-tight">{action.description}</p>
               </div>
             </button>
           )

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { AlertCircle, Loader2, RefreshCw, Beef, Eye, Trash2, X } from 'lucide-react';
 import StokSapiService from '../../../../services/stokSapiService';
 import ActionButton from './ActionButton';
@@ -54,10 +54,6 @@ const PotongSapiBiasaTab = ({ onRefresh }) => {
       setLoading(false);
     }
   }, [startDate, endDate]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
 
   const handleRefresh = () => {
     fetchData();

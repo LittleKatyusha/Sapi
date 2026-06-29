@@ -1,12 +1,20 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
+import { Filter, Search, RotateCcw, AlertCircle } from 'lucide-react';
 import ActionButton from './ActionButton';
 import StokDetailModal from './StokDetailModal';
+import StokSapiService from '../../../../services/stokSapiService';
 import { formatNumber } from '../constants/dummyData';
 
-const StokDetailTab = ({ data, loading, onRefresh, onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati }) => {
+const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati }) => {
   const [openMenuId, setOpenMenuId] = useState(null);
   const [detailRow, setDetailRow] = useState(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [hasSearched, setHasSearched] = useState(false);
 
   const rows = useMemo(() => data?.rows || [], [data]);
 
@@ -18,6 +26,50 @@ const StokDetailTab = ({ data, loading, onRefresh, onOvk, onPotongPaksa, onPoton
   const handleCloseDetail = () => {
     setDetailModalOpen(false);
     setDetailRow(null);
+  };
+
+  const fetchData = useCallback(async (opts = {}) => {
+    const { explicit = false } = opts;
+    const start = startDate || null;
+    const end = endDate || null;
+
+    if (explicit && !(start && end)) {
+      setError('Pilih rentang tanggal terlebih dahulu');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await StokSapiService.getStokDetail(start, end);
+      if (response.success) {
+        setData(response.data);
+      } else {
+        setError(response.message || 'Gagal memuat data');
+        setData(null);
+      }
+    } catch (err) {
+      setError(err?.message || 'Terjadi kesalahan saat mengambil data');
+      setData(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [startDate, endDate]);
+
+  const handleSearch = () => {
+    if (startDate && endDate) {
+      setHasSearched(true);
+      fetchData({ explicit: true });
+    }
+  };
+
+  const handleReset = () => {
+    setStartDate('');
+    setEndDate('');
+    setHasSearched(false);
+    setData(null);
+    setError(null);
   };
 
   // Loading state
@@ -51,21 +103,21 @@ const StokDetailTab = ({ data, loading, onRefresh, onOvk, onPotongPaksa, onPoton
     const upper = String(status).toUpperCase();
     if (upper === 'PEMELIHARAAN') {
       return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
+        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
           {status}
         </span>
       );
     }
     if (upper.includes('SIAP') || upper.includes('POTONG')) {
       return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800 border border-indigo-200">
+        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-indigo-100 text-indigo-800 border border-indigo-200">
           {status}
         </span>
       );
     }
     // Default badge for other statuses
     return (
-      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-200">
+      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-gray-100 text-gray-700 border border-gray-200">
         {status}
       </span>
     );
@@ -90,49 +142,97 @@ const StokDetailTab = ({ data, loading, onRefresh, onOvk, onPotongPaksa, onPoton
         }
       `}</style>
 
+      {/* Filter Card */}
+      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <div className="flex items-center gap-1.5 text-sm font-medium text-gray-700">
+            <Filter className="h-4 w-4 text-emerald-600" />
+            Filter Tanggal
+          </div>
+          <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-end">
+            <div className="flex flex-1 flex-col gap-1.5">
+              <label className="text-xs font-medium text-gray-500">Dari</label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/30"
+              />
+            </div>
+            <div className="flex flex-1 flex-col gap-1.5">
+              <label className="text-xs font-medium text-gray-500">Sampai</label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/30"
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleSearch}
+                disabled={!startDate || !endDate || loading}
+                className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+              >
+                <Search className="h-4 w-4" />
+                Cari
+              </button>
+              <button
+                type="button"
+                onClick={handleReset}
+                disabled={loading}
+                className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <RotateCcw className="h-4 w-4" />
+                Reset
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 flex items-start gap-2 shadow-sm">
+          <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-red-800">Gagal memuat data</p>
+            <p className="text-sm text-red-600 mt-0.5">{error}</p>
+          </div>
+        </div>
+      )}
+
       {/* Detail Table with horizontal scroll */}
       <div className="stok-detail-table-wrapper overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
-        <table className="w-full text-xs border-collapse" style={{ minWidth: '1800px' }}>
+        <table className="w-full text-sm border-collapse" style={{ minWidth: '1300px' }}>
           <thead>
             <tr className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white">
               {/* Sticky columns */}
               <th
-                className="py-2 px-2 text-center font-semibold border border-emerald-500 whitespace-nowrap sticky left-0 z-20 bg-gradient-to-r from-emerald-600 to-teal-600"
-                style={{ width: '40px', minWidth: '40px' }}
+                className="py-2 px-3 text-center font-semibold border border-emerald-500 whitespace-nowrap sticky left-0 z-20 bg-gradient-to-r from-emerald-600 to-teal-600"
+                style={{ width: '50px', minWidth: '50px' }}
               >
                 No
               </th>
               <th
-                className="py-2 px-2 text-center font-semibold border border-emerald-500 whitespace-nowrap sticky z-20 bg-gradient-to-r from-emerald-600 to-teal-600"
-                style={{ left: '40px', width: '60px', minWidth: '60px' }}
+                className="py-2 px-3 text-center font-semibold border border-emerald-500 whitespace-nowrap sticky z-20 bg-gradient-to-r from-emerald-600 to-teal-600"
+                style={{ left: '50px', width: '70px', minWidth: '70px' }}
               >
                 Aksi
               </th>
               <th
-                className="py-2 px-2 text-left font-semibold border border-emerald-500 whitespace-nowrap sticky z-20 bg-gradient-to-r from-emerald-600 to-teal-600"
-                style={{ left: '100px', minWidth: '100px' }}
+                className="py-2 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap sticky z-20 bg-gradient-to-r from-emerald-600 to-teal-600"
+                style={{ left: '120px', minWidth: '160px' }}
               >
-                Jenis Sapi
+                Sapi
               </th>
               {/* Scrollable columns */}
-              <th className="py-2 px-2 text-left font-semibold border border-emerald-500 whitespace-nowrap">Eartag</th>
-              <th className="py-2 px-2 text-center font-semibold border border-emerald-500 whitespace-nowrap">Bobot</th>
-              <th className="py-2 px-2 text-left font-semibold border border-emerald-500 whitespace-nowrap">Lokasi Sapi</th>
-              <th className="py-2 px-2 text-right font-semibold border border-emerald-500 whitespace-nowrap">Harga Beli</th>
-              <th className="py-2 px-2 text-center font-semibold border border-emerald-500 whitespace-nowrap">DOF</th>
-              <th className="py-2 px-2 text-center font-semibold border border-emerald-500 whitespace-nowrap">Kg Pakan</th>
-              <th className="py-2 px-2 text-right font-semibold border border-emerald-500 whitespace-nowrap">Nilai Pakan</th>
-              <th className="py-2 px-2 text-left font-semibold border border-emerald-500 whitespace-nowrap">OVK</th>
-              <th className="py-2 px-2 text-right font-semibold border border-emerald-500 whitespace-nowrap">Nilai OVK</th>
-              <th className="py-2 px-2 text-right font-semibold border border-emerald-500 whitespace-nowrap">Total</th>
-              <th className="py-2 px-2 text-center font-semibold border border-emerald-500 whitespace-nowrap">Status Sapi</th>
-              <th className="py-2 px-2 text-left font-semibold border border-emerald-500 whitespace-nowrap">Pemasok</th>
-              <th className="py-2 px-2 text-left font-semibold border border-emerald-500 whitespace-nowrap">Nomor Nota</th>
-              <th className="py-2 px-2 text-left font-semibold border border-emerald-500 whitespace-nowrap">Pengirim</th>
-              <th className="py-2 px-2 text-left font-semibold border border-emerald-500 whitespace-nowrap">Tgl Kedatangan</th>
-              <th className="py-2 px-2 text-left font-semibold border border-emerald-500 whitespace-nowrap">Penerima</th>
-              <th className="py-2 px-2 text-left font-semibold border border-emerald-500 whitespace-nowrap">Kondisi Sapi</th>
-              <th className="py-2 px-2 text-left font-semibold border border-emerald-500 whitespace-nowrap">Keterangan</th>
+              <th className="py-2 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap">Pemeliharaan</th>
+              <th className="py-2 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap">OVK</th>
+              <th className="py-2 px-3 text-right font-semibold border border-emerald-500 whitespace-nowrap">Nilai</th>
+              <th className="py-2 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap">Status</th>
+              <th className="py-2 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap">Asal</th>
+              <th className="py-2 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap">Keterangan</th>
             </tr>
           </thead>
 
@@ -146,15 +246,15 @@ const StokDetailTab = ({ data, loading, onRefresh, onOvk, onPotongPaksa, onPoton
               >
                 {/* Sticky: No */}
                 <td
-                  className={`py-2 px-2 text-center font-medium text-gray-600 border border-gray-100 sticky left-0 z-10 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
-                  style={{ width: '40px', minWidth: '40px' }}
+                  className={`py-2 px-3 text-center font-medium text-gray-600 border border-gray-100 sticky left-0 z-10 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
+                  style={{ width: '50px', minWidth: '50px' }}
                 >
                   {row.no_urut || index + 1}
                 </td>
                 {/* Sticky: Aksi */}
                 <td
-                  className={`py-2 px-2 text-center border border-gray-100 sticky z-20 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
-                  style={{ left: '40px', width: '60px', minWidth: '60px' }}
+                  className={`py-2 px-3 text-center border border-gray-100 sticky z-20 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
+                  style={{ left: '50px', width: '70px', minWidth: '70px' }}
                 >
                   <div className="flex items-center justify-center">
                     <ActionButton
@@ -171,84 +271,85 @@ const StokDetailTab = ({ data, loading, onRefresh, onOvk, onPotongPaksa, onPoton
                     />
                   </div>
                 </td>
-                {/* Sticky: Jenis Sapi */}
+                {/* Sticky: Sapi */}
                 <td
-                  className={`py-2 px-2 font-semibold text-gray-800 border border-gray-100 whitespace-nowrap sticky z-10 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
-                  style={{ left: '100px', minWidth: '100px' }}
+                  className={`py-2 px-3 border border-gray-100 whitespace-nowrap sticky z-10 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
+                  style={{ left: '120px', minWidth: '160px' }}
                 >
-                  {row.jenis_sapi}
+                  <div className="space-y-0.5">
+                    <div className="font-semibold text-gray-800">{row.jenis_sapi}</div>
+                    <div className="text-xs text-gray-500">
+                      <span className="text-gray-400">Eartag:</span> {row.eartag || '-'}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      <span className="text-gray-400">Bobot:</span> {row.bobot ? `${Number(row.bobot)} KG` : '-'}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      <span className="text-gray-400">Lokasi:</span> {row.lokasi_sapi || '-'}
+                    </div>
+                  </div>
                 </td>
-                {/* Eartag */}
-                <td className="py-2 px-2 text-gray-700 border border-gray-100 whitespace-nowrap">
-                  {row.eartag || '-'}
-                </td>
-                {/* Bobot */}
-                <td className="py-2 px-2 text-center text-gray-700 border border-gray-100 whitespace-nowrap">
-                  {row.bobot ? `${Number(row.bobot)} KG` : '-'}
-                </td>
-                {/* Lokasi Sapi */}
-                <td className="py-2 px-2 text-gray-700 border border-gray-100 whitespace-nowrap">
-                  {row.lokasi_sapi || '-'}
-                </td>
-                {/* Harga Beli */}
-                <td className="py-2 px-2 text-right font-medium text-gray-700 border border-gray-100 whitespace-nowrap">
-                  {row.harga_beli || '-'}
-                </td>
-                {/* DOF */}
-                <td className="py-2 px-2 text-center text-gray-700 border border-gray-100 whitespace-nowrap">
-                  {row.dof_hari || '-'}
-                </td>
-                {/* Kg Pakan */}
-                <td className="py-2 px-2 text-center text-gray-700 border border-gray-100 whitespace-nowrap">
-                  {row.kg || '-'}
-                </td>
-                {/* Nilai Pakan */}
-                <td className="py-2 px-2 text-right text-gray-700 border border-gray-100 whitespace-nowrap">
-                  {row.nilai_pakan || '-'}
+                {/* Pemeliharaan */}
+                <td className="py-2 px-3 border border-gray-100 whitespace-nowrap">
+                  <div className="space-y-0.5">
+                    <div className="text-xs text-gray-500">
+                      <span className="text-gray-400">DOF:</span> {row.dof_hari || '-'}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      <span className="text-gray-400">Pakan:</span> {row.kg || '-'} kg · {row.nilai_pakan || 'Rp 0'}
+                    </div>
+                  </div>
                 </td>
                 {/* OVK */}
-                <td className="py-2 px-2 text-gray-700 border border-gray-100 whitespace-nowrap max-w-[130px] truncate" title={row.ovk}>
-                  {row.ovk || '-'}
+                <td className="py-2 px-3 border border-gray-100 whitespace-nowrap">
+                  <div className="space-y-0.5">
+                    <div className="text-xs text-gray-600 max-w-[140px] truncate" title={row.ovk}>{row.ovk || '-'}</div>
+                    <div className="text-xs text-gray-500">
+                      <span className="text-gray-400">Nilai:</span> {row.nilai_ovk || 'Rp 0'}
+                    </div>
+                  </div>
                 </td>
-                {/* Nilai OVK */}
-                <td className="py-2 px-2 text-right text-gray-700 border border-gray-100 whitespace-nowrap">
-                  {row.nilai_ovk || '-'}
+                {/* Nilai */}
+                <td className="py-2 px-3 border border-gray-100 whitespace-nowrap text-right">
+                  <div className="space-y-0.5">
+                    <div className="text-xs text-gray-500">
+                      <span className="text-gray-400">Beli:</span> {row.harga_beli || 'Rp 0'}
+                    </div>
+                    <div className="font-semibold text-teal-700">
+                      {row.total || 'Rp 0'}
+                    </div>
+                  </div>
                 </td>
-                {/* Total */}
-                <td className="py-2 px-2 text-right font-semibold text-teal-700 border border-gray-100 whitespace-nowrap">
-                  {row.total || '-'}
+                {/* Status */}
+                <td className="py-2 px-3 border border-gray-100 whitespace-nowrap">
+                  <div className="space-y-0.5">
+                    {renderStatusBadge(row.status_sapi)}
+                    <div className="text-xs text-gray-500">
+                      <span className="text-gray-400">Kondisi:</span> {row.kondisi_sapi || '-'}
+                    </div>
+                  </div>
                 </td>
-                {/* Status Sapi */}
-                <td className="py-2 px-2 text-center border border-gray-100 whitespace-nowrap">
-                  {renderStatusBadge(row.status_sapi)}
-                </td>
-                {/* Pemasok */}
-                <td className="py-2 px-2 text-gray-700 border border-gray-100 whitespace-nowrap">
-                  {row.pemasok || '-'}
-                </td>
-                {/* Nomor Nota */}
-                <td className="py-2 px-2 text-gray-700 border border-gray-100 whitespace-nowrap">
-                  {row.nomor_nota || '-'}
-                </td>
-                {/* Pengirim */}
-                <td className="py-2 px-2 text-gray-700 border border-gray-100 whitespace-nowrap">
-                  {row.pengirim || '-'}
-                </td>
-                {/* Tanggal Kedatangan */}
-                <td className="py-2 px-2 text-gray-700 border border-gray-100 whitespace-nowrap">
-                  {row.tanggal_kedatangan || '-'}
-                </td>
-                {/* Penerima */}
-                <td className="py-2 px-2 text-gray-700 border border-gray-100 whitespace-nowrap">
-                  {row.penerima || '-'}
-                </td>
-                {/* Kondisi Sapi */}
-                <td className="py-2 px-2 text-gray-700 border border-gray-100 whitespace-nowrap">
-                  {row.kondisi_sapi || '-'}
+                {/* Asal */}
+                <td className="py-2 px-3 border border-gray-100 whitespace-nowrap">
+                  <div className="space-y-0.5">
+                    <div className="text-xs text-gray-600 max-w-[140px] truncate" title={row.pemasok}>{row.pemasok || '-'}</div>
+                    <div className="text-xs text-gray-500">
+                      <span className="text-gray-400">Nota:</span> {row.nomor_nota || '-'}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      <span className="text-gray-400">Pengirim:</span> {row.pengirim || '-'}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      <span className="text-gray-400">Penerima:</span> {row.penerima || '-'}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      <span className="text-gray-400">Tgl:</span> {row.tanggal_kedatangan || '-'}
+                    </div>
+                  </div>
                 </td>
                 {/* Keterangan */}
-                <td className="py-2 px-2 text-gray-600 border border-gray-100 whitespace-nowrap max-w-[130px] truncate" title={row.keterangan_kondisi}>
-                  {row.keterangan_kondisi || '-'}
+                <td className="py-2 px-3 border border-gray-100 whitespace-nowrap max-w-[160px] truncate" title={row.keterangan_kondisi}>
+                  <span className="text-gray-600">{row.keterangan_kondisi || '-'}</span>
                 </td>
               </tr>
             ))}
@@ -258,9 +359,9 @@ const StokDetailTab = ({ data, loading, onRefresh, onOvk, onPotongPaksa, onPoton
 
       {/* Summary footer */}
       {rows.length > 0 && (
-        <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-200">
+        <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
           <div className="flex items-center justify-between">
-            <p className="text-xs text-gray-500 font-medium">
+            <p className="text-sm text-gray-500 font-medium">
               Total {formatNumber(rows.length)} data sapi
             </p>
           </div>
