@@ -60,6 +60,7 @@ export const API_ENDPOINTS = {
     ITEM_FEEDMIL: '/api/master/itemfeedmil',
     ITEM_OVK: '/api/master/itemovk',
     ITEM_LAIN_LAIN: '/api/master/itemlainlain',
+    ITEM_POTONG: '/api/master/itempotong',
     // KLASIFIKASI_KULIT: tidak ada route backend — dihapus
     KLASIFIKASI_OVK: '/api/master/klasifikasiovk',
     KLASIFIKASI_LAIN_LAIN: '/api/master/klasifikasilainlain',

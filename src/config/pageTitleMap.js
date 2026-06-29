@@ -23,6 +23,7 @@ export const pageTitleMap = {
   '/master-data/eartag': 'Data Master: Eartag',
   '/master-data/satuan': 'Data Master: Satuan',
   '/master-data/barang': 'Data Master: Barang',
+  '/master-data/item-potong': 'Master Item Potong',
   '/master-data/pembeli-ho': 'Data Master: Pembeli HO',
   '/master-data/boning': 'Data Master: Boning',
   '/master-data/daging': 'Data Master: Daging',

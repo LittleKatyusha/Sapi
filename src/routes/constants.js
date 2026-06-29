@@ -85,6 +85,7 @@ export const ROUTE_PATHS = Object.freeze({
   MASTER_PERSETUJUAN_RPH: '/master-data/persetujuan-rph',
   MASTER_SATUAN: '/master-data/satuan',
   MASTER_BARANG: '/master-data/barang',
+  MASTER_ITEM_POTONG: '/master-data/item-potong',
   MASTER_PEMBELI_HO: '/master-data/pembeli-ho',
   MASTER_BONING: '/master-data/boning',
   MASTER_DAGING: '/master-data/daging',
