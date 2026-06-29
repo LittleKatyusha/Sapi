@@ -132,6 +132,39 @@ class PemberianPakanSapiService {
     }
   }
 
+  static async showDetail(pid, params = {}) {
+    try {
+      const queryParams = new URLSearchParams({
+        pid,
+        draw: params.draw || 1,
+        start: params.start || 0,
+        length: params.length || 10,
+        search: params.search || '',
+        _t: Date.now(),
+      });
+      const response = await this.getFirst(
+        this.API_BASES.map((base) => `${base}/show-detail?${queryParams.toString()}`),
+        { cache: false }
+      );
+      return {
+        success: true,
+        data: Array.isArray(response?.data) ? response.data : [],
+        recordsTotal: Number(response?.recordsTotal) || 0,
+        recordsFiltered: Number(response?.recordsFiltered) || 0,
+        draw: response?.draw,
+      };
+    } catch (error) {
+      console.error('PemberianPakanSapiService.showDetail error:', error);
+      return {
+        success: false,
+        data: [],
+        recordsTotal: 0,
+        recordsFiltered: 0,
+        message: normalizeErrorMessage(error, 'Gagal memuat daftar sapi'),
+      };
+    }
+  }
+
   static async store(payload) {
     try {
       const response = await this.postFirst(this.API_BASES.map((base) => `${base}/store`), payload);

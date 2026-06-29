@@ -208,9 +208,131 @@ const Toast = ({ notification, onClose }) => {
 };
 
 const DetailModal = ({ row, onClose, onEdit }) => {
-  if (!row) return null;
+  const [cowRows, setCowRows] = useState([]);
+  const [cowTotal, setCowTotal] = useState(0);
+  const [cowPage, setCowPage] = useState(1);
+  const [cowPerPage, setCowPerPage] = useState(10);
+  const [cowSearch, setCowSearch] = useState('');
+  const [cowSearchInput, setCowSearchInput] = useState('');
+  const [cowLoading, setCowLoading] = useState(false);
 
-  const cowDetails = Array.isArray(row.detail) ? row.detail : [];
+  const modalTableStyles = {
+    table: {
+      style: {
+        width: '100%',
+        minWidth: 'auto',
+        maxWidth: '100%',
+        borderCollapse: 'separate',
+        borderSpacing: 0,
+        margin: 0,
+      },
+    },
+    tableWrapper: {
+      style: {
+        border: 'none',
+        borderRadius: '0',
+        overflow: 'visible',
+      },
+    },
+    headRow: {
+      style: {
+        backgroundColor: '#f8fafc',
+        borderBottom: '1px solid #e2e8f0',
+        minHeight: '44px',
+      },
+    },
+    headCells: {
+      style: {
+        fontSize: '12px',
+        fontWeight: '600',
+        color: '#475569',
+        padding: '10px 16px',
+        textTransform: 'uppercase',
+        letterSpacing: '0.03em',
+      },
+    },
+    cells: {
+      style: {
+        padding: '10px 16px',
+        fontSize: '13px',
+        color: '#334155',
+      },
+    },
+    rows: {
+      style: {
+        minHeight: '44px',
+        borderBottom: '1px solid #f1f5f9',
+        '&:hover': {
+          backgroundColor: '#f8fafc',
+        },
+      },
+    },
+    pagination: {
+      style: {
+        borderTop: '1px solid #f1f5f9',
+        padding: '8px 16px',
+        fontSize: '13px',
+        color: '#475569',
+      },
+    },
+  };
+
+  const fetchCowDetails = useCallback(async (page, perPage, search) => {
+    if (!row?.pid) return;
+    setCowLoading(true);
+    const response = await PemberianPakanSapiService.showDetail(row.pid, {
+      start: (page - 1) * perPage,
+      length: perPage,
+      search,
+    });
+    if (response.success) {
+      setCowRows(response.data);
+      setCowTotal(response.recordsFiltered);
+    } else {
+      setCowRows([]);
+      setCowTotal(0);
+    }
+    setCowLoading(false);
+  }, [row?.pid]);
+
+  useEffect(() => {
+    fetchCowDetails(cowPage, cowPerPage, cowSearch);
+  }, [fetchCowDetails, cowPage, cowPerPage, cowSearch]);
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    setCowPage(1);
+    setCowSearch(cowSearchInput.trim());
+  };
+
+  const handleClearSearch = () => {
+    setCowSearchInput('');
+    setCowPage(1);
+    setCowSearch('');
+  };
+
+  const cowColumns = useMemo(() => [
+    {
+      name: 'No',
+      cell: (_, index) => (cowPage - 1) * cowPerPage + index + 1,
+      width: '70px',
+      center: true,
+    },
+    {
+      name: 'Nama Sapi',
+      selector: (d) => d.nama_sapi,
+      grow: 2,
+      cell: (d) => <span className="font-medium text-slate-700">{d.nama_sapi || '-'}</span>,
+    },
+    {
+      name: 'Eartag',
+      selector: (d) => d.eartag_sapi,
+      grow: 2,
+      cell: (d) => <span className="font-mono text-slate-600">{d.eartag_sapi || '-'}</span>,
+    },
+  ], [cowPage, cowPerPage]);
+
+  if (!row) return null;
 
   const detailItems = [
     ['Resep Pakan', row.nama_resep_pakan],
@@ -218,12 +340,12 @@ const DetailModal = ({ row, onClose, onEdit }) => {
     ['Jam Pemberian', row.jam_pemberian_pakan],
     ['Nama Peternak', row.nama_peternak],
     ['Harga', formatCurrency(row.harga)],
-    ['Total Sapi', cowDetails.length ? `${cowDetails.length} ekor` : '-'],
+    ['Total Sapi', cowTotal ? `${cowTotal} ekor` : '-'],
   ];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="detail-pakan-title">
-      <div className="w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-2xl">
+      <div className="w-full max-w-5xl overflow-hidden rounded-3xl bg-white shadow-2xl">
         <div className="flex items-start justify-between gap-4 border-b border-slate-100 p-5 sm:p-6">
           <div className="flex items-start gap-3">
             <div className="rounded-2xl bg-emerald-100 p-3 text-emerald-700">
@@ -244,7 +366,7 @@ const DetailModal = ({ row, onClose, onEdit }) => {
           </button>
         </div>
 
-        <div className="grid gap-3 p-5 sm:grid-cols-2 sm:p-6">
+        <div className="grid gap-3 p-5 sm:grid-cols-3 sm:p-6">
           {detailItems.map(([label, value]) => (
             <div key={label} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{label}</p>
@@ -255,31 +377,68 @@ const DetailModal = ({ row, onClose, onEdit }) => {
 
         <div className="px-5 pb-5 sm:px-6 sm:pb-6">
           <div className="overflow-hidden rounded-2xl border border-slate-100">
-            <div className="bg-slate-50 px-4 py-3">
+            <div className="flex flex-col gap-3 bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm font-bold text-slate-800">Daftar Sapi</p>
+              <form onSubmit={handleSearchSubmit} className="flex items-center gap-2">
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    value={cowSearchInput}
+                    onChange={(e) => setCowSearchInput(e.target.value)}
+                    placeholder="Cari eartag / sapi..."
+                    className="w-60 rounded-lg border border-slate-200 bg-white py-1.5 pl-8 pr-3 text-sm text-slate-700 outline-none transition focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-emerald-700"
+                >
+                  Cari
+                </button>
+                {cowSearch && (
+                  <button
+                    type="button"
+                    onClick={handleClearSearch}
+                    className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+                  >
+                    Reset
+                  </button>
+                )}
+              </form>
             </div>
-            <div className="max-h-64 overflow-auto">
-              {cowDetails.length ? (
-                <table className="min-w-full divide-y divide-slate-100 text-sm">
-                  <thead className="bg-white text-xs uppercase tracking-wide text-slate-400">
-                    <tr>
-                      <th className="px-4 py-3 text-left font-semibold">Nama Sapi</th>
-                      <th className="px-4 py-3 text-left font-semibold">Eartag</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {cowDetails.map((detail) => (
-                      <tr key={detail.pubid || detail.id}>
-                        <td className="px-4 py-3 font-medium text-slate-700">{detail.nama_sapi || '-'}</td>
-                        <td className="px-4 py-3 font-mono text-slate-600">{detail.eartag_sapi || '-'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : (
-                <p className="px-4 py-6 text-center text-sm text-slate-400">Detail sapi belum tersedia.</p>
+            <DataTable
+              columns={cowColumns}
+              data={cowRows}
+              customStyles={modalTableStyles}
+              progressPending={cowLoading}
+              progressComponent={(
+                <div className="flex items-center gap-2 py-8 text-sm text-slate-400">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  Memuat daftar sapi...
+                </div>
               )}
-            </div>
+              noDataComponent={(
+                <div className="py-8 text-center text-sm text-slate-400">
+                  {cowSearch ? 'Tidak ada sapi yang cocok dengan pencarian.' : 'Detail sapi belum tersedia.'}
+                </div>
+              )}
+              pagination
+              paginationServer
+              paginationTotalRows={cowTotal}
+              paginationDefaultPage={cowPage}
+              paginationPerPage={cowPerPage}
+              paginationRowsPerPageOptions={[10, 25, 50, 100]}
+              onChangePage={(page) => setCowPage(page)}
+              onChangeRowsPerPage={(newPerPage, page) => {
+                setCowPerPage(newPerPage);
+                setCowPage(page);
+              }}
+              highlightOnHover
+              dense
+              striped
+              responsive={false}
+            />
           </div>
         </div>
 
@@ -617,12 +776,12 @@ const PemberianPakanSapiPage = () => {
     {
       name: 'No',
       cell: (_, index) => (currentPage - 1) * perPage + index + 1,
-      width: '64px',
+      width: '56px',
       center: true,
     },
     {
       name: 'Aksi',
-      width: '90px',
+      width: '80px',
       center: true,
       cell: (row) => (
         <div className="flex items-center justify-center">
@@ -639,48 +798,45 @@ const PemberianPakanSapiPage = () => {
       ),
     },
     {
-      name: 'Resep Pakan',
-      selector: (row) => row.nama_resep_pakan,
-      sortable: true,
-      minWidth: '180px',
-      cell: (row) => <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">{row.nama_resep_pakan || '-'}</span>,
-    },
-    {
-      name: 'Tanggal',
+      name: 'Waktu Pemberian',
       selector: (row) => row.tgl_pemberian_pakan,
       sortable: true,
-      minWidth: '140px',
+      minWidth: '150px',
       cell: (row) => (
-        <span className="inline-flex items-center gap-1.5 text-slate-700">
-          <Calendar className="h-4 w-4 text-emerald-500" />
-          {row.tgl_pemberian_pakan || '-'}
-        </span>
+        <div className="flex flex-col gap-0.5">
+          <span className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-800">
+            <Calendar className="h-4 w-4 text-emerald-500" />
+            {row.tgl_pemberian_pakan || '-'}
+          </span>
+          <span className="inline-flex items-center gap-1.5 pl-5 font-mono text-xs text-cyan-700">
+            <Clock className="h-3 w-3" />
+            {String(row.jam_pemberian_pakan || '-').slice(0, 5)}
+          </span>
+        </div>
       ),
     },
     {
-      name: 'Jam',
-      selector: (row) => row.jam_pemberian_pakan,
-      center: true,
-      width: '110px',
-      cell: (row) => (
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-cyan-50 px-2.5 py-1 font-mono text-xs font-semibold text-cyan-700">
-          <Clock className="h-3.5 w-3.5" />
-          {String(row.jam_pemberian_pakan || '-').slice(0, 5)}
-        </span>
-      ),
-    },
-    {
-      name: 'Peternak',
-      selector: (row) => row.nama_peternak,
+      name: 'Pakan & Peternak',
+      selector: (row) => `${row.nama_resep_pakan} ${row.nama_peternak}`,
       sortable: true,
-      minWidth: '160px',
-      cell: (row) => <span className="text-slate-700">{row.nama_peternak || '-'}</span>,
+      minWidth: '220px',
+      cell: (row) => (
+        <div className="flex flex-col gap-0.5">
+          <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 w-fit">
+            {row.nama_resep_pakan || '-'}
+          </span>
+          <span className="text-xs text-slate-500">
+            <span className="text-slate-400">Peternak:</span> {row.nama_peternak || '-'}
+          </span>
+        </div>
+      ),
     },
     {
       name: 'Harga',
       selector: (row) => row.harga,
+      sortable: true,
       right: true,
-      minWidth: '130px',
+      minWidth: '120px',
       cell: (row) => <span className="font-semibold text-emerald-700">{formatCurrency(row.harga)}</span>,
     },
   ], [currentPage, handleDetail, handleEdit, openActionMenuPid, perPage]);
