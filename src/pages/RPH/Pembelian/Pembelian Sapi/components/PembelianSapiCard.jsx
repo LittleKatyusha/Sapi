@@ -7,11 +7,7 @@ import {
     Eye,
     Calendar,
     FileText,
-    Building2,
-    Package,
-    DollarSign,
     Hash,
-    User,
     CheckCircle,
     Clock,
     XCircle
@@ -82,13 +78,13 @@ const PembelianSapiCard = ({
         switch (status) {
             case 1:
             case '1':
-                return 'Pending';
+                return 'Menunggu';
             case 2:
             case '2':
-                return 'Approved';
+                return 'Disetujui';
             case 3:
             case '3':
-                return 'Rejected';
+                return 'Ditolak';
             default:
                 return 'Unknown';
         }
@@ -127,203 +123,69 @@ const PembelianSapiCard = ({
     };
 
     return (
-        <div className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100">
-            {/* Card Header with Status Strip */}
-            <div className={`px-4 py-2 ${getStatusColorClass(data.status)} border-b`}>
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium text-gray-500">No. {index + 1}</span>
-                        <span className="text-xs">•</span>
-                        <div className="flex items-center gap-1">
-                            {getStatusIcon(data.status)}
-                            <span className="text-xs font-semibold">{getStatusText(data.status)}</span>
+        <div className="bg-white rounded-lg border border-gray-100 p-4 shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 mb-1.5">
+                        <span className="text-xs text-gray-400">#{index + 1}</span>
+                        <span className={`px-2 py-0.5 rounded-md text-xs font-medium border ${getStatusColorClass(data.status || data.persetujuan)}`}>
+                            {getStatusText(data.status || data.persetujuan)}
+                        </span>
+                    </div>
+                    <h3 className="text-base font-semibold text-gray-900 truncate">{data.no_po || '-'}</h3>
+                    <p className="text-xs text-gray-500 truncate">Nota: {data.nota || '-'}</p>
+                    <div className="mt-3 grid grid-cols-2 gap-3">
+                        <div>
+                            <p className="text-xs text-gray-500">Tanggal</p>
+                            <p className="text-sm font-medium text-gray-900">{formatDate(data.tgl_pesanan)}</p>
+                        </div>
+                        <div>
+                            <p className="text-xs text-gray-500">Jumlah</p>
+                            <p className="text-sm font-medium text-gray-900">{data.jumlah || 0} ekor</p>
                         </div>
                     </div>
-                    
-                    {/* Action Menu */}
-                    <div className="relative">
-                        <button
-                            onClick={() => setIsMenuOpen(!isMenuOpen)}
-                            className="p-1.5 hover:bg-white/50 rounded-lg transition-colors duration-200"
-                        >
-                            <MoreVertical className="h-5 w-5" />
-                        </button>
-                        
-                        {isMenuOpen && (
-                            <>
-                                <div 
-                                    className="fixed inset-0 z-10" 
-                                    onClick={() => setIsMenuOpen(false)}
-                                />
-                                <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-xl border border-gray-200 z-20 overflow-hidden">
-                                    <button
-                                        onClick={handleDetail}
-                                        className="w-full px-4 py-2.5 text-left hover:bg-gray-50 flex items-center gap-3 text-sm transition-colors duration-200"
-                                    >
-                                        <Eye className="h-4 w-4 text-blue-600" />
-                                        <span className="text-gray-700">Lihat Detail</span>
-                                    </button>
-                                    <button
-                                        onClick={handleEdit}
-                                        className="w-full px-4 py-2.5 text-left hover:bg-gray-50 flex items-center gap-3 text-sm transition-colors duration-200"
-                                    >
-                                        <Edit className="h-4 w-4 text-green-600" />
-                                        <span className="text-gray-700">Edit</span>
-                                    </button>
-                                    <button
-                                        onClick={handleDelete}
-                                        className="w-full px-4 py-2.5 text-left hover:bg-red-50 flex items-center gap-3 text-sm transition-colors duration-200"
-                                    >
-                                        <Trash2 className="h-4 w-4 text-red-600" />
-                                        <span className="text-red-700">Hapus</span>
-                                    </button>
-                                </div>
-                            </>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            {/* Card Body */}
-            <div className="p-4 space-y-4">
-                {/* PO Number and Date */}
-                <div className="flex justify-between items-start">
-                    <div>
-                        <div className="flex items-center gap-2 mb-1">
-                            <FileText className="h-4 w-4 text-blue-500" />
-                            <span className="text-xs text-gray-500 font-medium">No. PO</span>
-                        </div>
-                        <p className="font-mono text-sm font-bold text-blue-700 bg-blue-50 px-2 py-1 rounded inline-block">
-                            {data.no_po || '-'}
-                        </p>
-                    </div>
-                    <div className="text-right">
-                        <div className="flex items-center gap-2 mb-1 justify-end">
-                            <Calendar className="h-4 w-4 text-gray-500" />
-                            <span className="text-xs text-gray-500 font-medium">Tanggal</span>
-                        </div>
-                        <p className="text-sm font-medium text-gray-800">
-                            {formatDate(data.tgl_pesanan)}
-                        </p>
-                    </div>
-                </div>
-
-                {/* Nota and Supplier */}
-                <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-purple-50 rounded-lg p-3">
-                        <div className="flex items-center gap-1 mb-1">
-                            <Hash className="h-3.5 w-3.5 text-purple-600" />
-                            <span className="text-xs text-purple-600 font-medium">Nota</span>
-                        </div>
-                        <p className="text-sm font-semibold text-purple-900 truncate">
-                            {data.nota || '-'}
-                        </p>
-                    </div>
-                    
-                    <div className="bg-indigo-50 rounded-lg p-3">
-                        <div className="flex items-center gap-1 mb-1">
-                            <Building2 className="h-3.5 w-3.5 text-indigo-600" />
-                            <span className="text-xs text-indigo-600 font-medium">Supplier</span>
-                        </div>
-                        <p className="text-sm font-semibold text-indigo-900 truncate">
-                            {data.nama_supplier || 'RPH'}
-                        </p>
-                    </div>
-                </div>
-
-                {/* Office Info */}
-                {data.nama_office && (
-                    <div className="bg-gray-50 rounded-lg p-3">
-                        <div className="flex items-center gap-1 mb-1">
-                            <Building2 className="h-3.5 w-3.5 text-gray-600" />
-                            <span className="text-xs text-gray-600 font-medium">Office</span>
-                        </div>
-                        <p className="text-sm font-semibold text-gray-900">
-                            {data.nama_office}
-                        </p>
-                    </div>
-                )}
-
-                {/* Quantity and Price */}
-                <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-blue-50 rounded-lg p-3 text-center">
-                        <div className="flex items-center justify-center gap-1 mb-1">
-                            <Package className="h-4 w-4 text-blue-600" />
-                            <span className="text-xs text-blue-600 font-medium">Jumlah</span>
-                        </div>
-                        <p className="text-xl font-bold text-blue-900">
-                            {data.jumlah || 0}
-                        </p>
-                        <span className="text-xs text-blue-600">ekor</span>
-                    </div>
-                    
-                    <div className="bg-green-50 rounded-lg p-3 text-center">
-                        <div className="flex items-center justify-center gap-1 mb-1">
-                            <DollarSign className="h-4 w-4 text-green-600" />
-                            <span className="text-xs text-green-600 font-medium">Total</span>
-                        </div>
-                        <p className="text-lg font-bold text-green-900">
+                    <div className="mt-2">
+                        <p className="text-xs text-gray-500">Total</p>
+                        <p className="text-sm font-semibold text-emerald-700">
                             {formatCurrency ? formatCurrency(data.harga || data.biaya_total || 0) : `Rp ${(data.harga || data.biaya_total || 0).toLocaleString('id-ID')}`}
                         </p>
                     </div>
                 </div>
-
-                {/* Persetujuan Status */}
-                <div className="pt-3 border-t border-gray-200">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <User className="h-4 w-4 text-gray-500" />
-                            <span className="text-xs text-gray-600 font-medium">Persetujuan:</span>
-                        </div>
-                        {getPersetujuanBadge ? (
-                            getPersetujuanBadge(data.persetujuan)
-                        ) : (
-                            <span className={`px-2 py-1 rounded-lg text-xs font-semibold ${
-                                getPersetujuanText(data.persetujuan) === 'Disetujui' 
-                                    ? 'bg-green-50 text-green-700'
-                                    : getPersetujuanText(data.persetujuan) === 'Ditolak'
-                                    ? 'bg-red-50 text-red-700'
-                                    : 'bg-yellow-50 text-yellow-700'
-                            }`}>
-                                {getPersetujuanText(data.persetujuan)}
-                            </span>
-                        )}
-                    </div>
-                </div>
-
-                {/* Additional Info if exists */}
-                {data.catatan && (
-                    <div className="pt-3 border-t border-gray-200">
-                        <p className="text-xs text-gray-500 mb-1">Catatan:</p>
-                        <p className="text-sm text-gray-700 line-clamp-2">
-                            {data.catatan}
-                        </p>
-                    </div>
-                )}
-
-                {/* Quick Actions Bar */}
-                <div className="pt-3 border-t border-gray-200 flex gap-2">
+                <div className="relative flex-shrink-0">
                     <button
-                        onClick={handleDetail}
-                        className="flex-1 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 text-sm font-medium"
+                        onClick={() => setIsMenuOpen(!isMenuOpen)}
+                        className="p-2 hover:bg-gray-100 rounded-md transition-colors"
                     >
-                        <Eye className="h-4 w-4" />
-                        Detail
+                        <MoreVertical className="h-5 w-5 text-gray-500" />
                     </button>
-                    <button
-                        onClick={handleEdit}
-                        className="flex-1 px-3 py-2 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 text-sm font-medium"
-                    >
-                        <Edit className="h-4 w-4" />
-                        Edit
-                    </button>
-                    <button
-                        onClick={handleDelete}
-                        className="flex-1 px-3 py-2 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 text-sm font-medium"
-                    >
-                        <Trash2 className="h-4 w-4" />
-                        Hapus
-                    </button>
+                    {isMenuOpen && (
+                        <>
+                            <div className="fixed inset-0 z-10" onClick={() => setIsMenuOpen(false)} />
+                            <div className="absolute right-0 top-full mt-1 w-40 bg-white rounded-lg shadow-lg border border-gray-100 z-20 overflow-hidden">
+                                <button
+                                    onClick={handleDetail}
+                                    className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2 text-sm"
+                                >
+                                    <Eye className="h-4 w-4 text-gray-500" />
+                                    <span className="text-gray-700">Detail</span>
+                                </button>
+                                <button
+                                    onClick={handleEdit}
+                                    className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2 text-sm"
+                                >
+                                    <Edit className="h-4 w-4 text-gray-500" />
+                                    <span className="text-gray-700">Edit</span>
+                                </button>
+                                <button
+                                    onClick={handleDelete}
+                                    className="w-full px-4 py-2 text-left hover:bg-red-50 flex items-center gap-2 text-sm"
+                                >
+                                    <Trash2 className="h-4 w-4 text-red-500" />
+                                    <span className="text-red-600">Hapus</span>
+                                </button>
+                            </div>
+                        </>
+                    )}
                 </div>
             </div>
         </div>

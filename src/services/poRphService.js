@@ -72,6 +72,13 @@ class PoRphService {
         queryParams.end_date = params.end_date;
       }
 
+      // Add optional advanced filters
+      ['no_po', 'nota', 'status', 'no_surat_jalan', 'no_faktur'].forEach((key) => {
+        if (params[key] !== undefined && params[key] !== null && params[key] !== '') {
+          queryParams[key] = params[key];
+        }
+      });
+
       const response = await HttpClient.get(API_ENDPOINTS.RPH?.PO?.DATA || `${this.API_BASE}/data`, {
         params: queryParams
       });

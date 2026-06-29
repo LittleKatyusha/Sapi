@@ -19,6 +19,15 @@ const usePoRph = () => {
         startDate: '',
         endDate: ''
     });
+    const [advancedFilters, setAdvancedFilters] = useState({
+        no_po: '',
+        nota: '',
+        status: '',
+        no_surat_jalan: '',
+        no_faktur: '',
+        startDate: '',
+        endDate: ''
+    });
     
     // Loading states for specific operations
     const [isSearching, setIsSearching] = useState(false);
@@ -84,7 +93,8 @@ const usePoRph = () => {
         search = null,
         status = null,
         dateFilter = null,
-        isSearchRequest = false
+        isSearchRequest = false,
+        advanced = null
     ) => {
         setLoading(true);
         setError(null);
@@ -95,6 +105,8 @@ const usePoRph = () => {
         }
         
         try {
+            const currentAdvanced = advanced !== null ? advanced : advancedFilters;
+
             // Prepare parameters for DataTable format
             const params = {
                 start: (page - 1) * perPage,
@@ -111,6 +123,17 @@ const usePoRph = () => {
             if (currentDateRange.endDate) {
                 params.end_date = currentDateRange.endDate;
             }
+
+            // Add advanced filters
+            if (currentAdvanced.no_po) params.no_po = currentAdvanced.no_po;
+            if (currentAdvanced.nota) params.nota = currentAdvanced.nota;
+            if (currentAdvanced.status || currentAdvanced.status === 0 || currentAdvanced.status === '0') {
+                params.status = currentAdvanced.status;
+            }
+            if (currentAdvanced.no_surat_jalan) params.no_surat_jalan = currentAdvanced.no_surat_jalan;
+            if (currentAdvanced.no_faktur) params.no_faktur = currentAdvanced.no_faktur;
+            if (currentAdvanced.startDate) params.start_date = currentAdvanced.startDate;
+            if (currentAdvanced.endDate) params.end_date = currentAdvanced.endDate;
             
             const response = await PoRphService.getData(params);
             
@@ -158,7 +181,7 @@ const usePoRph = () => {
             setLoading(false);
             setIsSearching(false);
         }
-    }, [searchTerm, dateRange, pagination.draw]);
+    }, [searchTerm, dateRange, pagination.draw, advancedFilters]);
 
     /**
      * Create new PO
@@ -350,6 +373,33 @@ const usePoRph = () => {
     }, [fetchPoList, pagination.perPage]);
 
     /**
+     * Handle advanced filters
+     */
+    const handleAdvancedFilters = useCallback((newFilters) => {
+        setAdvancedFilters(newFilters);
+        setSearchError(null);
+        fetchPoList(1, pagination.perPage, null, null, null, false, newFilters);
+    }, [fetchPoList, pagination.perPage]);
+
+    /**
+     * Clear advanced filters
+     */
+    const clearAdvancedFilters = useCallback((emptyFilters) => {
+        const reset = emptyFilters || {
+            no_po: '',
+            nota: '',
+            status: '',
+            no_surat_jalan: '',
+            no_faktur: '',
+            startDate: '',
+            endDate: ''
+        };
+        setAdvancedFilters(reset);
+        setSearchError(null);
+        fetchPoList(1, pagination.perPage, '', null, null, false, reset);
+    }, [fetchPoList, pagination.perPage]);
+
+    /**
      * Handle page change
      */
     const handlePageChange = useCallback((newPage) => {
@@ -436,6 +486,8 @@ const usePoRph = () => {
         setFilterStatus,
         dateRange,
         setDateRange,
+        advancedFilters,
+        setAdvancedFilters,
         
         // Pagination
         pagination,
@@ -464,6 +516,8 @@ const usePoRph = () => {
         handleFilter,
         handleDateRangeFilter,
         clearDateRange,
+        handleAdvancedFilters,
+        clearAdvancedFilters,
         handlePageChange,
         handlePerPageChange,
         

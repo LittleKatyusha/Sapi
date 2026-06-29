@@ -1,17 +1,15 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import DataTable from 'react-data-table-component';
-import { PlusCircle, Search, ShoppingCart, X, Loader2, Calendar, Package, TrendingUp, DollarSign, FileText } from 'lucide-react';
-import FotoRPH from '../../../../components/shared/Images/Foto RPH.png';
+import { PlusCircle, Calendar, CalendarDays, CalendarRange, Truck, CheckCircle2 } from 'lucide-react';
 
 // Import real hooks
 import usePoRph from './hooks/usePoRph';
 
 // Import components
-import ActionButton from './components/ActionButton';
 import PembelianSapiCard from './components/PembelianSapiCard';
 import CustomPagination from './components/CustomPagination';
-import { enhancedTableStyles } from './constants/tableStyles';
+import PembelianSapiFilterPanel from './components/PembelianSapiFilterPanel';
+import ModernPembelianSapiTable from './components/ModernPembelianSapiTable';
 
 // Import modals
 import AddPoRphModal from './modals/AddPoRphModal';
@@ -23,121 +21,16 @@ import DeleteConfirmationModal from './modals/DeleteConfirmationModal';
 const NOTIFICATION_TIMEOUT = 5000;
 const ITEMS_PER_PAGE_OPTIONS = [10, 25, 50, 100];
 
-// Memoized components for better performance
-const StatCard = React.memo(({ title, value, bgColor, icon: Icon, subtitle, details }) => (
-    <div className={`${bgColor} text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300`}>
-        <div className="flex items-start justify-between mb-2">
-            <h3 className="text-sm sm:text-base font-medium opacity-90">{title}</h3>
-            {Icon && (
-                <div className="p-2 bg-white/20 rounded-lg">
-                    <Icon className="h-5 w-5 text-white" />
-                </div>
-            )}
-        </div>
-        {subtitle && (
-            <p className="text-xs sm:text-sm opacity-80 mb-2">{subtitle}</p>
-        )}
-        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-3">{value}</p>
-        {details && (
-            <div className="space-y-1 border-t border-white/20 pt-3">
-                {details.map((detail, index) => (
-                    <div key={index} className="flex justify-between items-center">
-                        <span className="text-xs sm:text-sm opacity-90">{detail.label}:</span>
-                        <span className="text-sm sm:text-base font-semibold">{detail.value}</span>
-                    </div>
-                ))}
+// Compact minimal stat card
+const StatCard = React.memo(({ title, value, icon: Icon, accentColor }) => (
+    <div className="bg-white rounded-lg p-3.5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-200">
+        <div className="flex items-center gap-2.5 mb-2">
+            <div className={`p-1.5 rounded-md ${accentColor}`}>
+                {Icon && <Icon className="w-4 h-4 text-white" />}
             </div>
-        )}
-    </div>
-));
-
-const SearchInput = React.memo(({ 
-    searchTerm, 
-    isSearching, 
-    searchError, 
-    onSearch, 
-    onClear 
-}) => (
-    <div className="relative flex-1 max-w-full sm:max-w-md lg:max-w-lg">
-        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-        
-        {isSearching && (
-            <Loader2 className="absolute right-12 top-1/2 transform -translate-y-1/2 w-4 h-4 text-red-500 animate-spin" />
-        )}
-        
-        {searchTerm && !isSearching && (
-            <button
-                onClick={onClear}
-                className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 hover:text-gray-600 transition-colors duration-200"
-                title="Clear search"
-            >
-                <X className="w-4 h-4" />
-            </button>
-        )}
-        
-        <input
-            type="text"
-            placeholder="Cari berdasarkan no PO, nota, supplier, atau office..."
-            value={searchTerm}
-            onChange={(e) => onSearch(e.target.value)}
-            className={`w-full pl-12 ${searchTerm || isSearching ? 'pr-12' : 'pr-4'} py-2.5 sm:py-3 md:py-4 border ${
-                searchError 
-                    ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
-                    : 'border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-red-500'
-            } rounded-full transition-all duration-200 text-sm sm:text-base shadow-sm hover:shadow-md`}
-        />
-        
-        {searchError && (
-            <div className="absolute top-full left-0 right-0 mt-1 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-                {searchError}
-            </div>
-        )}
-    </div>
-));
-
-const DateRangeFilter = React.memo(({ 
-    dateRange, 
-    onDateRangeChange, 
-    onClearDateRange 
-}) => (
-    <div className="flex items-center gap-2 md:gap-3 flex-wrap">
-        <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
-        <div className="flex items-center gap-2">
-            <input
-                id="startDateInput"
-                type="date"
-                value={dateRange.startDate}
-                onChange={(e) => {
-                    const newDateRange = { ...dateRange, startDate: e.target.value };
-                    onDateRangeChange(newDateRange);
-                }}
-                className="px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 text-sm sm:text-base shadow-sm hover:shadow-md hover:border-gray-400 transition-all duration-200 cursor-pointer w-full"
-                style={{ minWidth: '150px' }}
-                title="Pilih Tanggal Mulai"
-            />
-            <span className="text-gray-500 text-sm font-medium">s/d</span>
-            <input
-                id="endDateInput"
-                type="date"
-                value={dateRange.endDate}
-                onChange={(e) => {
-                    const newDateRange = { ...dateRange, endDate: e.target.value };
-                    onDateRangeChange(newDateRange);
-                }}
-                className="px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 text-sm sm:text-base shadow-sm hover:shadow-md hover:border-gray-400 transition-all duration-200 cursor-pointer w-full"
-                style={{ minWidth: '150px' }}
-                title="Pilih Tanggal Akhir"
-            />
-            {(dateRange.startDate || dateRange.endDate) && (
-                <button
-                    onClick={onClearDateRange}
-                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all duration-200"
-                    title="Hapus Filter Tanggal"
-                >
-                    <X className="w-4 h-4" />
-                </button>
-            )}
+            <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wide">{title}</h3>
         </div>
+        <p className="text-2xl sm:text-3xl font-bold text-gray-900">{value ?? 0}</p>
     </div>
 ));
 
@@ -200,7 +93,6 @@ const Notification = React.memo(({ notification, onClose }) => {
 const PembelianSapi = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const [openMenuId, setOpenMenuId] = useState(null);
     const [notification, setNotification] = useState(null);
     const [lastRefreshTime, setLastRefreshTime] = useState(Date.now());
     const [isTableReady, setIsTableReady] = useState(false);
@@ -220,32 +112,20 @@ const PembelianSapi = () => {
         poList: filteredData,
         loading,
         error,
-        searchTerm,
-        setSearchTerm,
-        filterStatus,
-        setFilterStatus,
-        dateRange,
-        setDateRange,
-        isSearching,
-        searchError,
+        advancedFilters,
         stats,
         serverPagination,
         fetchPoList,
         createPo,
         updatePo,
         deletePo,
-        getPoDetail,
-        handleSearch,
-        clearSearch,
-        handleFilter,
-        handleDateRangeFilter,
-        clearDateRange,
+        handleAdvancedFilters,
+        clearAdvancedFilters,
         handlePageChange: handleServerPageChange,
         handlePerPageChange: handleServerPerPageChange,
         deleteLoading,
         createLoading,
-        updateLoading,
-        detailLoading
+        updateLoading
     } = poRphHook;
 
     // Initial data fetch
@@ -351,7 +231,6 @@ const PembelianSapi = () => {
     const handleEdit = (item) => {
         setSelectedItem(item);
         setIsEditModalOpen(true);
-        setOpenMenuId(null);
     };
 
     const handleCloseEditModal = () => {
@@ -392,7 +271,6 @@ const PembelianSapi = () => {
     const handleDelete = (item) => {
         setSelectedItem(item);
         setIsDeleteModalOpen(true);
-        setOpenMenuId(null);
     };
 
     const handleCloseDeleteModal = () => {
@@ -437,7 +315,6 @@ const PembelianSapi = () => {
         navigate(`/rph/pembelian-sapi/detail/${itemId}`, {
             state: { item }
         });
-        setOpenMenuId(null);
     };
 
     // Pagination handlers for mobile cards
@@ -567,561 +444,149 @@ const PembelianSapi = () => {
         }
     };
 
-    const columns = useMemo(() => [
-        {
-            name: 'No',
-            selector: (row, index) => index + 1,
-            sortable: false,
-            width: '60px',
-            ignoreRowClick: true,
-            cell: (row, index) => (
-                <div className="flex items-center justify-center w-full h-full font-semibold text-gray-600">
-                    {(serverPagination.currentPage - 1) * serverPagination.perPage + index + 1}
-                </div>
-            )
-        },
-        {
-            name: 'Aksi',
-            width: '80px',
-            cell: row => (
-                <ActionButton
-                    row={row}
-                    openMenuId={openMenuId}
-                    setOpenMenuId={setOpenMenuId}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                    onDetail={handleDetail}
-                    isActive={openMenuId === (row.pid || row.encryptedPid || row.pubid)}
-                />
-            ),
-            ignoreRowClick: true,
-        },
-        {
-            name: 'Nota',
-            selector: row => row.nota,
-            sortable: true,
-            width: '150px',
-            wrap: true,
-            cell: row => (
-                <div className="w-full px-2 flex items-center justify-center">
-                    <div className="font-medium text-sm bg-purple-50 px-3 py-2 rounded-lg text-center break-words whitespace-normal leading-tight text-purple-700">
-                        {row.nota || '-'}
-                    </div>
-                </div>
-            )
-        },
-        {
-            name: 'No. PO',
-            selector: row => row.no_po,
-            sortable: true,
-            width: '180px',
-            wrap: true,
-            cell: row => (
-                <div className="w-full px-2 flex items-center justify-center">
-                    <div className="font-mono text-sm bg-blue-50 px-3 py-2 rounded-lg text-center break-words whitespace-normal leading-tight text-blue-700">
-                        {row.no_po || '-'}
-                    </div>
-                </div>
-            )
-        },
-        {
-            name: 'Tanggal Pesanan',
-            selector: row => row.tgl_pesanan,
-            sortable: true,
-            width: '140px',
-            wrap: true,
-            cell: row => (
-                <div className="flex items-center justify-center w-full h-full min-h-[40px]">
-                    <div className="text-center font-medium text-gray-800 no-wrap">
-                        {row.tgl_pesanan ? new Date(row.tgl_pesanan).toLocaleDateString('id-ID', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            year: 'numeric'
-                        }) : '-'}
-                    </div>
-                </div>
-            )
-        },
-        {
-            name: 'Supplier',
-            selector: row => row.nama_supplier,
-            sortable: true,
-            grow: 2,
-            wrap: true,
-            cell: row => (
-                <div className="flex items-center justify-center w-full h-full min-h-[40px]">
-                    <div className="text-center font-medium text-gray-800">
-                        {row.nama_supplier || 'RPH'}
-                    </div>
-                </div>
-            )
-        },
-        {
-            name: 'Jumlah',
-            selector: row => row.jumlah,
-            sortable: true,
-            width: '100px',
-            wrap: true,
-            cell: row => (
-                <div className="flex items-center justify-center w-full h-full min-h-[40px]">
-                    <div className="bg-indigo-50 text-indigo-700 px-3 py-2 rounded-lg font-semibold text-center min-w-[60px]">
-                        {row.jumlah || 0}<br/>
-                        <span className="text-xs text-indigo-500">ekor</span>
-                    </div>
-                </div>
-            )
-        },
-        {
-            name: 'Total Harga',
-            selector: row => row.harga,
-            sortable: true,
-            grow: 1.5,
-            wrap: true,
-            cell: row => (
-                <div className="flex items-center justify-center w-full h-full min-h-[40px] px-1">
-                    <div className="bg-green-50 text-green-700 px-3 py-2 rounded-lg font-semibold text-center text-sm leading-tight">
-                        {formatCurrency(row.harga || row.biaya_total || 0)}
-                    </div>
-                </div>
-            )
-        },
-        {
-            name: 'Status',
-            selector: row => row.status,
-            sortable: true,
-            width: '120px',
-            wrap: true,
-            cell: row => (
-                <div className="flex items-center justify-center w-full h-full min-h-[40px]">
-                    {getPersetujuanBadge(row.status)}
-                </div>
-            )
-        },
-    ], [openMenuId, serverPagination, formatCurrency]);
-
     return (
         <>
-            <style>{`
-                .word-break-all {
-                    word-break: break-all;
-                    overflow-wrap: break-word;
-                    hyphens: auto;
-                }
-                
-                .no-wrap {
-                    white-space: nowrap;
-                    overflow: visible;
-                    text-overflow: clip;
-                }
-                
-                .force-wrap {
-                    white-space: normal;
-                    word-wrap: break-word;
-                    overflow-wrap: break-word;
-                }
-                
-                /* Custom scrollbar styling */
-                .table-scroll-container::-webkit-scrollbar {
-                    height: 10px;
-                }
-                
-                .table-scroll-container::-webkit-scrollbar-track {
-                    background: #f1f5f9;
-                    border-radius: 4px;
-                }
-                
-                .table-scroll-container::-webkit-scrollbar-thumb {
-                    background: #cbd5e1;
-                    border-radius: 4px;
-                    transition: background 0.2s ease;
-                }
-                
-                .table-scroll-container::-webkit-scrollbar-thumb:hover {
-                    background: #94a3b8;
-                }
-                
-                /* Hide scrollbar on Firefox while keeping functionality */
-                .table-scroll-container {
-                    scrollbar-width: thin;
-                    scrollbar-color: #cbd5e1 #f1f5f9;
-                }
-                
-                /* Force full width table */
-                .rdt_Table {
-                    width: 100% !important;
-                    min-width: 1200px !important;
-                }
-                
-                .rdt_TableWrapper {
-                    width: 100% !important;
-                }
-                
-                /* Force header center alignment override */
-                .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol {
-                    text-align: center !important;
-                    display: flex !important;
-                    align-items: center !important;
-                    justify-content: center !important;
-                }
-                
-                .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol > div {
-                    text-align: center !important;
-                    width: 100% !important;
-                    display: flex !important;
-                    align-items: center !important;
-                    justify-content: center !important;
-                }
-                
-                /* Override sort buttons and text alignment */
-                .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol .rdt_TableCol_Sortable {
-                    text-align: center !important;
-                    display: flex !important;
-                    align-items: center !important;
-                    justify-content: center !important;
-                    width: 100% !important;
-                }
-                
-                .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol span {
-                    text-align: center !important;
-                }
-                
-                /* Full width for desktop table container */
-                @media (min-width: 768px) {
-                    .table-full-width {
-                        margin-left: 0;
-                        margin-right: 0;
-                        border-radius: 0;
-                    }
-                }
-            `}</style>
-            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-            <div className="w-full mx-auto px-0 py-4 sm:py-6 space-y-6">
-                <div className="bg-white rounded-lg p-4 sm:p-6 shadow-xl border border-gray-100 mx-4 sm:mx-6 lg:mx-8">
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="flex items-center gap-4">
-                            <img
-                                src={FotoRPH}
-                                alt="RPH Logo"
-                                className="h-12 w-12 sm:h-16 sm:w-16 lg:h-20 lg:w-20 object-contain"
-                            />
+            <div className="min-h-screen bg-gray-50 p-4 sm:p-6">
+                <div className="w-full mx-auto space-y-4">
+                    {/* Header Card */}
+                    <div className="bg-white rounded-lg border border-gray-100 p-4 shadow-sm">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                             <div>
-                                <h1 className="text-2xl sm:text-4xl font-bold text-gray-800">
+                                <h1 className="text-lg sm:text-xl font-bold text-gray-900">
                                     Kelola data pembelian sapi
                                 </h1>
-                                <p className="text-gray-600 text-sm sm:text-base">
+                                <p className="text-sm text-gray-500">
                                     Kelola data pembelian sapi dan ternak
                                 </p>
                             </div>
-                        </div>
-                        <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 md:gap-6">
                             <button
                                 onClick={handleOpenAddModal}
-                                className="bg-gradient-to-r from-red-500 to-rose-600 text-white px-4 py-2 sm:px-6 sm:py-3 md:px-7 md:py-4 lg:px-8 lg:py-4 rounded-xl sm:rounded-2xl hover:from-red-600 hover:to-rose-700 transition-all duration-300 flex items-center gap-3 font-medium shadow-lg hover:shadow-xl text-sm sm:text-base"
+                                className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm"
                             >
-                                <PlusCircle className="w-5 h-5 sm:w-6 sm:h-6" />
-                                Tambah Pembelian Sapi
+                                <PlusCircle className="w-4 h-4" />
+                                Tambah
                             </button>
                         </div>
                     </div>
-                </div>
 
-                <div className="grid grid-cols-1 gap-3 sm:gap-4 md:gap-6 sm:grid-cols-2 lg:grid-cols-4 px-4 sm:px-6 lg:px-8">
-                    {/* Today's Stats */}
-                    <StatCard
-                        title="Hari Ini"
-                        value={stats.todayCount || 0}
-                        bgColor="bg-gradient-to-br from-blue-400 to-blue-500"
-                        icon={Calendar}
-                        details={[
-                            { label: "PO", value: `${stats.todayCount || 0}` },
-                            { label: "Nilai", value: formatCurrency(stats.todayAmount || 0) }
-                        ]}
-                    />
-                    
-                    {/* Month Stats */}
-                    <StatCard
-                        title="Bulan Ini"
-                        value={stats.monthCount || 0}
-                        bgColor="bg-gradient-to-br from-blue-400 to-blue-500"
-                        icon={TrendingUp}
-                        details={[
-                            { label: "PO", value: `${stats.monthCount || 0}` },
-                            { label: "Nilai", value: formatCurrency(stats.monthAmount || 0) }
-                        ]}
-                    />
-                    
-                    {/* Year Stats */}
-                    <StatCard
-                        title="Tahun Ini"
-                        value={stats.yearCount || 0}
-                        bgColor="bg-gradient-to-br from-blue-400 to-blue-500"
-                        icon={DollarSign}
-                        details={[
-                            { label: "PO", value: `${stats.yearCount || 0}` },
-                            { label: "Nilai", value: formatCurrency(stats.yearAmount || 0) }
-                        ]}
-                    />
-                    
-                    {/* Status Stats */}
-                    <StatCard
-                        title="Status PO"
-                        value={stats.total || 0}
-                        bgColor="bg-gradient-to-br from-blue-400 to-blue-500"
-                        icon={Package}
-                        details={[
-                            { label: "Pending", value: `${stats.pendingCount || 0}` },
-                            { label: "Approved", value: `${stats.approvedCount || 0}` },
-                            { label: "Rejected", value: `${stats.rejectedCount || 0}` }
-                        ]}
-                    />
-                </div>
-
-                <div className="bg-white rounded-lg p-4 sm:p-6 shadow-lg border border-gray-100 mx-4 sm:mx-6 lg:mx-8">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 md:gap-6 sm:items-center sm:justify-between">
-                        <SearchInput
-                            searchTerm={searchTerm}
-                            isSearching={isSearching}
-                            searchError={searchError}
-                            onSearch={handleSearch}
-                            onClear={clearSearch}
-                        />
-
-                        <div className="flex flex-wrap gap-2 sm:gap-3 md:gap-4">
-                            <DateRangeFilter
-                                dateRange={dateRange}
-                                onDateRangeChange={handleDateRangeFilter}
-                                onClearDateRange={clearDateRange}
-                            />
-                        </div>
+                    {/* Stat Cards */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                        <StatCard title="Total PO" value={serverPagination.totalItems} icon={Truck} accentColor="bg-blue-500" />
+                        <StatCard title="Hari Ini" value={stats.todayCount || 0} icon={Calendar} accentColor="bg-emerald-500" />
+                        <StatCard title="Bulan Ini" value={stats.monthCount || 0} icon={CalendarDays} accentColor="bg-amber-500" />
+                        <StatCard title="Tahun Ini" value={stats.yearCount || 0} icon={CalendarRange} accentColor="bg-purple-500" />
+                        <StatCard title="Disetujui" value={stats.approvedCount || 0} icon={CheckCircle2} accentColor="bg-green-500" />
                     </div>
-                </div>
 
-                {/* Desktop Table View - Hidden on mobile */}
-                <div className="bg-white shadow-lg border-y border-gray-100 relative hidden md:block overflow-hidden table-full-width">
-                    {/* Scroll Indicator */}
-                    <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-                        <div className="flex items-center text-sm text-gray-600">
-                            <svg className="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16l-4-4m0 0l4-4m-4 4h18"></path>
-                            </svg>
-                            Scroll horizontal untuk melihat semua kolom
-                            <svg className="w-4 h-4 ml-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m0-4H3"></path>
-                            </svg>
-                        </div>
-                        <div className="text-xs text-gray-500">
-                            {filteredData.length} item{filteredData.length !== 1 ? 's' : ''}
-                        </div>
-                    </div>
-                    
-                    {/* Table Container with proper scroll */}
-                    <div className="w-full overflow-x-auto table-scroll-container" style={{maxHeight: '65vh'}}>
-                        <DataTable
-                            key={`datatable-${serverPagination.currentPage}-${filteredData.length}`}
-                            columns={columns}
-                            data={filteredData}
-                            pagination={false}
-                            customStyles={enhancedTableStyles}
-                            progressPending={loading}
-                            dense
-                            progressComponent={
-                                <div className="text-center py-12">
-                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto"></div>
-                                    <p className="text-gray-500 text-sm mt-2">Memuat data...</p>
-                                </div>
-                            }
-                            noDataComponent={
-                                <div className="text-center py-12">
-                                    {error ? (
-                                        <div className="text-red-600">
-                                            <p className="text-lg font-semibold">Error</p>
-                                            <p className="text-sm">{error}</p>
-                                        </div>
-                                    ) : searchTerm ? (
-                                        <div className="text-gray-500">
-                                            <p className="text-lg font-semibold">Tidak ada hasil untuk "{searchTerm}"</p>
-                                            <p className="text-sm mt-2">Coba gunakan kata kunci yang berbeda</p>
-                                            <button
-                                                onClick={clearSearch}
-                                                className="mt-3 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors duration-200 text-sm"
-                                            >
-                                                Clear Search
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <p className="text-gray-500 text-lg">Tidak ada data PO RPH ditemukan</p>
-                                    )}
-                                </div>
-                            }
-                            responsive={false}
-                            highlightOnHover
-                            pointerOnHover
-                            fixedHeader
-                            fixedHeaderScrollHeight="65vh"
-                        />
-                    </div>
-                    
-                    {/* Custom Pagination - Fixed outside scroll area */}
-                    <div className="border-t border-gray-200 bg-gray-50 px-4 py-4 flex items-center justify-between">
-                        <div className="flex items-center text-sm text-gray-700">
-                            <span>
-                                Menampilkan{' '}
-                                <span className="font-semibold">
-                                    {((serverPagination.currentPage - 1) * serverPagination.perPage) + 1}
-                                </span>
-                                {' '}sampai{' '}
-                                <span className="font-semibold">
-                                    {Math.min(serverPagination.currentPage * serverPagination.perPage, serverPagination.totalItems)}
-                                </span>
-                                {' '}dari{' '}
-                                <span className="font-semibold">{serverPagination.totalItems}</span>
-                                {' '}hasil
-                            </span>
-                        </div>
-                        
-                        <div className="flex items-center space-x-2">
-                            {/* Rows per page selector */}
-                            <div className="flex items-center space-x-2">
-                                <span className="text-sm text-gray-700">Rows per page:</span>
-                                <select
-                                    value={serverPagination.perPage}
-                                    onChange={(e) => handleServerPerPageChange(parseInt(e.target.value))}
-                                    className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
-                                >
-                                    <option value={10}>10</option>
-                                    <option value={25}>25</option>
-                                    <option value={50}>50</option>
-                                    <option value={100}>100</option>
-                                </select>
-                            </div>
-                            
-                            {/* Pagination buttons */}
-                            <div className="flex items-center space-x-1">
-                                <button
-                                    onClick={() => handleServerPageChange(1)}
-                                    disabled={serverPagination.currentPage === 1}
-                                    className="p-2 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    title="First page"
-                                >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-                                    </svg>
-                                </button>
-                                <button
-                                    onClick={() => handleServerPageChange(serverPagination.currentPage - 1)}
-                                    disabled={serverPagination.currentPage === 1}
-                                    className="p-2 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    title="Previous page"
-                                >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-                                    </svg>
-                                </button>
-                                
-                                <span className="px-3 py-1 text-sm font-medium">
-                                    {serverPagination.currentPage} of {serverPagination.totalPages}
-                                </span>
-                                
-                                <button
-                                    onClick={() => handleServerPageChange(serverPagination.currentPage + 1)}
-                                    disabled={serverPagination.currentPage === serverPagination.totalPages}
-                                    className="p-2 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    title="Next page"
-                                >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                                    </svg>
-                                </button>
-                                <button
-                                    onClick={() => handleServerPageChange(serverPagination.totalPages)}
-                                    disabled={serverPagination.currentPage === serverPagination.totalPages}
-                                    className="p-2 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    title="Last page"
-                                >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                    {/* Advanced Filter Panel */}
+                    <PembelianSapiFilterPanel
+                        filters={advancedFilters}
+                        onApply={handleAdvancedFilters}
+                        onReset={clearAdvancedFilters}
+                    />
 
-                {/* Mobile Card View - Visible on mobile only */}
-                <div className="md:hidden px-4 sm:px-6 lg:px-8">
-                    {loading ? (
-                        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
-                            <div className="text-center">
-                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto"></div>
-                                <p className="text-gray-500 text-sm mt-2">Memuat data...</p>
+                    {/* Error Banner */}
+                    {error && (
+                        <div className="bg-white rounded-lg shadow-sm border border-red-100 p-3 flex items-center gap-2 text-red-700">
+                            <div className="w-6 h-6 rounded-full bg-red-50 flex items-center justify-center">
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
                             </div>
-                        </div>
-                    ) : error ? (
-                        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
-                            <div className="text-center text-red-600">
-                                <p className="text-lg font-semibold">Error</p>
-                                <p className="text-sm">{error}</p>
-                            </div>
-                        </div>
-                    ) : filteredData.length === 0 ? (
-                        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
-                            <div className="text-center">
-                                {searchTerm ? (
-                                    <div className="text-gray-500">
-                                        <p className="text-lg font-semibold">Tidak ada hasil untuk "{searchTerm}"</p>
-                                        <p className="text-sm mt-2">Coba gunakan kata kunci yang berbeda</p>
-                                        <button
-                                            onClick={clearSearch}
-                                            className="mt-3 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors duration-200 text-sm"
-                                        >
-                                            Clear Search
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <p className="text-gray-500 text-lg">Tidak ada data PO RPH ditemukan</p>
-                                )}
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="space-y-4">
-                            {/* Cards Container */}
-                            <div className="space-y-3">
-                                {filteredData.map((item, index) => (
-                                    <PembelianSapiCard
-                                        key={item.pid || item.encryptedPid || item.pubid || index}
-                                        data={item}
-                                        index={(serverPagination.currentPage - 1) * serverPagination.perPage + index}
-                                        onEdit={handleEdit}
-                                        onDelete={handleDelete}
-                                        onDetail={handleDetail}
-                                        formatCurrency={formatCurrency}
-                                        getStatusBadge={getStatusBadge}
-                                        getPersetujuanBadge={getPersetujuanBadge}
-                                    />
-                                ))}
-                            </div>
-
-                            {/* Custom Pagination for Mobile - Server-side */}
-                            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                                <CustomPagination
-                                    currentPage={serverPagination.currentPage}
-                                    totalPages={serverPagination.totalPages}
-                                    totalItems={serverPagination.totalItems}
-                                    itemsPerPage={serverPagination.perPage}
-                                    onPageChange={handlePageChange}
-                                    onItemsPerPageChange={handleItemsPerPageChange}
-                                    itemsPerPageOptions={ITEMS_PER_PAGE_OPTIONS}
-                                    loading={loading}
-                                />
+                            <div>
+                                <div className="text-xs font-semibold">Gagal memuat data</div>
+                                <div className="text-[10px] text-red-600">{error}</div>
                             </div>
                         </div>
                     )}
+
+                    {/* Desktop Table */}
+                    <div className="hidden md:block">
+                        <ModernPembelianSapiTable
+                            data={filteredData}
+                            loading={loading}
+                            serverPagination={{
+                                currentPage: serverPagination.currentPage,
+                                perPage: serverPagination.perPage,
+                                totalRecords: serverPagination.totalItems || serverPagination.totalRecords || 0
+                            }}
+                            onPageChange={handleServerPageChange}
+                            onPerPageChange={handleServerPerPageChange}
+                            onEdit={handleEdit}
+                            onDelete={handleDelete}
+                            onDetail={handleDetail}
+                            onAdd={handleOpenAddModal}
+                        />
+                    </div>
+
+                    {/* Mobile Card View */}
+                    <div className="md:hidden">
+                        {loading ? (
+                            <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
+                                <div className="text-center">
+                                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-emerald-600 mx-auto"></div>
+                                    <p className="text-gray-500 text-xs mt-2">Memuat data...</p>
+                                </div>
+                            </div>
+                        ) : error ? (
+                            <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
+                                <div className="text-center text-red-600">
+                                    <p className="text-sm font-semibold">Error</p>
+                                    <p className="text-xs">{error}</p>
+                                </div>
+                            </div>
+                        ) : filteredData.length === 0 ? (
+                            <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
+                                <div className="text-center">
+                                    <p className="text-sm font-semibold text-gray-900 mb-1">Belum ada data</p>
+                                    <p className="text-xs text-gray-500 mb-3">Data pembelian sapi akan muncul di sini.</p>
+                                    <button
+                                        onClick={handleOpenAddModal}
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-md text-xs font-medium transition-colors"
+                                    >
+                                        <PlusCircle className="w-3.5 h-3.5" />
+                                        Tambah Pembelian
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                <div className="space-y-3">
+                                    {filteredData.map((item, index) => (
+                                        <PembelianSapiCard
+                                            key={item.pid || item.encryptedPid || item.pubid || index}
+                                            data={item}
+                                            index={(serverPagination.currentPage - 1) * serverPagination.perPage + index}
+                                            onEdit={handleEdit}
+                                            onDelete={handleDelete}
+                                            onDetail={handleDetail}
+                                            formatCurrency={formatCurrency}
+                                            getStatusBadge={getStatusBadge}
+                                            getPersetujuanBadge={getPersetujuanBadge}
+                                        />
+                                    ))}
+                                </div>
+                                <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+                                    <CustomPagination
+                                        currentPage={serverPagination.currentPage}
+                                        totalPages={serverPagination.totalPages}
+                                        totalItems={serverPagination.totalItems}
+                                        itemsPerPage={serverPagination.perPage}
+                                        onPageChange={handlePageChange}
+                                        onItemsPerPageChange={handleItemsPerPageChange}
+                                        itemsPerPageOptions={ITEMS_PER_PAGE_OPTIONS}
+                                        loading={loading}
+                                    />
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 
-            <Notification 
-                notification={notification} 
-                onClose={() => setNotification(null)} 
+            <Notification
+                notification={notification}
+                onClose={() => setNotification(null)}
             />
 
             {/* Modals */}
@@ -1149,9 +614,6 @@ const PembelianSapi = () => {
                 onCancel={handleCloseDeleteModal}
                 isDeleting={deleteLoading === (selectedItem?.pid || selectedItem?.encryptedPid)}
             />
-
-            {/* PoRphDetailModal removed - using navigation to detail page instead */}
-        </div>
         </>
     );
 };
