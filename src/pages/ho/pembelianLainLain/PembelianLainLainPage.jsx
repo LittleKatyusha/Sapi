@@ -838,93 +838,79 @@ const PembelianLainLainPage = () => {
             )
         },
         {
+            name: 'Tanggal & Divisi',
+            minWidth: '160px',
+            cell: row => (
+                <div className="space-y-0.5">
+                    <div className="text-sm font-medium text-gray-900">
+                        {(row.tgl_pembayaran || row.tgl_masuk || row.tanggal)
+                            ? new Date(row.tgl_pembayaran || row.tgl_masuk || row.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
+                            : '-'}
+                    </div>
+                    <span className="inline-flex px-2 py-0.5 text-[11px] font-medium rounded-md bg-blue-50 text-blue-700 border border-blue-100">
+                        {row.divisi || row.farm || '-'}
+                    </span>
+                </div>
+            )
+        },
+        {
+            name: 'Item & Jenis',
+            minWidth: '200px',
+            cell: row => (
+                <div className="space-y-0.5">
+                    <div className="text-sm font-medium text-gray-900 leading-tight">
+                        {row.nama_item || '-'}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                        {row.jenis_pembelian || row.jenis_beban || '-'}
+                    </div>
+                </div>
+            )
+        },
+        {
+            name: 'Pembayaran',
+            minWidth: '200px',
+            cell: row => (
+                <div className="space-y-1">
+                    <span className="inline-flex px-2 py-0.5 text-[11px] font-medium rounded-md bg-indigo-50 text-indigo-700 border border-indigo-100">
+                        {row.tipe_pembayaran || '-'}
+                    </span>
+                    <div className="text-sm font-semibold text-emerald-700">
+                        {(row.biaya_total || row.total_belanja) ? formatCurrency(row.biaya_total || row.total_belanja) : 'Rp 0'}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                        {row.payor || row.nama_supplier || '-'}
+                    </div>
+                </div>
+            )
+        },
+        {
+            name: 'Peruntukan',
+            minWidth: '150px',
+            cell: row => (
+                <span className="inline-flex px-2 py-0.5 text-[11px] font-medium rounded-md bg-purple-50 text-purple-700 border border-purple-100">
+                    {row.peruntukan || row.syarat_pembelian || '-'}
+                </span>
+            )
+        },
+        {
             name: 'PILIH',
             minWidth: '80px',
             maxWidth: '80px',
             cell: (row, index) => {
                 const rowId = row.id || row.encryptedPid || row.pid || row.pb_id || `beban-${index}`;
                 return (
-                    <PortalActionDropdown
-                        row={row}
-                        rowId={rowId}
-                        onEdit={handleEditBeban}
-                        onDelete={(item) => handleDelete({...item, reportType: 'beban'})}
-                        onDetail={handleDetailBeban}
-                    />
+                    <div className="flex justify-end">
+                        <PortalActionDropdown
+                            row={row}
+                            rowId={rowId}
+                            onEdit={handleEditBeban}
+                            onDelete={(item) => handleDelete({...item, reportType: 'beban'})}
+                            onDetail={handleDetailBeban}
+                        />
+                    </div>
                 );
             },
-        },
-        {
-            name: 'TANGGAL',
-            minWidth: '130px',
-            cell: row => (
-                <div className="text-center text-sm font-medium text-gray-800">
-                    {(row.tgl_pembayaran || row.tgl_masuk || row.tanggal) ? new Date(row.tgl_pembayaran || row.tgl_masuk || row.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}
-                </div>
-            )
-        },
-        {
-            name: 'DIVISI',
-            minWidth: '120px',
-            cell: row => (
-                <span className="inline-flex px-2 py-1 text-xs font-medium rounded-md bg-blue-100 text-blue-800">
-                    {row.divisi || row.farm || '-'}
-                </span>
-            )
-        },
-        {
-            name: 'ITEM',
-            minWidth: '180px',
-            cell: row => (
-                <div className="text-center text-sm font-medium text-gray-800 leading-tight">
-                    {row.nama_item || '-'}
-                </div>
-            )
-        },
-        {
-            name: 'JENIS',
-            minWidth: '160px',
-            cell: row => (
-                <div className="text-center text-sm font-medium text-gray-800 leading-tight">
-                    {row.jenis_pembelian || row.jenis_beban || '-'}
-                </div>
-            )
-        },
-        {
-            name: 'TIPE BAYAR',
-            minWidth: '140px',
-            cell: row => (
-                <span className="inline-flex px-2 py-1 text-xs font-medium rounded-md bg-indigo-100 text-indigo-800">
-                    {row.tipe_pembayaran || '-'}
-                </span>
-            )
-        },
-        {
-            name: 'NILAI (Rp)',
-            minWidth: '150px',
-            cell: row => (
-                <div className="bg-green-50 text-green-700 px-2 py-1.5 rounded-md font-semibold text-center text-xs">
-                    {(row.biaya_total || row.total_belanja) ? formatCurrency(row.biaya_total || row.total_belanja) : 'Rp 0'}
-                </div>
-            )
-        },
-        {
-            name: 'PAYOR',
-            minWidth: '160px',
-            cell: row => (
-                <div className="text-center text-sm font-medium text-gray-800 leading-tight">
-                    {row.payor || row.nama_supplier || '-'}
-                </div>
-            )
-        },
-        {
-            name: 'PERUNTUKAN',
-            minWidth: '160px',
-            cell: row => (
-                <span className="inline-flex px-2 py-1 text-xs font-medium rounded-md bg-purple-100 text-purple-800">
-                    {row.peruntukan || row.syarat_pembelian || '-'}
-                </span>
-            )
         },
     ], [bebanPagination.currentPage, bebanPagination.perPage]);
 
@@ -948,69 +934,42 @@ const PembelianLainLainPage = () => {
             )
         },
         {
-            name: 'PILIH',
-            minWidth: '80px',
-            maxWidth: '80px',
-            cell: (row, index) => {
-                const rowId = row.id || row.encryptedPid || row.pid || `bahan-pembantu-${index}`;
-                return (
-                    <PortalActionDropdown
-                        row={row}
-                        rowId={rowId}
-                        onEdit={handleEditBahanPembantu}
-                        onDelete={handleDeleteBahanPembantu}
-                        onDetail={handleDetailBahanPembantu}
-                    />
-                );
-            },
-        },
-        {
-            name: 'DIVISI',
-            minWidth: '120px',
+            name: 'Produk & Divisi',
+            minWidth: '200px',
             cell: row => (
-                <span className="inline-flex px-2 py-1 text-xs font-medium rounded-md bg-blue-100 text-blue-800">
-                    {row.farm || '-'}
-                </span>
-            )
-        },
-        {
-            name: 'PRODUK',
-            minWidth: '180px',
-            cell: row => (
-                <div className="text-center text-sm font-medium text-gray-800 leading-tight">
-                    {row.nama_produk || '-'}
+                <div className="space-y-0.5">
+                    <div className="text-sm font-medium text-gray-900 leading-tight">
+                        {row.nama_produk || '-'}
+                    </div>
+                    <span className="inline-flex px-2 py-0.5 text-[11px] font-medium rounded-md bg-blue-50 text-blue-700 border border-blue-100">
+                        {row.farm || '-'}
+                    </span>
                 </div>
             )
         },
         {
-            name: 'PERUNTUKAN',
+            name: 'Peruntukan',
             minWidth: '140px',
             cell: row => (
-                <span className="inline-flex px-2 py-1 text-xs font-medium rounded-md bg-purple-100 text-purple-800">
+                <span className="inline-flex px-2 py-0.5 text-[11px] font-medium rounded-md bg-purple-50 text-purple-700 border border-purple-100">
                     {row.peruntukan || '-'}
                 </span>
             )
         },
         {
-            name: 'JUMLAH',
-            minWidth: '120px',
-            cell: row => (
-                <div className="bg-indigo-50 text-indigo-700 px-2 py-1.5 rounded-md font-semibold text-center text-xs">
-                    {row.jumlah || 0} {row.satuan || ''}
-                </div>
-            )
-        },
-        {
-            name: 'HARGA',
-            minWidth: '160px',
+            name: 'Qty & Harga',
+            minWidth: '180px',
             cell: row => {
                 const subTotal = (row.jumlah || 0) * (row.harga_satuan || 0);
                 return (
-                    <div className="space-y-1 text-xs text-center">
-                        <div className="bg-cyan-50 text-cyan-700 px-2 py-1 rounded-md font-semibold">
-                            {row.harga_satuan ? formatCurrency(row.harga_satuan) : 'Rp 0'} <span className="text-[10px] font-normal text-gray-500">/satuan</span>
+                    <div className="space-y-1">
+                        <div className="text-sm font-medium text-gray-900">
+                            {row.jumlah || 0} {row.satuan || ''}
                         </div>
-                        <div className="bg-purple-50 text-purple-700 px-2 py-1 rounded-md font-semibold">
+                        <div className="text-xs text-gray-500">
+                            {row.harga_satuan ? formatCurrency(row.harga_satuan) : 'Rp 0'} /satuan
+                        </div>
+                        <div className="text-sm font-semibold text-emerald-700">
                             {formatCurrency(subTotal)}
                         </div>
                     </div>
@@ -1018,59 +977,70 @@ const PembelianLainLainPage = () => {
             }
         },
         {
-            name: 'PEMASOK',
-            minWidth: '160px',
+            name: 'Biaya & Total',
+            minWidth: '180px',
             cell: row => (
-                <div className="text-center text-sm font-medium text-gray-800 leading-tight">
-                    {row.pemasok || '-'}
-                </div>
-            )
-        },
-        {
-            name: 'BIAYA TAMBAHAN',
-            minWidth: '160px',
-            cell: row => (
-                <div className="space-y-1 text-xs text-center">
-                    <div className="bg-yellow-50 text-yellow-700 px-2 py-1 rounded-md font-semibold">
-                        Kirim: {row.biaya_kirim ? formatCurrency(row.biaya_kirim) : 'Rp 0'}
+                <div className="space-y-1">
+                    <div className="flex justify-between text-xs text-gray-500 gap-2">
+                        <span>Kirim</span>
+                        <span className="font-medium text-gray-700">{row.biaya_kirim ? formatCurrency(row.biaya_kirim) : 'Rp 0'}</span>
                     </div>
-                    <div className="bg-orange-50 text-orange-700 px-2 py-1 rounded-md font-semibold">
-                        Lain: {row.biaya_lain ? formatCurrency(row.biaya_lain) : 'Rp 0'}
+                    <div className="flex justify-between text-xs text-gray-500 gap-2">
+                        <span>Lain</span>
+                        <span className="font-medium text-gray-700">{row.biaya_lain ? formatCurrency(row.biaya_lain) : 'Rp 0'}</span>
+                    </div>
+                    <div className="text-sm font-semibold text-emerald-700 pt-0.5 border-t border-gray-100">
+                        {row.biaya_total ? formatCurrency(row.biaya_total) : 'Rp 0'}
                     </div>
                 </div>
             )
         },
         {
-            name: 'GRAND TOTAL',
-            minWidth: '150px',
+            name: 'Pemasok & Keterangan',
+            minWidth: '200px',
             cell: row => (
-                <div className="bg-green-50 text-green-700 px-2 py-1.5 rounded-md font-semibold text-center text-xs">
-                    {row.biaya_total ? formatCurrency(row.biaya_total) : 'Rp 0'}
+                <div className="space-y-0.5">
+                    <div className="text-sm font-medium text-gray-900 leading-tight">
+                        {row.pemasok || '-'}
+                    </div>
+                    <div className="text-xs text-gray-500 line-clamp-2">
+                        {row.keterangan || '-'}
+                    </div>
                 </div>
             )
         },
         {
-            name: 'KETERANGAN',
-            minWidth: '160px',
-            cell: row => (
-                <div className="text-center text-sm font-medium text-gray-800 leading-tight">
-                    {row.keterangan || '-'}
-                </div>
-            )
-        },
-        {
-            name: 'PEMBAYARAN',
+            name: 'Pembayaran',
             minWidth: '150px',
             cell: row => (
-                <div className="space-y-1 text-center">
-                    <span className="inline-flex px-2 py-1 text-xs font-medium rounded-md bg-green-100 text-green-800">
+                <div className="space-y-0.5">
+                    <span className="inline-flex px-2 py-0.5 text-[11px] font-medium rounded-md bg-green-50 text-green-700 border border-green-100">
                         {row.syarat_pembelian || '-'}
                     </span>
-                    <span className="inline-flex px-2 py-1 text-xs font-medium rounded-md bg-blue-100 text-blue-800">
+                    <span className="inline-flex px-2 py-0.5 text-[11px] font-medium rounded-md bg-blue-50 text-blue-700 border border-blue-100">
                         {row.tipe_pembayaran || '-'}
                     </span>
                 </div>
             )
+        },
+        {
+            name: 'PILIH',
+            minWidth: '80px',
+            maxWidth: '80px',
+            cell: (row, index) => {
+                const rowId = row.id || row.encryptedPid || row.pid || `bahan-pembantu-${index}`;
+                return (
+                    <div className="flex justify-end">
+                        <PortalActionDropdown
+                            row={row}
+                            rowId={rowId}
+                            onEdit={handleEditBahanPembantu}
+                            onDelete={handleDeleteBahanPembantu}
+                            onDetail={handleDetailBahanPembantu}
+                        />
+                    </div>
+                );
+            },
         },
     ], [bahanPembantuPagination.currentPage, bahanPembantuPagination.perPage, handleEditBahanPembantu, handleDeleteBahanPembantu, handleDetailBahanPembantu]);
 

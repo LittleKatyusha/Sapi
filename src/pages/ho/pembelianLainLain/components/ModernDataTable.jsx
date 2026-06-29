@@ -61,7 +61,7 @@ const ModernDataTable = ({
                 {columns.map((col, colIndex) => (
                   <th
                     key={getKey(col, colIndex)}
-                    className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap"
+                    className="px-3 py-2 text-left text-[11px] font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap"
                     style={{ width: getWidth(col), minWidth: getWidth(col) }}
                   >
                     {col.name}
@@ -69,27 +69,27 @@ const ModernDataTable = ({
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-gray-100 text-sm">
               {loading ? (
                 <tr>
-                  <td colSpan={columns.length} className="px-4 py-12 text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                    <p className="text-gray-500 text-sm mt-2">Memuat data...</p>
+                  <td colSpan={columns.length} className="px-3 py-10 text-center">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+                    <p className="text-gray-500 text-xs mt-2">Memuat data...</p>
                   </td>
                 </tr>
               ) : error ? (
                 <tr>
-                  <td colSpan={columns.length} className="px-4 py-12 text-center">
+                  <td colSpan={columns.length} className="px-3 py-10 text-center">
                     <div className="text-red-600">
-                      <p className="text-lg font-semibold">Error</p>
-                      <p className="text-sm">{error}</p>
+                      <p className="text-base font-semibold">Error</p>
+                      <p className="text-xs">{error}</p>
                     </div>
                   </td>
                 </tr>
               ) : data.length === 0 ? (
                 <tr>
-                  <td colSpan={columns.length} className="px-4 py-12 text-center">
-                    <p className="text-gray-500 text-lg">{emptyMessage}</p>
+                  <td colSpan={columns.length} className="px-3 py-10 text-center">
+                    <p className="text-gray-500 text-base">{emptyMessage}</p>
                   </td>
                 </tr>
               ) : (
@@ -100,7 +100,7 @@ const ModernDataTable = ({
                       {columns.map((col, colIndex) => (
                         <td
                           key={`${rowId}-${getKey(col, colIndex)}`}
-                          className="px-4 py-3.5 text-sm text-gray-700"
+                          className="px-3 py-2 text-sm text-gray-700"
                           style={{ width: getWidth(col), minWidth: getWidth(col) }}
                         >
                           {renderCell(col, row, index)}

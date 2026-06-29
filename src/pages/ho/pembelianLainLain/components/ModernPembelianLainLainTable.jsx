@@ -157,7 +157,7 @@ const ModernPembelianLainLainTable = ({
 
   const TableHeader = ({ label, caption, sortKey, align = 'left' }) => (
     <th
-      className={`pb-3 pt-4 text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 transition-colors ${
+      className={`pb-2 pt-2.5 text-[11px] font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 transition-colors ${
         align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : 'text-left'
       }`}
       onClick={sortKey ? () => handleSort(sortKey) : undefined}
@@ -225,14 +225,14 @@ const ModernPembelianLainLainTable = ({
           <table className="w-full">
             <thead className="bg-gray-50/50 border-b border-gray-100">
               <tr>
-                <th className="pb-3 pt-4 pl-4 pr-2 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center w-14">No</th>
+                <th className="pb-2 pt-2.5 pl-3 pr-2 text-[11px] font-semibold text-gray-500 uppercase tracking-wider text-center w-14">No</th>
                 <TableHeader label="Pembelian" caption="Nota Sistem / Manual" sortKey="nota_sistem" />
                 <TableHeader label="Supplier" caption="Nama & Plat Nomor" sortKey="nama_supplier" />
                 <TableHeader label="Tanggal Masuk" caption="Tgl kedatangan" sortKey="tgl_masuk" />
                 <TableHeader label="Jumlah" caption="Jumlah item" sortKey="jumlah" align="right" />
                 <TableHeader label="Total Biaya" caption="Beli + Lain + Truk" align="right" />
                 <TableHeader label="Jenis Pembelian" caption="Tipe supplier" sortKey="jenis_pembelian" />
-                <th className="pb-3 pt-4 pr-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Aksi</th>
+                <th className="pb-2 pt-2.5 pr-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider text-right">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -243,59 +243,59 @@ const ModernPembelianLainLainTable = ({
                 return (
                   <React.Fragment key={rowId || index}>
                     <tr className="group hover:bg-gray-50/60 transition-colors">
-                      <td className="pl-4 pr-2 py-3.5 text-center">
+                      <td className="pl-3 pr-2 py-2 text-center">
                         <button
                           onClick={() => toggleExpand(rowId)}
-                          className="inline-flex items-center gap-1.5 text-gray-500 hover:text-gray-700 transition-colors"
+                          className="inline-flex items-center gap-1 text-gray-500 hover:text-gray-700 transition-colors"
                         >
                           <span className="text-xs font-medium text-gray-400 w-5">{rowNumber}</span>
-                          {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                          {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                         </button>
                       </td>
-                      <td className="px-4 py-3.5">
+                      <td className="px-3 py-2">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="font-mono text-xs px-2 py-1 rounded bg-blue-50 text-blue-700 border border-blue-100">
+                            <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-100">
                               {row.nota_sistem || '-'}
                             </span>
                           </div>
-                          <div className="text-sm font-medium text-gray-900 mt-1 truncate">{row.nota || '-'}</div>
+                          <div className="text-sm font-medium text-gray-900 truncate">{row.nota || '-'}</div>
                         </div>
                       </td>
-                      <td className="px-4 py-3.5">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold ${getSupplierColor(row.nama_supplier)}`}>
+                      <td className="px-3 py-2">
+                        <div className="flex items-center gap-2.5">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-semibold ${getSupplierColor(row.nama_supplier)}`}>
                             {getInitials(row.nama_supplier)}
                           </div>
                           <div className="min-w-0">
                             <div className="text-sm font-medium text-gray-900 truncate">{row.nama_supplier || '-'}</div>
-                            <div className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+                            <div className="text-xs text-gray-500 flex items-center gap-1">
                               <Truck className="w-3 h-3" />
                               <span>{row.plat_nomor || '-'}</span>
                             </div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3.5">
+                      <td className="px-3 py-2">
                         <div className="text-sm font-medium text-gray-900">{formatDate(row.tgl_masuk)}</div>
                         <div className="text-xs text-gray-500">{formatDateCompact(row.tgl_masuk)}</div>
                       </td>
-                      <td className="px-4 py-3.5 text-right">
+                      <td className="px-3 py-2 text-right">
                         <div className="text-sm font-semibold text-gray-900">{row.jumlah || 0}</div>
                         <div className="text-xs text-gray-500">item</div>
                       </td>
-                      <td className="px-4 py-3.5 text-right">
+                      <td className="px-3 py-2 text-right">
                         <div className="text-sm font-semibold text-gray-900">{formatCurrency(row.biaya_total)}</div>
                         <div className="text-xs text-gray-500">
                           B:{formatCurrency(row.total_belanja)} L:{formatCurrency(row.biaya_lain)} T:{formatCurrency(row.biaya_truk)}
                         </div>
                       </td>
-                      <td className="px-4 py-3.5">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getJenisPembelianStyle(row.jenis_pembelian)}`}>
+                      <td className="px-3 py-2">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border ${getJenisPembelianStyle(row.jenis_pembelian)}`}>
                           {row.jenis_pembelian || '-'}
                         </span>
                       </td>
-                      <td className="px-4 py-3.5 text-right">
+                      <td className="px-3 py-2 text-right">
                         <PortalActionDropdown
                           row={row}
                           rowId={rowId}
