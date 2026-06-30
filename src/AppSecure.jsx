@@ -42,6 +42,7 @@ const PersetujuanFeedmilPage = lazy(() => import('./pages/dataMaster/Persetujuan
 const PersetujuanRphPage = lazy(() => import('./pages/dataMaster/PersetujuanRphPage'));
 const SatuanPage = lazy(() => import('./pages/dataMaster/SatuanPage'));
 const BarangPage = lazy(() => import('./pages/dataMaster/BarangPage'));
+const ItemPotongPage = lazy(() => import('./pages/dataMaster/ItemPotongPage'));
 const MasterResellerPage = lazy(() => import('./pages/dataMaster/MasterResellerPage'));
 const PembeliHoPage = lazy(() => import('./pages/dataMaster/PembeliHoPage'));
 const TarifDofPage = lazy(() => import('./pages/dataMaster/TarifDofPage'));
@@ -338,6 +339,7 @@ function AppSecure() {
               <Route path="/master-data/persetujuan-rph" element={<PersetujuanRphPage />} />
               <Route path="/master-data/satuan" element={<SatuanPage />} />
               <Route path="/master-data/barang" element={<BarangPage />} />
+              <Route path="/master-data/item-potong" element={<ItemPotongPage />} />
               <Route path="/master-data/reseller" element={<MasterResellerPage />} />
               <Route path="/master-data/pembeli-ho" element={<PembeliHoPage />} />
               <Route path="/master-data/tarif-dof" element={<TarifDofPage />} />

@@ -3,7 +3,6 @@ import {
   X, Save, User, MapPin, Phone, Store, Hash, Calendar,
   ChevronDown, ChevronUp, DollarSign, Building2, Briefcase,
 } from 'lucide-react';
-import { CUT_PARTS, getEmptyHarga } from '../constants/cutParts';
 import PedagangService from '../../../../services/pedagangService';
 import HttpClient from '../../../../services/httpClient';
 import { API_ENDPOINTS } from '../../../../config/api';
@@ -67,19 +66,55 @@ const initialFormData = {
   id_office: '',
 };
 
+const HARGA_PARAMETER_GROUPS = 'itemboning,itempotong';
+
 const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) => {
   const [activeTab, setActiveTab] = useState('identitas');
   const [formData, setFormData] = useState({ ...initialFormData });
-  const [harga, setHarga] = useState(getEmptyHarga());
+  const [harga, setHarga] = useState({});
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hargaExpanded, setHargaExpanded] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [pekerjaanOptions, setPekerjaanOptions] = useState([]);
   const [loadingPekerjaan, setLoadingPekerjaan] = useState(false);
+  const [itemBoningOptions, setItemBoningOptions] = useState([]);
+  const [loadingItemBoning, setLoadingItemBoning] = useState(false);
 
   // Office data for dropdown
   const { officeOptions } = useOfficeData();
+
+  const fetchItemBoningOptions = useCallback(async () => {
+    setLoadingItemBoning(true);
+    try {
+      const response = await HttpClient.get('/api/master/parameter/data', {
+        params: { groups: HARGA_PARAMETER_GROUPS },
+        cache: false,
+      });
+
+      const source = response?.data?.[0] || response?.data || response || {};
+      const rows = Array.isArray(source.itemboning)
+        ? source.itemboning
+        : Array.isArray(source.itempotong)
+          ? source.itempotong
+          : [];
+
+      const normalized = rows
+        .map((item) => ({
+          id: item.id ?? item.value ?? item.pid,
+          name: item.name || item.label || `Item ${item.id ?? item.value ?? item.pid}`,
+          id_jenis_potong: Number(item.id_jenis_potong ?? item.type ?? item.golongan ?? 0) || 0,
+        }))
+        .filter((item) => item.id != null);
+
+      setItemBoningOptions(normalized);
+    } catch (err) {
+      console.error('Error fetching item boning options:', err);
+      setItemBoningOptions([]);
+    } finally {
+      setLoadingItemBoning(false);
+    }
+  }, []);
 
   // Fetch pekerjaan options from parameter API
   const fetchPekerjaanOptions = useCallback(async () => {
@@ -132,10 +167,11 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
     if (isOpen) {
       // Fetch pekerjaan options when modal opens
       fetchPekerjaanOptions();
+      fetchItemBoningOptions();
       
       if (editData) {
         setFormData({ ...initialFormData });
-        setHarga(getEmptyHarga());
+        setHarga({});
         setDetailLoading(true);
         setActiveTab('identitas');
         setHargaExpanded(false);
@@ -172,11 +208,13 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
                 tipe_pedagang: d.tipe_pedagang != null ? String(d.tipe_pedagang) : '', // Pedagang classification
 
               });
-              if (d.harga) {
-                const filledHarga = getEmptyHarga();
-                CUT_PARTS.forEach(({ key }) => {
-                  if (d.harga[key] != null && d.harga[key] !== '') {
-                    filledHarga[key] = d.harga[key];
+              if (Array.isArray(d.harga)) {
+                const filledHarga = {};
+                d.harga.forEach((row) => {
+                  const itemId = row?.id_item_potong ?? row?.item_potong?.id ?? row?.itemPotong?.id;
+                  if (itemId == null) return;
+                  if (row.nominal != null && row.nominal !== '') {
+                    filledHarga[String(itemId)] = row.nominal;
                   }
                 });
                 setHarga(filledHarga);
@@ -200,13 +238,13 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
         fetchDetail();
       } else {
         setFormData({ ...initialFormData });
-        setHarga(getEmptyHarga());
+        setHarga({});
         setActiveTab('identitas');
         setHargaExpanded(false);
       }
       setErrors({});
     }
-  }, [isOpen, editData, fetchPekerjaanOptions]);
+  }, [isOpen, editData, fetchPekerjaanOptions, fetchItemBoningOptions]);
 
 
   const CURRENCY_FIELDS = ['saldo_awal', 'tabungan', 'kulit', 'saldo_beku'];
@@ -238,7 +276,7 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
   const handleHargaChange = useCallback((key, value) => {
     // Parse formatted Rupiah string back to number
     const numericValue = parseRupiah(value);
-    setHarga(prev => ({ ...prev, [key]: numericValue }));
+    setHarga(prev => ({ ...prev, [String(key)]: numericValue }));
   }, []);
 
   const handleProvinsiChange = useCallback((value) => {
@@ -306,6 +344,7 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (loadingItemBoning) return;
     if (!validateForm()) return;
 
     setIsSubmitting(true);
@@ -353,13 +392,12 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
       }
 
       // Add nested harga object
-      const hargaPayload = {};
-      CUT_PARTS.forEach(({ key }) => {
-        if (harga[key] !== '' && harga[key] != null) {
-          hargaPayload[key] = Number(harga[key]);
-        }
-      });
-      payload.harga = hargaPayload;
+      payload.harga = itemBoningOptions
+        .filter((item) => harga[String(item.id)] !== '' && harga[String(item.id)] != null)
+        .map((item) => ({
+          id_item_potong: Number(item.id),
+          nominal: Number(harga[String(item.id)]),
+        }));
 
       await onSave(payload);
     } finally {
@@ -370,8 +408,6 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
   const handleClose = () => {
     if (!isSubmitting) onClose();
   };
-
-  if (!isOpen) return null;
 
   const renderInput = (name, label, type = 'text', icon = null, required = false, placeholder = '', extraProps = {}) => (
     <div>
@@ -423,6 +459,39 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
       {errors[name] && <p className="mt-1 text-sm text-red-600">{errors[name]}</p>}
     </div>
   );
+
+  const renderHargaInput = (item) => (
+    <div key={item.id}>
+      <label className="block text-xs font-medium text-gray-600 mb-1" htmlFor={`harga-${item.id}`}>
+        {item.name}
+      </label>
+      <div className="relative">
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">Rp</span>
+        <input
+          id={`harga-${item.id}`}
+          type="text"
+          value={formatRupiah(harga[String(item.id)])}
+          onChange={(e) => handleHargaChange(item.id, e.target.value)}
+          className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
+          placeholder="0"
+          disabled={isSubmitting}
+          inputMode="numeric"
+        />
+      </div>
+    </div>
+  );
+
+  const hargaBoning = useMemo(
+    () => itemBoningOptions.filter((item) => Number(item.id_jenis_potong) === 1),
+    [itemBoningOptions],
+  );
+
+  const hargaKarkas = useMemo(
+    () => itemBoningOptions.filter((item) => Number(item.id_jenis_potong) === 2),
+    [itemBoningOptions],
+  );
+
+  if (!isOpen) return null;
 
   const renderTextarea = (name, label, icon = null, rows = 3) => (
     <div>
@@ -665,7 +734,7 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
                     className="w-full flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors mb-4"
                   >
                     <span className="text-sm font-medium text-gray-700">
-                      Daftar Harga Karkas (27 bagian)
+                      Daftar Harga Karkas & Boning
                     </span>
                     {hargaExpanded ? (
                       <ChevronUp className="w-5 h-5 text-gray-500" />
@@ -675,27 +744,40 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
                   </button>
 
                   {hargaExpanded && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {CUT_PARTS.map(({ key, label }) => (
-                        <div key={key}>
-                          <label className="block text-xs font-medium text-gray-600 mb-1" htmlFor={`harga-${key}`}>
-                            {label}
-                          </label>
-                          <div className="relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">Rp</span>
-                            <input
-                              id={`harga-${key}`}
-                              type="text"
-                              value={formatRupiah(harga[key])}
-                              onChange={(e) => handleHargaChange(key, e.target.value)}
-                              className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
-                              placeholder="0"
-                              disabled={isSubmitting}
-                              inputMode="numeric"
-                            />
-                          </div>
+                    <div className="space-y-6">
+                      {loadingItemBoning ? (
+                        <div className="py-8 text-center text-gray-500">
+                          Memuat daftar harga dari backend...
                         </div>
-                      ))}
+                      ) : (
+                        <>
+                          <div>
+                            <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                              Karkas
+                            </h4>
+                            {hargaKarkas.length > 0 ? (
+                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                {hargaKarkas.map(renderHargaInput)}
+                              </div>
+                            ) : (
+                              <p className="text-sm text-gray-400">Tidak ada item karkas.</p>
+                            )}
+                          </div>
+
+                          <div>
+                            <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                              Boning
+                            </h4>
+                            {hargaBoning.length > 0 ? (
+                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                {hargaBoning.map(renderHargaInput)}
+                              </div>
+                            ) : (
+                              <p className="text-sm text-gray-400">Tidak ada item boning.</p>
+                            )}
+                          </div>
+                        </>
+                      )}
                     </div>
                   )}
                 </div>
@@ -713,11 +795,11 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
             >
               Batal
             </button>
-            <button
-              type="submit"
-              disabled={isSubmitting || detailLoading}
-              className="px-8 py-3 bg-gradient-to-r from-red-500 to-rose-600 text-white rounded-xl hover:from-red-600 hover:to-rose-700 transition-all duration-200 disabled:opacity-50 flex items-center gap-2"
-            >
+          <button
+            type="submit"
+            disabled={isSubmitting || detailLoading || loadingItemBoning}
+            className="px-8 py-3 bg-gradient-to-r from-red-500 to-rose-600 text-white rounded-xl hover:from-red-600 hover:to-rose-700 transition-all duration-200 disabled:opacity-50 flex items-center gap-2"
+          >
               {isSubmitting ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>

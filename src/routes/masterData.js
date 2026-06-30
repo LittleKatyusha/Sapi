@@ -20,6 +20,7 @@ const PersetujuanFeedmilPage = lazy(() => import('../pages/dataMaster/Persetujua
 const PersetujuanRphPage = lazy(() => import('../pages/dataMaster/PersetujuanRphPage'));
 const SatuanPage = lazy(() => import('../pages/dataMaster/SatuanPage'));
 const BarangPage = lazy(() => import('../pages/dataMaster/BarangPage'));
+const ItemPotongPage = lazy(() => import('../pages/dataMaster/ItemPotongPage'));
 const MasterResellerPage = lazy(() => import('../pages/dataMaster/MasterResellerPage'));
 const BoningMasterPage = lazy(() => import('../pages/dataMaster/BoningMasterPage'));
 const DagingMasterPage = lazy(() => import('../pages/dataMaster/DagingMasterPage'));
@@ -104,6 +105,10 @@ export const masterDataRoutes = [
   {
     path: '/master-data/barang',
     element: <BarangPage />
+  },
+  {
+    path: '/master-data/item-potong',
+    element: <ItemPotongPage />
   },
   {
     path: '/master-data/satuan',
