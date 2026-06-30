@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import DataTable from 'react-data-table-component';
-import { PlusCircle, Search, ShoppingCart, Eye, Edit2, CheckCircle, XCircle, MoreVertical, Truck, Beef, ChevronDown, ChevronUp, Banknote, Package, Calendar, User, FileText, Receipt, RotateCcw, AlertTriangle, Bell, Filter } from 'lucide-react';
+import { PlusCircle, Search, ShoppingCart, Eye, Edit2, CheckCircle, XCircle, MoreVertical, Truck, Beef, ChevronDown, ChevronUp, Banknote, Package, Calendar, User, FileText, Receipt, RotateCcw, AlertTriangle, Bell, Filter, Hash, Tag } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import usePenjualanSapiUtuh from '../../../hooks/usePenjualanSapiUtuh';
@@ -213,7 +213,7 @@ const ExpandableRow = ({ data }) => {
 };
 
 // Standalone action menu cell with portal to escape table overflow clipping
-const ActionMenuCell = ({ row, setDeleteData, handleConfirm, handleCancel, handlePrintFaktur, handlePrintInvoice, handlePrintSuratJalan }) => {
+const ActionMenuCell = ({ row, setDeleteData, handleConfirm, handleCancel, handlePrintFaktur, handlePrintInvoice, handlePrintSuratJalan, handleReturnClick, confirmingPid }) => {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
@@ -291,9 +291,22 @@ const ActionMenuCell = ({ row, setDeleteData, handleConfirm, handleCancel, handl
           </button>
           <button
             onClick={() => { setIsOpen(false); handleConfirm(row); }}
-            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-green-50 flex items-center gap-2 transition"
+            disabled={confirmingPid === row.pid}
+            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-green-50 flex items-center gap-2 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <CheckCircle className="w-4 h-4 text-green-500" /> Konfirmasi
+            {confirmingPid === row.pid ? (
+              <>
+                <svg className="animate-spin w-4 h-4 text-green-500" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                <span className="text-gray-500">Memproses...</span>
+              </>
+            ) : (
+              <>
+                <CheckCircle className="w-4 h-4 text-green-500" /> Konfirmasi
+              </>
+            )}
           </button>
         </>
       )}
@@ -322,6 +335,12 @@ const ActionMenuCell = ({ row, setDeleteData, handleConfirm, handleCancel, handl
             className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-teal-50 flex items-center gap-2 transition"
           >
             <Truck className="w-4 h-4 text-teal-500" /> Surat Jalan
+          </button>
+          <button
+            onClick={() => { setIsOpen(false); handleReturnClick(row); }}
+            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-red-50 flex items-center gap-2 transition"
+          >
+            <RotateCcw className="w-4 h-4 text-red-500" /> Return
           </button>
         </>
       )}
@@ -436,6 +455,8 @@ const PenjualanSapiUtuhPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [deleteData, setDeleteData] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [confirmingPid, setConfirmingPid] = useState(null);
+  const [soldCattlePopup, setSoldCattlePopup] = useState(null);
   const [notification, setNotification] = useState({ isVisible: false, type: 'info', message: '' });
   const [tableData, setTableData] = useState([]);
   const [statusFilter, setStatusFilter] = useState('');
@@ -498,12 +519,32 @@ const PenjualanSapiUtuhPage = () => {
   }, [deleteData, remove, showNotif, loadData]);
 
   const handleConfirm = useCallback(async (item) => {
-    const result = await confirm(item.pid);
-    if (result.success) {
-      showNotif('success', 'Transaksi berhasil dikonfirmasi');
-      loadData();
-    } else {
-      showNotif('error', result.message || 'Gagal mengkonfirmasi transaksi');
+    setConfirmingPid(item.pid);
+    try {
+      const result = await confirm(item.pid);
+      if (result.success) {
+        const soldCattle = result.data?.sold_cattle || [];
+        const eartagList = result.data?.eartag_list || [];
+        const totalSold = result.data?.total_sold || soldCattle.length;
+
+        if (totalSold > 0) {
+          setSoldCattlePopup({
+            no_transaksi: item.no_transaksi,
+            total_sold: totalSold,
+            eartag_list: eartagList,
+            sold_cattle: soldCattle,
+          });
+        } else {
+          showNotif('success', result.message || 'Transaksi berhasil dikonfirmasi');
+        }
+        loadData();
+      } else {
+        showNotif('error', result.message || 'Gagal mengkonfirmasi transaksi');
+      }
+    } catch (err) {
+      showNotif('error', err?.message || 'Gagal mengkonfirmasi transaksi');
+    } finally {
+      setConfirmingPid(null);
     }
   }, [confirm, showNotif, loadData]);
 
@@ -547,6 +588,10 @@ const PenjualanSapiUtuhPage = () => {
     }
   }, [printSuratJalan, showNotif]);
 
+  const handleReturnClick = useCallback((row) => {
+    navigate(`/rph/penjualan-sapi-utuh/return/${row.pid}`);
+  }, [navigate]);
+
   const columns = useMemo(() => [
     {
       name: '',
@@ -575,6 +620,8 @@ const PenjualanSapiUtuhPage = () => {
           handlePrintFaktur={handlePrintFaktur}
           handlePrintInvoice={handlePrintInvoice}
           handlePrintSuratJalan={handlePrintSuratJalan}
+          handleReturnClick={handleReturnClick}
+          confirmingPid={confirmingPid}
         />
       ),
     },
@@ -770,7 +817,7 @@ const PenjualanSapiUtuhPage = () => {
         );
       },
     },
-  ], [handleConfirm, handleCancel, handlePrintFaktur, handlePrintInvoice, handlePrintSuratJalan, rowExpanded]);
+  ], [handleConfirm, handleCancel, handlePrintFaktur, handlePrintInvoice, handlePrintSuratJalan, handleReturnClick, rowExpanded, confirmingPid]);
 
   const customTableStyles = {
     table: {
@@ -1163,6 +1210,80 @@ const PenjualanSapiUtuhPage = () => {
         message={notification.message}
         onClose={() => setNotification((n) => ({ ...n, isVisible: false }))}
       />
+
+      {soldCattlePopup && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="bg-gradient-to-br from-emerald-500 to-teal-600 px-6 py-5 text-white">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 bg-white/20 rounded-full flex items-center justify-center">
+                  <CheckCircle className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold">Transaksi Dikonfirmasi</h3>
+                  <p className="text-emerald-50 text-sm">{soldCattlePopup.no_transaksi}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6">
+              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-4">
+                <p className="text-sm text-emerald-800 leading-relaxed">
+                  <span className="font-bold text-emerald-900">{soldCattlePopup.total_sold} sapi</span> telah terjual dan tidak lagi tersedia di stok.
+                </p>
+              </div>
+
+              <div className="mb-4">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Daftar Sapi Terjual</p>
+                <div className="max-h-64 overflow-y-auto space-y-2">
+                  {soldCattlePopup.sold_cattle.map((cattle, idx) => (
+                    <div key={idx} className="bg-gray-50 rounded-lg px-3 py-2.5 border border-gray-100">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center">
+                            <Beef className="w-4 h-4 text-emerald-600" />
+                          </div>
+                          <p className="text-sm font-bold text-gray-800">
+                            {cattle.eartag_display || cattle.eartag_asli || cattle.no_eartag || '-'}
+                          </p>
+                        </div>
+                        <span className="text-xs font-medium text-gray-500">{cattle.berat} kg</span>
+                      </div>
+                      <div className="ml-10 flex flex-wrap items-center gap-1.5">
+                        {cattle.code_eartag && (
+                          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-sky-50 text-sky-700 text-[10px] font-mono">
+                            <Hash className="w-2.5 h-2.5" />{cattle.code_eartag}
+                          </span>
+                        )}
+                        {cattle.eartag_asli && (
+                          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 text-[10px] font-mono">
+                            <Tag className="w-2.5 h-2.5" />{cattle.eartag_asli}
+                          </span>
+                        )}
+                        {cattle.eartag_supplier && (
+                          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 text-[10px] font-mono">
+                            <Package className="w-2.5 h-2.5" />{cattle.eartag_supplier}
+                          </span>
+                        )}
+                        {cattle.merk && (
+                          <span className="text-[10px] text-gray-500">{cattle.merk}</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <button
+                onClick={() => setSoldCattlePopup(null)}
+                className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold py-2.5 rounded-xl transition shadow-sm"
+              >
+                Mengerti
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

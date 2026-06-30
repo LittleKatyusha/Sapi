@@ -584,8 +584,17 @@ const AddPenjualanSapiUtuhPageV2 = () => {
     if (formData.tipe_penjualan === 'kredit' && !formData.jangka_waktu) newErrors.jangka_waktu = 'Jangka waktu wajib diisi';
     if (!formData.packing) newErrors.packing = 'Packing wajib dipilih';
     if (formData.details.length === 0) newErrors.details = 'Minimal harus ada 1 item sapi';
+
+    // Cek duplikat sapi_id dalam details
+    const seenSapiIds = new Set();
     formData.details.forEach((item, index) => {
-      if (!item.sapi_id) newErrors[`detail_${index}_sapi_id`] = 'Sapi wajib dipilih';
+      if (!item.sapi_id) {
+        newErrors[`detail_${index}_sapi_id`] = 'Sapi wajib dipilih';
+      } else if (seenSapiIds.has(String(item.sapi_id))) {
+        newErrors[`detail_${index}_sapi_id`] = 'Sapi ini sudah dipilih di baris lain';
+      } else {
+        seenSapiIds.add(String(item.sapi_id));
+      }
       if (!item.harga_jual || parseFloat(item.harga_jual) <= 0) newErrors[`detail_${index}_harga_jual`] = 'Harga jual harus lebih dari 0';
     });
     setErrors(newErrors);
