@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft, ShoppingCart, User, Truck, Scissors, CreditCard,
   Beef, Calendar, Phone, MapPin, Package, FileText, Image as ImageIcon,
-  Edit2, Printer, AlertCircle, Weight, Tag, Receipt, Home,
+  Edit2, Printer, AlertCircle, Weight, Tag, Receipt, Home, RotateCcw, CheckCircle2,
 } from 'lucide-react';
 import usePenjualanSapiUtuh from '../../../hooks/usePenjualanSapiUtuh';
 
@@ -93,7 +93,7 @@ const DetailPenjualanSapiUtuhPage = () => {
   const penjualLabel = { cv_puput: 'CV Puput', reseller: 'Reseller' }[data.penjual] || data.penjual;
 
   const grandTotal = (data.total_harga || 0) + (data.biaya_kirim || 0) + (data.biaya_potong || 0);
-  const totalEkor = data.details?.length || 0;
+  const totalEkor = data.details?.filter(d => Number(d.status) !== 2).length || 0;
 
   return (
     <div className="min-h-screen bg-slate-50 p-4 sm:p-6">
@@ -273,6 +273,7 @@ const DetailPenjualanSapiUtuhPage = () => {
                   <th className="text-left px-5 py-3 w-12">No.</th>
                   <th className="text-left px-5 py-3">Eartag & Supplier</th>
                   <th className="text-left px-5 py-3">Merk</th>
+                  <th className="text-left px-5 py-3">Status</th>
                   <th className="text-right px-5 py-3">Berat</th>
                   <th className="text-right px-5 py-3">Harga/kg</th>
                   <th className="text-right px-5 py-3">Harga Jual</th>
@@ -280,38 +281,72 @@ const DetailPenjualanSapiUtuhPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {data.details?.map((d, i) => (
-                  <tr key={d.id || i} className="border-b border-gray-50 hover:bg-emerald-50/30 transition">
+                {data.details?.map((d, i) => {
+                  const isReturn = Number(d.status) === 2;
+                  const returnStrike = isReturn ? 'line-through text-gray-400' : '';
+                  return (
+                  <tr key={d.id || i} className={`border-b border-gray-50 transition ${isReturn ? 'bg-red-50/40 hover:bg-red-50/60' : 'hover:bg-emerald-50/30'}`}>
                     <td className="px-5 py-3 text-gray-400 font-medium">{i + 1}</td>
                     <td className="px-5 py-3">
                       <div className="flex flex-col gap-0.5">
                         <div className="flex items-center gap-1.5">
-                          <Tag className="w-3.5 h-3.5 text-emerald-600" />
-                          <span className="font-mono font-semibold text-gray-800">{d.no_eartag || '-'}</span>
+                          <Tag className={`w-3.5 h-3.5 ${isReturn ? 'text-red-600' : 'text-emerald-600'}`} />
+                          <span className={`font-mono font-semibold ${isReturn ? 'text-red-700 line-through' : 'text-gray-800'}`}>{d.no_eartag || '-'}</span>
                         </div>
                         {d.eartag_supplier && (
                           <div className="flex items-center gap-1.5 pl-5">
                             <span className="text-[11px] text-gray-400">Supplier:</span>
-                            <span className="font-mono text-xs text-gray-600">{d.eartag_supplier}</span>
+                            <span className={`font-mono text-xs ${returnStrike}`}>{d.eartag_supplier}</span>
+                          </div>
+                        )}
+                        {isReturn && (
+                          <div className="flex flex-wrap items-center gap-1.5 pl-5 mt-0.5">
+                            {d.tgl_return && (
+                              <span className="inline-flex items-center gap-1 text-[10px] text-red-600 font-medium">
+                                <Calendar className="w-3 h-3" /> {d.tgl_return}
+                              </span>
+                            )}
+                            {d.kondisi_return && (
+                              <span className="inline-flex items-center gap-1 text-[10px] text-red-600 font-medium">
+                                <AlertCircle className="w-3 h-3" /> {d.kondisi_return}
+                              </span>
+                            )}
+                            {d.catatan_return && (
+                              <span className="inline-flex items-center gap-1 text-[10px] text-red-500 italic">
+                                "{d.catatan_return}"
+                              </span>
+                            )}
                           </div>
                         )}
                       </div>
                     </td>
-                    <td className="px-5 py-3 text-gray-600">{d.merk || '-'}</td>
+                    <td className={`px-5 py-3 ${isReturn ? 'text-red-400 line-through' : 'text-gray-600'}`}>{d.merk || '-'}</td>
+                    <td className="px-5 py-3">
+                      {isReturn ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-[11px] font-semibold">
+                          <RotateCcw className="w-3 h-3" /> Return
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[11px] font-semibold">
+                          <CheckCircle2 className="w-3 h-3" /> Success
+                        </span>
+                      )}
+                    </td>
                     <td className="px-5 py-3 text-right">
-                      <span className="inline-flex items-center gap-1 text-gray-700">
+                      <span className={`inline-flex items-center gap-1 ${returnStrike}`}>
                         <Weight className="w-3.5 h-3.5 text-gray-400" />
                         {d.berat} kg
                       </span>
                     </td>
-                    <td className="px-5 py-3 text-right text-gray-700">{fmtRp(d.harga_per_kg)}</td>
-                    <td className="px-5 py-3 text-right text-gray-700">{fmtRp(d.harga_jual)}</td>
-                    <td className="px-5 py-3 text-right font-bold text-emerald-600">{fmtRp(d.subtotal)}</td>
+                    <td className={`px-5 py-3 text-right ${returnStrike}`}>{fmtRp(d.harga_per_kg)}</td>
+                    <td className={`px-5 py-3 text-right ${returnStrike}`}>{fmtRp(d.harga_jual)}</td>
+                    <td className={`px-5 py-3 text-right font-bold ${isReturn ? 'text-red-600 line-through' : 'text-emerald-600'}`}>{fmtRp(d.subtotal)}</td>
                   </tr>
-                ))}
+                  );
+                })}
                 {!data.details?.length && (
                   <tr>
-                    <td colSpan="7" className="px-5 py-12 text-center text-gray-400">
+                    <td colSpan="8" className="px-5 py-12 text-center text-gray-400">
                       <Beef className="w-10 h-10 mx-auto mb-2 opacity-40" />
                       <p className="text-sm">Tidak ada detail sapi</p>
                     </td>
@@ -321,7 +356,7 @@ const DetailPenjualanSapiUtuhPage = () => {
               {data.details?.length > 0 && (
                 <tfoot>
                   <tr className="border-t-2 border-gray-100 bg-gray-50/50">
-                    <td colSpan="3" className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                    <td colSpan="4" className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
                       Total {totalEkor} Ekor
                     </td>
                     <td className="px-5 py-3 text-right font-semibold text-gray-700">

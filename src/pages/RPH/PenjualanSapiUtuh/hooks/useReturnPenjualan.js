@@ -74,60 +74,6 @@ const useReturnPenjualan = () => {
     }, []);
 
     /**
-     * Approve return
-     */
-    const approveReturn = useCallback(async (returnId, notes = null) => {
-        setLoading(true);
-        setError(null);
-        try {
-            const response = await HttpClient.post(
-                `${API_ENDPOINTS.RPH.RETURN_PENJUALAN_SAPI_UTUH}/${returnId}/approve`,
-                { catatan_approval: notes }
-            );
-
-            if (response.status === 'ok') {
-                return response.data;
-            } else {
-                setError(response.message || 'Failed to approve return');
-                return null;
-            }
-        } catch (err) {
-            setError(err.message || 'Error approving return');
-            console.error('Error approving return:', err);
-            return null;
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    /**
-     * Reject return
-     */
-    const rejectReturn = useCallback(async (returnId, notes) => {
-        setLoading(true);
-        setError(null);
-        try {
-            const response = await HttpClient.post(
-                `${API_ENDPOINTS.RPH.RETURN_PENJUALAN_SAPI_UTUH}/${returnId}/reject`,
-                { catatan_approval: notes }
-            );
-
-            if (response.status === 'ok') {
-                return response.data;
-            } else {
-                setError(response.message || 'Failed to reject return');
-                return null;
-            }
-        } catch (err) {
-            setError(err.message || 'Error rejecting return');
-            console.error('Error rejecting return:', err);
-            return null;
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    /**
      * Fetch kondisi hewan options
      */
     const fetchKondisiOptions = useCallback(async () => {
@@ -159,8 +105,6 @@ const useReturnPenjualan = () => {
         kondisiOptions,
         createReturn,
         getReturnHistory,
-        approveReturn,
-        rejectReturn,
         fetchKondisiOptions,
     };
 };
