@@ -58,24 +58,33 @@ const AddEditPembelianPage = () => {
 
     // Get tipe pembelian options first
     const {
-        tipePembelianOptions,
+        tipePembelianOptions: rawTipePembelianOptions,
         loading: tipePembelianLoading,
         error: tipePembelianError
     } = useTipePembelian();
+    
+    // Ensure tipePembelianOptions is always an array
+    const tipePembelianOptions = useMemo(() => rawTipePembelianOptions || [], [rawTipePembelianOptions]);
 
     // Get tipe pembayaran options
     const {
-        tipePembayaranOptions,
+        tipePembayaranOptions: rawTipePembayaranOptions,
         loading: tipePembayaranLoading,
         error: tipePembayaranError
     } = useTipePembayaran();
+    
+    // Ensure tipePembayaranOptions is always an array to prevent undefined .map() errors
+    const tipePembayaranOptions = useMemo(() => rawTipePembayaranOptions || [], [rawTipePembayaranOptions]);
 
     // Bank API integration for Syarat Pembelian
     const {
-        bankOptions,
+        bankOptions: rawBankOptions,
         loading: bankLoading,
         error: bankError
     } = useBanksAPI();
+    
+    // Ensure bankOptions is always an array
+    const bankOptions = useMemo(() => rawBankOptions || [], [rawBankOptions]);
 
     // Filter bank options based on tipe pembayaran
     const filteredBankOptions = useMemo(() => {

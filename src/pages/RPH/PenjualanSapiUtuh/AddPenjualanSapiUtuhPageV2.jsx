@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft, Save, PlusCircle, Trash2, ShoppingCart,
-  User, Scissors, CreditCard, Beef, Search, X, Tag, Hash, Weight, CircleDollarSign,
+  User, Scissors, CreditCard, Beef, Search, X, Tag, Hash, Weight,
 } from 'lucide-react';
 
 import usePenjualanSapiUtuh from '../../../hooks/usePenjualanSapiUtuh';

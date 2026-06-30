@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft, ShoppingCart, User, Truck, Scissors, CreditCard,
   Beef, Calendar, Phone, MapPin, Package, FileText, Image as ImageIcon,
-  Edit2, Printer, AlertCircle, Hash, Weight, Tag, Receipt, Home,
+  Edit2, Printer, AlertCircle, Weight, Tag, Receipt, Home,
 } from 'lucide-react';
 import usePenjualanSapiUtuh from '../../../hooks/usePenjualanSapiUtuh';
 

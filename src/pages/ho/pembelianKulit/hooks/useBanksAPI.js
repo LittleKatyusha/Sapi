@@ -53,6 +53,9 @@ const useBanksAPI = () => {
     }, []);
 
     const bankOptions = useMemo(() => {
+        if (!banks || !Array.isArray(banks)) {
+            return [];
+        }
         const options = banks.map(bank => ({
             value: String(bank.id), // Convert to string to match form field format
             label: bank.display_name || (bank.kode ? `[${bank.kode}] ${bank.nama}` : bank.nama)

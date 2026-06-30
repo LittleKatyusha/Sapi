@@ -148,6 +148,9 @@ const useParameterSelect = (isEditMode = false, supplierFilters = {}, tipePembel
 
     // Create select options for each parameter type
     const eartagOptions = useMemo(() => {
+        if (!parameterData.eartag || !Array.isArray(parameterData.eartag)) {
+            return [];
+        }
         return parameterData.eartag.map(item => ({
             value: item.pubid || item.id, // Use pubid first, fallback to id
             label: item.name || item.kode || item.id
@@ -211,6 +214,9 @@ const useParameterSelect = (isEditMode = false, supplierFilters = {}, tipePembel
     }, [parameterData.supplier, supplierFilters.kategoriSupplier, supplierFilters.jenisSupplier, stableSelectedTipePembelian, stableTipePembelianOptions]);
 
     const officeOptions = useMemo(() => {
+        if (!parameterData.office || !Array.isArray(parameterData.office)) {
+            return [];
+        }
         const options = parameterData.office.map(item => ({
             value: item.id, // Keep numeric for consumer pages that expect number
             label: item.name
@@ -229,6 +235,9 @@ const useParameterSelect = (isEditMode = false, supplierFilters = {}, tipePembel
     }, [parameterData.office]);
 
     const klasifikasiHewanOptions = useMemo(() => {
+        if (!parameterData.klasifikasihewan || !Array.isArray(parameterData.klasifikasihewan)) {
+            return [];
+        }
         return parameterData.klasifikasihewan.map(item => ({
             value: item.pubid || item.id, // Use pubid first, fallback to id
             label: item.name
@@ -236,6 +245,9 @@ const useParameterSelect = (isEditMode = false, supplierFilters = {}, tipePembel
     }, [parameterData.klasifikasihewan]);
 
     const klasifikasiFeedmilOptions = useMemo(() => {
+        if (!parameterData.klasifikasifeedmil || !Array.isArray(parameterData.klasifikasifeedmil)) {
+            return [];
+        }
         return parameterData.klasifikasifeedmil.map(item => ({
             value: item.id,
             label: item.name
@@ -243,6 +255,9 @@ const useParameterSelect = (isEditMode = false, supplierFilters = {}, tipePembel
     }, [parameterData.klasifikasifeedmil]);
 
     const klasifikasiOVKOptions = useMemo(() => {
+        if (!parameterData.klasifikasiovk || !Array.isArray(parameterData.klasifikasiovk)) {
+            return [];
+        }
         return parameterData.klasifikasiovk.map(item => ({
             value: item.id,
             label: item.name
@@ -250,6 +265,9 @@ const useParameterSelect = (isEditMode = false, supplierFilters = {}, tipePembel
     }, [parameterData.klasifikasiovk]);
 
     const klasifikasiKulitOptions = useMemo(() => {
+        if (!parameterData.klasifikasikulit || !Array.isArray(parameterData.klasifikasikulit)) {
+            return [];
+        }
         return parameterData.klasifikasikulit.map(item => ({
             value: item.id,
             label: item.name
@@ -257,6 +275,9 @@ const useParameterSelect = (isEditMode = false, supplierFilters = {}, tipePembel
     }, [parameterData.klasifikasikulit]);
 
     const itemKulitOptions = useMemo(() => {
+        if (!parameterData.itemkulit || !Array.isArray(parameterData.itemkulit)) {
+            return [];
+        }
         return parameterData.itemkulit.map(item => ({
             value: item.id,
             label: item.name
@@ -264,6 +285,9 @@ const useParameterSelect = (isEditMode = false, supplierFilters = {}, tipePembel
     }, [parameterData.itemkulit]);
 
     const itemFeedmilOptions = useMemo(() => {
+        if (!parameterData.itemfeedmil || !Array.isArray(parameterData.itemfeedmil)) {
+            return [];
+        }
         return parameterData.itemfeedmil.map(item => ({
             value: item.id,
             label: item.name
@@ -271,6 +295,9 @@ const useParameterSelect = (isEditMode = false, supplierFilters = {}, tipePembel
     }, [parameterData.itemfeedmil]);
 
     const itemOvkOptions = useMemo(() => {
+        if (!parameterData.itemovk || !Array.isArray(parameterData.itemovk)) {
+            return [];
+        }
         return parameterData.itemovk.map(item => ({
             value: item.id,
             label: item.name
@@ -278,6 +305,9 @@ const useParameterSelect = (isEditMode = false, supplierFilters = {}, tipePembel
     }, [parameterData.itemovk]);
 
     const farmOptions = useMemo(() => {
+        if (!parameterData.farm || !Array.isArray(parameterData.farm)) {
+            return [];
+        }
         return parameterData.farm.map(item => ({
             value: item.id,
             label: item.name
@@ -285,6 +315,9 @@ const useParameterSelect = (isEditMode = false, supplierFilters = {}, tipePembel
     }, [parameterData.farm]);
 
     const farmLainLainOptions = useMemo(() => {
+        if (!parameterData.farmlainlain || !Array.isArray(parameterData.farmlainlain)) {
+            return [];
+        }
         return parameterData.farmlainlain.map(item => ({
             value: item.id,
             label: item.name
@@ -292,6 +325,9 @@ const useParameterSelect = (isEditMode = false, supplierFilters = {}, tipePembel
     }, [parameterData.farmlainlain]);
 
     const outletOptions = useMemo(() => {
+        if (!parameterData.outlet || !Array.isArray(parameterData.outlet)) {
+            return [];
+        }
         return parameterData.outlet.map(item => ({
             value: item.id,
             label: item.name
@@ -299,6 +335,9 @@ const useParameterSelect = (isEditMode = false, supplierFilters = {}, tipePembel
     }, [parameterData.outlet]);
 
     const jenisHewanOptions = useMemo(() => {
+        if (!parameterData.jenishewan || !Array.isArray(parameterData.jenishewan)) {
+            return [];
+        }
         return parameterData.jenishewan.map(item => ({
             value: item.id,
             label: item.name
