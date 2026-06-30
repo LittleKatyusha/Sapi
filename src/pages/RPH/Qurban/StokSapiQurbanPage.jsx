@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import DataTable from 'react-data-table-component';
-import { Beef, Search, Loader2, AlertCircle, FileText, ChevronDown, ChevronUp, SlidersHorizontal, RotateCcw, Tag, Calendar, Weight, CircleDollarSign, Hash } from 'lucide-react';
+import { Beef, Search, Loader2, AlertCircle, FileText, ChevronDown, ChevronUp, SlidersHorizontal, RotateCcw, Tag, Calendar, Weight, CircleDollarSign, Hash, CheckCircle2, RotateCcw as RotateCcwIcon } from 'lucide-react';
 import HttpClient from '../../../services/httpClient';
 
 const initialAdvanced = { eartag: '', eartag_supplier: '', nota_qurban: '' };
@@ -64,6 +64,11 @@ const StokSapiQurbanPage = () => {
     [appliedFilters]
   );
 
+  const statusConfig = {
+    0: { label: 'Tersedia', bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', icon: CheckCircle2 },
+    2: { label: 'Return', bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200', icon: RotateCcwIcon },
+  };
+
   const columns = [
     {
       name: 'No.',
@@ -76,18 +81,37 @@ const StokSapiQurbanPage = () => {
       sortable: true,
       sortField: 'tr_pembelian_ho_detail.eartag',
       minWidth: '240px',
-      cell: (row) => (
-        <div className="flex flex-col gap-0.5">
-          <div className="flex items-center gap-1.5">
-            <Tag className="w-3.5 h-3.5 text-emerald-600" />
-            <span className="font-mono font-semibold text-gray-800">{row.eartag || '-'}</span>
+      cell: (row) => {
+        const isReturn = Number(row.status) === 2;
+        return (
+          <div className="flex flex-col gap-0.5">
+            <div className="flex items-center gap-1.5">
+              <Tag className={`w-3.5 h-3.5 ${isReturn ? 'text-red-600' : 'text-emerald-600'}`} />
+              <span className={`font-mono font-semibold ${isReturn ? 'text-red-700 line-through' : 'text-gray-800'}`}>{row.eartag || '-'}</span>
+            </div>
+            <div className="flex items-center gap-1.5 pl-5">
+              <span className="text-[11px] text-gray-400">Supplier:</span>
+              <span className={`font-mono text-xs ${isReturn ? 'text-gray-400 line-through' : 'text-gray-600'}`}>{row.eartag_supplier || '-'}</span>
+            </div>
           </div>
-          <div className="flex items-center gap-1.5 pl-5">
-            <span className="text-[11px] text-gray-400">Supplier:</span>
-            <span className="font-mono text-xs text-gray-600">{row.eartag_supplier || '-'}</span>
-          </div>
-        </div>
-      ),
+        );
+      },
+    },
+    {
+      name: 'Status',
+      sortable: false,
+      width: '130px',
+      center: true,
+      cell: (row) => {
+        const cfg = statusConfig[Number(row.status)] || statusConfig[0];
+        const Icon = cfg.icon;
+        return (
+          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full ${cfg.bg} ${cfg.text} ${cfg.border} border text-[11px] font-semibold`}>
+            <Icon className="w-3 h-3" />
+            {cfg.label}
+          </span>
+        );
+      },
     },
     {
       name: 'Berat',
@@ -95,12 +119,15 @@ const StokSapiQurbanPage = () => {
       sortField: 'tr_pembelian_ho_detail.berat',
       width: '110px',
       center: true,
-      cell: (row) => (
-        <div className="flex items-center gap-1.5 justify-center">
-          <Weight className="w-3.5 h-3.5 text-gray-400" />
-          <span className="text-gray-700 font-medium">{row.berat ? `${row.berat} kg` : '-'}</span>
-        </div>
-      ),
+      cell: (row) => {
+        const isReturn = Number(row.status) === 2;
+        return (
+          <div className={`flex items-center gap-1.5 justify-center ${isReturn ? 'line-through text-gray-400' : ''}`}>
+            <Weight className="w-3.5 h-3.5 text-gray-400" />
+            <span className="text-gray-700 font-medium">{row.berat ? `${row.berat} kg` : '-'}</span>
+          </div>
+        );
+      },
     },
     {
       name: 'Harga Beli',
@@ -108,11 +135,14 @@ const StokSapiQurbanPage = () => {
       sortField: 'tr_qurban_detail.harga_beli',
       width: '150px',
       right: true,
-      cell: (row) => (
-        <span className="font-bold text-emerald-600">
-          {row.harga_beli ? `Rp ${Number(row.harga_beli).toLocaleString('id-ID')}` : '-'}
-        </span>
-      ),
+      cell: (row) => {
+        const isReturn = Number(row.status) === 2;
+        return (
+          <span className={`font-bold ${isReturn ? 'text-red-400 line-through' : 'text-emerald-600'}`}>
+            {row.harga_beli ? `Rp ${Number(row.harga_beli).toLocaleString('id-ID')}` : '-'}
+          </span>
+        );
+      },
     },
     {
       name: 'Nota & Tanggal Qurban',
@@ -160,8 +190,16 @@ const StokSapiQurbanPage = () => {
             <p className="text-gray-500 text-sm mt-1">Daftar sapi qurban per ekor</p>
           </div>
           <div className="flex items-center gap-2">
-            <div className="px-3 py-1.5 bg-emerald-50 rounded-lg text-xs font-medium text-emerald-700 border border-emerald-100">
-              Total {totalRecords} ekor
+            <div className="px-3 py-1.5 bg-emerald-50 rounded-lg text-xs font-medium text-emerald-700 border border-emerald-100 flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              Tersedia: {tableData.filter(d => Number(d.status) !== 2).length}
+            </div>
+            <div className="px-3 py-1.5 bg-red-50 rounded-lg text-xs font-medium text-red-700 border border-red-100 flex items-center gap-1.5">
+              <RotateCcwIcon className="w-3.5 h-3.5" />
+              Return: {tableData.filter(d => Number(d.status) === 2).length}
+            </div>
+            <div className="px-3 py-1.5 bg-slate-50 rounded-lg text-xs font-medium text-slate-700 border border-slate-200">
+              Total: {totalRecords} ekor
             </div>
           </div>
         </div>
