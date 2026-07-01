@@ -265,12 +265,28 @@ const PotongSapiBiasaModal = ({ isOpen, onClose, onSuccess, cowData }) => {
 
   if (!isOpen) return null;
 
+  const previewDetails = details.map((detail, index) => {
+    const jenisLabel = getJenisLabel(detail.id_jenis_potong);
+    const selectedItem = itemPotongOptions.find(item => item.value === detail.id_item_potong);
+
+    return {
+      key: `${index}-${detail.id_item_potong || 'empty'}`,
+      no: index + 1,
+      jenisLabel,
+      itemLabel: selectedItem ? `${jenisLabel} - ${selectedItem.label}` : '-',
+      berat: detail.berat || '-',
+    };
+  });
+
+  const totalBerat = details.reduce((sum, detail) => sum + (Number(detail.berat) || 0), 0);
+  const totalDetail = details.length;
+
   return (
     <>
       {notification && <Toast notification={notification} onClose={() => setNotification(null)} />}
 
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-        <div className="max-h-[90vh] w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-2xl">
+        <div className="flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
           <div className="h-1.5 w-full bg-gradient-to-r from-indigo-500 via-blue-500 to-cyan-500" />
 
           <div className="flex items-center justify-between border-b border-slate-100 p-5">
@@ -295,88 +311,167 @@ const PotongSapiBiasaModal = ({ isOpen, onClose, onSuccess, cowData }) => {
             </button>
           </div>
 
-          <form onSubmit={handleSubmit} className="max-h-[calc(90vh-180px)] space-y-5 overflow-y-auto p-5">
-            <Field label="Tanggal Potong" required>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="date"
-                  value={tglPotong}
-                  onChange={(e) => setTglPotong(e.target.value)}
-                  className="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 transition-all focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                  required
-                />
-              </div>
-            </Field>
+          <div className="grid flex-1 min-h-0 lg:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
+            <form onSubmit={handleSubmit} className="min-h-0 overflow-y-auto p-5 lg:border-r lg:border-slate-100">
+              <div className="space-y-5 pr-1">
+                <Field label="Tanggal Potong" required>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="date"
+                      value={tglPotong}
+                      onChange={(e) => setTglPotong(e.target.value)}
+                      className="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 transition-all focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                      required
+                    />
+                  </div>
+                </Field>
 
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-slate-700">Detail Potong</h3>
-                <button
-                  type="button"
-                  onClick={addDetail}
-                  disabled={isSubmitting}
-                  className="inline-flex items-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-600 transition-colors hover:bg-indigo-100 disabled:opacity-50"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  Tambah Detail
-                </button>
-              </div>
-
-              {details.map((detail, index) => (
-                <div key={index} className="relative space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                  {details.length > 1 && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-700">Detail Potong</h3>
+                      <p className="text-xs text-slate-400">Tambah beberapa detail dalam satu pemotongan.</p>
+                    </div>
                     <button
                       type="button"
-                      onClick={() => removeDetail(index)}
+                      onClick={addDetail}
                       disabled={isSubmitting}
-                      className="absolute right-3 top-3 rounded-lg p-1 text-red-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                      className="inline-flex items-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-600 transition-colors hover:bg-indigo-100 disabled:opacity-50"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Plus className="h-3.5 w-3.5" />
+                      Tambah Detail
                     </button>
-                  )}
+                  </div>
 
-                  <Field label="Jenis Potong" required>
-                    <SearchableSelect
-                      options={JENIS_POTONG_OPTIONS}
-                      value={detail.id_jenis_potong}
-                      onChange={(val) => handleDetailChange(index, 'id_jenis_potong', val)}
-                      placeholder="Pilih jenis potong"
-                      isDisabled={isSubmitting}
-                    />
-                  </Field>
+                  <div className="grid gap-4 xl:grid-cols-2">
+                    {details.map((detail, index) => (
+                      <div key={index} className="relative rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
+                        {details.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => removeDetail(index)}
+                            disabled={isSubmitting}
+                            className="absolute right-3 top-3 rounded-lg p-1 text-red-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
 
-                  <Field label="Item Potong" required helperText={`Jenis: ${getJenisLabel(detail.id_jenis_potong)}`}>
-                    <SearchableSelect
-                      options={getItemOptions(detail.id_jenis_potong, index)}
-                      value={detail.id_item_potong}
-                      onChange={(val) => handleDetailChange(index, 'id_item_potong', val)}
-                      placeholder={loadingItemPotong ? 'Memuat item potong...' : 'Pilih item potong'}
-                      isLoading={loadingItemPotong}
-                      isDisabled={isSubmitting || loadingItemPotong}
-                    />
-                  </Field>
+                        <div className="mb-3 flex items-center gap-2">
+                          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-700">
+                            {index + 1}
+                          </div>
+                          <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Detail {index + 1}</span>
+                        </div>
 
-                  <Field label="Berat (KG)" required>
-                    <div className="relative">
-                      <Scale className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                      <input
-                        type="number"
-                        value={detail.berat}
-                        onChange={(e) => handleDetailChange(index, 'berat', e.target.value)}
-                        placeholder="0"
-                        min="1"
-                        className="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 transition-all focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                        required
-                      />
-                    </div>
-                  </Field>
+                        <div className="grid gap-3">
+                          <Field label="Jenis Potong" required>
+                            <SearchableSelect
+                              options={JENIS_POTONG_OPTIONS}
+                              value={detail.id_jenis_potong}
+                              onChange={(val) => handleDetailChange(index, 'id_jenis_potong', val)}
+                              placeholder="Pilih jenis potong"
+                              isDisabled={isSubmitting}
+                            />
+                          </Field>
+
+                          <Field label="Item Potong" required helperText={`Jenis: ${getJenisLabel(detail.id_jenis_potong)}`}>
+                            <SearchableSelect
+                              options={getItemOptions(detail.id_jenis_potong, index)}
+                              value={detail.id_item_potong}
+                              onChange={(val) => handleDetailChange(index, 'id_item_potong', val)}
+                              placeholder={loadingItemPotong ? 'Memuat item potong...' : 'Pilih item potong'}
+                              isLoading={loadingItemPotong}
+                              isDisabled={isSubmitting || loadingItemPotong}
+                            />
+                          </Field>
+
+                          <Field label="Berat (KG)" required>
+                            <div className="relative">
+                              <Scale className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                              <input
+                                type="number"
+                                value={detail.berat}
+                                onChange={(e) => handleDetailChange(index, 'berat', e.target.value)}
+                                placeholder="0"
+                                min="1"
+                                className="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 transition-all focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                                required
+                              />
+                            </div>
+                          </Field>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              ))}
-            </div>
-          </form>
+              </div>
+            </form>
 
-          <div className="flex items-center justify-end gap-3 border-t border-slate-100 bg-slate-50/50 p-5">
+            <aside className="min-h-0 overflow-y-auto bg-slate-50/80 p-5">
+              <div className="sticky top-0 space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">Preview sebelum simpan</p>
+                    <h3 className="text-lg font-bold text-slate-900">Ringkasan Pemotongan</h3>
+                  </div>
+                  <div className="rounded-xl bg-indigo-50 px-3 py-2 text-right">
+                    <p className="text-[11px] font-semibold text-indigo-500">Total Berat</p>
+                    <p className="text-sm font-bold text-indigo-700">{totalBerat} kg</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-xl bg-slate-50 p-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Tanggal</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-800">{tglPotong || '-'}</p>
+                  </div>
+                  <div className="rounded-xl bg-slate-50 p-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Detail</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-800">{totalDetail}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold text-slate-700">Daftar Detail</p>
+                    <span className="text-xs text-slate-400">Live preview</span>
+                  </div>
+
+                  <div className="space-y-3">
+                    {previewDetails.map((item, index) => (
+                      <div key={item.key} className="rounded-xl border border-slate-200 bg-white p-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-xs font-semibold text-slate-500">Detail {item.no}</p>
+                            <p className="mt-1 text-sm font-semibold text-slate-900">{item.itemLabel}</p>
+                          </div>
+                          <span className={`inline-flex shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                            details[index]?.id_jenis_potong === 1 ? 'bg-blue-100 text-blue-800' :
+                            details[index]?.id_jenis_potong === 2 ? 'bg-emerald-100 text-emerald-800' :
+                            'bg-amber-100 text-amber-800'
+                          }`}>
+                            {item.jenisLabel}
+                          </span>
+                        </div>
+                        <div className="mt-3 flex items-center justify-between text-sm">
+                          <span className="text-slate-500">Berat</span>
+                          <span className="font-semibold text-slate-900">{item.berat} kg</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3 text-xs text-slate-500">
+                    Semua perubahan di atas akan dikirim saat tombol simpan ditekan. Preview ini membantu cek item, jenis potong, dan berat tanpa harus scroll bolak-balik.
+                  </div>
+                </div>
+              </div>
+            </aside>
+          </div>
+
+          <div className="flex shrink-0 items-center justify-end gap-3 border-t border-slate-100 bg-white p-5">
             <button
               type="button"
               onClick={handleClose}

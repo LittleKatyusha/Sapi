@@ -26,6 +26,7 @@ const StokSapiPage = () => {
   const [potongPaksaModalOpen, setPotongPaksaModalOpen] = useState(false);
   const [sapiMatiModalOpen, setSapiMatiModalOpen] = useState(false);
   const [potongSapiBiasaModalOpen, setPotongSapiBiasaModalOpen] = useState(false);
+  const [stokDetailRefreshKey, setStokDetailRefreshKey] = useState(0);
   const [selectedCowForAction, setSelectedCowForAction] = useState(null);
 
   const handlePotongPaksa = useCallback((cow) => {
@@ -56,6 +57,12 @@ const StokSapiPage = () => {
   const handlePotongSapiBiasaClose = useCallback(() => {
     setPotongSapiBiasaModalOpen(false);
     setSelectedCowForAction(null);
+  }, []);
+
+  const handlePotongSapiBiasaSuccess = useCallback(() => {
+    setPotongSapiBiasaModalOpen(false);
+    setSelectedCowForAction(null);
+    setStokDetailRefreshKey((prev) => prev + 1);
   }, []);
 
   return (
@@ -131,6 +138,7 @@ const StokSapiPage = () => {
             )}
             {activeTab === 'detail' && (
               <StokDetailTab
+                refreshTrigger={stokDetailRefreshKey}
                 onOvk={(cow) => navigate('/rph/pemberian-ovk-sapi/add', { state: { cow } })}
                 onPotongPaksa={handlePotongPaksa}
                 onPotongSapiBiasa={handlePotongSapiBiasa}
@@ -163,7 +171,7 @@ const StokSapiPage = () => {
       <PotongSapiBiasaModal
         isOpen={potongSapiBiasaModalOpen}
         onClose={handlePotongSapiBiasaClose}
-        onSuccess={handlePotongSapiBiasaClose}
+        onSuccess={handlePotongSapiBiasaSuccess}
         cowData={selectedCowForAction}
       />
     </div>

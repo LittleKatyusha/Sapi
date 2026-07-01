@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { Filter, Search, RotateCcw, RefreshCw, AlertCircle } from 'lucide-react';
 import ActionButton from './ActionButton';
 import StokDetailModal from './StokDetailModal';
@@ -6,7 +6,7 @@ import StokSapiService from '../../../../services/stokSapiService';
 import { formatNumber } from '../constants/dummyData';
 import { Notification } from '../../../../components/shared/NotificationComponent';
 
-const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati }) => {
+const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, refreshTrigger = 0 }) => {
   const [openMenuId, setOpenMenuId] = useState(null);
   const [detailRow, setDetailRow] = useState(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
@@ -16,6 +16,8 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati }) 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [notification, setNotification] = useState(null);
+  const startDateRef = useRef('');
+  const endDateRef = useRef('');
 
   const rows = useMemo(() => data?.rows || [], [data]);
 
@@ -55,13 +57,14 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati }) 
     }
   }, [showNotification]);
 
-  // Default: load all data on mount (no date filter)
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    fetchData(startDateRef.current || null, endDateRef.current || null);
+  }, [refreshTrigger, fetchData]);
 
   const handleSearch = () => {
     if (startDate && endDate) {
+      startDateRef.current = startDate;
+      endDateRef.current = endDate;
       fetchData(startDate, endDate);
     }
   };
@@ -69,6 +72,8 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati }) 
   const handleReset = () => {
     setStartDate('');
     setEndDate('');
+    startDateRef.current = '';
+    endDateRef.current = '';
     fetchData();
   };
 
@@ -143,7 +148,10 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati }) 
               <input
                 type="date"
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+                onChange={(e) => {
+                  startDateRef.current = e.target.value;
+                  setStartDate(e.target.value);
+                }}
                 className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/30"
               />
             </div>
@@ -152,7 +160,10 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati }) 
               <input
                 type="date"
                 value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
+                onChange={(e) => {
+                  endDateRef.current = e.target.value;
+                  setEndDate(e.target.value);
+                }}
                 className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/30"
               />
             </div>
