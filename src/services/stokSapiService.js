@@ -292,6 +292,29 @@ class StokSapiService {
     }
   }
 
+  static async getItemPotongOptions() {
+    try {
+      const response = await HttpClient.get('/api/master/parameter/data', {
+        params: { groups: 'itempotong', _t: Date.now() },
+        cache: false,
+      });
+      const source = response?.data?.[0] || response?.data || response || {};
+      const itemPotong = Array.isArray(source.itempotong) ? source.itempotong : [];
+      return {
+        success: true,
+        data: itemPotong,
+        message: 'Data retrieved successfully',
+      };
+    } catch (error) {
+      console.error('StokSapiService.getItemPotongOptions error:', error);
+      return {
+        success: false,
+        data: [],
+        message: error?.data?.message || error?.message || 'Failed to fetch item potong options',
+      };
+    }
+  }
+
   static async getPotongSapiBiasaData(params = {}) {
     try {
       const response = await HttpClient.get('/api/rph/persediaan/potongsapi/data', { params: { ...params, _t: Date.now() }, cache: false });

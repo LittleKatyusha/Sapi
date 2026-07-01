@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { AlertCircle, Loader2, RefreshCw, Beef, Eye, Trash2, X } from 'lucide-react';
+import { AlertCircle, Loader2, RefreshCw, Beef, X } from 'lucide-react';
 import StokSapiService from '../../../../services/stokSapiService';
 import ActionButton from './ActionButton';
 
@@ -20,7 +20,6 @@ const PotongSapiBiasaTab = ({ onRefresh }) => {
   });
 
   const [detailModal, setDetailModal] = useState(null);
-  const [detailLoading, setDetailLoading] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -62,7 +61,6 @@ const PotongSapiBiasaTab = ({ onRefresh }) => {
 
   const handleShowDetail = async (record) => {
     if (!record.pid) return;
-    setDetailLoading(true);
     try {
       const response = await StokSapiService.showPotongSapiBiasa(record.pid);
       if (response.success && response.data) {
@@ -72,8 +70,6 @@ const PotongSapiBiasaTab = ({ onRefresh }) => {
       }
     } catch (err) {
       setError(err?.message || 'Terjadi kesalahan saat memuat detail');
-    } finally {
-      setDetailLoading(false);
     }
   };
 
@@ -266,8 +262,7 @@ const PotongSapiBiasaTab = ({ onRefresh }) => {
                       <tr>
                         <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">No</th>
                         <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Jenis Potong</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Header</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Detail</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Item Potong</th>
                         <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Berat</th>
                       </tr>
                     </thead>
@@ -284,8 +279,7 @@ const PotongSapiBiasaTab = ({ onRefresh }) => {
                               {d.jenis_potong || '-'}
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-sm text-slate-700 whitespace-nowrap">{d.header_name || '-'}</td>
-                          <td className="px-4 py-3 text-sm text-slate-700 whitespace-nowrap">{d.detail_name || '-'}</td>
+                          <td className="px-4 py-3 text-sm text-slate-700 whitespace-nowrap">{d.item_potong_name || '-'}</td>
                           <td className="px-4 py-3 text-sm text-right font-semibold text-indigo-700 whitespace-nowrap">{d.berat} kg</td>
                         </tr>
                       ))}

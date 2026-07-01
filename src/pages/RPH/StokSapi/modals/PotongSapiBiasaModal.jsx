@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { X, AlertCircle, CheckCircle2, Loader2, Save, Calendar, Scale, Plus, Trash2 } from 'lucide-react';
 import SearchableSelect from '../../../../components/shared/SearchableSelect';
 import StokSapiService from '../../../../services/stokSapiService';
@@ -82,78 +82,46 @@ const Field = ({ label, required = false, helperText, children }) => (
 
 const createEmptyDetail = () => ({
   id_jenis_potong: 1,
-  header_pid: null,
-  id_header_boning_karkas: null,
-  id_jenis_boning_karkas: null,
+  id_item_potong: null,
   berat: '',
 });
 
 const PotongSapiBiasaModal = ({ isOpen, onClose, onSuccess, cowData }) => {
   const [tglPotong, setTglPotong] = useState(getToday());
   const [details, setDetails] = useState([createEmptyDetail()]);
-
-  const [boningHeaders, setBoningHeaders] = useState([]);
-  const [karkasHeaders, setKarkasHeaders] = useState([]);
-  const [boningDetailsMap, setBoningDetailsMap] = useState({});
-  const [karkasDetailsMap, setKarkasDetailsMap] = useState({});
-
-  const [loadingBoning, setLoadingBoning] = useState(false);
-  const [loadingKarkas, setLoadingKarkas] = useState(false);
-  const [loadingDetail, setLoadingDetail] = useState({});
-
+  const [itemPotongOptions, setItemPotongOptions] = useState([]);
+  const [loadingItemPotong, setLoadingItemPotong] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [notification, setNotification] = useState(null);
 
-  const detailsCache = useRef({});
-
-  const fetchBoningItems = useCallback(async () => {
-    setLoadingBoning(true);
+  const fetchItemPotongOptions = useCallback(async () => {
+    setLoadingItemPotong(true);
     try {
-      const response = await StokSapiService.getBoningItems();
+      const response = await StokSapiService.getItemPotongOptions();
       if (response.success && Array.isArray(response.data)) {
-        setBoningHeaders(response.data.map(item => ({
+        setItemPotongOptions(response.data.map(item => ({
           value: item.id,
-          label: item.name || `Boning #${item.id}`,
-          pid: item.pid,
+          label: item.name || `Item Potong #${item.id}`,
+          id_jenis_potong: Number(item.id_jenis_potong),
         })));
       }
     } catch (err) {
-      console.error('Error fetching boning items:', err);
+      console.error('Error fetching item potong options:', err);
     }
-    setLoadingBoning(false);
-  }, []);
-
-  const fetchKarkasItems = useCallback(async () => {
-    setLoadingKarkas(true);
-    try {
-      const response = await StokSapiService.getKarkasItems();
-      if (response.success && Array.isArray(response.data)) {
-        setKarkasHeaders(response.data.map(item => ({
-          value: item.id,
-          label: item.name || `Karkas #${item.id}`,
-          pid: item.pid,
-        })));
-      }
-    } catch (err) {
-      console.error('Error fetching karkas items:', err);
-    }
-    setLoadingKarkas(false);
+    setLoadingItemPotong(false);
   }, []);
 
   useEffect(() => {
     if (isOpen) {
-      fetchBoningItems();
-      fetchKarkasItems();
+      fetchItemPotongOptions();
     }
-  }, [isOpen, fetchBoningItems, fetchKarkasItems]);
+  }, [isOpen, fetchItemPotongOptions]);
 
   useEffect(() => {
-    if (isOpen) {
-      setTglPotong(getToday());
-      setDetails([createEmptyDetail()]);
-      setNotification(null);
-      detailsCache.current = {};
-    }
+    if (!isOpen) return;
+    setTglPotong(getToday());
+    setDetails([createEmptyDetail()]);
+    setNotification(null);
   }, [isOpen]);
 
   useEffect(() => {
@@ -162,42 +130,22 @@ const PotongSapiBiasaModal = ({ isOpen, onClose, onSuccess, cowData }) => {
     return () => clearTimeout(timer);
   }, [notification]);
 
-  const fetchHeaderDetails = useCallback(async (jenisPotong, headerId, headerPid, index) => {
-    if (!headerPid) return;
+  const getJenisLabel = (value) => JENIS_POTONG_OPTIONS.find(option => option.value === value)?.label || '-';
 
-    if (detailsCache.current[headerId]) {
-      if (jenisPotong === 1) {
-        setBoningDetailsMap(prev => ({ ...prev, [headerId]: detailsCache.current[headerId] }));
-      } else {
-        setKarkasDetailsMap(prev => ({ ...prev, [headerId]: detailsCache.current[headerId] }));
-      }
-      return;
-    }
+  const getItemOptions = (jenisPotong, currentIndex) => {
+    const selectedIds = details
+      .map((detail, index) => (index !== currentIndex ? detail.id_item_potong : null))
+      .filter(Boolean);
 
-    setLoadingDetail(prev => ({ ...prev, [index]: true }));
-    try {
-      const response = jenisPotong === 1
-        ? await StokSapiService.showBoning(headerPid)
-        : await StokSapiService.showKarkas(headerPid);
+    const filtered = itemPotongOptions.filter(option =>
+      option.id_jenis_potong === Number(jenisPotong) && !selectedIds.includes(option.value),
+    );
 
-      if (response.success && response.data?.details && Array.isArray(response.data.details)) {
-        const options = response.data.details.map(d => ({
-          value: d.id,
-          label: d.name || `Detail #${d.id}`,
-        }));
-        detailsCache.current[headerId] = options;
-
-        if (jenisPotong === 1) {
-          setBoningDetailsMap(prev => ({ ...prev, [headerId]: options }));
-        } else {
-          setKarkasDetailsMap(prev => ({ ...prev, [headerId]: options }));
-        }
-      }
-    } catch (err) {
-      console.error('Error fetching header details:', err);
-    }
-    setLoadingDetail(prev => ({ ...prev, [index]: false }));
-  }, []);
+    return filtered.map(option => ({
+      ...option,
+      label: `${getJenisLabel(option.id_jenis_potong)} - ${option.label}`,
+    }));
+  };
 
   const handleDetailChange = (index, field, value) => {
     setDetails(prev => {
@@ -205,37 +153,11 @@ const PotongSapiBiasaModal = ({ isOpen, onClose, onSuccess, cowData }) => {
       next[index] = { ...next[index], [field]: value };
 
       if (field === 'id_jenis_potong') {
-        next[index].header_pid = null;
-        next[index].id_header_boning_karkas = null;
-        next[index].id_jenis_boning_karkas = null;
-      }
-
-      if (field === 'id_header_boning_karkas') {
-        next[index].id_jenis_boning_karkas = null;
-
-        if (value) {
-          const headers = next[index].id_jenis_potong === 1 ? boningHeaders : karkasHeaders;
-          const selectedHeader = headers.find(h => h.value === value);
-          next[index].header_pid = selectedHeader?.pid || null;
-        } else {
-          next[index].header_pid = null;
-        }
+        next[index].id_item_potong = null;
       }
 
       return next;
     });
-
-    if (field === 'id_header_boning_karkas' && value) {
-      const detail = details[index];
-      const jenisPotong = field === 'id_header_boning_karkas'
-        ? details[index].id_jenis_potong
-        : detail.id_jenis_potong;
-      const headers = jenisPotong === 1 ? boningHeaders : karkasHeaders;
-      const selectedHeader = headers.find(h => h.value === value);
-      if (selectedHeader?.pid) {
-        fetchHeaderDetails(jenisPotong, value, selectedHeader.pid, index);
-      }
-    }
   };
 
   const addDetail = () => {
@@ -267,39 +189,49 @@ const PotongSapiBiasaModal = ({ isOpen, onClose, onSuccess, cowData }) => {
       return;
     }
 
-    for (let i = 0; i < details.length; i++) {
-      const d = details[i];
-      const jenisPotong = d.id_jenis_potong;
+    for (let i = 0; i < details.length; i += 1) {
+      const detail = details[i];
+      const jenisPotong = Number(detail.id_jenis_potong);
 
       if (![1, 2, 3].includes(jenisPotong)) {
         setNotification({ type: 'error', message: `Detail #${i + 1}: Jenis potong tidak valid.` });
         return;
       }
 
-      if (jenisPotong === 3) {
-        if (d.id_header_boning_karkas) {
-          setNotification({ type: 'error', message: `Detail #${i + 1}: Header boning/karkas harus kosong untuk kulit.` });
-          return;
-        }
-        if (d.id_jenis_boning_karkas) {
-          setNotification({ type: 'error', message: `Detail #${i + 1}: Jenis boning/karkas harus kosong untuk kulit.` });
-          return;
-        }
-      } else {
-        if (!d.id_header_boning_karkas) {
-          setNotification({ type: 'error', message: `Detail #${i + 1}: Header ${jenisPotong === 1 ? 'boning' : 'karkas'} wajib dipilih.` });
-          return;
-        }
-        if (!d.id_jenis_boning_karkas) {
-          setNotification({ type: 'error', message: `Detail #${i + 1}: Jenis ${jenisPotong === 1 ? 'boning' : 'karkas'} wajib dipilih.` });
-          return;
-        }
+      if (!detail.id_item_potong) {
+        setNotification({ type: 'error', message: `Detail #${i + 1}: Item potong wajib dipilih.` });
+        return;
       }
 
-      if (!d.berat || isNaN(parseInt(d.berat)) || parseInt(d.berat) < 1) {
+      const selectedItem = itemPotongOptions.find(item => item.value === detail.id_item_potong);
+      if (!selectedItem) {
+        setNotification({ type: 'error', message: `Detail #${i + 1}: Item potong tidak ditemukan.` });
+        return;
+      }
+
+      if (selectedItem.id_jenis_potong !== jenisPotong) {
+        setNotification({ type: 'error', message: `Detail #${i + 1}: Item potong tidak sesuai dengan jenis potong.` });
+        return;
+      }
+
+      if (!detail.berat || Number.isNaN(Number(detail.berat)) || Number(detail.berat) < 1) {
         setNotification({ type: 'error', message: `Detail #${i + 1}: Berat wajib diisi dengan angka minimal 1.` });
         return;
       }
+    }
+
+    const duplicateItemIndex = details.findIndex((detail, index) => (
+      detail.id_item_potong
+      && details.findIndex((row, rowIndex) => rowIndex !== index && row.id_item_potong === detail.id_item_potong) !== -1
+    ));
+
+    if (duplicateItemIndex !== -1) {
+      const duplicateLabel = itemPotongOptions.find(item => item.value === details[duplicateItemIndex].id_item_potong)?.label || 'item potong';
+      setNotification({
+        type: 'error',
+        message: `Detail #${duplicateItemIndex + 1}: ${duplicateLabel} sudah dipilih pada detail lain.`,
+      });
+      return;
     }
 
     setIsSubmitting(true);
@@ -308,11 +240,10 @@ const PotongSapiBiasaModal = ({ isOpen, onClose, onSuccess, cowData }) => {
     const payload = {
       pid: cowData?.pid,
       tgl_potong: tglPotong,
-      detail: details.map(d => ({
-        id_jenis_potong: d.id_jenis_potong,
-        id_header_boning_karkas: [1, 2].includes(d.id_jenis_potong) ? d.id_header_boning_karkas : null,
-        id_jenis_boning_karkas: [1, 2].includes(d.id_jenis_potong) ? d.id_jenis_boning_karkas : null,
-        berat: parseInt(d.berat),
+      detail: details.map(detail => ({
+        id_jenis_potong: Number(detail.id_jenis_potong),
+        id_item_potong: Number(detail.id_item_potong),
+        berat: Number(detail.berat),
       })),
     };
 
@@ -334,56 +265,45 @@ const PotongSapiBiasaModal = ({ isOpen, onClose, onSuccess, cowData }) => {
 
   if (!isOpen) return null;
 
-  const getHeaderOptions = (jenisPotong) => {
-    if (jenisPotong === 1) return boningHeaders;
-    if (jenisPotong === 2) return karkasHeaders;
-    return [];
-  };
-
-  const getDetailOptions = (jenisPotong, headerId) => {
-    if (!headerId) return [];
-    if (jenisPotong === 1) return boningDetailsMap[headerId] || [];
-    if (jenisPotong === 2) return karkasDetailsMap[headerId] || [];
-    return [];
-  };
-
   return (
     <>
       {notification && <Toast notification={notification} onClose={() => setNotification(null)} />}
 
-      <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl transform transition-all">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+        <div className="max-h-[90vh] w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-2xl">
           <div className="h-1.5 w-full bg-gradient-to-r from-indigo-500 via-blue-500 to-cyan-500" />
 
-          <div className="flex items-center justify-between p-5 border-b border-slate-100">
+          <div className="flex items-center justify-between border-b border-slate-100 p-5">
             <div className="flex items-center gap-4">
               <div className="rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-600 p-3 text-white">
                 <Scale className="h-6 w-6" />
               </div>
               <div>
                 <h2 className="text-xl font-bold text-slate-900">Potong Sapi Biasa</h2>
-                <p className="text-sm text-slate-500">Form potong sapi untuk sapi <span className="font-semibold text-indigo-600">{cowData?.eartag || cowData?.jenis_sapi || '-'}</span></p>
+                <p className="text-sm text-slate-500">
+                  Form potong sapi untuk sapi <span className="font-semibold text-indigo-600">{cowData?.eartag || cowData?.eartag_supplier || cowData?.jenis_sapi || '-'}</span>
+                </p>
               </div>
             </div>
             <button
               type="button"
               onClick={handleClose}
               disabled={isSubmitting}
-              className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors disabled:opacity-50"
+              className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 transition-colors hover:bg-slate-200 disabled:opacity-50"
             >
               <X className="h-5 w-5 text-slate-600" />
             </button>
           </div>
 
-          <form onSubmit={handleSubmit} className="p-5 space-y-5 overflow-y-auto max-h-[calc(90vh-180px)]">
+          <form onSubmit={handleSubmit} className="max-h-[calc(90vh-180px)] space-y-5 overflow-y-auto p-5">
             <Field label="Tanggal Potong" required>
               <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 <input
                   type="date"
                   value={tglPotong}
                   onChange={(e) => setTglPotong(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                  className="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 transition-all focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                   required
                 />
               </div>
@@ -396,7 +316,7 @@ const PotongSapiBiasaModal = ({ isOpen, onClose, onSuccess, cowData }) => {
                   type="button"
                   onClick={addDetail}
                   disabled={isSubmitting}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition-colors disabled:opacity-50"
+                  className="inline-flex items-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-600 transition-colors hover:bg-indigo-100 disabled:opacity-50"
                 >
                   <Plus className="h-3.5 w-3.5" />
                   Tambah Detail
@@ -404,93 +324,72 @@ const PotongSapiBiasaModal = ({ isOpen, onClose, onSuccess, cowData }) => {
               </div>
 
               {details.map((detail, index) => (
-                <div key={index} className="relative bg-slate-50 rounded-xl border border-slate-200 p-4 space-y-4">
+                <div key={index} className="relative space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
                   {details.length > 1 && (
                     <button
                       type="button"
                       onClick={() => removeDetail(index)}
                       disabled={isSubmitting}
-                      className="absolute top-3 right-3 p-1 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                      className="absolute right-3 top-3 rounded-lg p-1 text-red-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
                   )}
 
-                  <div className="space-y-4">
-                    <Field label="Detail" required>
-                      <SearchableSelect
-                        options={JENIS_POTONG_OPTIONS}
-                        value={detail.id_jenis_potong}
-                        onChange={(val) => handleDetailChange(index, 'id_jenis_potong', val)}
-                        placeholder="Pilih jenis potong"
-                        isDisabled={isSubmitting}
+                  <Field label="Jenis Potong" required>
+                    <SearchableSelect
+                      options={JENIS_POTONG_OPTIONS}
+                      value={detail.id_jenis_potong}
+                      onChange={(val) => handleDetailChange(index, 'id_jenis_potong', val)}
+                      placeholder="Pilih jenis potong"
+                      isDisabled={isSubmitting}
+                    />
+                  </Field>
+
+                  <Field label="Item Potong" required helperText={`Jenis: ${getJenisLabel(detail.id_jenis_potong)}`}>
+                    <SearchableSelect
+                      options={getItemOptions(detail.id_jenis_potong, index)}
+                      value={detail.id_item_potong}
+                      onChange={(val) => handleDetailChange(index, 'id_item_potong', val)}
+                      placeholder={loadingItemPotong ? 'Memuat item potong...' : 'Pilih item potong'}
+                      isLoading={loadingItemPotong}
+                      isDisabled={isSubmitting || loadingItemPotong}
+                    />
+                  </Field>
+
+                  <Field label="Berat (KG)" required>
+                    <div className="relative">
+                      <Scale className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="number"
+                        value={detail.berat}
+                        onChange={(e) => handleDetailChange(index, 'berat', e.target.value)}
+                        placeholder="0"
+                        min="1"
+                        className="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 transition-all focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                        required
                       />
-                    </Field>
-
-                    {detail.id_jenis_potong !== 3 && (
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <Field label={detail.id_jenis_potong === 1 ? 'Header Boning' : 'Header Karkas'} required>
-                          <SearchableSelect
-                            options={getHeaderOptions(detail.id_jenis_potong)}
-                            value={detail.id_header_boning_karkas}
-                            onChange={(val) => handleDetailChange(index, 'id_header_boning_karkas', val)}
-                            placeholder={detail.id_jenis_potong === 1
-                              ? (loadingBoning ? 'Memuat...' : 'Pilih header boning')
-                              : (loadingKarkas ? 'Memuat...' : 'Pilih header karkas')}
-                            isLoading={detail.id_jenis_potong === 1 ? loadingBoning : loadingKarkas}
-                            isDisabled={isSubmitting}
-                          />
-                        </Field>
-
-                        <Field label={detail.id_jenis_potong === 1 ? 'Jenis Boning' : 'Jenis Karkas'} required>
-                          <SearchableSelect
-                            options={getDetailOptions(detail.id_jenis_potong, detail.id_header_boning_karkas)}
-                            value={detail.id_jenis_boning_karkas}
-                            onChange={(val) => handleDetailChange(index, 'id_jenis_boning_karkas', val)}
-                            placeholder={detail.id_header_boning_karkas
-                              ? (loadingDetail[index] ? 'Memuat...' : 'Pilih jenis')
-                              : 'Pilih header terlebih dahulu'}
-                            isLoading={!!loadingDetail[index]}
-                            isDisabled={!detail.id_header_boning_karkas || isSubmitting}
-                          />
-                        </Field>
-                      </div>
-                    )}
-
-                    <Field label="Berat (KG)" required>
-                      <div className="relative">
-                        <Scale className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                        <input
-                          type="number"
-                          value={detail.berat}
-                          onChange={(e) => handleDetailChange(index, 'berat', e.target.value)}
-                          placeholder="0"
-                          min="1"
-                          className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all"
-                          required
-                        />
-                      </div>
-                    </Field>
-                  </div>
+                    </div>
+                  </Field>
                 </div>
               ))}
             </div>
           </form>
 
-          <div className="flex items-center justify-end gap-3 p-5 border-t border-slate-100 bg-slate-50/50">
+          <div className="flex items-center justify-end gap-3 border-t border-slate-100 bg-slate-50/50 p-5">
             <button
               type="button"
               onClick={handleClose}
               disabled={isSubmitting}
-              className="px-5 py-2.5 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors disabled:opacity-50"
+              className="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50"
             >
               Batal
             </button>
             <button
-              type="submit"
+              type="button"
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-indigo-500 to-blue-600 rounded-xl hover:from-indigo-600 hover:to-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:from-indigo-600 hover:to-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isSubmitting ? (
                 <>
