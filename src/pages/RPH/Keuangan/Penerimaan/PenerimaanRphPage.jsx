@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import DataTable from 'react-data-table-component';
 import usePenjualanSapiUtuh from '../../../../hooks/usePenjualanSapiUtuh';
+import PenjualanSapiUtuhService from '../../../../services/penjualanSapiUtuhService';
 import SearchableSelect from '../../../../components/shared/SearchableSelect';
 
 // Action menu cell with portal to escape table overflow clipping
@@ -123,12 +124,28 @@ const PenerimaanRphPage = () => {
   const [jenisSelected, setJenisSelected] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [tableData, setTableData] = useState([]);
+  const [historyData, setHistoryData] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState(null);
   const { loading, error, fetchData } = usePenjualanSapiUtuh();
 
   const isBelumLunas = activeTab === 'belum-lunas';
+  const isHistory = activeTab === 'riwayat';
 
   // Load data
   const loadData = useCallback(async () => {
+    if (isHistory) {
+      setHistoryLoading(true);
+      setHistoryError(null);
+      const result = await PenjualanSapiUtuhService.getPenerimaanHistory({ length: 1000 });
+      if (result.success) {
+        setHistoryData(result.data || []);
+      } else {
+        setHistoryError(result.message);
+      }
+      setHistoryLoading(false);
+      return;
+    }
     const result = await fetchData({
       length: 1000,
       status_pembayaran: isBelumLunas ? 'belum_bayar,dp' : 'lunas',
@@ -137,7 +154,7 @@ const PenerimaanRphPage = () => {
     if (result.success && result.data) {
       setTableData(result.data);
     }
-  }, [isBelumLunas, fetchData]);
+  }, [isBelumLunas, isHistory, fetchData]);
 
   useEffect(() => {
     loadData();
@@ -183,6 +200,97 @@ const PenerimaanRphPage = () => {
   const onClearSearch = () => {
     setSearchTerm('');
   };
+
+  // Filtered history data
+  const filteredHistoryData = useMemo(() => {
+    if (!searchTerm) return historyData;
+    const lower = searchTerm.toLowerCase();
+    return historyData.filter((item) =>
+      item.no_transaksi?.toLowerCase().includes(lower) ||
+      item.nama_pembeli?.toLowerCase().includes(lower) ||
+      item.nama_pembayar?.toLowerCase().includes(lower) ||
+      item.metode_pembayaran?.toLowerCase().includes(lower)
+    );
+  }, [historyData, searchTerm]);
+
+  // History stats
+  const historyStats = useMemo(() => {
+    const totalDiterima = filteredHistoryData.reduce((s, r) => s + (r.amount || 0), 0);
+    return { count: filteredHistoryData.length, totalDiterima };
+  }, [filteredHistoryData]);
+
+  // History DataTable columns
+  const historyColumns = [
+    {
+      name: 'Tgl Bayar',
+      selector: (row) => row.payment_date,
+      sortable: true,
+      cell: (row) => (
+        <div className="flex flex-col">
+          <span className="font-medium text-gray-800">{row.payment_date || '-'}</span>
+          <span className="text-xs text-gray-400">{row.created_at}</span>
+        </div>
+      ),
+    },
+    {
+      name: 'No Transaksi',
+      selector: (row) => row.no_transaksi,
+      sortable: true,
+      cell: (row) => <span className="font-semibold text-gray-800">{row.no_transaksi}</span>,
+    },
+    {
+      name: 'Pembeli',
+      selector: (row) => row.nama_pembeli,
+      sortable: true,
+    },
+    {
+      name: 'Jenis',
+      selector: (row) => row.purchase_type_label,
+      sortable: true,
+      cell: (row) => (
+        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+          row.purchase_type === 8 ? 'bg-amber-50 text-amber-700' : 'bg-blue-50 text-blue-700'
+        }`}>
+          {row.purchase_type_label}
+        </span>
+      ),
+    },
+    {
+      name: 'Pembayar',
+      selector: (row) => row.nama_pembayar,
+      sortable: true,
+      cell: (row) => <span className="text-gray-600">{row.nama_pembayar || '-'}</span>,
+    },
+    {
+      name: 'Metode',
+      selector: (row) => row.metode_pembayaran,
+      sortable: true,
+      cell: (row) => (
+        <span className="px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-700 capitalize">
+          {row.metode_pembayaran?.replace('_', ' ') || '-'}
+        </span>
+      ),
+    },
+    {
+      name: 'Jumlah Diterima',
+      selector: (row) => row.amount,
+      sortable: true,
+      right: true,
+      cell: (row) => <span className="font-semibold text-emerald-600">{formatRupiah(row.amount)}</span>,
+    },
+    {
+      name: 'Status',
+      selector: (row) => row.payment_status,
+      sortable: true,
+      cell: (row) => (
+        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+          row.payment_status === 1 ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
+        }`}>
+          {row.payment_status_label}
+        </span>
+      ),
+    },
+  ];
 
   // DataTable columns
   const columns = useMemo(() => [
@@ -385,9 +493,88 @@ const PenerimaanRphPage = () => {
                 {stats.count}
               </span>
             </button>
+            <button
+              onClick={() => handleTabChange('riwayat')}
+              className={`flex-1 px-6 py-3.5 text-sm font-bold transition-all duration-200 flex items-center justify-center gap-2 ${
+                activeTab === 'riwayat'
+                  ? 'text-white bg-violet-600 shadow-[inset_0_-3px_0_rgba(0,0,0,0.1)]'
+                  : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
+              }`}
+            >
+              Riwayat Penerimaan
+              <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${
+                activeTab === 'riwayat' ? 'bg-violet-500 text-white' : 'bg-gray-200 text-gray-600'
+              }`}>
+                {historyStats.count}
+              </span>
+            </button>
           </div>
 
           <div className="p-5 sm:p-6">
+            {/* === Riwayat Penerimaan Tab === */}
+            {isHistory && (
+              <>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-5">
+                  <div className="relative flex-1 max-w-md">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input
+                      type="text"
+                      value={searchTerm}
+                      onChange={onSearch}
+                      placeholder="Cari no transaksi, pembeli, pembayar..."
+                      className="w-full pl-10 pr-10 py-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 focus:border-violet-500 placeholder-gray-400"
+                    />
+                    {searchTerm && (
+                      <button onClick={onClearSearch} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                  <div className="text-sm text-gray-500 ml-auto">
+                    Total Diterima: <span className="font-bold text-emerald-600">{formatRupiah(historyStats.totalDiterima)}</span>
+                  </div>
+                </div>
+
+                <div className="border border-gray-200 rounded-xl overflow-hidden">
+                  <DataTable
+                    columns={historyColumns}
+                    data={filteredHistoryData}
+                    pagination
+                    paginationPerPage={10}
+                    paginationRowsPerPageOptions={[10, 25, 50, 100]}
+                    progressPending={historyLoading}
+                    progressComponent={
+                      <div className="flex items-center justify-center py-12">
+                        <Loader2 className="w-6 h-6 text-violet-500 animate-spin mr-2" />
+                        <span className="text-gray-500 text-sm">Memuat riwayat...</span>
+                      </div>
+                    }
+                    noDataComponent={
+                      <div className="py-14 text-center">
+                        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <Banknote className="w-8 h-8 text-gray-300" />
+                        </div>
+                        <p className="text-gray-600 text-sm font-medium">Belum ada riwayat penerimaan</p>
+                        <p className="text-gray-400 text-xs mt-1">Pembayaran yang diterima akan tampil di sini</p>
+                      </div>
+                    }
+                    customStyles={customStyles}
+                    highlightOnHover
+                    responsive
+                  />
+                </div>
+
+                {historyError && (
+                  <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+                    {historyError}
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* === Belum Lunas / Lunas Tabs === */}
+            {!isHistory && (
+              <>
             {/* Belum Lunas: Selectbox gatekeeping */}
             {isBelumLunas && !jenisSelected && (
               <div className="bg-gray-50 border border-gray-200 rounded-xl p-8 text-center mb-5">
@@ -473,6 +660,8 @@ const PenerimaanRphPage = () => {
               <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
                 {error}
               </div>
+            )}
+              </>
             )}
           </div>
         </div>

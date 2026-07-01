@@ -112,7 +112,7 @@ const StokSapiQurbanPage = () => {
         }
       });
       setTableData(response.data || []);
-      setTotalRecords(response.recordsTotal || 0);
+      setTotalRecords(response.recordsFiltered ?? response.recordsTotal ?? 0);
     } catch (err) {
       setError(err?.message || 'Gagal memuat data qurban');
     } finally {

@@ -370,6 +370,29 @@ class PenjualanSapiUtuhService {
       };
     }
   }
+
+  /**
+   * Get penerimaan history (all payment receipts from tr_pembayaran_detail)
+   */
+  static async getPenerimaanHistory(params = {}) {
+    try {
+      const response = await HttpClient.get(`${BASE_URL}/penerimaan-history`, { params });
+      return {
+        success: true,
+        data: response?.data?.data ?? [],
+        recordsTotal: response?.data?.recordsTotal ?? 0,
+        recordsFiltered: response?.data?.recordsFiltered ?? 0,
+        message: response?.message || 'Riwayat penerimaan berhasil dimuat',
+      };
+    } catch (error) {
+      const errorData = error?.data ?? error?.response?.data ?? null;
+      return {
+        success: false,
+        data: [],
+        message: errorData?.message || error?.message || 'Gagal memuat riwayat penerimaan',
+      };
+    }
+  }
 }
 
 export default PenjualanSapiUtuhService;
