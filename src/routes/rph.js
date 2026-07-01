@@ -10,6 +10,7 @@ const PenjualanSapiUtuhPage = lazy(() => import('../pages/RPH/PenjualanSapiUtuh/
 const AddPenjualanSapiUtuhPage = lazy(() => import('../pages/RPH/PenjualanSapiUtuh/AddPenjualanSapiUtuhPageV2'));
 const DetailPenjualanSapiUtuhPage = lazy(() => import('../pages/RPH/PenjualanSapiUtuh/DetailPenjualanSapiUtuhPage'));
 const ReturnPenjualanPage = lazy(() => import('../pages/RPH/PenjualanSapiUtuh/ReturnPenjualanPage'));
+const ReturnHistoryPage = lazy(() => import('../pages/RPH/PenjualanSapiUtuh/ReturnHistoryPage'));
 const PenerimaanRphPage = lazy(() => import('../pages/RPH/Keuangan/Penerimaan/PenerimaanRphPage'));
 const BayarPage = lazy(() => import('../pages/RPH/Keuangan/Penerimaan/Bayar/BayarPage'));
 const PengirimanPage = lazy(() => import('../pages/RPH/PenjualanSapiUtuh/Pengiriman/PengirimanPage'));
@@ -63,6 +64,10 @@ export const rphRoutes = [
   {
     path: '/rph/penjualan-sapi-utuh/return/:pid',
     element: <ReturnPenjualanPage />
+  },
+  {
+    path: '/rph/penjualan-sapi-utuh/return-history',
+    element: <ReturnHistoryPage />
   },
   {
     path: '/rph/keuangan/penerimaan',

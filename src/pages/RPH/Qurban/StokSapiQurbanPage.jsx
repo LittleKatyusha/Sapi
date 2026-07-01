@@ -1,9 +1,77 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import DataTable from 'react-data-table-component';
-import { Beef, Search, Loader2, AlertCircle, FileText, ChevronDown, ChevronUp, SlidersHorizontal, RotateCcw, Tag, Calendar, Weight, CircleDollarSign, Hash, CheckCircle2, RotateCcw as RotateCcwIcon } from 'lucide-react';
+import { Beef, Search, Loader2, AlertCircle, FileText, ChevronDown, ChevronUp, SlidersHorizontal, RotateCcw, Tag, Calendar, Weight, CircleDollarSign, Hash, CheckCircle2, RotateCcw as RotateCcwIcon, Undo2, MoreVertical, Info } from 'lucide-react';
 import HttpClient from '../../../services/httpClient';
 
 const initialAdvanced = { eartag: '', eartag_supplier: '', nota_qurban: '' };
+
+const ActionMenuCell = ({ row, menuOpen, setMenuOpen, menuPos, setMenuPos, menuButtonRefs, setRestoreTarget }) => {
+  const isReturn = Number(row.status) === 2;
+
+  const handleToggle = (e) => {
+    e.stopPropagation();
+    if (!isReturn) return;
+    if (menuOpen === row.pid) {
+      setMenuOpen(null);
+      return;
+    }
+    const rect = menuButtonRefs.current[row.pid]?.getBoundingClientRect();
+    if (rect) {
+      setMenuPos({ top: rect.bottom + 4, left: rect.right - 180 });
+    }
+    setMenuOpen(row.pid);
+  };
+
+  if (!isReturn) return <span className="text-xs text-gray-300">-</span>;
+
+  const open = menuOpen === row.pid;
+
+  return (
+    <div className="relative">
+      <button
+        ref={(el) => { menuButtonRefs.current[row.pid] = el; }}
+        onClick={handleToggle}
+        className="w-7 h-7 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-500 transition"
+        title="Aksi"
+      >
+        <MoreVertical className="w-4 h-4" />
+      </button>
+
+      {open && createPortal(
+        <>
+          <div
+            className="fixed inset-0 z-[60]"
+            onClick={() => setMenuOpen(null)}
+          />
+          <div
+            className="fixed z-[61] w-44 bg-white rounded-xl shadow-2xl border border-gray-100 py-1.5"
+            style={{ top: menuPos.top, left: menuPos.left }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => { setRestoreTarget({ ...row, mode: 'cancel' }); setMenuOpen(null); }}
+              className="w-full px-3 py-2 text-left flex items-center gap-2 text-xs font-medium text-blue-700 hover:bg-blue-50 transition"
+            >
+              <Undo2 className="w-3.5 h-3.5" />
+              Cancel Return
+              <span className="ml-auto text-[10px] text-gray-400">ke transaksi</span>
+            </button>
+            <button
+              onClick={() => { setRestoreTarget({ ...row, mode: 'stock' }); setMenuOpen(null); }}
+              className="w-full px-3 py-2 text-left flex items-center gap-2 text-xs font-medium text-emerald-700 hover:bg-emerald-50 transition"
+            >
+              <RotateCcwIcon className="w-3.5 h-3.5" />
+              Ke Stok
+              <span className="ml-auto text-[10px] text-gray-400">tersedia</span>
+            </button>
+          </div>
+        </>,
+        document.body
+      )}
+    </div>
+  );
+};
 
 const StokSapiQurbanPage = () => {
   const [tableData, setTableData] = useState([]);
@@ -12,6 +80,12 @@ const StokSapiQurbanPage = () => {
   const [perPage, setPerPage] = useState(10);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [restoreTarget, setRestoreTarget] = useState(null);
+  const [menuOpen, setMenuOpen] = useState(null); // row.pid that has menu open
+  const menuButtonRefs = useRef({});
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
+  const [restoring, setRestoring] = useState(false);
+  const [notif, setNotif] = useState(null);
 
   // Collapsible panels
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -162,6 +236,23 @@ const StokSapiQurbanPage = () => {
         </div>
       ),
     },
+    {
+      name: 'Aksi',
+      sortable: false,
+      width: '60px',
+      center: true,
+      cell: (row) => (
+        <ActionMenuCell
+          row={row}
+          menuOpen={menuOpen}
+          setMenuOpen={setMenuOpen}
+          menuPos={menuPos}
+          setMenuPos={setMenuPos}
+          menuButtonRefs={menuButtonRefs}
+          setRestoreTarget={setRestoreTarget}
+        />
+      ),
+    },
   ];
 
   const customStyles = {
@@ -176,6 +267,35 @@ const StokSapiQurbanPage = () => {
       setSortConfig({ column: column.sortField, dir: dir || 'desc' });
     }
   };
+
+  const handleRestore = useCallback(async () => {
+    if (!restoreTarget) return;
+    const endpoint = restoreTarget.mode === 'stock'
+      ? '/api/rph/qurban/restore-to-stock'
+      : '/api/rph/qurban/restore-sapi';
+    setRestoring(true);
+    try {
+      const res = await HttpClient.post(endpoint, { pid: restoreTarget.pid });
+      if (res?.status === 'ok' || res?.success !== false) {
+        setNotif({ type: 'success', message: res?.message || 'Sapi berhasil dikembalikan' });
+        setRestoreTarget(null);
+        fetchData(currentPage);
+      } else {
+        setNotif({ type: 'error', message: res?.message || 'Gagal mengembalikan sapi' });
+      }
+    } catch (err) {
+      setNotif({ type: 'error', message: err?.message || 'Gagal mengembalikan sapi' });
+    } finally {
+      setRestoring(false);
+    }
+  }, [restoreTarget, currentPage, fetchData]);
+
+  useEffect(() => {
+    if (notif) {
+      const t = setTimeout(() => setNotif(null), 3500);
+      return () => clearTimeout(t);
+    }
+  }, [notif]);
 
   return (
     <div className="space-y-5">
@@ -201,6 +321,47 @@ const StokSapiQurbanPage = () => {
             <div className="px-3 py-1.5 bg-slate-50 rounded-lg text-xs font-medium text-slate-700 border border-slate-200">
               Total: {totalRecords} ekor
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Info Card: Penanganan Sapi Return */}
+      <div className="bg-gradient-to-br from-blue-50/60 to-emerald-50/40 rounded-2xl border border-blue-100 p-5">
+        <div className="flex items-start gap-3 mb-3">
+          <div className="w-9 h-9 rounded-xl bg-white shadow-sm flex items-center justify-center shrink-0">
+            <Info className="w-5 h-5 text-blue-600" />
+          </div>
+          <div>
+            <h2 className="text-sm font-bold text-gray-800">Penanganan Sapi Status Return</h2>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Sapi dengan status <span className="text-red-600 font-semibold">Return</span> memiliki 2 opsi penanganan melalui menu <MoreVertical className="inline w-3 h-3 text-gray-500" /> di kolom Aksi.
+            </p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+          <div className="bg-white rounded-xl border border-blue-200 p-3.5">
+            <div className="flex items-center gap-2 mb-1.5">
+              <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center">
+                <Undo2 className="w-4 h-4 text-blue-600" />
+              </div>
+              <span className="text-sm font-bold text-blue-700">Cancel Return</span>
+            </div>
+            <p className="text-xs text-gray-600 leading-relaxed">
+              Batalkan return — sapi kembali ke <span className="font-semibold">transaksi penjualan asli</span> (status=terjual). Detail, total transaksi, dan status pembayaran di-revert. Return header ditandai <span className="font-semibold">reverted</span>.
+            </p>
+            <p className="text-[11px] text-gray-400 mt-2 italic">Gunakan jika return dibuat salah / sapi sebenarnya diterima pembeli.</p>
+          </div>
+          <div className="bg-white rounded-xl border border-emerald-200 p-3.5">
+            <div className="flex items-center gap-2 mb-1.5">
+              <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center">
+                <RotateCcwIcon className="w-4 h-4 text-emerald-600" />
+              </div>
+              <span className="text-sm font-bold text-emerald-700">Ke Stok</span>
+            </div>
+            <p className="text-xs text-gray-600 leading-relaxed">
+              Sapi diubah ke <span className="font-semibold">Tersedia</span> dan bisa dijual ulang ke transaksi lain. Return tetap valid di transaksi asli (detail & total tetap adjusted).
+            </p>
+            <p className="text-[11px] text-gray-400 mt-2 italic">Gunakan jika sapi sudah diterima kembali di RPH dan siap dijual ulang.</p>
           </div>
         </div>
       </div>
@@ -350,6 +511,64 @@ const StokSapiQurbanPage = () => {
           </div>
         )}
       </div>
+
+      {/* Notif Toast */}
+      {notif && (
+        <div className={`fixed top-6 right-6 z-50 px-4 py-3 rounded-xl shadow-lg border text-sm font-medium ${
+          notif.type === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'
+        }`}>
+          {notif.message}
+        </div>
+      )}
+
+      {/* Confirm Restore Modal */}
+      {restoreTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 max-w-md w-full p-6">
+            <div className="flex items-start gap-3 mb-4">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+                restoreTarget.mode === 'stock' ? 'bg-emerald-50' : 'bg-blue-50'
+              }`}>
+                <Undo2 className={`w-5 h-5 ${restoreTarget.mode === 'stock' ? 'text-emerald-600' : 'text-blue-600'}`} />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-gray-800">
+                  {restoreTarget.mode === 'stock' ? 'Kembalikan Sapi ke Stok?' : 'Batalkan Return?'}
+                </h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  Sapi dengan eartag <span className="font-mono font-semibold text-gray-700">{restoreTarget.eartag || '-'}</span>.
+                  {restoreTarget.mode === 'stock' ? (
+                    <> Sapi akan diubah ke <span className="text-emerald-600 font-semibold">Tersedia</span> dan bisa dijual ulang. Return tetap valid di transaksi asli.</>
+                  ) : (
+                    <> Sapi akan <span className="text-blue-600 font-semibold">kembali ke transaksi penjualan</span> (status=terjual). Detail & total transaksi di-revert. Return header ditandai <span className="text-gray-600 font-semibold">reverted</span>.</>
+                  )}
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setRestoreTarget(null)}
+                disabled={restoring}
+                className="px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition disabled:opacity-50"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleRestore}
+                disabled={restoring}
+                className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-white text-sm font-semibold transition disabled:opacity-50 ${
+                  restoreTarget.mode === 'stock' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-600 hover:bg-blue-700'
+                }`}
+              >
+                {restoring ? <Loader2 className="w-4 h-4 animate-spin" /> : <Undo2 className="w-4 h-4" />}
+                {restoring ? 'Memproses...' : (restoreTarget.mode === 'stock' ? 'Ya, Ke Stok' : 'Ya, Cancel Return')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

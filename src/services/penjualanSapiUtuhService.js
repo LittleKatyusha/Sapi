@@ -27,6 +27,7 @@ class PenjualanSapiUtuhService {
         ...(params.status_pembayaran && { status_pembayaran: params.status_pembayaran }),
         ...(params.pengiriman && { pengiriman: params.pengiriman }),
         ...(params.status_pengiriman && { status_pengiriman: params.status_pengiriman }),
+        ...(params.return_status && { return_status: params.return_status }),
         ...(params.pic && { pic: params.pic }),
         ...(params.no_transaksi && { no_transaksi: params.no_transaksi }),
         ...(params.start_date && { start_date: params.start_date }),

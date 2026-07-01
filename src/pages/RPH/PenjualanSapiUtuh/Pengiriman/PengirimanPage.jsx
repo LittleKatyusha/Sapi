@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
-  ArrowLeft, Truck, Loader2, AlertCircle, PackageCheck, PackageOpen, RotateCcw,
+  ArrowLeft, Truck, Loader2, AlertCircle, PackageCheck, PackageOpen,
   MapPin, Calendar, Phone, User, Save
 } from 'lucide-react';
 import usePenjualanSapiUtuh from '../../../../hooks/usePenjualanSapiUtuh';
@@ -19,7 +19,6 @@ const STATUS_CONFIG = {
   belum_berangkat: { label: 'Belum Berangkat', bg: 'bg-gray-50', text: 'text-gray-600', border: 'border-gray-200', dot: 'bg-gray-400' },
   sudah_berangkat: { label: 'Sudah Berangkat', bg: 'bg-sky-50', text: 'text-sky-700', border: 'border-sky-200', dot: 'bg-sky-500' },
   sudah_diterima: { label: 'Sudah Diterima', bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', dot: 'bg-emerald-500' },
-  return: { label: 'Return', bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200', dot: 'bg-red-500' },
 };
 
 const formatRupiah = (val) => 'Rp ' + (val || 0).toLocaleString('id-ID');
@@ -45,7 +44,6 @@ const PengirimanPage = () => {
     no_hp_penerima: '',
     nama_pengirim: '',
     status_pengiriman: 'belum_berangkat',
-    alasan_return: '',
   });
 
   const loadData = async () => {
@@ -65,7 +63,6 @@ const PengirimanPage = () => {
         no_hp_penerima: d.no_hp_penerima || '',
         nama_pengirim: d.nama_pengirim || '',
         status_pengiriman: d.status_pengiriman || 'belum_berangkat',
-        alasan_return: d.alasan_return || '',
       });
     }
   };
@@ -101,17 +98,12 @@ const PengirimanPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (formData.status_pengiriman === 'return' && !formData.alasan_return.trim()) {
-      setNotif({ show: true, type: 'error', message: 'Alasan return wajib diisi' });
-      return;
-    }
     setSubmitLoading(true);
 
     const payload = {
       pid,
       status_pengiriman: formData.status_pengiriman,
       pengiriman: formData.pengiriman || undefined,
-      alasan_return: formData.status_pengiriman === 'return' ? (formData.alasan_return || undefined) : undefined,
       tanggal_berangkat: formData.tanggal_berangkat || undefined,
       tanggal_diterima: formData.tanggal_diterima || undefined,
       tanggal_terima: formData.tanggal_terima || undefined,
@@ -245,26 +237,6 @@ const PengirimanPage = () => {
                   <div className="text-left">
                     <p className="font-bold">Sudah Diterima</p>
                     <p className="text-xs text-gray-500">Barang sampai tujuan</p>
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleStatusChange('return')}
-                  disabled={penjualan?.status_pengiriman === 'belum_berangkat'}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition border ${
-                    penjualan?.status_pengiriman === 'belum_berangkat'
-                      ? 'bg-gray-50 border-gray-200 text-gray-400 cursor-not-allowed'
-                      : formData.status_pengiriman === 'return'
-                      ? 'bg-red-50 border-red-300 text-red-700'
-                      : 'bg-white border-gray-200 text-gray-700 hover:bg-red-50 hover:border-red-200'
-                  }`}
-                >
-                  <RotateCcw className="w-5 h-5" />
-                  <div className="text-left">
-                    <p className="font-bold">Return</p>
-                    <p className="text-xs text-gray-500">
-                      {penjualan?.status_pengiriman === 'belum_berangkat' ? 'Harus berangkat dulu' : 'Barang dikembalikan'}
-                    </p>
                   </div>
                 </button>
               </div>
@@ -424,25 +396,6 @@ const PengirimanPage = () => {
                     </div>
                   )}
                 </div>
-
-                {formData.status_pengiriman === 'return' && (
-                  <div className="md:col-span-2">
-                    <label className="block text-xs font-medium text-red-600 mb-1 flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3" /> Alasan Return <span className="text-red-400">*</span>
-                    </label>
-                    <textarea
-                      name="alasan_return"
-                      value={formData.alasan_return}
-                      onChange={handleChange}
-                      rows={3}
-                      placeholder="Contoh: sapi sakit, tidak sesuai pesanan, penerima menolak..."
-                      className="w-full px-3 py-2.5 bg-white border border-red-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none"
-                    />
-                    {!formData.alasan_return && (
-                      <p className="text-red-500 text-xs mt-1">Alasan wajib diisi untuk status Return</p>
-                    )}
-                  </div>
-                )}
 
                 <div className="flex justify-end pt-2">
                   <button

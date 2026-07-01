@@ -22,12 +22,19 @@ const STATUS_PENGIRIMAN_FILTER_OPTIONS = [
   { value: 'belum_berangkat', label: 'Belum Berangkat' },
   { value: 'sudah_berangkat', label: 'Sudah Berangkat' },
   { value: 'sudah_diterima', label: 'Sudah Diterima' },
-  { value: 'return', label: 'Return' },
+  { value: 'return', label: 'Return Penuh' },
+];
+
+const RETURN_STATUS_FILTER_OPTIONS = [
+  { value: 'none', label: 'Tidak Ada Return' },
+  { value: 'partial', label: 'Return Sebagian' },
+  { value: 'full', label: 'Return Penuh' },
 ];
 
 const STATUS_TRANSAKSI_FILTER_OPTIONS = [
   { value: 'draft', label: 'Draft' },
   { value: 'confirmed', label: 'Confirmed' },
+  { value: 'returned', label: 'Returned' },
   { value: 'cancelled', label: 'Cancelled' },
 ];
 
@@ -466,6 +473,7 @@ const PenjualanSapiUtuhPage = () => {
   const [noTransaksiFilter, setNoTransaksiFilter] = useState('');
   const [tipePengirimanFilter, setTipePengirimanFilter] = useState('');
   const [statusPengirimanFilter, setStatusPengirimanFilter] = useState('');
+  const [returnStatusFilter, setReturnStatusFilter] = useState('');
   const [statusBayarFilter, setStatusBayarFilter] = useState('');
   const [picFilter, setPicFilter] = useState('');
 
@@ -481,6 +489,7 @@ const PenjualanSapiUtuhPage = () => {
     if (statusBayarFilter) params.status_pembayaran = statusBayarFilter;
     if (tipePengirimanFilter) params.pengiriman = tipePengirimanFilter;
     if (statusPengirimanFilter) params.status_pengiriman = statusPengirimanFilter;
+    if (returnStatusFilter) params.return_status = returnStatusFilter;
     if (noTransaksiFilter) params.no_transaksi = noTransaksiFilter;
     if (picFilter) params.pic = picFilter;
     if (searchTerm) params.search = searchTerm;
@@ -488,7 +497,7 @@ const PenjualanSapiUtuhPage = () => {
     if (result.success && result.data) {
       setTableData(result.data);
     }
-  }, [fetchData, statusFilter, statusBayarFilter, tipePengirimanFilter, statusPengirimanFilter, noTransaksiFilter, picFilter, searchTerm]);
+  }, [fetchData, statusFilter, statusBayarFilter, tipePengirimanFilter, statusPengirimanFilter, returnStatusFilter, noTransaksiFilter, picFilter, searchTerm]);
 
   useEffect(() => {
     loadData();
@@ -632,13 +641,29 @@ const PenjualanSapiUtuhPage = () => {
       minWidth: '220px',
       cell: (row) => {
         const isShipping = row.pengiriman === 'dikirim' || row.pengiriman === 'dipotong_rph_dikirim';
-        const isNotShipped = isShipping && row.status_pengiriman === 'belum_berangkat';
         const today = new Date().toISOString().split('T')[0];
         const isFailedDelivery = isShipping && row.tanggal_diterima && row.tanggal_diterima < today && row.status_pengiriman !== 'sudah_diterima';
         const isCredit = row.jenis_transaksi === 'kredit' || row.tipe_penjualan === 'kredit';
         const dueDate = row.jangka_waktu;
         const daysUntilDue = dueDate ? Math.ceil((new Date(dueDate).setHours(0, 0, 0, 0) - new Date().setHours(0, 0, 0, 0)) / (1000 * 60 * 60 * 24)) : null;
         const isDueSoon = isCredit && dueDate && (daysUntilDue <= 5) && (row.sisa_pembayaran > 0);
+
+        const tipeConfig = {
+          dikirim: { bg: 'bg-violet-50', text: 'text-violet-700', border: 'border-violet-100', label: 'Dikirim' },
+          dipotong_rph_dikirim: { bg: 'bg-violet-50', text: 'text-violet-700', border: 'border-violet-100', label: 'Dipotong RPH & Dikirim' },
+          dipotong_rph_diambil: { bg: 'bg-slate-50', text: 'text-slate-700', border: 'border-slate-200', label: 'Dipotong RPH & Diambil' },
+          diambil: { bg: 'bg-slate-50', text: 'text-slate-700', border: 'border-slate-200', label: 'Diambil' },
+          belum_diketahui: { bg: 'bg-gray-50', text: 'text-gray-500', border: 'border-gray-200', label: 'Belum Diketahui' },
+        };
+        const statusConfig = {
+          belum_berangkat: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-100', icon: <Bell className="w-3 h-3" />, label: 'Belum Berangkat' },
+          sudah_berangkat: { bg: 'bg-sky-50', text: 'text-sky-700', border: 'border-sky-100', icon: <Truck className="w-3 h-3" />, label: 'Sudah Berangkat' },
+          sudah_diterima: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-100', icon: <CheckCircle className="w-3 h-3" />, label: 'Sudah Diterima' },
+          return: { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-100', icon: <XCircle className="w-3 h-3" />, label: 'Return' },
+        };
+        const tipe = tipeConfig[row.pengiriman] || tipeConfig.belum_diketahui;
+        const status = isShipping ? (statusConfig[row.status_pengiriman] || statusConfig.belum_berangkat) : null;
+
         return (
           <div className="flex items-center gap-3 py-1">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-green-600 flex items-center justify-center text-white text-sm font-bold shrink-0 shadow-sm">
@@ -649,29 +674,27 @@ const PenjualanSapiUtuhPage = () => {
                 <span className="inline-block bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-md text-[11px] font-bold tracking-wide border border-indigo-100">
                   {row.no_transaksi}
                 </span>
-                {isNotShipped && (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-amber-50 text-amber-700 px-2 py-0.5 rounded-md border border-amber-100">
-                    <Bell className="w-3 h-3" /> Belum Dikirim
+                <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md border ${tipe.bg} ${tipe.text} ${tipe.border}`} title="Tipe Pengiriman">
+                  {tipe.label}
+                </span>
+                {status && (
+                  <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md border ${status.bg} ${status.text} ${status.border}`} title="Status Pengiriman">
+                    {status.icon} {status.label}
                   </span>
                 )}
                 {isFailedDelivery && (
                   <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-red-50 text-red-700 px-2 py-0.5 rounded-md border border-red-100">
-                    <AlertTriangle className="w-3 h-3" /> Gagal Dikirim
+                    <AlertTriangle className="w-3 h-3" /> Gagal Kirim
                   </span>
                 )}
-                {isShipping && row.status_pengiriman === 'sudah_berangkat' && (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-sky-50 text-sky-700 px-2 py-0.5 rounded-md border border-sky-100">
-                    <Truck className="w-3 h-3" /> Dalam Perjalanan
+                {row.return_status === 'partial' && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-orange-50 text-orange-700 px-2 py-0.5 rounded-md border border-orange-100" title={`Return sebagian: ${row.returned_ekor} dari ${row.total_ekor} sapi`}>
+                    <RotateCcw className="w-3 h-3" /> Return Sebagian ({row.returned_ekor}/{row.total_ekor})
                   </span>
                 )}
-                {isShipping && row.status_pengiriman === 'sudah_diterima' && (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md border border-emerald-100">
-                    <CheckCircle className="w-3 h-3" /> Terkirim
-                  </span>
-                )}
-                {isShipping && row.status_pengiriman === 'return' && (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-red-50 text-red-700 px-2 py-0.5 rounded-md border border-red-100">
-                    <XCircle className="w-3 h-3" /> Return
+                {row.return_status === 'full' && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-red-50 text-red-700 px-2 py-0.5 rounded-md border border-red-100" title={`Return penuh: ${row.returned_ekor} dari ${row.total_ekor} sapi`}>
+                    <RotateCcw className="w-3 h-3" /> Return Penuh ({row.returned_ekor}/{row.total_ekor})
                   </span>
                 )}
                 {isDueSoon && (
@@ -805,6 +828,7 @@ const PenjualanSapiUtuhPage = () => {
           draft: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-100', dot: 'bg-amber-400', label: 'Draft' },
           confirmed: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-100', dot: 'bg-emerald-400', label: 'Confirmed' },
           cancelled: { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-100', dot: 'bg-red-400', label: 'Batal' },
+          returned: { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-100', dot: 'bg-orange-400', label: 'Returned' },
         };
         const tx = txConfigs[row.status_transaksi] || txConfigs.draft;
         return (
@@ -897,13 +921,23 @@ const PenjualanSapiUtuhPage = () => {
             <h1 className="text-2xl font-bold text-gray-900">Penjualan Sapi Utuh</h1>
             <p className="text-gray-500 text-sm mt-0.5">Kelola transaksi penjualan sapi utuh ke reseller</p>
           </div>
-          <button
-            onClick={() => navigate('/rph/penjualan-sapi-utuh/add')}
-            className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-medium transition shadow-sm hover:shadow-md"
-          >
-            <PlusCircle className="w-5 h-5" />
-            Tambah Penjualan
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate('/rph/penjualan-sapi-utuh/return-history')}
+              className="inline-flex items-center gap-2 bg-white hover:bg-orange-50 text-orange-700 border border-orange-200 px-4 py-2.5 rounded-xl font-medium transition shadow-sm"
+              title="Lihat riwayat semua return"
+            >
+              <RotateCcw className="w-5 h-5" />
+              Riwayat Return
+            </button>
+            <button
+              onClick={() => navigate('/rph/penjualan-sapi-utuh/add')}
+              className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-medium transition shadow-sm hover:shadow-md"
+            >
+              <PlusCircle className="w-5 h-5" />
+              Tambah Penjualan
+            </button>
+          </div>
         </div>
 
         {/* Stats */}
@@ -1012,6 +1046,7 @@ const PenjualanSapiUtuhPage = () => {
                     setNoTransaksiFilter('');
                     setTipePengirimanFilter('');
                     setStatusPengirimanFilter('');
+                    setReturnStatusFilter('');
                     setStatusFilter('');
                     setStatusBayarFilter('');
                     setPicFilter('');
@@ -1090,6 +1125,15 @@ const PenjualanSapiUtuhPage = () => {
                 />
               </div>
               <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-gray-600">Status Return</label>
+                <FilterSelect
+                  options={RETURN_STATUS_FILTER_OPTIONS}
+                  value={returnStatusFilter}
+                  onChange={(val) => setReturnStatusFilter(val || '')}
+                  placeholder="Pilih status return"
+                />
+              </div>
+              <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-gray-600">Status Transaksi</label>
                 <FilterSelect
                   options={STATUS_TRANSAKSI_FILTER_OPTIONS}
@@ -1109,7 +1153,7 @@ const PenjualanSapiUtuhPage = () => {
               </div>
             </div>
 
-            {(searchTerm || noTransaksiFilter || tipePengirimanFilter || statusPengirimanFilter || statusFilter || statusBayarFilter || picFilter) && (
+            {(searchTerm || noTransaksiFilter || tipePengirimanFilter || statusPengirimanFilter || returnStatusFilter || statusFilter || statusBayarFilter || picFilter) && (
               <div className="mt-4 pt-4 border-t border-gray-100 flex flex-wrap items-center gap-2">
                 <span className="text-xs font-semibold text-gray-500">Filter aktif:</span>
                 {searchTerm && (
@@ -1134,6 +1178,12 @@ const PenjualanSapiUtuhPage = () => {
                   <span className="inline-flex items-center gap-1 text-xs bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full border border-emerald-100">
                     Pengiriman: {STATUS_PENGIRIMAN_FILTER_OPTIONS.find(o => o.value === statusPengirimanFilter)?.label}
                     <button onClick={() => setStatusPengirimanFilter('')} className="hover:text-emerald-900"><XCircle className="w-3 h-3" /></button>
+                  </span>
+                )}
+                {returnStatusFilter && (
+                  <span className="inline-flex items-center gap-1 text-xs bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full border border-emerald-100">
+                    Return: {RETURN_STATUS_FILTER_OPTIONS.find(o => o.value === returnStatusFilter)?.label}
+                    <button onClick={() => setReturnStatusFilter('')} className="hover:text-emerald-900"><XCircle className="w-3 h-3" /></button>
                   </span>
                 )}
                 {statusFilter && (
