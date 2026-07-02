@@ -260,8 +260,7 @@ const HutangVendorPage = () => {
 
   const handleBayar = (detail, via) => {
     setSelectedItem(null);
-    const route = via === 'bank' ? '/ho/keuangan-bank' : '/ho/keuangan-kas';
-    navigate(route, {
+    navigate('/ho/keuangan/pengeluaran', {
       state: {
         id_pembayaran: detail.id_pembayaran,
         pubid: detail.pubid,
@@ -269,6 +268,7 @@ const HutangVendorPage = () => {
         nama_supplier: detail.nama_supplier,
         sisa_hutang: detail.sisa_hutang,
         source: 'hutang-vendor',
+        via: via || 'kas',
       },
     });
   };

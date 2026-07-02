@@ -25,11 +25,11 @@ const AddEditTandaTerimaPage = lazy(() => import('../pages/ho/tandaTerima/AddEdi
 
 const PengajuanPage = lazy(() => import('../pages/ho/pengajuan/PengajuanPage'));
 
-const KeuanganKasPage = lazy(() => import('../pages/ho/keuanganKas/KeuanganKasPage'));
 const KeuanganKasDetailPage = lazy(() => import('../pages/ho/keuanganKas/KeuanganKasDetailPage'));
 
-const KeuanganBankPage = lazy(() => import('../pages/ho/keuanganBank/KeuanganBankPage'));
 const KeuanganBankDetailPage = lazy(() => import('../pages/ho/keuanganBank/KeuanganBankDetailPage'));
+
+const KeuanganPage = lazy(() => import('../pages/ho/keuangan/KeuanganPage'));
 
 const PenjualanSapiHOPage = lazy(() => import('../pages/ho/penjualan/penjualanSapi/PenjualanSapiHOPage'));
 
@@ -144,18 +144,14 @@ export const hoRoutes = [
     element: <PengajuanPage />
   },
 
-  // HO Keuangan
+  // HO Keuangan (unified)
   {
-    path: '/ho/keuangan-kas',
-    element: <KeuanganKasPage />
+    path: '/ho/keuangan/pengeluaran',
+    element: <KeuanganPage />
   },
   {
     path: '/ho/keuangan-kas/detail/:id',
     element: <KeuanganKasDetailPage />
-  },
-  {
-    path: '/ho/keuangan-bank',
-    element: <KeuanganBankPage />
   },
   {
     path: '/ho/keuangan-bank/detail/:id',

@@ -147,7 +147,7 @@ const KeuanganKasDetailPage = () => {
 
     // Navigation handlers
     const handleBack = () => {
-        navigate('/ho/keuangan-kas');
+        navigate('/ho/keuangan/pengeluaran');
     };
 
     // Payment handlers

@@ -190,12 +190,9 @@ const AddEditTandaTerimaPage = lazy(() => import('./pages/ho/tandaTerima/AddEdit
 // Pengajuan Pages - Lazy loaded
 const PengajuanPage = lazy(() => import('./pages/ho/pengajuan/PengajuanPage'));
 
-// Keuangan Kas Pages - Lazy loaded
-const KeuanganKasPage = lazy(() => import('./pages/ho/keuanganKas/KeuanganKasPage'));
+// Keuangan Pages - Lazy loaded (unified HO)
+const HOKeuanganPage = lazy(() => import('./pages/ho/keuangan/KeuanganPage'));
 const KeuanganKasDetailPage = lazy(() => import('./pages/ho/keuanganKas/KeuanganKasDetailPage'));
-
-// Keuangan Bank Pages - Lazy loaded
-const KeuanganBankPage = lazy(() => import('./pages/ho/keuanganBank/KeuanganBankPage'));
 const KeuanganBankDetailPage = lazy(() => import('./pages/ho/keuanganBank/KeuanganBankDetailPage'));
 
 // HO Penjualan Pages - Lazy loaded
@@ -487,15 +484,10 @@ function AppSecure() {
               {/* HO Pengajuan Routes */}
               <Route path="/ho/pengajuan" element={<PengajuanPage />} />
               
-              {/* HO Keuangan Kas Routes */}
+              {/* HO Keuangan Routes (unified) */}
+              <Route path="/ho/keuangan/pengeluaran" element={<HOKeuanganPage />} />
               <Route path="/ho/keuangan-kas/detail/:id" element={<KeuanganKasDetailPage />} />
-              <Route path="/ho/keuangan-kas" element={<KeuanganKasPage />} />
-              <Route path="/keuangan-kas" element={<Navigate to="/ho/keuangan-kas" replace />} />
-              
-              {/* HO Keuangan Bank Routes */}
               <Route path="/ho/keuangan-bank/detail/:id" element={<KeuanganBankDetailPage />} />
-              <Route path="/ho/keuangan-bank" element={<KeuanganBankPage />} />
-              <Route path="/keuangan-bank" element={<Navigate to="/ho/keuangan-bank" replace />} />
 
               {/* HO Penjualan Routes */}
               <Route path="/ho/penjualan" element={<PenjualanHOPage />} />

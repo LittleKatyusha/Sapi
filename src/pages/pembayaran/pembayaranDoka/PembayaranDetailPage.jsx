@@ -123,7 +123,7 @@ const PembayaranDetailPage = () => {
   // Navigation handlers
   const handleBack = () => {
       if (location.state?.isPurchase) {
-          navigate('/ho/keuangan-kas');
+          navigate('/ho/keuangan/pengeluaran');
       } else {
           navigate(-1);
       }

@@ -1,38 +1,47 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Wallet } from 'lucide-react';
+import { Wallet, Banknote } from 'lucide-react';
 
-import useKeuanganBank from './hooks/useKeuanganBank';
-import usePengajuanBiayaBank from './hooks/usePengajuanBiayaBank';
+import useKeuangan from './hooks/useKeuangan';
+import usePengajuanBiayaKas from '../keuanganKas/hooks/usePengajuanBiayaKas';
+import usePengajuanBiayaBank from '../keuanganBank/hooks/usePengajuanBiayaBank';
+import useBankDeposit from '../keuanganKas/hooks/useBankDeposit';
+import useBanksAPILazy from '../keuanganKas/hooks/useBanksAPILazy';
 import pengeluaranService from '../../../services/pengeluaranService';
 
-// Import table components
-import PengajuanTable from './components/tables/PengajuanTable';
-import BelumDibayarTable from './components/tables/BelumDibayarTable';
-import BelumLunasTable from './components/tables/BelumLunasTable';
-import LunasTable from './components/tables/LunasTable';
+// Import table components (reuse from keuanganKas)
+import PengajuanTable from '../keuanganKas/components/tables/PengajuanTable';
+import BelumDibayarTable from '../keuanganKas/components/tables/BelumDibayarTable';
+import BelumLunasTable from '../keuanganKas/components/tables/BelumLunasTable';
+import LunasTable from '../keuanganKas/components/tables/LunasTable';
+import TersetorTable from '../keuanganKas/components/tables/TersetorTable';
 
+// Import modals (reuse from keuanganKas)
+import DeleteConfirmationModal from '../keuanganKas/modals/DeleteConfirmationModal';
+import AddEditKeuanganKasModal from '../keuanganKas/modals/AddEditKeuanganKasModal';
+import DetailModal from '../keuanganKas/modals/DetailModal';
+import SetorKasModal from '../keuanganKas/modals/SetorKasModal';
+import FormPengajuanBiayaModal from '../keuanganKas/modals/FormPengajuanBiayaModal';
+import BankDepositDetailModal from '../keuanganKas/modals/BankDepositDetailModal';
 
-// Import modals
-import DeleteConfirmationModal from './modals/DeleteConfirmationModal';
-import AddEditKeuanganBankModal from './modals/AddEditKeuanganBankModal';
-import DetailModal from './modals/DetailModal';
-import SetorBankModal from './modals/SetorBankModal';
-import FormPengajuanBiayaModal from './modals/FormPengajuanBiayaModal';
-
-const KeuanganBankPage = () => {
+const KeuanganPage = () => {
     const navigate = useNavigate();
     const location = useLocation();
+    const [metodeBayar, setMetodeBayar] = useState('kas'); // 'kas' | 'bank'
     const [activeTab, setActiveTab] = useState('pengajuan');
     const [openMenuId, setOpenMenuId] = useState(null);
-    
+
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isAddEditModalOpen, setIsAddEditModalOpen] = useState(false);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-    const [isSetorBankModalOpen, setIsSetorBankModalOpen] = useState(false);
+    const [isSetorKasModalOpen, setIsSetorKasModalOpen] = useState(false);
     const [isFormPengajuanModalOpen, setIsFormPengajuanModalOpen] = useState(false);
+    const [isBankDepositDetailModalOpen, setIsBankDepositDetailModalOpen] = useState(false);
     const [selectedItem, setSelectedItem] = useState(null);
     const [notification, setNotification] = useState(null);
+
+    const tipePembayaran = metodeBayar === 'kas' ? 1 : 2;
+    const detailBasePath = metodeBayar === 'kas' ? '/ho/keuangan-kas/detail' : '/ho/keuangan-bank/detail';
 
     // Helper formatter
     const formatCurrency = (value) => {
@@ -45,7 +54,7 @@ const KeuanganBankPage = () => {
     };
 
     const {
-        keuanganBank: filteredData,
+        data: filteredData,
         loading,
         error,
         searchTerm,
@@ -53,27 +62,87 @@ const KeuanganBankPage = () => {
         isSearching,
         searchError,
         serverPagination,
-        fetchKeuanganBank,
+        fetchData,
         handleSearch,
         clearSearch,
         handlePageChange: handleServerPageChange,
         handlePerPageChange: handleServerPerPageChange,
-        createKeuanganBank,
-        updateKeuanganBank,
-        deleteKeuanganBank,
+        createItem,
+        updateItem,
+        deleteItem,
         cardData,
         fetchCardData
-    } = useKeuanganBank(activeTab);
+    } = useKeuangan(activeTab, tipePembayaran);
 
-    // Fetch card data on mount
+    // Fetch card data on mount and when metodeBayar changes
     useEffect(() => {
         fetchCardData();
     }, [fetchCardData]);
 
-    // Consume navigation state from Hutang Vendor "Bayar via Bank"
+    // Pengajuan hooks - pick based on metodeBayar
+    const pengajuanKas = usePengajuanBiayaKas();
+    const pengajuanBank = usePengajuanBiayaBank();
+    const pengajuan = metodeBayar === 'kas' ? pengajuanKas : pengajuanBank;
+    const {
+        pengajuanBiaya,
+        loading: loadingPengajuan,
+        error: errorPengajuan,
+        searchTerm: searchTermPengajuan,
+        isSearching: isSearchingPengajuan,
+        searchError: searchErrorPengajuan,
+        serverPagination: serverPaginationPengajuan,
+        fetchPengajuanBiaya,
+        handleSearch: handleSearchPengajuan,
+        clearSearch: clearSearchPengajuan,
+        handlePageChange: handlePageChangePengajuan,
+        handlePerPageChange: handlePerPageChangePengajuan,
+    } = pengajuan;
+
+    // Hook untuk Bank Deposit (Tersetor) - only for Kas
+    const {
+        bankDeposits,
+        loading: loadingBankDeposit,
+        error: errorBankDeposit,
+        searchTerm: searchTermBankDeposit,
+        isSearching: isSearchingBankDeposit,
+        searchError: searchErrorBankDeposit,
+        serverPagination: serverPaginationBankDeposit,
+        dateFilter: dateFilterBankDeposit,
+        fetchBankDeposits,
+        handleSearch: handleSearchBankDeposit,
+        clearSearch: clearSearchBankDeposit,
+        handlePageChange: handlePageChangeBankDeposit,
+        handlePerPageChange: handlePerPageChangeBankDeposit,
+        handleDateFilterChange: handleDateFilterChangeBankDeposit,
+        createBankDeposit,
+        updateBankDeposit,
+        deleteBankDeposit,
+        getBankDepositDetail,
+        refreshData: refreshBankDeposits,
+    } = useBankDeposit();
+
+    // Hook untuk Bank Options
+    const {
+        bankOptions: allBankOptions,
+        loading: loadingBanks,
+        fetchBanks,
+    } = useBanksAPILazy();
+
+    // Filter bank options untuk tab tersetor (hilangkan opsi "Kas")
+    const bankOptionsForTersetor = useMemo(() => {
+        return allBankOptions.filter(bank => {
+            const label = (bank.label || '').toLowerCase();
+            return !label.includes('kas') || label.includes('bank');
+        });
+    }, [allBankOptions]);
+
+    // Consume navigation state from Hutang Vendor "Bayar via Kas/Bank"
     useEffect(() => {
         const state = location.state;
         if (state && state.source === 'hutang-vendor') {
+            // Determine metode bayar from state or default to kas
+            const via = state.via || 'kas';
+            setMetodeBayar(via === 'bank' ? 'bank' : 'kas');
             setActiveTab('belum-dibayar');
             if (state.nota) {
                 setSearchTerm(state.nota);
@@ -106,7 +175,7 @@ const KeuanganBankPage = () => {
         },
         {
             id: 2,
-            preText: "Kas keluar hari ini",
+            preText: `${metodeBayar === 'kas' ? 'Kas' : 'Bank'} keluar hari ini`,
             count: cardData?.keluarhariini?.jumlah || 0,
             text: "tagihan",
             total: cardData?.keluarhariini?.nominal || 0,
@@ -119,7 +188,7 @@ const KeuanganBankPage = () => {
         },
         {
             id: 3,
-            preText: "Kas keluar Minggu Ini",
+            preText: `${metodeBayar === 'kas' ? 'Kas' : 'Bank'} keluar minggu ini`,
             count: cardData?.keluarmingguini?.jumlah || 0,
             text: "tagihan",
             total: cardData?.keluarmingguini?.nominal || 0,
@@ -132,7 +201,7 @@ const KeuanganBankPage = () => {
         },
         {
             id: 4,
-            preText: "Kas keluar bulan ini",
+            preText: `${metodeBayar === 'kas' ? 'Kas' : 'Bank'} keluar bulan ini`,
             count: cardData?.keluarbulanini?.jumlah || 0,
             text: "tagihan",
             total: cardData?.keluarbulanini?.nominal || 0,
@@ -145,7 +214,7 @@ const KeuanganBankPage = () => {
         },
         {
             id: 5,
-            preText: "Kas keluar tahun ini",
+            preText: `${metodeBayar === 'kas' ? 'Kas' : 'Bank'} keluar tahun ini`,
             count: cardData?.keluartahunini?.jumlah || 0,
             text: "tagihan",
             total: cardData?.keluartahunini?.nominal || 0,
@@ -158,41 +227,34 @@ const KeuanganBankPage = () => {
         }
     ];
 
-    // Hook untuk Pengajuan Biaya Bank
-    const {
-        pengajuanBiaya,
-        loading: loadingPengajuan,
-        error: errorPengajuan,
-        searchTerm: searchTermPengajuan,
-        // eslint-disable-next-line no-unused-vars
-        setSearchTerm: setSearchTermPengajuan,
-        isSearching: isSearchingPengajuan,
-        searchError: searchErrorPengajuan,
-        serverPagination: serverPaginationPengajuan,
-        fetchPengajuanBiaya,
-        handleSearch: handleSearchPengajuan,
-        clearSearch: clearSearchPengajuan,
-        handlePageChange: handlePageChangePengajuan,
-        handlePerPageChange: handlePerPageChangePengajuan,
-    } = usePengajuanBiayaBank();
-
-    // Fetch data on mount and when tab changes
+    // Fetch data on mount and when tab/metode changes
     useEffect(() => {
         if (activeTab === 'pengajuan') {
-            console.log('🔄 [TAB CHANGE] Fetching pengajuan data');
             fetchPengajuanBiaya();
-        } else if (activeTab !== 'kredit-bank') {
-            console.log('🔄 [TAB CHANGE] Fetching data for tab:', activeTab);
-            fetchKeuanganBank(1, serverPagination.perPage, '', activeTab, true);
+        } else if (activeTab === 'kredit-bank' && metodeBayar === 'kas') {
+            fetchBankDeposits();
+            fetchBanks();
+        } else {
+            fetchData(1, serverPagination.perPage, '', activeTab, true);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [activeTab]);
+    }, [activeTab, metodeBayar]);
 
     const handleTabChange = (tabName) => {
-        console.log('📑 [TAB] Switching to:', tabName);
         setActiveTab(tabName);
-        setOpenMenuId(null); // Close any open menus
-        setSearchTerm(''); // Clear search term without triggering fetch
+        setOpenMenuId(null);
+        setSearchTerm('');
+    };
+
+    const handleMetodeChange = (metode) => {
+        if (metode === metodeBayar) return;
+        setMetodeBayar(metode);
+        // If current tab is kredit-bank (Kas only) and switching to Bank, reset to pengajuan
+        if (metode === 'bank' && activeTab === 'kredit-bank') {
+            setActiveTab('pengajuan');
+        }
+        setOpenMenuId(null);
+        setSearchTerm('');
     };
 
     // eslint-disable-next-line no-unused-vars
@@ -201,9 +263,45 @@ const KeuanganBankPage = () => {
         setIsAddEditModalOpen(true);
     };
 
+    const handleAddSetorKas = () => {
+        setSelectedItem(null);
+        setIsSetorKasModalOpen(true);
+    };
+
     // eslint-disable-next-line no-unused-vars
-    const handleAddSetorBank = () => {
-        setIsSetorBankModalOpen(true);
+    const handleEditSetorKas = (item) => {
+        setSelectedItem(item);
+        setIsSetorKasModalOpen(true);
+        setOpenMenuId(null);
+    };
+
+    // eslint-disable-next-line no-unused-vars
+    const handleDeleteSetorKas = (item) => {
+        setSelectedItem(item);
+        setIsDeleteModalOpen(true);
+        setOpenMenuId(null);
+    };
+
+    // eslint-disable-next-line no-unused-vars
+    const handleDetailSetorKas = async (item) => {
+        try {
+            const response = await getBankDepositDetail(item.pid);
+            if (response.success) {
+                setSelectedItem(response.data);
+                setIsBankDepositDetailModalOpen(true);
+            }
+        } catch (err) {
+            setNotification({
+                type: 'error',
+                message: err.message || 'Gagal memuat detail'
+            });
+        }
+        setOpenMenuId(null);
+    };
+
+    const handleCloseBankDepositDetailModal = () => {
+        setIsBankDepositDetailModalOpen(false);
+        setSelectedItem(null);
     };
 
     const handleProses = (item) => {
@@ -212,56 +310,58 @@ const KeuanganBankPage = () => {
         setOpenMenuId(null);
     };
 
-    const handleDownload = async (item) => {
-        setNotification({
-            type: 'info',
-            message: 'Sedang mengunduh berkas...'
-        });
-        setOpenMenuId(null);
-
+    const handleDownload = async (item, type = 'pengajuan') => {
         try {
-            // Get petugas from localStorage
+            setNotification({
+                type: 'info',
+                message: `Mengunduh berkas ${type}...`
+            });
+
             const userStr = localStorage.getItem('user');
             const user = userStr ? JSON.parse(userStr) : {};
             const petugas = user.name || 'Admin';
-            
-            let response;
-            // Determine which report to download based on purchase_type
-            // 7 = Pengajuan (ho-spend-submit)
-            // Others = Pembelian (ho-spend-buy)
-            if (item.purchase_type === 7) {
-                response = await pengeluaranService.downloadReportPengajuan(item.id_pembayaran_pembelian, petugas);
-            } else {
-                response = await pengeluaranService.downloadReportPembelian(item.id_pembayaran_pembelian, petugas);
+
+            const idPembayaranPembelian = item.id_pembayaran || item.id;
+
+            if (!idPembayaranPembelian) {
+                throw new Error('ID Pembayaran tidak ditemukan');
             }
-            
-            // Create download link
-            const url = window.URL.createObjectURL(new Blob([response]));
+
+            let blob;
+            if (item.purchase_type === 7) {
+                blob = await pengeluaranService.downloadReportPengajuan(idPembayaranPembelian, petugas);
+            } else {
+                blob = await pengeluaranService.downloadReportPembelian(idPembayaranPembelian, petugas);
+            }
+
+            const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            const filename = `Report_${item.nota || 'Pengeluaran'}.pdf`;
+            const filename = `Bukti_${item.purchase_type === 7 ? 'Pengajuan' : 'Pembelian'}_${item.nota || item.nota_sistem || 'Report'}.pdf`;
             link.setAttribute('download', filename);
+
             document.body.appendChild(link);
             link.click();
             link.parentNode.removeChild(link);
-            
+            window.URL.revokeObjectURL(url);
+
             setNotification({
                 type: 'success',
-                message: `Berhasil mengunduh berkas ${filename}`
+                message: `Berhasil mengunduh berkas ${type}`
             });
-        } catch (error) {
-            console.error('Download error:', error);
+        } catch (err) {
+            console.error('Download error:', err);
             setNotification({
                 type: 'error',
-                message: 'Gagal mengunduh berkas'
+                message: `Gagal mengunduh berkas: ${err.message || 'Terjadi kesalahan'}`
             });
         }
+        setOpenMenuId(null);
     };
 
     const handleBayar = (item) => {
-        // Navigate to Keuangan Bank detail page for payment using pid
         if (item.pid) {
-            navigate(`/ho/keuangan-bank/detail/${item.pid}`);
+            navigate(`${detailBasePath}/${item.pid}`);
         } else {
             setNotification({
                 type: 'error',
@@ -307,8 +407,9 @@ const KeuanganBankPage = () => {
         setSelectedItem(null);
     };
 
-    const handleCloseSetorBankModal = () => {
-        setIsSetorBankModalOpen(false);
+    const handleCloseSetorKasModal = () => {
+        setIsSetorKasModalOpen(false);
+        setSelectedItem(null);
     };
 
     const handleCloseFormPengajuanModal = () => {
@@ -318,134 +419,156 @@ const KeuanganBankPage = () => {
 
     const handleSaveFormPengajuan = useCallback(async (data) => {
         try {
-            // Here you would call your API to save the form pengajuan data
-            // For now, we'll just show a success notification
             setNotification({
                 type: 'success',
                 message: 'Form pengajuan berhasil disimpan!'
             });
             handleCloseFormPengajuanModal();
-            // Optionally refresh the data
-            await fetchKeuanganBank(serverPagination.currentPage, serverPagination.perPage, searchTerm, false, true);
-        } catch (error) {
+            await fetchData(serverPagination.currentPage, serverPagination.perPage, searchTerm, false, true);
+        } catch (err) {
             setNotification({
                 type: 'error',
-                message: error.message || 'Gagal menyimpan form pengajuan'
+                message: err.message || 'Gagal menyimpan form pengajuan'
             });
         }
-    }, [fetchKeuanganBank, serverPagination, searchTerm]);
+    }, [fetchData, serverPagination, searchTerm]);
 
-    const handleRejectFormPengajuan = useCallback(async (data) => {
+    const handleRejectFormPengajuan = useCallback(async () => {
         try {
-            // The modal now handles the API call internally
-            // Just show success notification and refresh data
             setNotification({
                 type: 'success',
                 message: 'Pengajuan berhasil ditolak!'
             });
             handleCloseFormPengajuanModal();
-            // Refresh the pengajuan data
             await fetchPengajuanBiaya();
-        } catch (error) {
+        } catch (err) {
             setNotification({
                 type: 'error',
-                message: error.message || 'Gagal menolak pengajuan'
+                message: err.message || 'Gagal menolak pengajuan'
             });
         }
     }, [fetchPengajuanBiaya]);
 
-    const handleSavePembayaran = useCallback(async (data) => {
+    const handleSavePembayaran = useCallback(async () => {
         try {
-            // The modal now handles the API call internally
-            // Just show success notification and refresh data
             setNotification({
                 type: 'success',
                 message: 'Pembayaran berhasil disimpan!'
             });
             handleCloseFormPengajuanModal();
-            // Refresh the pengajuan data
             await fetchPengajuanBiaya();
-        } catch (error) {
+        } catch (err) {
             setNotification({
                 type: 'error',
-                message: error.message || 'Gagal menyimpan pembayaran'
+                message: err.message || 'Gagal menyimpan pembayaran'
             });
         }
     }, [fetchPengajuanBiaya]);
 
     const handleDeleteItem = useCallback(async (item) => {
         try {
-            const result = await deleteKeuanganBank(item.id);
-            
+            const result = await deleteItem(item.id);
+
             if (result.success) {
                 setNotification({
                     type: 'success',
                     message: result.message || 'Data berhasil dihapus'
                 });
                 handleCloseDeleteModal();
-                await fetchKeuanganBank(serverPagination.currentPage, serverPagination.perPage, searchTerm, false, true);
+                await fetchData(serverPagination.currentPage, serverPagination.perPage, searchTerm, false, true);
             } else {
                 setNotification({
                     type: 'error',
                     message: result.message || 'Gagal menghapus data'
                 });
             }
-        } catch (error) {
+        } catch (err) {
             setNotification({
                 type: 'error',
-                message: error.message || 'Terjadi kesalahan'
+                message: err.message || 'Terjadi kesalahan'
             });
         }
-    }, [deleteKeuanganBank, fetchKeuanganBank, serverPagination, searchTerm]);
+    }, [deleteItem, fetchData, serverPagination, searchTerm]);
 
     const handleSaveItem = useCallback(async (data) => {
         const isUpdate = selectedItem && selectedItem.id;
-        
+
         try {
             let result;
-            
+
             if (isUpdate) {
-                result = await updateKeuanganBank(selectedItem.id, data);
+                result = await updateItem(selectedItem.id, data);
             } else {
-                result = await createKeuanganBank(data);
+                result = await createItem(data);
             }
-            
+
             if (result.success) {
                 setNotification({
                     type: 'success',
                     message: result.message || `Data berhasil ${isUpdate ? 'diperbarui' : 'disimpan'}!`
                 });
                 handleCloseAddEditModal();
-                await fetchKeuanganBank(serverPagination.currentPage, serverPagination.perPage, searchTerm, false, true);
+                await fetchData(serverPagination.currentPage, serverPagination.perPage, searchTerm, false, true);
             } else {
                 throw new Error(result.message || `Gagal ${isUpdate ? 'memperbarui' : 'menyimpan'} data`);
             }
-        } catch (error) {
+        } catch (err) {
             setNotification({
                 type: 'error',
-                message: error.message || `Gagal ${isUpdate ? 'memperbarui' : 'menyimpan'} data`
+                message: err.message || `Gagal ${isUpdate ? 'memperbarui' : 'menyimpan'} data`
             });
         }
-    }, [selectedItem, updateKeuanganBank, createKeuanganBank, fetchKeuanganBank, serverPagination, searchTerm]);
+    }, [selectedItem, updateItem, createItem, fetchData, serverPagination, searchTerm]);
 
-    const handleSaveSetorBank = useCallback(async (data) => {
+    const handleSaveSetorKas = useCallback(async (data, isEditMode) => {
         try {
-            // Here you would call your API to save the setor bank data
-            // For now, we'll just show a success notification
-            setNotification({
-                type: 'success',
-                message: 'Data setor bank berhasil disimpan!'
-            });
-            handleCloseSetorBankModal();
-            // Optionally refresh the data
-            await fetchKeuanganBank(serverPagination.currentPage, serverPagination.perPage, searchTerm, false, true);
-        } catch (error) {
+            let result;
+            if (isEditMode && data.pid) {
+                result = await updateBankDeposit(data.pid, data);
+            } else {
+                result = await createBankDeposit(data);
+            }
+
+            if (result.success) {
+                setNotification({
+                    type: 'success',
+                    message: result.message || `Data setor kas berhasil ${isEditMode ? 'diperbarui' : 'disimpan'}!`
+                });
+                handleCloseSetorKasModal();
+                refreshBankDeposits();
+            } else {
+                throw new Error(result.message || 'Gagal menyimpan data');
+            }
+        } catch (err) {
             setNotification({
                 type: 'error',
-                message: error.message || 'Gagal menyimpan data setor bank'
+                message: err.message || 'Gagal menyimpan data setor kas'
+            });
+            throw err;
+        }
+    }, [createBankDeposit, updateBankDeposit, refreshBankDeposits]);
+
+    const handleDeleteSetorKasConfirm = useCallback(async (item) => {
+        try {
+            const result = await deleteBankDeposit(item.pid);
+
+            if (result.success) {
+                setNotification({
+                    type: 'success',
+                    message: result.message || 'Data berhasil dihapus'
+                });
+                handleCloseDeleteModal();
+                refreshBankDeposits();
+            } else {
+                throw new Error(result.message || 'Gagal menghapus data');
+            }
+        } catch (err) {
+            setNotification({
+                type: 'error',
+                message: err.message || 'Terjadi kesalahan saat menghapus'
             });
         }
-    }, [fetchKeuanganBank, serverPagination, searchTerm]);
+    }, [deleteBankDeposit, refreshBankDeposits]);
 
     useEffect(() => {
         if (notification) {
@@ -455,6 +578,21 @@ const KeuanganBankPage = () => {
             return () => clearTimeout(timer);
         }
     }, [notification]);
+
+    const pageTitle = metodeBayar === 'kas' ? 'Pengeluaran Kas' : 'Pengeluaran Bank';
+    const pageSubtitle = metodeBayar === 'kas' ? 'Kelola data pengeluaran kas' : 'Kelola data pengeluaran bank';
+
+    const tabs = metodeBayar === 'kas'
+        ? ['pengajuan', 'belum-dibayar', 'belum-lunas', 'lunas', 'kredit-bank']
+        : ['pengajuan', 'belum-dibayar', 'belum-lunas', 'lunas'];
+
+    const tabLabels = {
+        'pengajuan': 'Pengajuan',
+        'belum-dibayar': 'Belum Dibayar',
+        'belum-lunas': 'Belum Lunas',
+        'lunas': 'Lunas',
+        'kredit-bank': 'Tersetor'
+    };
 
     return (
         <>
@@ -469,19 +607,17 @@ const KeuanganBankPage = () => {
                         transform: translateY(0);
                     }
                 }
-                
+
                 .animate-fadeIn {
                     animation: fadeIn 0.3s ease-in-out;
                 }
 
-                /* Sticky scrollbar wrapper */
                 .sticky-scrollbar-wrapper {
                     position: relative;
                     display: flex;
                     flex-direction: column-reverse;
                 }
 
-                /* Custom scrollbar styling for horizontal scrollbar */
                 .table-scroll-container-horizontal {
                     position: sticky;
                     bottom: 0;
@@ -489,27 +625,26 @@ const KeuanganBankPage = () => {
                     background: white;
                     padding-bottom: 2px;
                 }
-                
+
                 .table-scroll-container-horizontal::-webkit-scrollbar {
                     height: 12px;
                 }
-                
+
                 .table-scroll-container-horizontal::-webkit-scrollbar-track {
                     background: #f1f5f9;
                     border-radius: 4px;
                 }
-                
+
                 .table-scroll-container-horizontal::-webkit-scrollbar-thumb {
                     background: #cbd5e1;
                     border-radius: 4px;
                     transition: background 0.2s ease;
                 }
-                
+
                 .table-scroll-container-horizontal::-webkit-scrollbar-thumb:hover {
                     background: #94a3b8;
                 }
-                
-                /* Firefox scrollbar */
+
                 .table-scroll-container-horizontal {
                     scrollbar-width: thin;
                     scrollbar-color: #cbd5e1 #f1f5f9;
@@ -517,16 +652,43 @@ const KeuanganBankPage = () => {
             `}</style>
             <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-2 sm:p-4 md:p-6">
                 <div className="w-full max-w-none mx-0 space-y-6 md:space-y-8">
-                    {/* Header Section */}
+                    {/* Header Section with Metode Bayar Toggle */}
                     <div className="bg-white rounded-none sm:rounded-none p-4 sm:p-6 shadow-xl border border-gray-100">
-                        <div>
-                            <h1 className="text-2xl sm:text-4xl font-bold text-gray-800 mb-1 sm:mb-2 flex items-center gap-3">
-                                <Wallet size={32} className="text-blue-500" />
-                                Pengeluaran Bank
-                            </h1>
-                            <p className="text-gray-600 text-sm sm:text-base">
-                                Kelola data pengeluaran bank
-                            </p>
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                            <div>
+                                <h1 className="text-2xl sm:text-4xl font-bold text-gray-800 mb-1 sm:mb-2 flex items-center gap-3">
+                                    <Wallet size={32} className="text-blue-500" />
+                                    {pageTitle}
+                                </h1>
+                                <p className="text-gray-600 text-sm sm:text-base">
+                                    {pageSubtitle}
+                                </p>
+                            </div>
+                            {/* Metode Bayar Toggle */}
+                            <div className="inline-flex bg-gray-100 rounded-xl p-1 border border-gray-200">
+                                <button
+                                    onClick={() => handleMetodeChange('kas')}
+                                    className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 ${
+                                        metodeBayar === 'kas'
+                                            ? 'bg-white text-blue-700 shadow-md'
+                                            : 'text-gray-500 hover:text-gray-700'
+                                    }`}
+                                >
+                                    <Wallet size={18} />
+                                    Kas
+                                </button>
+                                <button
+                                    onClick={() => handleMetodeChange('bank')}
+                                    className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 ${
+                                        metodeBayar === 'bank'
+                                            ? 'bg-white text-blue-700 shadow-md'
+                                            : 'text-gray-500 hover:text-gray-700'
+                                    }`}
+                                >
+                                    <Banknote size={18} />
+                                    Bank
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -571,59 +733,22 @@ const KeuanganBankPage = () => {
                         {/* Tab Headers */}
                         <div className="bg-gradient-to-r from-slate-50 to-gray-50">
                             <div className="flex border-b-2 border-gray-200">
-                                <button
-                                    onClick={() => handleTabChange('pengajuan')}
-                                    className={`relative flex-1 px-8 py-5 text-lg font-bold transition-all duration-300 ${
-                                        activeTab === 'pengajuan'
-                                            ? 'text-white bg-gradient-to-r from-blue-600 to-cyan-600 shadow-lg'
-                                            : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-                                    }`}
-                                >
-                                    <span className="relative z-10">Pengajuan</span>
-                                    {activeTab === 'pengajuan' && (
-                                        <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-400 to-cyan-400"></div>
-                                    )}
-                                </button>
-                                <button
-                                    onClick={() => handleTabChange('belum-dibayar')}
-                                    className={`relative flex-1 px-8 py-5 text-lg font-bold transition-all duration-300 ${
-                                        activeTab === 'belum-dibayar'
-                                            ? 'text-white bg-gradient-to-r from-blue-600 to-cyan-600 shadow-lg'
-                                            : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-                                    }`}
-                                >
-                                    <span className="relative z-10">Belum Dibayar</span>
-                                    {activeTab === 'belum-dibayar' && (
-                                        <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-400 to-cyan-400"></div>
-                                    )}
-                                </button>
-                                <button
-                                    onClick={() => handleTabChange('belum-lunas')}
-                                    className={`relative flex-1 px-8 py-5 text-lg font-bold transition-all duration-300 ${
-                                       activeTab === 'belum-lunas'
-                                            ? 'text-white bg-gradient-to-r from-blue-600 to-cyan-600 shadow-lg'
-                                            : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-                                    }`}
-                                >
-                                    <span className="relative z-10">Belum Lunas</span>
-                                    {activeTab === 'belum-lunas' && (
-                                        <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-400 to-cyan-400"></div>
-                                    )}
-                                </button>
-                                <button
-                                    onClick={() => handleTabChange('lunas')}
-                                    className={`relative flex-1 px-8 py-5 text-lg font-bold transition-all duration-300 ${
-                                       activeTab === 'lunas'
-                                            ? 'text-white bg-gradient-to-r from-blue-600 to-cyan-600 shadow-lg'
-                                            : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-                                    }`}
-                                >
-                                    <span className="relative z-10">Lunas</span>
-                                    {activeTab === 'lunas' && (
-                                        <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-400 to-cyan-400"></div>
-                                    )}
-                                </button>
-
+                                {tabs.map((tab) => (
+                                    <button
+                                        key={tab}
+                                        onClick={() => handleTabChange(tab)}
+                                        className={`relative flex-1 px-8 py-5 text-lg font-bold transition-all duration-300 ${
+                                            activeTab === tab
+                                                ? 'text-white bg-gradient-to-r from-blue-600 to-cyan-600 shadow-lg'
+                                                : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+                                        }`}
+                                    >
+                                        <span className="relative z-10">{tabLabels[tab]}</span>
+                                        {activeTab === tab && (
+                                            <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-400 to-cyan-400"></div>
+                                        )}
+                                    </button>
+                                ))}
                             </div>
                         </div>
 
@@ -710,7 +835,27 @@ const KeuanganBankPage = () => {
                                     />
                                 </div>
                             )}
-
+                            {activeTab === 'kredit-bank' && metodeBayar === 'kas' && (
+                                <div className="animate-fadeIn">
+                                    <TersetorTable
+                                        data={bankDeposits}
+                                        loading={loadingBankDeposit}
+                                        error={errorBankDeposit}
+                                        searchTerm={searchTermBankDeposit}
+                                        isSearching={isSearchingBankDeposit}
+                                        searchError={searchErrorBankDeposit}
+                                        serverPagination={serverPaginationBankDeposit}
+                                        dateFilter={dateFilterBankDeposit}
+                                        handleSearch={handleSearchBankDeposit}
+                                        clearSearch={clearSearchBankDeposit}
+                                        handleServerPageChange={handlePageChangeBankDeposit}
+                                        handleServerPerPageChange={handlePerPageChangeBankDeposit}
+                                        handleDateFilterChange={handleDateFilterChangeBankDeposit}
+                                        handleAdd={handleAddSetorKas}
+                                        setNotification={setNotification}
+                                    />
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -734,12 +879,12 @@ const KeuanganBankPage = () => {
             <DeleteConfirmationModal
                 isOpen={isDeleteModalOpen}
                 onClose={handleCloseDeleteModal}
-                onConfirm={handleDeleteItem}
+                onConfirm={activeTab === 'kredit-bank' ? handleDeleteSetorKasConfirm : handleDeleteItem}
                 data={selectedItem}
-                loading={loading}
+                loading={activeTab === 'kredit-bank' ? loadingBankDeposit : loading}
             />
 
-            <AddEditKeuanganBankModal
+            <AddEditKeuanganKasModal
                 isOpen={isAddEditModalOpen}
                 onClose={handleCloseAddEditModal}
                 onSave={handleSaveItem}
@@ -752,10 +897,13 @@ const KeuanganBankPage = () => {
                 data={selectedItem}
             />
 
-            <SetorBankModal
-                isOpen={isSetorBankModalOpen}
-                onClose={handleCloseSetorBankModal}
-                onSave={handleSaveSetorBank}
+            <SetorKasModal
+                isOpen={isSetorKasModalOpen}
+                onClose={handleCloseSetorKasModal}
+                onSave={handleSaveSetorKas}
+                editingItem={selectedItem}
+                bankOptions={bankOptionsForTersetor}
+                loadingBanks={loadingBanks}
             />
 
             <FormPengajuanBiayaModal
@@ -768,8 +916,14 @@ const KeuanganBankPage = () => {
                 onReject={handleRejectFormPengajuan}
                 onSavePembayaran={handleSavePembayaran}
             />
+
+            <BankDepositDetailModal
+                isOpen={isBankDepositDetailModalOpen}
+                onClose={handleCloseBankDepositDetailModal}
+                data={selectedItem}
+            />
         </>
     );
 };
 
-export default KeuanganBankPage;
+export default KeuanganPage;
