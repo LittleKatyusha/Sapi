@@ -19,6 +19,7 @@ class HutangVendorService {
       endDate = null,
       purchaseType = null,
       paymentStatus = null,
+      idSupplier = null,
     } = params;
 
     const start = (page - 1) * perPage;
@@ -35,6 +36,7 @@ class HutangVendorService {
     if (purchaseType) queryParams.append('purchase_type', purchaseType);
     if (paymentStatus !== null && paymentStatus !== undefined && paymentStatus !== '')
       queryParams.append('payment_status', paymentStatus);
+    if (idSupplier) queryParams.append('id_supplier', idSupplier);
 
     try {
       const response = await HttpClient.get(
@@ -60,6 +62,9 @@ class HutangVendorService {
     if (params.startDate) queryParams.append('start_date', params.startDate);
     if (params.endDate) queryParams.append('end_date', params.endDate);
     if (params.purchaseType) queryParams.append('purchase_type', params.purchaseType);
+    if (params.paymentStatus !== null && params.paymentStatus !== undefined && params.paymentStatus !== '')
+      queryParams.append('payment_status', params.paymentStatus);
+    if (params.idSupplier) queryParams.append('id_supplier', params.idSupplier);
 
     try {
       const response = await HttpClient.get(
@@ -97,6 +102,37 @@ class HutangVendorService {
     } catch (error) {
       console.error('HutangVendorService.show error:', error);
       return { success: false, data: {} };
+    }
+  }
+
+  /**
+   * Get list supplier/vendor untuk dropdown filter
+   */
+  static async getSuppliers() {
+    try {
+      const queryParams = new URLSearchParams({
+        start: '0',
+        length: '1000',
+        draw: '1',
+        'search[value]': '',
+        'order[0][column]': '0',
+        'order[0][dir]': 'asc',
+      });
+      const response = await HttpClient.get(
+        `${API_ENDPOINTS.MASTER.SUPPLIER}/data?${queryParams.toString()}`
+      );
+      const list = Array.isArray(response?.data) ? response.data : [];
+      return {
+        success: true,
+        data: list.map((item) => ({
+          id: item.id,
+          name: item.name || '-',
+          jenis_supplier: item.jenis_supplier || '',
+        })),
+      };
+    } catch (error) {
+      console.error('HutangVendorService.getSuppliers error:', error);
+      return { success: false, data: [] };
     }
   }
 }

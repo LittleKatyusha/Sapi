@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { PlusCircle, Wallet } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Wallet } from 'lucide-react';
 
 import useKeuanganBank from './hooks/useKeuanganBank';
 import usePengajuanBiayaBank from './hooks/usePengajuanBiayaBank';
-import pengajuanBiayaService from '../../../services/pengajuanBiayaService';
 import pengeluaranService from '../../../services/pengeluaranService';
 
 // Import table components
@@ -23,6 +22,7 @@ import FormPengajuanBiayaModal from './modals/FormPengajuanBiayaModal';
 
 const KeuanganBankPage = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const [activeTab, setActiveTab] = useState('pengajuan');
     const [openMenuId, setOpenMenuId] = useState(null);
     
@@ -69,6 +69,25 @@ const KeuanganBankPage = () => {
     useEffect(() => {
         fetchCardData();
     }, [fetchCardData]);
+
+    // Consume navigation state from Hutang Vendor "Bayar via Bank"
+    useEffect(() => {
+        const state = location.state;
+        if (state && state.source === 'hutang-vendor') {
+            setActiveTab('belum-dibayar');
+            if (state.nota) {
+                setSearchTerm(state.nota);
+                handleSearch(state.nota);
+            }
+            const sisa = formatCurrency(state.sisa_hutang || 0);
+            setNotification({
+                type: 'info',
+                message: `Pembayaran hutang vendor: ${state.nama_supplier || '-'} | Nota: ${state.nota || '-'} | Sisa: ${sisa}. Temukan tagihan lalu klik "Bayar".`
+            });
+            navigate(location.pathname, { replace: true, state: null });
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [location.state]);
 
     // Data for info cards
     const summaryCards = [
@@ -145,6 +164,7 @@ const KeuanganBankPage = () => {
         loading: loadingPengajuan,
         error: errorPengajuan,
         searchTerm: searchTermPengajuan,
+        // eslint-disable-next-line no-unused-vars
         setSearchTerm: setSearchTermPengajuan,
         isSearching: isSearchingPengajuan,
         searchError: searchErrorPengajuan,
@@ -165,6 +185,7 @@ const KeuanganBankPage = () => {
             console.log('🔄 [TAB CHANGE] Fetching data for tab:', activeTab);
             fetchKeuanganBank(1, serverPagination.perPage, '', activeTab, true);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeTab]);
 
     const handleTabChange = (tabName) => {
@@ -174,11 +195,13 @@ const KeuanganBankPage = () => {
         setSearchTerm(''); // Clear search term without triggering fetch
     };
 
+    // eslint-disable-next-line no-unused-vars
     const handleAdd = () => {
         setSelectedItem(null);
         setIsAddEditModalOpen(true);
     };
 
+    // eslint-disable-next-line no-unused-vars
     const handleAddSetorBank = () => {
         setIsSetorBankModalOpen(true);
     };
@@ -248,18 +271,21 @@ const KeuanganBankPage = () => {
         setOpenMenuId(null);
     };
 
+    // eslint-disable-next-line no-unused-vars
     const handleEdit = (item) => {
         setSelectedItem(item);
         setIsAddEditModalOpen(true);
         setOpenMenuId(null);
     };
 
+    // eslint-disable-next-line no-unused-vars
     const handleDelete = (item) => {
         setSelectedItem(item);
         setIsDeleteModalOpen(true);
         setOpenMenuId(null);
     };
 
+    // eslint-disable-next-line no-unused-vars
     const handleDetail = (item) => {
         setSelectedItem(item);
         setIsDetailModalOpen(true);

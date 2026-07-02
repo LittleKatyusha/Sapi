@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { PlusCircle, Wallet } from 'lucide-react';
 
 import useKeuanganKas from './hooks/useKeuanganKas';
@@ -26,6 +26,7 @@ import BankDepositDetailModal from './modals/BankDepositDetailModal';
 
 const KeuanganKasPage = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const [activeTab, setActiveTab] = useState('pengajuan');
     const [openMenuId, setOpenMenuId] = useState(null);
     
@@ -73,6 +74,26 @@ const KeuanganKasPage = () => {
     useEffect(() => {
         fetchCardData();
     }, [fetchCardData]);
+
+    // Consume navigation state from Hutang Vendor "Bayar via Kas"
+    useEffect(() => {
+        const state = location.state;
+        if (state && state.source === 'hutang-vendor') {
+            setActiveTab('belum-dibayar');
+            if (state.nota) {
+                setSearchTerm(state.nota);
+                handleSearch(state.nota);
+            }
+            const sisa = formatCurrency(state.sisa_hutang || 0);
+            setNotification({
+                type: 'info',
+                message: `Pembayaran hutang vendor: ${state.nama_supplier || '-'} | Nota: ${state.nota || '-'} | Sisa: ${sisa}. Temukan tagihan lalu klik "Bayar".`
+            });
+            // Clear state so it doesn't re-trigger on tab switches
+            navigate(location.pathname, { replace: true, state: null });
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [location.state]);
 
     // Data for info cards
     const summaryCards = [

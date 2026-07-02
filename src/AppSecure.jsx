@@ -490,10 +490,12 @@ function AppSecure() {
               {/* HO Keuangan Kas Routes */}
               <Route path="/ho/keuangan-kas/detail/:id" element={<KeuanganKasDetailPage />} />
               <Route path="/ho/keuangan-kas" element={<KeuanganKasPage />} />
+              <Route path="/keuangan-kas" element={<Navigate to="/ho/keuangan-kas" replace />} />
               
               {/* HO Keuangan Bank Routes */}
               <Route path="/ho/keuangan-bank/detail/:id" element={<KeuanganBankDetailPage />} />
               <Route path="/ho/keuangan-bank" element={<KeuanganBankPage />} />
+              <Route path="/keuangan-bank" element={<Navigate to="/ho/keuangan-bank" replace />} />
 
               {/* HO Penjualan Routes */}
               <Route path="/ho/penjualan" element={<PenjualanHOPage />} />

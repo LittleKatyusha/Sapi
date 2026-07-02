@@ -1,10 +1,14 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import DataTable from 'react-data-table-component';
 import {
-  Search, X, Loader2, Calendar, AlertTriangle, TrendingDown,
-  DollarSign, Users, Eye, RefreshCw, FileText
+  X, Loader2, Calendar, AlertTriangle, TrendingDown,
+  DollarSign, Eye, RefreshCw, FileText, Wallet, Banknote
 } from 'lucide-react';
 import HutangVendorService from '../../../services/hutangVendorService';
+import HutangVendorFilterPanel, {
+  EMPTY_FILTERS,
+} from './components/HutangVendorFilterPanel';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -15,23 +19,6 @@ const formatDate = (val) => {
   if (!val) return '-';
   return new Date(val).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
 };
-
-const PURCHASE_TYPE_OPTIONS = [
-  { value: '', label: 'Semua Jenis' },
-  { value: '1', label: 'DOKA (Ternak)' },
-  { value: '2', label: 'Feedmil' },
-  { value: '3', label: 'OVK' },
-  { value: '4', label: 'Kulit' },
-  { value: '5', label: 'Lain-lain' },
-];
-
-const PAYMENT_STATUS_OPTIONS = [
-  { value: '', label: 'Belum Lunas (default)' },
-  { value: 'all', label: 'Semua Status' },
-  { value: '0', label: 'Belum Lunas' },
-  { value: '1', label: 'Lunas' },
-  { value: '2', label: 'Belum Bayar' },
-];
 
 const tableCustomStyles = {
   headRow: { style: { backgroundColor: '#fef2f2', fontWeight: '700', fontSize: '13px', color: '#991b1b' } },
@@ -56,7 +43,7 @@ const SummaryCard = ({ icon: Icon, label, value, sub, color }) => (
 
 // ─── Detail Modal ──────────────────────────────────────────────────────────────
 
-const DetailModal = ({ item, onClose }) => {
+const DetailModal = ({ item, onClose, onBayar }) => {
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -143,6 +130,26 @@ const DetailModal = ({ item, onClose }) => {
             <p className="text-center text-gray-500 py-8">Gagal memuat detail</p>
           )}
         </div>
+
+        {/* Footer actions */}
+        {!loading && detail && detail.payment_status !== 1 && (
+          <div className="px-6 py-3 border-t bg-gray-50 rounded-b-2xl flex items-center justify-end gap-2">
+            <button
+              onClick={() => onBayar && onBayar(detail, 'kas')}
+              className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors shadow-sm"
+            >
+              <Wallet className="w-4 h-4" />
+              Bayar via Kas
+            </button>
+            <button
+              onClick={() => onBayar && onBayar(detail, 'bank')}
+              className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-sm"
+            >
+              <Banknote className="w-4 h-4" />
+              Bayar via Bank
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -175,6 +182,7 @@ const PaymentBadge = ({ status, label }) => {
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 const HutangVendorPage = () => {
+  const navigate = useNavigate();
   const [data, setData] = useState([]);
   const [summary, setSummary] = useState({});
   const [loading, setLoading] = useState(false);
@@ -182,26 +190,25 @@ const HutangVendorPage = () => {
   const [error, setError] = useState(null);
   const [selectedItem, setSelectedItem] = useState(null);
 
-  // Filters
-  const [search, setSearch] = useState('');
-  const [purchaseType, setPurchaseType] = useState('');
-  const [dateRange, setDateRange] = useState({ startDate: '', endDate: '' });
+  // Advanced filters (single source of truth)
+  const [advancedFilters, setAdvancedFilters] = useState(EMPTY_FILTERS);
+  const [suppliers, setSuppliers] = useState([]);
 
   // Pagination
   const [pagination, setPagination] = useState({ page: 1, perPage: 10, total: 0 });
 
-  const searchTimerRef = useRef(null);
-
-  const fetchData = useCallback(async (page = 1, perPage = 10, searchVal = search) => {
+  const fetchData = useCallback(async (page = 1, perPage = 10, searchVal = advancedFilters.search) => {
     setLoading(true);
     setError(null);
     const res = await HutangVendorService.getData({
       page,
       perPage,
       search: searchVal,
-      purchaseType: purchaseType || null,
-      startDate: dateRange.startDate || null,
-      endDate: dateRange.endDate || null,
+      purchaseType: advancedFilters.purchase_type || null,
+      paymentStatus: advancedFilters.payment_status === '' ? null : advancedFilters.payment_status,
+      idSupplier: advancedFilters.id_supplier || null,
+      startDate: advancedFilters.startDate || null,
+      endDate: advancedFilters.endDate || null,
     });
     if (res.success) {
       setData(res.data);
@@ -210,130 +217,184 @@ const HutangVendorPage = () => {
       setError('Gagal memuat data hutang vendor');
     }
     setLoading(false);
-  }, [search, purchaseType, dateRange]);
+  }, [advancedFilters]);
 
   const fetchSummary = useCallback(async () => {
     setSummaryLoading(true);
     const res = await HutangVendorService.getSummary({
-      purchaseType: purchaseType || null,
-      startDate: dateRange.startDate || null,
-      endDate: dateRange.endDate || null,
+      purchaseType: advancedFilters.purchase_type || null,
+      paymentStatus: advancedFilters.payment_status === '' ? null : advancedFilters.payment_status,
+      idSupplier: advancedFilters.id_supplier || null,
+      startDate: advancedFilters.startDate || null,
+      endDate: advancedFilters.endDate || null,
     });
     if (res.success) setSummary(res.data);
     setSummaryLoading(false);
-  }, [purchaseType, dateRange]);
+  }, [advancedFilters]);
 
   useEffect(() => {
     fetchData(1, pagination.perPage);
     fetchSummary();
-  }, [purchaseType, dateRange]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [advancedFilters]);
 
-  const handleSearchChange = (val) => {
-    setSearch(val);
-    clearTimeout(searchTimerRef.current);
-    searchTimerRef.current = setTimeout(() => {
-      fetchData(1, pagination.perPage, val);
-    }, 500);
-  };
+  // Fetch supplier list once for vendor filter dropdown
+  useEffect(() => {
+    HutangVendorService.getSuppliers().then((res) => {
+      if (res.success) setSuppliers(res.data);
+    });
+  }, []);
 
-  const handleClearSearch = () => {
-    setSearch('');
-    fetchData(1, pagination.perPage, '');
-  };
+  const handleAdvancedFilters = useCallback((newFilters) => {
+    setAdvancedFilters(newFilters);
+  }, []);
+
+  const clearAdvancedFilters = useCallback((filters = null) => {
+    setAdvancedFilters(filters || EMPTY_FILTERS);
+  }, []);
 
   const handleRefresh = () => {
     fetchData(pagination.page, pagination.perPage);
     fetchSummary();
   };
 
+  const handleBayar = (detail, via) => {
+    setSelectedItem(null);
+    const route = via === 'bank' ? '/ho/keuangan-bank' : '/ho/keuangan-kas';
+    navigate(route, {
+      state: {
+        id_pembayaran: detail.id_pembayaran,
+        pubid: detail.pubid,
+        nota: detail.nota,
+        nama_supplier: detail.nama_supplier,
+        sisa_hutang: detail.sisa_hutang,
+        source: 'hutang-vendor',
+      },
+    });
+  };
+
   const columns = [
     {
       name: 'No',
-      width: '60px',
+      width: '50px',
       cell: (_, index) => (
-        <span className="text-gray-500 font-medium">
+        <span className="text-gray-400 font-medium text-xs">
           {(pagination.page - 1) * pagination.perPage + index + 1}
         </span>
       ),
     },
     {
-      name: 'Nota',
+      name: 'Transaksi',
       selector: (r) => r.nota,
       sortable: true,
+      minWidth: '200px',
       cell: (r) => (
-        <span className="font-mono text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded border border-blue-200">
-          {r.nota || '-'}
-        </span>
+        <div className="py-2 space-y-1">
+          <div className="flex items-center gap-1.5">
+            <span className="font-mono text-xs font-semibold bg-blue-50 text-blue-700 px-2 py-0.5 rounded border border-blue-200">
+              {r.nota || '-'}
+            </span>
+            <span className="text-[10px] bg-purple-50 text-purple-700 px-1.5 py-0.5 rounded border border-purple-200 font-medium">
+              {r.purchase_type_label || '-'}
+            </span>
+          </div>
+          <div className="flex items-center gap-1 text-xs text-gray-500">
+            <Calendar className="w-3 h-3" />
+            <span>{formatDate(r.tgl_transaksi)}</span>
+          </div>
+        </div>
       ),
     },
     {
       name: 'Vendor',
       selector: (r) => r.nama_supplier,
       sortable: true,
-      cell: (r) => <span className="font-medium text-gray-800">{r.nama_supplier || '-'}</span>,
-    },
-    {
-      name: 'Jenis',
-      selector: (r) => r.purchase_type_label,
-      sortable: true,
-      width: '130px',
+      minWidth: '160px',
       cell: (r) => (
-        <span className="text-xs bg-purple-50 text-purple-700 px-2 py-1 rounded border border-purple-200">
-          {r.purchase_type_label || '-'}
-        </span>
+        <div className="py-2">
+          <p className="text-sm font-semibold text-gray-800 leading-tight">
+            {r.nama_supplier || '-'}
+          </p>
+          {r.jenis_supplier && (
+            <p className="text-xs text-gray-500 mt-0.5">{r.jenis_supplier}</p>
+          )}
+        </div>
       ),
-    },
-    {
-      name: 'Tgl Transaksi',
-      selector: (r) => r.tgl_transaksi,
-      sortable: true,
-      width: '130px',
-      cell: (r) => <span className="text-sm text-gray-600">{formatDate(r.tgl_transaksi)}</span>,
     },
     {
       name: 'Jatuh Tempo',
       selector: (r) => r.due_date,
       sortable: true,
-      width: '130px',
+      width: '120px',
       cell: (r) => {
         const isOverdue = r.due_date && new Date(r.due_date) < new Date() && r.payment_status !== 1;
+        const daysOverdue = isOverdue
+          ? Math.floor((new Date() - new Date(r.due_date)) / (1000 * 60 * 60 * 24))
+          : 0;
         return (
-          <span className={`text-sm ${isOverdue ? 'text-red-600 font-semibold' : 'text-gray-600'}`}>
-            {formatDate(r.due_date)}
-            {isOverdue && <span className="ml-1 text-xs">⚠</span>}
-          </span>
+          <div className="py-2">
+            <p className={`text-sm ${isOverdue ? 'text-red-600 font-bold' : 'text-gray-700'}`}>
+              {formatDate(r.due_date)}
+            </p>
+            {isOverdue && (
+              <p className="text-xs text-red-500 font-medium mt-0.5 flex items-center gap-0.5">
+                <AlertTriangle className="w-3 h-3" />
+                {daysOverdue} hari
+              </p>
+            )}
+          </div>
         );
       },
     },
     {
-      name: 'Total Tagihan',
-      selector: (r) => r.total_tagihan,
-      sortable: true,
-      right: true,
-      cell: (r) => <span className="text-sm font-medium">{formatCurrency(r.total_tagihan)}</span>,
-    },
-    {
-      name: 'Sisa Hutang',
-      selector: (r) => r.sisa_hutang,
-      sortable: true,
-      right: true,
-      cell: (r) => (
-        <span className="text-sm font-bold text-red-700">{formatCurrency(r.sisa_hutang)}</span>
-      ),
+      name: 'Pembayaran',
+      minWidth: '220px',
+      cell: (r) => {
+        const percent = r.total_tagihan > 0
+          ? Math.min(100, Math.round((r.total_terbayar / r.total_tagihan) * 100))
+          : 0;
+        const isLunas = r.payment_status === 1;
+        return (
+          <div className="py-2 w-full space-y-1.5">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-gray-500">Tagihan:</span>
+              <span className="font-semibold text-gray-800">{formatCurrency(r.total_tagihan)}</span>
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-gray-500">Terbayar:</span>
+              <span className="font-semibold text-green-700">{formatCurrency(r.total_terbayar)}</span>
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-gray-500">Sisa:</span>
+              <span className={`font-bold ${isLunas ? 'text-green-700' : 'text-red-700'}`}>
+                {formatCurrency(r.sisa_hutang)}
+              </span>
+            </div>
+            {/* Progress bar */}
+            <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all ${isLunas ? 'bg-green-500' : 'bg-gradient-to-r from-orange-400 to-red-500'}`}
+                style={{ width: `${percent}%` }}
+              />
+            </div>
+            <p className="text-[10px] text-gray-400 text-right">{percent}% terbayar</p>
+          </div>
+        );
+      },
     },
     {
       name: 'Status',
       selector: (r) => r.payment_status,
-      width: '130px',
+      width: '110px',
       cell: (r) => <PaymentBadge status={r.payment_status} label={r.payment_status_label} />,
     },
     {
       name: 'Aksi',
-      width: '80px',
+      width: '70px',
       cell: (r) => (
         <button
           onClick={() => setSelectedItem(r)}
-          className="p-1.5 rounded-lg hover:bg-red-50 text-gray-500 hover:text-red-600 transition-colors"
+          className="p-2 rounded-lg hover:bg-red-50 text-gray-500 hover:text-red-600 transition-colors border border-gray-200 hover:border-red-200"
           title="Lihat Detail"
         >
           <Eye className="w-4 h-4" />
@@ -372,7 +433,7 @@ const HutangVendorPage = () => {
         />
         <SummaryCard
           icon={DollarSign}
-          label="Total Tagihan"
+          label="Nilai Tagihan"
           value={summaryLoading ? '...' : formatCurrency(summary.total_tagihan)}
           color="bg-orange-50 text-orange-700 border-orange-200"
         />
@@ -392,70 +453,13 @@ const HutangVendorPage = () => {
         />
       </div>
 
-      {/* Filters */}
-      <div className="bg-white rounded-xl shadow-sm border p-4 space-y-3">
-        <div className="flex flex-col sm:flex-row gap-3">
-          {/* Search */}
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            {loading && search && (
-              <Loader2 className="absolute right-8 top-1/2 -translate-y-1/2 w-4 h-4 text-red-400 animate-spin" />
-            )}
-            {search && (
-              <button
-                onClick={handleClearSearch}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
-            <input
-              type="text"
-              placeholder="Cari nota, vendor..."
-              value={search}
-              onChange={(e) => handleSearchChange(e.target.value)}
-              className="w-full pl-9 pr-9 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-400 focus:border-transparent"
-            />
-          </div>
-
-          {/* Jenis filter */}
-          <select
-            value={purchaseType}
-            onChange={(e) => { setPurchaseType(e.target.value); }}
-            className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-400 bg-white min-w-[160px]"
-          >
-            {PURCHASE_TYPE_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Date range */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <Calendar className="w-4 h-4 text-gray-400 shrink-0" />
-          <input
-            type="date"
-            value={dateRange.startDate}
-            onChange={(e) => setDateRange((d) => ({ ...d, startDate: e.target.value }))}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-400"
-          />
-          <span className="text-gray-400 text-sm">s/d</span>
-          <input
-            type="date"
-            value={dateRange.endDate}
-            onChange={(e) => setDateRange((d) => ({ ...d, endDate: e.target.value }))}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-400"
-          />
-          {(dateRange.startDate || dateRange.endDate) && (
-            <button
-              onClick={() => setDateRange({ startDate: '', endDate: '' })}
-              className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-      </div>
+      {/* Filter & Pencarian Lanjutan */}
+      <HutangVendorFilterPanel
+        filters={advancedFilters}
+        onApply={handleAdvancedFilters}
+        onReset={clearAdvancedFilters}
+        supplierOptions={suppliers.map((s) => ({ value: String(s.id), label: s.name }))}
+      />
 
       {/* Table */}
       <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
@@ -497,7 +501,11 @@ const HutangVendorPage = () => {
 
       {/* Detail Modal */}
       {selectedItem && (
-        <DetailModal item={selectedItem} onClose={() => setSelectedItem(null)} />
+        <DetailModal
+          item={selectedItem}
+          onClose={() => setSelectedItem(null)}
+          onBayar={handleBayar}
+        />
       )}
     </div>
   );
