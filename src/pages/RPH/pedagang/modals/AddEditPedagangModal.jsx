@@ -68,6 +68,8 @@ const initialFormData = {
 
 const HARGA_PARAMETER_GROUPS = 'itemboning,itempotong';
 
+const CURRENCY_FIELDS = ['saldo_awal', 'tabungan', 'kulit', 'saldo_beku'];
+
 const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) => {
   const [activeTab, setActiveTab] = useState('identitas');
   const [formData, setFormData] = useState({ ...initialFormData });
@@ -246,8 +248,6 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
     }
   }, [isOpen, editData, fetchPekerjaanOptions, fetchItemBoningOptions]);
 
-
-  const CURRENCY_FIELDS = ['saldo_awal', 'tabungan', 'kulit', 'saldo_beku'];
 
   const handleInputChange = useCallback((e) => {
     const { name, value, type } = e.target;
