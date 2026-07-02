@@ -26,6 +26,7 @@ const usePersediaanHasilPotong = (type) => {
         start: (page - 1) * perPage,
         length: perPage,
         search,
+        'search[value]': search,
       });
 
       if (res.success) {

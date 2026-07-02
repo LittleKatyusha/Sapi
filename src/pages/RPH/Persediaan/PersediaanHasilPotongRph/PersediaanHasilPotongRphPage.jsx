@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { Package, Scissors, Layers } from 'lucide-react';
 import useDocumentTitle from '../../../../hooks/useDocumentTitle';
 import PersediaanTab from './components/PersediaanTab';
+import BoningTab from './components/BoningTab';
 import DetailModal from './modals/DetailModal';
 import EditModal from './modals/EditModal';
 import DeleteConfirmationModal from './modals/DeleteConfirmationModal';
@@ -23,6 +24,7 @@ const PersediaanHasilPotongRphPage = () => {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const [detailData, setDetailData] = useState(null);
+  const [modalType, setModalType] = useState('boning');
   const [loading, setLoading] = useState(false);
   const [tableRefreshKey, setTableRefreshKey] = useState(0);
 
@@ -36,13 +38,19 @@ const PersediaanHasilPotongRphPage = () => {
 
   const handleOpenDetail = useCallback(async (item) => {
     setSelectedItem(item);
+    const detailType = activeTab === 'boning' && item.id_item_potong ? 'boning' : activeTab;
+    setModalType(detailType);
     if (activeTab === 'kulit') {
       setDetailData({ header: { id: item.id, name: item.jenis_sapi ?? '-' }, tgl_potong: item.tgl_potong || null, detail: [{ id: null, name: 'Kulit', berat: item.berat_kulit ?? 0 }] });
       setDetailModalOpen(true);
       return;
     }
+
     setLoading(true);
-    const res = await PersediaanHasilPotongService.show(activeTab, item.pid);
+    const detailPayload = activeTab === 'boning' && item.id_item_potong
+      ? { id_item_potong: item.id_item_potong }
+      : (item.pid || item.pubid);
+    const res = await PersediaanHasilPotongService.show(detailType, detailPayload);
     setLoading(false);
     if (res.success) {
       setDetailData(res.data);
@@ -54,6 +62,7 @@ const PersediaanHasilPotongRphPage = () => {
 
   const handleOpenEdit = useCallback(async (item) => {
     setSelectedItem(item);
+    setModalType(activeTab);
     if (activeTab === 'kulit') {
       setDetailData({ header: { id: item.id, name: item.jenis_sapi ?? '-' }, tgl_potong: item.tgl_potong || null, detail: [{ id: null, name: 'Kulit', berat: item.berat_kulit ?? 0 }] });
       setEditModalOpen(true);
@@ -72,8 +81,9 @@ const PersediaanHasilPotongRphPage = () => {
 
   const handleOpenDelete = useCallback((item) => {
     setSelectedItem(item);
+    setModalType(activeTab);
     setDeleteModalOpen(true);
-  }, []);
+  }, [activeTab]);
 
   const handleDetailClose = useCallback(() => {
     setDetailModalOpen(false);
@@ -193,13 +203,22 @@ const PersediaanHasilPotongRphPage = () => {
           </div>
 
           <div className="bg-gradient-to-br from-slate-50/30 to-blue-50/30 p-4 sm:p-6">
-            <PersediaanTab
-              key={tableRefreshKey}
-              type={activeTab}
-              onOpenDetail={handleOpenDetail}
-              onOpenEdit={handleOpenEdit}
-              onOpenDelete={handleOpenDelete}
-            />
+            {activeTab === 'boning' ? (
+              <BoningTab
+                refreshKey={tableRefreshKey}
+                onOpenDetail={handleOpenDetail}
+                onOpenEdit={handleOpenEdit}
+                onOpenDelete={handleOpenDelete}
+              />
+            ) : (
+              <PersediaanTab
+                key={`${activeTab}-${tableRefreshKey}`}
+                type={activeTab}
+                onOpenDetail={handleOpenDetail}
+                onOpenEdit={handleOpenEdit}
+                onOpenDelete={handleOpenDelete}
+              />
+            )}
           </div>
         </div>
       </div>
@@ -208,7 +227,7 @@ const PersediaanHasilPotongRphPage = () => {
         isOpen={detailModalOpen}
         onClose={handleDetailClose}
         data={detailData}
-        type={activeTab}
+        type={modalType}
         loading={loading}
       />
       <EditModal
@@ -216,7 +235,7 @@ const PersediaanHasilPotongRphPage = () => {
         onClose={handleEditClose}
         onSuccess={handleEditSuccess}
         data={detailData}
-        type={activeTab}
+        type={modalType}
         item={selectedItem}
       />
       <DeleteConfirmationModal
@@ -232,7 +251,7 @@ const PersediaanHasilPotongRphPage = () => {
           }
         }}
         item={selectedItem}
-        type={activeTab}
+        type={modalType}
       />
     </div>
   );

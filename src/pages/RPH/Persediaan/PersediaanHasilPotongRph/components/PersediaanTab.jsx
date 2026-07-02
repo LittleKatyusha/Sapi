@@ -10,7 +10,7 @@ const formatDate = (v) => {
   return v;
 };
 
-const ActionMenu = ({ row, buttonRef, onClose, onDetail, onEdit, onDelete }) => {
+const ActionMenu = ({ row, buttonRef, onClose, onDetail, onEdit, onDelete, type }) => {
   const menuRef = useRef(null);
   const [menuStyle, setMenuStyle] = useState(null);
 
@@ -60,22 +60,26 @@ const ActionMenu = ({ row, buttonRef, onClose, onDetail, onEdit, onDelete }) => 
       bgClass: 'bg-sky-100',
       onClick: () => onDetail?.(row),
     },
-    {
-      label: 'Edit',
-      description: 'Ubah data',
-      icon: Pencil,
-      iconClass: 'text-amber-600',
-      bgClass: 'bg-amber-100',
-      onClick: () => onEdit?.(row),
-    },
-    {
-      label: 'Hapus',
-      description: 'Hapus data',
-      icon: Trash2,
-      iconClass: 'text-red-600',
-      bgClass: 'bg-red-100',
-      onClick: () => onDelete?.(row),
-    },
+    ...(type === 'sapi'
+      ? []
+      : [
+        {
+          label: 'Edit',
+          description: 'Ubah data',
+          icon: Pencil,
+          iconClass: 'text-amber-600',
+          bgClass: 'bg-amber-100',
+          onClick: () => onEdit?.(row),
+        },
+        {
+          label: 'Hapus',
+          description: 'Hapus data',
+          icon: Trash2,
+          iconClass: 'text-red-600',
+          bgClass: 'bg-red-100',
+          onClick: () => onDelete?.(row),
+        },
+      ]),
   ];
 
   const handleActionClick = (action) => {
@@ -117,7 +121,7 @@ const ActionMenu = ({ row, buttonRef, onClose, onDetail, onEdit, onDelete }) => 
   );
 };
 
-const ActionButton = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onDelete }) => {
+const ActionButton = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onDelete, type }) => {
   const buttonRef = useRef(null);
 
   return (
@@ -146,6 +150,7 @@ const ActionButton = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onDele
           onDetail={onDetail}
           onEdit={onEdit}
           onDelete={onDelete}
+          type={type}
         />
       )}
     </div>
@@ -171,7 +176,7 @@ const PersediaanTab = ({ type, onOpenDetail, onOpenEdit, onOpenDelete }) => {
 
   useEffect(() => {
     fetchData();
-  }, [type]);
+  }, [fetchData, type]);
 
   const columns = useMemo(() => {
     const baseColumns = [
@@ -196,6 +201,7 @@ const PersediaanTab = ({ type, onOpenDetail, onOpenEdit, onOpenDelete }) => {
             onDetail={onOpenDetail}
             onEdit={onOpenEdit}
             onDelete={onOpenDelete}
+            type={type}
           />
         ),
       },
@@ -278,6 +284,7 @@ const PersediaanTab = ({ type, onOpenDetail, onOpenEdit, onOpenDelete }) => {
 
   const typeLabels = {
     boning: 'Boning',
+    sapi: 'Sapi',
     karkas: 'Karkas',
     kulit: 'Kulit',
   };

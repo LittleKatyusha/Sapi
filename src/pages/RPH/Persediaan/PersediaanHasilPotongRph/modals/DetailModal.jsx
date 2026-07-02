@@ -6,6 +6,7 @@ const DetailModal = ({ isOpen, onClose, data, type, loading }) => {
 
   const typeLabels = {
     boning: 'Boning',
+    sapi: 'Sapi',
     karkas: 'Karkas',
     kulit: 'Kulit',
   };

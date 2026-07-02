@@ -2,16 +2,23 @@ import HttpClient from './httpClient';
 
 class PersediaanHasilPotongService {
   static API_BONING = '/api/rph/persediaan/boning';
+  static API_SAPI = '/api/rph/persediaan/sapi';
   static API_KARKAS = '/api/rph/persediaan/karkas';
   static API_KULIT = '/api/rph/persediaan/kulit';
 
-  static async getData(type, params = {}) {
+  static getEndpoint(type) {
     const endpoints = {
       boning: this.API_BONING,
+      sapi: this.API_SAPI,
       karkas: this.API_KARKAS,
       kulit: this.API_KULIT,
     };
-    const endpoint = endpoints[type];
+
+    return endpoints[type];
+  }
+
+  static async getData(type, params = {}) {
+    const endpoint = this.getEndpoint(type);
     if (!endpoint) return { success: false, data: null, message: 'Invalid type' };
 
     try {
@@ -40,17 +47,15 @@ class PersediaanHasilPotongService {
     }
   }
 
-  static async show(type, pid) {
-    const endpoints = {
-      boning: this.API_BONING,
-      karkas: this.API_KARKAS,
-      kulit: this.API_KULIT,
-    };
-    const endpoint = endpoints[type];
+  static async show(type, payload) {
+    const endpoint = this.getEndpoint(type);
     if (!endpoint) return { success: false, data: null, message: 'Invalid type' };
 
     try {
-      const response = await HttpClient.post(`${endpoint}/show`, { pid });
+      const body = typeof payload === 'object' && payload !== null
+        ? payload
+        : { pid: payload };
+      const response = await HttpClient.post(`${endpoint}/show`, body);
       return { success: true, data: response.data, message: 'Success' };
     } catch (error) {
       console.error(`PersediaanHasilPotongService.show(${type}) error:`, error);
@@ -63,12 +68,7 @@ class PersediaanHasilPotongService {
   }
 
   static async update(type, payload) {
-    const endpoints = {
-      boning: this.API_BONING,
-      karkas: this.API_KARKAS,
-      kulit: this.API_KULIT,
-    };
-    const endpoint = endpoints[type];
+    const endpoint = this.getEndpoint(type);
     if (!endpoint) return { success: false, data: null, message: 'Invalid type' };
 
     try {
@@ -111,12 +111,7 @@ class PersediaanHasilPotongService {
   }
 
   static async delete(type, pid) {
-    const endpoints = {
-      boning: this.API_BONING,
-      karkas: this.API_KARKAS,
-      kulit: this.API_KULIT,
-    };
-    const endpoint = endpoints[type];
+    const endpoint = this.getEndpoint(type);
     if (!endpoint) return { success: false, data: null, message: 'Invalid type' };
 
     try {
