@@ -6,7 +6,7 @@ import {
 import PedagangService from '../../../../services/pedagangService';
 import HttpClient from '../../../../services/httpClient';
 import { API_ENDPOINTS } from '../../../../config/api';
-import useOfficeData from '../../../ho/tandaTerima/hooks/useOfficeData';
+import useOfficeData from '../../../../hooks/useOfficeData';
 import useWilayah from '../hooks/useWilayah';
 import SearchableSelect from '../../../../components/shared/SearchableSelect';
 

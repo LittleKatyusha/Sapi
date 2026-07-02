@@ -128,142 +128,6 @@ export const convertToDataTablesParams = (
 };
 
 /**
- * Helper function to get payment status filter by tab
- * @param {string} tab - Active tab name
- * @returns {number|null} Payment status value
- *
- * Payment Status Values:
- * 0 = Belum Lunas (Partially Paid)
- * 1 = Lunas (Fully Paid)
- * 2 = Belum Bayar (Unpaid)
- */
-export const getPaymentStatusByTab = (tab) => {
-    switch (tab) {
-        case 'belum-dibayar':
-            return 2; // Belum Bayar (Unpaid)
-        case 'lunas':
-            return 1; // Lunas (Fully Paid)
-        case 'belum-lunas':
-            return 0; // Belum Lunas (Partially Paid)
-        default:
-            return null;
-    }
-};
-
-/**
- * Filter data for "Belum Lunas" tab based on payment_status_text
- * @param {Array} data - Array of pengeluaran records
- * @returns {Array} Filtered data
- *
- * Filter berdasarkan payment_status_text:
- * - "Belum Dibayar": payment_status_text = "Belum Bayar"
- * - "Belum Lunas": payment_status_text = "Belum Lunas"
- * - "Lunas": payment_status_text = "Lunas"
- */
-export const filterBelumLunas = (data) => {
-    if (!Array.isArray(data)) {
-        console.warn('⚠️ [FILTER] Data is not an array:', data);
-        return [];
-    }
-    
-    const filtered = data.filter(item => {
-        // Filter berdasarkan payment_status_text
-        const statusText = (item.payment_status_text || '').toLowerCase().trim();
-        
-        // Item masuk kategori "Belum Lunas" jika payment_status_text = "Belum Lunas"
-        const isBelumLunas = statusText === 'belum lunas';
-        
-        if (isBelumLunas) {
-            console.log('✅ [FILTER BELUM LUNAS] Item memenuhi kriteria:', {
-                nota: item.nota || item.nota_sistem,
-                payment_status: item.payment_status,
-                payment_status_text: item.payment_status_text,
-                total_tagihan: item.total_tagihan,
-                total_terbayar: item.total_terbayar
-            });
-        }
-        
-        return isBelumLunas;
-    });
-    
-    console.log(`📊 [FILTER BELUM LUNAS] Total data sebelum filter: ${data.length}, setelah filter: ${filtered.length}`);
-    
-    return filtered;
-};
-
-/**
- * Filter data for "Belum Dibayar" tab based on payment_status_text
- * @param {Array} data - Array of pengeluaran records
- * @returns {Array} Filtered data
- */
-export const filterBelumDibayar = (data) => {
-    if (!Array.isArray(data)) {
-        console.warn('⚠️ [FILTER] Data is not an array:', data);
-        return [];
-    }
-    
-    const filtered = data.filter(item => {
-        // Filter berdasarkan payment_status_text
-        const statusText = (item.payment_status_text || '').toLowerCase().trim();
-        
-        // Item masuk kategori "Belum Dibayar" jika payment_status_text = "Belum Bayar"
-        const isBelumDibayar = statusText === 'belum bayar';
-        
-        if (isBelumDibayar) {
-            console.log('✅ [FILTER BELUM DIBAYAR] Item memenuhi kriteria:', {
-                nota: item.nota || item.nota_sistem,
-                payment_status: item.payment_status,
-                payment_status_text: item.payment_status_text,
-                total_tagihan: item.total_tagihan,
-                total_terbayar: item.total_terbayar
-            });
-        }
-        
-        return isBelumDibayar;
-    });
-    
-    console.log(`📊 [FILTER BELUM DIBAYAR] Total data sebelum filter: ${data.length}, setelah filter: ${filtered.length}`);
-    
-    return filtered;
-};
-
-/**
- * Filter data for "Lunas" tab based on payment_status_text
- * @param {Array} data - Array of pengeluaran records
- * @returns {Array} Filtered data
- */
-export const filterLunas = (data) => {
-    if (!Array.isArray(data)) {
-        console.warn('⚠️ [FILTER] Data is not an array:', data);
-        return [];
-    }
-    
-    const filtered = data.filter(item => {
-        // Filter berdasarkan payment_status_text
-        const statusText = (item.payment_status_text || '').toLowerCase().trim();
-        
-        // Item masuk kategori "Lunas" jika payment_status_text = "Lunas"
-        const isLunas = statusText === 'lunas';
-        
-        if (isLunas) {
-            console.log('✅ [FILTER LUNAS] Item memenuhi kriteria:', {
-                nota: item.nota || item.nota_sistem,
-                payment_status: item.payment_status,
-                payment_status_text: item.payment_status_text,
-                total_tagihan: item.total_tagihan,
-                total_terbayar: item.total_terbayar
-            });
-        }
-        
-        return isLunas;
-    });
-    
-    console.log(`📊 [FILTER LUNAS] Total data sebelum filter: ${data.length}, setelah filter: ${filtered.length}`);
-    
-    return filtered;
-};
-
-/**
  * Calculate remaining payment
  * @param {number} totalTagihan - Total bill amount
  * @param {number} totalTerbayar - Total paid amount
@@ -338,18 +202,16 @@ export const downloadReportBuktiSetor = async (tglDari, sampaiTgl, petugas) => {
     }
 };
 
-export default {
+const pengeluaranService = {
     getPengeluaran,
     getPengeluaranSummary,
     getPengeluaranCards,
     getPengeluaranDetail,
     convertToDataTablesParams,
-    getPaymentStatusByTab,
-    filterBelumLunas,
-    filterBelumDibayar,
-    filterLunas,
     calculateSisaTagihan,
     downloadReportPengajuan,
     downloadReportPembelian,
     downloadReportBuktiSetor
 };
+
+export default pengeluaranService;

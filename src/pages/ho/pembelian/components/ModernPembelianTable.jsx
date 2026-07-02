@@ -20,7 +20,8 @@ import {
   Wallet,
   Info,
   Download,
-  Loader2
+  Loader2,
+  ClipboardCheck
 } from 'lucide-react';
 
 const formatCurrency = (value) => {
@@ -130,6 +131,7 @@ const ModernPembelianTable = ({
   onDelete,
   onDetail,
   onDownload,
+  onTandaTerima,
   getJenisPembelianLabel
 }) => {
   const navigate = useNavigate();
@@ -380,6 +382,14 @@ const ModernPembelianTable = ({
                                   {downloadLoadingId === rowId ? 'Mengunduh...' : 'Download Nota'}
                                 </button>
                               )}
+                              {onTandaTerima && (
+                                <button
+                                  onClick={() => { onTandaTerima(row); setOpenMenuId(null); }}
+                                  className="w-full px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 flex items-center gap-2"
+                                >
+                                  <ClipboardCheck className="w-4 h-4" /> Download Tanda Terima
+                                </button>
+                              )}
                               <button
                                 onClick={() => { onDelete(row); setOpenMenuId(null); }}
                                 className="w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
@@ -455,6 +465,14 @@ const ModernPembelianTable = ({
                         >
                           {downloadLoadingId === rowId ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
                           {downloadLoadingId === rowId ? 'Mengunduh...' : 'Download Nota'}
+                        </button>
+                      )}
+                      {onTandaTerima && (
+                        <button
+                          onClick={() => { onTandaTerima(row); setOpenMenuId(null); }}
+                          className="w-full px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 flex items-center gap-2"
+                        >
+                          <ClipboardCheck className="w-4 h-4" /> Download Tanda Terima
                         </button>
                       )}
                       <button onClick={() => { onDelete(row); setOpenMenuId(null); }} className="w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">

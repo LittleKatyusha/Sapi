@@ -20,6 +20,12 @@ const useKeuangan = (activeTab = 'belum-dibayar', tipePembayaran = 1) => {
         totalItems: 0
     });
     const [cardData, setCardData] = useState(null);
+    const [advancedFilters, setAdvancedFilters] = useState({
+        payment_status: '',
+        start_date: '',
+        end_date: '',
+        purchase_type: ''
+    });
 
     // Fetch card data
     const fetchCardData = useCallback(async () => {
@@ -45,7 +51,8 @@ const useKeuangan = (activeTab = 'belum-dibayar', tipePembayaran = 1) => {
         search = '',
         tab = activeTab,
         showLoading = true,
-        forceRefresh = false
+        forceRefresh = false,
+        extraFilters = null
     ) => {
         // Skip API call for tabs that use other data sources
         if (tab === 'pengajuan' || tab === 'kredit-bank') {
@@ -58,7 +65,17 @@ const useKeuangan = (activeTab = 'belum-dibayar', tipePembayaran = 1) => {
         setError(null);
 
         try {
-            const paymentStatus = pengeluaranService.getPaymentStatusByTab(tab);
+            const filtersToUse = extraFilters !== null ? extraFilters : advancedFilters;
+
+            const filterObj = {
+                tipe_pembayaran: tipePembayaran,
+                ...(filtersToUse.payment_status !== '' && filtersToUse.payment_status != null
+                    ? { payment_status: filtersToUse.payment_status }
+                    : {}),
+                ...(filtersToUse.start_date ? { start_date: filtersToUse.start_date } : {}),
+                ...(filtersToUse.end_date ? { end_date: filtersToUse.end_date } : {}),
+                ...(filtersToUse.purchase_type ? { purchase_type: filtersToUse.purchase_type } : {})
+            };
 
             const dataTablesParams = pengeluaranService.convertToDataTablesParams(
                 page,
@@ -66,10 +83,7 @@ const useKeuangan = (activeTab = 'belum-dibayar', tipePembayaran = 1) => {
                 search,
                 'due_date',
                 'desc',
-                {
-                    tipe_pembayaran: tipePembayaran,
-                    ...(paymentStatus !== null ? { payment_status: paymentStatus } : {})
-                }
+                filterObj
             );
 
             const response = await pengeluaranService.getPengeluaran(dataTablesParams);
@@ -101,7 +115,7 @@ const useKeuangan = (activeTab = 'belum-dibayar', tipePembayaran = 1) => {
                 setLoading(false);
             }
         }
-    }, [activeTab, tipePembayaran]);
+    }, [activeTab, tipePembayaran, advancedFilters]);
 
     // Handle search with debounce
     const handleSearch = useCallback((value) => {
@@ -122,6 +136,21 @@ const useKeuangan = (activeTab = 'belum-dibayar', tipePembayaran = 1) => {
         setSearchTerm('');
         setSearchError(null);
         fetchData(1, serverPagination.perPage, '', activeTab, false);
+    }, [fetchData, serverPagination.perPage, activeTab]);
+
+    // Apply advanced filters
+    const applyFilters = useCallback((newFilters) => {
+        setAdvancedFilters(newFilters);
+        setSearchTerm('');
+        fetchData(1, serverPagination.perPage, '', activeTab, true, false, newFilters);
+    }, [fetchData, serverPagination.perPage, activeTab]);
+
+    // Reset advanced filters
+    const resetFilters = useCallback(() => {
+        const emptyFilters = { payment_status: '', start_date: '', end_date: '', purchase_type: '' };
+        setAdvancedFilters(emptyFilters);
+        setSearchTerm('');
+        fetchData(1, serverPagination.perPage, '', activeTab, true, false, emptyFilters);
     }, [fetchData, serverPagination.perPage, activeTab]);
 
     // Handle page change
@@ -178,6 +207,9 @@ const useKeuangan = (activeTab = 'belum-dibayar', tipePembayaran = 1) => {
         clearSearch,
         handlePageChange,
         handlePerPageChange,
+        applyFilters,
+        resetFilters,
+        advancedFilters,
         createItem,
         updateItem,
         deleteItem,

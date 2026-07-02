@@ -1,6 +1,13 @@
 import React from 'react';
 import Select from 'react-select';
 
+const ACCENT_COLORS = {
+    orange: { main: '#f97316', light: '#fed7aa', shadow: 'rgba(249, 115, 22, 0.2)' },
+    blue: { main: '#3b82f6', light: '#bfdbfe', shadow: 'rgba(59, 130, 246, 0.2)' },
+    green: { main: '#10b981', light: '#a7f3d0', shadow: 'rgba(16, 185, 129, 0.2)' },
+    red: { main: '#ef4444', light: '#fecaca', shadow: 'rgba(239, 68, 68, 0.2)' }
+};
+
 const SearchableSelect = ({
     options = [],
     value,
@@ -13,30 +20,32 @@ const SearchableSelect = ({
     required = false,
     className = "",
     maxMenuHeight = 210,
+    accentColor = 'orange',
     ...props
 }) => {
+    const accent = ACCENT_COLORS[accentColor] || ACCENT_COLORS.orange;
     // Custom styles for the select component
     const customStyles = {
         control: (provided, state) => ({
             ...provided,
             minHeight: '42px',
-            borderColor: state.isFocused ? '#f97316' : '#d1d5db',
-            boxShadow: state.isFocused ? '0 0 0 2px rgba(249, 115, 22, 0.2)' : 'none',
+            borderColor: state.isFocused ? accent.main : '#d1d5db',
+            boxShadow: state.isFocused ? `0 0 0 2px ${accent.shadow}` : 'none',
             '&:hover': {
-                borderColor: state.isFocused ? '#f97316' : '#9ca3af',
+                borderColor: state.isFocused ? accent.main : '#9ca3af',
             },
             fontSize: '14px',
         }),
         option: (provided, state) => ({
             ...provided,
-            backgroundColor: state.isSelected 
-                ? '#f97316' 
-                : state.isFocused 
-                ? '#fed7aa' 
+            backgroundColor: state.isSelected
+                ? accent.main
+                : state.isFocused
+                ? accent.light
                 : 'white',
             color: state.isSelected ? 'white' : '#374151',
             '&:hover': {
-                backgroundColor: state.isSelected ? '#f97316' : '#fed7aa',
+                backgroundColor: state.isSelected ? accent.main : accent.light,
             },
             fontSize: '14px',
         }),

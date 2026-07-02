@@ -183,10 +183,6 @@ const PembelianLainLainDetailPage = lazy(() => import('./pages/ho/pembelianLainL
 const PembelianBebanBiayaPage = lazy(() => import('./pages/ho/pembelianBebanBiaya/PembelianBebanBiayaPage'));
 const PembelianBahanPembantuPage = lazy(() => import('./pages/ho/pembelianBahanPembantu/PembelianBahanPembantuPage'));
 
-// Tanda Terima Pages - Lazy loaded
-const TandaTerimaPage = lazy(() => import('./pages/ho/tandaTerima/TandaTerimaPage'));
-const AddEditTandaTerimaPage = lazy(() => import('./pages/ho/tandaTerima/AddEditTandaTerimaPage'));
-
 // Pengajuan Pages - Lazy loaded
 const PengajuanPage = lazy(() => import('./pages/ho/pengajuan/PengajuanPage'));
 
@@ -475,12 +471,7 @@ function AppSecure() {
               <Route path="/pembelian-lain-lain/detail/:id" element={<Navigate to="/ho/pembelian-lain-lain/detail/:id" replace />} />
               <Route path="/ho/pembelian-beban-biaya" element={<PembelianBebanBiayaPage />} />
               <Route path="/ho/pembelian-bahan-pembantu" element={<PembelianBahanPembantuPage />} />
-              
-              {/* HO Tanda Terima Routes */}
-              <Route path="/ho/tanda-terima" element={<TandaTerimaPage />} />
-              <Route path="/ho/tanda-terima/add" element={<AddEditTandaTerimaPage />} />
-              <Route path="/ho/tanda-terima/edit/:id" element={<AddEditTandaTerimaPage />} />
-              
+
               {/* HO Pengajuan Routes */}
               <Route path="/ho/pengajuan" element={<PengajuanPage />} />
               
@@ -546,6 +537,13 @@ function AppSecure() {
               <Route path="/system/roles" element={<RolePage />} />
               <Route path="/system/users" element={<UsersPage />} />
               <Route path="/system/menu-management" element={<MenuManagementPage />} />
+
+              {/* Legacy redirect: keuangan/pengeluaran → /ho/keuangan/pengeluaran */}
+              <Route path="/keuangan/pengeluaran" element={<Navigate to="/ho/keuangan/pengeluaran" replace />} />
+              <Route path="/keuangan-pengeluaran" element={<Navigate to="/ho/keuangan/pengeluaran" replace />} />
+
+              {/* Alias redirect: /pengajuan → /ho/pengajuan */}
+              <Route path="/pengajuan" element={<Navigate to="/ho/pengajuan" replace />} />
 
               {/* Fallback Route */}
               <Route path="*" element={<DashboardPage />} />

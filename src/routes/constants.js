@@ -42,10 +42,6 @@ export const ROUTE_PATHS = Object.freeze({
   HO_LAIN_LAIN_EDIT: '/ho/pembelian-lain-lain/edit/:id',
   HO_LAIN_LAIN_DETAIL: '/ho/pembelian-lain-lain/detail/:id',
 
-  HO_TANDA_TERIMA: '/ho/tanda-terima',
-  HO_TANDA_TERIMA_ADD: '/ho/tanda-terima/add',
-  HO_TANDA_TERIMA_EDIT: '/ho/tanda-terima/edit/:id',
-
   HO_PENGAJUAN: '/ho/pengajuan',
   HO_KEUANGAN: '/ho/keuangan/pengeluaran',
   HO_KEUANGAN_KAS_DETAIL: '/ho/keuangan-kas/detail/:id',

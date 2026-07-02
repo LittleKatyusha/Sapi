@@ -907,6 +907,7 @@ const PembelianLainLainPage = () => {
                             onEdit={handleEditBeban}
                             onDelete={(item) => handleDelete({...item, reportType: 'beban'})}
                             onDetail={handleDetailBeban}
+                            labels={{ tandaTerimaTitle: 'TANDA TERIMA BARANG - BIAYA-BIAYA' }}
                         />
                     </div>
                 );
@@ -1037,6 +1038,7 @@ const PembelianLainLainPage = () => {
                             onEdit={handleEditBahanPembantu}
                             onDelete={handleDeleteBahanPembantu}
                             onDetail={handleDetailBahanPembantu}
+                            labels={{ tandaTerimaTitle: 'TANDA TERIMA BARANG - BAHAN PEMBANTU' }}
                         />
                     </div>
                 );

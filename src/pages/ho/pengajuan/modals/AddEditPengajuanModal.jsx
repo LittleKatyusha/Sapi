@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { X, Save, Loader2 } from 'lucide-react';
 import Select from 'react-select';
 import useMasterData from '../hooks/useMasterData';
-import useOfficeData from '../../tandaTerima/hooks/useOfficeData';
+import useOfficeData from '../../../../hooks/useOfficeData';
 import PengajuanBiayaService from '../../../../services/pengajuanBiayaService';
 import useItemBebanBiayaAPI from '../../pembelianLainLain/hooks/useItemBebanBiayaAPI';
 

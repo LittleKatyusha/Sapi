@@ -20,9 +20,6 @@ const PembelianLainLainPage = lazy(() => import('../pages/ho/pembelianLainLain/P
 const AddEditPembelianLainLainPage = lazy(() => import('../pages/ho/pembelianLainLain/addEditPembelianLainLain'));
 const PembelianLainLainDetailPage = lazy(() => import('../pages/ho/pembelianLainLain/PembelianLainLainDetailPage'));
 
-const TandaTerimaPage = lazy(() => import('../pages/ho/tandaTerima/TandaTerimaPage'));
-const AddEditTandaTerimaPage = lazy(() => import('../pages/ho/tandaTerima/AddEditTandaTerimaPage'));
-
 const PengajuanPage = lazy(() => import('../pages/ho/pengajuan/PengajuanPage'));
 
 const KeuanganKasDetailPage = lazy(() => import('../pages/ho/keuanganKas/KeuanganKasDetailPage'));
@@ -122,20 +119,6 @@ export const hoRoutes = [
   {
     path: '/ho/pembelian-lain-lain/detail/:id',
     element: <PembelianLainLainDetailPage />
-  },
-
-  // HO Tanda Terima
-  {
-    path: '/ho/tanda-terima',
-    element: <TandaTerimaPage />
-  },
-  {
-    path: '/ho/tanda-terima/add',
-    element: <AddEditTandaTerimaPage />
-  },
-  {
-    path: '/ho/tanda-terima/edit/:id',
-    element: <AddEditTandaTerimaPage />
   },
 
   // HO Pengajuan

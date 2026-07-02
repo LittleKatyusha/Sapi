@@ -2,23 +2,9 @@ import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import HttpClient from '../../../../services/httpClient';
 import { API_ENDPOINTS } from '../../../../config/api';
 
-// Helper function to safely parse JSON response
-const safeJsonParse = async (response) => {
-    const contentType = response.headers.get('content-type');
-    
-    if (!contentType || !contentType.includes('application/json')) {
-        const responseText = await response.text();
-        throw new Error(`Server returned ${contentType || 'unknown content type'} instead of JSON. This usually means the API endpoint is not properly configured or the server returned an error page. Response: ${responseText.substring(0, 200)}...`);
-    }
-    
-    const jsonData = await response.json();
-    return jsonData;
-};
-
 // Constants for better maintainability
 const DEFAULT_PER_PAGE = 10;
 const SEARCH_DEBOUNCE_DELAY = 300;
-const NOTIFICATION_TIMEOUT = 5000;
 
 // Data validation and mapping utilities
 const validateAndMapPembelianItem = (item, index) => {
@@ -624,7 +610,7 @@ const usePembelianHO = () => {
         searchTimeoutRef.current = setTimeout(() => {
             fetchPembelian(1, null, newSearchTerm, null, null, true);
         }, SEARCH_DEBOUNCE_DELAY);
-    }, []);
+    }, [fetchPembelian]);
     
     const clearSearch = useCallback(() => {
         setSearchTerm('');
@@ -635,34 +621,34 @@ const usePembelianHO = () => {
         }
         
         fetchPembelian(1, null, '', null, null, false);
-    }, []);
+    }, [fetchPembelian]);
 
     // Filter and pagination handlers
     const handleFilter = useCallback((newFilter) => {
         setFilterStatus(newFilter);
         setSearchError(null);
         fetchPembelian(1, null, null, newFilter, null, false);
-    }, []);
+    }, [fetchPembelian]);
     
     const handleDateRangeFilter = useCallback((newDateRange) => {
         setDateRange(newDateRange);
         setSearchError(null);
         fetchPembelian(1, null, null, null, newDateRange, false);
-    }, []);
+    }, [fetchPembelian]);
     
     const clearDateRange = useCallback(() => {
         const emptyDateRange = { startDate: '', endDate: '' };
         setDateRange(emptyDateRange);
         setSearchError(null);
         fetchPembelian(1, null, null, null, emptyDateRange, false);
-    }, []);
+    }, [fetchPembelian]);
 
     // Advanced filter handlers
     const handleAdvancedFilters = useCallback((newFilters) => {
         setAdvancedFilters(newFilters);
         setSearchError(null);
         fetchPembelian(1, null, null, null, null, false, newFilters);
-    }, []);
+    }, [fetchPembelian]);
 
     const clearAdvancedFilters = useCallback((filters = null) => {
         const emptyFilters = filters || {
@@ -678,15 +664,15 @@ const usePembelianHO = () => {
         setAdvancedFilters(emptyFilters);
         setSearchError(null);
         fetchPembelian(1, null, null, null, null, false, emptyFilters);
-    }, []);
+    }, [fetchPembelian]);
 
     const handlePageChange = useCallback((newPage) => {
         fetchPembelian(newPage, null, null, null, null, false);
-    }, []);
+    }, [fetchPembelian]);
 
     const handlePerPageChange = useCallback((newPerPage) => {
         fetchPembelian(1, newPerPage, null, null, null, false);
-    }, []);
+    }, [fetchPembelian]);
 
     // Update refs when state changes to avoid stale closures
     useEffect(() => {

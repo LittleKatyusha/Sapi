@@ -9,12 +9,15 @@ import useBankDeposit from '../keuanganKas/hooks/useBankDeposit';
 import useBanksAPILazy from '../keuanganKas/hooks/useBanksAPILazy';
 import pengeluaranService from '../../../services/pengeluaranService';
 
-// Import table components (reuse from keuanganKas)
-import PengajuanTable from '../keuanganKas/components/tables/PengajuanTable';
-import BelumDibayarTable from '../keuanganKas/components/tables/BelumDibayarTable';
-import BelumLunasTable from '../keuanganKas/components/tables/BelumLunasTable';
-import LunasTable from '../keuanganKas/components/tables/LunasTable';
-import TersetorTable from '../keuanganKas/components/tables/TersetorTable';
+// New minimal modern components
+import ModernKeuanganTable from './components/ModernKeuanganTable';
+import ModernPengajuanTable from './components/ModernPengajuanTable';
+import ModernTersetorTable from './components/ModernTersetorTable';
+import KeuanganFilterPanel, {
+    JENIS_PEMBELIAN_OPTIONS,
+    STATUS_PEMBAYARAN_OPTIONS,
+    STATUS_PENGAJUAN_OPTIONS
+} from './components/KeuanganFilterPanel';
 
 // Import modals (reuse from keuanganKas)
 import DeleteConfirmationModal from '../keuanganKas/modals/DeleteConfirmationModal';
@@ -59,14 +62,13 @@ const KeuanganPage = () => {
         error,
         searchTerm,
         setSearchTerm,
-        isSearching,
-        searchError,
         serverPagination,
         fetchData,
-        handleSearch,
-        clearSearch,
         handlePageChange: handleServerPageChange,
         handlePerPageChange: handleServerPerPageChange,
+        applyFilters,
+        resetFilters,
+        advancedFilters,
         createItem,
         updateItem,
         deleteItem,
@@ -87,13 +89,8 @@ const KeuanganPage = () => {
         pengajuanBiaya,
         loading: loadingPengajuan,
         error: errorPengajuan,
-        searchTerm: searchTermPengajuan,
-        isSearching: isSearchingPengajuan,
-        searchError: searchErrorPengajuan,
         serverPagination: serverPaginationPengajuan,
         fetchPengajuanBiaya,
-        handleSearch: handleSearchPengajuan,
-        clearSearch: clearSearchPengajuan,
         handlePageChange: handlePageChangePengajuan,
         handlePerPageChange: handlePerPageChangePengajuan,
     } = pengajuan;
@@ -103,14 +100,9 @@ const KeuanganPage = () => {
         bankDeposits,
         loading: loadingBankDeposit,
         error: errorBankDeposit,
-        searchTerm: searchTermBankDeposit,
-        isSearching: isSearchingBankDeposit,
-        searchError: searchErrorBankDeposit,
         serverPagination: serverPaginationBankDeposit,
         dateFilter: dateFilterBankDeposit,
         fetchBankDeposits,
-        handleSearch: handleSearchBankDeposit,
-        clearSearch: clearSearchBankDeposit,
         handlePageChange: handlePageChangeBankDeposit,
         handlePerPageChange: handlePerPageChangeBankDeposit,
         handleDateFilterChange: handleDateFilterChangeBankDeposit,
@@ -136,6 +128,92 @@ const KeuanganPage = () => {
         });
     }, [allBankOptions]);
 
+    // Filter state for pengajuan tab
+    const [pengajuanFilters, setPengajuanFilters] = useState({
+        status: '',
+        start_date: '',
+        end_date: ''
+    });
+    // Filter state for tersetor tab
+    const [tersetorFilters, setTersetorFilters] = useState({
+        start_date: '',
+        end_date: ''
+    });
+    const [isDownloadingReport, setIsDownloadingReport] = useState(false);
+
+    // Field configs for each tab's filter panel
+    const transaksiFields = [
+        { key: 'payment_status', label: 'Status Pembayaran', type: 'select', icon: 'circle', options: STATUS_PEMBAYARAN_OPTIONS },
+        { key: 'purchase_type', label: 'Jenis Pembelian', type: 'select', icon: 'tag', options: JENIS_PEMBELIAN_OPTIONS },
+        { key: 'start_date', label: 'Tanggal Jatuh Tempo Mulai', type: 'date' },
+        { key: 'end_date', label: 'Tanggal Jatuh Tempo Akhir', type: 'date' }
+    ];
+    const pengajuanFields = [
+        { key: 'status', label: 'Status Pengajuan', type: 'select', icon: 'circle', options: STATUS_PENGAJUAN_OPTIONS },
+        { key: 'start_date', label: 'Tanggal Pengajuan Mulai', type: 'date' },
+        { key: 'end_date', label: 'Tanggal Pengajuan Akhir', type: 'date' }
+    ];
+    const tersetorFields = [
+        { key: 'start_date', label: 'Tanggal Setor Mulai', type: 'date' },
+        { key: 'end_date', label: 'Tanggal Setor Akhir', type: 'date' }
+    ];
+
+    const applyPengajuanFilters = useCallback((newFilters) => {
+        setPengajuanFilters(newFilters);
+        fetchPengajuanBiaya(1, serverPaginationPengajuan.perPage, '', newFilters.status, newFilters.start_date, newFilters.end_date);
+    }, [fetchPengajuanBiaya, serverPaginationPengajuan.perPage]);
+
+    const resetPengajuanFilters = useCallback((emptyFilters) => {
+        setPengajuanFilters(emptyFilters);
+        fetchPengajuanBiaya(1, serverPaginationPengajuan.perPage, '', '', '', '');
+    }, [fetchPengajuanBiaya, serverPaginationPengajuan.perPage]);
+
+    const applyTersetorFilters = useCallback((newFilters) => {
+        setTersetorFilters(newFilters);
+        handleDateFilterChangeBankDeposit(newFilters.start_date || null, newFilters.end_date || null);
+    }, [handleDateFilterChangeBankDeposit]);
+
+    const resetTersetorFilters = useCallback((emptyFilters) => {
+        setTersetorFilters(emptyFilters);
+        handleDateFilterChangeBankDeposit(null, null);
+    }, [handleDateFilterChangeBankDeposit]);
+
+    const handleCetakBuktiSetor = useCallback(async () => {
+        if (!tersetorFilters.start_date || !tersetorFilters.end_date) {
+            setNotification({
+                type: 'error',
+                message: 'Silakan pilih periode tanggal di filter terlebih dahulu'
+            });
+            return;
+        }
+        try {
+            setIsDownloadingReport(true);
+            setNotification({ type: 'info', message: 'Sedang mengunduh laporan...' });
+            const userStr = localStorage.getItem('user');
+            const user = userStr ? JSON.parse(userStr) : {};
+            const petugas = user.name || 'Admin';
+            const blob = await pengeluaranService.downloadReportBuktiSetor(
+                tersetorFilters.start_date,
+                tersetorFilters.end_date,
+                petugas
+            );
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `Bukti_Setor_Kas_${tersetorFilters.start_date}_${tersetorFilters.end_date}.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            setNotification({ type: 'success', message: 'Berhasil mengunduh laporan' });
+        } catch (err) {
+            console.error('Error downloading report:', err);
+            setNotification({ type: 'error', message: err.message || 'Gagal mengunduh laporan' });
+        } finally {
+            setIsDownloadingReport(false);
+        }
+    }, [tersetorFilters.start_date, tersetorFilters.end_date]);
+
     // Consume navigation state from Hutang Vendor "Bayar via Kas/Bank"
     useEffect(() => {
         const state = location.state;
@@ -143,10 +221,17 @@ const KeuanganPage = () => {
             // Determine metode bayar from state or default to kas
             const via = state.via || 'kas';
             setMetodeBayar(via === 'bank' ? 'bank' : 'kas');
-            setActiveTab('belum-dibayar');
+            setActiveTab('transaksi');
+            // Pre-set filter: Belum Bayar (2) + search by nota
+            const newFilters = {
+                payment_status: '2',
+                start_date: '',
+                end_date: '',
+                purchase_type: ''
+            };
+            applyFilters(newFilters);
             if (state.nota) {
                 setSearchTerm(state.nota);
-                handleSearch(state.nota);
             }
             const sisa = formatCurrency(state.sisa_hutang || 0);
             setNotification({
@@ -583,14 +668,12 @@ const KeuanganPage = () => {
     const pageSubtitle = metodeBayar === 'kas' ? 'Kelola data pengeluaran kas' : 'Kelola data pengeluaran bank';
 
     const tabs = metodeBayar === 'kas'
-        ? ['pengajuan', 'belum-dibayar', 'belum-lunas', 'lunas', 'kredit-bank']
-        : ['pengajuan', 'belum-dibayar', 'belum-lunas', 'lunas'];
+        ? ['pengajuan', 'transaksi', 'kredit-bank']
+        : ['pengajuan', 'transaksi'];
 
     const tabLabels = {
         'pengajuan': 'Pengajuan',
-        'belum-dibayar': 'Belum Dibayar',
-        'belum-lunas': 'Belum Lunas',
-        'lunas': 'Lunas',
+        'transaksi': 'Transaksi',
         'kredit-bank': 'Tersetor'
     };
 
@@ -598,128 +681,85 @@ const KeuanganPage = () => {
         <>
             <style>{`
                 @keyframes fadeIn {
-                    from {
-                        opacity: 0;
-                        transform: translateY(10px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateY(0);
-                    }
+                    from { opacity: 0; transform: translateY(8px); }
+                    to { opacity: 1; transform: translateY(0); }
                 }
-
-                .animate-fadeIn {
-                    animation: fadeIn 0.3s ease-in-out;
-                }
-
-                .sticky-scrollbar-wrapper {
-                    position: relative;
-                    display: flex;
-                    flex-direction: column-reverse;
-                }
-
-                .table-scroll-container-horizontal {
-                    position: sticky;
-                    bottom: 0;
-                    z-index: 10;
-                    background: white;
-                    padding-bottom: 2px;
-                }
-
-                .table-scroll-container-horizontal::-webkit-scrollbar {
-                    height: 12px;
-                }
-
-                .table-scroll-container-horizontal::-webkit-scrollbar-track {
-                    background: #f1f5f9;
-                    border-radius: 4px;
-                }
-
-                .table-scroll-container-horizontal::-webkit-scrollbar-thumb {
-                    background: #cbd5e1;
-                    border-radius: 4px;
-                    transition: background 0.2s ease;
-                }
-
-                .table-scroll-container-horizontal::-webkit-scrollbar-thumb:hover {
-                    background: #94a3b8;
-                }
-
-                .table-scroll-container-horizontal {
-                    scrollbar-width: thin;
-                    scrollbar-color: #cbd5e1 #f1f5f9;
-                }
+                .animate-fadeIn { animation: fadeIn 0.25s ease-out; }
             `}</style>
-            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-2 sm:p-4 md:p-6">
-                <div className="w-full max-w-none mx-0 space-y-6 md:space-y-8">
-                    {/* Header Section with Metode Bayar Toggle */}
-                    <div className="bg-white rounded-none sm:rounded-none p-4 sm:p-6 shadow-xl border border-gray-100">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                            <div>
-                                <h1 className="text-2xl sm:text-4xl font-bold text-gray-800 mb-1 sm:mb-2 flex items-center gap-3">
-                                    <Wallet size={32} className="text-blue-500" />
-                                    {pageTitle}
-                                </h1>
-                                <p className="text-gray-600 text-sm sm:text-base">
-                                    {pageSubtitle}
-                                </p>
+            <div className="min-h-screen bg-gray-50 p-3 sm:p-4 md:p-6">
+                <div className="w-full max-w-none mx-0 space-y-4 md:space-y-5">
+                    {/* Header Section - Compact */}
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-5">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+                                    <Wallet size={20} className="text-blue-500" />
+                                </div>
+                                <div>
+                                    <h1 className="text-lg sm:text-xl font-bold text-gray-900">
+                                        {pageTitle}
+                                    </h1>
+                                    <p className="text-xs sm:text-sm text-gray-500">
+                                        {pageSubtitle}
+                                    </p>
+                                </div>
                             </div>
-                            {/* Metode Bayar Toggle */}
-                            <div className="inline-flex bg-gray-100 rounded-xl p-1 border border-gray-200">
+                            {/* Metode Bayar Toggle - Compact */}
+                            <div className="inline-flex bg-gray-100 rounded-lg p-1 border border-gray-200 self-start sm:self-auto">
                                 <button
                                     onClick={() => handleMetodeChange('kas')}
-                                    className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 ${
+                                    className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-semibold transition-all ${
                                         metodeBayar === 'kas'
-                                            ? 'bg-white text-blue-700 shadow-md'
+                                            ? 'bg-white text-blue-700 shadow-sm'
                                             : 'text-gray-500 hover:text-gray-700'
                                     }`}
                                 >
-                                    <Wallet size={18} />
+                                    <Wallet size={16} />
                                     Kas
                                 </button>
                                 <button
                                     onClick={() => handleMetodeChange('bank')}
-                                    className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 ${
+                                    className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-semibold transition-all ${
                                         metodeBayar === 'bank'
-                                            ? 'bg-white text-blue-700 shadow-md'
+                                            ? 'bg-white text-blue-700 shadow-sm'
                                             : 'text-gray-500 hover:text-gray-700'
                                     }`}
                                 >
-                                    <Banknote size={18} />
+                                    <Banknote size={16} />
                                     Bank
                                 </button>
                             </div>
                         </div>
                     </div>
 
-                    {/* Info Cards Section */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+                    {/* Info Cards Section - Compact */}
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
                         {summaryCards.map((card) => (
                             <div
                                 key={card.id}
-                                className={`bg-white rounded-xl shadow-md border-l-4 ${card.borderColor} p-4 hover:shadow-lg transition-shadow duration-300`}
+                                className={`bg-white rounded-xl shadow-sm border ${card.borderColor} p-3 hover:shadow-md transition-shadow`}
                             >
-                                <div className="flex flex-col h-full justify-between">
+                                <div className="flex flex-col h-full">
                                     <div>
                                         {card.preText && (
-                                            <div className={`text-xs font-bold uppercase tracking-wider mb-1 ${card.subTextColor}`}>
+                                            <div className={`text-[10px] font-semibold uppercase tracking-wide mb-1 ${card.subTextColor} truncate`}>
                                                 {card.preText}
                                             </div>
                                         )}
-                                        <div className="flex items-baseline gap-2">
-                                            <span className={`text-3xl font-bold ${card.textColor}`}>
+                                        <div className="flex items-baseline gap-1.5">
+                                            <span className={`text-xl font-bold ${card.textColor}`}>
                                                 {card.count}
                                             </span>
-                                            <span className={`text-sm font-medium ${card.subTextColor}`}>
+                                            <span className={`text-xs ${card.subTextColor}`}>
                                                 {card.text}
                                             </span>
                                         </div>
                                     </div>
-                                    <div className="mt-3 pt-3 border-t border-gray-100">
-                                        <div className={`text-xs font-semibold ${card.labelColor} mb-0.5`}>
+                                    <div className="mt-2 pt-2 border-t border-gray-100">
+                                        <div className={`text-[10px] font-medium ${card.labelColor} mb-0.5`}>
                                             Total Nilai
                                         </div>
-                                        <div className={`text-lg font-bold ${card.valueColor}`}>
+                                        <div className={`text-sm font-bold ${card.valueColor} truncate`}>
                                             {formatCurrency(card.total)}
                                         </div>
                                     </div>
@@ -729,23 +769,23 @@ const KeuanganPage = () => {
                     </div>
 
                     {/* Tabs Section */}
-                    <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
-                        {/* Tab Headers */}
-                        <div className="bg-gradient-to-r from-slate-50 to-gray-50">
-                            <div className="flex border-b-2 border-gray-200">
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                        {/* Tab Headers - Compact */}
+                        <div className="border-b border-gray-200">
+                            <div className="flex">
                                 {tabs.map((tab) => (
                                     <button
                                         key={tab}
                                         onClick={() => handleTabChange(tab)}
-                                        className={`relative flex-1 px-8 py-5 text-lg font-bold transition-all duration-300 ${
+                                        className={`relative flex-1 px-4 sm:px-6 py-3 text-sm font-semibold transition-all ${
                                             activeTab === tab
-                                                ? 'text-white bg-gradient-to-r from-blue-600 to-cyan-600 shadow-lg'
-                                                : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+                                                ? 'text-blue-600 bg-blue-50/50'
+                                                : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
                                         }`}
                                     >
                                         <span className="relative z-10">{tabLabels[tab]}</span>
                                         {activeTab === tab && (
-                                            <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-400 to-cyan-400"></div>
+                                            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"></div>
                                         )}
                                     </button>
                                 ))}
@@ -753,106 +793,82 @@ const KeuanganPage = () => {
                         </div>
 
                         {/* Tab Content */}
-                        <div className="p-6 bg-gradient-to-br from-slate-50/30 to-blue-50/30">
+                        <div className="p-4 sm:p-5 bg-gray-50/30">
                             {activeTab === 'pengajuan' && (
-                                <div className="space-y-6 animate-fadeIn">
-                                    <PengajuanTable
+                                <div className="space-y-4 animate-fadeIn">
+                                    <KeuanganFilterPanel
+                                        key={`filter-pengajuan-${metodeBayar}`}
+                                        filters={pengajuanFilters}
+                                        onApply={applyPengajuanFilters}
+                                        onReset={resetPengajuanFilters}
+                                        fields={pengajuanFields}
+                                        emptyFilters={{ status: '', start_date: '', end_date: '' }}
+                                        subtitle="Klik untuk filter berdasarkan status, tanggal"
+                                    />
+                                    <ModernPengajuanTable
                                         data={pengajuanBiaya}
                                         loading={loadingPengajuan}
                                         error={errorPengajuan}
-                                        searchTerm={searchTermPengajuan}
-                                        isSearching={isSearchingPengajuan}
-                                        searchError={searchErrorPengajuan}
-                                        serverPagination={serverPaginationPengajuan}
+                                        pagination={serverPaginationPengajuan}
+                                        onPageChange={handlePageChangePengajuan}
+                                        onPerPageChange={handlePerPageChangePengajuan}
                                         openMenuId={openMenuId}
                                         setOpenMenuId={setOpenMenuId}
-                                        handleSearch={handleSearchPengajuan}
-                                        clearSearch={clearSearchPengajuan}
-                                        handleServerPageChange={handlePageChangePengajuan}
-                                        handleServerPerPageChange={handlePerPageChangePengajuan}
-                                        handleProses={handleProses}
-                                        handleDownload={handleDownload}
+                                        onProses={handleProses}
+                                        onDownload={(item) => handleDownload(item, 'pengajuan')}
                                     />
                                 </div>
                             )}
-                            {activeTab === 'belum-dibayar' && (
-                                <div className="animate-fadeIn">
-                                    <BelumDibayarTable
-                                        data={filteredData}
-                                        loading={loading}
-                                        error={error}
-                                        searchTerm={searchTerm}
-                                        isSearching={isSearching}
-                                        searchError={searchError}
-                                        serverPagination={serverPagination}
-                                        openMenuId={openMenuId}
-                                        setOpenMenuId={setOpenMenuId}
-                                        handleSearch={handleSearch}
-                                        clearSearch={clearSearch}
-                                        handleServerPageChange={handleServerPageChange}
-                                        handleServerPerPageChange={handleServerPerPageChange}
-                                        handleBayar={handleBayar}
+                            {activeTab === 'transaksi' && (
+                                <div className="space-y-4 animate-fadeIn">
+                                    <KeuanganFilterPanel
+                                        key={`filter-transaksi-${metodeBayar}`}
+                                        filters={advancedFilters}
+                                        onApply={applyFilters}
+                                        onReset={resetFilters}
+                                        fields={transaksiFields}
+                                        emptyFilters={{ payment_status: '', start_date: '', end_date: '', purchase_type: '' }}
+                                        subtitle="Klik untuk filter berdasarkan status, jenis, tanggal"
                                     />
-                                </div>
-                            )}
-                            {activeTab === 'belum-lunas' && (
-                                <div className="animate-fadeIn">
-                                    <BelumLunasTable
+                                    <ModernKeuanganTable
                                         data={filteredData}
                                         loading={loading}
                                         error={error}
-                                        searchTerm={searchTerm}
-                                        isSearching={isSearching}
-                                        searchError={searchError}
-                                        serverPagination={serverPagination}
+                                        pagination={serverPagination}
+                                        onPageChange={handleServerPageChange}
+                                        onPerPageChange={handleServerPerPageChange}
                                         openMenuId={openMenuId}
                                         setOpenMenuId={setOpenMenuId}
-                                        handleSearch={handleSearch}
-                                        clearSearch={clearSearch}
-                                        handleServerPageChange={handleServerPageChange}
-                                        handleServerPerPageChange={handleServerPerPageChange}
-                                        handleBayar={handleBayar}
-                                    />
-                                </div>
-                            )}
-                            {activeTab === 'lunas' && (
-                                <div className="animate-fadeIn">
-                                    <LunasTable
-                                        data={filteredData}
-                                        loading={loading}
-                                        error={error}
-                                        searchTerm={searchTerm}
-                                        isSearching={isSearching}
-                                        searchError={searchError}
-                                        serverPagination={serverPagination}
-                                        openMenuId={openMenuId}
-                                        setOpenMenuId={setOpenMenuId}
-                                        handleSearch={handleSearch}
-                                        clearSearch={clearSearch}
-                                        handleServerPageChange={handleServerPageChange}
-                                        handleServerPerPageChange={handleServerPerPageChange}
-                                        handleDownload={handleDownload}
+                                        onBayar={handleBayar}
+                                        onDownload={(item) => handleDownload(item, 'pembelian')}
+                                        onDetail={handleDetail}
                                     />
                                 </div>
                             )}
                             {activeTab === 'kredit-bank' && metodeBayar === 'kas' && (
-                                <div className="animate-fadeIn">
-                                    <TersetorTable
+                                <div className="space-y-4 animate-fadeIn">
+                                    <KeuanganFilterPanel
+                                        key="filter-tersetor"
+                                        filters={tersetorFilters}
+                                        onApply={applyTersetorFilters}
+                                        onReset={resetTersetorFilters}
+                                        fields={tersetorFields}
+                                        emptyFilters={{ start_date: '', end_date: '' }}
+                                        subtitle="Klik untuk filter berdasarkan tanggal setor"
+                                    />
+                                    <ModernTersetorTable
                                         data={bankDeposits}
                                         loading={loadingBankDeposit}
                                         error={errorBankDeposit}
-                                        searchTerm={searchTermBankDeposit}
-                                        isSearching={isSearchingBankDeposit}
-                                        searchError={searchErrorBankDeposit}
-                                        serverPagination={serverPaginationBankDeposit}
+                                        pagination={serverPaginationBankDeposit}
+                                        onPageChange={handlePageChangeBankDeposit}
+                                        onPerPageChange={handlePerPageChangeBankDeposit}
+                                        onAdd={handleAddSetorKas}
+                                        onDownloadReport={handleCetakBuktiSetor}
+                                        isDownloading={isDownloadingReport}
                                         dateFilter={dateFilterBankDeposit}
-                                        handleSearch={handleSearchBankDeposit}
-                                        clearSearch={clearSearchBankDeposit}
-                                        handleServerPageChange={handlePageChangeBankDeposit}
-                                        handleServerPerPageChange={handlePerPageChangeBankDeposit}
-                                        handleDateFilterChange={handleDateFilterChangeBankDeposit}
-                                        handleAdd={handleAddSetorKas}
-                                        setNotification={setNotification}
+                                        openMenuId={openMenuId}
+                                        setOpenMenuId={setOpenMenuId}
                                     />
                                 </div>
                             )}

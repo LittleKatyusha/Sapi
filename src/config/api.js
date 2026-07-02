@@ -194,14 +194,6 @@ export const API_ENDPOINTS = {
     BAHAN_PEMBANTU: {
       PEMBELIAN: '/api/ho/bahanpembantu/pembelian'
     },
-    TANDA_TERIMA: {
-      BASE: '/api/ho/tandaterimabarang',
-      LIST: '/api/ho/tandaterimabarang/data',
-      SHOW: '/api/ho/tandaterimabarang/show',
-      STORE: '/api/ho/tandaterimabarang/store',
-      UPDATE: '/api/ho/tandaterimabarang/update',
-      DELETE: '/api/ho/tandaterimabarang/hapus'
-    },
     PAYMENT: {
       BASE: '/api/ho/payment',
       DATA: '/api/ho/payment/data',

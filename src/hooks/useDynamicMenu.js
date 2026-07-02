@@ -80,6 +80,8 @@ export const useDynamicMenu = () => {
               'pembelian-feedmil': '/ho/pembelian-feedmil',
               'pembelian-ovk': '/ho/pembelian-ovk',
               'penjualan': '/ho/penjualan',
+              'keuangan/pengeluaran': '/ho/keuangan/pengeluaran',
+              'keuangan-pengeluaran': '/ho/keuangan/pengeluaran',
               'kandang-office': '/master-data/kandang-office',
               'jenis-hewan': '/master-data/jenis-hewan',
               'klasifikasi-hewan': '/master-data/klasifikasi-hewan',
@@ -309,6 +311,8 @@ export const useDynamicMenu = () => {
               'pembelian-feedmil': '/ho/pembelian-feedmil',
               'pembelian-ovk': '/ho/pembelian-ovk',
               'penjualan': '/ho/penjualan',
+              'keuangan/pengeluaran': '/ho/keuangan/pengeluaran',
+              'keuangan-pengeluaran': '/ho/keuangan/pengeluaran',
               'kandang-office': '/master-data/kandang-office',
               'jenis-hewan': '/master-data/jenis-hewan',
               'klasifikasi-hewan': '/master-data/klasifikasi-hewan',
@@ -350,8 +354,7 @@ export const useDynamicMenu = () => {
               'pajak': '/reports/pajak',
               'permission-management': '/system/permission-management',
               'settings': '/settings',
-              'system': '#', // Parent menu
-              'parameter': '/system/parameters'
+              'system': '#' // Parent menu
             };
             return urlMapping[cleanUrl] || `/${cleanUrl}`;
           };

@@ -1,7 +1,8 @@
-import React, { useRef, useEffect, useState, useLayoutEffect } from 'react';
+import React, { useRef, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Eye, Edit, Trash2, Download, Loader2 } from 'lucide-react';
+import { Eye, Edit, Trash2, Download, Loader2, ClipboardCheck } from 'lucide-react';
 import { API_ENDPOINTS } from '../../../../config/api';
+import { downloadTandaTerimaPDF } from '../../pembelian/utils/tandaTerimaPDF';
 
 const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef, apiEndpoint = API_ENDPOINTS.HO.LAINLAIN.PEMBELIAN, reportType = 'lainlain' }) => {
     const menuRef = useRef(null);
@@ -114,6 +115,16 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef, apiEn
             disabled: fileLoading,
             isLoading: fileLoading,
         }] : []),
+        {
+            label: 'Tanda Terima Barang',
+            icon: ClipboardCheck,
+            onClick: () => { downloadTandaTerimaPDF(row, 'TANDA TERIMA BARANG - LAIN-LAIN'); onClose(); },
+            className: 'text-blue-600',
+            description: 'Download PDF tanda terima',
+            bg: 'bg-blue-100',
+            hoverBg: 'group-hover:bg-blue-200',
+            text: 'text-blue-600',
+        },
         {
             divider: true
         },

@@ -84,7 +84,6 @@ export const pageTitleMap = {
   '/ho/penjualan-sapi/edit/:id': 'Head Office: Edit Penjualan Sapi',
   '/ho/penjualan-sapi/detail/:id': 'Head Office: Detail Penjualan Sapi',
   '/ho/pembelian-kulit': 'Head Office: Pembelian Kulit',
-  '/ho/tanda-terima': 'Head Office: Tanda Terima',
   '/ho/pengajuan': 'Head Office: Pengajuan Biaya',
   '/ho/keuangan/pengeluaran': 'Head Office: Pengeluaran',
   '/report/ho/hutang-vendor': 'Head Office: Laporan Hutang Vendor',

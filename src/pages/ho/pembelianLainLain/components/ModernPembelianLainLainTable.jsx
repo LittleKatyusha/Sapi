@@ -323,7 +323,7 @@ const ModernPembelianLainLainTable = ({
                           onDelete={onDelete}
                           onDownload={handleDownload}
                           downloadLoadingId={downloadLoadingId}
-                          labels={{ download: 'Download Nota' }}
+                          labels={{ download: 'Download Nota', tandaTerimaTitle: 'TANDA TERIMA BARANG - ASET' }}
                         />
                       </td>
                     </tr>
@@ -386,7 +386,7 @@ const ModernPembelianLainLainTable = ({
                     onDelete={onDelete}
                     onDownload={handleDownload}
                     downloadLoadingId={downloadLoadingId}
-                    labels={{ download: 'Download Nota' }}
+                    labels={{ download: 'Download Nota', tandaTerimaTitle: 'TANDA TERIMA BARANG - ASET' }}
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-3 mt-3 text-sm">

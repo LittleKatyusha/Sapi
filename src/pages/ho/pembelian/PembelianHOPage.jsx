@@ -7,6 +7,7 @@ import LaporanPembelianService from '../../../services/laporanPembelianService';
 import useTipePembelian from './hooks/useTipePembelian';
 import ModernPembelianTable from './components/ModernPembelianTable';
 import PembelianFilterPanel from './components/PembelianFilterPanel';
+import { downloadTandaTerimaPDF } from './utils/tandaTerimaPDF';
 
 // Import modals
 import DeleteConfirmationModal from './modals/DeleteConfirmationModal';
@@ -156,7 +157,7 @@ const PembelianHOPage = () => {
             setIsTableReady(true);
         }, 1000);
         return () => clearTimeout(timer);
-    }, []); // Empty dependency array to run only once
+    }, [fetchPembelian, location.state?.fromEdit]);
 
     // Auto-refresh when user returns to the page (e.g., from edit page)
     useEffect(() => {
@@ -217,7 +218,7 @@ const PembelianHOPage = () => {
             document.removeEventListener('visibilitychange', handleVisibilityChange);
             window.removeEventListener('focus', handleFocus);
         };
-    }, []); // Empty dependency array to prevent re-renders
+    }, [fetchPembelian, isTableReady, lastRefreshTime]);
 
     // Refresh data when returning from edit page
     useEffect(() => {
@@ -248,7 +249,7 @@ const PembelianHOPage = () => {
                 isFetchingRef.current = false;
             };
         }
-    }, [location.state]); // Only depend on location.state
+    }, [location.state, fetchPembelian]); // Depend on location.state + stable fetchPembelian
 
     const handleEdit = (pembelian) => {
         const id = pembelian.encryptedPid; // Always use encrypted PID for API operations
@@ -325,6 +326,23 @@ const PembelianHOPage = () => {
         setIsDeleteModalOpen(false);
         setSelectedPembelian(null);
     };
+
+    // Tanda Terima handler — generate & download PDF tanda terima barang
+    const handleTandaTerima = useCallback((pembelian) => {
+        try {
+            downloadTandaTerimaPDF(pembelian);
+            setNotification({
+                type: 'success',
+                message: `Tanda terima untuk pembelian ${pembelian.nota_sistem || ''} dibuka di dialog print. Pilih "Save as PDF" untuk download.`
+            });
+        } catch (err) {
+            console.error('Error generating tanda terima PDF:', err);
+            setNotification({
+                type: 'error',
+                message: err.message || 'Gagal generate tanda terima PDF'
+            });
+        }
+    }, []);
 
     const handleDeletePembelian = useCallback(async (pembelian) => {
         try {
@@ -696,6 +714,7 @@ const PembelianHOPage = () => {
                         onDelete={handleDelete}
                         onDetail={handleDetail}
                         onDownload={handleDownload}
+                        onTandaTerima={handleTandaTerima}
                         getJenisPembelianLabel={getJenisPembelianLabel}
                     />
                 </div>

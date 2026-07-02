@@ -21,9 +21,11 @@ import {
   Info,
   File,
   Download,
-  Loader2
+  Loader2,
+  ClipboardCheck
 } from 'lucide-react';
 import LaporanPembelianService from '../../../../services/laporanPembelianService';
+import { downloadTandaTerimaPDF } from '../../pembelian/utils/tandaTerimaPDF';
 
 const formatCurrency = (value) => {
   if (!value || value === 0) return 'Rp 0';
@@ -413,6 +415,12 @@ const ModernPembelianFeedmilTable = ({
                                 {downloadLoading === rowId ? 'Mengunduh...' : 'Download Nota'}
                               </button>
                               <button
+                                onClick={() => { downloadTandaTerimaPDF(row, 'TANDA TERIMA BARANG - FEEDMIL'); setOpenMenuId(null); }}
+                                className="w-full px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 flex items-center gap-2"
+                              >
+                                <ClipboardCheck className="w-4 h-4" /> Tanda Terima Barang
+                              </button>
+                              <button
                                 onClick={() => { onEdit(row); setOpenMenuId(null); }}
                                 className="w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
                               >
@@ -494,6 +502,9 @@ const ModernPembelianFeedmilTable = ({
                       <button onClick={() => handleDownload(row)} disabled={downloadLoading === rowId} className="w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 disabled:opacity-50">
                         {downloadLoading === rowId ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
                         {downloadLoading === rowId ? 'Mengunduh...' : 'Download Nota'}
+                      </button>
+                      <button onClick={() => { downloadTandaTerimaPDF(row, 'TANDA TERIMA BARANG - FEEDMIL'); setOpenMenuId(null); }} className="w-full px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 flex items-center gap-2">
+                        <ClipboardCheck className="w-4 h-4" /> Tanda Terima
                       </button>
                       <button onClick={() => { onEdit(row); setOpenMenuId(null); }} className="w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
                         <Pencil className="w-4 h-4" /> Edit Data
