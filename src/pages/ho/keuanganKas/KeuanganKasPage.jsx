@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { PlusCircle, Wallet } from 'lucide-react';
+import { Wallet } from 'lucide-react';
 
 import useKeuanganKas from './hooks/useKeuanganKas';
 import usePengajuanBiayaKas from './hooks/usePengajuanBiayaKas';
 import useBankDeposit from './hooks/useBankDeposit';
 import useBanksAPILazy from './hooks/useBanksAPILazy';
-import pengajuanBiayaService from '../../../services/pengajuanBiayaService';
 import pengeluaranService from '../../../services/pengeluaranService';
 
 // Import table components
@@ -170,6 +169,7 @@ const KeuanganKasPage = () => {
         loading: loadingPengajuan,
         error: errorPengajuan,
         searchTerm: searchTermPengajuan,
+        // eslint-disable-next-line no-unused-vars
         setSearchTerm: setSearchTermPengajuan,
         isSearching: isSearchingPengajuan,
         searchError: searchErrorPengajuan,
@@ -232,6 +232,7 @@ const KeuanganKasPage = () => {
             console.log('🔄 [TAB CHANGE] Fetching data for tab:', activeTab);
             fetchKeuanganKas(1, serverPagination.perPage, '', activeTab, true);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeTab]);
 
     const handleTabChange = (tabName) => {
@@ -241,6 +242,7 @@ const KeuanganKasPage = () => {
         setSearchTerm(''); // Clear search term without triggering fetch
     };
 
+    // eslint-disable-next-line no-unused-vars
     const handleAdd = () => {
         setSelectedItem(null);
         setIsAddEditModalOpen(true);
@@ -251,18 +253,21 @@ const KeuanganKasPage = () => {
         setIsSetorKasModalOpen(true);
     };
 
+    // eslint-disable-next-line no-unused-vars
     const handleEditSetorKas = (item) => {
         setSelectedItem(item);
         setIsSetorKasModalOpen(true);
         setOpenMenuId(null);
     };
 
+    // eslint-disable-next-line no-unused-vars
     const handleDeleteSetorKas = (item) => {
         setSelectedItem(item);
         setIsDeleteModalOpen(true);
         setOpenMenuId(null);
     };
 
+    // eslint-disable-next-line no-unused-vars
     const handleDetailSetorKas = async (item) => {
         try {
             const response = await getBankDepositDetail(item.pid);
@@ -359,18 +364,21 @@ const KeuanganKasPage = () => {
         setOpenMenuId(null);
     };
 
+    // eslint-disable-next-line no-unused-vars
     const handleEdit = (item) => {
         setSelectedItem(item);
         setIsAddEditModalOpen(true);
         setOpenMenuId(null);
     };
 
+    // eslint-disable-next-line no-unused-vars
     const handleDelete = (item) => {
         setSelectedItem(item);
         setIsDeleteModalOpen(true);
         setOpenMenuId(null);
     };
 
+    // eslint-disable-next-line no-unused-vars
     const handleDetail = (item) => {
         setSelectedItem(item);
         setIsDetailModalOpen(true);

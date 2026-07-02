@@ -76,6 +76,21 @@ const getJenisPembelianStyle = (label) => {
   return 'bg-purple-50 text-purple-700 border-purple-200';
 };
 
+const getPaymentStatusStyle = (status) => {
+  switch (status) {
+    case 0: return 'bg-orange-50 text-orange-700 border-orange-200';
+    case 1: return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+    case 2: return 'bg-red-50 text-red-700 border-red-200';
+    default: return 'bg-gray-50 text-gray-700 border-gray-200';
+  }
+};
+
+const PaymentStatusBadge = ({ status, label }) => (
+  <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getPaymentStatusStyle(status)} whitespace-nowrap`}>
+    {label || 'Belum Bayar'}
+  </span>
+);
+
 const Tooltip = ({ children, text }) => {
   const [show, setShow] = useState(false);
   return (
@@ -256,6 +271,7 @@ const ModernPembelianOVKTable = ({
                 <TableHeader label="Jumlah" caption="Jumlah item" sortKey="jumlah" align="right" />
                 <TableHeader label="Total Biaya" caption="Beli + Lain + Truk" align="right" />
                 <TableHeader label="Jenis Pembelian" caption="Tipe supplier" sortKey="jenis_pembelian" />
+                <th className="pb-3 pt-4 px-2 text-xs font-semibold text-gray-500 uppercase tracking-wider text-left">Status Bayar</th>
                 <th className="pb-3 pt-4 pr-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Aksi</th>
               </tr>
             </thead>
@@ -334,6 +350,9 @@ const ModernPembelianOVKTable = ({
                         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getJenisPembelianStyle(row.jenis_pembelian)}`}>
                           {row.jenis_pembelian || 'OVK'}
                         </span>
+                      </td>
+                      <td className="px-2 py-3.5">
+                        <PaymentStatusBadge status={row.payment_status} label={row.payment_status_label} />
                       </td>
                       <td className="px-4 py-3.5 text-right">
                         <div className="relative inline-block text-left">
@@ -483,9 +502,12 @@ const ModernPembelianOVKTable = ({
                 <div className="text-xs text-gray-500">
                   Total Belanja: {formatCurrency(row.total_belanja)}
                 </div>
-                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getJenisPembelianStyle(row.jenis_pembelian)}`}>
-                  {row.jenis_pembelian || 'OVK'}
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <PaymentStatusBadge status={row.payment_status} label={row.payment_status_label} />
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getJenisPembelianStyle(row.jenis_pembelian)}`}>
+                    {row.jenis_pembelian || 'OVK'}
+                  </span>
+                </div>
               </div>
             </div>
           );
