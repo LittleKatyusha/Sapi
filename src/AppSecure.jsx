@@ -8,6 +8,7 @@ import { pageTitleMap } from './config/pageTitleMap';
 import SecurityErrorBoundary from './components/SecurityErrorBoundary';
 import LoadingSpinner from './components/LoadingSpinner';
 import useDocumentTitle from './hooks/useDocumentTitle';
+import { NotificationProvider } from './components/shared/Notification';
 
 // Lazy load components for better performance
 const DashboardPage = lazy(() => import('./pages/AdvancedAnalyticsPage'));
@@ -131,6 +132,7 @@ const StokSapiQurbanPage = lazy(() => import('./pages/RPH/Qurban/StokSapiQurbanP
 
 // RPH Perpindahan Ternak Page - Lazy loaded
 const PerpindahanTernakPage = lazy(() => import('./pages/RPH/Perpindahan/PerpindahanTernakPage'));
+const AddEditPerpindahanTernakPage = lazy(() => import('./pages/RPH/Perpindahan/AddEditPerpindahanTernakPage'));
 
 // RPH Stok Sapi Page - Lazy loaded
 const StokSapi = lazy(() => import('./pages/RPH/StokSapi/StokSapiPage'));
@@ -230,9 +232,11 @@ const BankDepositPage = lazy(() => import('./pages/ho/bankDeposit/BankDepositPag
 const PaymentHoPage = lazy(() => import('./pages/ho/paymentHo/PaymentHoPage'));
 
 const AppWrapperSecure = () => (
-  <Router>
-    <AppSecure />
-  </Router>
+  <NotificationProvider>
+    <Router>
+      <AppSecure />
+    </Router>
+  </NotificationProvider>
 );
 
 function AppSecure() {
@@ -440,6 +444,8 @@ function AppSecure() {
 
               {/* RPH Perpindahan Ternak Route */}
               <Route path="/rph/perpindahan-ternak" element={<PerpindahanTernakPage />} />
+              <Route path="/rph/perpindahan-ternak/tambah" element={<AddEditPerpindahanTernakPage />} />
+              <Route path="/rph/perpindahan-ternak/edit/:pid" element={<AddEditPerpindahanTernakPage />} />
 
               {/* HO Feedmil and OVK Routes */}
               <Route path="/ho/pembelian-feedmil" element={<PembelianFeedmilPage />} />
@@ -520,11 +526,15 @@ function AppSecure() {
 
               {/* HO Hutang & Piutang Routes */}
               <Route path="/ho/hutang-vendor" element={<HutangVendorPage />} />
+              <Route path="/report/ho/hutang-vendor" element={<HutangVendorPage />} />
               <Route path="/ho/piutang-cabang" element={<PiutangCabangPage />} />
+              <Route path="/report/ho/piutang-cabang" element={<PiutangCabangPage />} />
 
               {/* HO Stok Routes */}
               <Route path="/ho/stok-feedmil" element={<StokFeedmilHoPage />} />
+              <Route path="/report/ho/stok-feedmil" element={<StokFeedmilHoPage />} />
               <Route path="/ho/stok-ovk" element={<StokOvkHoPage />} />
+              <Route path="/report/ho/stok-ovk" element={<StokOvkHoPage />} />
 
               {/* HO Bank Deposit Routes */}
               <Route path="/ho/bank-deposit" element={<BankDepositPage />} />

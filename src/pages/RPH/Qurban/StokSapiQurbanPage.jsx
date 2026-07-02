@@ -161,13 +161,19 @@ const StokSapiQurbanPage = () => {
   const [submittingSapiMati, setSubmittingSapiMati] = useState(false);
 
   // Collapsible panels
-  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(true);
   const [tableOpen, setTableOpen] = useState(true);
 
   // Search state
   const [advanced, setAdvanced] = useState(initialAdvanced);
   const [appliedFilters, setAppliedFilters] = useState(initialAdvanced);
   const [sortConfig, setSortConfig] = useState({ column: 'tr_qurban_detail.id', dir: 'desc' });
+
+  // Filters for potong paksa & sapi mati tabs
+  const [ppFilter, setPpFilter] = useState({ search: '', start_date: '', end_date: '' });
+  const [ppFilterApplied, setPpFilterApplied] = useState({ search: '', start_date: '', end_date: '' });
+  const [smFilter, setSmFilter] = useState({ search: '', start_date: '', end_date: '' });
+  const [smFilterApplied, setSmFilterApplied] = useState({ search: '', start_date: '', end_date: '' });
 
   const fetchData = useCallback(async (page = 1, limit = perPage) => {
     setLoading(true);
@@ -202,7 +208,13 @@ const StokSapiQurbanPage = () => {
     setPotongPaksaError(null);
     try {
       const response = await HttpClient.get('/api/rph/qurban/potong-paksa/data', {
-        params: { start: (page - 1) * limit, length: limit },
+        params: {
+          start: (page - 1) * limit,
+          length: limit,
+          search: ppFilterApplied.search ? { value: ppFilterApplied.search } : undefined,
+          start_date: ppFilterApplied.start_date || undefined,
+          end_date: ppFilterApplied.end_date || undefined,
+        },
       });
       setPotongPaksaList(response?.data || []);
       setPotongPaksaTotal(response?.recordsFiltered ?? response?.recordsTotal ?? response?.total ?? 0);
@@ -211,7 +223,7 @@ const StokSapiQurbanPage = () => {
     } finally {
       setPotongPaksaLoading(false);
     }
-  }, [ppPage, ppPerPage]);
+  }, [ppPage, ppPerPage, ppFilterApplied]);
 
   useEffect(() => {
     if (viewMode === 'potong-paksa') fetchPotongPaksaList(ppPage, ppPerPage);
@@ -223,7 +235,13 @@ const StokSapiQurbanPage = () => {
     setSapiMatiError(null);
     try {
       const response = await HttpClient.get('/api/rph/qurban/sapi-mati/data', {
-        params: { start: (page - 1) * limit, length: limit },
+        params: {
+          start: (page - 1) * limit,
+          length: limit,
+          search: smFilterApplied.search ? { value: smFilterApplied.search } : undefined,
+          start_date: smFilterApplied.start_date || undefined,
+          end_date: smFilterApplied.end_date || undefined,
+        },
       });
       setSapiMatiList(response?.data || []);
       setSapiMatiTotal(response?.recordsFiltered ?? response?.recordsTotal ?? response?.total ?? 0);
@@ -232,7 +250,7 @@ const StokSapiQurbanPage = () => {
     } finally {
       setSapiMatiLoading(false);
     }
-  }, [smPage, smPerPage]);
+  }, [smPage, smPerPage, smFilterApplied]);
 
   useEffect(() => {
     if (viewMode === 'sapi-mati') fetchSapiMatiList(smPage, smPerPage);
@@ -266,6 +284,27 @@ const StokSapiQurbanPage = () => {
     setAdvanced(initialAdvanced);
     setAppliedFilters(initialAdvanced);
     setCurrentPage(1);
+  };
+
+  const handlePpFilterSearch = () => {
+    setPpFilterApplied(ppFilter);
+    setPpPage(1);
+  };
+  const handlePpFilterReset = () => {
+    const empty = { search: '', start_date: '', end_date: '' };
+    setPpFilter(empty);
+    setPpFilterApplied(empty);
+    setPpPage(1);
+  };
+  const handleSmFilterSearch = () => {
+    setSmFilterApplied(smFilter);
+    setSmPage(1);
+  };
+  const handleSmFilterReset = () => {
+    const empty = { search: '', start_date: '', end_date: '' };
+    setSmFilter(empty);
+    setSmFilterApplied(empty);
+    setSmPage(1);
   };
 
   const activeFilterCount = useMemo(
@@ -712,9 +751,9 @@ const StokSapiQurbanPage = () => {
         </button>
 
         {advancedOpen && (
-          <div className="px-5 pb-5 pt-1 border-t border-gray-100 bg-gray-50/50">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
-              <div>
+          <div className="px-5 pb-4 pt-3 border-t border-gray-100 bg-gray-50/50">
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="flex-1 min-w-[150px]">
                 <label className="block text-xs font-medium text-gray-600 mb-1.5">Eartag</label>
                 <div className="relative">
                   <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
@@ -728,7 +767,7 @@ const StokSapiQurbanPage = () => {
                   />
                 </div>
               </div>
-              <div>
+              <div className="flex-1 min-w-[150px]">
                 <label className="block text-xs font-medium text-gray-600 mb-1.5">Eartag Supplier</label>
                 <div className="relative">
                   <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
@@ -742,7 +781,7 @@ const StokSapiQurbanPage = () => {
                   />
                 </div>
               </div>
-              <div>
+              <div className="flex-1 min-w-[150px]">
                 <label className="block text-xs font-medium text-gray-600 mb-1.5">Nota Qurban</label>
                 <div className="relative">
                   <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
@@ -756,7 +795,7 @@ const StokSapiQurbanPage = () => {
                   />
                 </div>
               </div>
-              <div>
+              <div className="flex-1 min-w-[150px]">
                 <label className="block text-xs font-medium text-gray-600 mb-1.5">Status Sapi</label>
                 <SearchableSelect
                   options={[
@@ -770,24 +809,24 @@ const StokSapiQurbanPage = () => {
                   className="text-sm"
                 />
               </div>
-            </div>
-            <div className="flex items-center justify-end gap-2 mt-4">
-              <button
-                type="button"
-                onClick={handleReset}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-100 transition"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                Reset
-              </button>
-              <button
-                type="button"
-                onClick={handleAdvancedSearch}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 shadow-sm transition"
-              >
-                <Search className="w-3.5 h-3.5" />
-                Cari
-              </button>
+              <div className="flex items-center gap-2 pb-0.5">
+                <button
+                  type="button"
+                  onClick={handleReset}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-100 transition"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  Reset
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAdvancedSearch}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 shadow-sm transition"
+                >
+                  <Search className="w-3.5 h-3.5" />
+                  Cari
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -863,6 +902,58 @@ const StokSapiQurbanPage = () => {
               <h3 className="text-sm font-bold text-gray-800">Riwayat Potong Paksa Sapi Qurban</h3>
             </div>
             <span className="text-xs text-gray-500">{potongPaksaTotal} record</span>
+          </div>
+          <div className="px-5 py-3 border-b border-gray-100 bg-amber-50/30 flex flex-wrap items-end gap-3">
+            <div className="flex-1 min-w-[180px]">
+              <label className="block text-[11px] font-medium text-gray-600 mb-1">Cari</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Eartag / supplier / sebab / keterangan..."
+                  value={ppFilter.search}
+                  onChange={(e) => setPpFilter((p) => ({ ...p, search: e.target.value }))}
+                  onKeyDown={(e) => e.key === 'Enter' && handlePpFilterSearch()}
+                  className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
+                />
+              </div>
+            </div>
+            <div className="min-w-[140px]">
+              <label className="block text-[11px] font-medium text-gray-600 mb-1">Tgl dari</label>
+              <input
+                type="date"
+                value={ppFilter.start_date}
+                onChange={(e) => setPpFilter((p) => ({ ...p, start_date: e.target.value }))}
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
+              />
+            </div>
+            <div className="min-w-[140px]">
+              <label className="block text-[11px] font-medium text-gray-600 mb-1">Tgl sampai</label>
+              <input
+                type="date"
+                value={ppFilter.end_date}
+                onChange={(e) => setPpFilter((p) => ({ ...p, end_date: e.target.value }))}
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
+              />
+            </div>
+            <div className="flex items-center gap-2 pb-0.5">
+              <button
+                type="button"
+                onClick={handlePpFilterReset}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-100 transition"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                Reset
+              </button>
+              <button
+                type="button"
+                onClick={handlePpFilterSearch}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-600 text-white text-sm font-medium hover:bg-amber-700 shadow-sm transition"
+              >
+                <Search className="w-3.5 h-3.5" />
+                Cari
+              </button>
+            </div>
           </div>
           {potongPaksaLoading ? (
             <div className="p-10 flex flex-col items-center justify-center gap-2 text-gray-400">
@@ -971,6 +1062,58 @@ const StokSapiQurbanPage = () => {
               <h3 className="text-sm font-bold text-gray-800">Riwayat Sapi Mati Qurban</h3>
             </div>
             <span className="text-xs text-gray-500">{sapiMatiTotal} record</span>
+          </div>
+          <div className="px-5 py-3 border-b border-gray-100 bg-gray-50/50 flex flex-wrap items-end gap-3">
+            <div className="flex-1 min-w-[180px]">
+              <label className="block text-[11px] font-medium text-gray-600 mb-1">Cari</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Eartag / supplier / sebab / keterangan..."
+                  value={smFilter.search}
+                  onChange={(e) => setSmFilter((p) => ({ ...p, search: e.target.value }))}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSmFilterSearch()}
+                  className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400/20 focus:border-gray-400 transition"
+                />
+              </div>
+            </div>
+            <div className="min-w-[140px]">
+              <label className="block text-[11px] font-medium text-gray-600 mb-1">Tgl dari</label>
+              <input
+                type="date"
+                value={smFilter.start_date}
+                onChange={(e) => setSmFilter((p) => ({ ...p, start_date: e.target.value }))}
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400/20 focus:border-gray-400 transition"
+              />
+            </div>
+            <div className="min-w-[140px]">
+              <label className="block text-[11px] font-medium text-gray-600 mb-1">Tgl sampai</label>
+              <input
+                type="date"
+                value={smFilter.end_date}
+                onChange={(e) => setSmFilter((p) => ({ ...p, end_date: e.target.value }))}
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400/20 focus:border-gray-400 transition"
+              />
+            </div>
+            <div className="flex items-center gap-2 pb-0.5">
+              <button
+                type="button"
+                onClick={handleSmFilterReset}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-100 transition"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                Reset
+              </button>
+              <button
+                type="button"
+                onClick={handleSmFilterSearch}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gray-700 text-white text-sm font-medium hover:bg-gray-800 shadow-sm transition"
+              >
+                <Search className="w-3.5 h-3.5" />
+                Cari
+              </button>
+            </div>
           </div>
           {sapiMatiLoading ? (
             <div className="p-10 flex flex-col items-center justify-center gap-2 text-gray-400">

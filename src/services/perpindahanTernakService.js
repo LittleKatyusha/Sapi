@@ -11,7 +11,7 @@ const perpindahanTernakService = {
       const response = await httpClient.get(`${API_BASE}/data`, { params });
       return {
         success: true,
-        data: response.data,
+        data: response,
       };
     } catch (error) {
       return {
@@ -29,7 +29,7 @@ const perpindahanTernakService = {
       const response = await httpClient.post(`${API_BASE}/show`, { pid });
       return {
         success: true,
-        data: response.data?.data,
+        data: response.data,
       };
     } catch (error) {
       return {
@@ -98,18 +98,28 @@ const perpindahanTernakService = {
   /**
    * Get available sapi list for perpindahan
    */
-  getSapiList: async () => {
+  getSapiList: async (params = {}) => {
     try {
-      const response = await httpClient.get(`${API_BASE}/getsapilist`);
+      const queryParams = {};
+      if (params.golongan !== null && params.golongan !== '' && params.golongan !== undefined) {
+        queryParams.golongan = params.golongan;
+      }
+      if (params.search) queryParams.search = params.search;
+      if (params.page) queryParams.page = params.page;
+      if (params.per_page) queryParams.per_page = params.per_page;
+      const response = await httpClient.get(`${API_BASE}/getsapilist`, { params: queryParams, cache: false });
+      const payload = response?.data || {};
       return {
         success: true,
-        data: response.data?.data || [],
+        data: payload.data || [],
+        meta: payload.meta || null,
       };
     } catch (error) {
       return {
         success: false,
         message: error?.response?.data?.message || 'Gagal mengambil list sapi',
         data: [],
+        meta: null,
       };
     }
   },
