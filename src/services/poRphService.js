@@ -13,27 +13,55 @@ class PoRphService {
   static API_BASE = API_ENDPOINTS.RPH?.PO?.BASE || '/api/rph/po';
 
   /**
-   * Get available nota/pesanan from HO
+   * Get available nota/pesanan from HO with serverside pagination
    * @param {Object} params - Request parameters
    * @param {number} params.id_office - Office ID to filter nota
-   * @returns {Promise} API response with available nota list
+   * @param {number} params.start - Starting index for pagination
+   * @param {number} params.length - Number of records per page
+   * @param {number} params.draw - DataTable draw counter
+   * @param {string} params.search - Search term
+   * @returns {Promise} API response with paginated nota list
    */
   static async getNota(params = {}) {
     try {
-      // Backend requires POST method with id_office in body
-      const response = await HttpClient.post(API_ENDPOINTS.RPH?.PO?.NOTA || `${this.API_BASE}/getnota`, {
-        id_office: params.id_office
-      });
+      const queryParams = {
+        id_office: params.id_office,
+        start: params.start || 0,
+        length: params.length || 10,
+        draw: params.draw || 1,
+        'search[value]': params.search || '',
+        _: Date.now(),
+      };
+
+      // Advanced filters
+      if (params.filter_nota_sistem) queryParams.filter_nota_sistem = params.filter_nota_sistem;
+      if (params.filter_nota) queryParams.filter_nota = params.filter_nota;
+      if (params.filter_supplier) queryParams.filter_supplier = params.filter_supplier;
+      if (params.filter_pengirim) queryParams.filter_pengirim = params.filter_pengirim;
+      if (params.filter_plat) queryParams.filter_plat = params.filter_plat;
+      if (params.filter_start_date) queryParams.filter_start_date = params.filter_start_date;
+      if (params.filter_end_date) queryParams.filter_end_date = params.filter_end_date;
+
+      const response = await HttpClient.get(
+        API_ENDPOINTS.RPH?.PO?.NOTA || `${this.API_BASE}/getnota`,
+        { params: queryParams }
+      );
 
       return {
         success: true,
+        draw: response.draw,
+        recordsTotal: response.recordsTotal || 0,
+        recordsFiltered: response.recordsFiltered || 0,
         data: response.data || [],
-        message: response.message || 'Data nota berhasil dimuat'
+        message: 'Data nota berhasil dimuat',
       };
     } catch (error) {
       console.error('Error fetching nota from HO:', error);
       return {
         success: false,
+        draw: params.draw || 1,
+        recordsTotal: 0,
+        recordsFiltered: 0,
         data: [],
         message: error.message || 'Gagal mengambil data nota'
       };

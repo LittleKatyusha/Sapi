@@ -81,6 +81,7 @@ const PenjualanSapiHOPage = lazy(() => import('./pages/ho/penjualan/penjualanSap
 
 // RPH Pembelian Sapi Pages - Lazy loaded
 const PembelianSapi = lazy(() => import('./pages/RPH/Pembelian/Pembelian Sapi/PembelianSapi'));
+const AddPoRphPage = lazy(() => import('./pages/RPH/Pembelian/Pembelian Sapi/AddPoRphPage'));
 const PembelianSapiDetailPage = lazy(() => import('./pages/RPH/Pembelian/Pembelian Sapi/PembelianDetailPage'));
 
 // RPH Pembelian Sapi Qurban Pages - Lazy loaded
@@ -365,6 +366,7 @@ function AppSecure() {
               
               {/* RPH Pembelian Sapi Routes */}
               <Route path="/rph/pembelian-sapi" element={<PembelianSapi />} />
+              <Route path="/rph/pembelian-sapi/add" element={<AddPoRphPage />} />
               <Route path="/rph/pembelian-sapi/detail/:id" element={<PembelianSapiDetailPage />} />
               {/* Alias redirect: /rph/pembelian/doka → /rph/pembelian-sapi */}
               <Route path="/rph/pembelian/doka" element={<Navigate to="/rph/pembelian-sapi" replace />} />

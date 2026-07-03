@@ -12,10 +12,10 @@ import PembelianSapiFilterPanel from './components/PembelianSapiFilterPanel';
 import ModernPembelianSapiTable from './components/ModernPembelianSapiTable';
 
 // Import modals
-import AddPoRphModal from './modals/AddPoRphModal';
 import EditPoRphModal from './modals/EditPoRphModal';
 import DeleteConfirmationModal from './modals/DeleteConfirmationModal';
 // PoRphDetailModal removed - using navigation to detail page instead
+// AddPoRphModal removed - using navigation to add page instead
 
 // Constants for better maintainability
 const NOTIFICATION_TIMEOUT = 5000;
@@ -100,7 +100,6 @@ const PembelianSapi = () => {
     const isFetchingRef = useRef(false);
     
     // Modal states
-    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     // Removed isDetailModalOpen - using navigation instead
@@ -116,7 +115,6 @@ const PembelianSapi = () => {
         stats,
         serverPagination,
         fetchPoList,
-        createPo,
         updatePo,
         deletePo,
         handleAdvancedFilters,
@@ -124,7 +122,6 @@ const PembelianSapi = () => {
         handlePageChange: handleServerPageChange,
         handlePerPageChange: handleServerPerPageChange,
         deleteLoading,
-        createLoading,
         updateLoading
     } = poRphHook;
 
@@ -138,6 +135,7 @@ const PembelianSapi = () => {
             setIsTableReady(true);
         }, 1000);
         return () => clearTimeout(timer);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // Auto-refresh when user returns to the page
@@ -189,42 +187,9 @@ const PembelianSapi = () => {
         };
     }, [isTableReady, lastRefreshTime, fetchPoList]);
 
-    // Handle Add Modal
+    // Handle Add - Navigate to add page
     const handleOpenAddModal = () => {
-        setIsAddModalOpen(true);
-    };
-
-    const handleCloseAddModal = () => {
-        setIsAddModalOpen(false);
-    };
-
-    const handleAddPo = async (data) => {
-        try {
-            setNotification({
-                type: 'info',
-                message: 'Menambahkan PO RPH baru...'
-            });
-
-            const result = await createPo(data);
-            
-            if (result.success) {
-                setNotification({
-                    type: 'success',
-                    message: 'PO RPH berhasil ditambahkan'
-                });
-                
-                await fetchPoList();
-                handleCloseAddModal();
-            } else {
-                throw new Error(result.message || 'Gagal menambahkan PO RPH');
-            }
-        } catch (error) {
-            setNotification({
-                type: 'error',
-                message: error.message || 'Terjadi kesalahan saat menambahkan PO RPH'
-            });
-            throw error;
-        }
+        navigate('/rph/pembelian-sapi/add');
     };
 
     // Handle Edit Modal
@@ -590,14 +555,6 @@ const PembelianSapi = () => {
             />
 
             {/* Modals */}
-            <AddPoRphModal
-                isOpen={isAddModalOpen}
-                onClose={handleCloseAddModal}
-                onSave={handleAddPo}
-                usePoRphHook={poRphHook}
-                loading={createLoading}
-            />
-
             <EditPoRphModal
                 isOpen={isEditModalOpen}
                 item={selectedItem}
