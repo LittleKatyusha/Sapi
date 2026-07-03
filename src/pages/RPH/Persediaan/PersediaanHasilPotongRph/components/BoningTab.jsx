@@ -24,7 +24,10 @@ const SUB_TABS = [
 const formatJumlah = (value) => {
   const numeric = Number(value ?? 0);
   if (Number.isNaN(numeric)) return '-';
-  return `${numeric} KG`;
+  return `${new Intl.NumberFormat('id-ID', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 3,
+  }).format(numeric)} KG`;
 };
 
 const formatNumber = (value) => {
@@ -103,11 +106,15 @@ const BoningSummaryTable = ({ onOpenDetail, refreshKey }) => {
   }, [fetchData, refreshKey]);
 
   const summary = useMemo(() => {
-    const totalBeratHalaman = dataList.reduce((total, item) => total + Number(item.jumlah ?? 0), 0);
-    const totalKosongHalaman = dataList.filter((item) => Number(item.jumlah ?? 0) <= 0).length;
+    const totalBeratMasukHalaman = dataList.reduce((total, item) => total + Number(item.berat_masuk ?? 0), 0);
+    const totalBeratKeluarHalaman = dataList.reduce((total, item) => total + Number(item.berat_keluar ?? 0), 0);
+    const totalBeratSisaHalaman = dataList.reduce((total, item) => total + Number(item.berat_sisa ?? 0), 0);
+    const totalKosongHalaman = dataList.filter((item) => Number(item.berat_sisa ?? 0) <= 0).length;
 
     return {
-      totalBeratHalaman,
+      totalBeratMasukHalaman,
+      totalBeratKeluarHalaman,
+      totalBeratSisaHalaman,
       totalKosongHalaman,
       totalTampil: dataList.length,
       totalMaster: serverPagination.totalItems,
@@ -155,20 +162,46 @@ const BoningSummaryTable = ({ onOpenDetail, refreshKey }) => {
       ),
     },
     {
-      name: 'Jumlah',
-      selector: (row) => row.jumlah_sort ?? row.jumlah,
+      name: 'Berat Masuk',
+      selector: (row) => row.berat_masuk_sort ?? row.berat_masuk,
+      sortable: true,
+      width: '160px',
+      cell: (row) => (
+        <div className="flex w-full justify-center">
+          <div className="inline-flex rounded-full bg-sky-100 px-3 py-1 text-xs font-bold text-sky-700">
+            {formatJumlah(row.berat_masuk)}
+          </div>
+        </div>
+      ),
+    },
+    {
+      name: 'Berat Keluar',
+      selector: (row) => row.berat_keluar_sort ?? row.berat_keluar,
+      sortable: true,
+      width: '160px',
+      cell: (row) => (
+        <div className="flex w-full justify-center">
+          <div className="inline-flex rounded-full bg-rose-100 px-3 py-1 text-xs font-bold text-rose-700">
+            {formatJumlah(row.berat_keluar)}
+          </div>
+        </div>
+      ),
+    },
+    {
+      name: 'Stok Sisa',
+      selector: (row) => row.berat_sisa_sort ?? row.berat_sisa,
       sortable: true,
       width: '160px',
       cell: (row) => (
         <div className="flex w-full justify-center">
           <div
             className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${
-              Number(row.jumlah ?? 0) > 0
+              Number(row.berat_sisa ?? 0) > 0
                 ? 'bg-emerald-100 text-emerald-700'
                 : 'bg-amber-100 text-amber-700'
             }`}
           >
-            {formatJumlah(row.jumlah)}
+            {formatJumlah(row.berat_sisa)}
           </div>
         </div>
       ),
@@ -192,7 +225,7 @@ const BoningSummaryTable = ({ onOpenDetail, refreshKey }) => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:min-w-[480px]">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4 lg:min-w-[640px]">
             <div className="rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Item Master</span>
@@ -204,20 +237,29 @@ const BoningSummaryTable = ({ onOpenDetail, refreshKey }) => {
 
             <div className="rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Stok Halaman</span>
-                <Scale className="h-4 w-4 text-teal-600" />
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Berat Masuk</span>
+                <Scale className="h-4 w-4 text-sky-600" />
               </div>
-              <div className="mt-3 text-2xl font-bold text-slate-900">{formatJumlah(summary.totalBeratHalaman)}</div>
-              <p className="mt-1 text-xs text-slate-500">Akumulasi item pada halaman aktif</p>
+              <div className="mt-3 text-2xl font-bold text-slate-900">{formatJumlah(summary.totalBeratMasukHalaman)}</div>
+              <p className="mt-1 text-xs text-slate-500">Akumulasi berat masuk halaman aktif</p>
             </div>
 
             <div className="rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Stok Kosong</span>
-                <CircleOff className="h-4 w-4 text-amber-600" />
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Berat Keluar</span>
+                <Scale className="h-4 w-4 text-rose-600" />
               </div>
-              <div className="mt-3 text-2xl font-bold text-slate-900">{formatNumber(summary.totalKosongHalaman)}</div>
-              <p className="mt-1 text-xs text-slate-500">Item bernilai 0 KG di halaman aktif</p>
+              <div className="mt-3 text-2xl font-bold text-slate-900">{formatJumlah(summary.totalBeratKeluarHalaman)}</div>
+              <p className="mt-1 text-xs text-slate-500">Akumulasi berat keluar halaman aktif</p>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Stok Sisa</span>
+                <CircleOff className="h-4 w-4 text-emerald-600" />
+              </div>
+              <div className="mt-3 text-2xl font-bold text-slate-900">{formatJumlah(summary.totalBeratSisaHalaman)}</div>
+              <p className="mt-1 text-xs text-slate-500">Sisa stok bersih halaman aktif</p>
             </div>
           </div>
         </div>
@@ -263,7 +305,7 @@ const BoningSummaryTable = ({ onOpenDetail, refreshKey }) => {
         <div className="flex flex-col gap-2 border-b border-slate-200 bg-slate-50/80 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h4 className="text-sm font-bold text-slate-800">Data Stok By Boning</h4>
-            <p className="text-xs text-slate-500">Daftar seluruh item potong boning beserta jumlah stoknya</p>
+            <p className="text-xs text-slate-500">Daftar seluruh item potong boning beserta berat masuk, keluar, dan sisa stoknya</p>
           </div>
           <span className="inline-flex w-fit items-center rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600 shadow-sm">
             {formatNumber(serverPagination.totalItems)} item
