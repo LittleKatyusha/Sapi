@@ -60,26 +60,22 @@ const ActionMenu = ({ row, buttonRef, onClose, onDetail, onEdit, onDelete, type 
       bgClass: 'bg-sky-100',
       onClick: () => onDetail?.(row),
     },
-    ...(type === 'sapi'
-      ? []
-      : [
-        {
-          label: 'Edit',
-          description: 'Ubah data',
-          icon: Pencil,
-          iconClass: 'text-amber-600',
-          bgClass: 'bg-amber-100',
-          onClick: () => onEdit?.(row),
-        },
-        {
-          label: 'Hapus',
-          description: 'Hapus data',
-          icon: Trash2,
-          iconClass: 'text-red-600',
-          bgClass: 'bg-red-100',
-          onClick: () => onDelete?.(row),
-        },
-      ]),
+    {
+      label: 'Edit',
+      description: 'Ubah data',
+      icon: Pencil,
+      iconClass: 'text-amber-600',
+      bgClass: 'bg-amber-100',
+      onClick: () => onEdit?.(row),
+    },
+    {
+      label: 'Hapus',
+      description: 'Hapus data',
+      icon: Trash2,
+      iconClass: 'text-red-600',
+      bgClass: 'bg-red-100',
+      onClick: () => onDelete?.(row),
+    },
   ];
 
   const handleActionClick = (action) => {

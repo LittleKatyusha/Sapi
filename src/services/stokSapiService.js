@@ -343,6 +343,31 @@ class StokSapiService {
     }
   }
 
+  static async updatePotongSapiBiasa(data) {
+    try {
+      const response = await HttpClient.post('/api/rph/persediaan/potongsapi/update', data);
+      HttpClient.clearCache('potongsapi');
+      return { success: true, data: response.data, message: response.message || 'Data updated successfully' };
+    } catch (error) {
+      console.error('StokSapiService.updatePotongSapiBiasa error:', error);
+      let errorMessage = 'Failed to update potong sapi biasa';
+      if (error?.data?.data) {
+        const validationErrors = error.data.data;
+        const messages = Object.values(validationErrors).flat();
+        errorMessage = messages.join(', ');
+      } else if (error?.data?.message) {
+        errorMessage = error.data.message;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      return {
+        success: false,
+        data: null,
+        message: errorMessage,
+      };
+    }
+  }
+
   static async deletePotongSapiBiasa(pid) {
     try {
       const response = await HttpClient.post('/api/rph/persediaan/potongsapi/hapus', { pid });

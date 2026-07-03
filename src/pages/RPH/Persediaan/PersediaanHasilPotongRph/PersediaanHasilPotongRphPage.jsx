@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Package, Scissors, Layers } from 'lucide-react';
+import { Package, Scissors, Layers, Loader2 } from 'lucide-react';
 import useDocumentTitle from '../../../../hooks/useDocumentTitle';
 import PersediaanTab from './components/PersediaanTab';
 import BoningTab from './components/BoningTab';
@@ -7,6 +7,8 @@ import DetailModal from './modals/DetailModal';
 import EditModal from './modals/EditModal';
 import DeleteConfirmationModal from './modals/DeleteConfirmationModal';
 import PersediaanHasilPotongService from '../../../../services/persediaanHasilPotongService';
+import StokSapiService from '../../../../services/stokSapiService';
+import PotongSapiBiasaModal from '../../StokSapi/modals/PotongSapiBiasaModal';
 
 const TABS = [
   { id: 'boning', label: 'Boning', icon: Scissors },
@@ -27,7 +29,10 @@ const PersediaanHasilPotongRphPage = () => {
   const [detailData, setDetailData] = useState(null);
   const [modalType, setModalType] = useState('boning');
   const [loading, setLoading] = useState(false);
+  const [loadingContext, setLoadingContext] = useState('');
   const [tableRefreshKey, setTableRefreshKey] = useState(0);
+  const [editSapiModalOpen, setEditSapiModalOpen] = useState(false);
+  const [editSapiData, setEditSapiData] = useState(null);
 
   const showNotification = useCallback((type, message) => {
     setNotification({ type, message });
@@ -48,11 +53,13 @@ const PersediaanHasilPotongRphPage = () => {
     }
 
     setLoading(true);
+    setLoadingContext('detail');
     const detailPayload = activeTab === 'boning' && item.id_item_potong
       ? { id_item_potong: item.id_item_potong }
       : (item.pid || item.pubid);
     const res = await PersediaanHasilPotongService.show(detailType, detailPayload);
     setLoading(false);
+    setLoadingContext('');
     if (res.success) {
       setDetailData(res.data);
       setDetailModalOpen(true);
@@ -64,14 +71,30 @@ const PersediaanHasilPotongRphPage = () => {
   const handleOpenEdit = useCallback(async (item) => {
     setSelectedItem(item);
     setModalType(activeTab);
+    if (activeTab === 'sapi') {
+      setLoading(true);
+      setLoadingContext('edit');
+      const res = await StokSapiService.showPotongSapiBiasa(item.pid);
+      setLoading(false);
+      setLoadingContext('');
+      if (res.success) {
+        setEditSapiData(res.data);
+        setEditSapiModalOpen(true);
+      } else {
+        showNotification('error', res.message || 'Gagal memuat detail');
+      }
+      return;
+    }
     if (activeTab === 'kulit') {
       setDetailData({ header: { id: item.id, name: item.jenis_sapi ?? '-' }, tgl_potong: item.tgl_potong || null, detail: [{ id: null, name: 'Kulit', berat: item.berat_kulit ?? 0 }] });
       setEditModalOpen(true);
       return;
     }
     setLoading(true);
+    setLoadingContext('edit');
     const res = await PersediaanHasilPotongService.show(activeTab, item.pid);
     setLoading(false);
+    setLoadingContext('');
     if (res.success) {
       setDetailData(res.data);
       setEditModalOpen(true);
@@ -96,6 +119,12 @@ const PersediaanHasilPotongRphPage = () => {
     setEditModalOpen(false);
     setSelectedItem(null);
     setDetailData(null);
+  }, []);
+
+  const handleEditSapiClose = useCallback(() => {
+    setEditSapiModalOpen(false);
+    setSelectedItem(null);
+    setEditSapiData(null);
   }, []);
 
   const handleDeleteClose = useCallback(() => {
@@ -241,10 +270,16 @@ const PersediaanHasilPotongRphPage = () => {
       />
       <DeleteConfirmationModal
         isOpen={deleteModalOpen}
-        onClose={handleDeleteClose}
-        onConfirm={async () => {
+      onClose={handleDeleteClose}
+      onConfirm={async () => {
           if (!selectedItem) return;
-          const res = await PersediaanHasilPotongService.delete(activeTab, selectedItem.pid);
+          setLoading(true);
+          setLoadingContext('delete');
+          const res = activeTab === 'sapi'
+            ? await StokSapiService.deletePotongSapiBiasa(selectedItem.pid)
+            : await PersediaanHasilPotongService.delete(activeTab, selectedItem.pid);
+          setLoading(false);
+          setLoadingContext('');
           if (res.success) {
             handleDeleteSuccess();
           } else {
@@ -253,7 +288,36 @@ const PersediaanHasilPotongRphPage = () => {
         }}
         item={selectedItem}
         type={modalType}
+        loading={loading && loadingContext === 'delete'}
       />
+      <PotongSapiBiasaModal
+        isOpen={editSapiModalOpen}
+        onClose={handleEditSapiClose}
+        onSuccess={() => {
+          handleEditSapiClose();
+          setTableRefreshKey((k) => k + 1);
+          showNotification('success', 'Data potong sapi berhasil diperbarui');
+        }}
+        cowData={selectedItem}
+        mode="edit"
+        initialData={editSapiData}
+        recordPid={selectedItem?.pid}
+      />
+      {loading && loadingContext && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/35 backdrop-blur-[1px]">
+          <div className="flex items-center gap-3 rounded-2xl bg-white px-5 py-4 shadow-2xl">
+            <Loader2 className="h-5 w-5 animate-spin text-emerald-600" />
+            <div>
+              <p className="text-sm font-semibold text-slate-900">
+                {loadingContext === 'detail' ? 'Memuat detail...' : loadingContext === 'edit' ? 'Memuat form edit...' : 'Menghapus data...'}
+              </p>
+              <p className="text-xs text-slate-500">
+                Mohon tunggu sampai proses selesai.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

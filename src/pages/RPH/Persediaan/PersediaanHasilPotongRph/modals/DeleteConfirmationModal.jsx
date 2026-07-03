@@ -1,18 +1,19 @@
 import React from 'react';
 import { AlertTriangle, Loader2 } from 'lucide-react';
 
-const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, item, type }) => {
+const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, item, type, loading = false }) => {
   if (!isOpen) return null;
 
   const typeLabels = {
     boning: 'Boning',
+    sapi: 'Sapi',
     karkas: 'Karkas',
     kulit: 'Kulit',
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/30" onClick={loading ? undefined : onClose} />
       <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md mx-4 overflow-hidden">
         <div className="p-6">
           <div className="flex items-center justify-center mb-4">
@@ -43,16 +44,18 @@ const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, item, type }) => 
           <div className="flex gap-3">
             <button
               onClick={onClose}
+              disabled={loading}
               className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
             >
               Batal
             </button>
             <button
               onClick={onConfirm}
+              disabled={loading}
               className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 flex items-center justify-center gap-2"
             >
-              <AlertTriangle className="w-4 h-4" />
-              Hapus
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <AlertTriangle className="w-4 h-4" />}
+              {loading ? 'Menghapus...' : 'Hapus'}
             </button>
           </div>
         </div>

@@ -84,9 +84,18 @@ const createEmptyDetail = () => ({
   id_jenis_potong: 1,
   id_item_potong: null,
   berat: '',
+  is_locked_boning: false,
 });
 
-const PotongSapiBiasaModal = ({ isOpen, onClose, onSuccess, cowData }) => {
+const PotongSapiBiasaModal = ({
+  isOpen,
+  onClose,
+  onSuccess,
+  cowData,
+  mode = 'create',
+  initialData = null,
+  recordPid = null,
+}) => {
   const [tglPotong, setTglPotong] = useState(getToday());
   const [details, setDetails] = useState([createEmptyDetail()]);
   const [itemPotongOptions, setItemPotongOptions] = useState([]);
@@ -119,10 +128,24 @@ const PotongSapiBiasaModal = ({ isOpen, onClose, onSuccess, cowData }) => {
 
   useEffect(() => {
     if (!isOpen) return;
-    setTglPotong(getToday());
-    setDetails([createEmptyDetail()]);
+    if (mode === 'edit' && initialData) {
+      setTglPotong(initialData?.header?.tgl_potong_raw || getToday());
+      setDetails(
+        Array.isArray(initialData?.detail) && initialData.detail.length > 0
+          ? initialData.detail.map((detail) => ({
+            id_jenis_potong: Number(detail.id_jenis_potong) || 1,
+            id_item_potong: Number(detail.id_item_potong) || null,
+            berat: String(detail.berat ?? ''),
+            is_locked_boning: Number(detail.id_jenis_potong) === 1,
+          }))
+          : [createEmptyDetail()]
+      );
+    } else {
+      setTglPotong(getToday());
+      setDetails([createEmptyDetail()]);
+    }
     setNotification(null);
-  }, [isOpen]);
+  }, [isOpen, mode, initialData]);
 
   useEffect(() => {
     if (!notification || notification.type === 'info') return undefined;
@@ -150,6 +173,12 @@ const PotongSapiBiasaModal = ({ isOpen, onClose, onSuccess, cowData }) => {
   const handleDetailChange = (index, field, value) => {
     setDetails(prev => {
       const next = [...prev];
+      const current = next[index];
+
+      if (current?.is_locked_boning && (field === 'id_jenis_potong' || field === 'id_item_potong')) {
+        return prev;
+      }
+
       next[index] = { ...next[index], [field]: value };
 
       if (field === 'id_jenis_potong') {
@@ -235,10 +264,10 @@ const PotongSapiBiasaModal = ({ isOpen, onClose, onSuccess, cowData }) => {
     }
 
     setIsSubmitting(true);
-    setNotification({ type: 'info', message: 'Menyimpan data potong sapi...' });
+    setNotification({ type: 'info', message: mode === 'edit' ? 'Menyimpan perubahan data potong sapi...' : 'Menyimpan data potong sapi...' });
 
     const payload = {
-      pid: cowData?.pid,
+      pid: mode === 'edit' ? recordPid : cowData?.pid,
       tgl_potong: tglPotong,
       detail: details.map(detail => ({
         id_jenis_potong: Number(detail.id_jenis_potong),
@@ -247,10 +276,12 @@ const PotongSapiBiasaModal = ({ isOpen, onClose, onSuccess, cowData }) => {
       })),
     };
 
-    const response = await StokSapiService.potongSapiBiasa(payload);
+    const response = mode === 'edit'
+      ? await StokSapiService.updatePotongSapiBiasa(payload)
+      : await StokSapiService.potongSapiBiasa(payload);
 
     if (response.success) {
-      setNotification({ type: 'success', message: response.message || 'Data potong sapi berhasil disimpan.' });
+      setNotification({ type: 'success', message: response.message || (mode === 'edit' ? 'Data potong sapi berhasil diperbarui.' : 'Data potong sapi berhasil disimpan.') });
       setIsSubmitting(false);
       setTimeout(() => {
         handleClose();
@@ -295,9 +326,9 @@ const PotongSapiBiasaModal = ({ isOpen, onClose, onSuccess, cowData }) => {
                 <Scale className="h-6 w-6" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-slate-900">Potong Sapi Biasa</h2>
+                <h2 className="text-xl font-bold text-slate-900">{mode === 'edit' ? 'Edit Potong Sapi Biasa' : 'Potong Sapi Biasa'}</h2>
                 <p className="text-sm text-slate-500">
-                  Form potong sapi untuk sapi <span className="font-semibold text-indigo-600">{cowData?.eartag || cowData?.eartag_supplier || cowData?.jenis_sapi || '-'}</span>
+                  Form potong sapi untuk sapi <span className="font-semibold text-indigo-600">{cowData?.eartag || cowData?.eartag_supplier || cowData?.sapi || initialData?.header?.sapi || cowData?.jenis_sapi || '-'}</span>
                 </p>
               </div>
             </div>
@@ -372,7 +403,7 @@ const PotongSapiBiasaModal = ({ isOpen, onClose, onSuccess, cowData }) => {
                               value={detail.id_jenis_potong}
                               onChange={(val) => handleDetailChange(index, 'id_jenis_potong', val)}
                               placeholder="Pilih jenis potong"
-                              isDisabled={isSubmitting}
+                              isDisabled={isSubmitting || detail.is_locked_boning}
                             />
                           </Field>
 
@@ -383,7 +414,7 @@ const PotongSapiBiasaModal = ({ isOpen, onClose, onSuccess, cowData }) => {
                               onChange={(val) => handleDetailChange(index, 'id_item_potong', val)}
                               placeholder={loadingItemPotong ? 'Memuat item potong...' : 'Pilih item potong'}
                               isLoading={loadingItemPotong}
-                              isDisabled={isSubmitting || loadingItemPotong}
+                              isDisabled={isSubmitting || loadingItemPotong || detail.is_locked_boning}
                             />
                           </Field>
 
@@ -494,7 +525,7 @@ const PotongSapiBiasaModal = ({ isOpen, onClose, onSuccess, cowData }) => {
               ) : (
                 <>
                   <Save className="h-4 w-4" />
-                  Simpan Potong Sapi
+                  {mode === 'edit' ? 'Simpan Perubahan' : 'Simpan Potong Sapi'}
                 </>
               )}
             </button>
