@@ -96,15 +96,6 @@ const FormPengajuanBiayaModal = ({
         }
     };
 
-    const handleSave = () => {
-        if (onSave) {
-            onSave({
-                ...data,
-                disetujui_oleh_id: selectedPersetujuan
-            });
-        }
-    };
-
     const handleReject = async () => {
         try {
             // Validate rejection reason

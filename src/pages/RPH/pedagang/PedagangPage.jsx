@@ -250,6 +250,27 @@ const PedagangPage = () => {
       ),
     },
     {
+      name: 'Dispensasi',
+      selector: row => row.is_dispensasi,
+      sortable: true,
+      width: '130px',
+      center: true,
+      cell: row => (
+        <div className="flex flex-col items-center gap-1">
+          {row.is_dispensasi === 1 ? (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Aktif
+            </span>
+          ) : (
+            <span className="text-[10px] text-gray-400">-</span>
+          )}
+          {Number(row.total_dispensasi) > 0 && (
+            <span className="text-[10px] text-gray-500">Total: {row.total_dispensasi}x</span>
+          )}
+        </div>
+      ),
+    },
+    {
       name: 'Saldo Akhir',
       selector: row => row.saldo_akhir,
       sortable: true,
@@ -273,7 +294,7 @@ const PedagangPage = () => {
         </span>
       ),
     },
-  ], [pagination.currentPage, pagination.perPage, openMenuId, handleDetail, handleEdit, handleDelete]);
+  ], [pagination.currentPage, pagination.perPage, openMenuId, handleDetail, handleEdit, handleDelete, handleRekening]);
 
   return (
     <>

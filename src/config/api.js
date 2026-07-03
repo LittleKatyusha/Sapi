@@ -342,6 +342,21 @@ export const API_ENDPOINTS = {
       DELETE: '/api/rph/penjualan-sapi-utuh/hapus',
     },
     RETURN_PENJUALAN_SAPI_UTUH: '/api/rph/return-penjualan-sapi-utuh',
+    PENAWARAN: {
+      BASE: '/api/rph/penawaran',
+      DATA: '/api/rph/penawaran/data',
+      STORE: '/api/rph/penawaran/store',
+      SHOW: '/api/rph/penawaran/show',
+      UPDATE: '/api/rph/penawaran/update',
+      HAPUS: '/api/rph/penawaran/hapus',
+      AJUKAN: '/api/rph/penawaran/ajukan',
+      SETUJUI: '/api/rph/penawaran/setujui',
+      GUNAKAN_DISPENSASI: '/api/rph/penawaran/gunakan-dispensasi',
+      ROLLBACK_DISPENSASI: '/api/rph/penawaran/rollback-dispensasi',
+      PEDAGANG: '/api/rph/penawaran/pedagang',
+      PEDAGANG_PICKER: '/api/rph/penawaran/pedagang-picker',
+      APPROVERS: '/api/rph/penawaran/approvers',
+    },
   },
 
   // SDM (Human Resources)

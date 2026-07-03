@@ -108,11 +108,11 @@ export const usePenawaranPenjualan = () => {
     }
   }, []);
 
-  const setujui = useCallback(async (pid, approved) => {
+  const setujui = useCallback(async (pid, approved, disetujuiOlehId = null) => {
     setLoading(true);
     setError(null);
     try {
-      const result = await PenawaranPenjualanRphService.setujui(pid, approved);
+      const result = await PenawaranPenjualanRphService.setujui(pid, approved, disetujuiOlehId);
       if (!result.success) setError(result.message);
       return result;
     } catch (err) {
@@ -152,6 +152,38 @@ export const usePenawaranPenjualan = () => {
     }
   }, []);
 
+  const gunakanDispensasi = useCallback(async (pedagang_id) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await PenawaranPenjualanRphService.gunakanDispensasi(pedagang_id);
+      if (!result.success) setError(result.message);
+      return result;
+    } catch (err) {
+      const msg = err?.message || 'Gagal menggunakan dispensasi';
+      setError(msg);
+      return { success: false, message: msg };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const rollbackDispensasi = useCallback(async (detail_id) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await PenawaranPenjualanRphService.rollbackDispensasi(detail_id);
+      if (!result.success) setError(result.message);
+      return result;
+    } catch (err) {
+      const msg = err?.message || 'Gagal me-rollback dispensasi';
+      setError(msg);
+      return { success: false, message: msg };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   return {
     loading,
     error,
@@ -165,6 +197,8 @@ export const usePenawaranPenjualan = () => {
     setujui,
     fetchPedagang,
     fetchApprovers,
+    gunakanDispensasi,
+    rollbackDispensasi,
   };
 };
 

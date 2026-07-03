@@ -21,6 +21,7 @@ const SearchableSelect = ({
     className = "",
     maxMenuHeight = 210,
     accentColor = 'orange',
+    menuZIndex = 9999,
     ...props
 }) => {
     const accent = ACCENT_COLORS[accentColor] || ACCENT_COLORS.orange;
@@ -61,7 +62,7 @@ const SearchableSelect = ({
         }),
         menu: (provided) => ({
             ...provided,
-            zIndex: 9999,
+            zIndex: menuZIndex,
             maxHeight: `${maxMenuHeight}px`,
             overflow: 'hidden',
         }),
@@ -74,7 +75,7 @@ const SearchableSelect = ({
         }),
         menuPortal: (provided) => ({
             ...provided,
-            zIndex: 9999,
+            zIndex: menuZIndex,
         }),
     };
 

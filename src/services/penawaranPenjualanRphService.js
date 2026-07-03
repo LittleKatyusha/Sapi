@@ -174,11 +174,13 @@ class PenawaranPenjualanRphService {
   /**
    * Approve or reject penawaran
    */
-  static async setujui(pid, approved) {
+  static async setujui(pid, approved, disetujuiOlehId = null) {
     try {
+      const payload = { pid, approved };
+      if (disetujuiOlehId) payload.disetujui_oleh_id = disetujuiOlehId;
       const response = await HttpClient.post(
         API_ENDPOINTS.RPH?.PENAWARAN?.SETUJUI || `${this.API_BASE}/setujui`,
-        { pid, approved }
+        payload
       );
 
       return {
@@ -215,6 +217,90 @@ class PenawaranPenjualanRphService {
       return {
         success: false,
         data: [],
+        message: error.message || 'Gagal mengambil data pedagang',
+      };
+    }
+  }
+
+  /**
+   * Use dispensasi for a pedagang (called from penjualan module)
+   */
+  static async gunakanDispensasi(pedagang_id) {
+    try {
+      const response = await HttpClient.post(
+        API_ENDPOINTS.RPH?.PENAWARAN?.GUNAKAN_DISPENSASI || `${this.API_BASE}/gunakan-dispensasi`,
+        { pedagang_id }
+      );
+      return {
+        success: true,
+        data: response.data || null,
+        message: response.message || 'Dispensasi berhasil digunakan',
+      };
+    } catch (error) {
+      console.error('Error using dispensasi:', error);
+      return {
+        success: false,
+        message: error.message || 'Gagal menggunakan dispensasi',
+      };
+    }
+  }
+
+  /**
+   * Rollback dispensasi usage (called when transaksi penjualan is cancelled/deleted)
+   */
+  static async rollbackDispensasi(detail_id) {
+    try {
+      const response = await HttpClient.post(
+        API_ENDPOINTS.RPH?.PENAWARAN?.ROLLBACK_DISPENSASI || `${this.API_BASE}/rollback-dispensasi`,
+        { detail_id }
+      );
+      return {
+        success: true,
+        data: response.data || null,
+        message: response.message || 'Dispensasi berhasil di-rollback',
+      };
+    } catch (error) {
+      console.error('Error rolling back dispensasi:', error);
+      return {
+        success: false,
+        message: error.message || 'Gagal me-rollback dispensasi',
+      };
+    }
+  }
+
+  /**
+   * Get paginated pedagang for picker modal (server-side)
+   */
+  static async getPedagangPicker(params = {}) {
+    try {
+      const queryParams = {
+        start: params.start || 0,
+        length: params.length || 10,
+        draw: params.draw || 1,
+        search: params.search || '',
+        status_pedagang: params.status_pedagang || '',
+        tipe_pedagang: params.tipe_pedagang || '',
+        pasar: params.pasar || '',
+        is_dispensasi: params.is_dispensasi ?? '',
+      };
+      const response = await HttpClient.get(
+        API_ENDPOINTS.RPH?.PENAWARAN?.PEDAGANG_PICKER || `${this.API_BASE}/pedagang-picker`,
+        { params: queryParams }
+      );
+      return {
+        success: true,
+        data: response.data || [],
+        recordsTotal: response.recordsTotal || 0,
+        recordsFiltered: response.recordsFiltered || 0,
+        draw: response.draw || 1,
+      };
+    } catch (error) {
+      console.error('Error fetching pedagang picker:', error);
+      return {
+        success: false,
+        data: [],
+        recordsTotal: 0,
+        recordsFiltered: 0,
         message: error.message || 'Gagal mengambil data pedagang',
       };
     }
