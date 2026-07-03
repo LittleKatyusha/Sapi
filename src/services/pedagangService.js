@@ -20,10 +20,15 @@ class PedagangService {
         start: params.start || 0,
         length: params.length || 10,
         'search[value]': params.search || '',
+        ...(params.search_id && { search_id: params.search_id }),
+        ...(params.search_name && { search_name: params.search_name }),
+        ...(params.search_hp && { search_hp: params.search_hp }),
         'order[0][column]': params.orderColumn || 0,
         'order[0][dir]': params.orderDir || 'desc',
         ...(params.status_pedagang && { status_pedagang: params.status_pedagang }),
         ...(params.pasar && { pasar: params.pasar }),
+        ...(params.tipe_pedagang && { tipe_pedagang: params.tipe_pedagang }),
+        ...(params.is_dispensasi !== undefined && params.is_dispensasi !== '' && { is_dispensasi: params.is_dispensasi }),
         _ts: Date.now(),
       });
 

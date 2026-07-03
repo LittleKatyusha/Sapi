@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   X, Save, User, MapPin, Phone, Store, Hash, Calendar,
-  ChevronDown, ChevronUp, DollarSign, Building2, Briefcase,
+  ChevronDown, ChevronUp, DollarSign, Loader2,
 } from 'lucide-react';
 import PedagangService from '../../../../services/pedagangService';
 import HttpClient from '../../../../services/httpClient';
@@ -10,21 +10,16 @@ import useOfficeData from '../../../../hooks/useOfficeData';
 import useWilayah from '../hooks/useWilayah';
 import SearchableSelect from '../../../../components/shared/SearchableSelect';
 
-// Format number to Rupiah display (e.g. 5700000 → "5.700.000")
-// Handles decimal strings from backend (e.g. "300.00" → "300")
 const formatRupiah = (value) => {
   if (value === '' || value === null || value === undefined) return '';
-  // Parse as float first to handle decimal strings like "300.00"
   const numValue = typeof value === 'string' ? parseFloat(value) : value;
   if (isNaN(numValue)) return '';
-  // Round to integer (harga values should be integers)
   const intValue = Math.round(numValue);
   const absNum = Math.abs(intValue);
   const formatted = String(absNum).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
   return intValue < 0 ? `-${formatted}` : formatted;
 };
 
-// Parse formatted Rupiah string back to number (e.g. "5.700.000" → 5700000)
 const parseRupiah = (str) => {
   if (!str || str === '') return '';
   const cleaned = String(str).replace(/[^0-9-]/g, '');
@@ -40,35 +35,46 @@ const TABS = [
 ];
 
 const initialFormData = {
-  nama_identitas: '',
-  nama_alias: '',
-  nik: '',
-  tempat_lahir: '',
-  tanggal_lahir: '',
-  jenis_kelamin: '',
-  agama: '',
-  pekerjaan: '',
-  status_kawin: '',
-  tipe_pedagang: '', // New field for Pedagang classification
-
-  id_provinsi: '',
-  id_kabupaten: '',
-  id_kecamatan: '',
-  id_kelurahan: '',
-  status_rumah: '',
-  no_hp: '',
-  alamat: '',
-  pasar: '',
-  saldo_awal: '',
-  tabungan: '',
-  kulit: '',
-  saldo_beku: '',
-  id_office: '',
+  nama_identitas: '', nama_alias: '', nik: '', tempat_lahir: '', tanggal_lahir: '',
+  jenis_kelamin: '', agama: '', pekerjaan: '', status_kawin: '', tipe_pedagang: '',
+  id_provinsi: '', id_kabupaten: '', id_kecamatan: '', id_kelurahan: '',
+  status_rumah: '', no_hp: '', alamat: '', pasar: '',
+  saldo_awal: '', tabungan: '', kulit: '', saldo_beku: '', id_office: '',
 };
 
 const HARGA_PARAMETER_GROUPS = 'itemboning,itempotong';
-
 const CURRENCY_FIELDS = ['saldo_awal', 'tabungan', 'kulit', 'saldo_beku'];
+
+const STATIC_OPTIONS = {
+  jenis_kelamin: [
+    { value: 1, label: 'Laki-laki' },
+    { value: 2, label: 'Perempuan' },
+  ],
+  agama: [
+    { value: 1, label: 'Islam' },
+    { value: 2, label: 'Kristen' },
+    { value: 3, label: 'Katolik' },
+    { value: 4, label: 'Hindu' },
+    { value: 5, label: 'Buddha' },
+    { value: 6, label: 'Konghucu' },
+  ],
+  status_kawin: [
+    { value: 1, label: 'Belum Kawin' },
+    { value: 2, label: 'Kawin' },
+    { value: 3, label: 'Cerai Hidup' },
+    { value: 4, label: 'Cerai Mati' },
+  ],
+  tipe_pedagang: [
+    { value: 1, label: 'Terdaftar (Tipe 1)' },
+    { value: 2, label: 'Non-Terdaftar/Umum (Tipe 2)' },
+  ],
+  status_rumah: [
+    { value: 1, label: 'Milik Sendiri' },
+    { value: 2, label: 'Kontrak' },
+    { value: 3, label: 'Sewa' },
+    { value: 4, label: 'Lainnya' },
+  ],
+};
 
 const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) => {
   const [activeTab, setActiveTab] = useState('identitas');
@@ -83,7 +89,6 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
   const [itemBoningOptions, setItemBoningOptions] = useState([]);
   const [loadingItemBoning, setLoadingItemBoning] = useState(false);
 
-  // Office data for dropdown
   const { officeOptions } = useOfficeData();
 
   const fetchItemBoningOptions = useCallback(async () => {
@@ -93,14 +98,12 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
         params: { groups: HARGA_PARAMETER_GROUPS },
         cache: false,
       });
-
       const source = response?.data?.[0] || response?.data || response || {};
       const rows = Array.isArray(source.itemboning)
         ? source.itemboning
         : Array.isArray(source.itempotong)
           ? source.itempotong
           : [];
-
       const normalized = rows
         .map((item) => ({
           id: item.id ?? item.value ?? item.pid,
@@ -108,42 +111,29 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
           id_jenis_potong: Number(item.id_jenis_potong ?? item.type ?? item.golongan ?? 0) || 0,
         }))
         .filter((item) => item.id != null);
-
       setItemBoningOptions(normalized);
-    } catch (err) {
-      console.error('Error fetching item boning options:', err);
+    } catch {
       setItemBoningOptions([]);
     } finally {
       setLoadingItemBoning(false);
     }
   }, []);
 
-  // Fetch pekerjaan options from parameter API
   const fetchPekerjaanOptions = useCallback(async () => {
-    if (pekerjaanOptions.length > 0) return; // Already loaded
-    
+    if (pekerjaanOptions.length > 0) return;
     setLoadingPekerjaan(true);
     try {
-      const response = await HttpClient.post(`${API_ENDPOINTS.SYSTEM.PARAMETERS}/dataByGroup`, {
-        group: 'pekerjaan'
-      });
-      
+      const response = await HttpClient.post(`${API_ENDPOINTS.SYSTEM.PARAMETERS}/dataByGroup`, { group: 'pekerjaan' });
       if (response.data && Array.isArray(response.data)) {
-        const options = response.data.map(item => ({
-          value: parseInt(item.value),
-          label: item.name
-        }));
-        setPekerjaanOptions(options);
+        setPekerjaanOptions(response.data.map(item => ({ value: parseInt(item.value), label: item.name })));
       }
-    } catch (err) {
-      console.error('Error fetching pekerjaan options:', err);
+    } catch {
       setPekerjaanOptions([]);
     } finally {
       setLoadingPekerjaan(false);
     }
   }, [pekerjaanOptions.length]);
 
-  // Wilayah cascading dropdowns
   const wilayahInitialValues = useMemo(() => ({
     id_provinsi: formData.id_provinsi,
     id_kabupaten: formData.id_kabupaten,
@@ -151,64 +141,41 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
   }), [formData.id_provinsi, formData.id_kabupaten, formData.id_kecamatan]);
 
   const {
-    provinsiOptions,
-    kabupatenOptions,
-    kecamatanOptions,
-    kelurahanOptions,
-    loadingProvinsi,
-    loadingKabupaten,
-    loadingKecamatan,
-    loadingKelurahan,
-    fetchKabupaten,
-    fetchKecamatan,
-    fetchKelurahan,
+    provinsiOptions, kabupatenOptions, kecamatanOptions, kelurahanOptions,
+    loadingProvinsi, loadingKabupaten, loadingKecamatan, loadingKelurahan,
+    fetchKabupaten, fetchKecamatan, fetchKelurahan,
   } = useWilayah(wilayahInitialValues);
 
-  // Reset form when modal opens/closes or editData changes
   useEffect(() => {
     if (isOpen) {
-      // Fetch pekerjaan options when modal opens
       fetchPekerjaanOptions();
       fetchItemBoningOptions();
-      
       if (editData) {
         setFormData({ ...initialFormData });
         setHarga({});
         setDetailLoading(true);
         setActiveTab('identitas');
         setHargaExpanded(false);
-
-        // Fetch full detail for edit
         const fetchDetail = async () => {
           try {
             const result = await PedagangService.show(editData.pid);
             if (result.success && result.data) {
               const d = result.data;
               setFormData({
-                nama_identitas: d.nama_identitas || '',
-                nama_alias: d.nama_alias || '',
-                nik: d.nik != null ? String(d.nik) : '',
-                tempat_lahir: d.tempat_lahir || '',
-                tanggal_lahir: d.tanggal_lahir || '',
-                jenis_kelamin: d.jenis_kelamin || '',
-                agama: d.agama || '',
-                pekerjaan: d.pekerjaan || '',
-                status_kawin: d.status_kawin || '',
+                nama_identitas: d.nama_identitas || '', nama_alias: d.nama_alias || '',
+                nik: d.nik != null ? String(d.nik) : '', tempat_lahir: d.tempat_lahir || '',
+                tanggal_lahir: d.tanggal_lahir || '', jenis_kelamin: d.jenis_kelamin || '',
+                agama: d.agama || '', pekerjaan: d.pekerjaan || '', status_kawin: d.status_kawin || '',
                 id_provinsi: d.id_provinsi ? Number(d.id_provinsi) : '',
                 id_kabupaten: d.id_kabupaten ? Number(d.id_kabupaten) : '',
                 id_kecamatan: d.id_kecamatan ? Number(d.id_kecamatan) : '',
                 id_kelurahan: d.id_kelurahan != null ? String(d.id_kelurahan) : '',
-                status_rumah: d.status_rumah || '',
-                no_hp: d.no_hp != null ? String(d.no_hp) : '',
-                alamat: d.alamat || '',
-                pasar: d.pasar || '',
-                saldo_awal: d.saldo_awal || '',
-                tabungan: d.tabungan || '',
-                kulit: d.kulit || '',
-                saldo_beku: d.saldo_beku || '',
+                status_rumah: d.status_rumah || '', no_hp: d.no_hp != null ? String(d.no_hp) : '',
+                alamat: d.alamat || '', pasar: d.pasar || '',
+                saldo_awal: d.saldo_awal || '', tabungan: d.tabungan || '',
+                kulit: d.kulit || '', saldo_beku: d.saldo_beku || '',
                 id_office: d.id_office || '',
-                tipe_pedagang: d.tipe_pedagang != null ? String(d.tipe_pedagang) : '', // Pedagang classification
-
+                tipe_pedagang: d.tipe_pedagang != null ? String(d.tipe_pedagang) : '',
               });
               if (Array.isArray(d.harga)) {
                 const filledHarga = {};
@@ -223,15 +190,13 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
               }
             }
           } catch {
-            // Use editData fields as fallback
             setFormData(prev => ({
               ...prev,
               nama_identitas: editData.nama_identitas || '',
               nama_alias: editData.nama_alias || '',
               nik: editData.nik != null ? String(editData.nik) : '',
               no_hp: editData.no_hp != null ? String(editData.no_hp) : '',
-              alamat: editData.alamat || '',
-              pasar: editData.pasar || '',
+              alamat: editData.alamat || '', pasar: editData.pasar || '',
             }));
           } finally {
             setDetailLoading(false);
@@ -248,11 +213,9 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
     }
   }, [isOpen, editData, fetchPekerjaanOptions, fetchItemBoningOptions]);
 
-
   const handleInputChange = useCallback((e) => {
     const { name, value, type } = e.target;
     let finalValue = value;
-
     if (name === 'nama_alias') {
       finalValue = value.toUpperCase();
     } else if (name === 'nik') {
@@ -260,84 +223,44 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
     } else if (name === 'no_hp') {
       finalValue = value.replace(/[^0-9+\-\s()]/g, '').slice(0, 16);
     } else if (CURRENCY_FIELDS.includes(name)) {
-      // Store raw number for currency fields
       finalValue = parseRupiah(value);
     } else if (type === 'number') {
       finalValue = value === '' ? '' : Number(value);
     }
-
     setFormData(prev => ({ ...prev, [name]: finalValue }));
-
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
-    }
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
   }, [errors]);
 
   const handleHargaChange = useCallback((key, value) => {
-    // Parse formatted Rupiah string back to number
-    const numericValue = parseRupiah(value);
-    setHarga(prev => ({ ...prev, [String(key)]: numericValue }));
+    setHarga(prev => ({ ...prev, [String(key)]: parseRupiah(value) }));
+  }, []);
+
+  const handleSelectChange = useCallback((name, value) => {
+    setFormData(prev => ({ ...prev, [name]: value ?? '' }));
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
   }, []);
 
   const handleProvinsiChange = useCallback((value) => {
-    setFormData(prev => ({
-      ...prev,
-      id_provinsi: value || '',
-      id_kabupaten: '',
-      id_kecamatan: '',
-      id_kelurahan: '',
-    }));
-    if (value) {
-      fetchKabupaten(value);
-    }
+    setFormData(prev => ({ ...prev, id_provinsi: value || '', id_kabupaten: '', id_kecamatan: '', id_kelurahan: '' }));
+    if (value) fetchKabupaten(value);
   }, [fetchKabupaten]);
 
   const handleKabupatenChange = useCallback((value) => {
-    setFormData(prev => ({
-      ...prev,
-      id_kabupaten: value || '',
-      id_kecamatan: '',
-      id_kelurahan: '',
-    }));
-    if (value) {
-      fetchKecamatan(value);
-    }
+    setFormData(prev => ({ ...prev, id_kabupaten: value || '', id_kecamatan: '', id_kelurahan: '' }));
+    if (value) fetchKecamatan(value);
   }, [fetchKecamatan]);
 
   const handleKecamatanChange = useCallback((value) => {
-    setFormData(prev => ({
-      ...prev,
-      id_kecamatan: value || '',
-      id_kelurahan: '',
-    }));
-    if (value) {
-      fetchKelurahan(value);
-    }
+    setFormData(prev => ({ ...prev, id_kecamatan: value || '', id_kelurahan: '' }));
+    if (value) fetchKelurahan(value);
   }, [fetchKelurahan]);
-
-  const handleKelurahanChange = useCallback((value) => {
-    setFormData(prev => ({
-      ...prev,
-      id_kelurahan: value || '',
-    }));
-  }, []);
 
   const validateForm = useCallback(() => {
     const newErrors = {};
-
-    if (!formData.nama_identitas.trim()) {
-      newErrors.nama_identitas = 'Nama identitas wajib diisi';
-    }
-    if (!formData.nama_alias.trim()) {
-      newErrors.nama_alias = 'Nama alias wajib diisi';
-    }
-    if (formData.nik && formData.nik.length !== 16) {
-      newErrors.nik = 'NIK harus 16 digit';
-    }
-    if (formData.no_hp && formData.no_hp.length > 16) {
-      newErrors.no_hp = 'No HP maksimal 16 karakter';
-    }
-
+    if (!formData.nama_identitas.trim()) newErrors.nama_identitas = 'Nama identitas wajib diisi';
+    if (!formData.nama_alias.trim()) newErrors.nama_alias = 'Nama alias wajib diisi';
+    if (formData.nik && formData.nik.length !== 16) newErrors.nik = 'NIK harus 16 digit';
+    if (formData.no_hp && formData.no_hp.length > 16) newErrors.no_hp = 'No HP maksimal 16 karakter';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   }, [formData]);
@@ -346,101 +269,57 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
     e.preventDefault();
     if (loadingItemBoning) return;
     if (!validateForm()) return;
-
     setIsSubmitting(true);
     try {
       const payload = { ...formData };
-
-      // Convert numeric fields
-      if (payload.saldo_awal !== '') {
-        payload.saldo_awal = Number(payload.saldo_awal);
-      }
-      if (payload.tabungan !== '') {
-        payload.tabungan = Number(payload.tabungan);
-      }
-      if (payload.kulit !== '') {
-        payload.kulit = Number(payload.kulit);
-      }
-      if (payload.saldo_beku !== '') {
-        payload.saldo_beku = Number(payload.saldo_beku);
-      }
-      if (payload.id_office !== '') {
-        payload.id_office = Number(payload.id_office);
-      }
-      if (payload.jenis_kelamin !== '') {
-        payload.jenis_kelamin = Number(payload.jenis_kelamin);
-      }
-      if (payload.agama !== '') {
-        payload.agama = Number(payload.agama);
-      }
-      if (payload.pekerjaan !== '') {
-        payload.pekerjaan = Number(payload.pekerjaan);
-      }
-      if (payload.status_kawin !== '') {
-        payload.status_kawin = Number(payload.status_kawin);
-      }
-      if (payload.status_rumah !== '') {
-        payload.status_rumah = Number(payload.status_rumah);
-      }
-      if (payload.tipe_pedagang !== '') {
-        payload.tipe_pedagang = Number(payload.tipe_pedagang);
-      }
-
-      // Add pid for update
-      if (editData?.pid) {
-        payload.pid = editData.pid;
-      }
-
-      // Add nested harga object
+      ['saldo_awal', 'tabungan', 'kulit', 'saldo_beku', 'id_office', 'jenis_kelamin', 'agama', 'pekerjaan', 'status_kawin', 'status_rumah', 'tipe_pedagang'].forEach((f) => {
+        if (payload[f] !== '') payload[f] = Number(payload[f]);
+      });
+      if (editData?.pid) payload.pid = editData.pid;
       payload.harga = itemBoningOptions
         .filter((item) => harga[String(item.id)] !== '' && harga[String(item.id)] != null)
-        .map((item) => ({
-          id_item_potong: Number(item.id),
-          nominal: Number(harga[String(item.id)]),
-        }));
-
+        .map((item) => ({ id_item_potong: Number(item.id), nominal: Number(harga[String(item.id)]) }));
       await onSave(payload);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleClose = () => {
-    if (!isSubmitting) onClose();
-  };
+  const handleClose = () => { if (!isSubmitting) onClose(); };
 
   const renderInput = (name, label, type = 'text', icon = null, required = false, placeholder = '', extraProps = {}) => (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor={`pedagang-${name}`}>
-        {icon && <span className="inline mr-2">{icon}</span>}
-        {label} {required && '*'}
+      <label className="block text-[11px] font-semibold text-gray-600 uppercase tracking-wide mb-1.5" htmlFor={`pedagang-${name}`}>
+        {label} {required && <span className="text-red-500">*</span>}
       </label>
-      <input
-        id={`pedagang-${name}`}
-        type={type}
-        name={name}
-        value={formData[name]}
-        onChange={handleInputChange}
-        className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors ${
-          errors[name] ? 'border-red-500' : 'border-gray-300'
-        }`}
-        placeholder={placeholder}
-        disabled={isSubmitting || detailLoading}
-        aria-required={required}
-        {...extraProps}
-      />
-      {errors[name] && <p className="mt-1 text-sm text-red-600">{errors[name]}</p>}
+      <div className="relative">
+        {icon && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">{icon}</span>}
+        <input
+          id={`pedagang-${name}`}
+          type={type}
+          name={name}
+          value={formData[name]}
+          onChange={handleInputChange}
+          className={`w-full ${icon ? 'pl-9' : 'pl-3'} pr-3 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition ${
+            errors[name] ? 'border-red-500' : 'border-gray-200'
+          }`}
+          placeholder={placeholder}
+          disabled={isSubmitting || detailLoading}
+          aria-required={required}
+          {...extraProps}
+        />
+      </div>
+      {errors[name] && <p className="mt-1 text-xs text-red-600">{errors[name]}</p>}
     </div>
   );
 
-  const renderCurrencyInput = (name, label, icon = null, required = false, placeholder = '0') => (
+  const renderCurrencyInput = (name, label, required = false, placeholder = '0') => (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor={`pedagang-${name}`}>
-        {icon && <span className="inline mr-2">{icon}</span>}
-        {label} {required && '*'}
+      <label className="block text-[11px] font-semibold text-gray-600 uppercase tracking-wide mb-1.5" htmlFor={`pedagang-${name}`}>
+        {label} {required && <span className="text-red-500">*</span>}
       </label>
       <div className="relative">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400 font-medium">Rp</span>
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium">Rp</span>
         <input
           id={`pedagang-${name}`}
           type="text"
@@ -448,21 +327,41 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
           value={formatRupiah(formData[name])}
           onChange={handleInputChange}
           inputMode="numeric"
-          className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors ${
-            errors[name] ? 'border-red-500' : 'border-gray-300'
+          className={`w-full pl-9 pr-3 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition ${
+            errors[name] ? 'border-red-500' : 'border-gray-200'
           }`}
           placeholder={placeholder}
           disabled={isSubmitting || detailLoading}
-          aria-required={required}
         />
       </div>
-      {errors[name] && <p className="mt-1 text-sm text-red-600">{errors[name]}</p>}
+      {errors[name] && <p className="mt-1 text-xs text-red-600">{errors[name]}</p>}
+    </div>
+  );
+
+  const renderSelect = (name, label, options, placeholder = 'Pilih...', required = false) => (
+    <div>
+      <label className="block text-[11px] font-semibold text-gray-600 uppercase tracking-wide mb-1.5">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+      <SearchableSelect
+        options={options}
+        value={formData[name]}
+        onChange={(val) => handleSelectChange(name, val)}
+        placeholder={placeholder}
+        isSearchable={true}
+        isClearable={true}
+        accentColor="green"
+        menuZIndex={100000}
+        className="text-sm"
+        isDisabled={isSubmitting || detailLoading}
+      />
+      {errors[name] && <p className="mt-1 text-xs text-red-600">{errors[name]}</p>}
     </div>
   );
 
   const renderHargaInput = (item) => (
     <div key={item.id}>
-      <label className="block text-xs font-medium text-gray-600 mb-1" htmlFor={`harga-${item.id}`}>
+      <label className="block text-[11px] font-semibold text-gray-600 mb-1" htmlFor={`harga-${item.id}`}>
         {item.name}
       </label>
       <div className="relative">
@@ -472,7 +371,7 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
           type="text"
           value={formatRupiah(harga[String(item.id)])}
           onChange={(e) => handleHargaChange(item.id, e.target.value)}
-          className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
+          className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition"
           placeholder="0"
           disabled={isSubmitting}
           inputMode="numeric"
@@ -481,22 +380,9 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
     </div>
   );
 
-  const hargaBoning = useMemo(
-    () => itemBoningOptions.filter((item) => Number(item.id_jenis_potong) === 1),
-    [itemBoningOptions],
-  );
-
-  const hargaKarkas = useMemo(
-    () => itemBoningOptions.filter((item) => Number(item.id_jenis_potong) === 2),
-    [itemBoningOptions],
-  );
-
-  if (!isOpen) return null;
-
-  const renderTextarea = (name, label, icon = null, rows = 3) => (
+  const renderTextarea = (name, label, rows = 3) => (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor={`pedagang-${name}`}>
-        {icon && <span className="inline mr-2">{icon}</span>}
+      <label className="block text-[11px] font-semibold text-gray-600 uppercase tracking-wide mb-1.5" htmlFor={`pedagang-${name}`}>
         {label}
       </label>
       <textarea
@@ -505,51 +391,34 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
         value={formData[name]}
         onChange={handleInputChange}
         rows={rows}
-        className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors resize-none ${
-          errors[name] ? 'border-red-500' : 'border-gray-300'
+        className={`w-full px-3 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition resize-none ${
+          errors[name] ? 'border-red-500' : 'border-gray-200'
         }`}
         disabled={isSubmitting || detailLoading}
       />
-      {errors[name] && <p className="mt-1 text-sm text-red-600">{errors[name]}</p>}
+      {errors[name] && <p className="mt-1 text-xs text-red-600">{errors[name]}</p>}
     </div>
   );
 
-  const renderSelect = (name, label, options, icon = null, placeholder = 'Pilih...') => (
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor={`pedagang-${name}`}>
-        {icon && <span className="inline mr-2">{icon}</span>}
-        {label}
-      </label>
-      <select
-        id={`pedagang-${name}`}
-        name={name}
-        value={formData[name]}
-        onChange={handleInputChange}
-        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
-        disabled={isSubmitting || detailLoading}
-      >
-        <option value="">{placeholder}</option>
-        {options.map(opt => (
-          <option key={opt.value} value={opt.value}>{opt.label}</option>
-        ))}
-      </select>
-    </div>
-  );
+  const hargaBoning = useMemo(() => itemBoningOptions.filter((i) => Number(i.id_jenis_potong) === 1), [itemBoningOptions]);
+  const hargaKarkas = useMemo(() => itemBoningOptions.filter((i) => Number(i.id_jenis_potong) === 2), [itemBoningOptions]);
+
+  if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[1000] p-4">
-      <div className="bg-white rounded-3xl w-full max-w-5xl max-h-[90vh] overflow-y-auto transform transition-all duration-300 scale-100 shadow-2xl">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1000] p-4">
+      <div className="bg-white rounded-2xl w-full max-w-5xl max-h-[92vh] flex flex-col overflow-hidden shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-100 sticky top-0 bg-white rounded-t-3xl z-10">
-          <div className="flex items-center">
-            <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-rose-600 rounded-xl flex items-center justify-center mr-4">
-              <User className="w-6 h-6 text-white" />
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-emerald-50 to-white">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center text-white">
+              <User className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-gray-800">
+              <h3 className="text-base font-bold text-gray-800">
                 {editData ? 'Edit Data Pedagang' : 'Tambah Pedagang Baru'}
               </h3>
-              <p className="text-gray-500 text-sm">
+              <p className="text-xs text-gray-500">
                 {editData ? 'Perbarui informasi pedagang' : 'Tambahkan pedagang baru ke sistem'}
               </p>
             </div>
@@ -557,23 +426,23 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
           <button
             onClick={handleClose}
             disabled={isSubmitting}
-            className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors duration-200 disabled:opacity-50"
+            className="p-2 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition disabled:opacity-50"
           >
-            <X className="w-5 h-5 text-gray-600" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Tab Navigation */}
-        <div className="px-6 pt-4 border-b border-gray-100">
-          <div className="flex gap-1">
+        <div className="px-5 pt-3 border-b border-gray-100">
+          <div className="flex gap-1 overflow-x-auto">
             {TABS.map(({ key, label, icon: Icon }) => (
               <button
                 key={key}
                 type="button"
                 onClick={() => setActiveTab(key)}
-                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors ${
+                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-t-lg transition whitespace-nowrap ${
                   activeTab === key
-                    ? 'bg-red-50 text-red-600 border-b-2 border-red-500'
+                    ? 'bg-emerald-50 text-emerald-700 border-b-2 border-emerald-600'
                     : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
                 }`}
               >
@@ -585,56 +454,35 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5">
           {detailLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mr-3"></div>
-              <span className="text-gray-500">Memuat data pedagang...</span>
+            <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+              <Loader2 className="w-8 h-8 animate-spin mb-3" />
+              <p className="text-sm">Memuat data pedagang...</p>
             </div>
           ) : (
             <>
               {/* Tab: Identitas */}
               {activeTab === 'identitas' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {renderInput('nama_identitas', 'Nama Identitas', 'text', <User className="w-4 h-4 inline" />, true, 'Masukkan nama identitas')}
-                  {renderInput('nama_alias', 'Nama Alias', 'text', <User className="w-4 h-4 inline" />, true, 'Otomatis huruf kapital')}
-                  {renderInput('nik', 'NIK', 'text', <Hash className="w-4 h-4 inline" />, false, '16 digit NIK', { maxLength: 16, inputMode: 'numeric' })}
-                  {renderInput('tempat_lahir', 'Tempat Lahir', 'text', <MapPin className="w-4 h-4 inline" />, false, 'Kota/Kabupaten')}
-                  {renderInput('tanggal_lahir', 'Tanggal Lahir', 'date', <Calendar className="w-4 h-4 inline" />, false)}
-                  {renderSelect('jenis_kelamin', 'Jenis Kelamin', [
-                    { value: 1, label: 'Laki-laki' },
-                    { value: 2, label: 'Perempuan' },
-                  ], <User className="w-4 h-4 inline" />)}
-                  {renderSelect('agama', 'Agama', [
-                    { value: 1, label: 'Islam' },
-                    { value: 2, label: 'Kristen' },
-                    { value: 3, label: 'Katolik' },
-                    { value: 4, label: 'Hindu' },
-                    { value: 5, label: 'Buddha' },
-                    { value: 6, label: 'Konghucu' },
-                  ])}
-                  {renderSelect('pekerjaan', 'Pekerjaan', pekerjaanOptions, <Briefcase className="w-4 h-4 inline" />, loadingPekerjaan ? 'Memuat...' : 'Pilih Pekerjaan')}
-                  {renderSelect('status_kawin', 'Status Kawin', [
-                    { value: 1, label: 'Belum Kawin' },
-                    { value: 2, label: 'Kawin' },
-                    { value: 3, label: 'Cerai Hidup' },
-                    { value: 4, label: 'Cerai Mati' },
-                  ])}
-                  {renderSelect('tipe_pedagang', 'Tipe Pedagang', [
-                    { value: 1, label: 'Terdaftar (Tipe 1)' },
-                    { value: 2, label: 'Non-Terdaftar/Umum (Tipe 2)' },
-                  ], <User className="w-4 h-4 inline" />, 'Pilih Tipe Pedagang')}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {renderInput('nama_identitas', 'Nama Identitas', 'text', <User className="w-4 h-4" />, true, 'Masukkan nama identitas')}
+                  {renderInput('nama_alias', 'Nama Alias', 'text', <User className="w-4 h-4" />, true, 'Otomatis huruf kapital')}
+                  {renderInput('nik', 'NIK', 'text', <Hash className="w-4 h-4" />, false, '16 digit NIK', { maxLength: 16, inputMode: 'numeric' })}
+                  {renderInput('tempat_lahir', 'Tempat Lahir', 'text', <MapPin className="w-4 h-4" />, false, 'Kota/Kabupaten')}
+                  {renderInput('tanggal_lahir', 'Tanggal Lahir', 'date', <Calendar className="w-4 h-4" />)}
+                  {renderSelect('jenis_kelamin', 'Jenis Kelamin', STATIC_OPTIONS.jenis_kelamin, 'Pilih jenis kelamin')}
+                  {renderSelect('agama', 'Agama', STATIC_OPTIONS.agama, 'Pilih agama')}
+                  {renderSelect('pekerjaan', 'Pekerjaan', pekerjaanOptions, loadingPekerjaan ? 'Memuat...' : 'Pilih pekerjaan')}
+                  {renderSelect('status_kawin', 'Status Kawin', STATIC_OPTIONS.status_kawin, 'Pilih status kawin')}
+                  {renderSelect('tipe_pedagang', 'Tipe Pedagang', STATIC_OPTIONS.tipe_pedagang, 'Pilih tipe pedagang')}
                 </div>
               )}
 
               {/* Tab: Alamat */}
               {activeTab === 'alamat' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      <MapPin className="w-4 h-4 inline mr-2" />
-                      Provinsi
-                    </label>
+                    <label className="block text-[11px] font-semibold text-gray-600 uppercase tracking-wide mb-1.5">Provinsi</label>
                     <SearchableSelect
                       options={provinsiOptions}
                       value={formData.id_provinsi}
@@ -642,13 +490,13 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
                       isLoading={loadingProvinsi}
                       placeholder="Pilih Provinsi..."
                       isDisabled={isSubmitting || detailLoading}
+                      accentColor="green"
+                      menuZIndex={100000}
+                      className="text-sm"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      <MapPin className="w-4 h-4 inline mr-2" />
-                      Kabupaten/Kota
-                    </label>
+                    <label className="block text-[11px] font-semibold text-gray-600 uppercase tracking-wide mb-1.5">Kabupaten/Kota</label>
                     <SearchableSelect
                       options={kabupatenOptions}
                       value={formData.id_kabupaten}
@@ -656,13 +504,13 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
                       isLoading={loadingKabupaten}
                       placeholder="Pilih Kabupaten/Kota..."
                       isDisabled={isSubmitting || detailLoading || !formData.id_provinsi}
+                      accentColor="green"
+                      menuZIndex={100000}
+                      className="text-sm"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      <MapPin className="w-4 h-4 inline mr-2" />
-                      Kecamatan
-                    </label>
+                    <label className="block text-[11px] font-semibold text-gray-600 uppercase tracking-wide mb-1.5">Kecamatan</label>
                     <SearchableSelect
                       options={kecamatanOptions}
                       value={formData.id_kecamatan}
@@ -670,55 +518,50 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
                       isLoading={loadingKecamatan}
                       placeholder="Pilih Kecamatan..."
                       isDisabled={isSubmitting || detailLoading || !formData.id_kabupaten}
+                      accentColor="green"
+                      menuZIndex={100000}
+                      className="text-sm"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      <MapPin className="w-4 h-4 inline mr-2" />
-                      Kelurahan/Desa
-                    </label>
+                    <label className="block text-[11px] font-semibold text-gray-600 uppercase tracking-wide mb-1.5">Kelurahan/Desa</label>
                     <SearchableSelect
                       options={kelurahanOptions}
                       value={formData.id_kelurahan}
-                      onChange={handleKelurahanChange}
+                      onChange={(val) => handleSelectChange('id_kelurahan', val)}
                       isLoading={loadingKelurahan}
                       placeholder="Pilih Kelurahan/Desa..."
                       isDisabled={isSubmitting || detailLoading || !formData.id_kecamatan}
+                      accentColor="green"
+                      menuZIndex={100000}
+                      className="text-sm"
                     />
                   </div>
-                  {renderSelect('status_rumah', 'Status Rumah', [
-                    { value: 1, label: 'Milik Sendiri' },
-                    { value: 2, label: 'Kontrak' },
-                    { value: 3, label: 'Sewa' },
-                    { value: 4, label: 'Lainnya' },
-                  ])}
-                  {renderInput('no_hp', 'No HP', 'tel', <Phone className="w-4 h-4 inline" />, false, '08xxxxxxxxxx', { maxLength: 16 })}
+                  {renderSelect('status_rumah', 'Status Rumah', STATIC_OPTIONS.status_rumah, 'Pilih status rumah')}
+                  {renderInput('no_hp', 'No HP', 'tel', <Phone className="w-4 h-4" />, false, '08xxxxxxxxxx', { maxLength: 16 })}
                   <div className="md:col-span-2">
-                    {renderTextarea('alamat', 'Alamat', <MapPin className="w-4 h-4 inline" />, 3)}
+                    {renderTextarea('alamat', 'Alamat', 3)}
                   </div>
                 </div>
               )}
 
               {/* Tab: Pasar & Saldo */}
               {activeTab === 'pasar' && (
-                <div className="space-y-6">
-                  {/* Pasar & Office */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {renderInput('pasar', 'Pasar', 'text', <Store className="w-4 h-4 inline" />, false, 'Nama pasar')}
-                    {renderSelect('id_office', 'Office', officeOptions, <Building2 className="w-4 h-4 inline" />, 'Pilih Office')}
+                <div className="space-y-5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {renderInput('pasar', 'Pasar', 'text', <Store className="w-4 h-4" />, false, 'Nama pasar')}
+                    {renderSelect('id_office', 'Office', officeOptions, 'Pilih office')}
                   </div>
-
-                  {/* Saldo Section */}
                   <div>
-                    <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                      <DollarSign className="w-4 h-4 text-red-500" />
+                    <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wide mb-3 flex items-center gap-2">
+                      <DollarSign className="w-4 h-4 text-emerald-600" />
                       Informasi Saldo
                     </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {renderCurrencyInput('saldo_awal', 'Saldo Awal', <DollarSign className="w-4 h-4 inline" />)}
-                      {renderCurrencyInput('tabungan', 'Tabungan', <DollarSign className="w-4 h-4 inline" />)}
-                      {renderCurrencyInput('kulit', 'Kulit', <DollarSign className="w-4 h-4 inline" />)}
-                      {renderCurrencyInput('saldo_beku', 'Saldo Beku', <DollarSign className="w-4 h-4 inline" />)}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {renderCurrencyInput('saldo_awal', 'Saldo Awal')}
+                      {renderCurrencyInput('tabungan', 'Tabungan')}
+                      {renderCurrencyInput('kulit', 'Kulit')}
+                      {renderCurrencyInput('saldo_beku', 'Saldo Beku')}
                     </div>
                   </div>
                 </div>
@@ -727,54 +570,38 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
               {/* Tab: Harga Karkas */}
               {activeTab === 'harga' && (
                 <div>
-                  {/* Collapsible toggle */}
                   <button
                     type="button"
                     onClick={() => setHargaExpanded(!hargaExpanded)}
-                    className="w-full flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors mb-4"
+                    className="w-full flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition mb-4"
                   >
-                    <span className="text-sm font-medium text-gray-700">
-                      Daftar Harga Karkas & Boning
-                    </span>
-                    {hargaExpanded ? (
-                      <ChevronUp className="w-5 h-5 text-gray-500" />
-                    ) : (
-                      <ChevronDown className="w-5 h-5 text-gray-500" />
-                    )}
+                    <span className="text-sm font-medium text-gray-700">Daftar Harga Karkas & Boning</span>
+                    {hargaExpanded ? <ChevronUp className="w-4 h-4 text-gray-500" /> : <ChevronDown className="w-4 h-4 text-gray-500" />}
                   </button>
-
                   {hargaExpanded && (
-                    <div className="space-y-6">
+                    <div className="space-y-5">
                       {loadingItemBoning ? (
-                        <div className="py-8 text-center text-gray-500">
-                          Memuat daftar harga dari backend...
+                        <div className="py-8 text-center text-gray-400 flex flex-col items-center">
+                          <Loader2 className="w-6 h-6 animate-spin mb-2" />
+                          <p className="text-sm">Memuat daftar harga...</p>
                         </div>
                       ) : (
                         <>
                           <div>
-                            <h4 className="text-sm font-semibold text-gray-700 mb-3">
-                              Karkas
-                            </h4>
+                            <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wide mb-3">Karkas</h4>
                             {hargaKarkas.length > 0 ? (
                               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                 {hargaKarkas.map(renderHargaInput)}
                               </div>
-                            ) : (
-                              <p className="text-sm text-gray-400">Tidak ada item karkas.</p>
-                            )}
+                            ) : <p className="text-sm text-gray-400">Tidak ada item karkas.</p>}
                           </div>
-
                           <div>
-                            <h4 className="text-sm font-semibold text-gray-700 mb-3">
-                              Boning
-                            </h4>
+                            <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wide mb-3">Boning</h4>
                             {hargaBoning.length > 0 ? (
                               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                 {hargaBoning.map(renderHargaInput)}
                               </div>
-                            ) : (
-                              <p className="text-sm text-gray-400">Tidak ada item boning.</p>
-                            )}
+                            ) : <p className="text-sm text-gray-400">Tidak ada item boning.</p>}
                           </div>
                         </>
                       )}
@@ -786,23 +613,23 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
           )}
 
           {/* Action Buttons */}
-          <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-200">
+          <div className="flex justify-end gap-3 mt-6 pt-5 border-t border-gray-100">
             <button
               type="button"
               onClick={handleClose}
               disabled={isSubmitting}
-              className="px-6 py-3 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors disabled:opacity-50"
+              className="px-5 py-2.5 text-sm font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition disabled:opacity-50"
             >
               Batal
             </button>
-          <button
-            type="submit"
-            disabled={isSubmitting || detailLoading || loadingItemBoning}
-            className="px-8 py-3 bg-gradient-to-r from-red-500 to-rose-600 text-white rounded-xl hover:from-red-600 hover:to-rose-700 transition-all duration-200 disabled:opacity-50 flex items-center gap-2"
-          >
+            <button
+              type="submit"
+              disabled={isSubmitting || detailLoading || loadingItemBoning}
+              className="px-6 py-2.5 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition disabled:opacity-50 flex items-center gap-2"
+            >
               {isSubmitting ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <Loader2 className="w-4 h-4 animate-spin" />
                   {editData ? 'Menyimpan...' : 'Menambahkan...'}
                 </>
               ) : (

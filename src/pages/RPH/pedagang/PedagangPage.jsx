@@ -1,48 +1,98 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import DataTable from 'react-data-table-component';
 import {
-  Search, PlusCircle, CheckCircle, XCircle, Users, Activity,
-  RefreshCw, Filter, Phone, Store, MoreVertical, Wallet,
-  BarChart3,
+  PlusCircle, Search, Eye, Edit2, Trash2, FileText, MoreVertical,
+  ChevronDown, ChevronUp, ChevronLeft, ChevronRight, ArrowUpDown,
+  Users, Wallet, Activity, CheckCircle, XCircle, AlertCircle, Info,
+  RotateCcw, Filter, Phone, MapPin, BarChart3, Loader2, Hash, User,
 } from 'lucide-react';
-
 import usePedagang from './hooks/usePedagang';
-import customTableStyles from './constants/tableStyles';
 import { formatCurrency, getStatusBadgeClasses, getStatusLabel, PEDAGANG_STATUS_OPTIONS } from './utils/formatters';
-
+import SearchableSelect from '../../../components/shared/SearchableSelect';
 import AddEditPedagangModal from './modals/AddEditPedagangModal';
 import PedagangDetailModal from './modals/PedagangDetailModal';
 import DeleteConfirmationModal from './modals/DeleteConfirmationModal';
 import RekeningPedagangModal from './modals/RekeningPedagangModal';
-import ActionMenu from './components/ActionMenu';
+
+const TIPE_LABELS = { 1: 'Langganan', 2: 'Umum' };
+const TIPE_OPTIONS = [
+  { value: 1, label: 'Terdaftar (Tipe 1)' },
+  { value: 2, label: 'Non-Terdaftar/Umum (Tipe 2)' },
+];
+const DISPENSASI_OPTIONS = [
+  { value: 1, label: 'Aktif' },
+  { value: 0, label: 'Tidak Aktif' },
+];
+
+const ActionMenuPortal = ({ row, menuPos, onClose, onDetail, onEdit, onRekening, onDelete }) => (
+  <>
+    <div className="fixed inset-0 z-[99998]" onClick={onClose} />
+    <div
+      style={{ position: 'fixed', left: menuPos.left, top: menuPos.top, zIndex: 99999 }}
+      className="w-44 bg-white rounded-lg shadow-xl border border-gray-100 overflow-hidden"
+    >
+      <button
+        onClick={() => { onDetail(row); onClose(); }}
+        className="w-full text-left flex items-center gap-2 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition"
+      >
+        <Eye className="w-3.5 h-3.5 text-blue-500" /> Lihat Detail
+      </button>
+      <button
+        onClick={() => { onEdit(row); onClose(); }}
+        className="w-full text-left flex items-center gap-2 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition"
+      >
+        <Edit2 className="w-3.5 h-3.5 text-amber-500" /> Edit
+      </button>
+      <button
+        onClick={() => { onRekening(row); onClose(); }}
+        className="w-full text-left flex items-center gap-2 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition"
+      >
+        <FileText className="w-3.5 h-3.5 text-emerald-500" /> Cetak Rekening
+      </button>
+      <div className="border-t border-gray-100 my-1" />
+      <button
+        onClick={() => { onDelete(row); onClose(); }}
+        className="w-full text-left flex items-center gap-2 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 transition"
+      >
+        <Trash2 className="w-3.5 h-3.5" /> Hapus
+      </button>
+    </div>
+  </>
+);
+
+const StatCard = React.memo(({ title, value, icon: Icon, accentColor, subtitle }) => (
+  <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+    <div className="flex items-start justify-between gap-3">
+      <div className="min-w-0 flex-1">
+        <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide truncate">{title}</p>
+        <p className="text-lg font-bold text-gray-800 mt-1 truncate">{value}</p>
+        {subtitle && <p className="text-[10px] text-gray-400 mt-0.5 truncate">{subtitle}</p>}
+      </div>
+      <div className={`w-8 h-8 rounded-lg ${accentColor} flex items-center justify-center flex-shrink-0`}>
+        <Icon className="w-4 h-4 text-white" />
+      </div>
+    </div>
+  </div>
+));
 
 const PedagangPage = () => {
   const navigate = useNavigate();
   const {
-    pedagangList,
-    loading,
-    error,
-    searchTerm,
-    setSearchTerm,
-    statusFilter,
-    setStatusFilter,
-    pasarFilter,
-    setPasarFilter,
-    pagination,
-    statistics,
-    statsLoading,
-    fetchPedagang,
-    fetchStatistics,
-    createPedagang,
-    updatePedagang,
-    deletePedagang,
-    handlePageChange,
-    handlePerPageChange,
-    resetFilters,
+    pedagangList, loading, error,
+    searchId, setSearchId,
+    searchName, setSearchName,
+    searchHp, setSearchHp,
+    statusFilter, setStatusFilter,
+    pasarFilter, setPasarFilter,
+    tipeFilter, setTipeFilter,
+    dispensasiFilter, setDispensasiFilter,
+    pagination, statistics, statsLoading,
+    fetchPedagang, fetchStatistics,
+    createPedagang, updatePedagang, deletePedagang,
+    handlePageChange, handlePerPageChange, resetFilters,
   } = usePedagang();
 
-  // Modal state
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -50,32 +100,34 @@ const PedagangPage = () => {
   const [detailData, setDetailData] = useState(null);
   const [deleteData, setDeleteData] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [notification, setNotification] = useState({ show: false, message: '', type: '' });
   const [showRekeningModal, setShowRekeningModal] = useState(false);
   const [rekeningData, setRekeningData] = useState(null);
-  
-  // ActionMenu state
+  const [notification, setNotification] = useState(null);
+  const [isFilterExpanded, setIsFilterExpanded] = useState(false);
   const [openMenuId, setOpenMenuId] = useState(null);
-  const actionButtonRefs = useRef({});
+  const [menuPos, setMenuPos] = useState(null);
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
-  // Fetch data on mount
   useEffect(() => {
     fetchPedagang(1, pagination.perPage);
     fetchStatistics();
   }, [fetchPedagang, fetchStatistics, pagination.perPage]);
 
-  // Re-fetch when filters change
   useEffect(() => {
     fetchPedagang(1, pagination.perPage);
-  }, [statusFilter, pasarFilter, fetchPedagang, pagination.perPage]);
+  }, [statusFilter, pasarFilter, tipeFilter, dispensasiFilter, fetchPedagang, pagination.perPage]);
 
-  // Show notification helper
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => setNotification(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification]);
+
   const showNotification = useCallback((message, type = 'success') => {
-    setNotification({ show: true, message, type });
-    setTimeout(() => setNotification({ show: false, message: '', type: '' }), 3000);
+    setNotification({ type, message });
   }, []);
 
-  // Event handlers
   const handleAdd = useCallback(() => {
     setEditData(null);
     setShowAddModal(true);
@@ -86,7 +138,7 @@ const PedagangPage = () => {
     setShowEditModal(true);
   }, []);
 
-  const handleDetail = useCallback(async (item) => {
+  const handleDetail = useCallback((item) => {
     setDetailData(item);
     setShowDetailModal(true);
   }, []);
@@ -131,660 +183,638 @@ const PedagangPage = () => {
         setShowAddModal(false);
         setShowEditModal(false);
         setEditData(null);
+        fetchStatistics();
       } else {
         showNotification(result.message || 'Gagal menyimpan data', 'error');
       }
     } catch {
       showNotification('Terjadi kesalahan saat menyimpan data', 'error');
     }
-  }, [editData, updatePedagang, createPedagang, showNotification]);
+  }, [editData, updatePedagang, createPedagang, showNotification, fetchStatistics]);
 
   const handleRefresh = useCallback(() => {
     fetchPedagang(pagination.currentPage, pagination.perPage);
     fetchStatistics();
-  }, [fetchPedagang, fetchStatistics, pagination.currentPage, pagination.perPage]);
+    showNotification('Data berhasil dimuat ulang', 'info');
+  }, [fetchPedagang, fetchStatistics, pagination.currentPage, pagination.perPage, showNotification]);
 
-  // Table columns
-  const columns = useMemo(() => [
-    {
-      name: 'No.',
-      width: '70px',
-      cell: (row, index) => (
-        <div className="font-medium text-gray-600 text-sm">
-          {(pagination.currentPage - 1) * pagination.perPage + index + 1}
-        </div>
-      ),
-      ignoreRowClick: true,
-    },
-    {
-      name: 'Aksi',
-      width: '70px',
-      cell: row => {
-        const menuId = row.pid || row.id_pedagang || row.nama_alias;
-        const isOpen = openMenuId === menuId;
-        
-        return (
-          <div className="relative">
-            <button
-              ref={el => actionButtonRefs.current[menuId] = el}
-              onClick={() => setOpenMenuId(isOpen ? null : menuId)}
-              className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-              title="Menu Aksi"
-              aria-label={`Menu aksi untuk ${row.nama_alias}`}
-            >
-              <MoreVertical className="w-5 h-5" />
-            </button>
-            {isOpen && (
-              <ActionMenu
-                row={row}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                onDetail={handleDetail}
-                onRekening={handleRekening}
-                onClose={() => setOpenMenuId(null)}
-                buttonRef={{ current: actionButtonRefs.current[menuId] }}
-              />
-            )}
-          </div>
-        );
-      },
-      ignoreRowClick: true,
-    },
-    {
-      name: 'ID Pedagang',
-      selector: row => row.id_pedagang,
-      sortable: true,
-      width: '130px',
-      cell: row => (
-        <span className="text-xs font-mono text-gray-500">{row.id_pedagang || '-'}</span>
-      ),
-    },
-    {
-      name: 'Nama Alias',
-      selector: row => row.nama_alias,
-      sortable: true,
-      grow: 2,
-      cell: row => (
-        <div className="flex items-center">
-          <Users className="w-4 h-4 text-gray-500 mr-2 flex-shrink-0" />
-          <div className="flex flex-col">
-            <span className="text-sm font-medium text-gray-800">{row.nama_alias || '-'}</span>
-            <span className="text-xs text-gray-500">{row.nama_identitas || ''}</span>
-          </div>
-        </div>
-      ),
-    },
-    {
-      name: 'Pasar',
-      selector: row => row.pasar,
-      sortable: true,
-      width: '140px',
-      cell: row => (
-        <div className="flex items-center">
-          <Store className="w-3.5 h-3.5 text-gray-400 mr-1.5 flex-shrink-0" />
-          <span className="text-sm text-gray-600 truncate">{row.pasar || '-'}</span>
-        </div>
-      ),
-    },
-    {
-      name: 'No HP',
-      selector: row => row.no_hp,
-      sortable: true,
-      width: '130px',
-      cell: row => (
-        <div className="flex items-center">
-          <Phone className="w-3.5 h-3.5 text-gray-400 mr-1.5 flex-shrink-0" />
-          <span className="text-sm text-gray-600">{row.no_hp || '-'}</span>
-        </div>
-      ),
-    },
-    {
-      name: 'Status',
-      selector: row => row.status_pedagang,
-      sortable: true,
-      width: '110px',
-      cell: row => (
-        <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${getStatusBadgeClasses(row.status_pedagang)}`}>
-          {row.status_label || getStatusLabel(row.status_pedagang)}
-        </span>
-      ),
-    },
-    {
-      name: 'Dispensasi',
-      selector: row => row.is_dispensasi,
-      sortable: true,
-      width: '130px',
-      center: true,
-      cell: row => (
-        <div className="flex flex-col items-center gap-1">
-          {row.is_dispensasi === 1 ? (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Aktif
-            </span>
-          ) : (
-            <span className="text-[10px] text-gray-400">-</span>
-          )}
-          {Number(row.total_dispensasi) > 0 && (
-            <span className="text-[10px] text-gray-500">Total: {row.total_dispensasi}x</span>
-          )}
-        </div>
-      ),
-    },
-    {
-      name: 'Saldo Akhir',
-      selector: row => row.saldo_akhir,
-      sortable: true,
-      width: '150px',
-      right: true,
-      cell: row => (
-        <span className="text-sm font-medium text-gray-800">
-          {formatCurrency(row.saldo_akhir)}
-        </span>
-      ),
-    },
-    {
-      name: 'Saldo Keseluruhan',
-      selector: row => row.saldo_keseluruhan,
-      sortable: true,
-      width: '170px',
-      right: true,
-      cell: row => (
-        <span className="text-sm font-medium text-gray-800">
-          {formatCurrency(row.saldo_keseluruhan)}
-        </span>
-      ),
-    },
-  ], [pagination.currentPage, pagination.perPage, openMenuId, handleDetail, handleEdit, handleDelete, handleRekening]);
+  const openActionMenu = useCallback((e, row) => {
+    const menuId = row.pid || row.id;
+    const rect = e.currentTarget.getBoundingClientRect();
+    setMenuPos({ left: Math.max(8, rect.left - 160), top: rect.bottom + 4 });
+    setOpenMenuId(menuId);
+  }, []);
+
+  const handleSort = useCallback((key) => {
+    setSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc',
+    }));
+  }, []);
+
+  const sortedData = useMemo(() => {
+    if (!sortConfig.key) return pedagangList;
+    return [...pedagangList].sort((a, b) => {
+      const aVal = a[sortConfig.key];
+      const bVal = b[sortConfig.key];
+      if (aVal == null) return 1;
+      if (bVal == null) return -1;
+      if (typeof aVal === 'number' && typeof bVal === 'number') {
+        return sortConfig.direction === 'asc' ? aVal - bVal : bVal - aVal;
+      }
+      const aStr = String(aVal).toLowerCase();
+      const bStr = String(bVal).toLowerCase();
+      return sortConfig.direction === 'asc'
+        ? aStr.localeCompare(bStr)
+        : bStr.localeCompare(aStr);
+    });
+  }, [pedagangList, sortConfig]);
+
+  const stats = useMemo(() => ({
+    total: statistics?.summary?.total_pedagang ?? pagination.totalItems,
+    saldoAkhir: statistics?.summary?.total_saldo_akhir ?? 0,
+    deposit: statistics?.summary?.total_deposit_pedagang ?? 0,
+    dispensasiAktif: statistics?.summary?.total_dispensasi_aktif ?? 0,
+  }), [statistics, pagination.totalItems]);
+
+  const activeFilterCount = [searchId, searchName, searchHp, statusFilter, pasarFilter, tipeFilter, dispensasiFilter].filter(v => v !== '' && v !== undefined && v !== null).length;
+
+  const SortIcon = ({ column }) => {
+    if (sortConfig.key !== column) return <ArrowUpDown className="w-3 h-3 text-gray-300" />;
+    return sortConfig.direction === 'asc'
+      ? <ChevronUp className="w-3 h-3 text-emerald-600" />
+      : <ChevronDown className="w-3 h-3 text-emerald-600" />;
+  };
+
+  const menuPortal = openMenuId
+    ? createPortal(
+        <ActionMenuPortal
+          row={pedagangList.find(r => (r.pid || r.id) === openMenuId)}
+          menuPos={menuPos}
+          onClose={() => { setOpenMenuId(null); setMenuPos(null); }}
+          onDetail={handleDetail}
+          onEdit={handleEdit}
+          onRekening={handleRekening}
+          onDelete={handleDelete}
+        />,
+        document.body
+      )
+    : null;
 
   return (
-    <>
-      {/* Custom CSS for horizontal scrollbar styling and sticky columns */}
-      <style>{`
-        .horizontal-scroll-container::-webkit-scrollbar {
-            height: 12px;
-        }
-        .horizontal-scroll-container::-webkit-scrollbar-track {
-            background: #f1f5f9;
-            border-radius: 6px;
-        }
-        .horizontal-scroll-container::-webkit-scrollbar-thumb {
-            background: #94a3b8;
-            border-radius: 6px;
-            border: 2px solid #f1f5f9;
-        }
-        .horizontal-scroll-container::-webkit-scrollbar-thumb:hover {
-            background: #64748b;
-        }
-        .horizontal-scroll-container::-webkit-scrollbar-corner {
-            background: #f1f5f9;
-        }
-        
-        /* Sticky No column (1st column) - Pedagang Page */
-        .pedagang-table .rdt_TableHeadRow .rdt_TableCol:first-child,
-        .pedagang-table .rdt_TableHeadRow th:first-child {
-          position: sticky !important;
-          left: 0 !important;
-          z-index: 12 !important;
-          background-color: #f8fafc !important;
-          border-right: 2px solid #e5e7eb !important;
-          box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
-          will-change: transform !important;
-          min-width: 70px !important;
-          max-width: 70px !important;
-        }
-        
-        .pedagang-table .rdt_TableBodyRow .rdt_TableCell:first-child,
-        .pedagang-table .rdt_TableBodyRow td:first-child {
-          position: sticky !important;
-          left: 0 !important;
-          z-index: 10 !important;
-          background-color: #ffffff !important;
-          border-right: 2px solid #e5e7eb !important;
-          box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
-          will-change: transform !important;
-          min-width: 70px !important;
-          max-width: 70px !important;
-        }
-        
-        .pedagang-table .rdt_TableBodyRow:hover .rdt_TableCell:first-child,
-        .pedagang-table .rdt_TableBodyRow:hover td:first-child {
-          background-color: #f9fafb !important;
-        }
-        
-        /* Sticky Aksi column (2nd column) - Pedagang Page */
-        .pedagang-table .rdt_TableHeadRow .rdt_TableCol:nth-child(2),
-        .pedagang-table .rdt_TableHeadRow th:nth-child(2) {
-          position: sticky !important;
-          left: 70px !important;
-          z-index: 11 !important;
-          background-color: #f8fafc !important;
-          border-right: 2px solid #e5e7eb !important;
-          box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
-          will-change: transform !important;
-          min-width: 70px !important;
-          max-width: 70px !important;
-        }
-        
-        .pedagang-table .rdt_TableBodyRow .rdt_TableCell:nth-child(2),
-        .pedagang-table .rdt_TableBodyRow td:nth-child(2) {
-          position: sticky !important;
-          left: 70px !important;
-          z-index: 10 !important;
-          background-color: #ffffff !important;
-          border-right: 2px solid #e5e7eb !important;
-          box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
-          will-change: transform !important;
-          min-width: 70px !important;
-          max-width: 70px !important;
-        }
-        
-        .pedagang-table .rdt_TableBodyRow:hover .rdt_TableCell:nth-child(2),
-        .pedagang-table .rdt_TableBodyRow:hover td:nth-child(2) {
-          background-color: #f9fafb !important;
-        }
-        
-        /* Additional selectors for better compatibility */
-        .pedagang-table table thead tr th:first-child {
-          position: sticky !important;
-          left: 0 !important;
-          z-index: 12 !important;
-          background-color: #f8fafc !important;
-          border-right: 2px solid #e5e7eb !important;
-          box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
-          will-change: transform !important;
-          min-width: 70px !important;
-          max-width: 70px !important;
-        }
-        
-        .pedagang-table table tbody tr td:first-child {
-          position: sticky !important;
-          left: 0 !important;
-          z-index: 10 !important;
-          background-color: #ffffff !important;
-          border-right: 2px solid #e5e7eb !important;
-          box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
-          will-change: transform !important;
-          min-width: 70px !important;
-          max-width: 70px !important;
-        }
-        
-        .pedagang-table table tbody tr:hover td:first-child {
-          background-color: #f9fafb !important;
-        }
-        
-        .pedagang-table table thead tr th:nth-child(2) {
-          position: sticky !important;
-          left: 70px !important;
-          z-index: 11 !important;
-          background-color: #f8fafc !important;
-          border-right: 2px solid #e5e7eb !important;
-          box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
-          will-change: transform !important;
-          min-width: 70px !important;
-          max-width: 70px !important;
-        }
-        
-        .pedagang-table table tbody tr td:nth-child(2) {
-          position: sticky !important;
-          left: 70px !important;
-          z-index: 10 !important;
-          background-color: #ffffff !important;
-          border-right: 2px solid #e5e7eb !important;
-          box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05) !important;
-          will-change: transform !important;
-          min-width: 70px !important;
-          max-width: 70px !important;
-        }
-        
-        .pedagang-table table tbody tr:hover td:nth-child(2) {
-          background-color: #f9fafb !important;
-        }
-        
-        /* Custom scrollbar styling for table container */
-        .table-scroll-container::-webkit-scrollbar {
-            height: 8px;
-        }
-        
-        .table-scroll-container::-webkit-scrollbar-track {
-            background: #f1f5f9;
-            border-radius: 4px;
-        }
-        
-        .table-scroll-container::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 4px;
-            transition: background 0.2s ease;
-        }
-        
-        .table-scroll-container::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
-        }
-        
-        /* Hide scrollbar on Firefox while keeping functionality */
-        .table-scroll-container {
-            scrollbar-width: thin;
-            scrollbar-color: #cbd5e1 #f1f5f9;
-        }
-      `}</style>
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-2 sm:p-4 md:p-6">
-      {/* Notification */}
-      {notification.show && (
-        <div className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg ${
-          notification.type === 'error' ? 'bg-red-500' : 'bg-green-500'
-        } text-white flex items-center gap-2`}>
-          {notification.type === 'error' ? (
-            <XCircle className="w-5 h-5" />
-          ) : (
-            <CheckCircle className="w-5 h-5" />
-          )}
-          {notification.message}
-        </div>
-      )}
-
-      <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
-        {/* Header Section */}
-        <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-xl border border-gray-100">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-1 sm:mb-2">
-                Data Master Pedagang
-              </h1>
-              <p className="text-gray-600 text-sm sm:text-base">
-                Kelola data pedagang, transaksi angkatan, dan setoran
-              </p>
-            </div>
-            <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
-              <button
-                onClick={() => navigate('/RPH/pedagang/statistik')}
-                className="bg-white border border-gray-300 text-gray-700 px-4 py-2 sm:px-6 sm:py-3 rounded-xl hover:bg-gray-50 transition-all duration-300 flex items-center gap-2 font-medium text-sm sm:text-base"
-              >
-                <BarChart3 className="w-5 h-5" />
-                Statistik
-              </button>
-              <button
-                onClick={handleRefresh}
-                className="bg-gray-100 text-gray-700 px-4 py-2 sm:px-6 sm:py-3 rounded-xl hover:bg-gray-200 transition-all duration-300 flex items-center gap-2 font-medium text-sm sm:text-base"
-              >
-                <RefreshCw className="w-5 h-5" />
-                Refresh
-              </button>
-              <button
-                onClick={handleAdd}
-                className="bg-gradient-to-r from-red-500 to-rose-600 text-white px-4 py-2 sm:px-6 sm:py-3 rounded-xl sm:rounded-2xl hover:from-red-600 hover:to-rose-700 transition-all duration-300 flex items-center gap-2 font-medium shadow-lg hover:shadow-xl text-sm sm:text-base"
-              >
-                <PlusCircle className="w-5 h-5" />
-                Tambah Pedagang
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Stat Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white p-6 rounded-xl shadow-md flex items-center space-x-4 transition-transform transform hover:-translate-y-1">
-            <div className="bg-blue-100 p-3 rounded-full">
-              <Users className="w-6 h-6 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Total Pedagang</p>
-              <p className="text-2xl font-bold text-gray-800">
-                {statsLoading ? '...' : (statistics?.total_pedagang ?? pagination.totalItems)}
-              </p>
-            </div>
-          </div>
-          <div className="bg-white p-6 rounded-xl shadow-md flex items-center space-x-4 transition-transform transform hover:-translate-y-1">
-            <div className="bg-amber-100 p-3 rounded-full">
-              <Wallet className="w-6 h-6 text-amber-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Total Saldo Akhir</p>
-              <p className="text-2xl font-bold text-gray-800">
-                {statsLoading ? '...' : formatCurrency(statistics?.total_saldo_akhir ?? 0)}
-              </p>
-            </div>
-          </div>
-          <div className="bg-white p-6 rounded-xl shadow-md flex items-center space-x-4 transition-transform transform hover:-translate-y-1">
-            <div className="bg-green-100 p-3 rounded-full">
-              <CheckCircle className="w-6 h-6 text-green-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Total Deposit</p>
-              <p className="text-2xl font-bold text-gray-800">
-                {statsLoading ? '...' : formatCurrency(statistics?.total_deposit ?? 0)}
-              </p>
-            </div>
-          </div>
-          <div className="bg-white p-6 rounded-xl shadow-md flex items-center space-x-4 transition-transform transform hover:-translate-y-1">
-            <div className="bg-purple-100 p-3 rounded-full">
-              <Activity className="w-6 h-6 text-purple-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Total Saldo Keseluruhan</p>
-              <p className="text-2xl font-bold text-gray-800">
-                {statsLoading ? '...' : formatCurrency(statistics?.total_saldo_keseluruhan ?? 0)}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Filters and Search */}
-        <div className="bg-white rounded-2xl p-3 sm:p-6 shadow-lg border border-gray-100">
-          <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 sm:items-center sm:justify-between">
-            {/* Search */}
-            <div className="relative flex-1 max-w-full sm:max-w-md">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Cari pedagang..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors duration-200 text-sm sm:text-base"
-                aria-label="Cari pedagang"
-              />
-            </div>
-
-            {/* Filters */}
-            <div className="flex flex-wrap gap-2 sm:gap-3">
-              <div className="flex items-center gap-2">
-                <Filter className="w-4 h-4 text-gray-400" />
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
-                  aria-label="Filter status pedagang"
-                >
-                  <option value="">Semua Status</option>
-                  {PEDAGANG_STATUS_OPTIONS.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-              </div>
-              <input
-                type="text"
-                placeholder="Filter pasar..."
-                value={pasarFilter}
-                onChange={(e) => setPasarFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors w-36"
-                aria-label="Filter pasar"
-              />
-              <button
-                onClick={resetFilters}
-                className="px-3 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors text-sm"
-              >
-                Reset
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Error Display */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-            <div className="flex items-start">
-              <Activity className="w-5 h-5 text-red-500 mr-2 mt-0.5 flex-shrink-0" />
-              <div className="flex-1">
-                <p className="text-red-700 text-sm font-medium mb-1">Koneksi API Error:</p>
-                <p className="text-red-600 text-sm">{error}</p>
-                <p className="text-red-500 text-xs mt-2">
-                  Coba refresh halaman untuk mencoba lagi.
-                </p>
+    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 md:p-8">
+      <div className="w-full space-y-6">
+        {/* Notification Toast */}
+        {notification && (
+          <div className="fixed top-4 right-4 z-[100001]">
+            <div className={`max-w-md w-full bg-white shadow-2xl rounded-xl pointer-events-auto overflow-hidden ${
+              notification.type === 'success' ? 'border-l-4 border-emerald-500' :
+              notification.type === 'info' ? 'border-l-4 border-blue-500' :
+              'border-l-4 border-red-500'
+            }`}>
+              <div className={`p-4 ${
+                notification.type === 'success' ? 'bg-gradient-to-r from-emerald-50 to-white' :
+                notification.type === 'info' ? 'bg-gradient-to-r from-blue-50 to-white' :
+                'bg-gradient-to-r from-red-50 to-white'
+              }`}>
+                <div className="flex items-start">
+                  <div className="flex-shrink-0">
+                    {notification.type === 'success' ? (
+                      <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center shadow-lg">
+                        <CheckCircle className="w-6 h-6 text-white" />
+                      </div>
+                    ) : notification.type === 'info' ? (
+                      <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center shadow-lg">
+                        <Info className="w-6 h-6 text-white" />
+                      </div>
+                    ) : (
+                      <div className="w-10 h-10 bg-gradient-to-br from-red-400 to-red-600 rounded-full flex items-center justify-center shadow-lg">
+                        <AlertCircle className="w-6 h-6 text-white" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="ml-4 flex-1">
+                    <p className={`text-base font-bold ${
+                      notification.type === 'success' ? 'text-emerald-800' :
+                      notification.type === 'info' ? 'text-blue-800' :
+                      'text-red-800'
+                    }`}>
+                      {notification.type === 'success' ? 'Berhasil!' :
+                       notification.type === 'info' ? 'Informasi' : 'Gagal!'}
+                    </p>
+                    <p className="mt-1 text-sm text-gray-700 leading-relaxed">{notification.message}</p>
+                  </div>
+                  <button
+                    onClick={() => setNotification(null)}
+                    className={`ml-4 rounded-lg p-1.5 transition ${
+                      notification.type === 'success' ? 'text-emerald-600 hover:bg-emerald-100' :
+                      notification.type === 'info' ? 'text-blue-600 hover:bg-blue-100' :
+                      'text-red-600 hover:bg-red-100'
+                    }`}
+                  >
+                    <XCircle className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* Data Table */}
-        <div className="bg-white rounded-lg shadow-lg border border-gray-100 relative">
-          {/* Table Header with scroll indicator */}
-          <div className="bg-gradient-to-r from-red-50 to-rose-50 px-4 py-2 border-b border-gray-200">
-            <div className="flex items-center justify-between text-sm text-gray-600">
-              <span className="flex items-center gap-2">
-                <Users className="w-4 h-4" />
-                Data Pedagang
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h1 className="text-xl font-bold text-gray-800">Data Master Pedagang</h1>
+            <p className="text-sm text-gray-500 mt-0.5">Kelola data pedagang, transaksi angkatan, dan setoran</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate('/RPH/pedagang/statistik')}
+              className="bg-white hover:bg-gray-50 text-gray-600 px-3 py-2 rounded-lg border border-gray-200 shadow-sm flex items-center gap-2 text-sm font-medium transition"
+            >
+              <BarChart3 className="w-4 h-4" /> Statistik
+            </button>
+            <button
+              onClick={handleRefresh}
+              className="bg-white hover:bg-gray-50 text-gray-600 px-3 py-2 rounded-lg border border-gray-200 shadow-sm flex items-center gap-2 text-sm font-medium transition"
+            >
+              <RotateCcw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Refresh
+            </button>
+            <button
+              onClick={handleAdd}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg shadow-sm flex items-center gap-2 text-sm font-medium transition"
+            >
+              <PlusCircle className="w-4 h-4" /> Tambah Pedagang
+            </button>
+          </div>
+        </div>
+
+        {/* Stat Cards */}
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-4">
+          <StatCard title="Total Pedagang" value={statsLoading ? '...' : stats.total} icon={Users} accentColor="bg-blue-500" subtitle="Seluruh data" />
+          <StatCard title="Total Saldo Akhir" value={statsLoading ? '...' : formatCurrency(stats.saldoAkhir)} icon={Wallet} accentColor="bg-amber-500" subtitle="Akumulasi saldo" />
+          <StatCard title="Total Deposit" value={statsLoading ? '...' : formatCurrency(stats.deposit)} icon={CheckCircle} accentColor="bg-emerald-500" subtitle="Akumulasi deposit" />
+          <StatCard title="Dispensasi Aktif" value={statsLoading ? '...' : stats.dispensasiAktif} icon={Activity} accentColor="bg-purple-500" subtitle="Pedagang dengan dispensasi" />
+        </div>
+
+        {/* Action Bar */}
+        <div className="flex justify-end items-center gap-3">
+          <button
+            onClick={() => setIsFilterExpanded(v => !v)}
+            className={`px-3 py-2 rounded-lg border text-sm font-medium flex items-center gap-2 transition ${
+              isFilterExpanded || activeFilterCount > 0
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            <Filter className="w-4 h-4" />
+            Filter Lanjutan
+            {activeFilterCount > 0 && (
+              <span className="bg-emerald-600 text-white text-[10px] font-bold rounded-full px-1.5 py-0.5 min-w-[18px] text-center">
+                {activeFilterCount}
               </span>
+            )}
+            <ChevronDown className={`w-3.5 h-3.5 transition ${isFilterExpanded ? 'rotate-180' : ''}`} />
+          </button>
+        </div>
+
+        {/* Filter Panel */}
+        {isFilterExpanded && (
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Cari ID Pedagang</label>
+                <div className="relative">
+                  <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Cari ID pedagang..."
+                    value={searchId}
+                    onChange={(e) => setSearchId(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Cari Nama</label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Cari nama alias/identitas..."
+                    value={searchName}
+                    onChange={(e) => setSearchName(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Cari No HP</label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Cari no HP..."
+                    value={searchHp}
+                    onChange={(e) => setSearchHp(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Status Pedagang</label>
+                <SearchableSelect
+                  options={PEDAGANG_STATUS_OPTIONS}
+                  value={statusFilter}
+                  onChange={(val) => setStatusFilter(val ?? '')}
+                  placeholder="Semua Status"
+                  isSearchable={true}
+                  isClearable={true}
+                  accentColor="green"
+                  className="text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Tipe Pedagang</label>
+                <SearchableSelect
+                  options={TIPE_OPTIONS}
+                  value={tipeFilter}
+                  onChange={(val) => setTipeFilter(val ?? '')}
+                  placeholder="Semua Tipe"
+                  isSearchable={true}
+                  isClearable={true}
+                  accentColor="green"
+                  className="text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Pasar</label>
+                <input
+                  type="text"
+                  placeholder="Nama pasar..."
+                  value={pasarFilter}
+                  onChange={(e) => setPasarFilter(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Dispensasi</label>
+                <SearchableSelect
+                  options={DISPENSASI_OPTIONS}
+                  value={dispensasiFilter}
+                  onChange={(val) => setDispensasiFilter(val ?? '')}
+                  placeholder="Semua"
+                  isSearchable={false}
+                  isClearable={true}
+                  accentColor="green"
+                  className="text-sm"
+                />
+              </div>
+            </div>
+
+            {/* Search & Reset Buttons */}
+            <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => fetchPedagang(1, pagination.perPage)}
+                disabled={loading}
+                className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-2 transition disabled:opacity-50"
+              >
+                <Search className="w-3.5 h-3.5" />
+                {loading ? 'Mencari...' : 'Cari'}
+              </button>
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-bold flex items-center gap-2 transition"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                Reset
+              </button>
+            </div>
+
+            {activeFilterCount > 0 && (
+              <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
+                <div className="flex flex-wrap gap-1.5">
+                  {searchId && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-semibold rounded-full border border-emerald-100">
+                      ID: "{searchId}"
+                      <button onClick={() => setSearchId('')} className="hover:bg-emerald-100 rounded-full">
+                        <XCircle className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
+                  {searchName && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-semibold rounded-full border border-emerald-100">
+                      Nama: "{searchName}"
+                      <button onClick={() => setSearchName('')} className="hover:bg-emerald-100 rounded-full">
+                        <XCircle className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
+                  {searchHp && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-semibold rounded-full border border-emerald-100">
+                      No HP: "{searchHp}"
+                      <button onClick={() => setSearchHp('')} className="hover:bg-emerald-100 rounded-full">
+                        <XCircle className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
+                  {statusFilter && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-semibold rounded-full border border-emerald-100">
+                      Status: {getStatusLabel(Number(statusFilter))}
+                      <button onClick={() => setStatusFilter('')} className="hover:bg-emerald-100 rounded-full">
+                        <XCircle className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
+                  {tipeFilter && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-semibold rounded-full border border-emerald-100">
+                      Tipe: {TIPE_LABELS[tipeFilter] || tipeFilter}
+                      <button onClick={() => setTipeFilter('')} className="hover:bg-emerald-100 rounded-full">
+                        <XCircle className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
+                  {pasarFilter && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-semibold rounded-full border border-emerald-100">
+                      Pasar: {pasarFilter}
+                      <button onClick={() => setPasarFilter('')} className="hover:bg-emerald-100 rounded-full">
+                        <XCircle className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
+                  {dispensasiFilter !== '' && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-semibold rounded-full border border-emerald-100">
+                      Dispensasi: {dispensasiFilter === '1' ? 'Aktif' : 'Tidak Aktif'}
+                      <button onClick={() => setDispensasiFilter('')} className="hover:bg-emerald-100 rounded-full">
+                        <XCircle className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={resetFilters}
+                  className="text-xs font-semibold text-gray-500 hover:text-red-600 flex items-center gap-1"
+                >
+                  <RotateCcw className="w-3 h-3" /> Reset Semua
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Error */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-2">
+            <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-red-700 text-sm font-medium">Koneksi API Error</p>
+              <p className="text-red-600 text-sm">{error}</p>
             </div>
           </div>
-          
-          {/* Scrollable Table Content */}
-          <div
-            className="w-full overflow-x-auto max-w-full table-scroll-container"
-            style={{
-              maxHeight: '75vh',
-              scrollBehavior: 'smooth',
-              WebkitOverflowScrolling: 'touch',
-              minHeight: '600px',
-            }}
-          >
-            <div style={{ minWidth: '1500px' }}>
-              <DataTable
-                key={`datatable-${pagination.currentPage}-${pedagangList.length}`}
-                className="pedagang-table"
-                columns={columns}
-                data={pedagangList}
-                pagination={false}
-                customStyles={customTableStyles}
-                wrapperStyle={{ 'data-table-wrapper': 'true' }}
-                progressPending={loading}
-                progressComponent={
-                  <div className="text-center py-12">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto"></div>
-                    <p className="text-gray-500 text-sm mt-2">Memuat data...</p>
+        )}
+
+        {/* Table - Desktop */}
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden hidden md:block">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="text-left text-[10px] font-bold text-gray-500 uppercase px-3 py-3 w-10">No</th>
+                  <th className="text-left text-[10px] font-bold text-gray-500 uppercase px-3 py-3">
+                    <button onClick={() => handleSort('nama_alias')} className="flex items-center gap-1 hover:text-gray-700">
+                      Pedagang <SortIcon column="nama_alias" />
+                    </button>
+                  </th>
+                  <th className="text-left text-[10px] font-bold text-gray-500 uppercase px-3 py-3">Pasar / Status</th>
+                  <th className="text-right text-[10px] font-bold text-gray-500 uppercase px-3 py-3">
+                    <button onClick={() => handleSort('saldo_akhir')} className="flex items-center gap-1 hover:text-gray-700 ml-auto">
+                      Saldo Akhir <SortIcon column="saldo_akhir" />
+                    </button>
+                  </th>
+                  <th className="text-right text-[10px] font-bold text-gray-500 uppercase px-3 py-3">Tabungan + Deposit</th>
+                  <th className="text-center text-[10px] font-bold text-gray-500 uppercase px-3 py-3">Dispensasi</th>
+                  <th className="text-center text-[10px] font-bold text-gray-500 uppercase px-3 py-3 w-10">Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td colSpan={7} className="py-16 text-center">
+                      <Loader2 className="w-6 h-6 text-emerald-500 animate-spin mx-auto mb-2" />
+                      <p className="text-sm text-gray-500">Memuat data...</p>
+                    </td>
+                  </tr>
+                ) : sortedData.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="py-16 text-center">
+                      <Users className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+                      <p className="text-sm text-gray-500">Tidak ada data pedagang ditemukan</p>
+                    </td>
+                  </tr>
+                ) : (
+                  sortedData.map((row, idx) => (
+                    <tr key={row.pid || row.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition">
+                      <td className="px-3 py-3 text-xs text-gray-400">
+                        {(pagination.currentPage - 1) * pagination.perPage + idx + 1}
+                      </td>
+                      <td className="px-3 py-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-700 text-xs font-bold flex-shrink-0">
+                            {(row.nama_alias || row.nama_identitas || '?').charAt(0).toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-gray-800 truncate">{row.nama_alias || '-'}</p>
+                            <p className="text-xs text-gray-400 flex items-center gap-1.5">
+                              <span className="font-mono">{row.id_pedagang || '-'}</span>
+                              {row.no_hp && (
+                                <span className="flex items-center gap-0.5">
+                                  · <Phone className="w-3 h-3" /> {row.no_hp}
+                                </span>
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-3 py-3">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-xs text-gray-700 flex items-center gap-1">
+                            <MapPin className="w-3 h-3 text-gray-400" /> {row.pasar || '-'}
+                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span className={`px-2 py-0.5 text-[10px] font-semibold rounded-full ${getStatusBadgeClasses(row.status_pedagang)}`}>
+                              {row.status_label || getStatusLabel(row.status_pedagang)}
+                            </span>
+                            <span className="text-[10px] text-gray-400">{TIPE_LABELS[row.tipe_pedagang] || '-'}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-3 py-3 text-right">
+                        <span className="text-sm font-bold text-gray-800 tabular-nums">{formatCurrency(row.saldo_akhir)}</span>
+                      </td>
+                      <td className="px-3 py-3 text-right">
+                        <span className="text-sm text-gray-600 tabular-nums">
+                          {formatCurrency(Number(row.tabungan || 0) + Number(row.deposit_pedagang || 0))}
+                        </span>
+                      </td>
+                      <td className="px-3 py-3 text-center">
+                        {row.is_dispensasi === 1 ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Aktif
+                          </span>
+                        ) : Number(row.total_dispensasi) > 0 ? (
+                          <span className="text-[10px] text-gray-500">{row.total_dispensasi}x</span>
+                        ) : (
+                          <span className="text-[10px] text-gray-300">-</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-3 text-center">
+                        <button
+                          onClick={(e) => openActionMenu(e, row)}
+                          className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition"
+                        >
+                          <MoreVertical className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Table - Mobile Cards */}
+        <div className="md:hidden space-y-3">
+          {loading ? (
+            <div className="bg-white rounded-xl border border-gray-100 p-8 text-center">
+              <Loader2 className="w-6 h-6 text-emerald-500 animate-spin mx-auto mb-2" />
+              <p className="text-sm text-gray-500">Memuat data...</p>
+            </div>
+          ) : sortedData.length === 0 ? (
+            <div className="bg-white rounded-xl border border-gray-100 p-8 text-center">
+              <Users className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+              <p className="text-sm text-gray-500">Tidak ada data pedagang</p>
+            </div>
+          ) : (
+            sortedData.map((row, idx) => (
+              <div key={row.pid || row.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <div className="w-9 h-9 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-700 text-sm font-bold flex-shrink-0">
+                      {(row.nama_alias || row.nama_identitas || '?').charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-800 truncate">{row.nama_alias || '-'}</p>
+                      <p className="text-xs text-gray-400 font-mono">{row.id_pedagang || '-'}</p>
+                    </div>
                   </div>
-                }
-                noDataComponent={
-                  <div className="text-center py-12">
-                    {error ? (
-                      <div className="text-red-600">
-                        <p className="text-lg font-semibold">Error</p>
-                        <p className="text-sm">{error}</p>
-                      </div>
-                    ) : searchTerm ? (
-                      <div className="text-gray-500">
-                        <p className="text-lg font-semibold">Tidak ada hasil untuk "{searchTerm}"</p>
-                        <p className="text-sm mt-2">Coba gunakan kata kunci yang berbeda</p>
-                      </div>
+                  <button
+                    onClick={(e) => openActionMenu(e, row)}
+                    className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100"
+                  >
+                    <MoreVertical className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <p className="text-gray-400">Pasar</p>
+                    <p className="text-gray-700 truncate">{row.pasar || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-400">Status</p>
+                    <span className={`inline-block px-2 py-0.5 text-[10px] font-semibold rounded-full ${getStatusBadgeClasses(row.status_pedagang)}`}>
+                      {row.status_label || getStatusLabel(row.status_pedagang)}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-gray-400">Saldo Akhir</p>
+                    <p className="text-gray-800 font-bold">{formatCurrency(row.saldo_akhir)}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-400">Dispensasi</p>
+                    {row.is_dispensasi === 1 ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        Aktif
+                      </span>
+                    ) : Number(row.total_dispensasi) > 0 ? (
+                      <span className="text-gray-600">{row.total_dispensasi}x</span>
                     ) : (
-                      <div className="text-gray-500">
-                        <Users className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                        <p className="text-gray-500 text-lg">Tidak ada data pedagang ditemukan</p>
-                      </div>
+                      <span className="text-gray-300">-</span>
                     )}
                   </div>
-                }
-                responsive={false}
-                highlightOnHover={true}
-                pointerOnHover={true}
-              />
-            </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Pagination */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3">
+          <div className="flex items-center gap-2 text-xs text-gray-500">
+            <span>Baris per halaman:</span>
+            <select
+              value={pagination.perPage}
+              onChange={(e) => handlePerPageChange(parseInt(e.target.value), 1)}
+              className="px-2 py-1 rounded-md border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+            >
+              {[10, 25, 50, 100].map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <span className="text-gray-400">
+              {((pagination.currentPage - 1) * pagination.perPage) + 1}-{Math.min(pagination.currentPage * pagination.perPage, pagination.totalItems)} dari {pagination.totalItems}
+            </span>
           </div>
-          
-          {/* Fixed Pagination */}
-          <div className="bg-white px-4 py-3 border-t border-gray-200 rounded-b-lg">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs text-gray-500">
-                <span className="text-green-600 bg-green-50 px-2 py-1 rounded-md">Scroll horizontal untuk melihat semua kolom</span>
-              </div>
-              
-              {/* Pagination Controls */}
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-700">Items per page:</span>
-                  <select
-                    value={pagination.perPage}
-                    onChange={(e) => handlePerPageChange(parseInt(e.target.value))}
-                    className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                  >
-                    {[10, 25, 50, 100].map(size => (
-                      <option key={size} value={size}>{size}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <span className="text-sm text-gray-700">
-                  {((pagination.currentPage - 1) * pagination.perPage) + 1}-{Math.min(pagination.currentPage * pagination.perPage, pagination.totalItems)} of {pagination.totalItems}
-                </span>
-
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => handlePageChange(1)}
-                    disabled={pagination.currentPage === 1}
-                    className="px-2 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    «
-                  </button>
-                  <button
-                    onClick={() => handlePageChange(pagination.currentPage - 1)}
-                    disabled={pagination.currentPage === 1}
-                    className="px-2 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    ‹
-                  </button>
-                  <span className="px-3 py-1 text-sm border border-gray-300 bg-red-50 text-red-600 rounded">
-                    {pagination.currentPage}
-                  </span>
-                  <button
-                    onClick={() => handlePageChange(pagination.currentPage + 1)}
-                    disabled={pagination.currentPage === pagination.totalPages}
-                    className="px-2 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    ›
-                  </button>
-                  <button
-                    onClick={() => handlePageChange(pagination.totalPages)}
-                    disabled={pagination.currentPage === pagination.totalPages}
-                    className="px-2 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    »
-                  </button>
-                </div>
-              </div>
-            </div>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => handlePageChange(1)}
+              disabled={pagination.currentPage === 1}
+              className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => handlePageChange(pagination.currentPage - 1)}
+              disabled={pagination.currentPage === 1}
+              className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <span className="px-3 py-1 text-xs font-semibold text-emerald-700 bg-emerald-50 rounded-md">
+              {pagination.currentPage} / {pagination.totalPages || 1}
+            </span>
+            <button
+              onClick={() => handlePageChange(pagination.currentPage + 1)}
+              disabled={pagination.currentPage === pagination.totalPages}
+              className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => handlePageChange(pagination.totalPages)}
+              disabled={pagination.currentPage === pagination.totalPages}
+              className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </div>
 
+      {menuPortal}
+
       {/* Modals */}
       <AddEditPedagangModal
         isOpen={showAddModal || showEditModal}
-        onClose={() => {
-          setShowAddModal(false);
-          setShowEditModal(false);
-          setEditData(null);
-        }}
+        onClose={() => { setShowAddModal(false); setShowEditModal(false); setEditData(null); }}
         onSave={handleSave}
         editData={editData}
         loading={loading}
       />
-
       <PedagangDetailModal
         isOpen={showDetailModal}
-        onClose={() => {
-          setShowDetailModal(false);
-          setDetailData(null);
-        }}
+        onClose={() => { setShowDetailModal(false); setDetailData(null); }}
         data={detailData}
       />
-
       <DeleteConfirmationModal
         isOpen={!!deleteData}
         onClose={() => { setDeleteData(null); setIsDeleting(false); }}
@@ -793,7 +823,6 @@ const PedagangPage = () => {
         description="Tindakan ini akan menghapus data pedagang secara permanen dan tidak dapat dibatalkan."
         loading={isDeleting}
       />
-
       <RekeningPedagangModal
         isOpen={showRekeningModal}
         onClose={() => { setShowRekeningModal(false); setRekeningData(null); }}
@@ -815,7 +844,6 @@ const PedagangPage = () => {
         }}
       />
     </div>
-    </>
   );
 };
 

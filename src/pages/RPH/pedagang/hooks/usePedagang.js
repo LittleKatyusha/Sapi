@@ -7,8 +7,13 @@ const usePedagang = () => {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [searchId, setSearchId] = useState('');
+  const [searchName, setSearchName] = useState('');
+  const [searchHp, setSearchHp] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [pasarFilter, setPasarFilter] = useState('');
+  const [tipeFilter, setTipeFilter] = useState('');
+  const [dispensasiFilter, setDispensasiFilter] = useState('');
 
   // Server-side pagination state
   const [pagination, setPagination] = useState({
@@ -54,10 +59,15 @@ const usePedagang = () => {
         start,
         length: perPage,
         search: debouncedSearch,
+        search_id: searchId,
+        search_name: searchName,
+        search_hp: searchHp,
         orderColumn: 0,
         orderDir: 'desc',
         status_pedagang: statusFilter,
         pasar: pasarFilter,
+        tipe_pedagang: tipeFilter,
+        is_dispensasi: dispensasiFilter,
       });
 
       if (result.success) {
@@ -78,7 +88,7 @@ const usePedagang = () => {
     } finally {
       setLoading(false);
     }
-  }, [debouncedSearch, statusFilter, pasarFilter]);
+  }, [debouncedSearch, statusFilter, pasarFilter, tipeFilter, dispensasiFilter]);
 
   /**
    * Fetch dashboard statistics
@@ -193,8 +203,13 @@ const usePedagang = () => {
    */
   const resetFilters = useCallback(() => {
     setSearchTerm('');
+    setSearchId('');
+    setSearchName('');
+    setSearchHp('');
     setStatusFilter('');
     setPasarFilter('');
+    setTipeFilter('');
+    setDispensasiFilter('');
   }, []);
 
   return {
@@ -204,10 +219,20 @@ const usePedagang = () => {
     searchTerm,
     setSearchTerm,
     debouncedSearch,
+    searchId,
+    setSearchId,
+    searchName,
+    setSearchName,
+    searchHp,
+    setSearchHp,
     statusFilter,
     setStatusFilter,
     pasarFilter,
     setPasarFilter,
+    tipeFilter,
+    setTipeFilter,
+    dispensasiFilter,
+    setDispensasiFilter,
     pagination,
     statistics,
     statsLoading,
