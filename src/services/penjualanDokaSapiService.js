@@ -144,6 +144,7 @@ class PenjualanDokaSapiService {
       pid: item.pid, // Encrypted PID for API calls
       no_po: item.no_po || '',
       nota: item.nota || '', // Map nota field correctly
+      nota_sistem: item.nota_sistem || '', // Nota sistem from tr_pembelian_ho
       rph: item.rph || '',
       nama_supplier: item.rph || '', // Map rph to nama_supplier for display
       created_at: item.created_at || item.tgl_pesanan,
@@ -158,6 +159,7 @@ class PenjualanDokaSapiService {
       nama_office: 'Head Office',
       nama_supir: item.nama_supir || item.supir || item.nama_driver || item.driver || '-',
       plat_nomor: item.plat_nomor || item.plat || item.no_plat || '-',
+      persetujuan_ho: item.persetujuan_ho || item.persetujuan || item.nama_persetujuan || '',
       biaya_lain: 0,
       biaya_truk: 0,
       berat_total: 0,

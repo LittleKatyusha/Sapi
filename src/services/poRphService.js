@@ -244,7 +244,11 @@ class PoRphService {
       encryptedPid: item.pid, // Alias for compatibility
       no_po: item.no_po || '',
       nota: item.nota || '',
-      nota_sistem: item.no_po || '', // Map no_po to nota_sistem for compatibility
+      nota_sistem: item.nota_sistem || '',
+      no_surat_jalan: item.no_surat_jalan || '',
+      no_faktur: item.no_faktur || '',
+      persetujuan_rph: item.persetujuan_rph || '',
+      persetujuan_ho: item.persetujuan_ho || '',
       
       // Dates
       tgl_pesanan: item.tgl_pesanan || item.created_at,

@@ -4,14 +4,10 @@ import {
   Eye,
   Pencil,
   Trash2,
-  Calendar,
   ChevronLeft,
   ChevronRight,
   SearchX,
-  PlusCircle,
-  Hash,
-  FileText,
-  CheckCircle2
+  PlusCircle
 } from 'lucide-react';
 
 const formatCurrency = (value) => {
@@ -179,10 +175,14 @@ const ModernPembelianSapiTable = ({
             <thead className="bg-gray-50/50 border-b border-gray-100">
               <tr>
                 <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center w-10">No</th>
-                <TableHeader label="PO / Nota" sortKey="no_po" />
-                <TableHeader label="Tanggal & Status" sortKey="created_at" />
-                <TableHeader label="Jumlah & Harga" sortKey="jumlah" align="right" />
-                <TableHeader label="Surat Jalan / Faktur" />
+                <TableHeader label="PO & Nota" sortKey="no_po" />
+                <TableHeader label="Tanggal" sortKey="created_at" />
+                <TableHeader label="Persetujuan" sortKey="persetujuan" />
+                <TableHeader label="Jumlah" sortKey="jumlah" align="right" />
+                <TableHeader label="Harga" sortKey="harga" align="right" />
+                <TableHeader label="Surat Jalan" />
+                <TableHeader label="Faktur" />
+                <TableHeader label="Status" sortKey="status" />
                 <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right w-16">Aksi</th>
               </tr>
             </thead>
@@ -197,45 +197,52 @@ const ModernPembelianSapiTable = ({
                       {rowNumber}
                     </td>
                     <td className="px-3 py-2.5">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-md bg-emerald-50 flex items-center justify-center flex-shrink-0">
-                          <Hash className="w-4 h-4 text-emerald-600" />
-                        </div>
-                        <div className="min-w-0">
-                          <div className="font-medium text-gray-900 truncate">{row.no_po || '-'}</div>
-                          <div className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
-                            <FileText className="w-3.5 h-3.5" />
-                            <span className="truncate">{row.nota || '-'}</span>
-                          </div>
-                        </div>
+                      <div className="font-medium text-gray-900 truncate" title={row.no_po}>{row.no_po || '-'}</div>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase">Sistem</span>
+                        <span className={`text-xs font-mono ${row.nota_sistem ? 'text-gray-600' : 'text-gray-300'}`} title={row.nota_sistem}>
+                          {row.nota_sistem || '-'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase">Nota</span>
+                        <span className={`text-xs font-mono ${row.nota ? 'text-gray-600' : 'text-gray-300'}`} title={row.nota}>
+                          {row.nota || '-'}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-3 py-2.5 whitespace-nowrap">
+                      <div className="font-medium text-gray-900">{formatDate(row.tgl_pesanan || row.created_at)}</div>
+                      <div className="text-xs text-gray-500">{formatDateCompact(row.tgl_pesanan || row.created_at)}</div>
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <div className="text-xs text-gray-700 truncate max-w-[140px]" title={row.persetujuan_rph || row.persetujuan_ho || row.nama_persetujuan}>
+                        {row.persetujuan_rph || row.persetujuan_ho || row.nama_persetujuan || '-'}
+                      </div>
+                    </td>
+                    <td className="px-3 py-2.5 text-right whitespace-nowrap">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-md text-xs font-semibold">
+                        {row.jumlah || 0}
+                        <span className="text-[10px] font-normal text-indigo-500">ekor</span>
+                      </span>
+                    </td>
+                    <td className="px-3 py-2.5 text-right whitespace-nowrap">
+                      <div className="font-medium text-emerald-700">{formatCurrency(row.harga || row.biaya_total || 0)}</div>
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <div className={`font-mono text-xs whitespace-nowrap ${row.no_surat_jalan ? 'text-gray-700' : 'text-gray-300'}`}>
+                        {row.no_surat_jalan || '-'}
                       </div>
                     </td>
                     <td className="px-3 py-2.5">
-                      <div className="flex items-start gap-2.5">
-                        <div className="w-8 h-8 rounded-md bg-blue-50 flex items-center justify-center flex-shrink-0">
-                          <Calendar className="w-4 h-4 text-blue-600" />
-                        </div>
-                        <div className="min-w-0">
-                          <div className="font-medium text-gray-900">{formatDate(row.tgl_pesanan || row.created_at)}</div>
-                          <div className="text-xs text-gray-500">{formatDateCompact(row.tgl_pesanan || row.created_at)}</div>
-                          <div className={`mt-1.5 inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border ${getStatusStyle(statusValue)}`}>
-                            {getStatusLabel(statusValue)}
-                          </div>
-                        </div>
+                      <div className={`font-mono text-xs whitespace-nowrap ${row.no_faktur ? 'text-gray-700' : 'text-gray-300'}`}>
+                        {row.no_faktur || '-'}
                       </div>
-                    </td>
-                    <td className="px-3 py-2.5 text-right">
-                      <div className="font-semibold text-gray-900">{row.jumlah || 0}</div>
-                      <div className="text-xs text-gray-500">ekor</div>
-                      <div className="mt-1 font-medium text-emerald-700">{formatCurrency(row.harga || row.biaya_total || 0)}</div>
                     </td>
                     <td className="px-3 py-2.5">
-                      <div className="min-w-0">
-                        <div className="text-xs text-gray-500">Surat Jalan</div>
-                        <div className="font-medium text-gray-900 truncate">{row.no_surat_jalan || '-'}</div>
-                        <div className="text-xs text-gray-500 mt-1">Faktur</div>
-                        <div className="font-medium text-gray-900 truncate">{row.no_faktur || '-'}</div>
-                      </div>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border ${getStatusStyle(statusValue)}`}>
+                        {getStatusLabel(statusValue)}
+                      </span>
                     </td>
                     <td className="px-3 py-2.5 text-right">
                       <div className="relative inline-block text-left">

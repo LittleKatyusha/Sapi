@@ -45,16 +45,19 @@ const getStatusBadge = (status) => {
     switch (s) {
         case 'approved':
         case 'disetujui':
+        case '2':
         case 'completed':
         case 'selesai':
             return { text: 'Disetujui', className: 'bg-green-50 text-green-700 ring-1 ring-green-600/10' };
         case 'pending':
         case 'menunggu':
+        case '1':
             return { text: 'Menunggu', className: 'bg-yellow-50 text-yellow-700 ring-1 ring-yellow-600/10' };
         case 'rejected':
         case 'ditolak':
         case 'cancelled':
         case 'dibatalkan':
+        case '3':
             return { text: 'Ditolak', className: 'bg-red-50 text-red-700 ring-1 ring-red-600/10' };
         default:
             return { text: status || 'Unknown', className: 'bg-gray-50 text-gray-700 ring-1 ring-gray-600/10' };
@@ -415,13 +418,11 @@ const PenjualanSapiHOPage = () => {
             {Array.from({ length: serverPagination.perPage }).map((_, i) => (
                 <tr key={i} className="border-b border-gray-50">
                     <td className="px-3 py-2.5"><div className="h-4 w-6 bg-gray-100 rounded animate-pulse" /></td>
+                    <td className="px-3 py-2.5"><div className="h-4 w-40 bg-gray-100 rounded animate-pulse" /></td>
+                    <td className="px-3 py-2.5"><div className="h-4 w-24 bg-gray-100 rounded animate-pulse" /></td>
+                    <td className="px-3 py-2.5"><div className="h-4 w-28 bg-gray-100 rounded animate-pulse" /></td>
                     <td className="px-3 py-2.5"><div className="h-4 w-32 bg-gray-100 rounded animate-pulse" /></td>
-                    <td className="px-3 py-2.5"><div className="h-4 w-20 bg-gray-100 rounded animate-pulse" /></td>
-                    <td className="px-3 py-2.5"><div className="h-4 w-24 bg-gray-100 rounded animate-pulse" /></td>
-                    <td className="px-3 py-2.5"><div className="h-4 w-16 bg-gray-100 rounded animate-pulse" /></td>
-                    <td className="px-3 py-2.5"><div className="h-4 w-12 bg-gray-100 rounded animate-pulse" /></td>
-                    <td className="px-3 py-2.5"><div className="h-4 w-24 bg-gray-100 rounded animate-pulse" /></td>
-                    <td className="px-3 py-2.5"><div className="h-5 w-16 bg-gray-100 rounded animate-pulse" /></td>
+                    <td className="px-3 py-2.5"><div className="h-5 w-20 bg-gray-100 rounded animate-pulse" /></td>
                     <td className="px-3 py-2.5"><div className="h-4 w-16 bg-gray-100 rounded animate-pulse" /></td>
                 </tr>
             ))}
@@ -552,13 +553,11 @@ const PenjualanSapiHOPage = () => {
                             <thead className="bg-gray-50 sticky top-0 z-10">
                                 <tr>
                                     <TableHeader className="w-10">No</TableHeader>
-                                    <TableHeader field="nama_supplier">Customer / Nota</TableHeader>
+                                    <TableHeader field="rph">Customer & Dokumen</TableHeader>
                                     <TableHeader field="tgl_masuk">Tanggal</TableHeader>
-                                    <TableHeader field="nama_supir">Supir</TableHeader>
-                                    <TableHeader field="plat_nomor">Plat</TableHeader>
-                                    <TableHeader field="jumlah">Jumlah</TableHeader>
-                                    <TableHeader field="biaya_total">Total Harga</TableHeader>
-                                    <TableHeader field="status">Status</TableHeader>
+                                    <TableHeader field="jumlah">Jumlah & Total</TableHeader>
+                                    <TableHeader>Persetujuan & Status</TableHeader>
+                                    <TableHeader>Surat Jalan & Faktur</TableHeader>
                                     <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                                 </tr>
                             </thead>
@@ -566,7 +565,7 @@ const PenjualanSapiHOPage = () => {
                                 <tbody className="divide-y divide-gray-100">
                                     {displayedData.length === 0 ? (
                                         <tr>
-                                            <td colSpan={9} className="px-3 py-12 text-center">
+                                            <td colSpan={7} className="px-3 py-12 text-center">
                                                 {error ? (
                                                     <div className="text-red-600 text-sm">{error}</div>
                                                 ) : searchTerm ? (
@@ -583,29 +582,66 @@ const PenjualanSapiHOPage = () => {
                                         displayedData.map((row, index) => {
                                             const status = getStatusBadge(row.status);
                                             const rowNumber = (serverPagination.currentPage - 1) * serverPagination.perPage + index + 1;
+                                            const noPo = row.no_po || row._original?.no_po || '-';
+                                            const notaSistem = row.nota_sistem || row._original?.nota_sistem || '-';
+                                            const notaManual = row.nota || row._original?.nota || '-';
+                                            const suratJalan = row.no_surat_jalan || row._original?.no_surat_jalan || '-';
+                                            const faktur = row.no_faktur || row._original?.no_faktur || '-';
+                                            const persetujuan = row.persetujuan_ho || row._original?.persetujuan_ho || '-';
                                             return (
                                                 <tr
                                                     key={row.pid || row.pubid || index}
-                                                    className="hover:bg-gray-50 transition-colors cursor-pointer"
-                                                    onClick={() => handleDetail(row)}
+                                                    className="hover:bg-gray-50 transition-colors"
                                                 >
                                                     <td className="px-3 py-2.5 text-gray-500 text-xs">{rowNumber}</td>
                                                     <td className="px-3 py-2.5">
-                                                        <div className="font-medium text-gray-900">{row.nama_supplier || '-'}</div>
-                                                        <div className="text-xs text-gray-500">{row.nota || row.no_po || '-'}</div>
+                                                        <div className="font-medium text-gray-900 truncate max-w-[180px]" title={row.rph || row.nama_supplier}>
+                                                            {row.rph || row.nama_supplier || '-'}
+                                                        </div>
+                                                        <div className="flex items-center gap-1.5 mt-0.5">
+                                                            <span className="text-[10px] font-bold text-gray-400 uppercase">PO</span>
+                                                            <span className={`text-xs font-mono ${noPo !== '-' ? 'text-gray-600' : 'text-gray-300'}`}>{noPo}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1.5">
+                                                            <span className="text-[10px] font-bold text-gray-400 uppercase">Sistem</span>
+                                                            <span className={`text-xs font-mono ${notaSistem !== '-' ? 'text-gray-600' : 'text-gray-300'}`}>{notaSistem}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1.5">
+                                                            <span className="text-[10px] font-bold text-gray-400 uppercase">Nota</span>
+                                                            <span className={`text-xs font-mono ${notaManual !== '-' ? 'text-gray-600' : 'text-gray-300'}`}>{notaManual}</span>
+                                                        </div>
                                                     </td>
                                                     <td className="px-3 py-2.5 text-gray-700 whitespace-nowrap">{formatDate(row.tgl_masuk)}</td>
-                                                    <td className="px-3 py-2.5 text-gray-700">{row.nama_supir || '-'}</td>
-                                                    <td className="px-3 py-2.5 text-gray-700 font-mono text-xs">{row.plat_nomor || '-'}</td>
-                                                    <td className="px-3 py-2.5 text-gray-700">
-                                                        <span className="font-medium">{row.jumlah || 0}</span>
-                                                        <span className="text-xs text-gray-500 ml-1">ekor</span>
+                                                    <td className="px-3 py-2.5 whitespace-nowrap">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-md text-xs font-semibold">
+                                                                {row.jumlah || 0}
+                                                                <span className="text-[10px] font-normal text-indigo-500">ekor</span>
+                                                            </span>
+                                                            <span className="font-medium text-gray-900 text-xs">{formatCurrency(row.biaya_total)}</span>
+                                                        </div>
                                                     </td>
-                                                    <td className="px-3 py-2.5 font-medium text-gray-900 whitespace-nowrap">{formatCurrency(row.biaya_total)}</td>
                                                     <td className="px-3 py-2.5">
                                                         <span className={`inline-flex px-2 py-0.5 rounded-md text-xs font-medium ${status.className}`}>
                                                             {status.text}
                                                         </span>
+                                                        <div className={`text-xs mt-1 ${persetujuan !== '-' ? 'text-gray-600' : 'text-gray-300'} truncate max-w-[120px]`} title={persetujuan}>
+                                                            {persetujuan !== '-' ? persetujuan : 'Belum disetujui'}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-3 py-2.5">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <span className="text-[10px] font-bold text-gray-400 uppercase w-10 flex-shrink-0">SJ</span>
+                                                            <span className={`text-xs font-mono whitespace-nowrap ${suratJalan !== '-' ? 'text-gray-700' : 'text-gray-300'}`}>
+                                                                {suratJalan}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1.5 mt-0.5">
+                                                            <span className="text-[10px] font-bold text-gray-400 uppercase w-10 flex-shrink-0">Faktur</span>
+                                                            <span className={`text-xs font-mono whitespace-nowrap ${faktur !== '-' ? 'text-gray-700' : 'text-gray-300'}`}>
+                                                                {faktur}
+                                                            </span>
+                                                        </div>
                                                     </td>
                                                     <td className="px-3 py-2.5 text-right">
                                                         <div className="flex items-center justify-end">
