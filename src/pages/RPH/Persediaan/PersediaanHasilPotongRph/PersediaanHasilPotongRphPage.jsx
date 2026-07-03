@@ -10,6 +10,7 @@ import PersediaanHasilPotongService from '../../../../services/persediaanHasilPo
 
 const TABS = [
   { id: 'boning', label: 'Boning', icon: Scissors },
+  { id: 'sapi', label: 'Sapi', icon: Package },
   { id: 'karkas', label: 'Karkas', icon: Layers },
   { id: 'kulit', label: 'Kulit', icon: Package },
 ];

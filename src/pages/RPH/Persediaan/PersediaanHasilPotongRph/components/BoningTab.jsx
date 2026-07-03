@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import DataTable from 'react-data-table-component';
 import {
   Search,
@@ -7,19 +7,12 @@ import {
   RefreshCw,
   Eye,
   Beef,
-  Package,
   Boxes,
   Scale,
   CircleOff,
 } from 'lucide-react';
 import usePersediaanHasilPotong from '../hooks/usePersediaanHasilPotong';
-import PersediaanTab from './PersediaanTab';
 import customTableStyles from '../constants/tableStyles';
-
-const SUB_TABS = [
-  { id: 'boning', label: 'Stok By Boning', icon: Beef },
-  { id: 'sapi', label: 'Stok By Sapi', icon: Package },
-];
 
 const formatJumlah = (value) => {
   const numeric = Number(value ?? 0);
@@ -387,60 +380,12 @@ const BoningSummaryTable = ({ onOpenDetail, refreshKey }) => {
   );
 };
 
-const BoningTab = ({ refreshKey, onOpenDetail, onOpenEdit, onOpenDelete }) => {
-  const [activeSubTab, setActiveSubTab] = useState('boning');
-
+const BoningTab = ({ refreshKey, onOpenDetail }) => {
   return (
-    <div className="space-y-5">
-      <div className="rounded-3xl border border-emerald-100 bg-gradient-to-r from-emerald-50 via-white to-teal-50 p-2 shadow-sm">
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          {SUB_TABS.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeSubTab === tab.id;
-
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveSubTab(tab.id)}
-                className={`rounded-xl px-4 py-3 text-left transition-all ${
-                  isActive
-                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md'
-                    : 'bg-white/80 text-gray-700 shadow-sm hover:bg-white'
-                }`}
-              >
-                <span className="flex items-center gap-3">
-                  <span className={`rounded-xl p-2.5 ${isActive ? 'bg-white/15' : 'bg-emerald-100 text-emerald-700'}`}>
-                    <Icon className="h-4 w-4" />
-                  </span>
-                  <span>
-                    <span className="block text-sm font-semibold">{tab.label}</span>
-                    <span className={`block text-xs ${isActive ? 'text-emerald-50' : 'text-gray-500'}`}>
-                      {tab.id === 'boning' ? 'Ringkasan stok per item potong' : 'Daftar stok berdasarkan sapi'}
-                    </span>
-                  </span>
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {activeSubTab === 'boning' ? (
-        <BoningSummaryTable
-          refreshKey={refreshKey}
-          onOpenDetail={onOpenDetail}
-        />
-      ) : (
-        <PersediaanTab
-          key={`sapi-${refreshKey}`}
-          type="sapi"
-          onOpenDetail={onOpenDetail}
-          onOpenEdit={onOpenEdit}
-          onOpenDelete={onOpenDelete}
-        />
-      )}
-    </div>
+    <BoningSummaryTable
+      refreshKey={refreshKey}
+      onOpenDetail={onOpenDetail}
+    />
   );
 };
 
