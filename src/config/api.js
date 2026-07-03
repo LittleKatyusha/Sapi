@@ -207,7 +207,11 @@ export const API_ENDPOINTS = {
       DETAIL_STORE: '/api/ho/payment/detail/store',
       DETAIL_UPDATE: '/api/ho/payment/detail/update',
       DETAIL_DELETE: '/api/ho/payment/detail/hapus',
-      ADD_PAYMENT: '/api/ho/payment/detail/store'
+      ADD_PAYMENT: '/api/ho/payment/detail/store',
+      PENERIMAAN: '/api/ho/payment/penerimaan',
+      PENERIMAAN_DETAIL: '/api/ho/payment/penerimaan/detail',
+      PENERIMAAN_BAYAR: '/api/ho/payment/penerimaan/bayar',
+      PENERIMAAN_HISTORY: '/api/ho/payment/penerimaan/history'
     },
     EARTAG: {
       BASE: '/api/ho/eartag',
@@ -280,7 +284,11 @@ export const API_ENDPOINTS = {
       SHOW: '/api/rph/payment/show',
       STORE: '/api/rph/payment/store',
       UPDATE: '/api/rph/payment/update',
-      DELETE: '/api/rph/payment/hapus'
+      DELETE: '/api/rph/payment/hapus',
+      PENGELUARAN: '/api/rph/payment/pengeluaran',
+      PENGELUARAN_DETAIL: '/api/rph/payment/pengeluaran/detail',
+      PENGELUARAN_BAYAR: '/api/rph/payment/pengeluaran/bayar',
+      PENGELUARAN_HISTORY: '/api/rph/payment/pengeluaran/history'
     },
     BAHAN_PEMBANTU: {
       DATA: '/api/rph/bahanpembantu/data',

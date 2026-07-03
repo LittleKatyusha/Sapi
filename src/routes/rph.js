@@ -13,6 +13,8 @@ const ReturnPenjualanPage = lazy(() => import('../pages/RPH/PenjualanSapiUtuh/Re
 const ReturnHistoryPage = lazy(() => import('../pages/RPH/PenjualanSapiUtuh/ReturnHistoryPage'));
 const PenerimaanRphPage = lazy(() => import('../pages/RPH/Keuangan/Penerimaan/PenerimaanRphPage'));
 const BayarPage = lazy(() => import('../pages/RPH/Keuangan/Penerimaan/Bayar/BayarPage'));
+const PengeluaranRphPage = lazy(() => import('../pages/RPH/Keuangan/Pengeluaran/PengeluaranRphPage'));
+const BayarPengeluaranPage = lazy(() => import('../pages/RPH/Keuangan/Pengeluaran/Bayar/BayarPage'));
 const PengirimanPage = lazy(() => import('../pages/RPH/PenjualanSapiUtuh/Pengiriman/PengirimanPage'));
 const PenawaranPage = lazy(() => import('../pages/RPH/Penawaran/PenawaranPage'));
 const AddEditPenawaranPage = lazy(() => import('../pages/RPH/Penawaran/AddEditPenawaranPage'));
@@ -77,6 +79,14 @@ export const rphRoutes = [
   {
     path: '/rph/keuangan/penerimaan/bayar/:pid',
     element: <BayarPage />
+  },
+  {
+    path: '/rph/keuangan/pengeluaran',
+    element: <PengeluaranRphPage />
+  },
+  {
+    path: '/rph/keuangan/pengeluaran/bayar/:pid',
+    element: <BayarPengeluaranPage />
   },
   {
     path: '/rph/penjualan-sapi-utuh/pengiriman/:pid',

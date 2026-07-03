@@ -121,6 +121,9 @@ const ReturnHistoryPage = lazy(() => import('./pages/RPH/PenjualanSapiUtuh/Retur
 // RPH Keuangan Penerimaan Page - Lazy loaded
 const PenerimaanRphPage = lazy(() => import('./pages/RPH/Keuangan/Penerimaan/PenerimaanRphPage'));
 const BayarPage = lazy(() => import('./pages/RPH/Keuangan/Penerimaan/Bayar/BayarPage'));
+// RPH Keuangan Pengeluaran Page - Lazy loaded
+const PengeluaranRphPage = lazy(() => import('./pages/RPH/Keuangan/Pengeluaran/PengeluaranRphPage'));
+const BayarPengeluaranPage = lazy(() => import('./pages/RPH/Keuangan/Pengeluaran/Bayar/BayarPage'));
 const PengirimanPage = lazy(() => import('./pages/RPH/PenjualanSapiUtuh/Pengiriman/PengirimanPage'));
 
 // RPH Penawaran Pages - Lazy loaded
@@ -189,6 +192,7 @@ const PengajuanPage = lazy(() => import('./pages/ho/pengajuan/PengajuanPage'));
 
 // Keuangan Pages - Lazy loaded (unified HO)
 const HOKeuanganPage = lazy(() => import('./pages/ho/keuangan/KeuanganPage'));
+const PenerimaanHoPage = lazy(() => import('./pages/ho/keuangan/Penerimaan/PenerimaanHoPage'));
 const KeuanganKasDetailPage = lazy(() => import('./pages/ho/keuanganKas/KeuanganKasDetailPage'));
 const KeuanganBankDetailPage = lazy(() => import('./pages/ho/keuanganBank/KeuanganBankDetailPage'));
 
@@ -427,6 +431,8 @@ function AppSecure() {
               {/* RPH Keuangan Routes */}
               <Route path="/rph/keuangan/penerimaan" element={<PenerimaanRphPage />} />
               <Route path="/rph/keuangan/penerimaan/bayar/:pid" element={<BayarPage />} />
+              <Route path="/rph/keuangan/pengeluaran" element={<PengeluaranRphPage />} />
+              <Route path="/rph/keuangan/pengeluaran/bayar/:pid" element={<BayarPengeluaranPage />} />
 
               {/* RPH Penjualan Sapi Utuh Pengiriman Route */}
               <Route path="/rph/penjualan-sapi-utuh/pengiriman/:pid" element={<PengirimanPage />} />
@@ -482,6 +488,7 @@ function AppSecure() {
               
               {/* HO Keuangan Routes (unified) */}
               <Route path="/ho/keuangan/pengeluaran" element={<HOKeuanganPage />} />
+              <Route path="/ho/keuangan/penerimaan" element={<PenerimaanHoPage />} />
               <Route path="/ho/keuangan-kas/detail/:id" element={<KeuanganKasDetailPage />} />
               <Route path="/ho/keuangan-bank/detail/:id" element={<KeuanganBankDetailPage />} />
 
@@ -546,6 +553,8 @@ function AppSecure() {
               {/* Legacy redirect: keuangan/pengeluaran → /ho/keuangan/pengeluaran */}
               <Route path="/keuangan/pengeluaran" element={<Navigate to="/ho/keuangan/pengeluaran" replace />} />
               <Route path="/keuangan-pengeluaran" element={<Navigate to="/ho/keuangan/pengeluaran" replace />} />
+              <Route path="/keuangan/penerimaan" element={<Navigate to="/ho/keuangan/penerimaan" replace />} />
+              <Route path="/keuangan-penerimaan" element={<Navigate to="/ho/keuangan/penerimaan" replace />} />
 
               {/* Alias redirect: /pengajuan → /ho/pengajuan */}
               <Route path="/pengajuan" element={<Navigate to="/ho/pengajuan" replace />} />

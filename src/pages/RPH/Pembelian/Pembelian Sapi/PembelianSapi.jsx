@@ -282,6 +282,16 @@ const PembelianSapi = () => {
         });
     };
 
+    // Handle Bayar - Navigate to pengeluaran bayar page
+    const handleBayar = (item) => {
+        const pembayaranPid = item.pembayaran_pid;
+        if (!pembayaranPid) {
+            setNotification({ type: 'error', message: 'Data pembayaran tidak ditemukan' });
+            return;
+        }
+        navigate(`/rph/keuangan/pengeluaran/bayar/${pembayaranPid}`);
+    };
+
     // Pagination handlers for mobile cards
     const handlePageChange = (page) => {
         handleServerPageChange(page);
@@ -481,6 +491,7 @@ const PembelianSapi = () => {
                             onDelete={handleDelete}
                             onDetail={handleDetail}
                             onAdd={handleOpenAddModal}
+                            onBayar={handleBayar}
                         />
                     </div>
 

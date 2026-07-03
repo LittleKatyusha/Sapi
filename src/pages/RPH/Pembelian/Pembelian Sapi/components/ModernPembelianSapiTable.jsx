@@ -7,7 +7,8 @@ import {
   ChevronLeft,
   ChevronRight,
   SearchX,
-  PlusCircle
+  PlusCircle,
+  Banknote
 } from 'lucide-react';
 
 const formatCurrency = (value) => {
@@ -83,7 +84,8 @@ const ModernPembelianSapiTable = ({
   onEdit,
   onDelete,
   onDetail,
-  onAdd
+  onAdd,
+  onBayar
 }) => {
   const [openMenuId, setOpenMenuId] = useState(null);
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
@@ -183,6 +185,7 @@ const ModernPembelianSapiTable = ({
                 <TableHeader label="Surat Jalan" />
                 <TableHeader label="Faktur" />
                 <TableHeader label="Status" sortKey="status" />
+                <TableHeader label="Status Bayar" />
                 <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right w-16">Aksi</th>
               </tr>
             </thead>
@@ -244,6 +247,25 @@ const ModernPembelianSapiTable = ({
                         {getStatusLabel(statusValue)}
                       </span>
                     </td>
+                    <td className="px-3 py-2.5">
+                      {(() => {
+                        const ps = row.payment_status;
+                        const label = row.payment_status_label;
+                        if (ps === null || ps === undefined) {
+                          return <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border bg-gray-50 text-gray-400 border-gray-200">-</span>;
+                        }
+                        const styles = ps === 1
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : ps === 0
+                            ? 'bg-amber-50 text-amber-700 border-amber-200'
+                            : 'bg-slate-50 text-slate-600 border-slate-200';
+                        return (
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border ${styles}`}>
+                            {label || (ps === 1 ? 'Lunas' : ps === 0 ? 'Belum Lunas' : 'Belum Bayar')}
+                          </span>
+                        );
+                      })()}
+                    </td>
                     <td className="px-3 py-2.5 text-right">
                       <div className="relative inline-block text-left">
                         <button
@@ -266,6 +288,14 @@ const ModernPembelianSapiTable = ({
                             >
                               <Pencil className="w-4 h-4" /> Edit
                             </button>
+                            {onBayar && row.status === 'Disetujui' && (row.sisa_pembayaran || 0) > 0 && row.pembayaran_pid && (
+                              <button
+                                onClick={() => { onBayar(row); setOpenMenuId(null); }}
+                                className="w-full px-3 py-2 text-sm text-emerald-600 hover:bg-emerald-50 flex items-center gap-2"
+                              >
+                                <Banknote className="w-4 h-4" /> Bayar
+                              </button>
+                            )}
                             <button
                               onClick={() => { onDelete(row); setOpenMenuId(null); }}
                               className="w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"

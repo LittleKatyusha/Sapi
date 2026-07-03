@@ -82,6 +82,8 @@ export const useDynamicMenu = () => {
               'penjualan': '/ho/penjualan',
               'keuangan/pengeluaran': '/ho/keuangan/pengeluaran',
               'keuangan-pengeluaran': '/ho/keuangan/pengeluaran',
+              'keuangan/penerimaan': '/ho/keuangan/penerimaan',
+              'keuangan-penerimaan': '/ho/keuangan/penerimaan',
               'kandang-office': '/master-data/kandang-office',
               'jenis-hewan': '/master-data/jenis-hewan',
               'klasifikasi-hewan': '/master-data/klasifikasi-hewan',
@@ -190,6 +192,10 @@ export const useDynamicMenu = () => {
             'pembelian-feedmil': '/ho/pembelian-feedmil',
             'pembelian-ovk': '/ho/pembelian-ovk',
             'penjualan': '/ho/penjualan',
+            'keuangan/pengeluaran': '/ho/keuangan/pengeluaran',
+            'keuangan-pengeluaran': '/ho/keuangan/pengeluaran',
+            'keuangan/penerimaan': '/ho/keuangan/penerimaan',
+            'keuangan-penerimaan': '/ho/keuangan/penerimaan',
             'kandang-office': '/master-data/kandang-office',
             'jenis-hewan': '/master-data/jenis-hewan',
             'klasifikasi-hewan': '/master-data/klasifikasi-hewan',
@@ -278,6 +284,7 @@ export const useDynamicMenu = () => {
     } finally {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /**
@@ -313,6 +320,8 @@ export const useDynamicMenu = () => {
               'penjualan': '/ho/penjualan',
               'keuangan/pengeluaran': '/ho/keuangan/pengeluaran',
               'keuangan-pengeluaran': '/ho/keuangan/pengeluaran',
+              'keuangan/penerimaan': '/ho/keuangan/penerimaan',
+              'keuangan-penerimaan': '/ho/keuangan/penerimaan',
               'kandang-office': '/master-data/kandang-office',
               'jenis-hewan': '/master-data/jenis-hewan',
               'klasifikasi-hewan': '/master-data/klasifikasi-hewan',
@@ -367,6 +376,7 @@ export const useDynamicMenu = () => {
       // Silent fail for cache loading
     }
     return null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /**
@@ -382,6 +392,7 @@ export const useDynamicMenu = () => {
    */
   const refreshMenu = useCallback(() => {
     return fetchMenuTree(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /**
@@ -491,6 +502,7 @@ export const useDynamicMenu = () => {
   useEffect(() => {
     // Fetch dari server dengan force refresh untuk memastikan data fresh
     fetchMenuTree(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty dependency array to run only once on mount
 
   return {

@@ -28,6 +28,8 @@ const KeuanganBankDetailPage = lazy(() => import('../pages/ho/keuanganBank/Keuan
 
 const KeuanganPage = lazy(() => import('../pages/ho/keuangan/KeuanganPage'));
 
+const PenerimaanHoPage = lazy(() => import('../pages/ho/keuangan/Penerimaan/PenerimaanHoPage'));
+
 const PenjualanSapiHOPage = lazy(() => import('../pages/ho/penjualan/penjualanSapi/PenjualanSapiHOPage'));
 
 export const hoRoutes = [
@@ -131,6 +133,10 @@ export const hoRoutes = [
   {
     path: '/ho/keuangan/pengeluaran',
     element: <KeuanganPage />
+  },
+  {
+    path: '/ho/keuangan/penerimaan',
+    element: <PenerimaanHoPage />
   },
   {
     path: '/ho/keuangan-kas/detail/:id',
