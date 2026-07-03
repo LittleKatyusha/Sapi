@@ -228,8 +228,8 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
       finalValue = value === '' ? '' : Number(value);
     }
     setFormData(prev => ({ ...prev, [name]: finalValue }));
-    if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
-  }, [errors]);
+    setErrors(prev => prev[name] ? { ...prev, [name]: '' } : prev);
+  }, []);
 
   const handleHargaChange = useCallback((key, value) => {
     setHarga(prev => ({ ...prev, [String(key)]: parseRupiah(value) }));
@@ -237,7 +237,7 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
 
   const handleSelectChange = useCallback((name, value) => {
     setFormData(prev => ({ ...prev, [name]: value ?? '' }));
-    if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
+    setErrors(prev => prev[name] ? { ...prev, [name]: '' } : prev);
   }, []);
 
   const handleProvinsiChange = useCallback((value) => {

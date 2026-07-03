@@ -27,6 +27,12 @@ const usePedagang = () => {
   const [statistics, setStatistics] = useState(null);
   const [statsLoading, setStatsLoading] = useState(false);
 
+  // Refs to hold latest search values so fetchPedagang stays stable
+  const searchValuesRef = useRef({ debouncedSearch, searchId, searchName, searchHp });
+  useEffect(() => {
+    searchValuesRef.current = { debouncedSearch, searchId, searchName, searchHp };
+  }, [debouncedSearch, searchId, searchName, searchHp]);
+
   // Debounce search term
   const debounceTimer = useRef(null);
 
@@ -53,15 +59,16 @@ const usePedagang = () => {
     setError(null);
 
     try {
+      const { debouncedSearch: svSearch, searchId: svId, searchName: svName, searchHp: svHp } = searchValuesRef.current;
       const start = (page - 1) * perPage;
       const result = await PedagangService.getData({
         draw: 1,
         start,
         length: perPage,
-        search: debouncedSearch,
-        search_id: searchId,
-        search_name: searchName,
-        search_hp: searchHp,
+        search: svSearch,
+        search_id: svId,
+        search_name: svName,
+        search_hp: svHp,
         orderColumn: 0,
         orderDir: 'desc',
         status_pedagang: statusFilter,
@@ -88,7 +95,7 @@ const usePedagang = () => {
     } finally {
       setLoading(false);
     }
-  }, [debouncedSearch, statusFilter, pasarFilter, tipeFilter, dispensasiFilter]);
+  }, [statusFilter, pasarFilter, tipeFilter, dispensasiFilter]);
 
   /**
    * Fetch dashboard statistics
