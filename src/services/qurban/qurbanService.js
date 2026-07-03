@@ -102,6 +102,10 @@ class QurbanService {
 
       if (params.start_date) queryParams.start_date = params.start_date;
       if (params.end_date) queryParams.end_date = params.end_date;
+      if (params.search_nota) queryParams.search_nota = params.search_nota;
+      if (params.search_pemasok) queryParams.search_pemasok = params.search_pemasok;
+      if (params.search_pengirim) queryParams.search_pengirim = params.search_pengirim;
+      if (params.jenis_pembelian !== undefined && params.jenis_pembelian !== '') queryParams.jenis_pembelian = params.jenis_pembelian;
 
       const response = await HttpClient.get(
         API_ENDPOINTS.RPH?.QURBAN?.DATA || `${this.API_BASE}/data`,

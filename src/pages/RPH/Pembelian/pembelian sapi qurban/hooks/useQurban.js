@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import QurbanService from '../../../../../services/qurban/qurbanService';
 
 /**
@@ -14,11 +14,23 @@ const useQurban = () => {
 
     // Search and filter state
     const [searchTerm, setSearchTerm] = useState('');
+    const [searchNota, setSearchNota] = useState('');
+    const [searchPemasok, setSearchPemasok] = useState('');
+    const [searchPengirim, setSearchPengirim] = useState('');
+    const [jenisFilter, setJenisFilter] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
     const [dateRange, setDateRange] = useState({
         startDate: '',
         endDate: '',
     });
+
+    // Refs to hold latest filter values so fetchPoList stays stable
+    const filterValuesRef = useRef({
+        searchTerm, searchNota, searchPemasok, searchPengirim, jenisFilter, dateRange,
+    });
+    useEffect(() => {
+        filterValuesRef.current = { searchTerm, searchNota, searchPemasok, searchPengirim, jenisFilter, dateRange };
+    }, [searchTerm, searchNota, searchPemasok, searchPengirim, jenisFilter, dateRange]);
 
     // Loading states for specific operations
     const [isSearching, setIsSearching] = useState(false);
@@ -147,14 +159,19 @@ const useQurban = () => {
             }
 
             try {
+                const fv = filterValuesRef.current;
                 const params = {
                     start: (page - 1) * perPage,
                     length: perPage,
-                    search: search !== null ? search : searchTerm,
+                    search: search !== null ? search : fv.searchTerm,
                     draw: pagination.draw + 1,
+                    search_nota: fv.searchNota,
+                    search_pemasok: fv.searchPemasok,
+                    search_pengirim: fv.searchPengirim,
+                    jenis_pembelian: fv.jenisFilter,
                 };
 
-                const currentDateRange = dateFilter !== null ? dateFilter : dateRange;
+                const currentDateRange = dateFilter !== null ? dateFilter : fv.dateRange;
                 if (currentDateRange.startDate) params.start_date = currentDateRange.startDate;
                 if (currentDateRange.endDate) params.end_date = currentDateRange.endDate;
 
@@ -205,7 +222,7 @@ const useQurban = () => {
                 setIsSearching(false);
             }
         },
-        [searchTerm, dateRange, pagination.draw, fetchStatistics]
+        [pagination.draw, fetchStatistics]
     );
 
     /**
@@ -369,11 +386,16 @@ const useQurban = () => {
         [fetchPoList, pagination.perPage]
     );
 
-    const clearDateRange = useCallback(() => {
-        const emptyDateRange = { startDate: '', endDate: '' };
-        setDateRange(emptyDateRange);
+    const resetFilters = useCallback(() => {
+        setSearchTerm('');
+        setSearchNota('');
+        setSearchPemasok('');
+        setSearchPengirim('');
+        setJenisFilter('');
+        setFilterStatus('all');
+        setDateRange({ startDate: '', endDate: '' });
         setSearchError(null);
-        fetchPoList(1, pagination.perPage, null, null, emptyDateRange, false);
+        fetchPoList(1, pagination.perPage, '', null, { startDate: '', endDate: '' }, false);
     }, [fetchPoList, pagination.perPage]);
 
     const handlePageChange = useCallback(
@@ -417,6 +439,14 @@ const useQurban = () => {
         // Search and filter state
         searchTerm,
         setSearchTerm,
+        searchNota,
+        setSearchNota,
+        searchPemasok,
+        setSearchPemasok,
+        searchPengirim,
+        setSearchPengirim,
+        jenisFilter,
+        setJenisFilter,
         filterStatus,
         setFilterStatus,
         dateRange,
@@ -448,7 +478,7 @@ const useQurban = () => {
         clearSearch,
         handleFilter,
         handleDateRangeFilter,
-        clearDateRange,
+        resetFilters,
         handlePageChange,
         handlePerPageChange,
 

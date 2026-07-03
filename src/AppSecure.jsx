@@ -366,6 +366,9 @@ function AppSecure() {
               {/* RPH Pembelian Sapi Routes */}
               <Route path="/rph/pembelian-sapi" element={<PembelianSapi />} />
               <Route path="/rph/pembelian-sapi/detail/:id" element={<PembelianSapiDetailPage />} />
+              {/* Alias redirect: /rph/pembelian/doka → /rph/pembelian-sapi */}
+              <Route path="/rph/pembelian/doka" element={<Navigate to="/rph/pembelian-sapi" replace />} />
+              <Route path="/rph/pembelian/doka/detail/:id" element={<Navigate to="/rph/pembelian-sapi/detail/:id" replace />} />
               
               {/* RPH Pembelian Sapi Qurban Routes */}
               <Route path="/rph/pembelian-sapi-qurban" element={<PembelianSapiQurbanPage />} />
