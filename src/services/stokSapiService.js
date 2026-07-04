@@ -231,6 +231,7 @@ class StokSapiService {
     try {
       const response = await HttpClient.post('/api/rph/persediaan/potongsapi/store', data);
       HttpClient.clearCache('potongsapi');
+      HttpClient.clearCache('persediaan');
       return { success: true, data: response.data, message: response.data?.message || response.message || 'Data created successfully' };
     } catch (error) {
       console.error('StokSapiService.potongSapiBiasa error:', error);
@@ -347,6 +348,7 @@ class StokSapiService {
     try {
       const response = await HttpClient.post('/api/rph/persediaan/potongsapi/update', data);
       HttpClient.clearCache('potongsapi');
+      HttpClient.clearCache('persediaan');
       return { success: true, data: response.data, message: response.message || 'Data updated successfully' };
     } catch (error) {
       console.error('StokSapiService.updatePotongSapiBiasa error:', error);
@@ -372,6 +374,7 @@ class StokSapiService {
     try {
       const response = await HttpClient.post('/api/rph/persediaan/potongsapi/hapus', { pid });
       HttpClient.clearCache('potongsapi');
+      HttpClient.clearCache('persediaan');
       return { success: true, data: response.data, message: response.message || 'Data deleted successfully' };
     } catch (error) {
       console.error('StokSapiService.deletePotongSapiBiasa error:', error);

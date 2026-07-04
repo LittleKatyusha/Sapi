@@ -26,6 +26,8 @@ const BoningMasterPage = lazy(() => import('../pages/dataMaster/BoningMasterPage
 const DagingMasterPage = lazy(() => import('../pages/dataMaster/DagingMasterPage'));
 const PembeliHoPage = lazy(() => import('../pages/dataMaster/PembeliHoPage'));
 const TarifDofPage = lazy(() => import('../pages/dataMaster/TarifDofPage'));
+const SopirPage = lazy(() => import('../pages/dataMaster/SopirPage'));
+const KendaraanPage = lazy(() => import('../pages/dataMaster/KendaraanPage'));
 
 // ============================================================
 // MASTER DATA ROUTES — TERURUT & LENGKAP
@@ -127,6 +129,14 @@ export const masterDataRoutes = [
   {
     path: '/master-data/daging',
     element: <DagingMasterPage />
+  },
+  {
+    path: '/sopir',
+    element: <SopirPage />
+  },
+  {
+    path: '/kendaraan',
+    element: <KendaraanPage />
   },
 
   // 5. Persetujuan

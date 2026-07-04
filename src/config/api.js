@@ -76,7 +76,12 @@ export const API_ENDPOINTS = {
     TARIF_DOF: '/api/master/tarifdof',
     BONING: '/api/master/boning',
     KARKAS: '/api/master/karkas',
-    DAGING: '/api/master/daging'
+    DAGING: '/api/master/daging',
+    PENGIRIM: '/api/master/pengirim',
+    SIM: '/api/master/sim',
+    PENGIRIM_SIM: '/api/master/pengirimsim',
+    KENDARAAN: '/api/master/kendaraan',
+    KENDARAAN_DOKUMEN: '/api/master/kendaraandokumen'
   },
 
   DASHBOARD: {
