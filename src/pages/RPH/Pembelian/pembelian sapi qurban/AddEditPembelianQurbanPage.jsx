@@ -27,6 +27,10 @@ const AddEditPembelianQurbanPage = () => {
     const { officeOptions, loading: paramLoading } = useParameterSelect(false, {}, [], null, ['office']);
     const { persetujuanOptions, loading: persetujuanLoading } = usePersetujuanRphSelect();
     const pemasokOptions = useMemo(() => officeOptions || [], [officeOptions]);
+    const defaultPemasokId = useMemo(() => {
+        const opt = pemasokOptions.find(o => String(o.label || '').toUpperCase().includes('PUPUT BERSAUDARA'));
+        return opt ? opt.value : '';
+    }, [pemasokOptions]);
     const jenisPembelianOpts = useMemo(() => [{ value: 1, label: 'Import' }, { value: 2, label: 'Lokal' }], []);
     const tipePembayaranOpts = useMemo(() => [{ value: 1, label: 'Kas' }, { value: 2, label: 'Bank' }], []);
 
@@ -73,6 +77,13 @@ const AddEditPembelianQurbanPage = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoadingDetail, setIsLoadingDetail] = useState(false);
     const isBank = String(formData.tipe_pembayaran) === '2';
+
+    // Default Pemasok: HO CV. PUPUT BERSAUDARA (readonly, only on add mode)
+    useEffect(() => {
+        if (!isEditMode && defaultPemasokId && !formData.id_pemasok) {
+            setFormData(prev => ({ ...prev, id_pemasok: defaultPemasokId }));
+        }
+    }, [isEditMode, defaultPemasokId, formData.id_pemasok]);
 
     // Fetch available nota when pemasok or jenis_pembelian changes
     useEffect(() => {
@@ -254,7 +265,7 @@ const AddEditPembelianQurbanPage = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1.5">Pemasok <span className="text-red-500">*</span></label>
-                            <SearchableSelect value={formData.id_pemasok} onChange={v => handleChange('id_pemasok', v)} options={pemasokOptions} placeholder={paramLoading ? 'Loading...' : 'Pilih Pemasok'} isLoading={paramLoading} isDisabled={paramLoading} />
+                            <SearchableSelect value={formData.id_pemasok} onChange={v => handleChange('id_pemasok', v)} options={pemasokOptions} placeholder={paramLoading ? 'Loading...' : 'Pilih Pemasok'} isLoading={paramLoading} isDisabled={true} />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1.5">Jenis Pembelian <span className="text-red-500">*</span></label>
