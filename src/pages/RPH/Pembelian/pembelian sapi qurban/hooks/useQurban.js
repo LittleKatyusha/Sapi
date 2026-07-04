@@ -19,6 +19,7 @@ const useQurban = () => {
     const [searchPengirim, setSearchPengirim] = useState('');
     const [jenisFilter, setJenisFilter] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
+    const [paymentStatus, setPaymentStatus] = useState('all');
     const [dateRange, setDateRange] = useState({
         startDate: '',
         endDate: '',
@@ -26,11 +27,11 @@ const useQurban = () => {
 
     // Refs to hold latest filter values so fetchPoList stays stable
     const filterValuesRef = useRef({
-        searchTerm, searchNota, searchPemasok, searchPengirim, jenisFilter, dateRange,
+        searchTerm, searchNota, searchPemasok, searchPengirim, jenisFilter, paymentStatus, dateRange,
     });
     useEffect(() => {
-        filterValuesRef.current = { searchTerm, searchNota, searchPemasok, searchPengirim, jenisFilter, dateRange };
-    }, [searchTerm, searchNota, searchPemasok, searchPengirim, jenisFilter, dateRange]);
+        filterValuesRef.current = { searchTerm, searchNota, searchPemasok, searchPengirim, jenisFilter, paymentStatus, dateRange };
+    }, [searchTerm, searchNota, searchPemasok, searchPengirim, jenisFilter, paymentStatus, dateRange]);
 
     // Loading states for specific operations
     const [isSearching, setIsSearching] = useState(false);
@@ -169,6 +170,7 @@ const useQurban = () => {
                     search_pemasok: fv.searchPemasok,
                     search_pengirim: fv.searchPengirim,
                     jenis_pembelian: fv.jenisFilter,
+                    payment_status: fv.paymentStatus,
                 };
 
                 const currentDateRange = dateFilter !== null ? dateFilter : fv.dateRange;
@@ -393,6 +395,7 @@ const useQurban = () => {
         setSearchPengirim('');
         setJenisFilter('');
         setFilterStatus('all');
+        setPaymentStatus('all');
         setDateRange({ startDate: '', endDate: '' });
         setSearchError(null);
         fetchPoList(1, pagination.perPage, '', null, { startDate: '', endDate: '' }, false);
@@ -449,6 +452,8 @@ const useQurban = () => {
         setJenisFilter,
         filterStatus,
         setFilterStatus,
+        paymentStatus,
+        setPaymentStatus,
         dateRange,
         setDateRange,
 

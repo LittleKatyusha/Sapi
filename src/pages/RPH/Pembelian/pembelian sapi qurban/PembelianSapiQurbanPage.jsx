@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import {
     PlusCircle, Search, X, Loader2, Package, TrendingUp, DollarSign,
     AlertCircle, CheckCircle2, Download, Filter, ChevronDown, RotateCcw,
-    Hash, Building2, Truck, Calendar, MoreVertical, Pencil, Trash2, Beef,
+    Hash, Building2, Truck, Calendar, MoreVertical, Pencil, Trash2, Beef, Wallet,
 } from 'lucide-react';
 import useQurban from './hooks/useQurban';
 import QurbanCard from './components/QurbanCard';
@@ -20,6 +20,13 @@ const NOTIFICATION_TIMEOUT = 5000;
 const JENIS_OPTIONS = [
     { value: '1', label: 'Supplier (Perusahaan)' },
     { value: '2', label: 'Peternak Lokal' },
+];
+
+const PAYMENT_STATUS_OPTIONS = [
+    { value: 'all', label: 'Semua Status' },
+    { value: '2', label: 'Belum Bayar' },
+    { value: '0', label: 'Belum Lunas' },
+    { value: '1', label: 'Lunas' },
 ];
 
 const StatCard = React.memo(({ title, icon: Icon, accentColor, children }) => (
@@ -65,9 +72,10 @@ const Notification = React.memo(({ notification, onClose }) => {
     );
 });
 
-const ActionMenuPortal = ({ row, menuPos, onClose, onEdit, onDelete, onUnduhBerkas, onDetailSapi }) => {
+const ActionMenuPortal = ({ row, menuPos, onClose, onEdit, onDelete, onUnduhBerkas, onDetailSapi, onBayar }) => {
     const actions = [
         { label: 'Edit', icon: Pencil, onClick: () => onEdit(row) },
+        { label: 'Bayar', icon: Wallet, onClick: () => onBayar(row) },
         { label: 'Detail Sapi', icon: Beef, onClick: () => onDetailSapi(row) },
         { label: 'Unduh Berkas', icon: Download, onClick: () => onUnduhBerkas(row) },
         { divider: true },
@@ -127,6 +135,7 @@ const PembelianSapiQurbanPage = () => {
         searchPemasok, setSearchPemasok,
         searchPengirim, setSearchPengirim,
         jenisFilter, setJenisFilter,
+        paymentStatus, setPaymentStatus,
         dateRange, setDateRange,
         resetFilters,
         handlePageChange: handleServerPageChange,
@@ -163,7 +172,9 @@ const PembelianSapiQurbanPage = () => {
     }, [notification]);
 
     const activeFilterCount = [
-        searchTerm, searchNota, searchPemasok, searchPengirim, jenisFilter,
+        searchTerm, searchNota, searchPemasok, searchPengirim,
+        jenisFilter,
+        paymentStatus !== 'all' ? paymentStatus : '',
         dateRange.startDate, dateRange.endDate,
     ].filter(v => v !== '' && v !== undefined && v !== null).length;
 
@@ -174,10 +185,12 @@ const PembelianSapiQurbanPage = () => {
             setNotification({ type: 'info', message: 'Tidak ada data untuk diunduh' });
             return;
         }
-        const headers = ['No', 'Nota Sistem', 'Tanggal Pesanan', 'Jenis Pembelian', 'Jumlah Hewan', 'Total Harga', 'Pemasok', 'Penerima', 'Tempat Tiba', 'Pengirim', 'Plat Nomor'];
+        const headers = ['No', 'Nota Sistem', 'Nota Sistem HO', 'Nota Pembelian', 'Tanggal Pesanan', 'Jenis Pembelian', 'Jumlah Hewan', 'Total Harga', 'Pemasok', 'Penerima', 'Tempat Tiba', 'Pengirim', 'Plat Nomor'];
         const rows = filteredData.map((row, i) => [
             (serverPagination.currentPage - 1) * serverPagination.perPage + i + 1,
             row.nota_sistem || '',
+            row.nota_sistem_ho || '',
+            row.nota_pembelian || '',
             row.tanggal_pemesanan || '',
             row.jenis_pembelian || '',
             row.jumlah_hewan || 0,
@@ -210,6 +223,15 @@ const PembelianSapiQurbanPage = () => {
     const handleDetailSapi = useCallback((item) => {
         const id = item.pid || item.encryptedPid || item.pubid;
         navigate(`/rph/pembelian-sapi-qurban/detail-sapi/${id}`);
+        setOpenMenuId(null);
+    }, [navigate]);
+
+    const handleBayar = useCallback((item) => {
+        if (item.payment_pid) {
+            navigate(`/rph/keuangan/pengeluaran/bayar/${item.payment_pid}`);
+        } else {
+            navigate('/rph/keuangan/pengeluaran');
+        }
         setOpenMenuId(null);
     }, [navigate]);
 
@@ -277,6 +299,12 @@ const PembelianSapiQurbanPage = () => {
             cell: row => (
                 <div className="flex flex-col gap-0.5 py-1">
                     <span className="font-mono text-xs font-semibold text-gray-900 whitespace-nowrap">{row.nota_sistem || '-'}</span>
+                    {row.nota_sistem_ho && (
+                        <span className="text-[11px] text-gray-500 whitespace-nowrap">HO: {row.nota_sistem_ho}</span>
+                    )}
+                    {row.nota_pembelian && (
+                        <span className="text-[11px] text-gray-500 whitespace-nowrap">Nota: {row.nota_pembelian}</span>
+                    )}
                     <span className="text-[11px] text-gray-500 whitespace-nowrap">
                         {row.tanggal_pemesanan ? new Date(row.tanggal_pemesanan).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}
                     </span>
@@ -317,6 +345,18 @@ const PembelianSapiQurbanPage = () => {
             cell: row => <span className="text-xs font-semibold text-gray-900 whitespace-nowrap">{formatCurrency(row.total_harga)}</span>
         },
         {
+            name: 'Status Bayar', selector: row => row.payment_status, sortable: true, width: '130px', center: true,
+            cell: row => {
+                const code = row.payment_status || 'belum_bayar';
+                const map = {
+                    lunas: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                    belum_lunas: 'bg-amber-50 text-amber-700 border-amber-200',
+                    belum_bayar: 'bg-red-50 text-red-700 border-red-200',
+                };
+                return <span className={`px-2 py-0.5 ${map[code] || map.belum_bayar} rounded border text-xs font-medium inline-block whitespace-nowrap`}>{row.payment_status_label || 'Belum Bayar'}</span>;
+            }
+        },
+        {
             name: '', width: '50px', ignoreRowClick: true, center: true,
             cell: row => {
                 const rowId = row.pid || row.encryptedPid || row.pubid;
@@ -344,6 +384,7 @@ const PembelianSapiQurbanPage = () => {
                 menuPos={menuPos}
                 onClose={() => setOpenMenuId(null)}
                 onEdit={handleEdit}
+                onBayar={handleBayar}
                 onDelete={handleDelete}
                 onUnduhBerkas={handleUnduhBerkas}
                 onDetailSapi={handleDetailSapi}
@@ -357,22 +398,22 @@ const PembelianSapiQurbanPage = () => {
             <Notification notification={notification} onClose={() => setNotification(null)} />
             {menuPortal}
 
-            {/* Header */}
+            {/* Compact Header */}
             <div className="bg-white border-b border-gray-100">
-                <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-3">
                     <div className="flex items-center justify-between gap-4">
                         <div>
-                            <h1 className="text-lg font-semibold text-gray-900">Pembelian Sapi Qurban</h1>
-                            <p className="text-xs text-gray-500 mt-0.5">Kelola data Pembelian Sapi Qurban</p>
+                            <h1 className="text-base font-semibold text-gray-900">Pembelian Sapi Qurban</h1>
+                            <p className="text-[11px] text-gray-500 mt-0.5">Kelola data Pembelian Sapi Qurban</p>
                         </div>
                         <div className="flex items-center gap-2">
-                            <button onClick={handleDownloadCSV} className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-200 hover:border-gray-300 text-gray-700 hover:text-gray-900 rounded-md text-xs font-medium transition-colors">
+                            <button onClick={handleDownloadCSV} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-gray-200 hover:border-gray-300 text-gray-700 hover:text-gray-900 rounded-md text-xs font-medium transition-colors">
                                 <Download className="w-3.5 h-3.5 text-gray-500" />
-                                <span className="hidden sm:inline">Unduh CSV</span>
+                                <span className="hidden sm:inline">CSV</span>
                             </button>
-                            <button onClick={handleAdd} className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-xs font-medium transition-colors shadow-sm hover:shadow active:scale-[0.98]">
+                            <button onClick={handleAdd} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-xs font-medium transition-colors shadow-sm hover:shadow active:scale-[0.98]">
                                 <PlusCircle className="w-3.5 h-3.5" />
-                                <span>+ Tambah</span>
+                                <span>Tambah</span>
                             </button>
                         </div>
                     </div>
@@ -381,34 +422,33 @@ const PembelianSapiQurbanPage = () => {
 
             <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-4">
                 {/* Stat Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                     <StatCard title="Hari Ini" icon={Package} accentColor="bg-blue-500">
-                        <p className="text-xl font-bold text-gray-900">{safeStats.today_ekor || 0} <span className="text-xs font-medium text-gray-500">ekor</span></p>
-                        <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-500">
+                        <p className="text-lg font-bold text-gray-900">{safeStats.today_ekor || 0} <span className="text-[11px] font-medium text-gray-500">ekor</span></p>
+                        <div className="flex items-center gap-3 mt-1 text-[11px] text-gray-500">
                             <span>{safeStats.today_po || 0} PO</span>
                             <span>{formatCurrency(safeStats.today_total || 0)}</span>
                         </div>
                     </StatCard>
                     <StatCard title="Minggu Ini" icon={TrendingUp} accentColor="bg-emerald-500">
-                        <p className="text-xl font-bold text-gray-900">{safeStats.week_ekor || 0} <span className="text-xs font-medium text-gray-500">ekor</span></p>
-                        <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-500">
+                        <p className="text-lg font-bold text-gray-900">{safeStats.week_ekor || 0} <span className="text-[11px] font-medium text-gray-500">ekor</span></p>
+                        <div className="flex items-center gap-3 mt-1 text-[11px] text-gray-500">
                             <span>{safeStats.week_po || 0} PO</span>
                             <span>{formatCurrency(safeStats.week_total || 0)}</span>
                         </div>
                     </StatCard>
                     <StatCard title="Bulan Ini" icon={DollarSign} accentColor="bg-amber-500">
-                        <p className="text-xl font-bold text-gray-900">{safeStats.month_ekor || 0} <span className="text-xs font-medium text-gray-500">ekor</span></p>
-                        <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-500">
+                        <p className="text-lg font-bold text-gray-900">{safeStats.month_ekor || 0} <span className="text-[11px] font-medium text-gray-500">ekor</span></p>
+                        <div className="flex items-center gap-3 mt-1 text-[11px] text-gray-500">
                             <span>{safeStats.month_po || 0} PO</span>
                             <span>{formatCurrency(safeStats.month_total || 0)}</span>
                         </div>
                     </StatCard>
                     <StatCard title="Status PO" icon={Package} accentColor="bg-purple-500">
-                        <p className="text-xl font-bold text-gray-900">{safeStats.total_po || 0} <span className="text-xs font-medium text-gray-500">PO</span></p>
-                        <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-500">
+                        <p className="text-lg font-bold text-gray-900">{safeStats.total_po || 0} <span className="text-[11px] font-medium text-gray-500">PO</span></p>
+                        <div className="flex items-center gap-3 mt-1 text-[11px] text-gray-500">
                             <span>{safeStats.pending || 0} Pending</span>
                             <span>{safeStats.approved || 0} Approved</span>
-                            <span>{safeStats.rejected || 0} Rejected</span>
                         </div>
                     </StatCard>
                 </div>
@@ -417,13 +457,13 @@ const PembelianSapiQurbanPage = () => {
                 <div className="flex justify-end items-center gap-3">
                     <button
                         onClick={() => setIsFilterExpanded(v => !v)}
-                        className={`px-3 py-2 rounded-lg border text-sm font-medium flex items-center gap-2 transition ${
+                        className={`px-3 py-1.5 rounded-lg border text-xs font-medium flex items-center gap-2 transition ${
                             isFilterExpanded || activeFilterCount > 0
                                 ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
                                 : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
                         }`}
                     >
-                        <Filter className="w-4 h-4" />
+                        <Filter className="w-3.5 h-3.5" />
                         Filter Lanjutan
                         {activeFilterCount > 0 && (
                             <span className="bg-emerald-600 text-white text-[10px] font-bold rounded-full px-1.5 py-0.5 min-w-[18px] text-center">
@@ -439,7 +479,33 @@ const PembelianSapiQurbanPage = () => {
                     <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                             <div>
-                                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Cari Nomor PO</label>
+                                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Jenis Pembelian</label>
+                                <SearchableSelect
+                                    options={JENIS_OPTIONS}
+                                    value={jenisFilter}
+                                    onChange={(val) => setJenisFilter(val ?? '')}
+                                    placeholder="Semua Jenis"
+                                    isSearchable={true}
+                                    isClearable={true}
+                                    accentColor="green"
+                                    className="text-sm"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Status Pembayaran</label>
+                                <SearchableSelect
+                                    options={PAYMENT_STATUS_OPTIONS}
+                                    value={paymentStatus}
+                                    onChange={(val) => setPaymentStatus(val ?? 'all')}
+                                    placeholder="Semua Status"
+                                    isSearchable={false}
+                                    isClearable={false}
+                                    accentColor="green"
+                                    className="text-sm"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Cari Nota Sistem</label>
                                 <div className="relative">
                                     <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                                     <input
@@ -478,19 +544,6 @@ const PembelianSapiQurbanPage = () => {
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Jenis Pembelian</label>
-                                <SearchableSelect
-                                    options={JENIS_OPTIONS}
-                                    value={jenisFilter}
-                                    onChange={(val) => setJenisFilter(val ?? '')}
-                                    placeholder="Semua Jenis"
-                                    isSearchable={true}
-                                    isClearable={true}
-                                    accentColor="green"
-                                    className="text-sm"
-                                />
-                            </div>
-                            <div>
                                 <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Tanggal Mulai</label>
                                 <div className="relative">
                                     <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -522,7 +575,7 @@ const PembelianSapiQurbanPage = () => {
                                 type="button"
                                 onClick={() => fetchPoList(1, serverPagination.perPage)}
                                 disabled={loading}
-                                className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-2 transition disabled:opacity-50"
+                                className="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-2 transition disabled:opacity-50"
                             >
                                 <Search className="w-3.5 h-3.5" />
                                 {loading ? 'Mencari...' : 'Cari'}
@@ -530,7 +583,7 @@ const PembelianSapiQurbanPage = () => {
                             <button
                                 type="button"
                                 onClick={resetFilters}
-                                className="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-bold flex items-center gap-2 transition"
+                                className="px-4 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-bold flex items-center gap-2 transition"
                             >
                                 <RotateCcw className="w-3.5 h-3.5" />
                                 Reset

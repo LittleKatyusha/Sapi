@@ -2,19 +2,17 @@ import HttpClient from './httpClient';
 import { API_ENDPOINTS } from '../config/api';
 
 const normalize = (response, defaultMsg = 'Data berhasil dimuat') => {
-  if (response?.data?.data) {
-    return {
-      data: response.data.data,
-      recordsTotal: response.data.recordsTotal ?? response.data.data.length,
-      recordsFiltered: response.data.recordsFiltered ?? response.data.data.length,
-      message: response.data.message || defaultMsg,
-      raw: response,
-    };
-  }
-  if (Array.isArray(response?.data)) {
-    return { data: response.data, recordsTotal: response.data.length, recordsFiltered: response.data.length, message: response.message || defaultMsg, raw: response };
-  }
-  return { data: response?.data ?? null, recordsTotal: 0, recordsFiltered: 0, message: response?.message || defaultMsg, raw: response };
+  const payload = response?.data?.data ?? response?.data ?? response;
+  const rows = Array.isArray(payload) ? payload : (payload?.data ?? []);
+  const recordsTotal = payload?.recordsTotal ?? rows.length;
+  const recordsFiltered = payload?.recordsFiltered ?? rows.length;
+  return {
+    data: rows,
+    recordsTotal,
+    recordsFiltered,
+    message: response?.data?.message || response?.message || defaultMsg,
+    raw: response,
+  };
 };
 
 class PengeluaranRphService {

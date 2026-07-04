@@ -14,6 +14,12 @@ const QurbanCard = ({ item, index, onEdit, onUnduhBerkas, formatCurrency }) => {
             <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                     <p className="font-mono text-xs font-medium text-gray-900 truncate">{item.nota_sistem || '-'}</p>
+                    {item.nota_sistem_ho && (
+                        <p className="text-[11px] text-gray-500 mt-0.5 truncate">HO: {item.nota_sistem_ho}</p>
+                    )}
+                    {item.nota_pembelian && (
+                        <p className="text-[11px] text-gray-500 truncate">Nota: {item.nota_pembelian}</p>
+                    )}
                     <p className="text-[11px] text-gray-500 mt-0.5">#{index} • {item.tanggal_pemesanan ? new Date(item.tanggal_pemesanan).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '-'}</p>
                 </div>
                 <span className={`px-2 py-0.5 ${getJenisBadge(jenis)} rounded border text-[11px] font-medium whitespace-nowrap shrink-0`}>

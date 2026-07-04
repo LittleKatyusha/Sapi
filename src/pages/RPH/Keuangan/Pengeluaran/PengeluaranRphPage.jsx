@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import {
   Wallet, Search, Eye, Loader2, Banknote, MoreVertical, ArrowUpCircle, CheckCircle, Clock,
-  SlidersHorizontal, ChevronUp, ChevronDown, RotateCcw
+  SlidersHorizontal, ChevronDown, RotateCcw
 } from 'lucide-react';
 import DataTable from 'react-data-table-component';
 import usePengeluaranRph from '../../../../hooks/usePengeluaranRph';
@@ -115,10 +115,15 @@ const SummaryCard = ({ label, value, icon: Icon, color }) => {
 };
 
 const TABS = [
-  { id: 'belum-bayar', label: 'Belum Bayar', status: 'belum_bayar' },
-  { id: 'belum-lunas', label: 'Belum Lunas', status: 'belum_lunas' },
-  { id: 'lunas', label: 'Lunas', status: 'lunas' },
+  { id: 'transaksi', label: 'Transaksi', status: null },
   { id: 'riwayat', label: 'Riwayat Pengeluaran', status: null },
+];
+
+const PAYMENT_STATUS_OPTIONS = [
+  { value: 'all', label: 'Semua Status' },
+  { value: 'belum_bayar', label: 'Belum Bayar' },
+  { value: 'belum_lunas', label: 'Belum Lunas' },
+  { value: 'lunas', label: 'Lunas' },
 ];
 
 const buildSearchQuery = (filters) => {
@@ -141,16 +146,16 @@ const INITIAL_ADVANCED = {
   no_faktur: '',
   nama_pembayar: '',
   metode_pembayaran: '',
+  payment_status: 'all',
   tanggal_awal: '',
   tanggal_akhir: '',
 };
 
 const PengeluaranRphPage = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('belum-bayar');
-  const [jenisSelected, setJenisSelected] = useState(false);
+  const [activeTab, setActiveTab] = useState('transaksi');
   const [jenisValue, setJenisValue] = useState('sapi');
-  const [advancedOpen, setAdvancedOpen] = useState(true);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [advanced, setAdvanced] = useState(INITIAL_ADVANCED);
   const [appliedFilters, setAppliedFilters] = useState(INITIAL_ADVANCED);
   const [tableData, setTableData] = useState([]);
@@ -158,7 +163,6 @@ const PengeluaranRphPage = () => {
   const { loading, error, fetchList, fetchHistory } = usePengeluaranRph();
 
   const isHistory = activeTab === 'riwayat';
-  const activeTabConfig = TABS.find((t) => t.id === activeTab);
 
   const loadData = useCallback(async () => {
     if (isHistory) {
@@ -174,10 +178,9 @@ const PengeluaranRphPage = () => {
       }
       return;
     }
-    if (!jenisSelected) return;
     const result = await fetchList({
       length: 1000,
-      payment_status: activeTabConfig?.status,
+      payment_status: appliedFilters.payment_status && appliedFilters.payment_status !== 'all' ? appliedFilters.payment_status : undefined,
       purchase_type: jenisValue,
       search: buildSearchQuery(appliedFilters),
       tanggal_awal: appliedFilters.tanggal_awal || undefined,
@@ -186,7 +189,7 @@ const PengeluaranRphPage = () => {
     if (result.success) {
       setTableData(result.data || []);
     }
-  }, [isHistory, activeTabConfig, fetchList, fetchHistory, jenisSelected, jenisValue, appliedFilters]);
+  }, [isHistory, fetchList, fetchHistory, jenisValue, appliedFilters]);
 
   useEffect(() => {
     loadData();
@@ -196,9 +199,10 @@ const PengeluaranRphPage = () => {
     setActiveTab(tab);
     setAdvanced(INITIAL_ADVANCED);
     setAppliedFilters(INITIAL_ADVANCED);
-    if (tab === 'belum-bayar' || tab === 'belum-lunas') {
-      setJenisSelected(false);
-    }
+  };
+
+  const handleJenisChange = (val) => {
+    setJenisValue(val || 'sapi');
   };
 
   const handleAdvancedSearch = () => {
@@ -211,7 +215,10 @@ const PengeluaranRphPage = () => {
   };
 
   const activeFilterCount = useMemo(
-    () => Object.values(appliedFilters).filter((v) => v && v.trim() !== '').length,
+    () => Object.entries(appliedFilters).filter(([k, v]) => {
+      if (k === 'payment_status') return v && v !== 'all';
+      return v && String(v).trim() !== '';
+    }).length,
     [appliedFilters]
   );
 
@@ -285,8 +292,13 @@ const PengeluaranRphPage = () => {
         name: 'No PO / Nota',
         cell: (r) => (
           <div className="py-1">
-            <div className="text-sm font-semibold text-gray-800">{r.no_po || '-'}</div>
-            <div className="text-xs text-gray-500">{r.nota || r.nota_sistem || '-'}</div>
+            <div className="text-sm font-semibold text-gray-800">{r.no_po || r.nota_sistem || r.nota || '-'}</div>
+            <div className="text-xs text-gray-500">
+              {r.nota_sistem_ho ? `HO: ${r.nota_sistem_ho}` : (r.nota && r.nota_sistem ? r.nota : '-')}
+            </div>
+            {r.nota && r.nota_sistem_ho && (
+              <div className="text-xs text-gray-500">Nota: {r.nota}</div>
+            )}
           </div>
         ),
         sortable: true,
@@ -347,36 +359,19 @@ const PengeluaranRphPage = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 p-4 sm:p-6">
-      <div className="max-w-[1800px] mx-auto space-y-5">
+      <div className="max-w-[1800px] mx-auto space-y-4">
         {/* Header */}
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-            <ArrowUpCircle className="w-6 h-6 text-emerald-600" />
+          <div className="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
+            <ArrowUpCircle className="w-5 h-5 text-emerald-600" />
           </div>
-          <div>
-            <h1 className="text-xl font-bold text-gray-800">Pengeluaran RPH</h1>
-            <p className="text-gray-500 text-xs">Pembayaran Pembelian Sapi RPH ke HO</p>
+          <div className="min-w-0">
+            <h1 className="text-base font-bold text-gray-800 truncate">Pengeluaran RPH</h1>
+            <p className="text-gray-500 text-[11px] truncate">Pembayaran Pembelian Sapi RPH ke HO</p>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="bg-white rounded-xl border border-gray-100 p-1.5 flex gap-1 w-fit shadow-sm">
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => handleTabChange(tab.id)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                activeTab === tab.id
-                  ? 'bg-emerald-600 text-white shadow-sm'
-                  : 'text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Summary Cards */}
+        {/* Summary Cards - always visible */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <SummaryCard label="Total Transaksi" value={stats.count} icon={Wallet} color="blue" />
           <SummaryCard label="Total Tagihan" value={formatRupiah(stats.totalTagihan)} icon={Banknote} color="slate" />
@@ -384,173 +379,209 @@ const PengeluaranRphPage = () => {
           <SummaryCard label="Total Sisa" value={formatRupiah(stats.totalSisa)} icon={Clock} color="red" />
         </div>
 
-        {/* Gatekeeping: Pilih jenis pembelian dulu untuk tab belum-bayar / belum-lunas */}
-        {!isHistory && !jenisSelected && (
-          <div className="bg-white rounded-xl border border-gray-100 p-8 text-center shadow-sm">
-            <p className="text-gray-500 text-sm mb-4">Pilih jenis pembelian terlebih dahulu untuk menampilkan data</p>
-            <div className="max-w-xs mx-auto">
-              <SearchableSelect
-                options={JENIS_PEMBELIAN_OPTIONS}
-                value=""
-                onChange={(val) => {
-                  setJenisValue(val || 'sapi');
-                  setJenisSelected(true);
-                }}
-                placeholder="Pilih Jenis Pembelian"
-                isClearable={false}
-              />
+        {/* Unified Toolbar: tabs + jenis */}
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-3">
+          <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+            {/* Tabs */}
+            <div className="flex gap-1 bg-gray-50 rounded-lg p-1 w-fit">
+              {TABS.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => handleTabChange(tab.id)}
+                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition ${
+                    activeTab === tab.id
+                      ? 'bg-white text-emerald-700 shadow-sm'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Jenis Pembelian - compact inline */}
+            <div className="flex items-center gap-2 lg:w-72">
+              <label className="text-[10px] font-bold text-gray-500 uppercase shrink-0">Jenis</label>
+              <div className="flex-1 min-w-0">
+                <SearchableSelect
+                  options={JENIS_PEMBELIAN_OPTIONS}
+                  value={jenisValue}
+                  onChange={handleJenisChange}
+                  placeholder="Pilih jenis..."
+                  isClearable={false}
+                  accentColor="green"
+                  className="text-sm"
+                />
+              </div>
             </div>
           </div>
-        )}
+        </div>
 
-        {/* Pencarian Lanjutan */}
-        {(isHistory || jenisSelected) && (
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setAdvancedOpen((v) => !v)}
-              className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition"
-            >
-              <div className="flex items-center gap-2.5">
-                <SlidersHorizontal className="w-4 h-4 text-emerald-600" />
-                <span className="text-sm font-semibold text-gray-700">Pencarian Lanjutan</span>
-                {activeFilterCount > 0 && (
-                  <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[11px] font-bold text-white bg-emerald-500 rounded-full">
-                    {activeFilterCount}
-                  </span>
+        {/* Filter Lanjutan - separate card */}
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+          <button
+            onClick={() => setAdvancedOpen((v) => !v)}
+            className={`w-full flex items-center justify-between px-4 py-3 transition ${
+              advancedOpen ? 'bg-emerald-50/50' : 'hover:bg-gray-50'
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <SlidersHorizontal className="w-4 h-4 text-emerald-600" />
+              <span className="text-sm font-semibold text-gray-700">Filter Lanjutan</span>
+              {activeFilterCount > 0 && (
+                <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[11px] font-bold text-white bg-emerald-500 rounded-full">
+                  {activeFilterCount}
+                </span>
+              )}
+            </div>
+            <ChevronDown className={`w-4 h-4 text-gray-400 transition ${advancedOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          {/* Advanced Filter Panel - collapsible */}
+          {advancedOpen && (
+            <div className="px-4 pb-4 pt-3 border-t border-gray-100">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">No PO</label>
+                  <input
+                    type="text"
+                    placeholder="Cari no PO..."
+                    value={advanced.no_po}
+                    onChange={(e) => setAdvanced((p) => ({ ...p, no_po: e.target.value }))}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAdvancedSearch()}
+                    className="w-full px-3 py-1.5 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Nota</label>
+                  <input
+                    type="text"
+                    placeholder="Cari nota..."
+                    value={advanced.nota}
+                    onChange={(e) => setAdvanced((p) => ({ ...p, nota: e.target.value }))}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAdvancedSearch()}
+                    className="w-full px-3 py-1.5 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Nota Sistem</label>
+                  <input
+                    type="text"
+                    placeholder="Cari nota sistem..."
+                    value={advanced.nota_sistem}
+                    onChange={(e) => setAdvanced((p) => ({ ...p, nota_sistem: e.target.value }))}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAdvancedSearch()}
+                    className="w-full px-3 py-1.5 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">No Surat Jalan</label>
+                  <input
+                    type="text"
+                    placeholder="Cari surat jalan..."
+                    value={advanced.no_surat_jalan}
+                    onChange={(e) => setAdvanced((p) => ({ ...p, no_surat_jalan: e.target.value }))}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAdvancedSearch()}
+                    className="w-full px-3 py-1.5 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">No Faktur</label>
+                  <input
+                    type="text"
+                    placeholder="Cari no faktur..."
+                    value={advanced.no_faktur}
+                    onChange={(e) => setAdvanced((p) => ({ ...p, no_faktur: e.target.value }))}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAdvancedSearch()}
+                    className="w-full px-3 py-1.5 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition"
+                  />
+                </div>
+                {/* Status Pembayaran - only for transaksi tab */}
+                {!isHistory && (
+                  <div>
+                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Status Bayar</label>
+                    <SearchableSelect
+                      options={PAYMENT_STATUS_OPTIONS}
+                      value={advanced.payment_status}
+                      onChange={(val) => setAdvanced((p) => ({ ...p, payment_status: val ?? 'all' }))}
+                      placeholder="Semua Status"
+                      isSearchable={false}
+                      isClearable={false}
+                      accentColor="green"
+                      className="text-sm"
+                    />
+                  </div>
                 )}
-              </div>
-              {advancedOpen ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
-            </button>
-
-            {advancedOpen && (
-              <div className="px-4 pb-4 pt-3 border-t border-gray-100 bg-gray-50/50">
-                <div className="flex flex-wrap items-end gap-3">
-                  <div className="flex-1 min-w-[150px]">
-                    <label className="block text-xs font-medium text-gray-600 mb-1.5">No PO</label>
-                    <input
-                      type="text"
-                      placeholder="Cari no PO..."
-                      value={advanced.no_po}
-                      onChange={(e) => setAdvanced((p) => ({ ...p, no_po: e.target.value }))}
-                      onKeyDown={(e) => e.key === 'Enter' && handleAdvancedSearch()}
-                      className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-[150px]">
-                    <label className="block text-xs font-medium text-gray-600 mb-1.5">Nota</label>
-                    <input
-                      type="text"
-                      placeholder="Cari nota..."
-                      value={advanced.nota}
-                      onChange={(e) => setAdvanced((p) => ({ ...p, nota: e.target.value }))}
-                      onKeyDown={(e) => e.key === 'Enter' && handleAdvancedSearch()}
-                      className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-[150px]">
-                    <label className="block text-xs font-medium text-gray-600 mb-1.5">Nota Sistem</label>
-                    <input
-                      type="text"
-                      placeholder="Cari nota sistem..."
-                      value={advanced.nota_sistem}
-                      onChange={(e) => setAdvanced((p) => ({ ...p, nota_sistem: e.target.value }))}
-                      onKeyDown={(e) => e.key === 'Enter' && handleAdvancedSearch()}
-                      className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-[150px]">
-                    <label className="block text-xs font-medium text-gray-600 mb-1.5">No Surat Jalan</label>
-                    <input
-                      type="text"
-                      placeholder="Cari surat jalan..."
-                      value={advanced.no_surat_jalan}
-                      onChange={(e) => setAdvanced((p) => ({ ...p, no_surat_jalan: e.target.value }))}
-                      onKeyDown={(e) => e.key === 'Enter' && handleAdvancedSearch()}
-                      className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-[150px]">
-                    <label className="block text-xs font-medium text-gray-600 mb-1.5">No Faktur</label>
-                    <input
-                      type="text"
-                      placeholder="Cari no faktur..."
-                      value={advanced.no_faktur}
-                      onChange={(e) => setAdvanced((p) => ({ ...p, no_faktur: e.target.value }))}
-                      onKeyDown={(e) => e.key === 'Enter' && handleAdvancedSearch()}
-                      className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition"
-                    />
-                  </div>
-                  {isHistory && (
-                    <>
-                      <div className="flex-1 min-w-[150px]">
-                        <label className="block text-xs font-medium text-gray-600 mb-1.5">Nama Pembayar</label>
-                        <input
-                          type="text"
-                          placeholder="Cari nama pembayar..."
-                          value={advanced.nama_pembayar}
-                          onChange={(e) => setAdvanced((p) => ({ ...p, nama_pembayar: e.target.value }))}
-                          onKeyDown={(e) => e.key === 'Enter' && handleAdvancedSearch()}
-                          className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-[150px]">
-                        <label className="block text-xs font-medium text-gray-600 mb-1.5">Metode Pembayaran</label>
-                        <input
-                          type="text"
-                          placeholder="Cari metode..."
-                          value={advanced.metode_pembayaran}
-                          onChange={(e) => setAdvanced((p) => ({ ...p, metode_pembayaran: e.target.value }))}
-                          onKeyDown={(e) => e.key === 'Enter' && handleAdvancedSearch()}
-                          className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition"
-                        />
-                      </div>
-                    </>
-                  )}
-                  <div className="flex-1 min-w-[150px]">
-                    <label className="block text-xs font-medium text-gray-600 mb-1.5">Tanggal Awal</label>
-                    <input
-                      type="date"
-                      value={advanced.tanggal_awal}
-                      onChange={(e) => setAdvanced((p) => ({ ...p, tanggal_awal: e.target.value }))}
-                      className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-[150px]">
-                    <label className="block text-xs font-medium text-gray-600 mb-1.5">Tanggal Akhir</label>
-                    <input
-                      type="date"
-                      value={advanced.tanggal_akhir}
-                      onChange={(e) => setAdvanced((p) => ({ ...p, tanggal_akhir: e.target.value }))}
-                      className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition"
-                    />
-                  </div>
-                  <div className="flex items-center gap-2 pb-0.5">
-                    <button
-                      type="button"
-                      onClick={handleReset}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-100 transition"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5" />
-                      Reset
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleAdvancedSearch}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 shadow-sm transition"
-                    >
-                      <Search className="w-3.5 h-3.5" />
-                      Cari
-                    </button>
-                  </div>
+                {isHistory && (
+                  <>
+                    <div>
+                      <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Nama Pembayar</label>
+                      <input
+                        type="text"
+                        placeholder="Cari nama pembayar..."
+                        value={advanced.nama_pembayar}
+                        onChange={(e) => setAdvanced((p) => ({ ...p, nama_pembayar: e.target.value }))}
+                        onKeyDown={(e) => e.key === 'Enter' && handleAdvancedSearch()}
+                        className="w-full px-3 py-1.5 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Metode Bayar</label>
+                      <input
+                        type="text"
+                        placeholder="Cari metode..."
+                        value={advanced.metode_pembayaran}
+                        onChange={(e) => setAdvanced((p) => ({ ...p, metode_pembayaran: e.target.value }))}
+                        onKeyDown={(e) => e.key === 'Enter' && handleAdvancedSearch()}
+                        className="w-full px-3 py-1.5 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition"
+                      />
+                    </div>
+                  </>
+                )}
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Tanggal Awal</label>
+                  <input
+                    type="date"
+                    value={advanced.tanggal_awal}
+                    onChange={(e) => setAdvanced((p) => ({ ...p, tanggal_awal: e.target.value }))}
+                    className="w-full px-3 py-1.5 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Tanggal Akhir</label>
+                  <input
+                    type="date"
+                    value={advanced.tanggal_akhir}
+                    onChange={(e) => setAdvanced((p) => ({ ...p, tanggal_akhir: e.target.value }))}
+                    className="w-full px-3 py-1.5 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition"
+                  />
                 </div>
               </div>
-            )}
-          </div>
-        )}
 
-        {/* Table — only show when jenis selected or history tab */}
-        {(isHistory || jenisSelected) && (
+              {/* Action Buttons */}
+              <div className="mt-3 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={handleReset}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-medium text-gray-600 hover:bg-gray-100 transition"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  Reset
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAdvancedSearch}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-medium hover:bg-emerald-700 shadow-sm transition"
+                >
+                  <Search className="w-3.5 h-3.5" />
+                  Terapkan Filter
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Table */}
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
           <DataTable
             columns={columns}
@@ -575,7 +606,6 @@ const PengeluaranRphPage = () => {
             responsive
           />
         </div>
-        )}
 
         {error && (
           <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">

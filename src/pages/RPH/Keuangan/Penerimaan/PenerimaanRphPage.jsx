@@ -2,7 +2,8 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import {
-  Wallet, Search, X, Eye, Loader2, FileText, AlertCircle, CheckCircle, Banknote, MoreVertical
+  Wallet, Search, Eye, Loader2, FileText, AlertCircle, CheckCircle, Banknote, MoreVertical,
+  SlidersHorizontal, ChevronDown, RotateCcw, ArrowDownCircle
 } from 'lucide-react';
 import DataTable from 'react-data-table-component';
 import usePenjualanSapiUtuh from '../../../../hooks/usePenjualanSapiUtuh';
@@ -82,6 +83,25 @@ const JENIS_PENJUALAN_OPTIONS = [
   { value: 'sapi_qurban_utuh', label: 'Sapi Qurban / Utuh' },
 ];
 
+const TABS = [
+  { id: 'transaksi', label: 'Transaksi' },
+  { id: 'riwayat', label: 'Riwayat Penerimaan' },
+];
+
+const PAYMENT_STATUS_OPTIONS = [
+  { value: 'all', label: 'Semua Status' },
+  { value: 'belum_bayar', label: 'Belum Bayar' },
+  { value: 'dp', label: 'DP' },
+  { value: 'lunas', label: 'Lunas' },
+];
+
+const INITIAL_ADVANCED = {
+  search: '',
+  payment_status: 'all',
+  tanggal_awal: '',
+  tanggal_akhir: '',
+};
+
 const STATUS_CONFIG = {
   draft: { label: 'Draft', bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-100', dot: 'bg-amber-400' },
   confirmed: { label: 'Confirmed', bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-100', dot: 'bg-emerald-400' },
@@ -120,16 +140,17 @@ const SummaryCard = ({ label, value, icon: Icon, color }) => {
 
 const PenerimaanRphPage = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('belum-lunas');
-  const [jenisSelected, setJenisSelected] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [activeTab, setActiveTab] = useState('transaksi');
+  const [jenisValue, setJenisValue] = useState('sapi_qurban_utuh');
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [advanced, setAdvanced] = useState(INITIAL_ADVANCED);
+  const [appliedFilters, setAppliedFilters] = useState(INITIAL_ADVANCED);
   const [tableData, setTableData] = useState([]);
   const [historyData, setHistoryData] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState(null);
   const { loading, error, fetchData } = usePenjualanSapiUtuh();
 
-  const isBelumLunas = activeTab === 'belum-lunas';
   const isHistory = activeTab === 'riwayat';
 
   // Load data
@@ -137,7 +158,12 @@ const PenerimaanRphPage = () => {
     if (isHistory) {
       setHistoryLoading(true);
       setHistoryError(null);
-      const result = await PenjualanSapiUtuhService.getPenerimaanHistory({ length: 1000 });
+      const result = await PenjualanSapiUtuhService.getPenerimaanHistory({
+        length: 1000,
+        search: appliedFilters.search || undefined,
+        tanggal_awal: appliedFilters.tanggal_awal || undefined,
+        tanggal_akhir: appliedFilters.tanggal_akhir || undefined,
+      });
       if (result.success) {
         setHistoryData(result.data || []);
       } else {
@@ -146,15 +172,19 @@ const PenerimaanRphPage = () => {
       setHistoryLoading(false);
       return;
     }
+    const statusBayar = appliedFilters.payment_status && appliedFilters.payment_status !== 'all'
+      ? appliedFilters.payment_status
+      : 'belum_bayar,dp,lunas';
     const result = await fetchData({
       length: 1000,
-      status_pembayaran: isBelumLunas ? 'belum_bayar,dp' : 'lunas',
+      status_pembayaran: statusBayar,
       exclude_status_transaksi: 'draft',
+      search: appliedFilters.search || undefined,
     });
     if (result.success && result.data) {
       setTableData(result.data);
     }
-  }, [isBelumLunas, isHistory, fetchData]);
+  }, [isHistory, fetchData, appliedFilters]);
 
   useEffect(() => {
     loadData();
@@ -162,22 +192,30 @@ const PenerimaanRphPage = () => {
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
-    setSearchTerm('');
-    if (tab === 'belum-lunas') {
-      setJenisSelected(false);
-    }
+    setAdvanced(INITIAL_ADVANCED);
+    setAppliedFilters(INITIAL_ADVANCED);
   };
 
+  const handleAdvancedSearch = () => {
+    setAppliedFilters(advanced);
+  };
+
+  const handleReset = () => {
+    setAdvanced(INITIAL_ADVANCED);
+    setAppliedFilters(INITIAL_ADVANCED);
+  };
+
+  const activeFilterCount = useMemo(
+    () => Object.entries(appliedFilters).filter(([k, v]) => {
+      if (k === 'payment_status') return v && v !== 'all';
+      return v && String(v).trim() !== '';
+    }).length,
+    [appliedFilters]
+  );
+
   const filteredData = useMemo(() => {
-    let data = tableData;
-    if (!searchTerm) return data;
-    const lower = searchTerm.toLowerCase();
-    return data.filter((item) =>
-      item.no_transaksi?.toLowerCase().includes(lower) ||
-      item.nama_pembeli?.toLowerCase().includes(lower) ||
-      item.pic?.toLowerCase().includes(lower)
-    );
-  }, [tableData, searchTerm]);
+    return tableData;
+  }, [tableData]);
 
   const stats = useMemo(() => {
     const totalSisa = filteredData.reduce((sum, r) => sum + (r.sisa_pembayaran || 0), 0);
@@ -193,31 +231,10 @@ const PenerimaanRphPage = () => {
     };
   }, [filteredData]);
 
-  const onSearch = (e) => {
-    setSearchTerm(e.target.value);
-  };
-
-  const onClearSearch = () => {
-    setSearchTerm('');
-  };
-
   // Filtered history data
   const filteredHistoryData = useMemo(() => {
-    if (!searchTerm) return historyData;
-    const lower = searchTerm.toLowerCase();
-    return historyData.filter((item) =>
-      item.no_transaksi?.toLowerCase().includes(lower) ||
-      item.nama_pembeli?.toLowerCase().includes(lower) ||
-      item.nama_pembayar?.toLowerCase().includes(lower) ||
-      item.metode_pembayaran?.toLowerCase().includes(lower)
-    );
-  }, [historyData, searchTerm]);
-
-  // History stats
-  const historyStats = useMemo(() => {
-    const totalDiterima = filteredHistoryData.reduce((s, r) => s + (r.amount || 0), 0);
-    return { count: filteredHistoryData.length, totalDiterima };
-  }, [filteredHistoryData]);
+    return historyData;
+  }, [historyData]);
 
   // History DataTable columns
   const historyColumns = [
@@ -422,251 +439,215 @@ const PenerimaanRphPage = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 p-4 sm:p-6">
-      <div className="max-w-[1800px] mx-auto space-y-5">
+      <div className="max-w-[1800px] mx-auto space-y-4">
         {/* Header */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 sm:p-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 flex items-center gap-3">
-                <Wallet className="w-8 h-8 text-emerald-600" />
-                Penerimaan
-              </h1>
-              <p className="text-gray-500 text-sm mt-1">Daftar piutang & pelunasan penjualan sapi</p>
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
+            <ArrowDownCircle className="w-5 h-5 text-emerald-600" />
+          </div>
+          <div className="min-w-0">
+            <h1 className="text-base font-bold text-gray-800 truncate">Penerimaan</h1>
+            <p className="text-gray-500 text-[11px] truncate">Daftar piutang & pelunasan penjualan sapi</p>
+          </div>
+        </div>
+
+        {/* Summary Cards - always visible */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <SummaryCard label="Total Record" value={stats.count} icon={FileText} color="blue" />
+          <SummaryCard label="Total Tagihan" value={formatRupiah(stats.totalGrand)} icon={Banknote} color="amber" />
+          <SummaryCard label="Total Diterima" value={formatRupiah(stats.totalBayar)} icon={CheckCircle} color="emerald" />
+          <SummaryCard label="Total Sisa" value={formatRupiah(stats.totalSisa)} icon={AlertCircle} color="red" />
+        </div>
+
+        {/* Unified Toolbar: tabs + jenis */}
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-3">
+          <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+            {/* Tabs */}
+            <div className="flex gap-1 bg-gray-50 rounded-lg p-1 w-fit">
+              {TABS.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => handleTabChange(tab.id)}
+                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition ${
+                    activeTab === tab.id
+                      ? 'bg-white text-emerald-700 shadow-sm'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Jenis Penjualan - compact inline */}
+            <div className="flex items-center gap-2 lg:w-72">
+              <label className="text-[10px] font-bold text-gray-500 uppercase shrink-0">Jenis</label>
+              <div className="flex-1 min-w-0">
+                <SearchableSelect
+                  options={JENIS_PENJUALAN_OPTIONS}
+                  value={jenisValue}
+                  onChange={(val) => setJenisValue(val || 'sapi_qurban_utuh')}
+                  placeholder="Pilih jenis..."
+                  isClearable={false}
+                  accentColor="green"
+                  className="text-sm"
+                />
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <SummaryCard
-            label="Total Record"
-            value={stats.count}
-            icon={FileText}
-            color="blue"
-          />
-          <SummaryCard
-            label={isBelumLunas ? 'Total Sisa Piutang' : 'Total Terbayar'}
-            value={formatRupiah(isBelumLunas ? stats.totalSisa : stats.totalGrand)}
-            icon={isBelumLunas ? AlertCircle : CheckCircle}
-            color={isBelumLunas ? 'red' : 'emerald'}
-          />
-          <SummaryCard
-            label={isBelumLunas ? 'Sudah Dibayar' : 'Total Lunas'}
-            value={formatRupiah(isBelumLunas ? stats.totalBayar : stats.totalGrand)}
-            icon={CheckCircle}
-            color="emerald"
-          />
-        </div>
-
-        {/* Tabs */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="flex border-b border-gray-200">
-            <button
-              onClick={() => handleTabChange('belum-lunas')}
-              className={`flex-1 px-6 py-3.5 text-sm font-bold transition-all duration-200 flex items-center justify-center gap-2 ${
-                activeTab === 'belum-lunas'
-                  ? 'text-white bg-blue-600 shadow-[inset_0_-3px_0_rgba(0,0,0,0.1)]'
-                  : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
-              }`}
-            >
-              Belum Lunas
-              {jenisSelected && (
-                <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${
-                  activeTab === 'belum-lunas' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-600'
-                }`}>
-                  {stats.count}
+        {/* Filter Lanjutan - separate card */}
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+          <button
+            onClick={() => setAdvancedOpen((v) => !v)}
+            className={`w-full flex items-center justify-between px-4 py-3 transition ${
+              advancedOpen ? 'bg-emerald-50/50' : 'hover:bg-gray-50'
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <SlidersHorizontal className="w-4 h-4 text-emerald-600" />
+              <span className="text-sm font-semibold text-gray-700">Filter Lanjutan</span>
+              {activeFilterCount > 0 && (
+                <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[11px] font-bold text-white bg-emerald-500 rounded-full">
+                  {activeFilterCount}
                 </span>
               )}
-            </button>
-            <button
-              onClick={() => handleTabChange('lunas')}
-              className={`flex-1 px-6 py-3.5 text-sm font-bold transition-all duration-200 flex items-center justify-center gap-2 ${
-                activeTab === 'lunas'
-                  ? 'text-white bg-emerald-600 shadow-[inset_0_-3px_0_rgba(0,0,0,0.1)]'
-                  : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
-              }`}
-            >
-              Lunas
-              <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${
-                activeTab === 'lunas' ? 'bg-emerald-500 text-white' : 'bg-gray-200 text-gray-600'
-              }`}>
-                {stats.count}
-              </span>
-            </button>
-            <button
-              onClick={() => handleTabChange('riwayat')}
-              className={`flex-1 px-6 py-3.5 text-sm font-bold transition-all duration-200 flex items-center justify-center gap-2 ${
-                activeTab === 'riwayat'
-                  ? 'text-white bg-violet-600 shadow-[inset_0_-3px_0_rgba(0,0,0,0.1)]'
-                  : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
-              }`}
-            >
-              Riwayat Penerimaan
-              <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${
-                activeTab === 'riwayat' ? 'bg-violet-500 text-white' : 'bg-gray-200 text-gray-600'
-              }`}>
-                {historyStats.count}
-              </span>
-            </button>
-          </div>
+            </div>
+            <ChevronDown className={`w-4 h-4 text-gray-400 transition ${advancedOpen ? 'rotate-180' : ''}`} />
+          </button>
 
-          <div className="p-5 sm:p-6">
-            {/* === Riwayat Penerimaan Tab === */}
-            {isHistory && (
-              <>
-                <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-5">
-                  <div className="relative flex-1 max-w-md">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <input
-                      type="text"
-                      value={searchTerm}
-                      onChange={onSearch}
-                      placeholder="Cari no transaksi, pembeli, pembayar..."
-                      className="w-full pl-10 pr-10 py-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 focus:border-violet-500 placeholder-gray-400"
+          {/* Advanced Filter Panel - collapsible */}
+          {advancedOpen && (
+            <div className="px-4 pb-4 pt-3 border-t border-gray-100">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="sm:col-span-2">
+                  <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Pencarian</label>
+                  <input
+                    type="text"
+                    placeholder={isHistory ? "Cari no transaksi, pembeli, pembayar..." : "Cari no transaksi, pembeli, PIC..."}
+                    value={advanced.search}
+                    onChange={(e) => setAdvanced((p) => ({ ...p, search: e.target.value }))}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAdvancedSearch()}
+                    className="w-full px-3 py-1.5 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition"
+                  />
+                </div>
+                {/* Status Pembayaran - only for transaksi tab */}
+                {!isHistory && (
+                  <div>
+                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Status Bayar</label>
+                    <SearchableSelect
+                      options={PAYMENT_STATUS_OPTIONS}
+                      value={advanced.payment_status}
+                      onChange={(val) => setAdvanced((p) => ({ ...p, payment_status: val ?? 'all' }))}
+                      placeholder="Semua Status"
+                      isSearchable={false}
+                      isClearable={false}
+                      accentColor="green"
+                      className="text-sm"
                     />
-                    {searchTerm && (
-                      <button onClick={onClearSearch} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                        <X className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-                  <div className="text-sm text-gray-500 ml-auto">
-                    Total Diterima: <span className="font-bold text-emerald-600">{formatRupiah(historyStats.totalDiterima)}</span>
-                  </div>
-                </div>
-
-                <div className="border border-gray-200 rounded-xl overflow-hidden">
-                  <DataTable
-                    columns={historyColumns}
-                    data={filteredHistoryData}
-                    pagination
-                    paginationPerPage={10}
-                    paginationRowsPerPageOptions={[10, 25, 50, 100]}
-                    progressPending={historyLoading}
-                    progressComponent={
-                      <div className="flex items-center justify-center py-12">
-                        <Loader2 className="w-6 h-6 text-violet-500 animate-spin mr-2" />
-                        <span className="text-gray-500 text-sm">Memuat riwayat...</span>
-                      </div>
-                    }
-                    noDataComponent={
-                      <div className="py-14 text-center">
-                        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                          <Banknote className="w-8 h-8 text-gray-300" />
-                        </div>
-                        <p className="text-gray-600 text-sm font-medium">Belum ada riwayat penerimaan</p>
-                        <p className="text-gray-400 text-xs mt-1">Pembayaran yang diterima akan tampil di sini</p>
-                      </div>
-                    }
-                    customStyles={customStyles}
-                    highlightOnHover
-                    responsive
-                  />
-                </div>
-
-                {historyError && (
-                  <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
-                    {historyError}
                   </div>
                 )}
-              </>
-            )}
-
-            {/* === Belum Lunas / Lunas Tabs === */}
-            {!isHistory && (
-              <>
-            {/* Belum Lunas: Selectbox gatekeeping */}
-            {isBelumLunas && !jenisSelected && (
-              <div className="bg-gray-50 border border-gray-200 rounded-xl p-8 text-center mb-5">
-                <p className="text-gray-500 text-sm mb-4">Pilih jenis penjualan terlebih dahulu untuk menampilkan data</p>
-                <div className="max-w-xs mx-auto">
-                  <SearchableSelect
-                    options={JENIS_PENJUALAN_OPTIONS}
-                    value=""
-                    onChange={() => setJenisSelected(true)}
-                    placeholder="Pilih Jenis Penjualan"
-                    isClearable={false}
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Tanggal Awal</label>
+                  <input
+                    type="date"
+                    value={advanced.tanggal_awal}
+                    onChange={(e) => setAdvanced((p) => ({ ...p, tanggal_awal: e.target.value }))}
+                    className="w-full px-3 py-1.5 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Tanggal Akhir</label>
+                  <input
+                    type="date"
+                    value={advanced.tanggal_akhir}
+                    onChange={(e) => setAdvanced((p) => ({ ...p, tanggal_akhir: e.target.value }))}
+                    className="w-full px-3 py-1.5 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition"
                   />
                 </div>
               </div>
-            )}
 
-            {/* Toolbar: Search */}
-            {(!isBelumLunas || jenisSelected) && (
-              <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-5">
-                <div className="w-full sm:w-56">
-                  <SearchableSelect
-                    options={JENIS_PENJUALAN_OPTIONS}
-                    value="sapi_qurban_utuh"
-                    onChange={() => {}}
-                    placeholder="Jenis"
-                    isClearable={false}
-                    isDisabled
-                  />
-                </div>
-                <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={onSearch}
-                  placeholder="Cari no transaksi, pembeli, PIC..."
-                  className="w-full pl-10 pr-10 py-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 placeholder-gray-400"
-                />
-                {searchTerm && (
-                  <button onClick={onClearSearch} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
+              {/* Action Buttons */}
+              <div className="mt-3 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={handleReset}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-medium text-gray-600 hover:bg-gray-100 transition"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  Reset
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAdvancedSearch}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-medium hover:bg-emerald-700 shadow-sm transition"
+                >
+                  <Search className="w-3.5 h-3.5" />
+                  Terapkan Filter
+                </button>
               </div>
             </div>
-            )}
-
-            {/* Data Table */}
-            <div className="border border-gray-200 rounded-xl overflow-hidden">
-              <DataTable
-                columns={columns}
-                data={filteredData}
-                pagination
-                paginationPerPage={10}
-                paginationRowsPerPageOptions={[10, 25, 50, 100]}
-                progressPending={loading}
-                progressComponent={
-                  <div className="flex items-center justify-center py-12">
-                    <Loader2 className="w-6 h-6 text-emerald-500 animate-spin mr-2" />
-                    <span className="text-gray-500 text-sm">Memuat data...</span>
-                  </div>
-                }
-                noDataComponent={
-                  <div className="py-14 text-center">
-                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Wallet className="w-8 h-8 text-gray-300" />
-                    </div>
-                    <p className="text-gray-600 text-sm font-medium">
-                      {isBelumLunas ? 'Tidak ada piutang' : 'Tidak ada pelunasan'}
-                    </p>
-                    <p className="text-gray-400 text-xs mt-1">
-                      {isBelumLunas ? 'Semua transaksi sudah lunas' : 'Belum ada transaksi yang lunas'}
-                    </p>
-                  </div>
-                }
-                customStyles={customStyles}
-                highlightOnHover
-                responsive
-              />
-            </div>
-
-            {error && (
-              <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
-                {error}
-              </div>
-            )}
-              </>
-            )}
-          </div>
+          )}
         </div>
-      </div>
 
+        {/* Table */}
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+          {isHistory ? (
+            <DataTable
+              columns={historyColumns}
+              data={filteredHistoryData}
+              pagination
+              paginationPerPage={10}
+              paginationRowsPerPageOptions={[10, 25, 50, 100]}
+              progressPending={historyLoading}
+              progressComponent={
+                <div className="py-10 flex items-center justify-center gap-2 text-gray-500">
+                  <Loader2 className="w-5 h-5 animate-spin" /> Memuat riwayat...
+                </div>
+              }
+              noDataComponent={
+                <div className="py-10 text-center">
+                  <Banknote className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+                  <p className="text-gray-500 text-sm">Belum ada riwayat penerimaan</p>
+                </div>
+              }
+              customStyles={customStyles}
+              highlightOnHover
+              responsive
+            />
+          ) : (
+            <DataTable
+              columns={columns}
+              data={filteredData}
+              pagination
+              paginationPerPage={10}
+              paginationRowsPerPageOptions={[10, 25, 50, 100]}
+              progressPending={loading}
+              progressComponent={
+                <div className="py-10 flex items-center justify-center gap-2 text-gray-500">
+                  <Loader2 className="w-5 h-5 animate-spin" /> Memuat data...
+                </div>
+              }
+              noDataComponent={
+                <div className="py-10 text-center">
+                  <Wallet className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+                  <p className="text-gray-500 text-sm">Tidak ada data penerimaan</p>
+                </div>
+              }
+              customStyles={customStyles}
+              highlightOnHover
+              responsive
+            />
+          )}
+        </div>
+
+        {(error || historyError) && (
+          <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+            {error || historyError}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
