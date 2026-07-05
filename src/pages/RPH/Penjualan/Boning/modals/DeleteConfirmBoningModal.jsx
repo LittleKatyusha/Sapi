@@ -5,7 +5,7 @@ const DeleteConfirmBoningModal = ({ isOpen, onClose, onConfirm, item, loading })
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
+    <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/50" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
@@ -22,7 +22,7 @@ const DeleteConfirmBoningModal = ({ isOpen, onClose, onConfirm, item, loading })
         <p className="text-gray-600 mb-2">Apakah Anda yakin ingin menghapus transaksi ini?</p>
         {item && (
           <div className="bg-gray-50 rounded-lg p-3 mb-6">
-            <p className="text-sm text-gray-700 font-medium">{item.nota_sistem || item.nota || '-'}</p>
+            <p className="text-sm text-gray-700 font-medium">{item.no_kwitansi || item.nota_sistem || item.nota || '-'}</p>
             <p className="text-sm text-gray-500">{item.nama_pedagang || '-'}</p>
           </div>
         )}

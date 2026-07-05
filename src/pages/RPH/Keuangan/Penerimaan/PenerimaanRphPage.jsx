@@ -8,6 +8,7 @@ import {
 import DataTable from 'react-data-table-component';
 import usePenjualanSapiUtuh from '../../../../hooks/usePenjualanSapiUtuh';
 import PenjualanSapiUtuhService from '../../../../services/penjualanSapiUtuhService';
+import PenjualanBoningService from '../../../../services/penjualanBoningService';
 import SearchableSelect from '../../../../components/shared/SearchableSelect';
 
 // Action menu cell with portal to escape table overflow clipping
@@ -81,6 +82,7 @@ const ActionMenuCell = ({ row, onDetail, onBayar }) => {
 
 const JENIS_PENJUALAN_OPTIONS = [
   { value: 'sapi_qurban_utuh', label: 'Sapi Qurban / Utuh' },
+  { value: 'boning', label: 'Penjualan Boning' },
 ];
 
 const TABS = [
@@ -118,6 +120,46 @@ const formatRupiah = (val) => {
   return 'Rp ' + (val || 0).toLocaleString('id-ID');
 };
 
+const normalizeSapiRow = (row) => ({
+  ...row,
+  total_harga: Number(row.total_harga || 0),
+  biaya_kirim: Number(row.biaya_kirim || 0),
+  biaya_potong: Number(row.biaya_potong || 0),
+  nominal_pembayaran: Number(row.nominal_pembayaran || 0),
+  sisa_pembayaran: Number(row.sisa_pembayaran || 0),
+  purchase_type_label: row.purchase_type_label || 'Sapi Qurban / Utuh',
+});
+
+const normalizeBoningRow = (row) => {
+  const totalHarga = Number(row.total_harga || 0);
+  const biayaKirim = Number(row.biaya_pengiriman || 0);
+  const totalBayar = Number((row.total_terbayar ?? row.total_bayar) || 0);
+  const totalTagihan = Number(row.total_tagihan || (totalHarga + biayaKirim));
+  return {
+    ...row,
+    no_transaksi: row.no_kwitansi,
+    tanggal_transaksi: row.tgl_penjualan,
+    nama_pembeli: row.nama_pedagang,
+    no_hp_pembeli: row.id_pedagang || '-',
+    pic: '-',
+    total_harga: totalHarga,
+    biaya_kirim: biayaKirim,
+    biaya_potong: 0,
+    nominal_pembayaran: totalBayar,
+    sisa_pembayaran: Math.max(totalTagihan - totalBayar, 0),
+    status_pembayaran: row.payment_status,
+    status_pembayaran_label: row.payment_status_label,
+    status_transaksi: 'confirmed',
+    status_transaksi_label: 'Confirmed',
+    purchase_type_label: row.purchase_type_label || 'Penjualan Boning',
+  };
+};
+
+const normalizeHistoryRow = (row, jenisValue) => ({
+  ...row,
+  purchase_type_label: row.purchase_type_label || (jenisValue === 'boning' ? 'Penjualan Boning' : 'Sapi Qurban / Utuh'),
+});
+
 const SummaryCard = ({ label, value, icon: Icon, color }) => {
   const colorMap = {
     blue: 'bg-blue-50 text-blue-600',
@@ -147,6 +189,8 @@ const PenerimaanRphPage = () => {
   const [appliedFilters, setAppliedFilters] = useState(INITIAL_ADVANCED);
   const [tableData, setTableData] = useState([]);
   const [historyData, setHistoryData] = useState([]);
+  const [tableLoading, setTableLoading] = useState(false);
+  const [tableError, setTableError] = useState(null);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState(null);
   const { loading, error, fetchData } = usePenjualanSapiUtuh();
@@ -158,33 +202,61 @@ const PenerimaanRphPage = () => {
     if (isHistory) {
       setHistoryLoading(true);
       setHistoryError(null);
-      const result = await PenjualanSapiUtuhService.getPenerimaanHistory({
-        length: 1000,
-        search: appliedFilters.search || undefined,
-        tanggal_awal: appliedFilters.tanggal_awal || undefined,
-        tanggal_akhir: appliedFilters.tanggal_akhir || undefined,
-      });
+      const result = jenisValue === 'boning'
+        ? await PenjualanBoningService.getPenerimaanHistory({
+          length: 1000,
+          search: appliedFilters.search || undefined,
+          tanggal_awal: appliedFilters.tanggal_awal || undefined,
+          tanggal_akhir: appliedFilters.tanggal_akhir || undefined,
+        })
+        : await PenjualanSapiUtuhService.getPenerimaanHistory({
+          length: 1000,
+          search: appliedFilters.search || undefined,
+          start_date: appliedFilters.tanggal_awal || undefined,
+          end_date: appliedFilters.tanggal_akhir || undefined,
+        });
       if (result.success) {
-        setHistoryData(result.data || []);
+        setHistoryData((result.data || []).map((row) => normalizeHistoryRow(row, jenisValue)));
       } else {
         setHistoryError(result.message);
       }
       setHistoryLoading(false);
       return;
     }
+
+    setTableLoading(true);
+    setTableError(null);
     const statusBayar = appliedFilters.payment_status && appliedFilters.payment_status !== 'all'
       ? appliedFilters.payment_status
       : 'belum_bayar,dp,lunas';
-    const result = await fetchData({
+    const commonParams = {
       length: 1000,
-      status_pembayaran: statusBayar,
-      exclude_status_transaksi: 'draft',
       search: appliedFilters.search || undefined,
-    });
+      start_date: appliedFilters.tanggal_awal || undefined,
+      end_date: appliedFilters.tanggal_akhir || undefined,
+    };
+    const result = jenisValue === 'boning'
+      ? await PenjualanBoningService.getData({
+        ...commonParams,
+        startDate: commonParams.start_date,
+        endDate: commonParams.end_date,
+        payment_status: statusBayar,
+      })
+      : await fetchData({
+        ...commonParams,
+        status_pembayaran: statusBayar,
+        exclude_status_transaksi: 'draft',
+      });
+
     if (result.success && result.data) {
-      setTableData(result.data);
+      setTableData((result.data || []).map((row) => (
+        jenisValue === 'boning' ? normalizeBoningRow(row) : normalizeSapiRow(row)
+      )));
+    } else {
+      setTableError(result.message || 'Gagal memuat data penerimaan');
     }
-  }, [isHistory, fetchData, appliedFilters]);
+    setTableLoading(false);
+  }, [isHistory, jenisValue, fetchData, appliedFilters]);
 
   useEffect(() => {
     loadData();
@@ -266,7 +338,7 @@ const PenerimaanRphPage = () => {
       sortable: true,
       cell: (row) => (
         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-          row.purchase_type === 8 ? 'bg-amber-50 text-amber-700' : 'bg-blue-50 text-blue-700'
+          row.purchase_type === 12 ? 'bg-emerald-50 text-emerald-700' : (row.purchase_type === 8 ? 'bg-amber-50 text-amber-700' : 'bg-blue-50 text-blue-700')
         }`}>
           {row.purchase_type_label}
         </span>
@@ -318,7 +390,7 @@ const PenerimaanRphPage = () => {
       cell: (_, idx) => <span className="text-xs text-gray-400 font-medium">{idx + 1}</span>,
     },
     {
-      name: 'No. Transaksi',
+      name: jenisValue === 'boning' ? 'No. Kwitansi' : 'No. Transaksi',
       selector: (row) => row.no_transaksi,
       sortable: true,
       minWidth: '130px',
@@ -331,19 +403,22 @@ const PenerimaanRphPage = () => {
     },
     {
       name: 'Jenis',
-      selector: (row) => row.no_transaksi,
+      selector: (row) => row.purchase_type_label,
       sortable: true,
       width: '110px',
       center: true,
       cell: (row) => {
+        const isBoning = jenisValue === 'boning' || row.purchase_type_label === 'Penjualan Boning';
         const isQurban = row.no_transaksi?.toUpperCase().startsWith('PSQ');
         return (
           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
-            isQurban
+            isBoning
+              ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+              : isQurban
               ? 'bg-amber-50 text-amber-700 border border-amber-100'
               : 'bg-emerald-50 text-emerald-700 border border-emerald-100'
           }`}>
-            {isQurban ? 'Qurban' : 'Utuh'}
+            {isBoning ? 'Boning' : (isQurban ? 'Qurban' : 'Utuh')}
           </span>
         );
       },
@@ -391,7 +466,10 @@ const PenerimaanRphPage = () => {
       width: '120px',
       center: true,
       cell: (row) => {
-        const b = BAYAR_CONFIG[row.status_pembayaran] || BAYAR_CONFIG.belum_bayar;
+        const statusKey = typeof row.status_pembayaran === 'number'
+          ? (row.status_pembayaran === 1 ? 'lunas' : row.status_pembayaran === 0 ? 'dp' : 'belum_bayar')
+          : row.status_pembayaran_label?.toLowerCase?.().replace(/\s+/g, '_');
+        const b = BAYAR_CONFIG[statusKey] || BAYAR_CONFIG[row.status_pembayaran] || BAYAR_CONFIG.belum_bayar;
         return (
           <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold ${b.bg} ${b.text} border ${b.border}`}>
             {b.label}
@@ -422,12 +500,20 @@ const PenerimaanRphPage = () => {
       cell: (row) => (
         <ActionMenuCell
           row={row}
-          onDetail={(r) => navigate(`/rph/penjualan-sapi-utuh/detail/${r.pid}`)}
-          onBayar={(r) => navigate(`/rph/keuangan/penerimaan/bayar/${r.pid}`)}
+          onDetail={(r) => navigate(
+            jenisValue === 'boning'
+              ? `/rph/keuangan/penerimaan/bayar/${r.pid}?jenis=boning&mode=detail`
+              : `/rph/penjualan-sapi-utuh/detail/${r.pid}`
+          )}
+          onBayar={(r) => navigate(
+            jenisValue === 'boning'
+              ? `/rph/keuangan/penerimaan/bayar/${r.pid}?jenis=boning`
+              : `/rph/keuangan/penerimaan/bayar/${r.pid}`
+          )}
         />
       ),
     },
-  ], [navigate]);
+  ], [navigate, jenisValue]);
 
   const customStyles = {
     headRow: { style: { backgroundColor: '#f8fafc', borderBottom: '2px solid #e2e8f0', minHeight: '44px' } },
@@ -623,7 +709,7 @@ const PenerimaanRphPage = () => {
               pagination
               paginationPerPage={10}
               paginationRowsPerPageOptions={[10, 25, 50, 100]}
-              progressPending={loading}
+              progressPending={loading || tableLoading}
               progressComponent={
                 <div className="py-10 flex items-center justify-center gap-2 text-gray-500">
                   <Loader2 className="w-5 h-5 animate-spin" /> Memuat data...
@@ -642,9 +728,9 @@ const PenerimaanRphPage = () => {
           )}
         </div>
 
-        {(error || historyError) && (
+        {(error || tableError || historyError) && (
           <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
-            {error || historyError}
+            {error || tableError || historyError}
           </div>
         )}
       </div>

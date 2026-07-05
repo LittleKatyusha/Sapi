@@ -1,14 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft, Wallet, Loader2, AlertCircle, Banknote, CheckCircle, Clock
 } from 'lucide-react';
 import usePenjualanSapiUtuh from '../../../../../hooks/usePenjualanSapiUtuh';
+import PenjualanBoningService from '../../../../../services/penjualanBoningService';
 import SearchableSelect from '../../../../../components/shared/SearchableSelect';
 import DataTable from 'react-data-table-component';
 
 const METODE_OPTIONS = [
   { value: 'tunai', label: 'Tunai' },
+  { value: 'transfer_bank', label: 'Transfer Bank' },
   { value: 'transfer_bca', label: 'Transfer BCA' },
   { value: 'transfer_bni', label: 'Transfer BNI' },
   { value: 'transfer_bri', label: 'Transfer BRI' },
@@ -16,11 +18,30 @@ const METODE_OPTIONS = [
 
 const formatRupiah = (val) => 'Rp ' + (val || 0).toLocaleString('id-ID');
 const parseNumber = (str) => parseFloat((str || '').replace(/[^0-9]/g, '')) || 0;
+const formatBankLabel = (data) => {
+  if (!data?.nama_bank) return '-';
+  return data.kode_bank ? `${data.nama_bank} (${data.kode_bank})` : data.nama_bank;
+};
+const resolveBoningMetode = (data) => {
+  if (String(data?.tipe_pembayaran) !== '2') return 'tunai';
+
+  const bankRef = `${data?.kode_bank || ''} ${data?.nama_bank || ''}`.toLowerCase();
+  if (bankRef.includes('bca')) return 'transfer_bca';
+  if (bankRef.includes('bni')) return 'transfer_bni';
+  if (bankRef.includes('bri')) return 'transfer_bri';
+
+  return 'transfer_bank';
+};
 
 const BayarPage = () => {
   const { pid } = useParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { loading, error, bayar, fetchPembayaranHistory } = usePenjualanSapiUtuh();
+  const jenis = searchParams.get('jenis');
+  const mode = searchParams.get('mode');
+  const isBoning = jenis === 'boning';
+  const isDetailOnly = mode === 'detail';
 
   const [penjualan, setPenjualan] = useState(null);
   const [history, setHistory] = useState([]);
@@ -29,23 +50,38 @@ const BayarPage = () => {
   const [namaPembayar, setNamaPembayar] = useState('');
   const [formErrors, setFormErrors] = useState({});
   const [submitLoading, setSubmitLoading] = useState(false);
+  const [pageError, setPageError] = useState(null);
 
   const loadHistory = async () => {
-    const result = await fetchPembayaranHistory(pid);
+    setPageError(null);
+    const result = isBoning
+      ? await PenjualanBoningService.getPembayaranHistory(pid)
+      : await fetchPembayaranHistory(pid);
     if (result.success && result.data) {
       setPenjualan(result.data.penjualan);
       setHistory(result.data.history || []);
       setNamaPembayar(result.data.penjualan?.nama_pembeli || '');
+      if (isBoning) {
+        setMetode(resolveBoningMetode(result.data.penjualan));
+      }
+    } else {
+      setPageError(result.message || 'Gagal memuat detail pembayaran');
     }
   };
 
   useEffect(() => {
     if (pid) loadHistory();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pid]);
+  }, [pid, isBoning]);
 
   const grandTotal = (penjualan?.total_harga || 0) + (penjualan?.biaya_kirim || 0) + (penjualan?.biaya_potong || 0);
   const sisa = penjualan?.sisa_pembayaran || 0;
+  const pageTitle = useMemo(() => {
+    if (isBoning) {
+      return isDetailOnly ? 'Detail Penerimaan Boning' : 'Pembayaran Penerimaan Boning';
+    }
+    return 'Pembayaran / Pelunasan';
+  }, [isBoning, isDetailOnly]);
 
   const handleNominalChange = (e) => {
     const raw = e.target.value.replace(/[^0-9]/g, '');
@@ -60,7 +96,9 @@ const BayarPage = () => {
 
     if (!nominalValue || nominalValue <= 0) newErrors.nominal = 'Nominal wajib diisi';
     else if (nominalValue > sisa) newErrors.nominal = `Maksimal ${formatRupiah(sisa)}`;
-    if (!metode) newErrors.metode = 'Pilih metode pembayaran';
+    if (!metode) newErrors.metode = isBoning
+      ? 'Metode pembayaran belum bisa ditentukan dari data penjualan boning.'
+      : 'Pilih metode pembayaran';
 
     if (Object.keys(newErrors).length > 0) {
       setFormErrors(newErrors);
@@ -68,12 +106,19 @@ const BayarPage = () => {
     }
 
     setSubmitLoading(true);
-    const result = await bayar({
-      pid,
-      nominal_pembayaran: nominalValue,
-      metode_pembayaran: metode,
-      nama_pembayar: namaPembayar || undefined,
-    });
+    const result = isBoning
+      ? await PenjualanBoningService.bayar({
+        pid,
+        nominal_pembayaran: nominalValue,
+        metode_pembayaran: metode,
+        nama_pembayar: namaPembayar || undefined,
+      })
+      : await bayar({
+        pid,
+        nominal_pembayaran: nominalValue,
+        metode_pembayaran: metode,
+        nama_pembayar: namaPembayar || undefined,
+      });
     setSubmitLoading(false);
 
     if (result.success) {
@@ -137,7 +182,7 @@ const BayarPage = () => {
           <div>
             <h1 className="text-xl font-bold text-gray-800 flex items-center gap-2">
               <Banknote className="w-6 h-6 text-emerald-600" />
-              Pembayaran / Pelunasan
+              {pageTitle}
             </h1>
             <p className="text-gray-500 text-xs mt-0.5">{penjualan?.no_transaksi || '...'}</p>
           </div>
@@ -167,92 +212,111 @@ const BayarPage = () => {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          {/* Form Bayar */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-              <h2 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
-                <Wallet className="w-4 h-4 text-emerald-600" />
-                Input Pembayaran
-              </h2>
-
-              <form onSubmit={handleSubmit}>
-                <div className="mb-4">
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Nominal</label>
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">Rp</span>
-                      <input
-                        type="text"
-                        value={nominal}
-                        onChange={handleNominalChange}
-                        placeholder="0"
-                        disabled={submitLoading || sisa <= 0}
-                        className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 disabled:bg-gray-100"
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (sisa > 0) {
-                          setNominal(sisa.toLocaleString('id-ID'));
-                          if (formErrors.nominal) setFormErrors((p) => ({ ...p, nominal: '' }));
-                        }
-                      }}
-                      disabled={submitLoading || sisa <= 0}
-                      className="px-3 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold hover:bg-emerald-100 transition disabled:opacity-50"
-                    >
-                      Maks
-                    </button>
-                  </div>
-                  {formErrors.nominal && <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {formErrors.nominal}</p>}
-                </div>
-
-                <div className="mb-4">
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Metode</label>
-                  <SearchableSelect
-                    options={METODE_OPTIONS}
-                    value={metode}
-                    onChange={(val) => { setMetode(val || ''); if (formErrors.metode) setFormErrors((p) => ({ ...p, metode: '' })); }}
-                    placeholder="Pilih metode"
-                    isClearable={false}
-                    isDisabled={submitLoading || sisa <= 0}
-                  />
-                  {formErrors.metode && <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {formErrors.metode}</p>}
-                </div>
-
-                <div className="mb-5">
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Nama Pembayar <span className="text-gray-400 font-normal">(opsional)</span></label>
-                  <input
-                    type="text"
-                    value={namaPembayar}
-                    onChange={(e) => setNamaPembayar(e.target.value)}
-                    placeholder="Nama orang yang membayar"
-                    disabled={submitLoading || sisa <= 0}
-                    className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 disabled:bg-gray-100"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={submitLoading || sisa <= 0}
-                  className="w-full px-4 py-2.5 bg-emerald-600 text-white rounded-lg text-sm font-bold hover:bg-emerald-700 transition flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  {submitLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
-                  {submitLoading ? 'Menyimpan...' : 'Simpan Pembayaran'}
-                </button>
-
-                {sisa <= 0 && penjualan && (
-                  <p className="text-center text-xs text-emerald-600 mt-3 font-medium flex items-center justify-center gap-1">
-                    <CheckCircle className="w-3 h-3" /> Transaksi sudah lunas
-                  </p>
-                )}
-              </form>
+        {isBoning && penjualan && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+              <p className="text-xs text-gray-500 font-medium uppercase">Tipe Pembayaran Penjualan</p>
+              <p className="text-sm font-bold text-gray-800">{penjualan.tipe_pembayaran_label || '-'}</p>
+            </div>
+            <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+              <p className="text-xs text-gray-500 font-medium uppercase">Bank Dipilih</p>
+              <p className="text-sm font-bold text-gray-800">{String(penjualan.tipe_pembayaran) === '2' ? formatBankLabel(penjualan) : 'Cash / Tunai'}</p>
             </div>
           </div>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          {!isDetailOnly && (
+            <div className="lg:col-span-1">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+                <h2 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
+                  <Wallet className="w-4 h-4 text-emerald-600" />
+                  Input Pembayaran
+                </h2>
+
+                <form onSubmit={handleSubmit}>
+                  <div className="mb-4">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Nominal</label>
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">Rp</span>
+                        <input
+                          type="text"
+                          value={nominal}
+                          onChange={handleNominalChange}
+                          placeholder="0"
+                          disabled={submitLoading || sisa <= 0}
+                          className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 disabled:bg-gray-100"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (sisa > 0) {
+                            setNominal(sisa.toLocaleString('id-ID'));
+                            if (formErrors.nominal) setFormErrors((p) => ({ ...p, nominal: '' }));
+                          }
+                        }}
+                        disabled={submitLoading || sisa <= 0}
+                        className="px-3 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold hover:bg-emerald-100 transition disabled:opacity-50"
+                      >
+                        Maks
+                      </button>
+                    </div>
+                    {formErrors.nominal && <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {formErrors.nominal}</p>}
+                  </div>
+
+                  <div className="mb-4">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Metode</label>
+                    <SearchableSelect
+                      options={METODE_OPTIONS}
+                      value={metode}
+                      onChange={(val) => { setMetode(val || ''); if (formErrors.metode) setFormErrors((p) => ({ ...p, metode: '' })); }}
+                      placeholder={isBoning ? 'Metode diambil dari penjualan boning' : 'Pilih metode'}
+                      isClearable={false}
+                      isDisabled={submitLoading || sisa <= 0 || isBoning}
+                    />
+                    {formErrors.metode && <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {formErrors.metode}</p>}
+                    {isBoning && !formErrors.metode && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Metode pembayaran mengikuti data penjualan awal.
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="mb-5">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Nama Pembayar <span className="text-gray-400 font-normal">(opsional)</span></label>
+                    <input
+                      type="text"
+                      value={namaPembayar}
+                      onChange={(e) => setNamaPembayar(e.target.value)}
+                      placeholder="Nama orang yang membayar"
+                      disabled={submitLoading || sisa <= 0}
+                      className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 disabled:bg-gray-100"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={submitLoading || sisa <= 0}
+                    className="w-full px-4 py-2.5 bg-emerald-600 text-white rounded-lg text-sm font-bold hover:bg-emerald-700 transition flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {submitLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                    {submitLoading ? 'Menyimpan...' : 'Simpan Pembayaran'}
+                  </button>
+
+                  {sisa <= 0 && penjualan && (
+                    <p className="text-center text-xs text-emerald-600 mt-3 font-medium flex items-center justify-center gap-1">
+                      <CheckCircle className="w-3 h-3" /> Transaksi sudah lunas
+                    </p>
+                  )}
+                </form>
+              </div>
+            </div>
+          )}
 
           {/* History */}
-          <div className="lg:col-span-2">
+          <div className={isDetailOnly ? 'lg:col-span-3' : 'lg:col-span-2'}>
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
               <h2 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
                 <Clock className="w-4 h-4 text-blue-600" />
@@ -284,9 +348,9 @@ const BayarPage = () => {
           </div>
         </div>
 
-        {error && (
+        {(error || pageError) && (
           <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
-            {error}
+            {error || pageError}
           </div>
         )}
       </div>

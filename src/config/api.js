@@ -324,9 +324,13 @@ export const API_ENDPOINTS = {
       SHOW: '/api/rph/penjualan/boning/show',
       UPDATE: '/api/rph/penjualan/boning/update',
       DELETE: '/api/rph/penjualan/boning/hapus',
+      BAYAR: '/api/rph/penjualan/boning/bayar',
+      PEMBAYARAN_HISTORY: '/api/rph/penjualan/boning/pembayaran-history',
+      MASTER_DATA: '/api/rph/penjualan/boning/masterdata',
       GET_PEDAGANG: '/api/rph/penjualan/boning/getpedagang',
       GET_HARGA: '/api/rph/penjualan/boning/getharga',
       GET_BONING: '/api/rph/penjualan/boning/getboning',
+      PENERIMAAN_HISTORY: '/api/rph/penjualan/boning/penerimaan-history',
     },
     PENJUALAN_KARKAS: {
       DATA: '/api/rph/penjualan/karkas/data',

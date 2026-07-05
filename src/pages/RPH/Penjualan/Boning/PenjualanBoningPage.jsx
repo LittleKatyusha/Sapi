@@ -1,29 +1,186 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import DataTable from 'react-data-table-component';
-import { PlusCircle, Search, X, Loader2, Calendar, MoreVertical, Eye, Pencil, Trash2 } from 'lucide-react';
+import { Calendar, Eye, Loader2, MoreVertical, Pencil, PlusCircle, Search, Trash2, X } from 'lucide-react';
 import { enhancedTableStyles } from './constants/tableStyles';
 import usePenjualanBoning from './hooks/usePenjualanBoning';
 import AddEditBoningModal from './modals/AddEditBoningModal';
 import DetailBoningModal from './modals/DetailBoningModal';
 import DeleteConfirmBoningModal from './modals/DeleteConfirmBoningModal';
 
-const formatCurrency = (v) =>
-  new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(v || 0);
+const formatCurrency = (value) => new Intl.NumberFormat('id-ID', {
+  style: 'currency',
+  currency: 'IDR',
+  minimumFractionDigits: 0,
+}).format(Number(value || 0));
 
-const formatDate = (v) => {
-  if (!v) return '-';
-  return new Date(v).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' });
+const formatDate = (value) => {
+  if (!value) return '-';
+  return new Date(value).toLocaleDateString('id-ID', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
 };
 
-const NOTIFICATION_TIMEOUT = 5000;
+const PAYMENT_LABEL = {
+  '1': 'Cash',
+  '2': 'Bank',
+};
+
+const SHIPPING_STYLE = {
+  DIAMBIL: 'bg-slate-100 text-slate-700',
+  DIANTAR: 'bg-sky-100 text-sky-700',
+};
+
+const PAYMENT_STYLE = {
+  '1': 'bg-emerald-100 text-emerald-700',
+  '2': 'bg-amber-100 text-amber-700',
+};
+
+const STATUS_STYLE = {
+  Lunas: 'bg-emerald-100 text-emerald-700',
+  'Belum Lunas': 'bg-amber-100 text-amber-700',
+  'Belum Bayar': 'bg-rose-100 text-rose-700',
+  '-': 'bg-slate-100 text-slate-600',
+};
+
+const RowActionMenu = ({ row, anchorRef, onClose, onDetail, onEdit, onDelete }) => {
+  const menuRef = useRef(null);
+  const [menuStyle, setMenuStyle] = useState(null);
+
+  useEffect(() => {
+    const updatePosition = () => {
+      const anchor = anchorRef.current;
+      if (!anchor) return;
+
+      const rect = anchor.getBoundingClientRect();
+      setMenuStyle({
+        position: 'fixed',
+        top: rect.bottom + 8,
+        left: Math.max(12, rect.right - 192),
+        zIndex: 200,
+      });
+    };
+
+    const handleClickOutside = (event) => {
+      if (
+        menuRef.current
+        && !menuRef.current.contains(event.target)
+        && anchorRef.current
+        && !anchorRef.current.contains(event.target)
+      ) {
+        onClose();
+      }
+    };
+
+    updatePosition();
+    window.addEventListener('scroll', updatePosition, true);
+    window.addEventListener('resize', updatePosition);
+    document.addEventListener('mousedown', handleClickOutside);
+
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true);
+      window.removeEventListener('resize', updatePosition);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [anchorRef, onClose]);
+
+  if (!menuStyle) return null;
+
+  return createPortal(
+    <div
+      ref={menuRef}
+      style={menuStyle}
+      className="w-48 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl"
+      role="menu"
+      aria-label="Menu aksi"
+    >
+      <div className="border-b border-slate-100 bg-slate-50 px-3 py-2">
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Menu Aksi</p>
+      </div>
+      <div className="p-1.5">
+        <button
+          type="button"
+          onClick={() => {
+            onDetail(row);
+            onClose();
+          }}
+          className="mt-1 flex w-full items-center rounded-lg px-3 py-2.5 text-left text-sm text-slate-700 transition hover:bg-blue-50"
+          role="menuitem"
+        >
+          <span className="mr-3 flex h-7 w-7 items-center justify-center rounded-lg bg-blue-100 text-blue-600"><Eye className="h-4 w-4" /></span>
+          <span className="text-xs font-semibold">Detail</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            onEdit(row);
+            onClose();
+          }}
+          className="mt-1 flex w-full items-center rounded-lg px-3 py-2.5 text-left text-sm text-slate-700 transition hover:bg-amber-50"
+          role="menuitem"
+        >
+          <span className="mr-3 flex h-7 w-7 items-center justify-center rounded-lg bg-amber-100 text-amber-600"><Pencil className="h-4 w-4" /></span>
+          <span className="text-xs font-semibold">Edit</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            onDelete(row);
+            onClose();
+          }}
+          className="mt-1 flex w-full items-center rounded-lg px-3 py-2.5 text-left text-sm text-slate-700 transition hover:bg-rose-50"
+          role="menuitem"
+        >
+          <span className="mr-3 flex h-7 w-7 items-center justify-center rounded-lg bg-rose-100 text-rose-600"><Trash2 className="h-4 w-4" /></span>
+          <span className="text-xs font-semibold">Hapus</span>
+        </button>
+      </div>
+    </div>,
+    document.body
+  );
+};
+
+const RowActionButton = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onDelete }) => {
+  const buttonRef = useRef(null);
+
+  return (
+    <div className="relative">
+      <button
+        ref={buttonRef}
+        type="button"
+        onClick={(event) => {
+          event.stopPropagation();
+          onToggle(row.pid);
+        }}
+        className={`rounded-lg border p-2 text-slate-600 shadow-sm transition-all hover:bg-rose-50 hover:text-rose-600 ${isOpen ? 'border-rose-400 bg-rose-50 text-rose-600' : 'border-slate-300 bg-white'}`}
+        aria-label={`Menu aksi ${row.nama_pedagang || 'penjualan boning'}`}
+        aria-expanded={isOpen}
+      >
+        <MoreVertical className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
+      </button>
+      {isOpen ? (
+        <RowActionMenu
+          row={row}
+          anchorRef={buttonRef}
+          onClose={onClose}
+          onDetail={onDetail}
+          onEdit={onEdit}
+          onDelete={onDelete}
+        />
+      ) : null}
+    </div>
+  );
+};
 
 const PenjualanBoningPage = () => {
   const {
     dataList, loading, error,
     searchTerm, dateRange, serverPagination,
-    pedagangList, boningItems,
-    createLoading, updateLoading, deleteLoading,
-    fetchData, fetchPedagang, fetchBoningItems, fetchHarga,
+    pedagangList, boningItems, itemPotongOptions, bankOptions, pengirimOptions, kendaraanOptions,
+    masterLoading, createLoading, updateLoading, deleteLoading,
+    fetchData, fetchMasterData, fetchHarga, fetchPedagangHarga,
     show, store, update, hapus,
     handlePageChange, handlePerPageChange,
     handleSearch, clearSearch,
@@ -33,432 +190,366 @@ const PenjualanBoningPage = () => {
 
   const [notification, setNotification] = useState(null);
   const [openMenuId, setOpenMenuId] = useState(null);
-
-  // Modal states
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [detailData, setDetailData] = useState(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState(null);
-  const [detailData, setDetailData] = useState(null);
-  const [detailLoading, setDetailLoading] = useState(false);
 
-  // Initial fetch
   useEffect(() => {
     fetchData();
-    fetchPedagang();
-    fetchBoningItems();
-  }, []);
+    fetchMasterData();
+  }, [fetchData, fetchMasterData]);
 
-  // Auto-dismiss notification
   useEffect(() => {
-    if (notification) {
-      const t = setTimeout(() => setNotification(null), NOTIFICATION_TIMEOUT);
-      return () => clearTimeout(t);
-    }
+    if (!notification) return undefined;
+    const timer = setTimeout(() => setNotification(null), 5000);
+    return () => clearTimeout(timer);
   }, [notification]);
 
-  // Close menu on outside click
   useEffect(() => {
-    const handler = () => setOpenMenuId(null);
-    if (openMenuId) document.addEventListener('click', handler);
-    return () => document.removeEventListener('click', handler);
+    if (!openMenuId) return undefined;
+    const closeMenu = () => setOpenMenuId(null);
+    document.addEventListener('click', closeMenu);
+    return () => document.removeEventListener('click', closeMenu);
   }, [openMenuId]);
 
-  // --- Handlers ---
-  const handleOpenAdd = () => {
+  const handleOpenAdd = async () => {
+    if (!pedagangList.length || !boningItems.length || !bankOptions.length || !pengirimOptions.length || !kendaraanOptions.length) {
+      await fetchMasterData();
+    }
     setSelectedItem(null);
     setIsAddModalOpen(true);
   };
 
-  const handleOpenEdit = async (item) => {
-    setOpenMenuId(null);
+  const handleLoadDetail = async (pid, onSuccess) => {
     setDetailLoading(true);
-    const res = await show(item.pid);
+    const res = await show(pid);
     setDetailLoading(false);
-    if (res.success) {
-      setSelectedItem(res.data);
-      setIsEditModalOpen(true);
-    } else {
-      setNotification({ type: 'error', message: res.message || 'Gagal memuat detail' });
+
+    if (!res.success) {
+      setNotification({ type: 'error', message: res.message || 'Gagal memuat detail transaksi' });
+      return;
     }
+
+    onSuccess(res.data);
+  };
+
+  const handleOpenEdit = async (item) => {
+    if (!pedagangList.length || !boningItems.length || !bankOptions.length || !pengirimOptions.length || !kendaraanOptions.length) {
+      await fetchMasterData();
+    }
+    await handleLoadDetail(item.pid, (data) => {
+      setSelectedItem(data);
+      setIsEditModalOpen(true);
+    });
   };
 
   const handleOpenDetail = async (item) => {
-    setOpenMenuId(null);
-    setDetailLoading(true);
-    const res = await show(item.pid);
-    setDetailLoading(false);
-    if (res.success) {
-      setDetailData(res.data);
+    await handleLoadDetail(item.pid, (data) => {
+      setDetailData(data);
       setIsDetailModalOpen(true);
-    } else {
-      setNotification({ type: 'error', message: res.message || 'Gagal memuat detail' });
-    }
+    });
   };
 
   const handleOpenDelete = (item) => {
-    setOpenMenuId(null);
     setSelectedItem(item);
     setIsDeleteModalOpen(true);
   };
 
   const handleStore = async (payload) => {
     const res = await store(payload);
-    if (res.success) {
-      setNotification({ type: 'success', message: 'Penjualan Boning berhasil ditambahkan' });
-      setIsAddModalOpen(false);
-      refresh();
-    } else {
+    if (!res.success) {
       setNotification({ type: 'error', message: res.message || 'Gagal menyimpan data' });
-      throw new Error(res.message);
+      throw new Error(res.message || 'Gagal menyimpan data');
     }
+
+    setNotification({ type: 'success', message: res.message || 'Penjualan boning berhasil disimpan' });
+    setIsAddModalOpen(false);
+    refresh();
+    fetchMasterData();
   };
 
   const handleUpdate = async (payload) => {
     const res = await update(payload);
-    if (res.success) {
-      setNotification({ type: 'success', message: 'Penjualan Boning berhasil diperbarui' });
-      setIsEditModalOpen(false);
-      refresh();
-    } else {
+    if (!res.success) {
       setNotification({ type: 'error', message: res.message || 'Gagal memperbarui data' });
-      throw new Error(res.message);
+      throw new Error(res.message || 'Gagal memperbarui data');
     }
+
+    setNotification({ type: 'success', message: res.message || 'Penjualan boning berhasil diperbarui' });
+    setIsEditModalOpen(false);
+    refresh();
+    fetchMasterData();
   };
 
   const handleDelete = async (pid) => {
     const res = await hapus(pid);
-    if (res.success) {
-      setNotification({ type: 'success', message: 'Data berhasil dihapus' });
-      setIsDeleteModalOpen(false);
-      refresh();
-    } else {
+    if (!res.success) {
       setNotification({ type: 'error', message: res.message || 'Gagal menghapus data' });
+      return;
     }
+
+    setNotification({ type: 'success', message: res.message || 'Data berhasil dihapus' });
+    setIsDeleteModalOpen(false);
+    refresh();
+    fetchMasterData();
   };
 
-  // --- Table columns ---
-  const columns = useMemo(() => [
+  const columns = useMemo(() => ([
     {
       name: 'No',
-      width: '60px',
+      width: '70px',
       cell: (row, index) => (
-        <div className="text-center w-full font-semibold text-gray-600">
+        <div className="w-full text-center font-semibold text-slate-500">
           {(serverPagination.currentPage - 1) * serverPagination.perPage + index + 1}
         </div>
       ),
     },
     {
       name: 'Aksi',
-      width: '70px',
-      cell: row => (
-        <div className="relative">
-          <button
-            onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === row.pid ? null : row.pid); }}
-            className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <MoreVertical className="w-4 h-4 text-gray-500" />
-          </button>
-          {openMenuId === row.pid && (
-            <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[120px]">
-              <button onClick={() => handleOpenDetail(row)} className="flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-gray-50 text-gray-700">
-                <Eye className="w-3.5 h-3.5" /> Detail
-              </button>
-              <button onClick={() => handleOpenEdit(row)} className="flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-gray-50 text-gray-700">
-                <Pencil className="w-3.5 h-3.5" /> Edit
-              </button>
-              <button onClick={() => handleOpenDelete(row)} className="flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-red-50 text-red-600">
-                <Trash2 className="w-3.5 h-3.5" /> Hapus
-              </button>
-            </div>
-          )}
+      width: '80px',
+      center: true,
+      cell: (row) => (
+        <div className="flex items-center justify-center">
+          <RowActionButton
+            row={row}
+            isOpen={openMenuId === row.pid}
+            onToggle={(pid) => setOpenMenuId((current) => (current === pid ? null : pid))}
+            onClose={() => setOpenMenuId(null)}
+            onDetail={handleOpenDetail}
+            onEdit={handleOpenEdit}
+            onDelete={handleOpenDelete}
+          />
         </div>
       ),
     },
     {
-      name: 'Nota',
-      selector: row => row.nota_sistem,
+      name: 'No Kwitansi',
+      selector: (row) => row.no_kwitansi,
       sortable: true,
-      width: '170px',
-      cell: row => (
-        <div className="font-mono text-xs bg-purple-50 text-purple-700 px-2 py-1 rounded text-center">
-          {row.nota_sistem || '-'}
+      minWidth: '180px',
+      cell: (row) => (
+        <div className="rounded-lg bg-rose-50 px-2 py-1 font-mono text-xs text-rose-700">
+          {row.no_kwitansi || '-'}
         </div>
       ),
     },
     {
       name: 'Pedagang',
-      selector: row => row.nama_pedagang,
+      selector: (row) => row.nama_pedagang,
       sortable: true,
-      grow: 2,
-      cell: row => (
-        <div className="text-center">
-          <p className="font-medium text-gray-800 text-sm">{row.nama_pedagang || '-'}</p>
-          <p className="text-xs text-gray-500">{row.id_pedagang || ''}</p>
+      minWidth: '220px',
+      cell: (row) => (
+        <div className="py-2">
+          <div className="text-sm font-semibold text-slate-800">{row.nama_pedagang || '-'}</div>
+          <div className="text-xs text-slate-500">{row.id_pedagang || '-'}</div>
         </div>
       ),
     },
     {
       name: 'Tanggal',
-      selector: row => row.tgl_pemotongan,
+      selector: (row) => row.tgl_penjualan,
       sortable: true,
-      width: '120px',
-      cell: row => <div className="text-center text-sm">{formatDate(row.tgl_pemotongan)}</div>,
+      width: '130px',
+      cell: (row) => <span className="text-sm text-slate-700">{formatDate(row.tgl_penjualan)}</span>,
+    },
+    {
+      name: 'Berat',
+      selector: (row) => row.total_berat,
+      sortable: true,
+      width: '130px',
+      cell: (row) => <span className="text-sm font-medium text-slate-700">{Number(row.total_berat || 0).toFixed(3)} Kg</span>,
+    },
+    {
+      name: 'Total Harga',
+      selector: (row) => row.total_harga,
+      sortable: true,
+      minWidth: '150px',
+      cell: (row) => <span className="text-sm font-semibold text-emerald-700">{formatCurrency(row.total_harga)}</span>,
     },
     {
       name: 'Pembayaran',
-      width: '110px',
-      cell: row => (
-        <span className={`px-2 py-1 rounded text-xs font-medium ${
-          Number(row.tipe_pembayaran) === 1
-            ? 'bg-green-50 text-green-700'
-            : 'bg-amber-50 text-amber-700'
-        }`}>
-          {Number(row.tipe_pembayaran) === 1 ? 'Tunai' : 'Cicilan'}
+      width: '120px',
+      cell: (row) => (
+        <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${PAYMENT_STYLE[row.tipe_pembayaran] || 'bg-slate-100 text-slate-600'}`}>
+          {PAYMENT_LABEL[row.tipe_pembayaran] || '-'}
         </span>
       ),
     },
     {
-      name: 'Total',
-      selector: row => row.total_harga,
-      sortable: true,
-      width: '150px',
-      cell: row => (
-        <div className="text-center font-semibold text-sm text-green-700 bg-green-50 px-2 py-1 rounded">
-          {formatCurrency(row.total_harga || row.total_bayar)}
-        </div>
+      name: 'Status',
+      minWidth: '140px',
+      cell: (row) => (
+        <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_STYLE[row.payment_status_label] || STATUS_STYLE['-']}`}>
+          {row.payment_status_label || '-'}
+        </span>
       ),
     },
-  ], [openMenuId, serverPagination]);
+    {
+      name: 'Pengiriman',
+      width: '120px',
+      cell: (row) => (
+        <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${SHIPPING_STYLE[row.pengiriman] || 'bg-slate-100 text-slate-600'}`}>
+          {row.pengiriman || '-'}
+        </span>
+      ),
+    },
+  ]), [openMenuId, serverPagination]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      <div className="w-full mx-auto px-0 py-4 sm:py-6 space-y-6">
-        {/* Header */}
-        <div className="bg-white rounded-lg p-4 sm:p-6 shadow-xl border border-gray-100 mx-4 sm:mx-6 lg:mx-8">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="min-h-screen bg-slate-50">
+      <div className="space-y-6 px-4 py-5 sm:px-6 lg:px-8">
+        <div className="rounded-3xl border border-white/60 bg-white/90 p-6 shadow-xl shadow-rose-100/50">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Penjualan Boning</h1>
-              <p className="text-gray-600 text-sm sm:text-base">Kelola transaksi penjualan boning RPH</p>
+              <h1 className="text-2xl font-bold text-slate-900">Penjualan Boning RPH</h1>
+              <p className="mt-1 text-sm text-slate-500">Transaksi penjualan item boning berdasarkan stok aktif RPH.</p>
             </div>
             <button
+              type="button"
               onClick={handleOpenAdd}
-              className="bg-gradient-to-r from-red-500 to-rose-600 text-white px-5 py-3 rounded-xl hover:from-red-600 hover:to-rose-700 transition-all duration-300 flex items-center gap-2 font-medium shadow-lg hover:shadow-xl text-sm"
+              disabled={masterLoading}
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-rose-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-rose-200 transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <PlusCircle className="w-5 h-5" />
+              {masterLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <PlusCircle className="h-5 w-5" />}
               Tambah Penjualan
             </button>
           </div>
         </div>
 
-        {/* Search & Filters */}
-        <div className="bg-white rounded-lg p-4 sm:p-6 shadow-lg border border-gray-100 mx-4 sm:mx-6 lg:mx-8">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            {/* Search */}
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-lg">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="relative w-full max-w-xl">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
-                placeholder="Cari nota atau pedagang..."
                 value={searchTerm}
-                onChange={(e) => handleSearch(e.target.value)}
-                className="w-full pl-10 pr-9 py-2.5 border border-gray-300 rounded-full text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 shadow-sm"
+                onChange={(event) => handleSearch(event.target.value)}
+                placeholder="Cari no kwitansi atau pedagang"
+                className="w-full rounded-2xl border border-slate-300 py-3 pl-10 pr-10 text-sm outline-none transition focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20"
               />
               {searchTerm && (
-                <button onClick={clearSearch} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                  <X className="w-4 h-4" />
+                <button type="button" onClick={clearSearch} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                  <X className="h-4 w-4" />
                 </button>
               )}
             </div>
 
-            {/* Date Range */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <Calendar className="w-4 h-4 text-gray-500" />
+            <div className="flex flex-wrap items-center gap-2">
+              <Calendar className="h-4 w-4 text-slate-500" />
               <input
                 type="date"
                 value={dateRange.startDate}
-                onChange={(e) => handleDateRange({ ...dateRange, startDate: e.target.value })}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 shadow-sm"
+                onChange={(event) => handleDateRange({ ...dateRange, startDate: event.target.value })}
+                className="rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20"
               />
-              <span className="text-gray-500 text-sm">s/d</span>
+              <span className="text-sm text-slate-500">s/d</span>
               <input
                 type="date"
                 value={dateRange.endDate}
-                onChange={(e) => handleDateRange({ ...dateRange, endDate: e.target.value })}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 shadow-sm"
+                onChange={(event) => handleDateRange({ ...dateRange, endDate: event.target.value })}
+                className="rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20"
               />
               {(dateRange.startDate || dateRange.endDate) && (
-                <button onClick={clearDateRange} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg">
-                  <X className="w-4 h-4" />
+                <button type="button" onClick={clearDateRange} className="rounded-lg p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600">
+                  <X className="h-4 w-4" />
                 </button>
               )}
             </div>
           </div>
         </div>
 
-        {/* Table */}
-        <div className="bg-white shadow-lg border-y border-gray-100 relative overflow-hidden mx-4 sm:mx-6 lg:mx-8 rounded-lg">
-          <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-            <span className="text-sm text-gray-600">Data Penjualan Boning</span>
-            <span className="text-xs text-gray-500">{serverPagination.totalItems} item</span>
+        <div className="overflow-visible rounded-3xl border border-slate-200 bg-white shadow-lg">
+          <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-5 py-4">
+            <div>
+              <div className="text-sm font-semibold text-slate-800">Daftar Penjualan Boning</div>
+              <div className="text-xs text-slate-500">Total data {serverPagination.totalItems}</div>
+            </div>
           </div>
 
-          <div className="w-full overflow-x-auto" style={{ maxHeight: '60vh' }}>
+          <div className="overflow-x-auto overflow-y-visible">
             <DataTable
               columns={columns}
               data={dataList}
               pagination={false}
               customStyles={enhancedTableStyles}
               progressPending={loading}
-              dense
-              progressComponent={
-                <div className="text-center py-12">
-                  <Loader2 className="w-8 h-8 animate-spin text-red-600 mx-auto" />
-                  <p className="text-gray-500 text-sm mt-2">Memuat data...</p>
+              highlightOnHover
+              pointerOnHover
+              responsive
+              progressComponent={(
+                <div className="py-12 text-center">
+                  <Loader2 className="mx-auto h-8 w-8 animate-spin text-rose-600" />
+                  <p className="mt-2 text-sm text-slate-500">Memuat data penjualan boning...</p>
                 </div>
-              }
-              noDataComponent={
-                <div className="text-center py-12">
+              )}
+              noDataComponent={(
+                <div className="py-12 text-center">
                   {error ? (
-                    <div className="text-red-600">
-                      <p className="font-semibold">Error</p>
-                      <p className="text-sm">{error}</p>
-                    </div>
+                    <>
+                      <div className="text-sm font-semibold text-rose-600">Gagal memuat data</div>
+                      <div className="mt-1 text-sm text-slate-500">{error}</div>
+                    </>
                   ) : (
-                    <p className="text-gray-500">Tidak ada data penjualan boning</p>
+                    <div className="text-sm text-slate-500">Belum ada transaksi penjualan boning.</div>
                   )}
                 </div>
-              }
-              responsive={false}
-              highlightOnHover
-              fixedHeader
-              fixedHeaderScrollHeight="60vh"
+              )}
             />
           </div>
 
-          {/* Pagination */}
-          <div className="border-t border-gray-200 bg-gray-50 px-4 py-3 flex items-center justify-between">
-            <span className="text-sm text-gray-700">
-              Menampilkan{' '}
-              <b>{Math.min(((serverPagination.currentPage - 1) * serverPagination.perPage) + 1, serverPagination.totalItems)}</b>
-              {' '}–{' '}
-              <b>{Math.min(serverPagination.currentPage * serverPagination.perPage, serverPagination.totalItems)}</b>
-              {' '}dari <b>{serverPagination.totalItems}</b>
-            </span>
+          <div className="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="text-sm text-slate-600">
+              Menampilkan <strong>{serverPagination.totalItems ? ((serverPagination.currentPage - 1) * serverPagination.perPage) + 1 : 0}</strong>
+              {' '}sampai{' '}
+              <strong>{Math.min(serverPagination.currentPage * serverPagination.perPage, serverPagination.totalItems)}</strong>
+              {' '}dari <strong>{serverPagination.totalItems}</strong> data
+            </div>
             <div className="flex items-center gap-2">
               <select
                 value={serverPagination.perPage}
-                onChange={(e) => handlePerPageChange(Number(e.target.value))}
-                className="border border-gray-300 rounded px-2 py-1 text-sm focus:ring-2 focus:ring-red-500"
+                onChange={(event) => handlePerPageChange(Number(event.target.value))}
+                className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm outline-none focus:border-rose-500"
               >
-                {[10, 25, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
+                {[10, 25, 50, 100].map((size) => <option key={size} value={size}>{size}</option>)}
               </select>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => handlePageChange(1)}
-                  disabled={serverPagination.currentPage === 1}
-                  className="p-1.5 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/></svg>
-                </button>
-                <button
-                  onClick={() => handlePageChange(serverPagination.currentPage - 1)}
-                  disabled={serverPagination.currentPage === 1}
-                  className="p-1.5 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"/></svg>
-                </button>
-                <span className="px-2 text-sm font-medium">{serverPagination.currentPage} / {serverPagination.totalPages}</span>
-                <button
-                  onClick={() => handlePageChange(serverPagination.currentPage + 1)}
-                  disabled={serverPagination.currentPage >= serverPagination.totalPages}
-                  className="p-1.5 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"/></svg>
-                </button>
-                <button
-                  onClick={() => handlePageChange(serverPagination.totalPages)}
-                  disabled={serverPagination.currentPage >= serverPagination.totalPages}
-                  className="p-1.5 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/></svg>
-                </button>
-              </div>
+              <button type="button" onClick={() => handlePageChange(serverPagination.currentPage - 1)} disabled={serverPagination.currentPage <= 1} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-50">
+                Prev
+              </button>
+              <span className="text-sm font-medium text-slate-700">{serverPagination.currentPage} / {serverPagination.totalPages}</span>
+              <button type="button" onClick={() => handlePageChange(serverPagination.currentPage + 1)} disabled={serverPagination.currentPage >= serverPagination.totalPages} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-50">
+                Next
+              </button>
             </div>
           </div>
         </div>
-
-        {/* Mobile Card View */}
-        <div className="md:hidden px-4 sm:px-6">
-          {!loading && dataList.length > 0 && (
-            <div className="space-y-3">
-              {dataList.map((item, idx) => (
-                <div key={item.pid || idx} className="bg-white rounded-xl shadow border border-gray-100 p-4">
-                  <div className="flex items-start justify-between mb-2">
-                    <div>
-                      <p className="font-mono text-xs text-purple-700 bg-purple-50 px-2 py-0.5 rounded inline-block">{item.nota_sistem || '-'}</p>
-                      <p className="text-sm font-medium text-gray-800 mt-1">{item.nama_pedagang || '-'}</p>
-                    </div>
-                    <div className="relative">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === item.pid ? null : item.pid); }}
-                        className="p-1 hover:bg-gray-100 rounded"
-                      >
-                        <MoreVertical className="w-4 h-4 text-gray-500" />
-                      </button>
-                      {openMenuId === item.pid && (
-                        <div className="absolute top-full right-0 mt-1 bg-white border rounded-lg shadow-lg z-50 min-w-[110px]">
-                          <button onClick={() => handleOpenDetail(item)} className="flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-gray-50"><Eye className="w-3.5 h-3.5" /> Detail</button>
-                          <button onClick={() => handleOpenEdit(item)} className="flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-gray-50"><Pencil className="w-3.5 h-3.5" /> Edit</button>
-                          <button onClick={() => handleOpenDelete(item)} className="flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-red-50 text-red-600"><Trash2 className="w-3.5 h-3.5" /> Hapus</button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-500">{formatDate(item.tgl_pemotongan)}</span>
-                    <span className="font-semibold text-green-700">{formatCurrency(item.total_harga || item.total_bayar)}</span>
-                  </div>
-                  <div className="mt-1">
-                    <span className={`text-xs px-2 py-0.5 rounded ${Number(item.tipe_pembayaran) === 1 ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'}`}>
-                      {Number(item.tipe_pembayaran) === 1 ? 'Tunai' : 'Cicilan'}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
       </div>
 
-      {/* Notification */}
       {notification && (
-        <div className="fixed top-4 right-4 z-[60]">
-          <div className={`max-w-sm bg-white shadow-lg rounded-lg border-l-4 p-4 ${
-            notification.type === 'success' ? 'border-green-400' : 'border-red-400'
-          }`}>
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-gray-700">{notification.message}</p>
-              <button onClick={() => setNotification(null)} className="ml-3 text-gray-400 hover:text-gray-600">
-                <X className="w-4 h-4" />
+        <div className="fixed right-4 top-4 z-[70]">
+          <div className={`max-w-sm rounded-2xl border px-4 py-3 shadow-xl ${notification.type === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-rose-200 bg-rose-50 text-rose-700'}`}>
+            <div className="flex items-start gap-3">
+              <div className="flex-1 text-sm font-medium">{notification.message}</div>
+              <button type="button" onClick={() => setNotification(null)} className="text-current/60 hover:text-current">
+                <X className="h-4 w-4" />
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Loading overlay for detail fetches */}
       {detailLoading && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-          <div className="bg-white rounded-xl p-6 shadow-xl flex items-center gap-3">
-            <Loader2 className="w-5 h-5 animate-spin text-red-600" />
-            <span className="text-sm text-gray-700">Memuat data...</span>
+        <div className="fixed inset-0 z-[1250] flex items-center justify-center bg-black/30">
+          <div className="flex items-center gap-3 rounded-2xl bg-white px-5 py-4 shadow-2xl">
+            <Loader2 className="h-5 w-5 animate-spin text-rose-600" />
+            <span className="text-sm font-medium text-slate-700">Memuat detail transaksi...</span>
           </div>
         </div>
       )}
 
-      {/* Modals */}
       <AddEditBoningModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
@@ -466,10 +557,17 @@ const PenjualanBoningPage = () => {
         editData={null}
         pedagangList={pedagangList}
         boningItems={boningItems}
+        itemPotongOptions={itemPotongOptions}
+        bankOptions={bankOptions}
+        pengirimOptions={pengirimOptions}
+        kendaraanOptions={kendaraanOptions}
         fetchHarga={fetchHarga}
+        fetchPedagangHarga={fetchPedagangHarga}
         loading={createLoading}
+        masterLoading={masterLoading}
         idOffice={idOffice}
       />
+
       <AddEditBoningModal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
@@ -477,15 +575,23 @@ const PenjualanBoningPage = () => {
         editData={selectedItem}
         pedagangList={pedagangList}
         boningItems={boningItems}
+        itemPotongOptions={itemPotongOptions}
+        bankOptions={bankOptions}
+        pengirimOptions={pengirimOptions}
+        kendaraanOptions={kendaraanOptions}
         fetchHarga={fetchHarga}
+        fetchPedagangHarga={fetchPedagangHarga}
         loading={updateLoading}
+        masterLoading={masterLoading}
         idOffice={idOffice}
       />
+
       <DetailBoningModal
         isOpen={isDetailModalOpen}
         onClose={() => setIsDetailModalOpen(false)}
         data={detailData}
       />
+
       <DeleteConfirmBoningModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}

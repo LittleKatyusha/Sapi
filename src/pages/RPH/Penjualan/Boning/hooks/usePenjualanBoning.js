@@ -5,6 +5,45 @@ const getCurrentUser = () => {
   try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; }
 };
 
+const normalizePedagangOptions = (items = []) => items.map((item) => ({
+  id: Number(item.id),
+  pid: item.pid,
+  id_pedagang: item.id_pedagang,
+  nama_alias: item.nama_alias,
+  nama_identitas: item.nama_identitas,
+  label: item.label || `${item.nama_alias || item.nama_identitas || '-'} - ${item.id_pedagang || '-'}`,
+}));
+
+const normalizeBankOptions = (items = []) => items.map((item) => ({
+  id: Number(item.id),
+  label: item.label || item.display_name || `${item.nama || '-'}${item.kode ? ` (${item.kode})` : ''}`,
+  nama: item.nama,
+  kode: item.kode,
+}));
+
+const normalizePengirimOptions = (items = []) => items.map((item) => ({
+  id: Number(item.id),
+  label: item.label || `${item.nama || '-'}${item.no_hp ? ` - ${item.no_hp}` : ''}`,
+  nama: item.nama,
+  no_hp: item.no_hp,
+}));
+
+const normalizeKendaraanOptions = (items = []) => items.map((item) => ({
+  id: Number(item.id),
+  label: item.label || `${item.jenis_kendaraan || '-'} - ${item.plat_nomor || '-'}`,
+  jenis_kendaraan: item.jenis_kendaraan,
+  plat_nomor: item.plat_nomor,
+}));
+
+const normalizeItemPotongOptions = (items = []) => items.map((item) => ({
+  id_item_potong: Number(item.id),
+  nama_item: item.name || item.nama_item || '-',
+  id_jenis_potong: Number(item.id_jenis_potong || 0),
+  stok_tersedia: Number(item.stok_tersedia || 0),
+  label: item.label
+    || `${item.name || item.nama_item || '-'}${item.jenis_potong ? ` - ${item.jenis_potong}` : ''}${item.stok_tersedia !== undefined ? ` - Stok: ${Number(item.stok_tersedia || 0).toFixed(3)} Kg` : ''}`,
+}));
+
 const usePenjualanBoning = () => {
   const [dataList, setDataList] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -16,6 +55,11 @@ const usePenjualanBoning = () => {
   });
   const [pedagangList, setPedagangList] = useState([]);
   const [boningItems, setBoningItems] = useState([]);
+  const [itemPotongOptions, setItemPotongOptions] = useState([]);
+  const [bankOptions, setBankOptions] = useState([]);
+  const [pengirimOptions, setPengirimOptions] = useState([]);
+  const [kendaraanOptions, setKendaraanOptions] = useState([]);
+  const [masterLoading, setMasterLoading] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
   const [updateLoading, setUpdateLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -57,21 +101,115 @@ const usePenjualanBoning = () => {
     }
   }, [idOffice]);
 
-  const fetchPedagang = useCallback(async () => {
-    if (!idOffice) return { success: false, data: [] };
-    const res = await PenjualanBoningService.getPedagang(idOffice);
-    if (res.success) setPedagangList(res.data);
-    return res;
+  const fetchMasterData = useCallback(async () => {
+    setMasterLoading(true);
+    try {
+      const [masterRes, pedagangRes] = await Promise.all([
+        PenjualanBoningService.getMasterData(idOffice),
+        PenjualanBoningService.getPedagang(idOffice),
+      ]);
+      const pedagangFromMasterData = normalizePedagangOptions(masterRes.data?.pedagang || []);
+      const pedagangFromEndpoint = normalizePedagangOptions(pedagangRes.data || []);
+
+      if (masterRes.success) {
+        const data = masterRes.data || {};
+        setBoningItems(data.boning_items || []);
+        setBankOptions(normalizeBankOptions(data.banks || []));
+        setPengirimOptions(normalizePengirimOptions(data.pengirim || []));
+        setKendaraanOptions(normalizeKendaraanOptions(data.kendaraan || []));
+        setItemPotongOptions(normalizeItemPotongOptions(data.item_potong || []));
+      }
+
+      if (!(masterRes.data?.boning_items || []).length) {
+        const boningRes = await PenjualanBoningService.getBoning(idOffice);
+        if (boningRes.success) {
+          setBoningItems(boningRes.data || []);
+        }
+      }
+
+      let resolvedPedagang = pedagangFromEndpoint.length
+        ? pedagangFromEndpoint
+        : pedagangFromMasterData;
+
+      if (!resolvedPedagang.length) {
+        const masterPedagangRes = await PenjualanBoningService.getMasterPedagang({
+          draw: 1,
+          start: 0,
+          length: 1000,
+          orderColumn: 0,
+          orderDir: 'asc',
+        });
+
+        if (masterPedagangRes.success) {
+          resolvedPedagang = normalizePedagangOptions(
+            (masterPedagangRes.data || []).map((item) => ({
+              id: item.id,
+              pid: item.pid,
+              id_pedagang: item.id_pedagang,
+              nama_alias: item.nama_alias,
+              nama_identitas: item.nama_identitas,
+            }))
+          );
+        }
+      }
+
+      if (!normalizeItemPotongOptions(masterRes.data?.item_potong || []).length && typeof PenjualanBoningService.getMasterItemPotong === 'function') {
+        const itemPotongRes = await PenjualanBoningService.getMasterItemPotong({ draw: 1, start: 0, length: 1000 });
+        if (itemPotongRes.success) {
+          setItemPotongOptions(normalizeItemPotongOptions(itemPotongRes.data || []));
+        }
+      }
+
+      if (!normalizeBankOptions(masterRes.data?.banks || []).length) {
+        const bankRes = await PenjualanBoningService.getMasterBanks({ draw: 1, start: 0, length: 1000 });
+        if (bankRes.success) {
+          setBankOptions(normalizeBankOptions(bankRes.data || []));
+        }
+      }
+
+      if (!normalizePengirimOptions(masterRes.data?.pengirim || []).length) {
+        const pengirimRes = await PenjualanBoningService.getMasterPengirim({ draw: 1, start: 0, length: 1000 });
+        if (pengirimRes.success) {
+          setPengirimOptions(normalizePengirimOptions(pengirimRes.data || []));
+        }
+      }
+
+      if (!normalizeKendaraanOptions(masterRes.data?.kendaraan || []).length) {
+        const kendaraanRes = await PenjualanBoningService.getMasterKendaraan({ draw: 1, start: 0, length: 1000 });
+        if (kendaraanRes.success) {
+          setKendaraanOptions(normalizeKendaraanOptions(kendaraanRes.data || []));
+        }
+      }
+
+      setPedagangList(resolvedPedagang);
+
+      return {
+        success: masterRes.success || pedagangRes.success,
+        data: {
+          ...(masterRes.data || {}),
+          pedagang: resolvedPedagang,
+        },
+        message: masterRes.message || pedagangRes.message,
+      };
+    } finally {
+      setMasterLoading(false);
+    }
   }, [idOffice]);
 
-  const fetchBoningItems = useCallback(async () => {
-    const res = await PenjualanBoningService.getBoningItems();
-    if (res.success) setBoningItems(res.data);
-    return res;
+  const fetchHarga = useCallback(async (payload) => {
+    return PenjualanBoningService.getHarga(payload);
   }, []);
 
-  const fetchHarga = useCallback(async (pidPedagang) => {
-    return PenjualanBoningService.getHarga(pidPedagang);
+  const fetchPedagangHarga = useCallback(async (pid) => {
+    if (typeof PenjualanBoningService.getPedagangHarga !== 'function') {
+      return {
+        success: false,
+        data: null,
+        message: 'Service daftar harga pedagang belum tersedia',
+      };
+    }
+
+    return PenjualanBoningService.getPedagangHarga(pid);
   }, []);
 
   const show = useCallback(async (pid) => {
@@ -140,9 +278,9 @@ const usePenjualanBoning = () => {
   return {
     dataList, loading, error,
     searchTerm, dateRange, serverPagination,
-    pedagangList, boningItems,
-    createLoading, updateLoading, deleteLoading,
-    fetchData, fetchPedagang, fetchBoningItems, fetchHarga,
+    pedagangList, boningItems, itemPotongOptions, bankOptions, pengirimOptions, kendaraanOptions,
+    masterLoading, createLoading, updateLoading, deleteLoading,
+    fetchData, fetchMasterData, fetchHarga, fetchPedagangHarga,
     show, store, update, hapus,
     handlePageChange, handlePerPageChange,
     handleSearch, clearSearch,
