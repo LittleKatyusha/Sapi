@@ -31,7 +31,8 @@ const AddEditPembelianQurbanPage = () => {
         const opt = pemasokOptions.find(o => String(o.label || '').toUpperCase().includes('PUPUT BERSAUDARA'));
         return opt ? opt.value : '';
     }, [pemasokOptions]);
-    const jenisPembelianOpts = useMemo(() => [{ value: 1, label: 'Import' }, { value: 2, label: 'Lokal' }], []);
+    // F-19: Qurban hanya boleh dari perorangan/lokal (value = 2). Import/vendor perusahaan tidak ditawarkan.
+    const jenisPembelianOpts = useMemo(() => [{ value: 2, label: 'Lokal / Perorangan' }], []);
     const tipePembayaranOpts = useMemo(() => [{ value: 1, label: 'Kas' }, { value: 2, label: 'Bank' }], []);
 
     const [bankOptions, setBankOptions] = useState([]);
@@ -45,6 +46,24 @@ const AddEditPembelianQurbanPage = () => {
                 setBankOptions(d.map(b => ({ value: b.id, label: b.display_name || b.nama || b.name })));
             } catch { setBankOptions([]); }
             finally { setBankLoading(false); }
+        })();
+    }, []);
+
+    // F-20: Window periode Qurban aktif (dari sys_ms_parameter grup 'periode_qurban').
+    // Default kosong = fallback aman (validasi dilewati), selaras dengan gate backend.
+    const [periodeQurban, setPeriodeQurban] = useState({ start: '', end: '' });
+    useEffect(() => {
+        (async () => {
+            try {
+                const r = await HttpClient.get(`${API_ENDPOINTS.MASTER.PARAMETER}/data`, { params: { groups: 'periode_qurban' } });
+                const list = r?.data?.[0]?.periode_qurban || [];
+                const start = list.find(x => x.name === 'start_date')?.value || '';
+                const end = list.find(x => x.name === 'end_date')?.value || '';
+                setPeriodeQurban({ start, end });
+            } catch (err) {
+                console.error('Gagal memuat periode Qurban:', err);
+                setPeriodeQurban({ start: '', end: '' });
+            }
         })();
     }, []);
 
@@ -168,12 +187,17 @@ const AddEditPembelianQurbanPage = () => {
     const filteredBankOptions = useMemo(() => bankOptions.filter(o => o.value !== 1), [bankOptions]);
 
     const handleSubmit = async () => {
+        // F-20: rentang aktif; string comparison aman untuk format YYYY-MM-DD.
+        const { start: pqStart, end: pqEnd } = periodeQurban;
+        const outOfRange = (d) => (pqStart && pqEnd) ? (d < pqStart || d > pqEnd) : false;
         const checks = [
             [!formData.id_pemasok, 'Pemasok harus dipilih'],
             [!formData.jenis_pembelian, 'Jenis Pembelian harus dipilih'],
             [!formData.nama_penerima?.trim(), 'Nama Penerima harus diisi'],
             [!formData.tanggal_pemesanan, 'Tanggal Pemesanan harus diisi'],
             [!formData.tanggal_kedatangan_sapi, 'Tanggal Kedatangan Sapi harus diisi'],
+            [outOfRange(formData.tanggal_pemesanan), `Tanggal Pemesanan harus berada dalam periode Qurban aktif (${pqStart} s/d ${pqEnd})`],
+            [outOfRange(formData.tanggal_kedatangan_sapi), `Tanggal Kedatangan Sapi harus berada dalam periode Qurban aktif (${pqStart} s/d ${pqEnd})`],
             [!formData.id_persetujuan_rph, 'Persetujuan RPH harus dipilih'],
             [!formData.tipe_pembayaran, 'Tipe Pembayaran harus dipilih'],
             [selectedSapi.length === 0, 'Minimal harus memilih 1 sapi'],
@@ -277,11 +301,11 @@ const AddEditPembelianQurbanPage = () => {
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1.5">Tanggal Pemesanan <span className="text-red-500">*</span></label>
-                            <input type="date" value={formData.tanggal_pemesanan} onChange={e => handleChange('tanggal_pemesanan', e.target.value)} className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm transition-all" />
+                            <input type="date" value={formData.tanggal_pemesanan} min={periodeQurban.start || undefined} max={periodeQurban.end || undefined} onChange={e => handleChange('tanggal_pemesanan', e.target.value)} className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm transition-all" />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1.5">Tanggal Kedatangan Sapi <span className="text-red-500">*</span></label>
-                            <input type="date" value={formData.tanggal_kedatangan_sapi} onChange={e => handleChange('tanggal_kedatangan_sapi', e.target.value)} className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm transition-all" />
+                            <input type="date" value={formData.tanggal_kedatangan_sapi} min={periodeQurban.start || undefined} max={periodeQurban.end || undefined} onChange={e => handleChange('tanggal_kedatangan_sapi', e.target.value)} className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm transition-all" />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1.5">Pilih Nota</label>
