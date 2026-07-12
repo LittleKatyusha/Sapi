@@ -15,8 +15,9 @@ const AddEditKarkasModal = ({
     pid_pedagang: '',
     tgl_pemotongan: new Date().toISOString().split('T')[0],
     tipe_pembayaran: 1,
+    metode_pengiriman: 'DIAMBIL',
     ongkos_kirim: 0,
-    is_gratis_ongkir: false,
+    is_gratis_ongkir: true,
     note: '',
   });
   const [detail, setDetail] = useState([{ ...INITIAL_DETAIL }]);
@@ -44,8 +45,9 @@ const AddEditKarkasModal = ({
         pid_pedagang: editData.pedagang?.pid || '',
         tgl_pemotongan: editData.penjualan?.tgl_pemotongan || '',
         tipe_pembayaran: editData.penjualan?.tipe_pembayaran || 1,
+        metode_pengiriman: editData.penjualan?.metode_pengiriman || 'DIAMBIL',
         ongkos_kirim: editData.penjualan?.ongkos_kirim || 0,
-        is_gratis_ongkir: editData.penjualan?.is_gratis_ongkir || false,
+        is_gratis_ongkir: editData.penjualan?.is_gratis_ongkir ?? true,
         note: editData.penjualan?.note || '',
       });
       setDetail(
@@ -63,8 +65,9 @@ const AddEditKarkasModal = ({
         pid_pedagang: '',
         tgl_pemotongan: new Date().toISOString().split('T')[0],
         tipe_pembayaran: 1,
+        metode_pengiriman: 'DIAMBIL',
         ongkos_kirim: 0,
-        is_gratis_ongkir: false,
+        is_gratis_ongkir: true,
         note: '',
       });
       setDetail([{ ...INITIAL_DETAIL }]);
@@ -122,6 +125,10 @@ const AddEditKarkasModal = ({
     const errs = {};
     if (!form.pid_pedagang) errs.pid_pedagang = 'Pedagang wajib dipilih';
     if (!form.tgl_pemotongan) errs.tgl_pemotongan = 'Tanggal wajib diisi';
+    // F-12: ongkir gratis hanya untuk self-pickup; DIANTAR wajib membebankan ongkir > 0
+    if (form.metode_pengiriman === 'DIANTAR' && (parseFloat(form.ongkos_kirim) || 0) <= 0) {
+      errs.ongkos_kirim = 'Ongkos kirim wajib diisi > 0 jika barang diantar';
+    }
     if (detail.length === 0) errs.detail = 'Minimal 1 item detail';
     detail.forEach((row, i) => {
       if (!row.bagian_karkas) errs[`detail_${i}_bagian`] = 'Pilih bagian karkas';
@@ -137,13 +144,16 @@ const AddEditKarkasModal = ({
     if (!validate()) return;
     setSubmitting(true);
     try {
+      // F-12: DIAMBIL → ongkir 0 & gratis; DIANTAR → bebankan ongkir, tidak boleh gratis
+      const isPickup = form.metode_pengiriman === 'DIAMBIL';
       const payload = {
         id_office: idOffice,
         pid_pedagang: form.pid_pedagang,
         tgl_pemotongan: form.tgl_pemotongan,
         tipe_pembayaran: Number(form.tipe_pembayaran),
-        ongkos_kirim: ongkir,
-        is_gratis_ongkir: form.is_gratis_ongkir,
+        metode_pengiriman: form.metode_pengiriman,
+        ongkos_kirim: isPickup ? 0 : (parseFloat(form.ongkos_kirim) || 0),
+        is_gratis_ongkir: isPickup,
         note: form.note || null,
         detail: detail.map(row => ({
           bagian_karkas: row.bagian_karkas,
@@ -225,30 +235,44 @@ const AddEditKarkasModal = ({
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Ongkos Kirim</label>
-              <div className="flex items-center gap-3">
-                <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={form.is_gratis_ongkir}
-                    onChange={(e) => setForm(f => ({ ...f, is_gratis_ongkir: e.target.checked }))}
-                    className="rounded border-gray-300 text-red-600 focus:ring-red-500"
-                  />
-                  Gratis Ongkir
-                </label>
-                {!form.is_gratis_ongkir && (
-                  <input
-                    type="number"
-                    min="0"
-                    value={form.ongkos_kirim}
-                    onChange={(e) => setForm(f => ({ ...f, ongkos_kirim: e.target.value }))}
-                    className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                    placeholder="0"
-                  />
-                )}
-              </div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Metode Pengiriman *</label>
+              <select
+                value={form.metode_pengiriman}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  // DIAMBIL: ongkir 0 & gratis. DIANTAR: tidak boleh gratis, ongkir wajib diisi.
+                  setForm(f => ({
+                    ...f,
+                    metode_pengiriman: val,
+                    ongkos_kirim: val === 'DIAMBIL' ? 0 : f.ongkos_kirim,
+                    is_gratis_ongkir: val === 'DIAMBIL',
+                  }));
+                }}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500"
+              >
+                <option value="DIAMBIL">Diambil / Self-Pickup (Gratis Ongkir)</option>
+                <option value="DIANTAR">Diantar Armada RPH</option>
+              </select>
             </div>
           </div>
+
+          {/* Ongkos Kirim — hanya untuk pengiriman diantar */}
+          {form.metode_pengiriman === 'DIANTAR' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Ongkos Kirim *</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={form.ongkos_kirim}
+                  onChange={(e) => setForm(f => ({ ...f, ongkos_kirim: e.target.value }))}
+                  className={`w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 ${errors.ongkos_kirim ? 'border-red-400' : 'border-gray-300'}`}
+                  placeholder="Masukkan biaya ongkos kirim"
+                />
+                {errors.ongkos_kirim && <p className="text-xs text-red-500 mt-1">{errors.ongkos_kirim}</p>}
+              </div>
+            </div>
+          )}
 
           {/* Note */}
           <div>
