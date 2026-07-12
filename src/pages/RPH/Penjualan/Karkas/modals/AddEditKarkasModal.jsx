@@ -135,6 +135,23 @@ const AddEditKarkasModal = ({
       if (!row.berat_bersih || parseFloat(row.berat_bersih) <= 0) errs[`detail_${i}_berat`] = 'Berat harus > 0';
       if (!row.harga || parseFloat(row.harga) <= 0) errs[`detail_${i}_harga`] = 'Harga harus > 0';
     });
+
+    // R-06: Hard-block cicilan bila melampaui limit kredit pedagang (mirror guard backend).
+    // Hanya ditegakkan bila limit_kredit > 0 (0 = tidak diset).
+    if (Number(form.tipe_pembayaran) === 2 && selectedPedagang && Number(selectedPedagang.limit_kredit) > 0) {
+      const limit = Number(selectedPedagang.limit_kredit);
+      const saldoAkhir = Number(selectedPedagang.saldo_akhir) || 0;
+      // Piutang lama hanya dikurangi bila pedagang TIDAK berubah pada edit (same-trader via pid).
+      const isSameTrader = isEdit && editData?.pedagang?.pid === form.pid_pedagang;
+      const oldPiutang = (isSameTrader && Number(editData?.penjualan?.tipe_pembayaran) === 2)
+        ? (Number(editData?.penjualan?.total_bayar) || 0)
+        : 0;
+      const eksposur = saldoAkhir - oldPiutang + grandTotal;
+      if (eksposur > limit) {
+        errs.tipe_pembayaran = `Transaksi ditolak: total piutang (${formatCurrency(eksposur)}) melebihi limit kredit pedagang (${formatCurrency(limit)})`;
+      }
+    }
+
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -203,6 +220,26 @@ const AddEditKarkasModal = ({
                 ))}
               </select>
               {errors.pid_pedagang && <p className="text-xs text-red-500 mt-1">{errors.pid_pedagang}</p>}
+
+              {/* R-06: Info limit kredit & sisa limit pedagang terpilih */}
+              {selectedPedagang && Number(selectedPedagang.limit_kredit) > 0 && (
+                <div className="mt-2 bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs space-y-1">
+                  <div className="flex justify-between text-gray-600">
+                    <span>Limit Kredit:</span>
+                    <span className="font-semibold text-gray-800">{formatCurrency(Number(selectedPedagang.limit_kredit))}</span>
+                  </div>
+                  <div className="flex justify-between text-gray-600">
+                    <span>Total Piutang Berjalan:</span>
+                    <span className="font-semibold text-red-600">{formatCurrency(Number(selectedPedagang.saldo_akhir) || 0)}</span>
+                  </div>
+                  <div className="flex justify-between text-gray-600 border-t border-gray-200 pt-1">
+                    <span>Sisa Limit Kredit:</span>
+                    <span className={`font-bold ${Number(selectedPedagang.limit_kredit) - (Number(selectedPedagang.saldo_akhir) || 0) <= 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                      {formatCurrency(Math.max(0, Number(selectedPedagang.limit_kredit) - (Number(selectedPedagang.saldo_akhir) || 0)))}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal Pemotongan *</label>
@@ -223,13 +260,14 @@ const AddEditKarkasModal = ({
               <select
                 value={form.tipe_pembayaran}
                 onChange={(e) => setForm(f => ({ ...f, tipe_pembayaran: Number(e.target.value) }))}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                className={`w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 ${errors.tipe_pembayaran ? 'border-red-400' : 'border-gray-300'}`}
               >
                 <option value={1}>Cash / Tunai</option>
                 <option value={2} disabled={isCicilanDisabled()}>
                   Cicilan {isCicilanDisabled() ? '(Tidak tersedia untuk Pedagang Umum)' : ''}
                 </option>
               </select>
+              {errors.tipe_pembayaran && <p className="text-xs text-red-500 mt-1">{errors.tipe_pembayaran}</p>}
               {isCicilanDisabled() && (
                 <p className="text-xs text-amber-600 mt-1">Pedagang tipe Umum hanya boleh transaksi tunai.</p>
               )}
