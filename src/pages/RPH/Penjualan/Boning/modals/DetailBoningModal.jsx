@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { CreditCard, FileText, Truck, User, X } from 'lucide-react';
 
 const formatCurrency = (value) => new Intl.NumberFormat('id-ID', {
@@ -19,11 +19,6 @@ const formatDate = (value) => {
 const DetailBoningModal = ({ isOpen, onClose, data }) => {
   const header = data?.penjualan;
   const detailItems = data?.detail_items || [];
-
-  const grandTotal = useMemo(() => {
-    const biayaPengiriman = Number(header?.biaya_pengiriman || 0);
-    return Number(header?.total_harga || 0) + biayaPengiriman;
-  }, [header]);
 
   if (!isOpen || !header) return null;
 
@@ -69,10 +64,11 @@ const DetailBoningModal = ({ isOpen, onClose, data }) => {
               <div className="mt-4 space-y-3 text-sm text-slate-600">
                 <div className="flex justify-between gap-3"><span>Total Berat</span><span className="font-semibold text-slate-900">{Number(header.total_berat || 0).toFixed(3)} Kg</span></div>
                 <div className="flex justify-between gap-3"><span>Total Harga Item</span><span className="font-semibold text-slate-900">{formatCurrency(header.total_harga)}</span></div>
-                <div className="flex justify-between gap-3"><span>Total Bayar</span><span className="font-semibold text-slate-900">{formatCurrency(header.total_bayar)}</span></div>
                 <div className="flex justify-between gap-3"><span>Biaya Pengiriman</span><span className="font-semibold text-slate-900">{formatCurrency(header.biaya_pengiriman)}</span></div>
-                <div className="flex justify-between gap-3 border-t border-slate-200 pt-3"><span>Grand Total</span><span className="font-bold text-rose-700">{formatCurrency(grandTotal)}</span></div>
-                <div className="flex justify-between gap-3"><span>Bank</span><span className="font-semibold text-slate-900">{header.nama_bank ? `${header.nama_bank}${header.kode_bank ? ` (${header.kode_bank})` : ''}` : '-'}</span></div>
+                <div className="flex justify-between gap-3 border-t border-slate-200 pt-3"><span>Grand Total Tagihan</span><span className="font-bold text-slate-950">{formatCurrency(header.total_bayar)}</span></div>
+                <div className="flex justify-between gap-3"><span>Telah Dibayar</span><span className="font-semibold text-emerald-700">{formatCurrency(header.total_terbayar || 0)}</span></div>
+                <div className="flex justify-between gap-3"><span>Sisa Tagihan</span><span className="font-semibold text-rose-700">{formatCurrency(Math.max(0, Number(header.total_bayar || 0) - Number(header.total_terbayar || 0)))}</span></div>
+                <div className="flex justify-between gap-3 border-t border-slate-100 pt-3"><span>Bank</span><span className="font-semibold text-slate-900">{header.nama_bank ? `${header.nama_bank}${header.kode_bank ? ` (${header.kode_bank})` : ''}` : '-'}</span></div>
               </div>
             </div>
 

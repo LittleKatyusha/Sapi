@@ -136,7 +136,10 @@ const AddEditBoningModal = ({
         id_pedagang: String(header.id_pedagang || ''),
         tgl_penjualan: header.tgl_penjualan || new Date().toISOString().split('T')[0],
         tipe_pembayaran: String(header.tipe_pembayaran) === '2' ? 'BANK' : 'CASH',
-        jumlah_pembayaran: String(header.total_bayar || ''),
+        // P3: jumlah_pembayaran di-default dari total_terbayar (kas riil), bukan total_bayar (kini grand total tagihan).
+        // Cek null/undefined eksplisit agar kas cicilan (0) ditangani benar & tak salah jatuh ke tagihan penuh
+        // yang akan mengubah transaksi cicilan menjadi cash secara tidak sengaja saat diedit.
+        jumlah_pembayaran: String(header.total_terbayar !== null && header.total_terbayar !== undefined ? header.total_terbayar : ''),
         id_syarat_pembelian: header.id_syarat_pembelian ? String(header.id_syarat_pembelian) : '',
         tanggal_pembayaran: '',
         pengiriman: header.pengiriman || 'DIAMBIL',
@@ -372,8 +375,10 @@ const AddEditBoningModal = ({
         const saldoAkhir = Number(selectedPedagang.saldo_akhir) || 0;
         // Piutang lama hanya dikurangi bila pedagang TIDAK berubah pada edit (same-trader via id_pedagang).
         const isSameTrader = isEdit && Number(editData?.penjualan?.id_pedagang) === Number(form.id_pedagang);
+        // P3: oldPiutang dihitung dari total_terbayar (kas riil), bukan total_bayar (kini = grand total tagihan).
+        // Sebelumnya: grand_total - grand_total = 0, melumpuhkan kalkulasi sisa limit R-06 di sisi klien.
         const oldPiutang = (isSameTrader && String(editData?.penjualan?.tipe_pembayaran) === '2')
-          ? (Number(editData?.penjualan?.total_harga || 0) + Number(editData?.penjualan?.biaya_pengiriman || 0) - Number(editData?.penjualan?.total_bayar || 0))
+          ? (Number(editData?.penjualan?.total_harga || 0) + Number(editData?.penjualan?.biaya_pengiriman || 0) - Number(editData?.penjualan?.total_terbayar || 0))
           : 0;
         const eksposur = saldoAkhir - oldPiutang + totals.grandTotal;
         if (eksposur > limit) {
