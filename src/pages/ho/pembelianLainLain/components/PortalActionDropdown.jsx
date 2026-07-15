@@ -1,6 +1,6 @@
 import React, { useState, useRef, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { MoreHorizontal, Eye, Pencil, Trash2, Download, Loader2, ClipboardCheck } from 'lucide-react';
+import { MoreHorizontal, Eye, Pencil, Trash2, Download, Loader2, ClipboardCheck, Banknote } from 'lucide-react';
 import { downloadTandaTerimaPDF } from '../../pembelian/utils/tandaTerimaPDF';
 
 const PortalActionDropdown = ({
@@ -10,6 +10,7 @@ const PortalActionDropdown = ({
   onEdit,
   onDelete,
   onDownload,
+  onBayar,
   downloadLoadingId,
   labels = {}
 }) => {
@@ -99,6 +100,11 @@ const PortalActionDropdown = ({
       <button onClick={() => { onEdit(row); setOpen(false); }} className="w-full px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2" role="menuitem">
         <Pencil className="w-4 h-4" /> {labels.edit || 'Edit'}
       </button>
+      {onBayar && row.payment_status !== 1 && (
+        <button onClick={() => { onBayar(row); setOpen(false); }} className="w-full px-3 py-1.5 text-sm text-emerald-600 hover:bg-emerald-50 flex items-center gap-2" role="menuitem">
+          <Banknote className="w-4 h-4" /> {labels.bayar || 'Bayar'}
+        </button>
+      )}
       {onDownload && (
         <button onClick={() => { onDownload(row); setOpen(false); }} disabled={isLoading} className="w-full px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 disabled:opacity-50" role="menuitem">
           {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}

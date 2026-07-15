@@ -130,6 +130,7 @@ const ModernPembelianTable = ({
   onEdit,
   onDelete,
   onDetail,
+  onBayar,
   onDownload,
   onTandaTerima,
   getJenisPembelianLabel
@@ -368,6 +369,14 @@ const ModernPembelianTable = ({
                               >
                                 <Pencil className="w-4 h-4" /> Edit Data
                               </button>
+                              {onBayar && row.payment_status !== 1 && (
+                                <button
+                                  onClick={() => { onBayar(row); setOpenMenuId(null); }}
+                                  className="w-full px-4 py-2 text-sm text-emerald-600 hover:bg-emerald-50 flex items-center gap-2"
+                                >
+                                  <Banknote className="w-4 h-4" /> Bayar
+                                </button>
+                              )}
                               {onDownload && (
                                 <button
                                   onClick={() => handleDownload(row)}
@@ -457,6 +466,11 @@ const ModernPembelianTable = ({
                       <button onClick={() => { onEdit(row); setOpenMenuId(null); }} className="w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
                         <Pencil className="w-4 h-4" /> Edit Data
                       </button>
+                      {onBayar && row.payment_status !== 1 && (
+                        <button onClick={() => { onBayar(row); setOpenMenuId(null); }} className="w-full px-3 py-2 text-sm text-emerald-600 hover:bg-emerald-50 flex items-center gap-2">
+                          <Banknote className="w-4 h-4" /> Bayar
+                        </button>
+                      )}
                       {onDownload && (
                         <button
                           onClick={() => handleDownload(row)}

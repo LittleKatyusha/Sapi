@@ -282,6 +282,18 @@ const PembelianHOPage = () => {
         navigate(`/ho/pembelian/detail/${encodeURIComponent(id)}`);
     };
 
+    const handleBayar = (pembelian) => {
+        const id = pembelian.encryptedPid;
+        if (!id || id.startsWith('TEMP-')) {
+            setNotification({
+                type: 'error',
+                message: 'Pembayaran tidak dapat dilanjutkan karena data belum tersimpan dengan benar'
+            });
+            return;
+        }
+        navigate(`/ho/keuangan-kas/detail/${encodeURIComponent(id)}`);
+    };
+
     const handleDownload = useCallback(async (pembelian) => {
         const id = pembelian.encryptedPid;
         if (!id || id.startsWith('TEMP-')) {
@@ -713,6 +725,7 @@ const PembelianHOPage = () => {
                         onEdit={handleEdit}
                         onDelete={handleDelete}
                         onDetail={handleDetail}
+                        onBayar={handleBayar}
                         onDownload={handleDownload}
                         onTandaTerima={handleTandaTerima}
                         getJenisPembelianLabel={getJenisPembelianLabel}

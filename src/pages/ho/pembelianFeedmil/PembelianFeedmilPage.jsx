@@ -132,6 +132,18 @@ const PembelianFeedmilPage = () => {
         navigate(`/ho/pembelian-feedmil/detail/${encodeURIComponent(id)}`);
     };
 
+    const handleBayar = (pembelianItem) => {
+        const id = pembelianItem.encryptedPid || pembelianItem.id;
+        if (!id || id.toString().startsWith('TEMP-')) {
+            setNotification({
+                type: 'error',
+                message: 'Pembayaran tidak dapat dilanjutkan karena data belum tersimpan dengan benar'
+            });
+            return;
+        }
+        navigate(`/ho/keuangan-kas/detail/${encodeURIComponent(id)}`);
+    };
+
     const handleDelete = (pembelianItem) => {
         setSelectedPembelian(pembelianItem);
         setIsDeleteModalOpen(true);
@@ -404,6 +416,7 @@ const PembelianFeedmilPage = () => {
                             onEdit={handleEdit}
                             onDelete={handleDelete}
                             onDetail={handleDetail}
+                            onBayar={handleBayar}
                             getFarmName={getFarmName}
                             getBankName={getBankName}
                         />

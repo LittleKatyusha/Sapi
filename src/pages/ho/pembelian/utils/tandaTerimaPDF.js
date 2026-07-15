@@ -87,9 +87,9 @@ const buildTandaTerimaHTML = (pembelian, title = 'TANDA TERIMA BARANG') => {
 </head>
 <body>
     <div class="header">
-        <h1>PT. TERNAK NUSANTARA</h1>
+        <h1>CV. PUPUT BERSAUDARA</h1>
         <h2>Head Office</h2>
-        <p>Jl. Raya Ternak No. 123, Jakarta - Indonesia | Telp: (021) 12345678</p>
+        <p>Jl. -------------- | Telp: (021) 12345678</p>
     </div>
 
     <div class="doc-title">${title}</div>

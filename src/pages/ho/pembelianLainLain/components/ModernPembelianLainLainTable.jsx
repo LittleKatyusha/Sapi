@@ -106,6 +106,7 @@ const ModernPembelianLainLainTable = ({
   onEdit,
   onDelete,
   onDetail,
+  onBayar,
   getFarmName,
   getBankName,
   bankOptions = []
@@ -320,6 +321,7 @@ const ModernPembelianLainLainTable = ({
                           rowId={rowId}
                           onDetail={onDetail}
                           onEdit={onEdit}
+                          onBayar={onBayar}
                           onDelete={onDelete}
                           onDownload={handleDownload}
                           downloadLoadingId={downloadLoadingId}
@@ -383,6 +385,7 @@ const ModernPembelianLainLainTable = ({
                     rowId={rowId}
                     onDetail={onDetail}
                     onEdit={onEdit}
+                    onBayar={onBayar}
                     onDelete={onDelete}
                     onDownload={handleDownload}
                     downloadLoadingId={downloadLoadingId}

@@ -112,6 +112,7 @@ const ModernPembelianKulitTable = ({
   onEdit,
   onDelete,
   onDetail,
+  onBayar,
   getFarmName,
   getBankName
 }) => {
@@ -343,6 +344,14 @@ const ModernPembelianKulitTable = ({
                               >
                                 <Pencil className="w-4 h-4" /> Edit Data
                               </button>
+                              {onBayar && row.payment_status !== 1 && (
+                                <button
+                                  onClick={() => { onBayar(row); setOpenMenuId(null); }}
+                                  className="w-full px-4 py-2 text-sm text-emerald-600 hover:bg-emerald-50 flex items-center gap-2"
+                                >
+                                  <Banknote className="w-4 h-4" /> Bayar
+                                </button>
+                              )}
                               <button
                                 onClick={() => handleDownload(row)}
                                 disabled={downloadLoadingId === rowId}
@@ -425,6 +434,11 @@ const ModernPembelianKulitTable = ({
                       <div className="absolute right-0 mt-1 w-44 bg-white rounded-lg shadow-xl border border-gray-100 z-50 py-1">
                         <button onClick={() => { onDetail(row); setOpenMenuId(null); }} className="w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"><Eye className="w-4 h-4" /> Detail</button>
                         <button onClick={() => { onEdit(row); setOpenMenuId(null); }} className="w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"><Pencil className="w-4 h-4" /> Edit</button>
+                        {onBayar && row.payment_status !== 1 && (
+                          <button onClick={() => { onBayar(row); setOpenMenuId(null); }} className="w-full px-4 py-2 text-sm text-emerald-600 hover:bg-emerald-50 flex items-center gap-2">
+                            <Banknote className="w-4 h-4" /> Bayar
+                          </button>
+                        )}
                         <button onClick={() => handleDownload(row)} disabled={downloadLoadingId === rowId} className="w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 disabled:opacity-50">
                           {downloadLoadingId === rowId ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
                           {downloadLoadingId === rowId ? 'Mengunduh...' : 'Download'}

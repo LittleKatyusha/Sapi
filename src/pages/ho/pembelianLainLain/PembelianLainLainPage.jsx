@@ -252,6 +252,18 @@ const PembelianLainLainPage = () => {
         navigate(`/ho/pembelian-lain-lain/detail/${encodeURIComponent(id)}`);
     };
 
+    const handleBayar = (pembelian) => {
+        const id = pembelian.encryptedPid || pembelian.id;
+        if (!id || id.toString().startsWith('TEMP-') || id.toString().startsWith('beban-')) {
+            setNotification({
+                type: 'error',
+                message: 'Pembayaran tidak dapat dilanjutkan karena data belum tersimpan dengan benar'
+            });
+            return;
+        }
+        navigate(`/ho/keuangan-kas/detail/${encodeURIComponent(id)}`);
+    };
+
     // Handler khusus untuk edit beban
     const handleEditBeban = async (beban) => {
         try {
@@ -1386,6 +1398,7 @@ const PembelianLainLainPage = () => {
                     onAsetEdit={handleEdit}
                     onAsetDelete={handleDelete}
                     onAsetDetail={handleDetail}
+                    onAsetBayar={handleBayar}
                     getFarmName={getFarmName}
                     getBankName={getBankName}
                     bankOptions={bankOptions}

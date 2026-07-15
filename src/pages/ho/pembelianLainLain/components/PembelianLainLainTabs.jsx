@@ -20,6 +20,7 @@ const PembelianLainLainTabs = ({
     onAsetEdit,
     onAsetDelete,
     onAsetDetail,
+    onAsetBayar,
     getFarmName,
     getBankName,
     bankOptions,
@@ -184,6 +185,7 @@ const PembelianLainLainTabs = ({
                         onEdit={onAsetEdit}
                         onDelete={onAsetDelete}
                         onDetail={onAsetDetail}
+                        onBayar={onAsetBayar}
                         getFarmName={getFarmName}
                         getBankName={getBankName}
                         bankOptions={bankOptions}
