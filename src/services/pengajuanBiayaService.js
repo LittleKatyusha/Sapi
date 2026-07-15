@@ -24,7 +24,7 @@ class PengajuanBiayaService {
         length: params.length || 10,
         draw: params.draw || 1,
         'search[value]': params.search || '',
-        'order[0][column]': params.orderColumn || '0',
+        'order[0][column]': params.orderColumn || '4',
         'order[0][dir]': params.orderDir || 'desc',
         tipe: params.tipe || 2, // ✅ Tambahkan parameter tipe (default 2 untuk menunggu persetujuan)
         _: Date.now() // Cache buster
