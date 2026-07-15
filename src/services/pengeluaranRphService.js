@@ -27,7 +27,21 @@ class PengeluaranRphService {
   }
 
   static async bayar(data) {
-    const response = await HttpClient.post(API_ENDPOINTS.RPH.PAYMENT.PENGELUARAN_BAYAR, data);
+    let payload = data;
+    // If a file is present, send as multipart FormData
+    console.log('[PengeluaranRphService.bayar] data.file:', data.file, 'isFile:', data.file instanceof File, 'type:', typeof data.file);
+    if (data.file && data.file instanceof File) {
+      payload = new FormData();
+      Object.keys(data).forEach((key) => {
+        if (key === 'file') {
+          payload.append('file', data.file);
+        } else if (data[key] !== null && data[key] !== undefined) {
+          payload.append(key, data[key]);
+        }
+      });
+      console.log('[PengeluaranRphService.bayar] FormData entries:', [...payload.entries()].map(([k, v]) => [k, v instanceof File ? `File(${v.name},${v.size})` : v]));
+    }
+    const response = await HttpClient.post(API_ENDPOINTS.RPH.PAYMENT.PENGELUARAN_BAYAR, payload);
     return { success: true, data: response?.data, message: response?.message || 'Pembayaran berhasil dicatat', raw: response };
   }
 

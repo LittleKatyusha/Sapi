@@ -238,8 +238,19 @@ class PenjualanSapiUtuhService {
    * @param {Object} payload - { pid, nominal_pembayaran, metode_pembayaran, nama_pembayar }
    * @returns {Promise} API response
    */
-  static async bayar(payload) {
+  static async bayar(data) {
     try {
+      let payload = data;
+      if (data.file && data.file instanceof File) {
+        payload = new FormData();
+        Object.keys(data).forEach((key) => {
+          if (key === 'file') {
+            payload.append('file', data.file);
+          } else if (data[key] !== null && data[key] !== undefined) {
+            payload.append(key, data[key]);
+          }
+        });
+      }
       const response = await HttpClient.post(`${BASE_URL}/bayar`, payload);
       return {
         success: true,

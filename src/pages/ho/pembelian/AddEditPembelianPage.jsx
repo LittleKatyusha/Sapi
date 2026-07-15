@@ -1523,8 +1523,9 @@ const AddEditPembelianPage = () => {
                     syarat_pembelian: parseInt(updatedHeaderData.syarat_pembelian) || null,
                     id_farm: updatedHeaderData.idFarm ? parseInt(updatedHeaderData.idFarm) : null, // Farm ID
                     file: selectedFile, // Only send file if there's a new file upload
-                    details: Array.isArray(detailItems) && detailItems.length > 0 
+                    details: Array.isArray(detailItems) && detailItems.length > 0
                         ? detailItems.map(item => ({ // Details are now required for all supplier types
+                            pid: item.encryptedPid || item.pid || item.pubidDetail || null, // Include pid for existing details so backend can update them
                             id_office: parseInt(updatedHeaderData.idOffice) || 1, // Use selected office ID
                             eartag: String(item.eartag),
                             eartag_supplier: String(item.eartagSupplier || ''), // Add eartag_supplier
@@ -1538,15 +1539,15 @@ const AddEditPembelianPage = () => {
                         }))
                         : [] // Ensure it's always an array, even if empty
                 };
-                
+
                 // For edit mode, we need to pass the encrypted PID
                 const editData = {
                     pid: id, // This should be the encrypted PID
                     ...completeData
                 };
-                
-                
-                
+
+
+
                 result = await updatePembelian(editData, true, filteredSupplierOptions); // Pass supplier options
             } else {
                 // For add mode, create with header and details array

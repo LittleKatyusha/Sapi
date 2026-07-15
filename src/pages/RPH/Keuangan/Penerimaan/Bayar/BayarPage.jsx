@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
-  ArrowLeft, Wallet, Loader2, AlertCircle, Banknote, CheckCircle, Clock
+  ArrowLeft, Wallet, Loader2, AlertCircle, Banknote, CheckCircle, Clock, FileText, X, Eye
 } from 'lucide-react';
 import usePenjualanSapiUtuh from '../../../../../hooks/usePenjualanSapiUtuh';
 import PenjualanBoningService from '../../../../../services/penjualanBoningService';
+import { useNotification } from '../../../../../components/shared/Notification';
 import SearchableSelect from '../../../../../components/shared/SearchableSelect';
 import DataTable from 'react-data-table-component';
 
@@ -38,6 +39,7 @@ const BayarPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { loading, error, bayar, fetchPembayaranHistory } = usePenjualanSapiUtuh();
+  const { showSuccess, showError } = useNotification();
   const jenis = searchParams.get('jenis');
   const mode = searchParams.get('mode');
   const isBoning = jenis === 'boning';
@@ -51,6 +53,8 @@ const BayarPage = () => {
   const [formErrors, setFormErrors] = useState({});
   const [submitLoading, setSubmitLoading] = useState(false);
   const [pageError, setPageError] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [fileError, setFileError] = useState('');
 
   const loadHistory = async () => {
     setPageError(null);
@@ -89,6 +93,27 @@ const BayarPage = () => {
     if (formErrors.nominal) setFormErrors((p) => ({ ...p, nominal: '' }));
   };
 
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    setFileError('');
+    if (!file) {
+      setSelectedFile(null);
+      return;
+    }
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+    if (!allowedTypes.includes(file.type)) {
+      setFileError('File harus bertipe: JPG, JPEG, PNG, atau PDF');
+      setSelectedFile(null);
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setFileError('Ukuran file maksimal 2MB');
+      setSelectedFile(null);
+      return;
+    }
+    setSelectedFile(file);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = {};
@@ -118,13 +143,20 @@ const BayarPage = () => {
         nominal_pembayaran: nominalValue,
         metode_pembayaran: metode,
         nama_pembayar: namaPembayar || undefined,
+        file: selectedFile || undefined,
       });
     setSubmitLoading(false);
 
     if (result.success) {
+      showSuccess('Pembayaran berhasil dicatat');
       setNominal('');
       setMetode('');
+      setSelectedFile(null);
+      const input = document.getElementById('file-penerimaan-rph');
+      if (input) input.value = '';
       loadHistory();
+    } else {
+      showError(result.message || 'Gagal mencatat pembayaran');
     }
   };
 
@@ -158,6 +190,16 @@ const BayarPage = () => {
       name: 'Pembayar',
       selector: (r) => r.nama_pembayar,
       cell: (r) => <span className="text-sm text-gray-600">{r.nama_pembayar || '-'}</span>,
+    },
+    {
+      name: 'Bukti',
+      selector: (r) => r.bukti_pembayaran,
+      center: true,
+      cell: (r) => r.bukti_pembayaran_url ? (
+        <a href={r.bukti_pembayaran_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition" title="Lihat bukti pembayaran">
+          <Eye className="w-4 h-4" />
+        </a>
+      ) : <span className="text-xs text-gray-300">-</span>,
     },
   ];
 
@@ -295,6 +337,37 @@ const BayarPage = () => {
                       className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 disabled:bg-gray-100"
                     />
                   </div>
+
+                  {!isBoning && (
+                    <div className="mb-5">
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Bukti Pembayaran <span className="text-gray-400 font-normal">(opsional, max 2MB)</span></label>
+                      <div className="relative">
+                        <input
+                          id="file-penerimaan-rph"
+                          type="file"
+                          accept=".jpg,.jpeg,.png,.pdf"
+                          onChange={handleFileChange}
+                          disabled={submitLoading || sisa <= 0}
+                          className="w-full text-sm text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 file:cursor-pointer cursor-pointer border border-gray-300 rounded-lg disabled:bg-gray-100"
+                        />
+                      </div>
+                      {selectedFile && (
+                        <div className="mt-2 flex items-center gap-2 text-xs text-gray-600 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
+                          <FileText className="w-4 h-4 text-emerald-600" />
+                          <span className="truncate flex-1">{selectedFile.name}</span>
+                          <span className="text-gray-400">{(selectedFile.size / 1024).toFixed(0)} KB</span>
+                          <button
+                            type="button"
+                            onClick={() => { setSelectedFile(null); const input = document.getElementById('file-penerimaan-rph'); if (input) input.value = ''; }}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
+                      {fileError && <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {fileError}</p>}
+                    </div>
+                  )}
 
                   <button
                     type="submit"

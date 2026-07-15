@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, Plus, Trash2, Loader2, ShoppingCart, X, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Trash2, Loader2, ShoppingCart, X, AlertCircle, CheckCircle2, Upload, FileText as FileTextIcon } from 'lucide-react';
 import SearchableSelect from '../../../../components/shared/SearchableSelect';
 import useParameterSelect from '../Pembelian Sapi/hooks/useParameterSelect';
 import usePersetujuanRphSelect from '../Pembelian Sapi/hooks/usePersetujuanRphSelect';
@@ -9,6 +9,8 @@ import HttpClient from '../../../../services/httpClient';
 import { API_ENDPOINTS } from '../../../../config/api';
 import QurbanService from '../../../../services/qurban/qurbanService';
 import PilihSapiModal from './modals/PilihSapiModal';
+import PilihNotaModal from './modals/PilihNotaModal';
+import { FileText, Search } from 'lucide-react';
 
 const formatNumber = (num) => {
     if (!num && num !== 0) return '';
@@ -31,8 +33,7 @@ const AddEditPembelianQurbanPage = () => {
         const opt = pemasokOptions.find(o => String(o.label || '').toUpperCase().includes('PUPUT BERSAUDARA'));
         return opt ? opt.value : '';
     }, [pemasokOptions]);
-    // F-19: Qurban hanya boleh dari perorangan/lokal (value = 2). Import/vendor perusahaan tidak ditawarkan.
-    const jenisPembelianOpts = useMemo(() => [{ value: 2, label: 'Lokal / Perorangan' }], []);
+    const [selectedNotaInfo, setSelectedNotaInfo] = useState(null);
     const tipePembayaranOpts = useMemo(() => [{ value: 1, label: 'Kas' }, { value: 2, label: 'Bank' }], []);
 
     const [bankOptions, setBankOptions] = useState([]);
@@ -67,24 +68,10 @@ const AddEditPembelianQurbanPage = () => {
         })();
     }, []);
 
-    const [availableNota, setAvailableNota] = useState([]);
-    const [notaLoading, setNotaLoading] = useState(false);
-    const fetchNota = useCallback(async (pid, jenisPembelian) => {
-        if (!pid || !jenisPembelian) { setAvailableNota([]); return; }
-        setNotaLoading(true);
-        try {
-            const r = await QurbanService.getNota({ id_pemasok: pid, jenis_pembelian: jenisPembelian });
-            setAvailableNota(r.success ? r.data : []);
-        } catch { setAvailableNota([]); }
-        finally { setNotaLoading(false); }
-    }, []);
-    const notaOptions = useMemo(() => (availableNota || []).map(n => ({
-        value: n.id_pembelian_ho || n.id || n.pubid,
-        label: n.nota || n.no_po || n.name || `Nota #${n.id_pembelian_ho || n.id}`,
-    })), [availableNota]);
+    const [isPilihNotaOpen, setIsPilihNotaOpen] = useState(false);
 
     const [formData, setFormData] = useState({
-        id_pemasok: '', jenis_pembelian: '', nama_penerima: '',
+        id_pemasok: '', nama_penerima: '',
         tanggal_pemesanan: new Date().toISOString().split('T')[0],
         tanggal_kedatangan_sapi: new Date().toISOString().split('T')[0],
         id_nota: '', id_persetujuan_rph: '', tipe_pembayaran: '1',
@@ -95,6 +82,8 @@ const AddEditPembelianQurbanPage = () => {
     const [notification, setNotification] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoadingDetail, setIsLoadingDetail] = useState(false);
+    const [selectedFile, setSelectedFile] = useState(null);
+    const [filePreview, setFilePreview] = useState(null);
     const isBank = String(formData.tipe_pembayaran) === '2';
 
     // Default Pemasok: HO CV. PUPUT BERSAUDARA (readonly, only on add mode)
@@ -104,14 +93,7 @@ const AddEditPembelianQurbanPage = () => {
         }
     }, [isEditMode, defaultPemasokId, formData.id_pemasok]);
 
-    // Fetch available nota when pemasok or jenis_pembelian changes
-    useEffect(() => {
-        if (formData.id_pemasok && formData.jenis_pembelian) {
-            fetchNota(formData.id_pemasok, formData.jenis_pembelian);
-        } else {
-            setAvailableNota([]);
-        }
-    }, [formData.id_pemasok, formData.jenis_pembelian, fetchNota]);
+    // Nota fetching now happens inside PilihNotaModal with server-side pagination
 
     useEffect(() => {
         if (!isEditMode || !id) return;
@@ -122,7 +104,7 @@ const AddEditPembelianQurbanPage = () => {
                 if (r.success && r.data) {
                     const d = Array.isArray(r.data) ? r.data[0] || r.data : r.data;
                     setFormData({
-                        id_pemasok: d.id_pemasok || '', jenis_pembelian: d.jenis_pembelian || '',
+                        id_pemasok: d.id_pemasok || '',
                         nama_penerima: d.nama_penerima || '',
                         tanggal_pemesanan: d.tanggal_pemesanan ? d.tanggal_pemesanan.split(' ')[0] : '',
                         tanggal_kedatangan_sapi: d.tanggal_kedatangan_sapi ? d.tanggal_kedatangan_sapi.split(' ')[0] : new Date().toISOString().split('T')[0],
@@ -130,17 +112,32 @@ const AddEditPembelianQurbanPage = () => {
                         tipe_pembayaran: d.tipe_pembayaran ? String(d.tipe_pembayaran) : '1',
                         id_syarat_pembayaran: d.id_syarat_pembayaran || '', note: d.note || '',
                     });
-                    if (d.details && Array.isArray(d.details)) {
-                        setSelectedSapi(d.details.map(x => ({
-                            id_hewan: x.id_hewan,
-                            eartag: x.hewan_details?.eartag || '-',
-                            code_eartag: x.hewan_details?.code_eartag || '-',
-                            eartag_supplier: x.hewan_details?.eartag_supplier || '-',
-                            berat: x.hewan_details?.berat || 0,
-                            harga_beli: parseFloat(x.harga_beli) || 0,
-                        })));
+                    setFilePreview(d.file || null);
+                    setSelectedFile(null);
+                    if (d.id_nota) {
+                        const ho = d.pembelian_ho || d.pembelianHo || {};
+                        const sup = ho.supplier || {};
+                        setSelectedNotaInfo({
+                            id_pembelian_ho: d.id_nota,
+                            nota: ho.nota || ho.nota_sistem || d.nota || '-',
+                            nama_supplier: sup.name || d.nama_supplier || '-',
+                            jenis_supplier: sup.jenis_supplier ?? d.jenis_supplier ?? null,
+                        });
                     }
-                    if (d.id_pemasok) fetchNota(d.id_pemasok, d.jenis_pembelian || formData.jenis_pembelian);
+                    if (d.details && Array.isArray(d.details)) {
+                        setSelectedSapi(d.details.map(x => {
+                            const berat = parseFloat(x.hewan_details?.berat || 0);
+                            const totalBeli = parseFloat(x.harga_beli) || 0;
+                            return {
+                                id_hewan: x.id_hewan,
+                                eartag: x.hewan_details?.eartag || '-',
+                                code_eartag: x.hewan_details?.code_eartag || '-',
+                                eartag_supplier: x.hewan_details?.eartag_supplier || '-',
+                                berat,
+                                harga_beli: berat > 0 ? totalBeli / berat : 0,
+                            };
+                        }));
+                    }
                 } else {
                     setNotification({ type: 'error', message: r.message || 'Gagal memuat data detail' });
                 }
@@ -149,13 +146,12 @@ const AddEditPembelianQurbanPage = () => {
                 setNotification({ type: 'error', message: 'Gagal memuat data untuk edit' });
             } finally { setIsLoadingDetail(false); }
         })();
-    }, [isEditMode, id, fetchNota, formData.jenis_pembelian]);
+    }, [isEditMode, id]);
 
     const handleChange = useCallback((field, value) => {
         setFormData(prev => {
             const u = { ...prev, [field]: value };
-            if (field === 'id_pemasok') { u.id_nota = ''; setSelectedSapi([]); }
-            if (field === 'jenis_pembelian') { u.id_nota = ''; setSelectedSapi([]); }
+            if (field === 'id_pemasok') { u.id_nota = ''; setSelectedSapi([]); setSelectedNotaInfo(null); }
             if (field === 'id_nota') setSelectedSapi([]);
             if (field === 'tipe_pembayaran') {
                 if (String(value) === '1') {
@@ -172,16 +168,53 @@ const AddEditPembelianQurbanPage = () => {
         setSelectedSapi(prev => {
             const hid = item.id || item.id_hewan;
             if (prev.some(s => s.id_hewan === hid)) return prev;
+            const berat = parseFloat(item.berat || 0);
+            const totalHarga = parseFloat(item.total_harga || item.harga_beli || 0);
+            const perKilo = berat > 0 ? totalHarga / berat : 0;
             return [...prev, {
                 id_hewan: hid, eartag: item.eartag || '-', code_eartag: item.code_eartag || '-',
-                eartag_supplier: item.eartag_supplier || '-', berat: parseFloat(item.berat || 0),
-                harga_beli: parseFloat(item.total_harga || item.harga_beli || 0),
+                eartag_supplier: item.eartag_supplier || '-', berat,
+                harga_beli: perKilo,
             }];
         });
     }, []);
 
     const handleRemoveSapi = useCallback((hid) => { setSelectedSapi(prev => prev.filter(s => s.id_hewan !== hid)); }, []);
+    const handleSelectNota = useCallback((nota) => {
+        setFormData(prev => ({ ...prev, id_nota: nota.id_pembelian_ho }));
+        setSelectedNotaInfo({
+            id_pembelian_ho: nota.id_pembelian_ho,
+            nota: nota.nota || nota.nota_sistem || '-',
+            nama_supplier: nota.nama_supplier || '-',
+            jenis_supplier: nota.jenis_supplier,
+        });
+        setSelectedSapi([]);
+    }, []);
+
     const handleHargaChange = useCallback((hid, val) => { setSelectedSapi(prev => prev.map(s => s.id_hewan === hid ? { ...s, harga_beli: parseFloat(val) || 0 } : s)); }, []);
+
+    const handleFileChange = useCallback((e) => {
+        const f = e.target.files?.[0];
+        if (!f) return;
+        if (f.size > 2 * 1024 * 1024) {
+            setNotification({ type: 'error', message: 'Ukuran file maksimal 2MB' });
+            e.target.value = '';
+            return;
+        }
+        const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+        if (!allowed.includes(f.type)) {
+            setNotification({ type: 'error', message: 'Format file harus JPG, JPEG, PNG, atau PDF' });
+            e.target.value = '';
+            return;
+        }
+        setSelectedFile(f);
+        setFilePreview(null);
+    }, []);
+
+    const handleRemoveFile = useCallback(() => {
+        setSelectedFile(null);
+        setFilePreview(null);
+    }, []);
 
     const excludeIds = useMemo(() => selectedSapi.map(s => s.id_hewan), [selectedSapi]);
     const filteredBankOptions = useMemo(() => bankOptions.filter(o => o.value !== 1), [bankOptions]);
@@ -192,7 +225,7 @@ const AddEditPembelianQurbanPage = () => {
         const outOfRange = (d) => (pqStart && pqEnd) ? (d < pqStart || d > pqEnd) : false;
         const checks = [
             [!formData.id_pemasok, 'Pemasok harus dipilih'],
-            [!formData.jenis_pembelian, 'Jenis Pembelian harus dipilih'],
+            [!formData.id_nota, 'Nota harus dipilih'],
             [!formData.nama_penerima?.trim(), 'Nama Penerima harus diisi'],
             [!formData.tanggal_pemesanan, 'Tanggal Pemesanan harus diisi'],
             [!formData.tanggal_kedatangan_sapi, 'Tanggal Kedatangan Sapi harus diisi'],
@@ -206,9 +239,10 @@ const AddEditPembelianQurbanPage = () => {
         setIsSubmitting(true);
         setNotification({ type: 'info', message: isEditMode ? 'Memperbarui data...' : 'Menyimpan data...' });
         try {
-            const totalHarga = selectedSapi.reduce((s, x) => s + Number(x.harga_beli || 0), 0);
+            const totalHarga = selectedSapi.reduce((s, x) => s + (Number(x.harga_beli || 0) * Number(x.berat || 0)), 0);
             const payload = {
-                id_pemasok: parseInt(formData.id_pemasok), jenis_pembelian: parseInt(formData.jenis_pembelian),
+                id_pemasok: parseInt(formData.id_pemasok),
+                jenis_pembelian: selectedNotaInfo?.jenis_supplier ? (parseInt(selectedNotaInfo.jenis_supplier) === 1 ? 1 : 2) : null,
                 nama_penerima: formData.nama_penerima.trim(),
                 tanggal_pemesanan: formData.tanggal_pemesanan,
                 tanggal_kedatangan_sapi: formData.tanggal_kedatangan_sapi,
@@ -217,8 +251,9 @@ const AddEditPembelianQurbanPage = () => {
                 tipe_pembayaran: parseInt(formData.tipe_pembayaran),
                 id_syarat_pembayaran: formData.id_syarat_pembayaran ? parseInt(formData.id_syarat_pembayaran) : null,
                 total_harga: totalHarga, note: formData.note || null,
-                details: selectedSapi.map(s => ({ id_hewan: parseInt(s.id_hewan), harga_beli: parseFloat(s.harga_beli) })),
+                details: selectedSapi.map(s => ({ id_hewan: parseInt(s.id_hewan), harga_beli: parseFloat(s.harga_beli) * parseFloat(s.berat || 0) })),
             };
+            if (selectedFile) payload.file = selectedFile;
             if (isEditMode) payload.pid = id;
             const result = isEditMode ? await QurbanService.update(payload) : await QurbanService.create(payload);
             if (result.success) {
@@ -248,7 +283,9 @@ const AddEditPembelianQurbanPage = () => {
         );
     };
 
-    const renderSapiRow = (sapi, idx) => (
+    const renderSapiRow = (sapi, idx) => {
+        const subtotal = (Number(sapi.harga_beli || 0) * Number(sapi.berat || 0));
+        return (
         <tr key={sapi.id_hewan} className="border-b border-gray-100">
             <td className="px-4 py-3 text-sm text-gray-600">{idx + 1}</td>
             <td className="px-4 py-3 text-sm text-gray-700">{sapi.code_eartag || '-'}</td>
@@ -258,13 +295,15 @@ const AddEditPembelianQurbanPage = () => {
             <td className="px-4 py-3 text-right">
                 <input type="text" value={formatNumber(sapi.harga_beli)} onChange={e => { const raw = parseNumber(e.target.value); handleHargaChange(sapi.id_hewan, raw); }} className="w-32 sm:w-36 px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-right focus:ring-2 focus:ring-green-500 focus:border-green-500" />
             </td>
+            <td className="px-4 py-3 text-sm text-right font-semibold text-green-700">{formatNumber(subtotal)}</td>
             <td className="px-4 py-3 text-center">
                 <button onClick={() => handleRemoveSapi(sapi.id_hewan)} className="p-1.5 text-gray-400 hover:text-red-500" title="Hapus sapi">
                     <Trash2 className="w-4 h-4" />
                 </button>
             </td>
         </tr>
-    );
+        );
+    };
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 p-2 sm:p-4 md:p-6">
@@ -286,14 +325,37 @@ const AddEditPembelianQurbanPage = () => {
                 {/* Form Fields */}
                 <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-100">
                     <h2 className="text-lg font-bold text-gray-900 mb-5">Data Pembelian</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1.5">Pemasok <span className="text-red-500">*</span></label>
                             <SearchableSelect value={formData.id_pemasok} onChange={v => handleChange('id_pemasok', v)} options={pemasokOptions} placeholder={paramLoading ? 'Loading...' : 'Pilih Pemasok'} isLoading={paramLoading} isDisabled={true} />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1.5">Jenis Pembelian <span className="text-red-500">*</span></label>
-                            <SearchableSelect value={formData.jenis_pembelian} onChange={v => handleChange('jenis_pembelian', v)} options={jenisPembelianOpts} placeholder="Pilih Jenis Pembelian" />
+                            <label className="block text-sm font-medium text-gray-700 mb-1.5">Pilih Nota <span className="text-red-500">*</span></label>
+                            {selectedNotaInfo ? (
+                                <div className="flex items-center justify-between gap-2 px-3 py-2.5 border border-green-200 bg-green-50 rounded-xl">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        <FileText className="w-4 h-4 text-green-600 flex-shrink-0" />
+                                        <div className="min-w-0">
+                                            <div className="text-sm font-medium text-gray-900 truncate">{selectedNotaInfo.nota}</div>
+                                            <div className="text-xs text-gray-500 truncate">
+                                                {selectedNotaInfo.nama_supplier}
+                                                {selectedNotaInfo.jenis_supplier && (
+                                                    <span className={`ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium border ${parseInt(selectedNotaInfo.jenis_supplier) === 1 ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-green-50 text-green-700 border-green-200'}`}>
+                                                        {parseInt(selectedNotaInfo.jenis_supplier) === 1 ? 'Import' : 'Lokal'}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button type="button" onClick={() => setIsPilihNotaOpen(true)} className="text-xs text-green-700 hover:text-green-800 font-medium whitespace-nowrap">Ubah</button>
+                                </div>
+                            ) : (
+                                <button type="button" onClick={() => setIsPilihNotaOpen(true)} disabled={!formData.id_pemasok} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-gray-300 rounded-xl text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+                                    <Search className="w-4 h-4" />
+                                    {!formData.id_pemasok ? 'Pilih pemasok dulu' : 'Cari & Pilih Nota'}
+                                </button>
+                            )}
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1.5">Nama Penerima <span className="text-red-500">*</span></label>
@@ -308,10 +370,6 @@ const AddEditPembelianQurbanPage = () => {
                             <input type="date" value={formData.tanggal_kedatangan_sapi} min={periodeQurban.start || undefined} max={periodeQurban.end || undefined} onChange={e => handleChange('tanggal_kedatangan_sapi', e.target.value)} className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm transition-all" />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1.5">Pilih Nota</label>
-                            <SearchableSelect value={formData.id_nota} onChange={v => handleChange('id_nota', v)} options={notaOptions} placeholder={!formData.id_pemasok ? 'Pilih pemasok terlebih dahulu' : notaLoading ? 'Loading...' : 'Pilih Nota'} isLoading={notaLoading} isDisabled={!formData.id_pemasok || notaLoading} />
-                        </div>
-                        <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1.5">Persetujuan RPH <span className="text-red-500">*</span></label>
                             <SearchableSelect value={formData.id_persetujuan_rph} onChange={v => handleChange('id_persetujuan_rph', v)} options={persetujuanOptions.filter(o => o.value !== '')} placeholder={persetujuanLoading ? 'Loading...' : 'Pilih Persetujuan RPH'} isLoading={persetujuanLoading} isDisabled={persetujuanLoading} />
                         </div>
@@ -323,9 +381,36 @@ const AddEditPembelianQurbanPage = () => {
                             <label className="block text-sm font-medium text-gray-700 mb-1.5">Syarat Pembayaran {isBank && <span className="text-red-500">*</span>}</label>
                             {renderSyaratPembayaran()}
                         </div>
-                        <div className="md:col-span-2">
+                        <div className="sm:col-span-2 lg:col-span-4">
                             <label className="block text-sm font-medium text-gray-700 mb-1.5">Catatan</label>
                             <textarea value={formData.note} onChange={e => handleChange('note', e.target.value)} rows={3} maxLength={255} className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm resize-none transition-all" placeholder="Catatan tambahan (opsional, maks 255 karakter)" />
+                        </div>
+                        <div className="sm:col-span-2 lg:col-span-4">
+                            <label className="block text-sm font-medium text-gray-700 mb-1.5">Upload File</label>
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                                <label className="flex items-center gap-2 px-4 py-2.5 border border-gray-300 rounded-xl text-sm text-gray-600 hover:bg-gray-50 cursor-pointer transition-all">
+                                    <Upload className="w-4 h-4" />
+                                    Pilih File
+                                    <input type="file" accept=".jpg,.jpeg,.png,.pdf" onChange={handleFileChange} className="hidden" />
+                                </label>
+                                {selectedFile && (
+                                    <div className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-xl">
+                                        <FileTextIcon className="w-4 h-4 text-green-600" />
+                                        <span className="text-sm text-gray-700 truncate max-w-[200px]">{selectedFile.name}</span>
+                                        <button type="button" onClick={handleRemoveFile} className="text-gray-400 hover:text-red-500"><X className="w-4 h-4" /></button>
+                                    </div>
+                                )}
+                                {!selectedFile && filePreview && (
+                                    <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-xl">
+                                        <FileTextIcon className="w-4 h-4 text-blue-600" />
+                                        <a href={filePreview} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-700 hover:underline truncate max-w-[200px]">Lihat file existing</a>
+                                        <button type="button" onClick={handleRemoveFile} className="text-gray-400 hover:text-red-500" title="Hapus file"><X className="w-4 h-4" /></button>
+                                    </div>
+                                )}
+                                {!selectedFile && !filePreview && (
+                                    <span className="text-xs text-gray-400">JPG, JPEG, PNG, PDF (maks 2MB)</span>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -358,11 +443,21 @@ const AddEditPembelianQurbanPage = () => {
                                                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Eartag</th>
                                                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-600 hidden sm:table-cell">Eartag Supplier</th>
                                                 <th className="px-4 py-3 text-right text-sm font-medium text-gray-600">Berat (Kg)</th>
-                                                <th className="px-4 py-3 text-right text-sm font-medium text-gray-600 min-w-[200px]">Harga Beli</th>
+                                                <th className="px-4 py-3 text-right text-sm font-medium text-gray-600 min-w-[200px]">Harga Beli/Kg</th>
+                                                <th className="px-4 py-3 text-right text-sm font-medium text-gray-600 min-w-[160px]">Subtotal</th>
                                                 <th className="px-4 py-3 text-center text-sm font-medium text-gray-600 w-20">Aksi</th>
                                             </tr>
                                         </thead>
                                         <tbody>{selectedSapi.map((sapi, idx) => renderSapiRow(sapi, idx))}</tbody>
+                                        {selectedSapi.length > 0 && (
+                                            <tfoot>
+                                                <tr className="bg-green-50 border-t-2 border-green-200">
+                                                    <td colSpan={6} className="px-4 py-3 text-right text-sm font-bold text-gray-700">Total Harga</td>
+                                                    <td className="px-4 py-3 text-right text-sm font-bold text-green-700">{formatNumber(selectedSapi.reduce((s, x) => s + (Number(x.harga_beli || 0) * Number(x.berat || 0)), 0))}</td>
+                                                    <td></td>
+                                                </tr>
+                                            </tfoot>
+                                        )}
                                     </table>
                                 </div>
                             </React.Fragment>
@@ -411,6 +506,9 @@ const AddEditPembelianQurbanPage = () => {
 
             {/* Pilih Sapi Modal */}
             <PilihSapiModal isOpen={isPilihSapiOpen} onClose={() => setIsPilihSapiOpen(false)} onSelect={handleSelectSapi} notaId={formData.id_nota} excludeIds={excludeIds} onClearAll={() => setSelectedSapi([])} />
+
+            {/* Pilih Nota Modal */}
+            <PilihNotaModal isOpen={isPilihNotaOpen} onClose={() => setIsPilihNotaOpen(false)} onSelect={handleSelectNota} idPemasok={formData.id_pemasok} selectedNotaId={formData.id_nota} />
         </div>
     );
 };

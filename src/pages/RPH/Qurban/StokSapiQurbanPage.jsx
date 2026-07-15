@@ -167,7 +167,7 @@ const StokSapiQurbanPage = () => {
   // Search state
   const [advanced, setAdvanced] = useState(initialAdvanced);
   const [appliedFilters, setAppliedFilters] = useState(initialAdvanced);
-  const [sortConfig, setSortConfig] = useState({ column: 'tr_qurban_detail.id', dir: 'desc' });
+  const [sortConfig, setSortConfig] = useState({ column: 'tr_qurban.tanggal_pemesanan', dir: 'desc' });
 
   // Filters for potong paksa & sapi mati tabs
   const [ppFilter, setPpFilter] = useState({ search: '', start_date: '', end_date: '' });
@@ -188,7 +188,8 @@ const StokSapiQurbanPage = () => {
           eartag_supplier: appliedFilters.eartag_supplier,
           nota_qurban: appliedFilters.nota_qurban,
           status: appliedFilters.status !== '' && appliedFilters.status !== null ? appliedFilters.status : undefined,
-          order: [{ column: sortConfig.column, dir: sortConfig.dir }],
+          'order[0][column]': sortConfig.column,
+          'order[0][dir]': sortConfig.dir,
         }
       });
       setTableData(response.data || []);
@@ -403,6 +404,10 @@ const StokSapiQurbanPage = () => {
           <div className="flex items-center gap-1.5">
             <Hash className="w-3.5 h-3.5 text-sky-600" />
             <span className="text-sm font-medium text-gray-700">{row.nota_sistem || '-'}</span>
+          </div>
+          <div className="flex items-center gap-1.5 pl-5">
+            <span className="text-[11px] text-gray-400">Nota Supplier:</span>
+            <span className="text-xs text-gray-600">{row.nota_supplier || '-'}</span>
           </div>
           <div className="flex items-center gap-1.5 pl-5">
             <Calendar className="w-3 h-3 text-gray-400" />

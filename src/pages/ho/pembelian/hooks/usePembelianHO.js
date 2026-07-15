@@ -382,7 +382,12 @@ const usePembelianHO = () => {
                 if (data.file) {
                     requestData.file = data.file;
                 }
-                
+
+                // Include details array if present so backend can sync details during header update
+                if (data.details && Array.isArray(data.details)) {
+                    requestData.details = data.details;
+                }
+
                 // Validation for header update
                 const requiredFields = [
                     { field: 'id_supplier', message: 'Supplier harus dipilih', condition: !requestData.id_supplier || requestData.id_supplier <= 0 },

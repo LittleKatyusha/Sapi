@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
-  ArrowLeft, Wallet, Loader2, AlertCircle, Banknote, CheckCircle, Clock
+  ArrowLeft, Wallet, Loader2, AlertCircle, Banknote, CheckCircle, Clock, Upload, FileText, X, Eye
 } from 'lucide-react';
 import usePengeluaranRph from '../../../../../hooks/usePengeluaranRph';
+import { useNotification } from '../../../../../components/shared/Notification';
 import SearchableSelect from '../../../../../components/shared/SearchableSelect';
 import DataTable from 'react-data-table-component';
 
@@ -21,6 +22,7 @@ const BayarPengeluaranPage = () => {
   const { pid } = useParams();
   const navigate = useNavigate();
   const { loading, error, bayar, fetchDetail } = usePengeluaranRph();
+  const { showSuccess, showError } = useNotification();
 
   const [pembayaran, setPembayaran] = useState(null);
   const [history, setHistory] = useState([]);
@@ -29,6 +31,7 @@ const BayarPengeluaranPage = () => {
   const [namaPembayar, setNamaPembayar] = useState('');
   const [formErrors, setFormErrors] = useState({});
   const [submitLoading, setSubmitLoading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
 
   const loadDetail = async () => {
     const result = await fetchDetail(pid);
@@ -51,6 +54,30 @@ const BayarPengeluaranPage = () => {
     if (formErrors.nominal) setFormErrors((p) => ({ ...p, nominal: '' }));
   };
 
+  const handleFileChange = (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    if (f.size > 2 * 1024 * 1024) {
+      setFormErrors((p) => ({ ...p, file: 'Ukuran file maksimal 2MB' }));
+      e.target.value = '';
+      return;
+    }
+    const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+    if (!allowed.includes(f.type)) {
+      setFormErrors((p) => ({ ...p, file: 'Format file harus JPG, JPEG, PNG, atau PDF' }));
+      e.target.value = '';
+      return;
+    }
+    setSelectedFile(f);
+    setFormErrors((p) => ({ ...p, file: '' }));
+  };
+
+  const handleRemoveFile = () => {
+    setSelectedFile(null);
+    const input = document.getElementById('file-pengeluaran');
+    if (input) input.value = '';
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = {};
@@ -71,13 +98,20 @@ const BayarPengeluaranPage = () => {
       nominal_pembayaran: nominalValue,
       metode_pembayaran: metode,
       nama_pembayar: namaPembayar || undefined,
+      file: selectedFile || undefined,
     });
     setSubmitLoading(false);
 
     if (result.success) {
+      showSuccess('Pembayaran berhasil dicatat');
       setNominal('');
       setMetode('');
+      setSelectedFile(null);
+      const input = document.getElementById('file-pengeluaran');
+      if (input) input.value = '';
       loadDetail();
+    } else {
+      showError(result.message || 'Gagal mencatat pembayaran');
     }
   };
 
@@ -111,6 +145,16 @@ const BayarPengeluaranPage = () => {
       name: 'Pembayar',
       selector: (r) => r.nama_pembayar,
       cell: (r) => <span className="text-sm text-gray-600">{r.nama_pembayar || '-'}</span>,
+    },
+    {
+      name: 'Bukti',
+      selector: (r) => r.bukti_pembayaran,
+      center: true,
+      cell: (r) => r.bukti_pembayaran_url ? (
+        <a href={r.bukti_pembayaran_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition" title="Lihat bukti pembayaran">
+          <Eye className="w-4 h-4" />
+        </a>
+      ) : <span className="text-xs text-gray-300">-</span>,
     },
   ];
 
@@ -229,6 +273,49 @@ const BayarPengeluaranPage = () => {
                     disabled={submitLoading || sisa <= 0}
                     className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 disabled:bg-gray-100"
                   />
+                </div>
+
+                <div className="mb-5">
+                  <label className="flex items-center gap-2 text-xs font-medium text-gray-600 mb-1">
+                    <Upload className="w-3.5 h-3.5" />
+                    Bukti Pembayaran <span className="text-gray-400 font-normal">(opsional)</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="file"
+                      id="file-pengeluaran"
+                      accept="image/jpeg,image/jpg,image/png,application/pdf"
+                      onChange={handleFileChange}
+                      className="hidden"
+                      disabled={submitLoading || sisa <= 0}
+                    />
+                    <label
+                      htmlFor="file-pengeluaran"
+                      className={`flex items-center justify-center w-full px-4 py-5 border-2 border-dashed rounded-lg cursor-pointer hover:border-emerald-500 hover:bg-emerald-50 transition-all duration-200 ${
+                        submitLoading || sisa <= 0 ? 'opacity-50 cursor-not-allowed border-gray-200' : 'border-gray-300'
+                      }`}
+                    >
+                      <div className="text-center">
+                        <div className="text-gray-600 mb-1 text-sm">
+                          {selectedFile ? (
+                            <span className="inline-flex items-center gap-2 font-medium text-emerald-600">
+                              <FileText className="w-4 h-4" />
+                              {selectedFile.name}
+                            </span>
+                          ) : (
+                            <span>Klik untuk upload file</span>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500">Format: JPG, JPEG, PNG, PDF (Maks. 2MB)</p>
+                      </div>
+                    </label>
+                  </div>
+                  {selectedFile && (
+                    <button type="button" onClick={handleRemoveFile} className="mt-2 text-xs text-red-500 hover:text-red-700 flex items-center gap-1">
+                      <X className="w-3 h-3" /> Hapus file
+                    </button>
+                  )}
+                  {formErrors.file && <p className="text-red-500 text-xs flex items-center gap-1 mt-1"><AlertCircle className="w-3 h-3" /> {formErrors.file}</p>}
                 </div>
 
                 <button

@@ -29,7 +29,19 @@ class PenerimaanHoService {
   }
 
   static async bayar(data) {
-    const response = await HttpClient.post(API_ENDPOINTS.HO.PAYMENT.PENERIMAAN_BAYAR, data);
+    let payload = data;
+    // If a file is present, send as multipart FormData
+    if (data.file && data.file instanceof File) {
+      payload = new FormData();
+      Object.keys(data).forEach((key) => {
+        if (key === 'file') {
+          payload.append('file', data.file);
+        } else if (data[key] !== null && data[key] !== undefined) {
+          payload.append(key, data[key]);
+        }
+      });
+    }
+    const response = await HttpClient.post(API_ENDPOINTS.HO.PAYMENT.PENERIMAAN_BAYAR, payload);
     return { success: true, data: response?.data, message: response?.message || 'Penerimaan berhasil dicatat', raw: response };
   }
 

@@ -18,24 +18,39 @@ class QurbanService {
   // ---------------------------------------------------------------------------
 
   /**
-   * Get available nota/pesanan from HO
+   * Get available nota/pesanan from HO with server-side pagination
    * @param {Object} params - Request parameters
-   * @param {number} params.id_pemasok - Pemasok/Supplier ID to filter nota
-   * @param {number} params.jenis_pembelian - Jenis pembelian (1 = Import, 2 = Lokal)
-   * @returns {Promise} API response with available nota list
+   * @param {number} params.id_pemasok - Pemasok/Supplier ID to filter nota (required)
+   * @param {number} [params.jenis_pembelian] - Jenis pembelian (1 = Import, 2 = Lokal, omit = both)
+   * @param {number} [params.start=0] - Starting index for pagination
+   * @param {number} [params.length=10] - Number of records per page
+   * @param {string} [params.search=''] - Search term (nota, nota_sistem, supplier name)
+   * @param {number} [params.draw=1] - DataTable draw counter
+   * @returns {Promise} API response with paginated nota list
    */
   static async getNota(params = {}) {
     try {
+      const payload = {
+        id_pemasok: params.id_pemasok,
+        start: params.start ?? 0,
+        length: params.length ?? 10,
+        draw: params.draw ?? 1,
+      };
+      if (params.jenis_pembelian !== undefined && params.jenis_pembelian !== '' && params.jenis_pembelian !== null) {
+        payload.jenis_pembelian = params.jenis_pembelian;
+      }
+      if (params.search) payload.search = params.search;
+
       const response = await HttpClient.post(
         API_ENDPOINTS.RPH?.QURBAN?.NOTA || `${this.API_BASE}/getnota`,
-        {
-          id_pemasok: params.id_pemasok,
-          jenis_pembelian: params.jenis_pembelian,
-        }
+        payload
       );
 
       return {
         success: true,
+        draw: response.draw ?? 1,
+        recordsTotal: response.recordsTotal ?? 0,
+        recordsFiltered: response.recordsFiltered ?? 0,
         data: response.data || [],
         message: response.message || 'Data nota berhasil dimuat',
       };
@@ -43,6 +58,9 @@ class QurbanService {
       console.error('[QurbanService] Error fetching nota:', error);
       return {
         success: false,
+        draw: params.draw ?? 1,
+        recordsTotal: 0,
+        recordsFiltered: 0,
         data: [],
         message: error.message || 'Gagal mengambil data nota',
       };
@@ -169,9 +187,31 @@ class QurbanService {
    */
   static async create(data) {
     try {
+      let payload = data;
+      // If a file is present, send as multipart FormData
+      if (data.file && data.file instanceof File) {
+        payload = new FormData();
+        Object.keys(data).forEach((key) => {
+          if (key === 'file') {
+            payload.append('file', data.file);
+          } else if (key === 'details' && Array.isArray(data.details)) {
+            // Send details as nested FormData fields so Laravel parses them as an array
+            data.details.forEach((item, idx) => {
+              Object.keys(item).forEach((field) => {
+                if (item[field] !== null && item[field] !== undefined) {
+                  payload.append(`details[${idx}][${field}]`, item[field]);
+                }
+              });
+            });
+          } else if (data[key] !== null && data[key] !== undefined) {
+            payload.append(key, data[key]);
+          }
+        });
+      }
+
       const response = await HttpClient.post(
         API_ENDPOINTS.RPH?.QURBAN?.STORE || `${this.API_BASE}/store`,
-        data
+        payload
       );
 
       return {
@@ -201,9 +241,31 @@ class QurbanService {
    */
   static async update(data) {
     try {
+      let payload = data;
+      // If a file is present, send as multipart FormData
+      if (data.file && data.file instanceof File) {
+        payload = new FormData();
+        Object.keys(data).forEach((key) => {
+          if (key === 'file') {
+            payload.append('file', data.file);
+          } else if (key === 'details' && Array.isArray(data.details)) {
+            // Send details as nested FormData fields so Laravel parses them as an array
+            data.details.forEach((item, idx) => {
+              Object.keys(item).forEach((field) => {
+                if (item[field] !== null && item[field] !== undefined) {
+                  payload.append(`details[${idx}][${field}]`, item[field]);
+                }
+              });
+            });
+          } else if (data[key] !== null && data[key] !== undefined) {
+            payload.append(key, data[key]);
+          }
+        });
+      }
+
       const response = await HttpClient.post(
         API_ENDPOINTS.RPH?.QURBAN?.UPDATE || `${this.API_BASE}/update`,
-        data
+        payload
       );
 
       return {
