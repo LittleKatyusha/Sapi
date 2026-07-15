@@ -367,7 +367,7 @@ const ModernPembelianOVKTable = ({
                             <MoreHorizontal className="w-4 h-4" />
                           </button>
                           {openMenuId === rowId && (
-                            <div className="absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-lg border border-gray-100 z-50 py-1">
+                            <div className="absolute right-0 mt-1 w-60 bg-white rounded-lg shadow-lg border border-gray-100 z-50 py-1">
                               <button
                                 onClick={() => { onDetail(row); setOpenMenuId(null); }}
                                 className="w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"

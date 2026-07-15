@@ -141,7 +141,7 @@ const PembelianFeedmilPage = () => {
             });
             return;
         }
-        navigate(`/ho/keuangan-kas/detail/${encodeURIComponent(id)}`);
+        navigate(`/ho/keuangan/pengeluaran/bayar/${encodeURIComponent(id)}`);
     };
 
     const handleDelete = (pembelianItem) => {

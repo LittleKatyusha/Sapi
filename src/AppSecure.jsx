@@ -197,6 +197,7 @@ const PengajuanPage = lazy(() => import('./pages/ho/pengajuan/PengajuanPage'));
 const HOKeuanganPage = lazy(() => import('./pages/ho/keuangan/KeuanganPage'));
 const PenerimaanHoPage = lazy(() => import('./pages/ho/keuangan/Penerimaan/PenerimaanHoPage.jsx'));
 const BayarPenerimaanHoPage = lazy(() => import('./pages/ho/keuangan/Penerimaan/Bayar/BayarPage.jsx'));
+const BayarPengeluaranHoPage = lazy(() => import('./pages/ho/keuangan/Pengeluaran/Bayar/BayarPage.jsx'));
 const KeuanganKasDetailPage = lazy(() => import('./pages/ho/keuanganKas/KeuanganKasDetailPage'));
 const KeuanganBankDetailPage = lazy(() => import('./pages/ho/keuanganBank/KeuanganBankDetailPage'));
 
@@ -496,6 +497,7 @@ function AppSecure() {
               
               {/* HO Keuangan Routes (unified) */}
               <Route path="/ho/keuangan/pengeluaran" element={<HOKeuanganPage />} />
+              <Route path="/ho/keuangan/pengeluaran/bayar/:pid" element={<BayarPengeluaranHoPage />} />
               <Route path="/ho/keuangan/penerimaan" element={<PenerimaanHoPage />} />
               <Route path="/ho/keuangan/penerimaan/bayar/:pid" element={<BayarPenerimaanHoPage />} />
               <Route path="/ho/keuangan-kas/detail/:id" element={<KeuanganKasDetailPage />} />

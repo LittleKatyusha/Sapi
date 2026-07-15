@@ -261,7 +261,7 @@ const PembelianLainLainPage = () => {
             });
             return;
         }
-        navigate(`/ho/keuangan-kas/detail/${encodeURIComponent(id)}`);
+        navigate(`/ho/keuangan/pengeluaran/bayar/${encodeURIComponent(id)}`);
     };
 
     // Handler khusus untuk edit beban

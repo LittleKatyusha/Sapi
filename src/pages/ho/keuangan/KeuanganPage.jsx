@@ -44,7 +44,7 @@ const KeuanganPage = () => {
     const [notification, setNotification] = useState(null);
 
     const tipePembayaran = metodeBayar === 'kas' ? 1 : 2;
-    const detailBasePath = metodeBayar === 'kas' ? '/ho/keuangan-kas/detail' : '/ho/keuangan-bank/detail';
+    const bayarBasePath = '/ho/keuangan/pengeluaran/bayar';
 
     // Helper formatter
     const formatCurrency = (value) => {
@@ -446,7 +446,7 @@ const KeuanganPage = () => {
 
     const handleBayar = (item) => {
         if (item.pid) {
-            navigate(`${detailBasePath}/${item.pid}`);
+            navigate(`${bayarBasePath}/${item.pid}`);
         } else {
             setNotification({
                 type: 'error',

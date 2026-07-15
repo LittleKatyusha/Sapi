@@ -88,6 +88,7 @@ export const pageTitleMap = {
   '/ho/pembelian-kulit': 'Head Office: Pembelian Kulit',
   '/ho/pengajuan': 'Head Office: Pengajuan Biaya',
   '/ho/keuangan/pengeluaran': 'Head Office: Pengeluaran',
+  '/ho/keuangan/pengeluaran/bayar/:pid': 'Head Office: Bayar Pengeluaran',
   '/ho/keuangan/penerimaan': 'Head Office: Penerimaan',
   '/report/ho/hutang-vendor': 'Head Office: Laporan Hutang Vendor',
   '/report/ho/piutang-cabang': 'Head Office: Laporan Piutang Cabang',

@@ -2214,19 +2214,16 @@ const AddEditPembelianPage = () => {
                                         <Building2 className="w-4 h-4" />
                                         Tipe Pembayaran *
                                     </label>
-                                    <select
+                                    <SearchableSelect
+                                        options={tipePembayaranOptions}
                                         value={headerData.purchase_type}
-                                        onChange={(e) => handleHeaderChange('purchase_type', e.target.value)}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                        required
-                                    >
-                                        <option value="">Pilih Tipe Pembayaran</option>
-                                        {tipePembayaranOptions.map(option => (
-                                            <option key={option.value} value={option.value}>
-                                                {option.label}
-                                            </option>
-                                        ))}
-                                    </select>
+                                        onChange={(value) => handleHeaderChange('purchase_type', value)}
+                                        placeholder={tipePembayaranLoading ? 'Loading tipe pembayaran...' : tipePembayaranError ? 'Error loading tipe pembayaran' : 'Pilih Tipe Pembayaran'}
+                                        isLoading={tipePembayaranLoading}
+                                        isDisabled={tipePembayaranLoading || tipePembayaranError}
+                                        required={true}
+                                        className="w-full"
+                                    />
                                     {tipePembayaranError && (
                                         <p className="text-xs text-red-500 mt-1">
                                             Error loading data: {tipePembayaranError}
