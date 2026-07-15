@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
-  ArrowLeft, Wallet, Loader2, AlertCircle, Banknote, CheckCircle, Clock, FileText, X, Eye
+  ArrowLeft, Wallet, Loader2, AlertCircle, Banknote, CheckCircle, Clock, FileText, X, Eye, Upload
 } from 'lucide-react';
 import usePenjualanSapiUtuh from '../../../../../hooks/usePenjualanSapiUtuh';
 import PenjualanBoningService from '../../../../../services/penjualanBoningService';
@@ -340,30 +340,48 @@ const BayarPage = () => {
 
                   {!isBoning && (
                     <div className="mb-5">
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Bukti Pembayaran <span className="text-gray-400 font-normal">(opsional, max 2MB)</span></label>
+                      <label className="flex items-center gap-2 text-xs font-medium text-gray-600 mb-1">
+                        <Upload className="w-3.5 h-3.5" />
+                        Bukti Pembayaran <span className="text-gray-400 font-normal">(opsional)</span>
+                      </label>
                       <div className="relative">
                         <input
-                          id="file-penerimaan-rph"
                           type="file"
-                          accept=".jpg,.jpeg,.png,.pdf"
+                          id="file-penerimaan-rph"
+                          accept="image/jpeg,image/jpg,image/png,application/pdf"
                           onChange={handleFileChange}
+                          className="hidden"
                           disabled={submitLoading || sisa <= 0}
-                          className="w-full text-sm text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 file:cursor-pointer cursor-pointer border border-gray-300 rounded-lg disabled:bg-gray-100"
                         />
+                        <label
+                          htmlFor="file-penerimaan-rph"
+                          className={`flex items-center justify-center w-full px-4 py-5 border-2 border-dashed rounded-lg cursor-pointer hover:border-emerald-500 hover:bg-emerald-50 transition-all duration-200 ${
+                            submitLoading || sisa <= 0 ? 'opacity-50 cursor-not-allowed border-gray-200' : 'border-gray-300'
+                          }`}
+                        >
+                          <div className="text-center">
+                            <div className="text-gray-600 mb-1 text-sm">
+                              {selectedFile ? (
+                                <span className="inline-flex items-center gap-2 font-medium text-emerald-600">
+                                  <FileText className="w-4 h-4" />
+                                  {selectedFile.name}
+                                </span>
+                              ) : (
+                                <span>Klik untuk upload file</span>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-500">Format: JPG, JPEG, PNG, PDF (Maks. 2MB)</p>
+                          </div>
+                        </label>
                       </div>
                       {selectedFile && (
-                        <div className="mt-2 flex items-center gap-2 text-xs text-gray-600 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
-                          <FileText className="w-4 h-4 text-emerald-600" />
-                          <span className="truncate flex-1">{selectedFile.name}</span>
-                          <span className="text-gray-400">{(selectedFile.size / 1024).toFixed(0)} KB</span>
-                          <button
-                            type="button"
-                            onClick={() => { setSelectedFile(null); const input = document.getElementById('file-penerimaan-rph'); if (input) input.value = ''; }}
-                            className="text-red-500 hover:text-red-700"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
+                        <button
+                          type="button"
+                          onClick={() => { setSelectedFile(null); const input = document.getElementById('file-penerimaan-rph'); if (input) input.value = ''; }}
+                          className="mt-2 text-xs text-red-500 hover:text-red-700 flex items-center gap-1"
+                        >
+                          <X className="w-3 h-3" /> Hapus file
+                        </button>
                       )}
                       {fileError && <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {fileError}</p>}
                     </div>

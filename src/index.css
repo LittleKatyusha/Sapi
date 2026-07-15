@@ -170,8 +170,8 @@
   overflow: hidden;
 }
 
-/* Custom file input styles */
-input[type="file"] {
+/* Custom file input styles — only hide when inside .custom-file-input wrapper */
+.custom-file-input input[type="file"] {
   position: absolute;
   width: 1px;
   height: 1px;

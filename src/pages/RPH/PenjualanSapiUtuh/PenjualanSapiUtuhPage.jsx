@@ -325,6 +325,14 @@ const ActionMenuCell = ({ row, setDeleteData, handleConfirm, handleCancel, handl
           >
             <Truck className="w-4 h-4 text-orange-500" /> Pengiriman
           </button>
+          {Number(row.sisa_pembayaran || 0) > 0 && (
+            <button
+              onClick={() => { setIsOpen(false); navigate(`/rph/keuangan/penerimaan/bayar/${row.pid}`); }}
+              className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-emerald-50 flex items-center gap-2 transition"
+            >
+              <Banknote className="w-4 h-4 text-emerald-500" /> Bayar
+            </button>
+          )}
           <button
             onClick={() => { setIsOpen(false); handlePrintFaktur(row); }}
             className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-indigo-50 flex items-center gap-2 transition"
