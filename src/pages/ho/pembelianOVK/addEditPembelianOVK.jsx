@@ -114,7 +114,6 @@ const AddEditPembelianOVKPage = () => {
         item_name: '',
         id_klasifikasi_ovk: null,
         id_satuan: null,
-        berat: '',
         harga: '',
         persentase: ''
     });
@@ -320,7 +319,7 @@ const AddEditPembelianOVKPage = () => {
                     });
                     
                     if (!showResponse.data || showResponse.data.length === 0) {
-                        console.log('❌ No data from /show endpoint');
+                        console.log('❁ENo data from /show endpoint');
                         throw new Error('Data tidak ditemukan untuk pubid yang dipilih');
                     }
                     
@@ -330,7 +329,7 @@ const AddEditPembelianOVKPage = () => {
                     const headerData = showResponse.data[0];
                     const showResponseData = showResponse.data;
                     
-                    console.log('✅ Header and detail data found from /show endpoint:', {
+                    console.log('✁EHeader and detail data found from /show endpoint:', {
                         nota: headerData.nota,
                         pid: headerData.pid,
                         nama_supplier: headerData.nama_supplier,
@@ -520,7 +519,6 @@ const AddEditPembelianOVKPage = () => {
                                 item_name_id: foundItem ? foundItem.value : '', // ID for SearchableSelect
                                 id_klasifikasi_ovk: item.id_klasifikasi_ovk || null,
                                 id_satuan: item.id_satuan ? String(item.id_satuan) : null,
-                                berat: parseFloat(item.berat) || 0,
                                 harga: parseFloat(item.harga) || 0,
                                 persentase: formatPersentaseFromBackend(item.persentase), // Format with comma for display
                                 hpp: parseFloat(item.hpp) || 0,
@@ -591,7 +589,6 @@ const AddEditPembelianOVKPage = () => {
             item_name_id: defaultData.item_name || null,
             id_klasifikasi_ovk: defaultData.id_klasifikasi_ovk || null,
             id_satuan: defaultData.id_satuan || null,
-            berat: defaultData.berat || '',
             harga: defaultData.harga || '',
             persentase: defaultData.persentase || '',
             hpp: '', // Will be calculated
@@ -625,7 +622,6 @@ const AddEditPembelianOVKPage = () => {
                 item_name_id: defaultData.item_name || null,
                 id_klasifikasi_ovk: defaultData.id_klasifikasi_ovk || null,
                 id_satuan: defaultData.id_satuan || null,
-                berat: defaultData.berat || '',
                 harga: defaultData.harga || '',
                 persentase: defaultData.persentase || '',
                 hpp: '', // Will be calculated
@@ -747,8 +743,6 @@ const AddEditPembelianOVKPage = () => {
             return;
         }
 
-        const berat = parseFloat(item.berat);
-        // Validation removed as per request
 
         const harga = parseFloat(item.harga);
         if (isNaN(harga) || harga <= 0) {
@@ -797,7 +791,6 @@ const AddEditPembelianOVKPage = () => {
                     return parsed;
                 })(),
                 harga: parseFloat(item.harga) || 0,
-                berat: parseInt(item.berat) || 0,
                 persentase: getParsedPersentase(item.persentase), // Use comma-aware parsing
                 hpp: parseFloat(item.hpp) || 0,
                 total_harga: parseFloat(item.total_harga) || 0
@@ -830,7 +823,6 @@ const AddEditPembelianOVKPage = () => {
                     id_satuan: detailData.id_satuan,
                     harga: detailData.harga,
                     persentase: detailData.persentase,
-                    berat: detailData.berat,
                     hpp: detailData.hpp,
                     total_harga: detailData.total_harga
                 };
@@ -866,7 +858,6 @@ const AddEditPembelianOVKPage = () => {
                     id_satuan: detailData.id_satuan,
                     harga: detailData.harga,
                     persentase: detailData.persentase,
-                    berat: detailData.berat,
                     hpp: detailData.hpp,
                     total_harga: detailData.total_harga
                 };
@@ -1097,8 +1088,6 @@ const AddEditPembelianOVKPage = () => {
             }
             // id_klasifikasi_ovk is nullable according to backend rules - no validation needed (like Feedmil)
             // Remove required validation for klasifikasi OVK to match Feedmil implementation
-            const berat = parseFloat(item.berat);
-            // Validation removed as per request
             const harga = parseFloat(item.harga);
             if (isNaN(harga) || harga <= 0) {
                 errors.push(`Item ${index + 1}: Harga harus lebih dari 0`);
@@ -1174,7 +1163,6 @@ const AddEditPembelianOVKPage = () => {
                     id_satuan: item.id_satuan ? parseInt(item.id_satuan) : null,
                     harga: parseFloat(item.harga) || null,
                     persentase: getParsedPersentase(item.persentase) || null, // Use comma-aware parsing
-                    berat: parseFloat(item.berat) || null,
                     hpp: parseFloat(item.hpp) || null,
                     total_harga: parseFloat(item.total_harga) || null
                 })),
@@ -1355,7 +1343,7 @@ const AddEditPembelianOVKPage = () => {
                             />
                             {parameterError && (
                                 <p className="text-xs text-red-500 mt-1">
-                                    ⚠️ Error loading offices: {parameterError}
+                                    ⚠�E�EError loading offices: {parameterError}
                                 </p>
                             )}
                         </div>
@@ -1381,7 +1369,7 @@ const AddEditPembelianOVKPage = () => {
                             )}
                             {jenisPembelianError && (
                                 <p className="text-xs text-red-600 mt-1">
-                                    ❌ Error: {jenisPembelianError}
+                                    ❁EError: {jenisPembelianError}
                                 </p>
                             )}
                             {!jenisPembelianLoading && !jenisPembelianError && (
@@ -1414,7 +1402,7 @@ const AddEditPembelianOVKPage = () => {
                             )}
                             {parameterError && (
                                 <p className="text-xs text-red-600 mt-1">
-                                    ❌ Error: {parameterError}
+                                    ❁EError: {parameterError}
                                 </p>
                             )}
                         </div>
@@ -1555,7 +1543,7 @@ const AddEditPembelianOVKPage = () => {
                             />
                             {parameterError && (
                                 <p className="text-xs text-red-500 mt-1">
-                                    ⚠️ Error loading offices: {parameterError}
+                                    ⚠�E�EError loading offices: {parameterError}
                                 </p>
                             )}
                         </div>
@@ -1578,7 +1566,7 @@ const AddEditPembelianOVKPage = () => {
                             />
                             {tipePembayaranError && (
                                 <p className="text-xs text-red-500 mt-1">
-                                    ⚠️ Error loading tipe pembayaran: {tipePembayaranError}
+                                    ⚠�E�EError loading tipe pembayaran: {tipePembayaranError}
                                 </p>
                             )}
                         </div>
@@ -1601,7 +1589,7 @@ const AddEditPembelianOVKPage = () => {
                             />
                             {bankError && (
                                 <p className="text-xs text-red-500 mt-1">
-                                    ⚠️ Error loading banks: {bankError}
+                                    ⚠�E�EError loading banks: {bankError}
                                 </p>
                             )}
                         </div>
@@ -1696,7 +1684,7 @@ const AddEditPembelianOVKPage = () => {
                                                                 📄 {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
                                                             </span>
                                                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                                🏷️ {selectedFile.type.split('/')[1]?.toUpperCase() || 'FILE'}
+                                                                🏷�E�E{selectedFile.type.split('/')[1]?.toUpperCase() || 'FILE'}
                                                             </span>
                                                         </>
                                                     ) : (
@@ -1738,7 +1726,7 @@ const AddEditPembelianOVKPage = () => {
                             />
                             {parameterError && (
                                 <p className="text-xs text-red-500 mt-1">
-                                    ⚠️ Error loading items: {parameterError}
+                                    ⚠�E�EError loading items: {parameterError}
                                 </p>
                             )}
                         </div>
@@ -1760,7 +1748,7 @@ const AddEditPembelianOVKPage = () => {
                                 <p className="text-xs text-blue-600 mt-1">🔄 Memuat klasifikasi OVK...</p>
                             )}
                             {parameterError && (
-                                <p className="text-xs text-red-600 mt-1">❌ Error: {parameterError}</p>
+                                <p className="text-xs text-red-600 mt-1">❁EError: {parameterError}</p>
                             )}
                         </div>
 
@@ -1780,7 +1768,7 @@ const AddEditPembelianOVKPage = () => {
                             />
                             {satuanError && (
                                 <p className="text-xs text-red-500 mt-1">
-                                    ⚠️ Error loading satuan: {satuanError}
+                                    ⚠�E�EError loading satuan: {satuanError}
                                 </p>
                             )}
                         </div>
@@ -1888,7 +1876,6 @@ const AddEditPembelianOVKPage = () => {
                                         // Get values from item and header data
                                         const harga = parseFloat(item.harga) || 0;
                                         const persentase = getParsedPersentase(item.persentase); // Use comma-aware parsing
-                                        const berat = parseFloat(item.berat) || 0;
                                         
                                         // Calculate HPP: harga x (persentase / 100)
                                         const hpp = harga * (persentase / 100);
@@ -2308,7 +2295,7 @@ const AddEditPembelianOVKPage = () => {
                                             onClick={closeFileModal}
                                             className="px-6 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-200 font-medium shadow-md hover:shadow-lg"
                                         >
-                                            ✅ Simpan File
+                                            ✁ESimpan File
                                         </button>
                                     )}
                                 </div>

@@ -286,8 +286,7 @@ const usePembelianFeedmil = () => {
                      })();
                      formData.append(`details[${index}][persentase]`, persentaseValue);
                     
-                    formData.append(`details[${index}][berat]`, parseInt(item.berat) || 0);
-                    formData.append(`details[${index}][id_satuan]`, parseInt(item.berat) || 0); // Satuan ID stored in berat field
+                    formData.append(`details[${index}][id_satuan]`, item.id_satuan ? parseInt(item.id_satuan) : '');
                     
                     // Calculate HPP and total_harga on-the-fly since they may not be stored in item state
                     const itemHarga = parseFloat(item.harga) || 0;
@@ -657,8 +656,7 @@ const usePembelianFeedmil = () => {
                      const result = isNaN(parsed) ? 0 : parsed; // Send as decimal (15.5% -> 15.5)
                      return result;
                  })(),
-                berat: parseInt(detailData.berat || 0),
-                id_satuan: parseInt(detailData.berat || 0), // Satuan ID stored in berat field
+                id_satuan: detailData.id_satuan ? parseInt(detailData.id_satuan) : null,
                 hpp: parseFloat(detailData.hpp || 0),
                 total_harga: parseFloat(detailData.total_harga || detailData.hpp || 0)
             };

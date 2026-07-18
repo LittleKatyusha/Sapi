@@ -212,7 +212,8 @@ const PembelianOVKDetailPage = () => {
                             nama_klasifikasi_ovk: item.nama_klasifikasi_ovk || '',
                             harga: parseFloat(item.harga) || 0,
                             persentase: parseFloat(item.persentase) || 0,
-                            berat: parseFloat(item.berat) || 0,
+                            id_satuan: item.id_satuan || null,
+                            satuan: item.satuan || '',
                             hpp: parseFloat(item.hpp) || 0,
                             total_harga: parseFloat(item.total_harga) || 0,
                             status: item.status || 1,
@@ -343,15 +344,15 @@ const PembelianOVKDetailPage = () => {
             }
         },
         {
-            name: 'Berat (kg)',
-            selector: row => row.berat,
+            name: 'Satuan',
+            selector: row => row.satuan || row.id_satuan,
             sortable: true,
             width: '130px',
             wrap: true,
             cell: row => (
                 <div className="flex items-center justify-center w-full h-full min-h-[40px]">
                     <div className="bg-gray-50 text-gray-700 px-3 py-2 rounded-lg font-semibold text-center">
-                        {row.berat ? `${row.berat} kg` : '-'}
+                        {row.satuan || '-'}
                     </div>
                 </div>
             )
@@ -894,13 +895,13 @@ const PembelianOVKDetailPage = () => {
                         <div className="flex items-center justify-between text-xs text-gray-500">
                             <span className="flex items-center gap-1">
                                 {scrollPosition.canScrollLeft && (
-                                    <span className="text-blue-600 font-medium">← Scroll kiri</span>
+                                    <span className="text-blue-600 font-medium">&larr; Scroll kiri</span>
                                 )}
                                 {!scrollPosition.canScrollLeft && !scrollPosition.canScrollRight && (
-                                    <span className="text-green-600 font-medium">✓ Tampilan optimal</span>
+                                    <span className="text-green-600 font-medium">Tampilan optimal</span>
                                 )}
                                 {scrollPosition.canScrollRight && (
-                                    <span className="text-blue-600 font-medium">Scroll kanan →</span>
+                                    <span className="text-blue-600 font-medium">Scroll kanan &rarr;</span>
                                 )}
                             </span>
                             <span className="text-gray-400">

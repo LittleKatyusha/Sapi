@@ -121,7 +121,7 @@ const AddEditPembelianFeedmilPage = () => {
         item_name: '',
         item_name_id: null, // Store the selected item ID
         id_klasifikasi_feedmil: null, // Use null instead of empty string to avoid auto-selection
-        berat: 0, // Start with 0 like harga total pattern
+        id_satuan: null,
         harga: 0, // Also change to 0 for consistency
         persentase: 0 // Also change to 0 for consistency
     });
@@ -548,7 +548,8 @@ const AddEditPembelianFeedmilPage = () => {
                                         // Use the integer ID directly since we changed frontend to use integer IDs
                                         return parseInt(backendId);
                                     })(),
-                                    berat: safeGetNumber(item.berat, 0), // Stores satuan ID for frontend, but field name kept as berat for backend compatibility
+                                    id_satuan: item.id_satuan ? String(item.id_satuan) : null,
+                                    satuan: item.satuan || '',
                                     harga: safeGetNumber(item.harga, 0),
                                     persentase: (() => {
                                         return formatPersentaseFromBackend(item.persentase);
@@ -617,7 +618,7 @@ const AddEditPembelianFeedmilPage = () => {
             item_name: defaultData.item_name_display || defaultData.item_name || '',
             item_name_id: defaultData.item_name || null,
             id_klasifikasi_feedmil: defaultData.id_klasifikasi_feedmil || null, // Use null instead of empty string
-            berat: defaultData.berat || 0, // Stores satuan ID
+            id_satuan: defaultData.id_satuan || null,
             harga: defaultData.harga || '',
             persentase: defaultData.persentase || '', // Fix: correct spelling
             hpp: '', // Will be calculated
@@ -644,7 +645,7 @@ const AddEditPembelianFeedmilPage = () => {
                 item_name: defaultData.item_name_display || defaultData.item_name || '',
                 item_name_id: defaultData.item_name || null,
                 id_klasifikasi_feedmil: defaultData.id_klasifikasi_feedmil || null, // Use null instead of empty string
-                berat: defaultData.berat || 0, // Stores satuan ID
+                id_satuan: defaultData.id_satuan || null,
                 harga: defaultData.harga || '',
                 persentase: defaultData.persentase || '', // Fix: correct spelling
                 hpp: '', // Will be calculated
@@ -763,7 +764,7 @@ const AddEditPembelianFeedmilPage = () => {
         if (!item.harga || parseFloat(item.harga) <= 0) {
             itemErrors.push('Harga harus diisi dan > 0');
         }
-        if (!item.berat) {
+        if (!item.id_satuan) {
             itemErrors.push('Satuan harus dipilih');
         }
         if (!item.persentase || getParsedPersentase(item.persentase) < 0) {
@@ -812,7 +813,7 @@ const AddEditPembelianFeedmilPage = () => {
                     return parsed;
                 })(),
                 harga: parseFloat(item.harga) || 0,
-                berat: parseInt(item.berat) || 0,
+                id_satuan: item.id_satuan ? parseInt(item.id_satuan) : null,
                 persentase: getParsedPersentase(item.persentase),
                 hpp: hpp,
                 total_harga: totalHarga
@@ -1096,7 +1097,7 @@ const AddEditPembelianFeedmilPage = () => {
             }
             // id_klasifikasi_feedmil is nullable according to backend validation rules
             // Remove required validation for klasifikasi feedmil
-            if (!item.berat) {
+            if (!item.id_satuan) {
                 errors.push(`Item ${index + 1}: Satuan harus dipilih`);
             }
             const harga = parseFloat(item.harga);
@@ -1357,7 +1358,7 @@ const AddEditPembelianFeedmilPage = () => {
                             />
                             {parameterError && (
                                 <p className="text-xs text-red-500 mt-1">
-                                    ⚠️ Error loading offices: {parameterError}
+                                    ⚠�E�EError loading offices: {parameterError}
                                 </p>
                             )}
                         </div>
@@ -1383,7 +1384,7 @@ const AddEditPembelianFeedmilPage = () => {
                             )}
                             {jenisPembelianError && (
                                 <p className="text-xs text-red-600 mt-1">
-                                    ❌ Error: {jenisPembelianError}
+                                    ❁EError: {jenisPembelianError}
                                 </p>
                             )}
 
@@ -1412,7 +1413,7 @@ const AddEditPembelianFeedmilPage = () => {
                             )}
                             {parameterError && (
                                 <p className="text-xs text-red-600 mt-1">
-                                    ❌ Error: {parameterError}
+                                    ❁EError: {parameterError}
                                 </p>
                             )}
                         </div>
@@ -1521,7 +1522,7 @@ const AddEditPembelianFeedmilPage = () => {
                             />
                             {parameterError && (
                                 <p className="text-xs text-red-500 mt-1">
-                                    ⚠️ Error loading offices: {parameterError}
+                                    ⚠�E�EError loading offices: {parameterError}
                                 </p>
                             )}
                         </div>
@@ -1544,7 +1545,7 @@ const AddEditPembelianFeedmilPage = () => {
                             />
                             {tipePembayaranError && (
                                 <p className="text-xs text-red-500 mt-1">
-                                    ⚠️ Error loading tipe pembayaran: {tipePembayaranError}
+                                    ⚠�E�EError loading tipe pembayaran: {tipePembayaranError}
                                 </p>
                             )}
                         </div>
@@ -1567,7 +1568,7 @@ const AddEditPembelianFeedmilPage = () => {
                             />
                             {bankError && (
                                 <p className="text-xs text-red-500 mt-1">
-                                    ⚠️ Error loading banks: {bankError}
+                                    ⚠�E�EError loading banks: {bankError}
                                 </p>
                             )}
                         </div>
@@ -1666,7 +1667,7 @@ const AddEditPembelianFeedmilPage = () => {
                                                                 📄 {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
                                                             </span>
                                                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                                🏷️ {selectedFile.type.split('/')[1]?.toUpperCase() || 'FILE'}
+                                                                🏷�E�E{selectedFile.type.split('/')[1]?.toUpperCase() || 'FILE'}
                                                             </span>
                                                         </>
                                                     ) : (
@@ -1708,7 +1709,7 @@ const AddEditPembelianFeedmilPage = () => {
                             />
                             {parameterError && (
                                 <p className="text-xs text-red-500 mt-1">
-                                    ⚠️ Error loading items: {parameterError}
+                                    ⚠�E�EError loading items: {parameterError}
                                 </p>
                             )}
                         </div>
@@ -1728,19 +1729,19 @@ const AddEditPembelianFeedmilPage = () => {
                             />
                             {parameterError && (
                                 <p className="text-xs text-red-600 mt-1">
-                                    ❌ Error: {parameterError}
+                                    ❁EError: {parameterError}
                                 </p>
                             )}
                         </div>
 
-                        {/* Satuan Default (Stored as berat) */}
+                        {/* Satuan Default */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Satuan
                             </label>
                             <SearchableSelect
-                                value={defaultData.berat} // Storing satuan ID in berat field
-                                onChange={(value) => handleDefaultDataChange('berat', value)}
+                                value={defaultData.id_satuan}
+                                onChange={(value) => handleDefaultDataChange('id_satuan', value)}
                                 options={satuanOptions}
                                 placeholder={satuanLoading ? "Memuat..." : "Pilih Satuan"}
                                 className="w-full"
@@ -1748,7 +1749,7 @@ const AddEditPembelianFeedmilPage = () => {
                             />
                             {satuanError && (
                                 <p className="text-xs text-red-600 mt-1">
-                                    ❌ Error: {satuanError}
+                                    ❁EError: {satuanError}
                                 </p>
                             )}
                         </div>
@@ -1910,11 +1911,11 @@ const AddEditPembelianFeedmilPage = () => {
 
                                                 </td>
                                                 
-                                                {/* Satuan (Stored as berat) */}
+                                                {/* Satuan */}
                                                 <td className="p-2 sm:p-3">
                                                     <SearchableSelect
-                                                        value={item.berat} // Storing satuan ID in berat field
-                                                        onChange={(value) => handleDetailChange(item.id, 'berat', value)}
+                                                        value={item.id_satuan}
+                                                        onChange={(value) => handleDetailChange(item.id, 'id_satuan', value)}
                                                         options={satuanOptions}
                                                         placeholder={satuanLoading ? "Loading..." : "Pilih Satuan"}
                                                         isLoading={satuanLoading}
@@ -2251,7 +2252,7 @@ const AddEditPembelianFeedmilPage = () => {
                                                                 📄 {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
                                                             </span>
                                                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                                🏷️ {selectedFile.type.split('/')[1]?.toUpperCase() || 'FILE'}
+                                                                🏷�E�E{selectedFile.type.split('/')[1]?.toUpperCase() || 'FILE'}
                                                             </span>
                                                         </>
                                                     ) : (
@@ -2261,7 +2262,7 @@ const AddEditPembelianFeedmilPage = () => {
                                                     )}
                                                 </div>
                                                 <p className="text-sm text-green-600 mt-2">
-                                                    {selectedFile ? '✅ File berhasil dipilih dan siap diupload' : '📁 File existing akan dipertahankan'}
+                                                    {selectedFile ? '✁EFile berhasil dipilih dan siap diupload' : '📁 File existing akan dipertahankan'}
                                                 </p>
                                             </div>
                                         </div>
@@ -2306,7 +2307,7 @@ const AddEditPembelianFeedmilPage = () => {
                                         }}
                                         className="px-6 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-200 shadow-md hover:shadow-lg"
                                     >
-                                        ✅ Konfirmasi File
+                                        ✁EKonfirmasi File
                                     </button>
                                 )}
                             </div>
