@@ -340,18 +340,27 @@ const AddEditPembelianFeedmilPage = () => {
                     const decodedId = decodeURIComponent(id);
                     
                     // Get both header and detail data from /show endpoint only
-                    
+                    // Supports: { data: { ...header, detail: [] } } and legacy { data: [...] }
                     const showResponse = await HttpClient.post(`${API_ENDPOINTS.HO.FEEDMIL.PEMBELIAN}/show`, {
                         pid: id
                     });
                     
-                    if (!showResponse.data || showResponse.data.length === 0) {
+                    const payload = showResponse?.data;
+                    let headerData = null;
+                    let showResponseData = [];
+
+                    if (payload && !Array.isArray(payload) && typeof payload === 'object') {
+                        const { detail, ...headerFields } = payload;
+                        headerData = headerFields;
+                        showResponseData = Array.isArray(detail) ? detail : [];
+                    } else if (Array.isArray(payload) && payload.length > 0) {
+                        headerData = payload[0];
+                        showResponseData = payload;
+                    }
+
+                    if (!headerData) {
                         throw new Error('Data tidak ditemukan untuk pubid yang dipilih');
                     }
-                    
-                    const headerData = showResponse.data[0];
-                    const showResponseData = showResponse.data;
-                    
                     
                     // Mark this as coming from show endpoint
                     headerData.source = 'show';
@@ -441,12 +450,37 @@ const AddEditPembelianFeedmilPage = () => {
                             }
                         }
 
+                        // Resolve farm: prefer id_farm, else match farm name string from API
+                        let farmId = headerData.id_farm ? parseInt(headerData.id_farm) : null;
+                        if (!farmId && headerData.farm && typeof headerData.farm === 'string' && isNaN(Number(headerData.farm))) {
+                            const foundFarm = farmOptions.find(f =>
+                                String(f.label).toLowerCase() === String(headerData.farm).toLowerCase() ||
+                                String(f.label).toLowerCase().includes(String(headerData.farm).toLowerCase())
+                            );
+                            if (foundFarm) farmId = parseInt(foundFarm.value);
+                        } else if (!farmId && headerData.farm && !isNaN(Number(headerData.farm))) {
+                            farmId = parseInt(headerData.farm);
+                        }
+
+                        // Resolve syarat pembelian: prefer id, else match name (e.g. "KAS")
+                        let syaratPembelianId = headerData.id_syarat_pembelian
+                            ? String(headerData.id_syarat_pembelian)
+                            : '';
+                        if (!syaratPembelianId && headerData.syarat_pembelian) {
+                            const syaratLabel = String(headerData.syarat_pembelian).toLowerCase();
+                            const foundSyarat = (bankOptions || []).find(b =>
+                                String(b.label || b.nama || '').toLowerCase() === syaratLabel ||
+                                String(b.label || b.nama || '').toLowerCase().includes(syaratLabel)
+                            );
+                            if (foundSyarat) syaratPembelianId = String(foundSyarat.value);
+                        }
+
                         // Set header data using safe helper functions (like OVK pattern)
                         setHeaderData({
                             nota: safeGetString(headerData.nota),
                             nota_ho: safeGetString(headerData.nota_ho),
-                            farm: headerData.id_farm ? parseInt(headerData.id_farm) : (headerData.farm ? parseInt(headerData.farm) : null),
-                            syarat_pembelian: headerData.id_syarat_pembelian ? String(headerData.id_syarat_pembelian) : '',
+                            farm: farmId,
+                            syarat_pembelian: syaratPembelianId,
                             idOffice: officeId || (headerData.id_office ? parseInt(headerData.id_office) : null),
                             tipePembelian: tipePembelianId || (headerData.tipe_pembelian ? parseInt(headerData.tipe_pembelian) : null),
                             idSupplier: supplierId || (headerData.id_supplier ? parseInt(headerData.id_supplier) : null),

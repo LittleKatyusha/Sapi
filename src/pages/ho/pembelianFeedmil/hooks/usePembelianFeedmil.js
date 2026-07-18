@@ -518,6 +518,9 @@ const usePembelianFeedmil = () => {
     }, [fetchPembelian, serverPagination.currentPage, serverPagination.perPage, searchTerm, filterJenisPembelian]);
 
     // Get pembelian detail
+    // Supports both API shapes:
+    // 1) { status, header, data: [...] }
+    // 2) { status, data: { ...headerFields, detail: [...] } }
     const getPembelianDetail = useCallback(async (encryptedPid, jenisPembelianOptions = []) => {
         setLoading(true);
         setError(null);
@@ -529,36 +532,93 @@ const usePembelianFeedmil = () => {
                 skipCsrf: true // Skip CSRF token for JWT-based API
             });
             
-            
-            // Backend uses sendResponse() which returns { status: 'ok', data: [...], message: '...' }
             if (jsonData && jsonData.status === 'ok') {
-                // Map tipe_pembelian to jenis_pembelian in header data
-                let headerData = jsonData.header;
-                if (headerData && headerData.tipe_pembelian) {
+                let headerData = null;
+                let detailData = [];
+                const payload = jsonData.data;
+
+                if (payload && !Array.isArray(payload) && typeof payload === 'object') {
+                    // New shape: single object with nested detail[]
+                    const { detail, ...headerFields } = payload;
+                    detailData = Array.isArray(detail) ? detail : [];
+                    headerData = {
+                        ...headerFields,
+                        encryptedPid: headerFields.pubid || headerFields.pid || encryptedPid,
+                        pid: headerFields.pubid || headerFields.pid || encryptedPid,
+                        biaya_total: headerFields.biaya_total ?? headerFields.total_belanja ?? 0,
+                    };
+                } else if (Array.isArray(payload)) {
+                    // Legacy shape: data is detail array, optional top-level header
+                    detailData = payload;
+                    headerData = jsonData.header || null;
+                } else if (jsonData.header) {
+                    headerData = jsonData.header;
+                    detailData = Array.isArray(jsonData.data) ? jsonData.data : [];
+                }
+
+                if (headerData && (headerData.tipe_pembelian !== undefined && headerData.tipe_pembelian !== null) && !headerData.jenis_pembelian) {
                     headerData = {
                         ...headerData,
                         jenis_pembelian: mapTipePembelianToJenis(headerData.tipe_pembelian, jenisPembelianOptions)
                     };
                 }
 
+                // Fallback header from first detail row when needed
+                if (!headerData && detailData.length > 0) {
+                    const firstItem = detailData[0];
+                    headerData = {
+                        encryptedPid: firstItem.pid || firstItem.pubid || encryptedPid,
+                        pid: firstItem.pid || firstItem.pubid || encryptedPid,
+                        nota: firstItem.nota || '',
+                        nota_ho: firstItem.nota_ho || '',
+                        nota_sistem: firstItem.nota_sistem || '',
+                        nama_supplier: firstItem.nama_supplier || '',
+                        nama_office: firstItem.nama_office || 'Head Office (HO)',
+                        tgl_masuk: firstItem.tgl_masuk || '',
+                        nama_supir: firstItem.nama_supir || '',
+                        plat_nomor: firstItem.plat_nomor || '',
+                        biaya_lain: parseFloat(firstItem.biaya_lain) || 0,
+                        biaya_truk: parseFloat(firstItem.biaya_truk) || 0,
+                        biaya_total: parseFloat(firstItem.biaya_total ?? firstItem.total_belanja) || 0,
+                        harga_beli: parseFloat(firstItem.harga_beli) || 0,
+                        harga_jual: parseFloat(firstItem.harga_jual) || 0,
+                        jumlah: parseInt(firstItem.jumlah) || 0,
+                        farm: firstItem.farm || '',
+                        syarat_pembelian: firstItem.syarat_pembelian || '',
+                        id_farm: firstItem.id_farm,
+                        id_syarat_pembelian: firstItem.id_syarat_pembelian,
+                        jenis_pembelian: firstItem.jenis_pembelian || mapTipePembelianToJenis(firstItem.tipe_pembelian, jenisPembelianOptions),
+                        file: firstItem.file || null,
+                        note: firstItem.note || '',
+                    };
+                }
+
+                if (!headerData) {
+                    return {
+                        success: false,
+                        data: [],
+                        header: null,
+                        message: jsonData.message || 'Detail tidak ditemukan'
+                    };
+                }
+
                 return {
                     success: true,
-                    data: jsonData.data || [],
-                    header: headerData || null, // Include header data from /show endpoint with mapped jenis_pembelian
+                    data: detailData,
+                    header: headerData,
                     message: jsonData.message || 'Detail pembelian berhasil diambil'
                 };
             } else {
-                // Backend returned error response with { status: 'no', message: '...' }
                 const errorMessage = jsonData?.message || 'Detail tidak ditemukan';
                 console.warn('Backend returned error:', errorMessage);
-                return { success: false, data: [], message: errorMessage };
+                return { success: false, data: [], header: null, message: errorMessage };
             }
             
         } catch (err) {
             console.error('Get pembelian detail error:', err);
             const errorMsg = err.message || 'Terjadi kesalahan saat mengambil detail pembelian';
             setError(errorMsg);
-            return { success: false, data: [], message: errorMsg };
+            return { success: false, data: [], header: null, message: errorMsg };
         } finally {
             setLoading(false);
         }

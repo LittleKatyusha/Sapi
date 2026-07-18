@@ -110,76 +110,46 @@ const PembelianFeedmilDetailPage = () => {
             if (id) {
                 try {
                     const result = await getPembelianDetail(id);
-                    if (result.success && result.data && result.data.length > 0) {
-                        // Detail items dari view dt_pembelian_ho_feedmil_detail
-                        const detailItems = result.data;
+                    if (result.success && result.header) {
+                        const headerData = result.header;
+                        const detailItems = Array.isArray(result.data) ? result.data : [];
 
-                        // Get header data directly from /show endpoint
-                        let headerData = result.header;
-                        
-                        if (headerData) {
-                            // Use header data from /show endpoint
-                            setPembelianData({
-                                encryptedPid: headerData.encryptedPid || headerData.pid || id,
-                                nota: headerData.nota || '',
-                                nota_ho: headerData.nota_ho || '',
-                                farm: headerData.farm || '', // Will be updated by useEffect when farmData is available
-                                syarat_pembelian: headerData.syarat_pembelian || '', // Will be updated by useEffect when banks is available
-                                id_farm: headerData.id_farm,
-                                id_syarat_pembelian: headerData.id_syarat_pembelian,
-                                nama_supplier: headerData.nama_supplier || '',
-                                nama_office: headerData.nama_office || 'Head Office (HO)',
-                                tgl_masuk: headerData.tgl_masuk || '',
-                                nama_supir: headerData.nama_supir || '',
-                                plat_nomor: headerData.plat_nomor || '',
-                                biaya_lain: parseFloat(headerData.biaya_lain) || 0,
-                                biaya_truk: parseFloat(headerData.biaya_truk) || 0,
-                                biaya_total: parseFloat(headerData.biaya_total) || 0,
-                                harga_beli: parseFloat(headerData.harga_beli) || 0,
-                                harga_jual: parseFloat(headerData.harga_jual) || 0,
-                                jumlah: parseInt(headerData.jumlah) || 0,
-                                satuan: headerData.satuan || 'item',
-                                jenis_pembelian: headerData.jenis_pembelian || 'INTERNAL',
-                                file: headerData.file || null
-                            });
-                        } else {
-                            // Fallback: gunakan informasi dari detail pertama jika header tidak tersedia
-                            const firstItem = detailItems[0];
-                            setPembelianData({
-                                encryptedPid: firstItem.pid || id,
-                                nota: firstItem.nota || '',
-                                nota_ho: firstItem.nota_ho || '',
-                                farm: firstItem.farm || '', // Will be updated by useEffect when farmData is available
-                                syarat_pembelian: firstItem.syarat_pembelian || '', // Will be updated by useEffect when banks is available
-                                id_farm: firstItem.id_farm,
-                                id_syarat_pembelian: firstItem.id_syarat_pembelian,
-                                nama_supplier: firstItem.nama_supplier || '',
-                                nama_office: 'Head Office (HO)', // Default since not in detail view
-                                tgl_masuk: firstItem.tgl_masuk || '',
-                                nama_supir: firstItem.nama_supir || '',
-                                plat_nomor: firstItem.plat_nomor || '',
-                                biaya_lain: parseFloat(firstItem.biaya_lain) || 0,
-                                biaya_truk: parseFloat(firstItem.biaya_truk) || 0,
-                                biaya_total: parseFloat(firstItem.biaya_total) || 0,
-                                harga_beli: parseFloat(firstItem.harga_beli) || 0,
-                                harga_jual: parseFloat(firstItem.harga_jual) || 0,
-                                jumlah: parseInt(firstItem.jumlah) || 0,
-                                satuan: 'item',
-                                jenis_pembelian: firstItem.jenis_pembelian || 'INTERNAL',
-                                file: firstItem.file || null
-                            });
-                        }
+                        setPembelianData({
+                            encryptedPid: headerData.encryptedPid || headerData.pubid || headerData.pid || id,
+                            nota: headerData.nota || '',
+                            nota_ho: headerData.nota_ho || '',
+                            nota_sistem: headerData.nota_sistem || '',
+                            farm: headerData.farm || '',
+                            syarat_pembelian: headerData.syarat_pembelian || '',
+                            id_farm: headerData.id_farm,
+                            id_syarat_pembelian: headerData.id_syarat_pembelian,
+                            nama_supplier: headerData.nama_supplier || '',
+                            nama_office: headerData.nama_office || 'Head Office (HO)',
+                            tgl_masuk: headerData.tgl_masuk || '',
+                            nama_supir: headerData.nama_supir || '',
+                            plat_nomor: headerData.plat_nomor || '',
+                            biaya_lain: parseFloat(headerData.biaya_lain) || 0,
+                            biaya_truk: parseFloat(headerData.biaya_truk) || 0,
+                            biaya_total: parseFloat(headerData.biaya_total ?? headerData.total_belanja) || 0,
+                            harga_beli: parseFloat(headerData.harga_beli) || 0,
+                            harga_jual: parseFloat(headerData.harga_jual) || 0,
+                            jumlah: parseInt(headerData.jumlah) || 0,
+                            berat_total: parseFloat(headerData.berat_total) || 0,
+                            satuan: headerData.satuan || 'item',
+                            jenis_pembelian: headerData.jenis_pembelian || 'INTERNAL',
+                            note: headerData.note || '',
+                            file: headerData.file || null
+                        });
 
-                        // Transform detail items untuk struktur frontend
                         const transformedDetailItems = detailItems.map((item, index) => ({
                             id: index + 1,
-                            pubid: item.pid || '',
-                            item_name: item.item_name || '',
+                            pubid: item.pid || item.pubid || '',
+                            item_name: item.item_name || item.nama_item || '',
                             id_klasifikasi_feedmil: item.id_klasifikasi_feedmil || '',
-                            nama_klasifikasi_feedmil: item.nama_klasifikasi_feedmil || '',
+                            nama_klasifikasi_feedmil: item.nama_klasifikasi_feedmil || item.klasifikasi_feedmil || '',
                             harga: parseFloat(item.harga) || 0,
                             persentase: parseFloat(item.persentase) || 0,
-                            berat: parseInt(item.berat) || 0,
+                            berat: parseFloat(item.berat) || 0,
                             hpp: parseFloat(item.hpp) || 0,
                             total_harga: parseFloat(item.total_harga) || 0,
                             status: item.status || 1,
@@ -189,22 +159,11 @@ const PembelianFeedmilDetailPage = () => {
                         setDetailData(transformedDetailItems);
                     } else {
                         console.warn('No detail data found for pembelian feedmil:', id);
-                        setPembelianData({
-                            encryptedPid: id,
-                            nota: '',
-                            nama_supplier: '',
-                            nama_office: 'Head Office (HO)',
-                            tgl_masuk: '',
-                            nama_supir: '',
-                            plat_nomor: '',
-                            biaya_lain: 0,
-                            biaya_total: 0,
-                            harga_beli: 0,
-                            harga_jual: 0,
-                            jumlah: 0,
-                            satuan: 'item',
-                            jenis_pembelian: 'INTERNAL' // Default to first option
+                        setNotification({
+                            type: 'error',
+                            message: result.message || 'Detail pembelian feedmil tidak ditemukan'
                         });
+                        setPembelianData(null);
                         setDetailData([]);
                     }
                 } catch (err) {
@@ -517,6 +476,16 @@ const PembelianFeedmilDetailPage = () => {
                             </p>
                         </div>
 
+                        <div className="bg-gradient-to-r from-sky-50 to-cyan-50 p-4 rounded-lg">
+                            <label className="block text-sm font-medium text-gray-600 mb-2">
+                                <Hash className="w-4 h-4 inline mr-1" />
+                                Nota Sistem
+                            </label>
+                            <p className="text-lg font-bold text-gray-900">
+                                {pembelianData.nota_sistem || '-'}
+                            </p>
+                        </div>
+
                         <div className="bg-gradient-to-r from-cyan-50 to-blue-50 p-4 rounded-lg">
                             <label className="block text-sm font-medium text-gray-600 mb-2">
                                 <Hash className="w-4 h-4 inline mr-1" />
@@ -654,6 +623,36 @@ const PembelianFeedmilDetailPage = () => {
                                     minimumFractionDigits: 0,
                                     maximumFractionDigits: 2
                                 }).format(pembelianData.biaya_lain) : 'Rp 0'}
+                            </p>
+                        </div>
+
+                        <div className="bg-gradient-to-r from-amber-50 to-yellow-50 p-4 rounded-lg">
+                            <label className="block text-sm font-medium text-gray-600 mb-2">
+                                <Truck className="w-4 h-4 inline mr-1" />
+                                Biaya Truk
+                            </label>
+                            <p className="text-lg font-bold text-gray-900">
+                                {pembelianData.biaya_truk ? new Intl.NumberFormat('id-ID', {
+                                    style: 'currency',
+                                    currency: 'IDR',
+                                    minimumFractionDigits: 0,
+                                    maximumFractionDigits: 2
+                                }).format(pembelianData.biaya_truk) : 'Rp 0'}
+                            </p>
+                        </div>
+
+                        <div className="bg-gradient-to-r from-rose-50 to-red-50 p-4 rounded-lg">
+                            <label className="block text-sm font-medium text-gray-600 mb-2">
+                                <DollarSign className="w-4 h-4 inline mr-1" />
+                                Total Belanja
+                            </label>
+                            <p className="text-lg font-bold text-gray-900">
+                                {pembelianData.biaya_total ? new Intl.NumberFormat('id-ID', {
+                                    style: 'currency',
+                                    currency: 'IDR',
+                                    minimumFractionDigits: 0,
+                                    maximumFractionDigits: 2
+                                }).format(pembelianData.biaya_total) : 'Rp 0'}
                             </p>
                         </div>
                     </div>
