@@ -55,10 +55,19 @@ const PembelianDetailPage = () => {
         const fetchDetail = async () => {
             if (id) {
                 try {
-                    console.log('🚀 Fetching detail for ID:', id);
+                    // Route params may still be encoded (encrypted pid has =, +, /)
+                    const decodedId = (() => {
+                        try {
+                            return decodeURIComponent(id);
+                        } catch {
+                            return id;
+                        }
+                    })();
+
+                    console.log('🚀 Fetching detail for ID:', decodedId);
                     
                     // Get both header and detail data from /show endpoint
-                    const detailResult = await getPembelianDetail(id);
+                    const detailResult = await getPembelianDetail(decodedId);
                     console.log('📋 Detail result:', detailResult);
                     
                     if (detailResult.success && Array.isArray(detailResult.data) && detailResult.data.length > 0) {
@@ -75,8 +84,8 @@ const PembelianDetailPage = () => {
                         
                         // Set header data from the first detail record
                         setPembelianData({
-                            pubid: headerData.pubid || id,
-                            encryptedPid: headerData.pid || id,
+                            pubid: headerData.pubid || decodedId,
+                            encryptedPid: headerData.pid || decodedId,
                             nota: headerData.nota || '',
                             nama_supplier: headerData.nama_supplier || '',
                             nama_office: headerData.nama_office || getOfficeName(headerData.id_office),
@@ -93,7 +102,11 @@ const PembelianDetailPage = () => {
                             file: headerData.file || null
                         });
                         
-                        setDetailData(detailResult.data);
+                        // Drop synthetic header-only placeholder rows (no real ternak detail)
+                        const realDetails = detailResult.data.filter(
+                            (row) => !row._header_only && (row.pubid_detail || row.eartag || row.code_eartag || row.berat || row.harga)
+                        );
+                        setDetailData(realDetails);
                     }
                 } catch (err) {
                     console.error('❌ Error fetching detail:', err);

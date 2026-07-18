@@ -326,22 +326,24 @@ const usePembelianHO = () => {
                 throw new Error('Syarat pembelian harus dipilih');
             }
 
-            // Handle file upload
+            // Handle file upload — nested details must be JSON string in multipart
+            // so Laravel can decode them (plain append of array becomes "[object Object]")
+            const detailsPayload = Array.isArray(pembelianData.details) ? pembelianData.details : [];
             let requestData;
             if (headerData.file && headerData.file instanceof File) {
                 requestData = new FormData();
                 Object.keys(headerData).forEach(key => {
                     if (key === 'file') {
                         requestData.append('file', headerData.file);
-                    } else {
+                    } else if (headerData[key] !== null && headerData[key] !== undefined) {
                         requestData.append(key, headerData[key]);
                     }
                 });
-                requestData.append('details', JSON.stringify(pembelianData.details || []));
+                requestData.append('details', JSON.stringify(detailsPayload));
             } else {
                 requestData = {
                     ...headerData,
-                    details: pembelianData.details || []
+                    details: detailsPayload
                 };
                 if (!requestData.file) {
                     delete requestData.file;
@@ -457,13 +459,17 @@ const usePembelianHO = () => {
                 };
             }
             
-            // Handle file upload
+            // Handle file upload — stringify arrays/objects for multipart (Laravel expects JSON string or nested fields)
             let result;
             if (isHeader && requestData.file && requestData.file instanceof File) {
                 const formData = new FormData();
                 Object.keys(requestData).forEach(key => {
                     if (key === 'file') {
                         formData.append('file', requestData.file);
+                    } else if (requestData[key] === null || requestData[key] === undefined) {
+                        // skip nulls
+                    } else if (typeof requestData[key] === 'object') {
+                        formData.append(key, JSON.stringify(requestData[key]));
                     } else {
                         formData.append(key, requestData[key]);
                     }
@@ -580,8 +586,15 @@ const usePembelianHO = () => {
         setError(null);
         
         try {
+            let pid = encryptedPid;
+            try {
+                pid = decodeURIComponent(encryptedPid);
+            } catch {
+                pid = encryptedPid;
+            }
+
             const result = await HttpClient.post(`${API_ENDPOINTS.HO.PEMBELIAN}/show`, {
-                pid: encryptedPid
+                pid
             });
             
             return {
