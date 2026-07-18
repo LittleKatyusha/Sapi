@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Eye, Loader2, MoreVertical, Pencil, Plus, Search, Trash2, X } from 'lucide-react';
 import PenjualanKarkasService from '../../../../services/penjualanKarkasService';
 import SearchableSelect from '../../../../components/shared/SearchableSelect';
+import DetailKarkasModal from './modals/DetailKarkasModal';
 
 const money = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(n) || 0);
 const formatNumberInput = (value) => {
@@ -424,6 +425,7 @@ export default function PenjualanKarkasPage() {
     addItem={() => setForm(f => ({ ...f, items: [...f.items, blankItem()] }))}
     removeItem={(index) => setForm(f => ({ ...f, items: f.items.filter((_, n) => n !== index) }))}
   />
-)}  {detail && <div className="fixed inset-0 z-50 overflow-y-auto bg-black/40 p-4"><div className="mx-auto max-w-4xl rounded-xl bg-white p-5"><div className="flex justify-between"><h2 className="font-bold">Detail {detail.penjualan?.no_kwitansi}</h2><button onClick={() => setDetail(null)}><X/></button></div><div className="mt-4 grid gap-3 md:grid-cols-4 text-sm"><div><small className="text-gray-500">Pedagang</small><p>{detail.penjualan?.nama_pedagang}</p></div><div><small className="text-gray-500">Tanggal</small><p>{String(detail.penjualan?.tanggal_penjualan || '').slice(0, 10)}</p></div><div><small className="text-gray-500">Total Berat</small><p>{detail.penjualan?.total_berat} kg</p></div><div><small className="text-gray-500">Total</small><p className="font-bold">{money(detail.penjualan?.total_bayar || detail.penjualan?.total_harga)}</p></div></div><div className="mt-4 overflow-x-auto"><table className="min-w-full text-sm"><thead><tr className="border-b text-left"><th className="py-2">Sapi</th><th>Berat</th><th>Harga/kg</th><th>Nominal</th><th>Kulit</th></tr></thead><tbody>{(detail.details || []).map(x => <tr className="border-b" key={x.id}><td className="py-2">{x.code_eartag || x.eartag || x.id_pembelian_ho_detail}</td><td>{Number(x.berat_paha_depan_kg) + Number(x.berat_paha_belakang_kg)} kg</td><td>{money(x.harga_karkas_aktual)}</td><td>{money((Number(x.berat_paha_depan_kg) + Number(x.berat_paha_belakang_kg)) * Number(x.harga_karkas_aktual))}</td><td>{x.perlakuan_kulit}</td></tr>)}</tbody></table></div></div></div>}
+)}
+    <DetailKarkasModal isOpen={Boolean(detail)} data={detail} onClose={() => setDetail(null)} />
   </div>;
 }
