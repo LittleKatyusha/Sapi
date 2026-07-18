@@ -7,7 +7,34 @@ const DEFAULT_PER_PAGE = 10;
 const SEARCH_DEBOUNCE_DELAY = 300;
 
 // Data validation and mapping utilities
+const resolvePaymentStatus = (item) => {
+    const totalTagihan = parseFloat(item.total_tagihan) || 0;
+    const totalTerbayar = parseFloat(item.total_terbayar) || 0;
+    const rawStatus = item.payment_status;
+
+    // Prefer amounts when available so partial payment is never shown as "Belum Bayar"
+    if (totalTagihan > 0) {
+        if (totalTerbayar <= 0) return 2; // Belum Bayar
+        if (totalTerbayar >= totalTagihan) return 1; // Lunas
+        return 0; // Belum Lunas
+    }
+
+    if (rawStatus === null || rawStatus === undefined || rawStatus === '') return 2;
+    const status = Number(rawStatus);
+    return Number.isNaN(status) ? 2 : status;
+};
+
+const getPaymentStatusLabel = (status) => {
+    switch (Number(status)) {
+        case 0: return 'Belum Lunas';
+        case 1: return 'Lunas';
+        case 2: return 'Belum Bayar';
+        default: return 'Belum Bayar';
+    }
+};
+
 const validateAndMapPembelianItem = (item, index) => {
+    const paymentStatus = resolvePaymentStatus(item);
     return {
         pubid: item.pubid || `TEMP-${index + 1}`,
         encryptedPid: item.pid,
@@ -27,8 +54,15 @@ const validateAndMapPembelianItem = (item, index) => {
         berat_total: parseFloat(item.berat_total) || 0,
         jenis_pembelian: item.jenis_pembelian || '',
         jenis_pembelian_id: item.jenis_pembelian_id || null,
+        jenis_pembayaran: item.jenis_pembayaran || '',
         file: item.file || null,
         note: item.note || null,
+        farm: item.farm || '',
+        payment_status: paymentStatus,
+        payment_status_label: getPaymentStatusLabel(paymentStatus),
+        total_tagihan: parseFloat(item.total_tagihan) || 0,
+        total_terbayar: parseFloat(item.total_terbayar) || 0,
+        due_date: item.due_date || null,
         createdAt: item.created_at || new Date().toISOString(),
         updatedAt: item.updated_at || new Date().toISOString(),
         id: item.pid || `TEMP-${index + 1}`

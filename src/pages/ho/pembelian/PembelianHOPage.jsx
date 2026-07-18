@@ -696,6 +696,64 @@ const PembelianHOPage = () => {
                     tipePembelianOptions={tipePembelianOptions}
                 />
 
+                {(() => {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const overdueItems = (filteredData || []).filter((row) => {
+                        if (!row.due_date || Number(row.payment_status) === 1) return false;
+                        const due = new Date(row.due_date);
+                        if (Number.isNaN(due.getTime())) return false;
+                        due.setHours(0, 0, 0, 0);
+                        return due < today;
+                    });
+                    const dueSoonItems = (filteredData || []).filter((row) => {
+                        if (!row.due_date || Number(row.payment_status) === 1) return false;
+                        const due = new Date(row.due_date);
+                        if (Number.isNaN(due.getTime())) return false;
+                        due.setHours(0, 0, 0, 0);
+                        const diff = Math.round((due - today) / (1000 * 60 * 60 * 24));
+                        return diff >= 0 && diff <= 7;
+                    });
+                    if (overdueItems.length === 0 && dueSoonItems.length === 0) return null;
+                    return (
+                        <div className="space-y-2">
+                            {overdueItems.length > 0 && (
+                                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 flex items-start gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                        <Calendar className="w-4 h-4 text-red-600" />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <div className="text-sm font-semibold text-red-800">
+                                            {overdueItems.length} pembelian melewati jatuh tempo
+                                        </div>
+                                        <div className="text-xs text-red-700 mt-0.5">
+                                            {overdueItems.slice(0, 3).map((r) => r.nota_sistem || r.nota).join(', ')}
+                                            {overdueItems.length > 3 ? ` +${overdueItems.length - 3} lainnya` : ''}
+                                            {' — segera lakukan pembayaran.'}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                            {dueSoonItems.length > 0 && (
+                                <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 flex items-start gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                        <CalendarDays className="w-4 h-4 text-amber-700" />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <div className="text-sm font-semibold text-amber-900">
+                                            {dueSoonItems.length} pembelian jatuh tempo dalam 7 hari
+                                        </div>
+                                        <div className="text-xs text-amber-800 mt-0.5">
+                                            {dueSoonItems.slice(0, 3).map((r) => `${r.nota_sistem || r.nota} (${r.due_date})`).join(', ')}
+                                            {dueSoonItems.length > 3 ? ` +${dueSoonItems.length - 3} lainnya` : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    );
+                })()}
+
                 {/* Modern Table + Mobile Cards */}
                 <div className="space-y-4">
                     {error && (
