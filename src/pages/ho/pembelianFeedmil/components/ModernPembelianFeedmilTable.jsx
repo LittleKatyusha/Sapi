@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef, useEffect, useLayoutEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
   MoreHorizontal,
@@ -122,6 +123,229 @@ const InfoItem = ({ icon: Icon, label, value, valueClass = 'text-gray-900' }) =>
     </div>
   </div>
 );
+
+const RowActionMenu = ({
+  row,
+  rowId,
+  buttonRef,
+  onClose,
+  onDetail,
+  onEdit,
+  onDelete,
+  onBayar,
+  handleViewFile,
+  handleDownload,
+  fileLoading,
+  downloadLoading,
+  compact = false
+}) => {
+  const menuRef = useRef(null);
+  const [menuStyle, setMenuStyle] = useState(null);
+  const menuWidth = compact ? 240 : 240;
+
+  useLayoutEffect(() => {
+    const updatePosition = () => {
+      if (!buttonRef?.current) return;
+      const btnRect = buttonRef.current.getBoundingClientRect();
+      if (btnRect.width === 0 && btnRect.height === 0) {
+        setMenuStyle(null);
+        return;
+      }
+
+      const estimatedHeight = 320;
+      const padding = 8;
+      const spaceBelow = window.innerHeight - btnRect.bottom;
+      const openUpward = spaceBelow < estimatedHeight && btnRect.top > spaceBelow;
+
+      let left = btnRect.right - menuWidth;
+      if (left < padding) left = padding;
+      if (left + menuWidth + padding > window.innerWidth) {
+        left = window.innerWidth - menuWidth - padding;
+      }
+
+      const top = openUpward ? btnRect.top - padding : btnRect.bottom + padding;
+
+      setMenuStyle({
+        position: 'fixed',
+        left,
+        top,
+        width: menuWidth,
+        zIndex: 99999,
+        transform: openUpward ? 'translateY(-100%)' : 'none'
+      });
+    };
+
+    updatePosition();
+    window.addEventListener('scroll', updatePosition, true);
+    window.addEventListener('resize', updatePosition);
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true);
+      window.removeEventListener('resize', updatePosition);
+    };
+  }, [buttonRef, menuWidth]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(event.target) &&
+        buttonRef?.current &&
+        !buttonRef.current.contains(event.target)
+      ) {
+        onClose();
+      }
+    };
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') onClose();
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [onClose, buttonRef]);
+
+  if (!menuStyle) return null;
+
+  const itemClass = compact
+    ? 'w-full px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-2'
+    : 'w-full px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-2';
+
+  const menuElement = (
+    <div
+      ref={menuRef}
+      style={menuStyle}
+      className="bg-white rounded-lg shadow-lg border border-gray-100 py-1"
+      role="menu"
+    >
+      <button
+        type="button"
+        onClick={() => { onDetail(row); onClose(); }}
+        className={`${itemClass} text-gray-700`}
+        role="menuitem"
+      >
+        <Eye className="w-4 h-4" /> Lihat Detail
+      </button>
+      {row.file && (
+        <button
+          type="button"
+          onClick={() => handleViewFile(row)}
+          disabled={fileLoading === rowId}
+          className={`${itemClass} text-gray-700 disabled:opacity-50`}
+          role="menuitem"
+        >
+          {fileLoading === rowId ? <Loader2 className="w-4 h-4 animate-spin" /> : <File className="w-4 h-4" />}
+          {fileLoading === rowId ? 'Membuka...' : 'Lihat File'}
+        </button>
+      )}
+      <button
+        type="button"
+        onClick={() => handleDownload(row)}
+        disabled={downloadLoading === rowId}
+        className={`${itemClass} text-gray-700 disabled:opacity-50`}
+        role="menuitem"
+      >
+        {downloadLoading === rowId ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+        {downloadLoading === rowId ? 'Mengunduh...' : 'Download Nota'}
+      </button>
+      <button
+        type="button"
+        onClick={() => { downloadTandaTerimaPDF(row, 'TANDA TERIMA BARANG - FEEDMIL'); onClose(); }}
+        className={`${itemClass} text-blue-600 hover:bg-blue-50`}
+        role="menuitem"
+      >
+        <ClipboardCheck className="w-4 h-4" /> {compact ? 'Tanda Terima' : 'Tanda Terima Barang'}
+      </button>
+      <button
+        type="button"
+        onClick={() => { onEdit(row); onClose(); }}
+        className={`${itemClass} text-gray-700`}
+        role="menuitem"
+      >
+        <Pencil className="w-4 h-4" /> Edit Data
+      </button>
+      {onBayar && row.payment_status !== 1 && (
+        <button
+          type="button"
+          onClick={() => { onBayar(row); onClose(); }}
+          className={`${itemClass} text-emerald-600 hover:bg-emerald-50`}
+          role="menuitem"
+        >
+          <Banknote className="w-4 h-4" /> Bayar
+        </button>
+      )}
+      <button
+        type="button"
+        onClick={() => { onDelete(row); onClose(); }}
+        className={`${itemClass} text-red-600 hover:bg-red-50`}
+        role="menuitem"
+      >
+        <Trash2 className="w-4 h-4" /> Hapus
+      </button>
+    </div>
+  );
+
+  return createPortal(menuElement, document.body);
+};
+
+const ActionTrigger = ({
+  row,
+  rowId,
+  menuKey,
+  openMenuId,
+  setOpenMenuId,
+  onDetail,
+  onEdit,
+  onDelete,
+  onBayar,
+  handleViewFile,
+  handleDownload,
+  fileLoading,
+  downloadLoading,
+  compact = false
+}) => {
+  const buttonRef = useRef(null);
+  const isOpen = openMenuId === menuKey;
+
+  return (
+    <div className="relative inline-block text-left">
+      <button
+        ref={buttonRef}
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpenMenuId(isOpen ? null : menuKey);
+        }}
+        className={compact
+          ? 'p-1.5 rounded-lg text-gray-500 hover:bg-gray-100'
+          : 'p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors'}
+        title="Lihat aksi"
+        aria-expanded={isOpen}
+        aria-haspopup="menu"
+      >
+        <MoreHorizontal className="w-4 h-4" />
+      </button>
+      {isOpen && (
+        <RowActionMenu
+          row={row}
+          rowId={rowId}
+          buttonRef={buttonRef}
+          onClose={() => setOpenMenuId(null)}
+          onDetail={onDetail}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          onBayar={onBayar}
+          handleViewFile={handleViewFile}
+          handleDownload={handleDownload}
+          fileLoading={fileLoading}
+          downloadLoading={downloadLoading}
+          compact={compact}
+        />
+      )}
+    </div>
+  );
+};
 
 const ModernPembelianFeedmilTable = ({
   data,
@@ -381,69 +605,21 @@ const ModernPembelianFeedmilTable = ({
                         <PaymentStatusBadge status={row.payment_status} label={row.payment_status_label} />
                       </td>
                       <td className="px-4 py-3.5 text-right">
-                        <div className="relative inline-block text-left">
-                          <button
-                            onClick={() => setOpenMenuId(openMenuId === rowId ? null : rowId)}
-                            className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors"
-                            title="Lihat aksi"
-                          >
-                            <MoreHorizontal className="w-4 h-4" />
-                          </button>
-                          {openMenuId === rowId && (
-                            <div className="absolute right-0 mt-1 w-60 bg-white rounded-lg shadow-lg border border-gray-100 z-50 py-1">
-                              <button
-                                onClick={() => { onDetail(row); setOpenMenuId(null); }}
-                                className="w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                              >
-                                <Eye className="w-4 h-4" /> Lihat Detail
-                              </button>
-                              {row.file && (
-                                <button
-                                  onClick={() => handleViewFile(row)}
-                                  disabled={fileLoading === rowId}
-                                  className="w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 disabled:opacity-50"
-                                >
-                                  {fileLoading === rowId ? <Loader2 className="w-4 h-4 animate-spin" /> : <File className="w-4 h-4" />}
-                                  {fileLoading === rowId ? 'Membuka...' : 'Lihat File'}
-                                </button>
-                              )}
-                              <button
-                                onClick={() => handleDownload(row)}
-                                disabled={downloadLoading === rowId}
-                                className="w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 disabled:opacity-50"
-                              >
-                                {downloadLoading === rowId ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                                {downloadLoading === rowId ? 'Mengunduh...' : 'Download Nota'}
-                              </button>
-                              <button
-                                onClick={() => { downloadTandaTerimaPDF(row, 'TANDA TERIMA BARANG - FEEDMIL'); setOpenMenuId(null); }}
-                                className="w-full px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 flex items-center gap-2"
-                              >
-                                <ClipboardCheck className="w-4 h-4" /> Tanda Terima Barang
-                              </button>
-                              <button
-                                onClick={() => { onEdit(row); setOpenMenuId(null); }}
-                                className="w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                              >
-                                <Pencil className="w-4 h-4" /> Edit Data
-                              </button>
-                              {onBayar && row.payment_status !== 1 && (
-                                <button
-                                  onClick={() => { onBayar(row); setOpenMenuId(null); }}
-                                  className="w-full px-4 py-2 text-sm text-emerald-600 hover:bg-emerald-50 flex items-center gap-2"
-                                >
-                                  <Banknote className="w-4 h-4" /> Bayar
-                                </button>
-                              )}
-                              <button
-                                onClick={() => { onDelete(row); setOpenMenuId(null); }}
-                                className="w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
-                              >
-                                <Trash2 className="w-4 h-4" /> Hapus
-                              </button>
-                            </div>
-                          )}
-                        </div>
+                        <ActionTrigger
+                          row={row}
+                          rowId={rowId}
+                          menuKey={`desktop-${rowId}`}
+                          openMenuId={openMenuId}
+                          setOpenMenuId={setOpenMenuId}
+                          onDetail={onDetail}
+                          onEdit={onEdit}
+                          onDelete={onDelete}
+                          onBayar={onBayar}
+                          handleViewFile={handleViewFile}
+                          handleDownload={handleDownload}
+                          fileLoading={fileLoading}
+                          downloadLoading={downloadLoading}
+                        />
                       </td>
                     </tr>
                     {isExpanded && (
@@ -490,45 +666,22 @@ const ModernPembelianFeedmilTable = ({
                     <span className="text-[10px] text-gray-400">nota manual</span>
                   </div>
                 </div>
-                <div className="relative">
-                  <button
-                    onClick={() => setOpenMenuId(openMenuId === rowId ? null : rowId)}
-                    className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100"
-                  >
-                    <MoreHorizontal className="w-4 h-4" />
-                  </button>
-                  {openMenuId === rowId && (
-                    <div className="absolute right-0 mt-1 w-60 bg-white rounded-lg shadow-lg border border-gray-100 z-50 py-1">
-                      <button onClick={() => { onDetail(row); setOpenMenuId(null); }} className="w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
-                        <Eye className="w-4 h-4" /> Lihat Detail
-                      </button>
-                      {row.file && (
-                        <button onClick={() => handleViewFile(row)} disabled={fileLoading === rowId} className="w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 disabled:opacity-50">
-                          {fileLoading === rowId ? <Loader2 className="w-4 h-4 animate-spin" /> : <File className="w-4 h-4" />}
-                          {fileLoading === rowId ? 'Membuka...' : 'Lihat File'}
-                        </button>
-                      )}
-                      <button onClick={() => handleDownload(row)} disabled={downloadLoading === rowId} className="w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 disabled:opacity-50">
-                        {downloadLoading === rowId ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                        {downloadLoading === rowId ? 'Mengunduh...' : 'Download Nota'}
-                      </button>
-                      <button onClick={() => { downloadTandaTerimaPDF(row, 'TANDA TERIMA BARANG - FEEDMIL'); setOpenMenuId(null); }} className="w-full px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 flex items-center gap-2">
-                        <ClipboardCheck className="w-4 h-4" /> Tanda Terima
-                      </button>
-                      <button onClick={() => { onEdit(row); setOpenMenuId(null); }} className="w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
-                        <Pencil className="w-4 h-4" /> Edit Data
-                      </button>
-                      {onBayar && row.payment_status !== 1 && (
-                        <button onClick={() => { onBayar(row); setOpenMenuId(null); }} className="w-full px-4 py-2 text-sm text-emerald-600 hover:bg-emerald-50 flex items-center gap-2">
-                          <Banknote className="w-4 h-4" /> Bayar
-                        </button>
-                      )}
-                      <button onClick={() => { onDelete(row); setOpenMenuId(null); }} className="w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
-                        <Trash2 className="w-4 h-4" /> Hapus
-                      </button>
-                    </div>
-                  )}
-                </div>
+                <ActionTrigger
+                  row={row}
+                  rowId={rowId}
+                  menuKey={`mobile-${rowId}`}
+                  openMenuId={openMenuId}
+                  setOpenMenuId={setOpenMenuId}
+                  onDetail={onDetail}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                  onBayar={onBayar}
+                  handleViewFile={handleViewFile}
+                  handleDownload={handleDownload}
+                  fileLoading={fileLoading}
+                  downloadLoading={downloadLoading}
+                  compact
+                />
               </div>
 
               <div className="flex items-center gap-3">
