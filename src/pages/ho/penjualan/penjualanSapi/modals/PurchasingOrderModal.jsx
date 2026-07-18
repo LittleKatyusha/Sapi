@@ -505,7 +505,7 @@ const PurchasingOrderModal = ({
                                             return (
                                                 <tr key={index} className="hover:bg-gray-50">
                                                     <td className="border border-gray-300 px-4 py-3 text-sm">{index + 1}</td>
-                                                    <td className="border border-gray-300 px-4 py-3 text-sm">{item.nama_klasifikasi || item.jenis_sapi || 'Sapi'}</td>
+                                                    <td className="border border-gray-300 px-4 py-3 text-sm">{item.nama_klasifikasi_hewan || item.nama_klasifikasi || item.jenis_sapi || item.klasifikasi || 'Sapi'}</td>
                                                     <td className="border border-gray-300 px-4 py-3 text-sm font-mono">{item.code_eartag || item.eartag || '-'}</td>
                                                     <td className="border border-gray-300 px-4 py-3 text-sm text-center">{berat}</td>
                                                     <td className="border border-gray-300 px-4 py-3 text-sm text-center">Ekor</td>
