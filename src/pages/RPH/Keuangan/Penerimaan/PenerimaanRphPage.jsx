@@ -9,6 +9,7 @@ import DataTable from 'react-data-table-component';
 import usePenjualanSapiUtuh from '../../../../hooks/usePenjualanSapiUtuh';
 import PenjualanSapiUtuhService from '../../../../services/penjualanSapiUtuhService';
 import PenjualanBoningService from '../../../../services/penjualanBoningService';
+import PenjualanKarkasService from '../../../../services/penjualanKarkasService';
 import SearchableSelect from '../../../../components/shared/SearchableSelect';
 
 // Action menu cell with portal to escape table overflow clipping
@@ -83,6 +84,7 @@ const ActionMenuCell = ({ row, onDetail, onBayar }) => {
 const JENIS_PENJUALAN_OPTIONS = [
   { value: 'sapi_qurban_utuh', label: 'Sapi Qurban / Utuh' },
   { value: 'boning', label: 'Penjualan Boning' },
+  { value: 'karkas', label: 'Penjualan Karkas' },
 ];
 
 const TABS = [
@@ -155,9 +157,34 @@ const normalizeBoningRow = (row) => {
   };
 };
 
+const normalizeKarkasRow = (row) => {
+  const totalHarga = Number(row.total_harga || 0);
+  const biayaKirim = Number(row.biaya_pengiriman || 0);
+  const totalTagihan = Number(row.total_tagihan || row.total_bayar || (totalHarga + biayaKirim));
+  const totalTerbayar = Number(row.total_terbayar || 0);
+  return {
+    ...row,
+    no_transaksi: row.no_kwitansi,
+    tanggal_transaksi: row.tanggal_penjualan,
+    nama_pembeli: row.nama_pedagang,
+    no_hp_pembeli: row.id_pedagang || '-',
+    pic: '-',
+    total_harga: totalHarga,
+    biaya_kirim: biayaKirim,
+    biaya_potong: 0,
+    nominal_pembayaran: totalTerbayar,
+    sisa_pembayaran: Math.max(totalTagihan - totalTerbayar, 0),
+    status_pembayaran: row.payment_status,
+    status_pembayaran_label: row.payment_status_label,
+    status_transaksi: row.status_transaksi === 'BATAL' ? 'cancelled' : 'confirmed',
+    status_transaksi_label: row.status_transaksi || 'FINAL',
+    purchase_type_label: row.purchase_type_label || 'Penjualan Karkas',
+  };
+};
+
 const normalizeHistoryRow = (row, jenisValue) => ({
   ...row,
-  purchase_type_label: row.purchase_type_label || (jenisValue === 'boning' ? 'Penjualan Boning' : 'Sapi Qurban / Utuh'),
+  purchase_type_label: row.purchase_type_label || (jenisValue === 'boning' ? 'Penjualan Boning' : (jenisValue === 'karkas' ? 'Penjualan Karkas' : 'Sapi Qurban / Utuh')),
 });
 
 const SummaryCard = ({ label, value, icon: Icon, color }) => {
@@ -202,13 +229,16 @@ const PenerimaanRphPage = () => {
     if (isHistory) {
       setHistoryLoading(true);
       setHistoryError(null);
-      const result = jenisValue === 'boning'
-        ? await PenjualanBoningService.getPenerimaanHistory({
+      const historyParams = {
           length: 1000,
           search: appliedFilters.search || undefined,
           tanggal_awal: appliedFilters.tanggal_awal || undefined,
           tanggal_akhir: appliedFilters.tanggal_akhir || undefined,
-        })
+      };
+      const result = jenisValue === 'boning'
+        ? await PenjualanBoningService.getPenerimaanHistory(historyParams)
+        : jenisValue === 'karkas'
+        ? await PenjualanKarkasService.getPenerimaanHistory(historyParams)
         : await PenjualanSapiUtuhService.getPenerimaanHistory({
           length: 1000,
           search: appliedFilters.search || undefined,
@@ -242,6 +272,11 @@ const PenerimaanRphPage = () => {
         endDate: commonParams.end_date,
         payment_status: statusBayar,
       })
+      : jenisValue === 'karkas'
+      ? await PenjualanKarkasService.getData({
+        ...commonParams,
+        payment_status: statusBayar,
+      }).then((res) => ({ success: true, data: res.data || [], recordsTotal: res.recordsTotal || 0, recordsFiltered: res.recordsFiltered || 0 }))
       : await fetchData({
         ...commonParams,
         status_pembayaran: statusBayar,
@@ -250,7 +285,7 @@ const PenerimaanRphPage = () => {
 
     if (result.success && result.data) {
       setTableData((result.data || []).map((row) => (
-        jenisValue === 'boning' ? normalizeBoningRow(row) : normalizeSapiRow(row)
+        jenisValue === 'boning' ? normalizeBoningRow(row) : (jenisValue === 'karkas' ? normalizeKarkasRow(row) : normalizeSapiRow(row))
       )));
     } else {
       setTableError(result.message || 'Gagal memuat data penerimaan');
@@ -338,7 +373,7 @@ const PenerimaanRphPage = () => {
       sortable: true,
       cell: (row) => (
         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-          row.purchase_type === 12 ? 'bg-emerald-50 text-emerald-700' : (row.purchase_type === 8 ? 'bg-amber-50 text-amber-700' : 'bg-blue-50 text-blue-700')
+          row.purchase_type === 13 ? 'bg-rose-50 text-rose-700' : (row.purchase_type === 12 ? 'bg-emerald-50 text-emerald-700' : (row.purchase_type === 8 ? 'bg-amber-50 text-amber-700' : 'bg-blue-50 text-blue-700'))
         }`}>
           {row.purchase_type_label}
         </span>
@@ -390,7 +425,7 @@ const PenerimaanRphPage = () => {
       cell: (_, idx) => <span className="text-xs text-gray-400 font-medium">{idx + 1}</span>,
     },
     {
-      name: jenisValue === 'boning' ? 'No. Kwitansi' : 'No. Transaksi',
+      name: jenisValue === 'boning' || jenisValue === 'karkas' ? 'No. Kwitansi' : 'No. Transaksi',
       selector: (row) => row.no_transaksi,
       sortable: true,
       minWidth: '130px',
@@ -409,16 +444,19 @@ const PenerimaanRphPage = () => {
       center: true,
       cell: (row) => {
         const isBoning = jenisValue === 'boning' || row.purchase_type_label === 'Penjualan Boning';
+        const isKarkas = jenisValue === 'karkas' || row.purchase_type_label === 'Penjualan Karkas';
         const isQurban = row.no_transaksi?.toUpperCase().startsWith('PSQ');
         return (
           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
-            isBoning
+            isKarkas
+              ? 'bg-rose-50 text-rose-700 border border-rose-100'
+              : isBoning
               ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
               : isQurban
               ? 'bg-amber-50 text-amber-700 border border-amber-100'
               : 'bg-emerald-50 text-emerald-700 border border-emerald-100'
           }`}>
-            {isBoning ? 'Boning' : (isQurban ? 'Qurban' : 'Utuh')}
+            {isKarkas ? 'Karkas' : (isBoning ? 'Boning' : (isQurban ? 'Qurban' : 'Utuh'))}
           </span>
         );
       },
@@ -503,11 +541,15 @@ const PenerimaanRphPage = () => {
           onDetail={(r) => navigate(
             jenisValue === 'boning'
               ? `/rph/keuangan/penerimaan/bayar/${r.pid}?jenis=boning&mode=detail`
+              : jenisValue === 'karkas'
+              ? `/rph/keuangan/penerimaan/bayar/${r.pid}?jenis=karkas&mode=detail`
               : `/rph/penjualan-sapi-utuh/detail/${r.pid}`
           )}
           onBayar={(r) => navigate(
             jenisValue === 'boning'
               ? `/rph/keuangan/penerimaan/bayar/${r.pid}?jenis=boning`
+              : jenisValue === 'karkas'
+              ? `/rph/keuangan/penerimaan/bayar/${r.pid}?jenis=karkas`
               : `/rph/keuangan/penerimaan/bayar/${r.pid}`
           )}
         />

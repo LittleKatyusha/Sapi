@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import usePenjualanSapiUtuh from '../../../../../hooks/usePenjualanSapiUtuh';
 import PenjualanBoningService from '../../../../../services/penjualanBoningService';
+import PenjualanKarkasService from '../../../../../services/penjualanKarkasService';
 import { useNotification } from '../../../../../components/shared/Notification';
 import SearchableSelect from '../../../../../components/shared/SearchableSelect';
 import DataTable from 'react-data-table-component';
@@ -33,6 +34,14 @@ const resolveBoningMetode = (data) => {
 
   return 'transfer_bank';
 };
+const resolveRphMetode = (data) => {
+  if (String(data?.tipe_pembayaran) !== '2') return 'tunai';
+  const bankRef = `${data?.kode_bank || ''} ${data?.nama_bank || ''}`.toLowerCase();
+  if (bankRef.includes('bca')) return 'transfer_bca';
+  if (bankRef.includes('bni')) return 'transfer_bni';
+  if (bankRef.includes('bri')) return 'transfer_bri';
+  return 'transfer_bank';
+};
 
 const BayarPage = () => {
   const { pid } = useParams();
@@ -43,6 +52,7 @@ const BayarPage = () => {
   const jenis = searchParams.get('jenis');
   const mode = searchParams.get('mode');
   const isBoning = jenis === 'boning';
+  const isKarkas = jenis === 'karkas';
   const isDetailOnly = mode === 'detail';
 
   const [penjualan, setPenjualan] = useState(null);
@@ -60,13 +70,15 @@ const BayarPage = () => {
     setPageError(null);
     const result = isBoning
       ? await PenjualanBoningService.getPembayaranHistory(pid)
+      : isKarkas
+      ? await PenjualanKarkasService.getPembayaranHistory(pid)
       : await fetchPembayaranHistory(pid);
     if (result.success && result.data) {
       setPenjualan(result.data.penjualan);
       setHistory(result.data.history || []);
       setNamaPembayar(result.data.penjualan?.nama_pembeli || '');
-      if (isBoning) {
-        setMetode(resolveBoningMetode(result.data.penjualan));
+      if (isBoning || isKarkas) {
+        setMetode(isBoning ? resolveBoningMetode(result.data.penjualan) : resolveRphMetode(result.data.penjualan));
       }
     } else {
       setPageError(result.message || 'Gagal memuat detail pembayaran');
@@ -76,7 +88,7 @@ const BayarPage = () => {
   useEffect(() => {
     if (pid) loadHistory();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pid, isBoning]);
+  }, [pid, isBoning, isKarkas]);
 
   const grandTotal = (penjualan?.total_harga || 0) + (penjualan?.biaya_kirim || 0) + (penjualan?.biaya_potong || 0);
   const sisa = penjualan?.sisa_pembayaran || 0;
@@ -84,8 +96,11 @@ const BayarPage = () => {
     if (isBoning) {
       return isDetailOnly ? 'Detail Penerimaan Boning' : 'Pembayaran Penerimaan Boning';
     }
+    if (isKarkas) {
+      return isDetailOnly ? 'Detail Penerimaan Karkas' : 'Pembayaran Penerimaan Karkas';
+    }
     return 'Pembayaran / Pelunasan';
-  }, [isBoning, isDetailOnly]);
+  }, [isBoning, isKarkas, isDetailOnly]);
 
   const handleNominalChange = (e) => {
     const raw = e.target.value.replace(/[^0-9]/g, '');
@@ -121,8 +136,8 @@ const BayarPage = () => {
 
     if (!nominalValue || nominalValue <= 0) newErrors.nominal = 'Nominal wajib diisi';
     else if (nominalValue > sisa) newErrors.nominal = `Maksimal ${formatRupiah(sisa)}`;
-    if (!metode) newErrors.metode = isBoning
-      ? 'Metode pembayaran belum bisa ditentukan dari data penjualan boning.'
+    if (!metode) newErrors.metode = (isBoning || isKarkas)
+      ? `Metode pembayaran belum bisa ditentukan dari data penjualan ${isKarkas ? 'karkas' : 'boning'}.`
       : 'Pilih metode pembayaran';
 
     if (Object.keys(newErrors).length > 0) {
@@ -133,6 +148,13 @@ const BayarPage = () => {
     setSubmitLoading(true);
     const result = isBoning
       ? await PenjualanBoningService.bayar({
+        pid,
+        nominal_pembayaran: nominalValue,
+        metode_pembayaran: metode,
+        nama_pembayar: namaPembayar || undefined,
+      })
+      : isKarkas
+      ? await PenjualanKarkasService.bayar({
         pid,
         nominal_pembayaran: nominalValue,
         metode_pembayaran: metode,
@@ -254,7 +276,7 @@ const BayarPage = () => {
           </div>
         )}
 
-        {isBoning && penjualan && (
+        {(isBoning || isKarkas) && penjualan && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
               <p className="text-xs text-gray-500 font-medium uppercase">Tipe Pembayaran Penjualan</p>
@@ -314,12 +336,12 @@ const BayarPage = () => {
                       options={METODE_OPTIONS}
                       value={metode}
                       onChange={(val) => { setMetode(val || ''); if (formErrors.metode) setFormErrors((p) => ({ ...p, metode: '' })); }}
-                      placeholder={isBoning ? 'Metode diambil dari penjualan boning' : 'Pilih metode'}
+                      placeholder={(isBoning || isKarkas) ? `Metode diambil dari penjualan ${isKarkas ? 'karkas' : 'boning'}` : 'Pilih metode'}
                       isClearable={false}
-                      isDisabled={submitLoading || sisa <= 0 || isBoning}
+                      isDisabled={submitLoading || sisa <= 0 || isBoning || isKarkas}
                     />
                     {formErrors.metode && <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {formErrors.metode}</p>}
-                    {isBoning && !formErrors.metode && (
+                    {(isBoning || isKarkas) && !formErrors.metode && (
                       <p className="text-xs text-gray-500 mt-1">
                         Metode pembayaran mengikuti data penjualan awal.
                       </p>
@@ -338,7 +360,7 @@ const BayarPage = () => {
                     />
                   </div>
 
-                  {!isBoning && (
+                  {!isBoning && !isKarkas && (
                     <div className="mb-5">
                       <label className="flex items-center gap-2 text-xs font-medium text-gray-600 mb-1">
                         <Upload className="w-3.5 h-3.5" />
