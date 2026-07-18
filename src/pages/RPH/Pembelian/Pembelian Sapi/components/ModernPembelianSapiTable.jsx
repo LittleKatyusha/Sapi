@@ -75,6 +75,19 @@ const getStatusLabel = (status) => {
   }
 };
 
+const isWaitingStatus = (status) => {
+  const n = normalizeStatus(status);
+  if (n === 1) return true;
+  const str = String(status ?? '').toLowerCase();
+  return str.includes('menunggu');
+};
+
+const displayPendingOrValue = (value, status) => {
+  if (value !== null && value !== undefined && String(value).trim() !== '') return value;
+  if (isWaitingStatus(status)) return 'Sedang menunggu';
+  return '-';
+};
+
 const ModernPembelianSapiTable = ({
   data,
   loading,
@@ -233,14 +246,26 @@ const ModernPembelianSapiTable = ({
                       <div className="font-medium text-emerald-700">{formatCurrency(row.harga || row.biaya_total || 0)}</div>
                     </td>
                     <td className="px-3 py-2.5">
-                      <div className={`font-mono text-xs whitespace-nowrap ${row.no_surat_jalan ? 'text-gray-700' : 'text-gray-300'}`}>
-                        {row.no_surat_jalan || '-'}
-                      </div>
+                      {(() => {
+                        const sj = displayPendingOrValue(row.no_surat_jalan, statusValue);
+                        const pending = sj === 'Sedang menunggu';
+                        return (
+                          <div className={`text-xs whitespace-nowrap ${pending ? 'text-amber-600 italic' : row.no_surat_jalan ? 'font-mono text-gray-700' : 'text-gray-300'}`}>
+                            {sj}
+                          </div>
+                        );
+                      })()}
                     </td>
                     <td className="px-3 py-2.5">
-                      <div className={`font-mono text-xs whitespace-nowrap ${row.no_faktur ? 'text-gray-700' : 'text-gray-300'}`}>
-                        {row.no_faktur || '-'}
-                      </div>
+                      {(() => {
+                        const fk = displayPendingOrValue(row.no_faktur, statusValue);
+                        const pending = fk === 'Sedang menunggu';
+                        return (
+                          <div className={`text-xs whitespace-nowrap ${pending ? 'text-amber-600 italic' : row.no_faktur ? 'font-mono text-gray-700' : 'text-gray-300'}`}>
+                            {fk}
+                          </div>
+                        );
+                      })()}
                     </td>
                     <td className="px-3 py-2.5">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border ${getStatusStyle(statusValue)}`}>
@@ -252,6 +277,13 @@ const ModernPembelianSapiTable = ({
                         const ps = row.payment_status;
                         const label = row.payment_status_label;
                         if (ps === null || ps === undefined) {
+                          if (isWaitingStatus(statusValue)) {
+                            return (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border bg-amber-50 text-amber-700 border-amber-200">
+                                Sedang menunggu
+                              </span>
+                            );
+                          }
                           return <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border bg-gray-50 text-gray-400 border-gray-200">-</span>;
                         }
                         const styles = ps === 1
