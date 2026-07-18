@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   MoreHorizontal,
   Eye,
@@ -88,6 +89,150 @@ const displayPendingOrValue = (value, status) => {
   return '-';
 };
 
+const TableActionMenu = ({ row, buttonRef, onClose, onDetail, onEdit, onDelete, onBayar }) => {
+  const menuRef = useRef(null);
+  const [menuStyle, setMenuStyle] = useState({
+    position: 'fixed',
+    top: -9999,
+    left: -9999,
+    zIndex: 99999,
+    width: 160,
+    visibility: 'hidden'
+  });
+
+  useLayoutEffect(() => {
+    const updatePosition = () => {
+      if (!buttonRef?.current || !menuRef.current) return;
+      const btnRect = buttonRef.current.getBoundingClientRect();
+      const menuRect = menuRef.current.getBoundingClientRect();
+      const menuWidth = menuRect.width || 160;
+      const menuHeight = menuRect.height || 160;
+      const gap = 4;
+      const padding = 8;
+
+      let left = btnRect.right - menuWidth;
+      left = Math.max(padding, Math.min(left, window.innerWidth - menuWidth - padding));
+
+      const spaceBelow = window.innerHeight - btnRect.bottom;
+      const openUpward = spaceBelow < menuHeight + gap && btnRect.top > menuHeight + gap;
+      const top = openUpward
+        ? Math.max(padding, btnRect.top - menuHeight - gap)
+        : Math.min(btnRect.bottom + gap, window.innerHeight - menuHeight - padding);
+
+      setMenuStyle({
+        position: 'fixed',
+        left,
+        top,
+        zIndex: 99999,
+        width: menuWidth,
+        visibility: 'visible'
+      });
+    };
+
+    updatePosition();
+    window.addEventListener('scroll', updatePosition, true);
+    window.addEventListener('resize', updatePosition);
+
+    const handleClickOutside = (event) => {
+      if (
+        menuRef.current && !menuRef.current.contains(event.target) &&
+        buttonRef.current && !buttonRef.current.contains(event.target)
+      ) {
+        onClose();
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true);
+      window.removeEventListener('resize', updatePosition);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [buttonRef, onClose]);
+
+  const showBayar = onBayar && row.status === 'Disetujui' && (row.sisa_pembayaran || 0) > 0 && row.pembayaran_pid;
+
+  return createPortal(
+    <div
+      ref={menuRef}
+      style={menuStyle}
+      className="bg-white rounded-lg shadow-lg border border-gray-100 py-1"
+      role="menu"
+    >
+      <button
+        type="button"
+        onClick={() => { onDetail(row); onClose(); }}
+        className="w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+        role="menuitem"
+      >
+        <Eye className="w-4 h-4" /> Lihat Detail
+      </button>
+      <button
+        type="button"
+        onClick={() => { onEdit(row); onClose(); }}
+        className="w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+        role="menuitem"
+      >
+        <Pencil className="w-4 h-4" /> Edit
+      </button>
+      {showBayar && (
+        <button
+          type="button"
+          onClick={() => { onBayar(row); onClose(); }}
+          className="w-full px-3 py-2 text-sm text-emerald-600 hover:bg-emerald-50 flex items-center gap-2"
+          role="menuitem"
+        >
+          <Banknote className="w-4 h-4" /> Bayar
+        </button>
+      )}
+      <button
+        type="button"
+        onClick={() => { onDelete(row); onClose(); }}
+        className="w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+        role="menuitem"
+      >
+        <Trash2 className="w-4 h-4" /> Hapus
+      </button>
+    </div>,
+    document.body
+  );
+};
+
+const ActionCell = ({ row, openMenuId, setOpenMenuId, onDetail, onEdit, onDelete, onBayar }) => {
+  const buttonRef = useRef(null);
+  const rowId = row.id || row.pid || row.encryptedPid || row.pubid;
+  const isOpen = openMenuId === rowId;
+
+  return (
+    <div className="relative inline-block text-left">
+      <button
+        ref={buttonRef}
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpenMenuId(isOpen ? null : rowId);
+        }}
+        className="p-2 rounded-md hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-colors"
+        aria-label="Menu Aksi"
+        aria-expanded={isOpen}
+      >
+        <MoreHorizontal className="w-4 h-4" />
+      </button>
+      {isOpen && (
+        <TableActionMenu
+          row={row}
+          buttonRef={buttonRef}
+          onClose={() => setOpenMenuId(null)}
+          onDetail={onDetail}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          onBayar={onBayar}
+        />
+      )}
+    </div>
+  );
+};
+
 const ModernPembelianSapiTable = ({
   data,
   loading,
@@ -102,6 +247,10 @@ const ModernPembelianSapiTable = ({
 }) => {
   const [openMenuId, setOpenMenuId] = useState(null);
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+
+  useEffect(() => {
+    setOpenMenuId(null);
+  }, [data, serverPagination.currentPage, serverPagination.perPage]);
 
   const handleSort = (key) => {
     setSortConfig(prev => ({
@@ -299,44 +448,15 @@ const ModernPembelianSapiTable = ({
                       })()}
                     </td>
                     <td className="px-3 py-2.5 text-right">
-                      <div className="relative inline-block text-left">
-                        <button
-                          onClick={() => setOpenMenuId(openMenuId === rowId ? null : rowId)}
-                          className="p-2 rounded-md hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-colors"
-                        >
-                          <MoreHorizontal className="w-4 h-4" />
-                        </button>
-                        {openMenuId === rowId && (
-                          <div className="absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-lg border border-gray-100 z-50 py-1">
-                            <button
-                              onClick={() => { onDetail(row); setOpenMenuId(null); }}
-                              className="w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                            >
-                              <Eye className="w-4 h-4" /> Lihat Detail
-                            </button>
-                            <button
-                              onClick={() => { onEdit(row); setOpenMenuId(null); }}
-                              className="w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                            >
-                              <Pencil className="w-4 h-4" /> Edit
-                            </button>
-                            {onBayar && row.status === 'Disetujui' && (row.sisa_pembayaran || 0) > 0 && row.pembayaran_pid && (
-                              <button
-                                onClick={() => { onBayar(row); setOpenMenuId(null); }}
-                                className="w-full px-3 py-2 text-sm text-emerald-600 hover:bg-emerald-50 flex items-center gap-2"
-                              >
-                                <Banknote className="w-4 h-4" /> Bayar
-                              </button>
-                            )}
-                            <button
-                              onClick={() => { onDelete(row); setOpenMenuId(null); }}
-                              className="w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
-                            >
-                              <Trash2 className="w-4 h-4" /> Hapus
-                            </button>
-                          </div>
-                        )}
-                      </div>
+                      <ActionCell
+                        row={row}
+                        openMenuId={openMenuId}
+                        setOpenMenuId={setOpenMenuId}
+                        onDetail={onDetail}
+                        onEdit={onEdit}
+                        onDelete={onDelete}
+                        onBayar={onBayar}
+                      />
                     </td>
                   </tr>
                 );
