@@ -147,14 +147,25 @@ const useParameterSelect = (isEditMode = false, supplierFilters = {}, tipePembel
     }, [cacheKey, fetchParameterData]);
 
     // Create select options for each parameter type
+    // Backend already filters used eartags; keep used_status for client-side safety
     const eartagOptions = useMemo(() => {
         if (!parameterData.eartag || !Array.isArray(parameterData.eartag)) {
             return [];
         }
-        return parameterData.eartag.map(item => ({
-            value: item.pubid || item.id, // Use pubid first, fallback to id
-            label: item.name || item.kode || item.id
-        }));
+        return parameterData.eartag
+            .filter(item => {
+                const label = String(item.name || item.kode || '').toUpperCase();
+                // T/N selalu tersedia (bisa dipakai banyak ekor)
+                if (label === 'T/N' || label === 'TN') return true;
+                // used_status 1 = sudah terpasang di sapi lain
+                const used = item.used_status ?? item.usedStatus;
+                return used === undefined || used === null || Number(used) === 0;
+            })
+            .map(item => ({
+                value: item.pubid || item.id, // Use pubid first, fallback to id
+                label: item.name || item.kode || item.id,
+                used_status: item.used_status ?? item.usedStatus ?? 0,
+            }));
     }, [parameterData.eartag]);
 
     // Filter supplier options based on frontend filters and tipe pembelian

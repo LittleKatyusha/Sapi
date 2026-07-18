@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import DataTable from 'react-data-table-component';
 import { Trash2, Save } from 'lucide-react';
 import Select from 'react-select';
@@ -74,6 +74,11 @@ const golonganOptions = [
   { value: 3, label: 'Qurban' },
 ];
 
+const isReusableEartag = (option) => {
+  const label = String(option?.label || '').toUpperCase().trim();
+  return label === 'T/N' || label === 'TN' || label === 'AUTO';
+};
+
 const EditableDetailDataTable = ({
   data,
   eartagOptions,
@@ -85,7 +90,58 @@ const EditableDetailDataTable = ({
   formatNumber,
   parseNumber,
   isSupplierPerorangan = false,
+  allDetailItems = null,
 }) => {
+  // Eartag yang sudah dipilih di baris detail lain tidak boleh muncul lagi
+  // (kecuali T/N yang reusable). Pakai allDetailItems jika ada (semua halaman).
+  const detailSource = allDetailItems || data;
+
+  const usedEartagValues = useMemo(() => {
+    const used = new Set();
+    (detailSource || []).forEach((item) => {
+      if (item?.eartag === undefined || item?.eartag === null || item?.eartag === '') return;
+      const matched = (eartagOptions || []).find(
+        (opt) =>
+          opt.value === item.eartag ||
+          String(opt.value) === String(item.eartag)
+      );
+      if (matched && isReusableEartag(matched)) return;
+      used.add(String(item.eartag));
+    });
+    return used;
+  }, [detailSource, eartagOptions]);
+
+  const getEartagOptionsForRow = (row) => {
+    const currentValue =
+      row?.eartag !== undefined && row?.eartag !== null && row?.eartag !== ''
+        ? String(row.eartag)
+        : null;
+
+    const options = (eartagOptions || []).filter((opt) => {
+      if (isReusableEartag(opt)) return true;
+      const optValue = String(opt.value);
+      if (currentValue && optValue === currentValue) return true;
+      return !usedEartagValues.has(optValue);
+    });
+
+    // Edit mode: eartag baris ini mungkin sudah used_status=1 dan tidak
+    // ikut dari API — tetap tampilkan sebagai opsi terpilih
+    if (
+      currentValue &&
+      !options.some(
+        (opt) =>
+          String(opt.value) === currentValue || opt.value === row.eartag
+      )
+    ) {
+      options.unshift({
+        value: row.eartag,
+        label: String(row.eartagLabel || row.eartag),
+      });
+    }
+
+    return options;
+  };
+
   const columns = [
     {
       name: 'No',
@@ -97,37 +153,53 @@ const EditableDetailDataTable = ({
     },
     {
       name: 'Eartag *',
-      cell: (row) => (
-        <Select
-          value={eartagOptions.find((opt) => opt.value === row.eartag) || null}
-          onChange={(opt) =>
-            onDetailChange(row.id, 'eartag', opt ? opt.value : '')
-          }
-          options={eartagOptions}
-          isDisabled={parameterLoading}
-          isClearable
-          placeholder="Pilih Eartag"
-          classNamePrefix="react-select"
-          menuPortalTarget={
-            typeof window !== 'undefined' ? document.body : null
-          }
-          menuPosition="fixed"
-          maxMenuHeight={180}
-          styles={{
-            container: (base) => ({ ...base, width: '100%' }),
-            control: (base) => ({
-              ...base,
-              minHeight: 28,
-              fontSize: 12,
-              borderRadius: 6,
-              width: '100%',
-              padding: '4px',
-            }),
-            menu: (base) => ({ ...base, zIndex: 9999, width: '100%' }),
-            option: (base) => ({ ...base, fontSize: 12 }),
-          }}
-        />
-      ),
+      cell: (row) => {
+        const rowEartagOptions = getEartagOptionsForRow(row);
+        const selected =
+          rowEartagOptions.find(
+            (opt) =>
+              opt.value === row.eartag ||
+              String(opt.value) === String(row.eartag)
+          ) ||
+          (eartagOptions || []).find(
+            (opt) =>
+              opt.value === row.eartag ||
+              String(opt.value) === String(row.eartag)
+          ) ||
+          null;
+
+        return (
+          <Select
+            value={selected}
+            onChange={(opt) =>
+              onDetailChange(row.id, 'eartag', opt ? opt.value : '')
+            }
+            options={rowEartagOptions}
+            isDisabled={parameterLoading}
+            isClearable
+            placeholder="Pilih Eartag"
+            classNamePrefix="react-select"
+            menuPortalTarget={
+              typeof window !== 'undefined' ? document.body : null
+            }
+            menuPosition="fixed"
+            maxMenuHeight={180}
+            styles={{
+              container: (base) => ({ ...base, width: '100%' }),
+              control: (base) => ({
+                ...base,
+                minHeight: 28,
+                fontSize: 12,
+                borderRadius: 6,
+                width: '100%',
+                padding: '4px',
+              }),
+              menu: (base) => ({ ...base, zIndex: 9999, width: '100%' }),
+              option: (base) => ({ ...base, fontSize: 12 }),
+            }}
+          />
+        );
+      },
       center: true,
       grow: 1,
       minWidth: '160px',

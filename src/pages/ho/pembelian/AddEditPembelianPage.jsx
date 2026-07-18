@@ -2687,6 +2687,7 @@ const AddEditPembelianPage = () => {
                                 formatNumber={formatNumber}
                                 parseNumber={parseNumber}
                                 isSupplierPerorangan={isSupplierPerorangan}
+                                allDetailItems={detailItems}
                             />
                         </div>
                         
