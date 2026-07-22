@@ -177,7 +177,8 @@ const usePembelianFeedmil = () => {
                     nota_ho: item.nota_ho,
                     // Also include the ID fields for potential conversion
                     id_farm: item.id_farm,
-                    id_syarat_pembelian: item.id_syarat_pembelian
+                    id_syarat_pembelian: item.id_syarat_pembelian,
+                    due_date: item.due_date
                 }));
                 
                 // Update pagination state from server response
@@ -410,6 +411,40 @@ const usePembelianFeedmil = () => {
             if (data.file && data.file instanceof File) {
                 formData.append('file', data.file);
             }
+            
+            // Add detail items so backend can sync them during header update
+            if (data.detailItems && data.detailItems.length > 0) {
+                data.detailItems.forEach((item, index) => {
+                    // pid identifies existing items for update; absent pid means new item
+                    if (item.encryptedPid) {
+                        formData.append(`details[${index}][pid]`, item.encryptedPid);
+                    }
+                    if (item.item_name_id) {
+                        formData.append(`details[${index}][id_item]`, parseInt(item.item_name_id));
+                    }
+                    formData.append(`details[${index}][item_name]`, item.item_name || '');
+                    if (item.id_klasifikasi_feedmil) {
+                        formData.append(`details[${index}][id_klasifikasi_feedmil]`, parseInt(item.id_klasifikasi_feedmil));
+                    }
+                    if (item.id_satuan) {
+                        formData.append(`details[${index}][id_satuan]`, parseInt(item.id_satuan));
+                    }
+                    formData.append(`details[${index}][harga]`, parseFloat(item.harga) || 0);
+                    const persentaseValue = (() => {
+                        if (!item.persentase) return 0;
+                        const cleanValue = item.persentase.toString().replace(',', '.');
+                        const parsed = parseFloat(cleanValue);
+                        return isNaN(parsed) ? 0 : parsed;
+                    })();
+                    formData.append(`details[${index}][persentase]`, persentaseValue);
+                    const itemHarga = parseFloat(item.harga) || 0;
+                    const calculatedHpp = itemHarga * persentaseValue / 100;
+                    const calculatedTotalHarga = itemHarga + calculatedHpp;
+                    formData.append(`details[${index}][hpp]`, calculatedHpp);
+                    formData.append(`details[${index}][total_harga]`, calculatedTotalHarga);
+                });
+            }
+            // When no detail items are sent, backend preserves existing details
             
             const jsonData = await HttpClient.post(`${FEEDMIL_API_BASE}/update`, formData, {
                 // Don't set Content-Type for FormData - browser will set it automatically with boundary

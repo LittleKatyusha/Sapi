@@ -518,6 +518,7 @@ const ModernPembelianFeedmilTable = ({
                 <TableHeader label="Pembelian" caption="Nota Sistem / Manual" sortKey="nota_sistem" />
                 <TableHeader label="Supplier" caption="Nama & Plat Nomor" sortKey="nama_supplier" />
                 <TableHeader label="Tanggal Masuk" caption="Tgl kedatangan" sortKey="tgl_masuk" />
+                <TableHeader label="Jatuh Tempo" caption="Tgl jatuh tempo pembayaran" sortKey="due_date" />
                 <TableHeader label="Jumlah" caption="Jumlah item" sortKey="jumlah" align="right" />
                 <TableHeader label="Harga Beli" caption="Harga beli detail" sortKey="harga_beli" align="right" />
                 <TableHeader label="Total Biaya" caption="Beli + Lain + Truk" align="right" />
@@ -579,6 +580,19 @@ const ModernPembelianFeedmilTable = ({
                         </div>
                         <div className="text-xs text-gray-400 mt-0.5">Tgl masuk</div>
                       </td>
+                      <td className="px-4 py-3.5">
+                        {row.due_date ? (
+                          <>
+                            <div className="flex items-center gap-2 text-sm text-gray-700">
+                              <Calendar className="w-3.5 h-3.5 text-amber-500" />
+                              {formatDate(row.due_date)}
+                            </div>
+                            <div className="text-xs text-gray-400 mt-0.5">Jatuh tempo</div>
+                          </>
+                        ) : (
+                          <div className="text-sm text-gray-300">-</div>
+                        )}
+                      </td>
                       <td className="px-4 py-3.5 text-right">
                         <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-lg text-sm font-semibold">
                           {row.jumlah || 0}
@@ -624,7 +638,7 @@ const ModernPembelianFeedmilTable = ({
                     </tr>
                     {isExpanded && (
                       <tr className="bg-gray-50/60">
-                        <td colSpan={9} className="px-4 py-4">
+                        <td colSpan={11} className="px-4 py-4">
                           <div className="bg-white rounded-lg border border-gray-100 p-4 shadow-sm">
                             <div className="flex items-center gap-2 mb-3">
                               <Info className="w-4 h-4 text-gray-400" />
@@ -703,6 +717,12 @@ const ModernPembelianFeedmilTable = ({
                     <Calendar className="w-3 h-3" /> Tanggal
                   </div>
                   <div className="text-sm font-medium text-gray-900">{formatDateCompact(row.tgl_masuk)}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-gray-500 mb-0.5 flex items-center gap-1">
+                    <Calendar className="w-3 h-3 text-amber-500" /> Jatuh Tempo
+                  </div>
+                  <div className="text-sm font-medium text-gray-900">{row.due_date ? formatDateCompact(row.due_date) : '-'}</div>
                 </div>
                 <div>
                   <div className="text-xs text-gray-500 mb-0.5">Jumlah</div>

@@ -257,17 +257,17 @@ const AddEditPembelianFeedmilPage = () => {
     
     // Debug: Log supplier options to verify filtering
     useEffect(() => {
-        console.log('📊 AddEditPembelianFeedmilPage: Supplier options received:', supplierOptionsToShow.length, 'suppliers');
+        console.log('�投 AddEditPembelianFeedmilPage: Supplier options received:', supplierOptionsToShow.length, 'suppliers');
         if (supplierOptionsToShow.length > 0) {
-            console.log('📊 First supplier sample:', supplierOptionsToShow[0]);
+            console.log('�投 First supplier sample:', supplierOptionsToShow[0]);
         }
     }, [supplierOptionsToShow]);
 
     // Debug: Log item feedmil options
     useEffect(() => {
-        console.log('📊 AddEditPembelianFeedmilPage: Item Feedmil options received:', itemFeedmilOptions.length, 'items');
+        console.log('�投 AddEditPembelianFeedmilPage: Item Feedmil options received:', itemFeedmilOptions.length, 'items');
         if (itemFeedmilOptions.length > 0) {
-            console.log('📊 First item feedmil sample:', itemFeedmilOptions[0]);
+            console.log('�投 First item feedmil sample:', itemFeedmilOptions[0]);
         }
     }, [itemFeedmilOptions]);
 
@@ -331,7 +331,7 @@ const AddEditPembelianFeedmilPage = () => {
     useEffect(() => {
         // Wait for all required options to load first (like OVK pattern)
         // Also check if data has already been loaded to prevent multiple API calls
-        if (isEdit && id && supplierOptions.length > 0 && officeOptions.length > 0 && farmOptions.length > 0 && jenisPembelianOptions.length > 0 && tipePembayaranOptions.length > 0 && !editDataLoaded.current) {
+        if (isEdit && id && supplierOptions.length > 0 && officeOptions.length > 0 && farmOptions.length > 0 && jenisPembelianOptions.length > 0 && tipePembayaranOptions.length > 0 && bankOptions.length > 0 && !editDataLoaded.current) {
             const loadEditData = async () => {
                 try {
                     // Set flag to prevent multiple calls
@@ -575,7 +575,7 @@ const AddEditPembelianFeedmilPage = () => {
             
             loadEditData();
         }
-    }, [isEdit, id, supplierOptions.length, officeOptions.length, farmOptions.length, jenisPembelianOptions.length, tipePembayaranOptions.length]);
+    }, [isEdit, id, supplierOptions.length, officeOptions.length, farmOptions.length, jenisPembelianOptions.length, tipePembayaranOptions.length, bankOptions.length]);
 
     // Reset edit data loaded flag when id changes
     useEffect(() => {
@@ -820,7 +820,7 @@ const AddEditPembelianFeedmilPage = () => {
             };
 
             // Debug logging for item data
-            console.log('🔍 Debug item data before save:');
+            console.log('�剥 Debug item data before save:');
             console.log('item.item_name_id:', item.item_name_id);
             console.log('item.item_name:', item.item_name);
             console.log('detailData.item_name_id:', detailData.item_name_id);
@@ -1145,7 +1145,7 @@ const AddEditPembelianFeedmilPage = () => {
             const selectedSupplier = supplierOptions.find(s => s.value === headerData.idSupplier);
             
             // Debug file state
-            console.log('🔍 File Debug Info:');
+            console.log('�剥 File Debug Info:');
             console.log('selectedFile:', selectedFile);
             console.log('headerData.file:', headerData.file);
             console.log('selectedFile instanceof File:', selectedFile instanceof File);
@@ -1185,8 +1185,8 @@ const AddEditPembelianFeedmilPage = () => {
                 existingFileName: existingFileName
             };
 
-            console.log('🔍 Final submissionData.file:', submissionData.file);
-            console.log('🔍 Payment Data Debug:');
+            console.log('�剥 Final submissionData.file:', submissionData.file);
+            console.log('�剥 Payment Data Debug:');
             console.log('headerData.tipe_pembayaran:', headerData.tipe_pembayaran);
             console.log('submissionData.tipe_pembayaran:', submissionData.tipe_pembayaran);
             console.log('headerData.due_date:', headerData.due_date);
@@ -1358,7 +1358,7 @@ const AddEditPembelianFeedmilPage = () => {
                             />
                             {parameterError && (
                                 <p className="text-xs text-red-500 mt-1">
-                                    ⚠�E�EError loading offices: {parameterError}
+                                    笞�・・Error loading offices: {parameterError}
                                 </p>
                             )}
                         </div>
@@ -1379,12 +1379,12 @@ const AddEditPembelianFeedmilPage = () => {
                             />
                             {jenisPembelianLoading && (
                                 <p className="text-xs text-blue-600 mt-1">
-                                    🔄 Memuat tipe pembelian...
+                                    �売 Memuat tipe pembelian...
                                 </p>
                             )}
                             {jenisPembelianError && (
                                 <p className="text-xs text-red-600 mt-1">
-                                    ❁EError: {jenisPembelianError}
+                                    笶・Error: {jenisPembelianError}
                                 </p>
                             )}
 
@@ -1408,12 +1408,12 @@ const AddEditPembelianFeedmilPage = () => {
                             />
                             {parameterLoading && (
                                 <p className="text-xs text-blue-600 mt-1">
-                                    🔄 Memuat data supplier...
+                                    �売 Memuat data supplier...
                                 </p>
                             )}
                             {parameterError && (
                                 <p className="text-xs text-red-600 mt-1">
-                                    ❁EError: {parameterError}
+                                    笶・Error: {parameterError}
                                 </p>
                             )}
                         </div>
@@ -1479,7 +1479,7 @@ const AddEditPembelianFeedmilPage = () => {
                                 placeholder="1.000.000"
                             />
                             <p className="text-xs text-gray-500 mt-1">
-                                💡 Biaya transportasi truck untuk pengiriman (opsional)
+                                �庁 Biaya transportasi truck untuk pengiriman (opsional)
                             </p>
                         </div>
 
@@ -1497,7 +1497,7 @@ const AddEditPembelianFeedmilPage = () => {
                                 placeholder=""
                             />
                             <p className="text-xs text-gray-500 mt-1">
-                                💡 Biaya tambahan lainnya (opsional)
+                                �庁 Biaya tambahan lainnya (opsional)
                             </p>
                         </div>
 
@@ -1522,7 +1522,7 @@ const AddEditPembelianFeedmilPage = () => {
                             />
                             {parameterError && (
                                 <p className="text-xs text-red-500 mt-1">
-                                    ⚠�E�EError loading offices: {parameterError}
+                                    笞�・・Error loading offices: {parameterError}
                                 </p>
                             )}
                         </div>
@@ -1545,7 +1545,7 @@ const AddEditPembelianFeedmilPage = () => {
                             />
                             {tipePembayaranError && (
                                 <p className="text-xs text-red-500 mt-1">
-                                    ⚠�E�EError loading tipe pembayaran: {tipePembayaranError}
+                                    笞�・・Error loading tipe pembayaran: {tipePembayaranError}
                                 </p>
                             )}
                         </div>
@@ -1568,7 +1568,7 @@ const AddEditPembelianFeedmilPage = () => {
                             />
                             {bankError && (
                                 <p className="text-xs text-red-500 mt-1">
-                                    ⚠�E�EError loading banks: {bankError}
+                                    笞�・・Error loading banks: {bankError}
                                 </p>
                             )}
                         </div>
@@ -1612,7 +1612,7 @@ const AddEditPembelianFeedmilPage = () => {
                                 placeholder="Masukkan catatan pembelian feedmil..."
                             />
                             <p className="text-xs text-blue-600 mt-1">
-                                💡 Catatan terkait pembelian feedmil (wajib diisi)
+                                �庁 Catatan terkait pembelian feedmil (wajib diisi)
                             </p>
                         </div>
 
@@ -1664,15 +1664,15 @@ const AddEditPembelianFeedmilPage = () => {
                                                     {selectedFile ? (
                                                         <>
                                                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                                📄 {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                                                                �塘 {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
                                                             </span>
                                                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                                🏷�E�E{selectedFile.type.split('/')[1]?.toUpperCase() || 'FILE'}
+                                                                �捷・・{selectedFile.type.split('/')[1]?.toUpperCase() || 'FILE'}
                                                             </span>
                                                         </>
                                                     ) : (
                                                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                            📁 File Existing
+                                                            �刀 File Existing
                                                         </span>
                                                     )}
                                                 </div>
@@ -1709,7 +1709,7 @@ const AddEditPembelianFeedmilPage = () => {
                             />
                             {parameterError && (
                                 <p className="text-xs text-red-500 mt-1">
-                                    ⚠�E�EError loading items: {parameterError}
+                                    笞�・・Error loading items: {parameterError}
                                 </p>
                             )}
                         </div>
@@ -1729,7 +1729,7 @@ const AddEditPembelianFeedmilPage = () => {
                             />
                             {parameterError && (
                                 <p className="text-xs text-red-600 mt-1">
-                                    ❁EError: {parameterError}
+                                    笶・Error: {parameterError}
                                 </p>
                             )}
                         </div>
@@ -1749,7 +1749,7 @@ const AddEditPembelianFeedmilPage = () => {
                             />
                             {satuanError && (
                                 <p className="text-xs text-red-600 mt-1">
-                                    ❁EError: {satuanError}
+                                    笶・Error: {satuanError}
                                 </p>
                             )}
                         </div>
@@ -1812,8 +1812,8 @@ const AddEditPembelianFeedmilPage = () => {
 
                         {/* Info Text */}
                         <div className="text-xs text-gray-600 ml-auto">
-                            <p>💡 Isi data default untuk mempercepat input batch</p>
-                            <p>📝 Item baru akan menggunakan data default ini</p>
+                            <p>�庁 Isi data default untuk mempercepat input batch</p>
+                            <p>�統 Item baru akan menggunakan data default ini</p>
                         </div>
                     </div>
                 </div>
@@ -2167,7 +2167,7 @@ const AddEditPembelianFeedmilPage = () => {
                                                 <h3 className={`text-xl font-bold transition-all duration-500 ${
                                                     isDragOver ? 'text-white drop-shadow-lg' : 'text-gray-800'
                                                 }`}>
-                                                    {isDragOver ? '🎉 Drop file di sini!' : '📁 Upload File Dokumen'}
+                                                    {isDragOver ? '�脂 Drop file di sini!' : '�刀 Upload File Dokumen'}
                                                 </h3>
                                                 <p className={`text-sm transition-all duration-500 ${
                                                     isDragOver ? 'text-blue-100 drop-shadow-md' : 'text-gray-600'
@@ -2210,7 +2210,7 @@ const AddEditPembelianFeedmilPage = () => {
                                                         : 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg hover:shadow-xl hover:scale-105 hover:from-blue-600 hover:to-indigo-700 active:scale-95'
                                                 }`}
                                             >
-                                                {isDragOver ? '🎯 Upload Sekarang!' : '🚀 Pilih File'}
+                                                {isDragOver ? '�識 Upload Sekarang!' : '�噫 Pilih File'}
                                             </button>
                                         </div>
                                     </div>
@@ -2249,20 +2249,20 @@ const AddEditPembelianFeedmilPage = () => {
                                                     {selectedFile ? (
                                                         <>
                                                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                                📄 {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                                                                �塘 {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
                                                             </span>
                                                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                                🏷�E�E{selectedFile.type.split('/')[1]?.toUpperCase() || 'FILE'}
+                                                                �捷・・{selectedFile.type.split('/')[1]?.toUpperCase() || 'FILE'}
                                                             </span>
                                                         </>
                                                     ) : (
                                                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                            📁 File Existing
+                                                            �刀 File Existing
                                                         </span>
                                                     )}
                                                 </div>
                                                 <p className="text-sm text-green-600 mt-2">
-                                                    {selectedFile ? '✁EFile berhasil dipilih dan siap diupload' : '📁 File existing akan dipertahankan'}
+                                                    {selectedFile ? '笨・File berhasil dipilih dan siap diupload' : '�刀 File existing akan dipertahankan'}
                                                 </p>
                                             </div>
                                         </div>
@@ -2279,7 +2279,7 @@ const AddEditPembelianFeedmilPage = () => {
                                         </div>
                                         <div className="flex-1">
                                             <h5 className="text-sm font-semibold text-blue-800 mb-1">
-                                                💡 Tips Upload File
+                                                �庁 Tips Upload File
                                             </h5>
                                             <p className="text-sm text-blue-700 leading-relaxed">
                                                 Upload file dokumen terkait pembelian seperti invoice, kontrak, atau foto barang (opsional). 
@@ -2307,7 +2307,7 @@ const AddEditPembelianFeedmilPage = () => {
                                         }}
                                         className="px-6 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-200 shadow-md hover:shadow-lg"
                                     >
-                                        ✁EKonfirmasi File
+                                        笨・Konfirmasi File
                                     </button>
                                 )}
                             </div>
