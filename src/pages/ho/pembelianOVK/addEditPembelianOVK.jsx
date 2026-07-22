@@ -23,6 +23,7 @@ const AddEditPembelianOVKPage = () => {
     
     // Flag to prevent multiple API calls in edit mode
     const editDataLoaded = useRef(false);
+    const pembelianIdRef = useRef(null);
     
     const {
         getPembelianDetail,
@@ -265,6 +266,19 @@ const AddEditPembelianOVKPage = () => {
         return parseFloat(cleanValue) || 0;
     };
 
+    const getDetailCalculatedValues = (item) => {
+        const harga = parseFloat(item.harga) || 0;
+        const persentase = getParsedPersentase(item.persentase);
+        const hpp = harga * (persentase / 100);
+
+        return {
+            harga,
+            persentase,
+            hpp,
+            totalHarga: harga + hpp
+        };
+    };
+
     // Convert backend decimal persentase to display format with comma - like Feedmil
     const formatPersentaseFromBackend = (value) => {
         // If value is already a decimal string (like "12,5"), return as is
@@ -328,6 +342,7 @@ const AddEditPembelianOVKPage = () => {
                     // So we only need the first record for header information
                     const headerData = showResponse.data[0];
                     const showResponseData = showResponse.data;
+                    pembelianIdRef.current = headerData.id_pembelian || null;
                     
                     console.log('笨・Header and detail data found from /show endpoint:', {
                         nota: headerData.nota,
@@ -412,6 +427,14 @@ const AddEditPembelianOVKPage = () => {
                                 tipePembelianId = foundTipePembelian.value;
                             }
                         }
+
+                        const parsedTipePembayaran = Number(headerData.tipe_pembayaran);
+                        const tipePembayaranId = headerData.tipe_pembayaran !== null &&
+                            headerData.tipe_pembayaran !== undefined &&
+                            headerData.tipe_pembayaran !== '' &&
+                            Number.isInteger(parsedTipePembayaran)
+                            ? parsedTipePembayaran
+                            : '';
                         
 
                         // Determine data source and log accordingly
@@ -486,7 +509,7 @@ const AddEditPembelianOVKPage = () => {
                             nota_ho: safeGetString(headerData.nota_ho),
                             file: safeGetString(headerData.file), // Keep as string for display purposes
                             fileName: headerData.file ? headerData.file.split('/').pop() : '',
-                            tipe_pembayaran: safeGetString(headerData.tipe_pembayaran),
+                            tipe_pembayaran: tipePembayaranId,
                             due_date: safeGetString(headerData.due_date),
                             note: safeGetString(headerData.note) || safeGetString(headerData.catatan)
                         });
@@ -525,6 +548,8 @@ const AddEditPembelianOVKPage = () => {
                                 total_harga: parseFloat(item.total_harga) || 0,
                             };
                         });
+
+                        pembelianIdRef.current = pembelianIdRef.current || processedDetailItems[0]?.idPembelian || null;
                         
                         setDetailItems(processedDetailItems);
                     }
@@ -1109,6 +1134,43 @@ const AddEditPembelianOVKPage = () => {
         return true;
     };
 
+    const saveAllDetailItems = async () => {
+        const idPembelian = pembelianIdRef.current || detailItems.find(item => item.idPembelian)?.idPembelian;
+
+        if (!idPembelian) {
+            throw new Error('ID pembelian tidak ditemukan untuk menyimpan detail');
+        }
+
+        for (const item of detailItems) {
+            const detailPid = item.encryptedPid || item.pid || item.pubid || item.pubidDetail || null;
+            const { harga, persentase, hpp, totalHarga } = getDetailCalculatedValues(item);
+            const response = await HttpClient.post(`${API_ENDPOINTS.HO.OVK.PEMBELIAN}/update`, {
+                pid: detailPid,
+                id_pembelian: item.idPembelian || item.id_pembelian || idPembelian,
+                id_office: parseInt(headerData.idOffice) || 1,
+                item_name: item.item_name || null,
+                id_item: item.item_name_id ? parseInt(item.item_name_id) : null,
+                id_klasifikasi_ovk: item.id_klasifikasi_ovk ? parseInt(item.id_klasifikasi_ovk) : null,
+                id_satuan: item.id_satuan ? parseInt(item.id_satuan) : null,
+                harga,
+                persentase,
+                hpp,
+                total_harga: totalHarga
+            });
+
+            const isSuccess = response?.status === 'ok' ||
+                response?.status === 'success' ||
+                response?.success === true ||
+                response?.data?.status === 'ok' ||
+                response?.data?.status === 'success' ||
+                response?.data?.success === true;
+
+            if (!isSuccess) {
+                throw new Error(response?.message || response?.data?.message || `Gagal menyimpan detail ${item.item_name}`);
+            }
+        }
+    };
+
     // Handle form submission
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -1155,17 +1217,21 @@ const AddEditPembelianOVKPage = () => {
                 existingFileName: existingFileName,
 
                 // Detail items mapping
-                details: detailItems.map(item => ({
-                    id_office: parseInt(headerData.idOffice) || 1, // Use selected office ID
-                    item_name: item.item_name || null,
-                    id_item: item.item_name_id ? parseInt(item.item_name_id) : null, // Send item ID to backend
-                    id_klasifikasi_ovk: item.id_klasifikasi_ovk ? parseInt(item.id_klasifikasi_ovk) || null : null, // Use selected ID directly from dropdown
-                    id_satuan: item.id_satuan ? parseInt(item.id_satuan) : null,
-                    harga: parseFloat(item.harga) || null,
-                    persentase: getParsedPersentase(item.persentase) || null, // Use comma-aware parsing
-                    hpp: parseFloat(item.hpp) || null,
-                    total_harga: parseFloat(item.total_harga) || null
-                })),
+                details: detailItems.map(item => {
+                    const { harga, persentase, hpp, totalHarga } = getDetailCalculatedValues(item);
+
+                    return {
+                        id_office: parseInt(headerData.idOffice) || 1, // Use selected office ID
+                        item_name: item.item_name || null,
+                        id_item: item.item_name_id ? parseInt(item.item_name_id) : null, // Send item ID to backend
+                        id_klasifikasi_ovk: item.id_klasifikasi_ovk ? parseInt(item.id_klasifikasi_ovk) || null : null, // Use selected ID directly from dropdown
+                        id_satuan: item.id_satuan ? parseInt(item.id_satuan) : null,
+                        harga,
+                        persentase,
+                        hpp,
+                        total_harga: totalHarga
+                    };
+                }),
 
                 // Additional data for compatibility
                 totalJumlah: totals.totalJumlah,
@@ -1185,6 +1251,10 @@ const AddEditPembelianOVKPage = () => {
                     ...submissionData,
                     pid: id  // Use pid instead of id for update
                 });
+
+                if (result.success) {
+                    await saveAllDetailItems();
+                }
             } else {
                 result = await createPembelian(submissionData);
             }
@@ -1211,7 +1281,7 @@ const AddEditPembelianOVKPage = () => {
         } catch (error) {
             setNotification({
                 type: 'error',
-                message: 'Terjadi kesalahan tidak terduga'
+                message: error.message || 'Terjadi kesalahan tidak terduga'
             });
         } finally {
             setIsSubmitting(false);
@@ -1343,7 +1413,7 @@ const AddEditPembelianOVKPage = () => {
                             />
                             {parameterError && (
                                 <p className="text-xs text-red-500 mt-1">
-                                    笞・・Error loading offices: {parameterError}
+                                    笞Error loading offices: {parameterError}
                                 </p>
                             )}
                         </div>
@@ -1543,7 +1613,7 @@ const AddEditPembelianOVKPage = () => {
                             />
                             {parameterError && (
                                 <p className="text-xs text-red-500 mt-1">
-                                    笞・・Error loading offices: {parameterError}
+                                    笞Error loading offices: {parameterError}
                                 </p>
                             )}
                         </div>
@@ -1566,7 +1636,7 @@ const AddEditPembelianOVKPage = () => {
                             />
                             {tipePembayaranError && (
                                 <p className="text-xs text-red-500 mt-1">
-                                    笞・・Error loading tipe pembayaran: {tipePembayaranError}
+                                    笞Error loading tipe pembayaran: {tipePembayaranError}
                                 </p>
                             )}
                         </div>
@@ -1589,7 +1659,7 @@ const AddEditPembelianOVKPage = () => {
                             />
                             {bankError && (
                                 <p className="text-xs text-red-500 mt-1">
-                                    笞・・Error loading banks: {bankError}
+                                    笞Error loading banks: {bankError}
                                 </p>
                             )}
                         </div>
@@ -1684,7 +1754,7 @@ const AddEditPembelianOVKPage = () => {
                                                                 塘 {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
                                                             </span>
                                                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                                捷・・{selectedFile.type.split('/')[1]?.toUpperCase() || 'FILE'}
+                                                                捷{selectedFile.type.split('/')[1]?.toUpperCase() || 'FILE'}
                                                             </span>
                                                         </>
                                                     ) : (
@@ -1726,7 +1796,7 @@ const AddEditPembelianOVKPage = () => {
                             />
                             {parameterError && (
                                 <p className="text-xs text-red-500 mt-1">
-                                    笞・・Error loading items: {parameterError}
+                                    笞Error loading items: {parameterError}
                                 </p>
                             )}
                         </div>
@@ -1768,7 +1838,7 @@ const AddEditPembelianOVKPage = () => {
                             />
                             {satuanError && (
                                 <p className="text-xs text-red-500 mt-1">
-                                    笞・・Error loading satuan: {satuanError}
+                                    笞Error loading satuan: {satuanError}
                                 </p>
                             )}
                         </div>
@@ -1873,21 +1943,7 @@ const AddEditPembelianOVKPage = () => {
                                 </thead>
                                 <tbody>
                                     {detailItems.map((item, index) => {
-                                        // Get values from item and header data
-                                        const harga = parseFloat(item.harga) || 0;
-                                        const persentase = getParsedPersentase(item.persentase); // Use comma-aware parsing
-                                        
-                                        // Calculate HPP: harga x (persentase / 100)
-                                        const hpp = harga * (persentase / 100);
-                                        const totalHarga = harga + hpp; // Total harga = Harga + HPP
-                                        
-                                        // Update item dengan calculated values
-                                        if (item.hpp !== hpp) {
-                                            handleDetailChange(item.id, 'hpp', hpp);
-                                        }
-                                        if (item.total_harga !== totalHarga) {
-                                            handleDetailChange(item.id, 'total_harga', totalHarga);
-                                        }
+                                        const { hpp, totalHarga } = getDetailCalculatedValues(item);
                                         
                                         return (
                                             <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50">

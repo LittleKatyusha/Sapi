@@ -80,7 +80,7 @@ const getJenisPembelianStyle = (label) => {
 };
 
 const getPaymentStatusStyle = (status) => {
-  switch (status) {
+  switch (Number(status)) {
     case 0: return 'bg-orange-50 text-orange-700 border-orange-200';
     case 1: return 'bg-emerald-50 text-emerald-700 border-emerald-200';
     case 2: return 'bg-red-50 text-red-700 border-red-200';
@@ -88,11 +88,73 @@ const getPaymentStatusStyle = (status) => {
   }
 };
 
+const getDueDateInfo = (dueDate, paymentStatus) => {
+  if (!dueDate || Number(paymentStatus) === 1) return null;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const due = new Date(dueDate);
+  if (Number.isNaN(due.getTime())) return null;
+
+  due.setHours(0, 0, 0, 0);
+  const diffDays = Math.round((due - today) / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 0) {
+    return {
+      level: 'overdue',
+      text: `Jatuh tempo ${Math.abs(diffDays)} hari lalu`,
+      className: 'bg-red-50 text-red-700 border-red-200',
+      dateClassName: 'text-red-600'
+    };
+  }
+  if (diffDays === 0) {
+    return {
+      level: 'today',
+      text: 'Jatuh tempo hari ini',
+      className: 'bg-amber-50 text-amber-800 border-amber-200',
+      dateClassName: 'text-amber-700'
+    };
+  }
+  if (diffDays <= 7) {
+    return {
+      level: 'soon',
+      text: `Jatuh tempo ${diffDays} hari lagi`,
+      className: 'bg-amber-50 text-amber-700 border-amber-200',
+      dateClassName: 'text-amber-600'
+    };
+  }
+
+  return {
+    level: 'normal',
+    text: `Jatuh tempo ${formatDate(dueDate)}`,
+    className: 'bg-slate-50 text-slate-600 border-slate-200',
+    dateClassName: 'text-gray-500'
+  };
+};
+
 const PaymentStatusBadge = ({ status, label }) => (
   <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getPaymentStatusStyle(status)} whitespace-nowrap`}>
     {label || 'Belum Bayar'}
   </span>
 );
+
+const DueDateBadge = ({ dueDate, paymentStatus }) => {
+  const info = getDueDateInfo(dueDate, paymentStatus);
+
+  if (!info) {
+    if (!dueDate) return <span className="text-xs text-gray-400">-</span>;
+    return <span className="text-xs text-gray-500">{formatDate(dueDate)}</span>;
+  }
+
+  return (
+    <div className="space-y-1">
+      <div className={`text-xs font-medium ${info.dateClassName}`}>{formatDate(dueDate)}</div>
+      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${info.className} whitespace-nowrap`}>
+        {info.text}
+      </span>
+    </div>
+  );
+};
 
 const Tooltip = ({ children, text }) => {
   const [show, setShow] = useState(false);
@@ -481,6 +543,7 @@ const ModernPembelianOVKTable = ({
                 <TableHeader label="Total Biaya" caption="Beli + Lain + Truk" align="right" />
                 <TableHeader label="Jenis Pembelian" caption="Tipe supplier" sortKey="jenis_pembelian" />
                 <th className="pb-3 pt-4 px-2 text-xs font-semibold text-gray-500 uppercase tracking-wider text-left">Status Bayar</th>
+                <TableHeader label="Jatuh Tempo" caption="Batas pembayaran" sortKey="due_date" />
                 <th className="pb-3 pt-4 pr-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Aksi</th>
               </tr>
             </thead>
@@ -489,9 +552,15 @@ const ModernPembelianOVKTable = ({
                 const rowId = row.id || row.encryptedPid;
                 const isExpanded = expandedRows.has(rowId);
                 const rowNumber = startItem + index;
+                const dueInfo = getDueDateInfo(row.due_date, row.payment_status);
+                const rowHighlight = dueInfo?.level === 'overdue'
+                  ? 'bg-red-50/40 hover:bg-red-50/70'
+                  : dueInfo?.level === 'today' || dueInfo?.level === 'soon'
+                    ? 'bg-amber-50/30 hover:bg-amber-50/50'
+                    : 'hover:bg-gray-50/60';
                 return (
                   <React.Fragment key={rowId || index}>
-                    <tr className="group hover:bg-gray-50/60 transition-colors">
+                    <tr className={`group transition-colors ${rowHighlight}`}>
                       <td className="pl-4 pr-2 py-3.5 text-center">
                         <button
                           onClick={() => toggleExpand(rowId)}
@@ -563,6 +632,9 @@ const ModernPembelianOVKTable = ({
                       <td className="px-2 py-3.5">
                         <PaymentStatusBadge status={row.payment_status} label={row.payment_status_label} />
                       </td>
+                      <td className="px-4 py-3.5">
+                        <DueDateBadge dueDate={row.due_date} paymentStatus={row.payment_status} />
+                      </td>
                       <td className="px-4 py-3.5 text-right">
                         <ActionTrigger
                           row={row}
@@ -581,7 +653,7 @@ const ModernPembelianOVKTable = ({
                     </tr>
                     {isExpanded && (
                       <tr className="bg-gray-50/60">
-                        <td colSpan={8} className="px-4 py-4">
+                        <td colSpan={10} className="px-4 py-4">
                           <div className="bg-white rounded-lg border border-gray-100 p-4 shadow-sm">
                             <div className="flex items-center gap-2 mb-3">
                               <Info className="w-4 h-4 text-gray-400" />
@@ -592,6 +664,7 @@ const ModernPembelianOVKTable = ({
                               <InfoItem icon={Banknote} label="Biaya Lain-lain" value={formatCurrency(row.biaya_lain)} valueClass="text-gray-900" />
                               <InfoItem icon={Wallet} label="Biaya Truk" value={formatCurrency(row.biaya_truk)} valueClass="text-gray-900" />
                               <InfoItem icon={Package} label="Total Belanja" value={formatCurrency(row.total_belanja)} valueClass="text-gray-900" />
+                              <InfoItem icon={Calendar} label="Jatuh Tempo" value={row.due_date ? formatDate(row.due_date) : '-'} />
                             </div>
                           </div>
                         </td>
@@ -608,8 +681,14 @@ const ModernPembelianOVKTable = ({
       <div className="md:hidden space-y-3">
         {sortedData.map((row, index) => {
           const rowId = row.id || row.encryptedPid;
+          const dueInfo = getDueDateInfo(row.due_date, row.payment_status);
+          const cardBorder = dueInfo?.level === 'overdue'
+            ? 'border-red-200'
+            : dueInfo?.level === 'today' || dueInfo?.level === 'soon'
+              ? 'border-amber-200'
+              : 'border-gray-100';
           return (
-            <div key={rowId || index} className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 space-y-3">
+            <div key={rowId || index} className={`bg-white rounded-xl shadow-sm border ${cardBorder} p-4 space-y-3`}>
               <div className="flex items-start justify-between">
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-semibold text-gray-900">{row.nota_sistem || '-'}</div>
@@ -676,6 +755,10 @@ const ModernPembelianOVKTable = ({
                     {row.jenis_pembelian || 'OVK'}
                   </span>
                 </div>
+              </div>
+              <div className="pt-2 border-t border-gray-50">
+                <div className="text-xs text-gray-500 mb-1">Jatuh Tempo</div>
+                <DueDateBadge dueDate={row.due_date} paymentStatus={row.payment_status} />
               </div>
             </div>
           );
