@@ -47,7 +47,15 @@ const PersediaanHasilPotongRphPage = () => {
     const detailType = activeTab === 'boning' && item.id_item_potong ? 'boning' : activeTab;
     setModalType(detailType);
     if (activeTab === 'kulit') {
-      setDetailData({ header: { id: item.id, name: item.jenis_sapi ?? '-' }, tgl_potong: item.tgl_potong || null, detail: [{ id: null, name: 'Kulit', berat: item.berat_kulit ?? 0 }] });
+      setDetailData({
+        header: { id: item.id, name: item.item_kulit_name ?? 'Kulit' },
+        tgl_potong: null,
+        detail: [
+          { id: item.id_item_potong, name: `Item Potong: ${item.item_potong_name ?? '-'}`, berat: item.total_berat_masuk ?? 0 },
+          { id: null, name: 'Berat Keluar', berat: item.total_berat_keluar ?? 0 },
+          { id: null, name: 'Berat Tersedia', berat: item.berat_tersedia ?? 0 },
+        ],
+      });
       setDetailModalOpen(true);
       return;
     }

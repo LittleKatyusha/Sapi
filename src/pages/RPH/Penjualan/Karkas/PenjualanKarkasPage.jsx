@@ -24,6 +24,22 @@ const toSapiOptions = (items) => items.map((item) => ({
   klasifikasi: item.klasifikasi || '-',
   berat: Number(item.berat || 0),
 }));
+const detailToSapiOption = (detail) => {
+  const id = detail.id_pembelian_ho_detail;
+  const eartag = detail.code_eartag || detail.eartag || id || '-';
+  const klasifikasi = detail.klasifikasi || '-';
+  const berat = Number(detail.berat || detail.berat_sapi || 0);
+
+  return {
+    id,
+    label: `${eartag} - ${klasifikasi} - ${berat.toFixed(2)} kg`,
+    eartag,
+    code_eartag: detail.code_eartag,
+    klasifikasi,
+    berat,
+    isEditOption: true,
+  };
+};
 const PAYMENT_OPTIONS = [{ value: '1', label: 'Tunai' }, { value: '2', label: 'Kredit' }];
 const SKIN_TREATMENT_OPTIONS = [{ value: 'DITABUNG', label: 'Ditabung' }, { value: 'DIAMBIL', label: 'Diambil' }];
 const SHIPPING_OPTIONS = [{ value: 'DIAMBIL', label: 'Diambil' }, { value: 'DIANTAR', label: 'Diantar' }];
@@ -354,7 +370,7 @@ export default function PenjualanKarkasPage() {
       .catch((e) => setError(e.message || 'Gagal memuat daftar kendaraan ekspedisi'));
   }, []);
   const openCreate = () => { setForm(initial()); setModal('form'); };
-  const openEdit = async (row) => { if (isPaidRow(row)) { setError('Transaksi yang sudah dibayar tidak bisa diedit.'); return; } setActionLoading('Memuat data edit...'); try { const r = await PenjualanKarkasService.show(row.pid); setForm({ ...initial(), ...r.data.penjualan, id_pedagang: r.data.penjualan.id_pedagang, items: (r.data.details || []).map(x => ({ ...x, nominal_kulit: x.nominal_kulit ?? '' })) }); setModal('form'); } catch (e) { setError(e.message); } finally { setActionLoading(''); } };
+  const openEdit = async (row) => { if (isPaidRow(row)) { setError('Transaksi yang sudah dibayar tidak bisa diedit.'); return; } setActionLoading('Memuat data edit...'); try { const r = await PenjualanKarkasService.show(row.pid); const details = r.data.details || []; setSapi(current => { const byId = new Map(current.map(item => [String(item.id), item])); details.forEach(detail => { const id = String(detail.id_pembelian_ho_detail || ''); if (id && !byId.has(id)) byId.set(id, detailToSapiOption(detail)); }); return Array.from(byId.values()); }); setForm({ ...initial(), ...r.data.penjualan, id_pedagang: r.data.penjualan.id_pedagang, items: details.map(x => ({ ...x, nominal_kulit: x.nominal_kulit ?? '' })) }); setModal('form'); } catch (e) { setError(e.message); } finally { setActionLoading(''); } };
   const setHeader = (key, value) => setForm(f => ({ ...f, [key]: value }));
   const setItem = (i, key, value) => setForm(f => ({ ...f, items: f.items.map((x, n) => n === i ? { ...x, [key]: value } : x) }));
   const selectPaymentType = (value) => setForm(f => ({ ...f, tipe_pembayaran: value || '1', id_syarat_pembelian: value === '2' ? f.id_syarat_pembelian : '' }));
@@ -375,7 +391,7 @@ export default function PenjualanKarkasPage() {
   const save = async (e) => { e.preventDefault(); setSaving(true); setActionLoading('Menyimpan transaksi...'); setError(''); try { if (form.tipe_pembayaran === '2' && !form.id_syarat_pembelian) throw new Error('Bank wajib dipilih untuk pembayaran kredit.'); if (form.pengiriman === 'DIANTAR' && !form.id_pengirim) throw new Error('Pengirim wajib dipilih untuk pengiriman diantar.'); if (form.pengiriman === 'DIANTAR' && !form.id_kendaraan_ekspedisi) throw new Error('Kendaraan ekspedisi wajib dipilih untuk pengiriman diantar.'); const payload = { ...form, pid: form.pid, id_pedagang: Number(form.id_pedagang), id_syarat_pembelian: form.tipe_pembayaran === '2' ? Number(form.id_syarat_pembelian) : null, biaya_pengiriman: form.pengiriman === 'DIANTAR' ? Number(form.biaya_pengiriman || 0) : 0, alamat_pengiriman: form.pengiriman === 'DIANTAR' ? form.alamat_pengiriman : null, id_pengirim: form.pengiriman === 'DIANTAR' ? Number(form.id_pengirim) : null, id_kendaraan_ekspedisi: form.pengiriman === 'DIANTAR' ? Number(form.id_kendaraan_ekspedisi) : null, nama_penerima: form.pengiriman === 'DIANTAR' ? form.nama_penerima : null, items: form.items.map(x => ({ ...x, id_pembelian_ho_detail: Number(x.id_pembelian_ho_detail), berat_paha_depan_kg: Number(x.berat_paha_depan_kg), berat_paha_belakang_kg: Number(x.berat_paha_belakang_kg), harga_karkas_aktual: Number(x.harga_karkas_aktual), berat_kulit_kg: Number(x.berat_kulit_kg || 0), nominal_kulit: Number(x.nominal_kulit || 0) })) }; const r = form.pid ? await PenjualanKarkasService.update(payload) : await PenjualanKarkasService.store(payload); if (r.success === false) throw new Error(r.message); setModal(null); await load(); } catch (e) { setError(e.message); } finally { setSaving(false); setActionLoading(''); } };
   const cancel = async (row) => { if (isPaidRow(row)) { setError('Transaksi yang sudah dibayar tidak bisa dihapus.'); return; } if (!window.confirm(`Hapus transaksi ${row.no_kwitansi}?`)) return; setActionLoading('Menghapus transaksi...'); try { await PenjualanKarkasService.hapus(row.pid); await load(); } catch (e) { setError(e.message); } finally { setActionLoading(''); } };
   const openDetail = async (row) => { setActionLoading('Memuat detail transaksi...'); try { const x = await PenjualanKarkasService.show(row.pid); setDetail(x.data); } catch (e) { setError(e.message); } finally { setActionLoading(''); } };
-  const available = (selected) => sapi.filter(x => !form.items.some(i => String(i.id_pembelian_ho_detail) === String(x.id) && String(x.id) !== String(selected)));
+  const available = (selected) => sapi.filter(x => (!x.isEditOption || form.pid) && !form.items.some(i => String(i.id_pembelian_ho_detail) === String(x.id) && String(x.id) !== String(selected)));
 
   return <div className="min-h-screen bg-slate-50"><div className="space-y-6 px-4 py-5 sm:px-6 lg:px-8">
     <div className="rounded-3xl border border-white/60 bg-white/90 p-6 shadow-xl shadow-rose-100/50">

@@ -10,6 +10,12 @@ const formatDate = (v) => {
   return v;
 };
 
+const formatWeight = (value) => {
+  const number = Number(value || 0);
+  if (!Number.isFinite(number)) return '0';
+  return String(Number(number.toFixed(3)));
+};
+
 const ActionMenu = ({ row, buttonRef, onClose, onDetail, onEdit, onDelete, type }) => {
   const menuRef = useRef(null);
   const [menuStyle, setMenuStyle] = useState(null);
@@ -60,22 +66,24 @@ const ActionMenu = ({ row, buttonRef, onClose, onDetail, onEdit, onDelete, type 
       bgClass: 'bg-sky-100',
       onClick: () => onDetail?.(row),
     },
-    {
-      label: 'Edit',
-      description: 'Ubah data',
-      icon: Pencil,
-      iconClass: 'text-amber-600',
-      bgClass: 'bg-amber-100',
-      onClick: () => onEdit?.(row),
-    },
-    {
-      label: 'Hapus',
-      description: 'Hapus data',
-      icon: Trash2,
-      iconClass: 'text-red-600',
-      bgClass: 'bg-red-100',
-      onClick: () => onDelete?.(row),
-    },
+    ...(type === 'kulit' ? [] : [
+      {
+        label: 'Edit',
+        description: 'Ubah data',
+        icon: Pencil,
+        iconClass: 'text-amber-600',
+        bgClass: 'bg-amber-100',
+        onClick: () => onEdit?.(row),
+      },
+      {
+        label: 'Hapus',
+        description: 'Hapus data',
+        icon: Trash2,
+        iconClass: 'text-red-600',
+        bgClass: 'bg-red-100',
+        onClick: () => onDelete?.(row),
+      },
+    ]),
   ];
 
   const handleActionClick = (action) => {
@@ -175,6 +183,87 @@ const PersediaanTab = ({ type, onOpenDetail, onOpenEdit, onOpenDelete }) => {
   }, [fetchData, type]);
 
   const columns = useMemo(() => {
+    if (type === 'kulit') {
+      return [
+        {
+          name: 'No',
+          width: '60px',
+          cell: (row, index) => (
+            <div className="text-center w-full font-semibold text-gray-600">
+              {(serverPagination.currentPage - 1) * serverPagination.perPage + index + 1}
+            </div>
+          ),
+        },
+        {
+          name: 'Aksi',
+          width: '80px',
+          cell: (row) => (
+            <ActionButton
+              row={row}
+              isOpen={openMenuId === row.pid}
+              onToggle={() => setOpenMenuId(openMenuId === row.pid ? null : row.pid)}
+              onClose={() => setOpenMenuId(null)}
+              onDetail={onOpenDetail}
+              onEdit={onOpenEdit}
+              onDelete={onOpenDelete}
+              type={type}
+            />
+          ),
+        },
+        {
+          name: 'Item Potong',
+          selector: (row) => row.item_potong_name,
+          sortable: true,
+          width: '160px',
+        },
+        {
+          name: 'Klasifikasi',
+          selector: (row) => row.jenis_sapi,
+          sortable: true,
+          width: '150px',
+        },
+        {
+          name: 'Berat Masuk',
+          selector: (row) => row.total_berat_masuk,
+          sortable: true,
+          width: '130px',
+          cell: (row) => <div className="text-center font-semibold text-slate-700">{formatWeight(row.total_berat_masuk)} KG</div>,
+        },
+        {
+          name: 'Berat Keluar',
+          selector: (row) => row.total_berat_keluar,
+          sortable: true,
+          width: '130px',
+          cell: (row) => <div className="text-center font-semibold text-rose-700">{formatWeight(row.total_berat_keluar)} KG</div>,
+        },
+        {
+          name: 'Berat Tersedia',
+          selector: (row) => row.berat_tersedia,
+          sortable: true,
+          width: '140px',
+          cell: (row) => <div className="text-center font-semibold text-teal-700">{formatWeight(row.berat_tersedia)} KG</div>,
+        },
+        {
+          name: 'Status',
+          selector: (row) => row.status,
+          sortable: true,
+          width: '120px',
+          cell: (row) => (
+            <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${row.status === 'TERSEDIA' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700'}`}>
+              {row.status || '-'}
+            </span>
+          ),
+        },
+        {
+          name: 'Diperbarui',
+          selector: (row) => row.updated_at || row.created_at,
+          sortable: true,
+          width: '180px',
+          cell: (row) => <div className="text-xs text-gray-500">{row.updated_at || row.created_at || '-'}</div>,
+        },
+      ];
+    }
+
     const baseColumns = [
       {
         name: 'No',
