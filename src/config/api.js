@@ -350,6 +350,18 @@ export const API_ENDPOINTS = {
       PEDAGANG_OPTIONS: '/api/rph/penjualan/karkas/pedagang-options',
       CATTLE_OPTIONS: '/api/rph/penjualan/karkas/cattle-options',
     },
+    PENJUALAN_KULIT: {
+      DATA: '/api/rph/penjualan/kulit/data',
+      MASTER_DATA: '/api/rph/penjualan/kulit/masterdata',
+      STORE: '/api/rph/penjualan/kulit/store',
+      SHOW: '/api/rph/penjualan/kulit/show',
+      UPDATE: '/api/rph/penjualan/kulit/update',
+      POSTING: '/api/rph/penjualan/kulit/posting',
+      BAYAR: '/api/rph/penjualan/kulit/bayar',
+      PEMBAYARAN_HISTORY: '/api/rph/penjualan/kulit/pembayaran-history',
+      PENERIMAAN_HISTORY: '/api/rph/penjualan/kulit/penerimaan-history',
+      DELETE: '/api/rph/penjualan/kulit/hapus',
+    },
     PENJUALAN_SAPI_UTUH: {
       BASE: '/api/rph/penjualan-sapi-utuh',
       DATA: '/api/rph/penjualan-sapi-utuh/data',

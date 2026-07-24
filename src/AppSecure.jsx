@@ -121,6 +121,7 @@ const ReturnPenjualanPage = lazy(() => import('./pages/RPH/PenjualanSapiUtuh/Ret
 const ReturnHistoryPage = lazy(() => import('./pages/RPH/PenjualanSapiUtuh/ReturnHistoryPage'));
 const PenjualanBoningPage = lazy(() => import('./pages/RPH/Penjualan/Boning/PenjualanBoningPage'));
 const PenjualanKarkasPage = lazy(() => import('./pages/RPH/Penjualan/Karkas/PenjualanKarkasPage'));
+const PenjualanKulitPage = lazy(() => import('./pages/RPH/Penjualan/Kulit/PenjualanKulitPage'));
 
 // RPH Keuangan Penerimaan Page - Lazy loaded
 const PenerimaanRphPage = lazy(() => import('./pages/RPH/Keuangan/Penerimaan/PenerimaanRphPage'));
@@ -438,6 +439,7 @@ function AppSecure() {
               <Route path="/rph/penjualan-sapi-utuh/return-history" element={<ReturnHistoryPage />} />
               <Route path="/rph/penjualan-boning" element={<PenjualanBoningPage />} />
               <Route path="/rph/penjualan-karkas" element={<PenjualanKarkasPage />} />
+              <Route path="/rph/penjualan-kulit" element={<PenjualanKulitPage />} />
 
               {/* RPH Keuangan Routes */}
               <Route path="/rph/keuangan/penerimaan" element={<PenerimaanRphPage />} />

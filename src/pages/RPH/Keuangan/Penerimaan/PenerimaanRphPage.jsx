@@ -10,6 +10,7 @@ import usePenjualanSapiUtuh from '../../../../hooks/usePenjualanSapiUtuh';
 import PenjualanSapiUtuhService from '../../../../services/penjualanSapiUtuhService';
 import PenjualanBoningService from '../../../../services/penjualanBoningService';
 import PenjualanKarkasService from '../../../../services/penjualanKarkasService';
+import PenjualanKulitService from '../../../../services/penjualanKulitService';
 import SearchableSelect from '../../../../components/shared/SearchableSelect';
 
 // Action menu cell with portal to escape table overflow clipping
@@ -85,6 +86,7 @@ const JENIS_PENJUALAN_OPTIONS = [
   { value: 'sapi_qurban_utuh', label: 'Sapi Qurban / Utuh' },
   { value: 'boning', label: 'Penjualan Boning' },
   { value: 'karkas', label: 'Penjualan Karkas' },
+  { value: 'kulit', label: 'Penjualan Kulit' },
 ];
 
 const TABS = [
@@ -182,9 +184,34 @@ const normalizeKarkasRow = (row) => {
   };
 };
 
+const normalizeKulitRow = (row) => {
+  const totalHarga = Number(row.total_harga_kulit || row.total_harga || 0);
+  const biayaKirim = Number(row.biaya_pengiriman || 0);
+  const totalTagihan = Number(row.total_tagihan || row.total_penjualan || (totalHarga + biayaKirim));
+  const totalTerbayar = Number(row.total_terbayar || 0);
+  return {
+    ...row,
+    no_transaksi: row.no_kwitansi,
+    tanggal_transaksi: row.tanggal_penjualan,
+    nama_pembeli: row.nama_pedagang,
+    no_hp_pembeli: row.id_pedagang || '-',
+    pic: '-',
+    total_harga: totalHarga,
+    biaya_kirim: biayaKirim,
+    biaya_potong: 0,
+    nominal_pembayaran: totalTerbayar,
+    sisa_pembayaran: Math.max(totalTagihan - totalTerbayar, 0),
+    status_pembayaran: row.payment_status,
+    status_pembayaran_label: row.payment_status_label,
+    status_transaksi: row.status === 'BATAL' ? 'cancelled' : 'confirmed',
+    status_transaksi_label: row.status || 'TERPOSTING',
+    purchase_type_label: row.purchase_type_label || 'Penjualan Kulit',
+  };
+};
+
 const normalizeHistoryRow = (row, jenisValue) => ({
   ...row,
-  purchase_type_label: row.purchase_type_label || (jenisValue === 'boning' ? 'Penjualan Boning' : (jenisValue === 'karkas' ? 'Penjualan Karkas' : 'Sapi Qurban / Utuh')),
+  purchase_type_label: row.purchase_type_label || (jenisValue === 'boning' ? 'Penjualan Boning' : (jenisValue === 'karkas' ? 'Penjualan Karkas' : (jenisValue === 'kulit' ? 'Penjualan Kulit' : 'Sapi Qurban / Utuh'))),
 });
 
 const SummaryCard = ({ label, value, icon: Icon, color }) => {
@@ -239,6 +266,8 @@ const PenerimaanRphPage = () => {
         ? await PenjualanBoningService.getPenerimaanHistory(historyParams)
         : jenisValue === 'karkas'
         ? await PenjualanKarkasService.getPenerimaanHistory(historyParams)
+        : jenisValue === 'kulit'
+        ? await PenjualanKulitService.getPenerimaanHistory(historyParams)
         : await PenjualanSapiUtuhService.getPenerimaanHistory({
           length: 1000,
           search: appliedFilters.search || undefined,
@@ -277,6 +306,12 @@ const PenerimaanRphPage = () => {
         ...commonParams,
         payment_status: statusBayar,
       }).then((res) => ({ success: true, data: res.data || [], recordsTotal: res.recordsTotal || 0, recordsFiltered: res.recordsFiltered || 0 }))
+      : jenisValue === 'kulit'
+      ? await PenjualanKulitService.getData({
+        ...commonParams,
+        payment_status: statusBayar,
+        status: 'TERPOSTING',
+      })
       : await fetchData({
         ...commonParams,
         status_pembayaran: statusBayar,
@@ -285,7 +320,11 @@ const PenerimaanRphPage = () => {
 
     if (result.success && result.data) {
       setTableData((result.data || []).map((row) => (
-        jenisValue === 'boning' ? normalizeBoningRow(row) : (jenisValue === 'karkas' ? normalizeKarkasRow(row) : normalizeSapiRow(row))
+        jenisValue === 'boning'
+          ? normalizeBoningRow(row)
+          : (jenisValue === 'karkas'
+          ? normalizeKarkasRow(row)
+          : (jenisValue === 'kulit' ? normalizeKulitRow(row) : normalizeSapiRow(row)))
       )));
     } else {
       setTableError(result.message || 'Gagal memuat data penerimaan');
@@ -373,7 +412,7 @@ const PenerimaanRphPage = () => {
       sortable: true,
       cell: (row) => (
         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-          row.purchase_type === 13 ? 'bg-rose-50 text-rose-700' : (row.purchase_type === 12 ? 'bg-emerald-50 text-emerald-700' : (row.purchase_type === 8 ? 'bg-amber-50 text-amber-700' : 'bg-blue-50 text-blue-700'))
+          row.purchase_type === 15 ? 'bg-orange-50 text-orange-700' : (row.purchase_type === 13 ? 'bg-rose-50 text-rose-700' : (row.purchase_type === 12 ? 'bg-emerald-50 text-emerald-700' : (row.purchase_type === 8 ? 'bg-amber-50 text-amber-700' : 'bg-blue-50 text-blue-700')))
         }`}>
           {row.purchase_type_label}
         </span>
@@ -425,7 +464,7 @@ const PenerimaanRphPage = () => {
       cell: (_, idx) => <span className="text-xs text-gray-400 font-medium">{idx + 1}</span>,
     },
     {
-      name: jenisValue === 'boning' || jenisValue === 'karkas' ? 'No. Kwitansi' : 'No. Transaksi',
+      name: jenisValue === 'boning' || jenisValue === 'karkas' || jenisValue === 'kulit' ? 'No. Kwitansi' : 'No. Transaksi',
       selector: (row) => row.no_transaksi,
       sortable: true,
       minWidth: '130px',
@@ -445,10 +484,13 @@ const PenerimaanRphPage = () => {
       cell: (row) => {
         const isBoning = jenisValue === 'boning' || row.purchase_type_label === 'Penjualan Boning';
         const isKarkas = jenisValue === 'karkas' || row.purchase_type_label === 'Penjualan Karkas';
+        const isKulit = jenisValue === 'kulit' || row.purchase_type_label === 'Penjualan Kulit';
         const isQurban = row.no_transaksi?.toUpperCase().startsWith('PSQ');
         return (
           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
-            isKarkas
+            isKulit
+              ? 'bg-orange-50 text-orange-700 border border-orange-100'
+              : isKarkas
               ? 'bg-rose-50 text-rose-700 border border-rose-100'
               : isBoning
               ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
@@ -456,7 +498,7 @@ const PenerimaanRphPage = () => {
               ? 'bg-amber-50 text-amber-700 border border-amber-100'
               : 'bg-emerald-50 text-emerald-700 border border-emerald-100'
           }`}>
-            {isKarkas ? 'Karkas' : (isBoning ? 'Boning' : (isQurban ? 'Qurban' : 'Utuh'))}
+            {isKulit ? 'Kulit' : (isKarkas ? 'Karkas' : (isBoning ? 'Boning' : (isQurban ? 'Qurban' : 'Utuh')))}
           </span>
         );
       },
@@ -543,6 +585,8 @@ const PenerimaanRphPage = () => {
               ? `/rph/keuangan/penerimaan/bayar/${r.pid}?jenis=boning&mode=detail`
               : jenisValue === 'karkas'
               ? `/rph/keuangan/penerimaan/bayar/${r.pid}?jenis=karkas&mode=detail`
+              : jenisValue === 'kulit'
+              ? `/rph/keuangan/penerimaan/bayar/${r.pid}?jenis=kulit&mode=detail`
               : `/rph/penjualan-sapi-utuh/detail/${r.pid}`
           )}
           onBayar={(r) => navigate(
@@ -550,6 +594,8 @@ const PenerimaanRphPage = () => {
               ? `/rph/keuangan/penerimaan/bayar/${r.pid}?jenis=boning`
               : jenisValue === 'karkas'
               ? `/rph/keuangan/penerimaan/bayar/${r.pid}?jenis=karkas`
+              : jenisValue === 'kulit'
+              ? `/rph/keuangan/penerimaan/bayar/${r.pid}?jenis=kulit`
               : `/rph/keuangan/penerimaan/bayar/${r.pid}`
           )}
         />
@@ -575,7 +621,7 @@ const PenerimaanRphPage = () => {
           </div>
           <div className="min-w-0">
             <h1 className="text-base font-bold text-gray-800 truncate">Penerimaan</h1>
-            <p className="text-gray-500 text-[11px] truncate">Daftar piutang & pelunasan penjualan sapi</p>
+            <p className="text-gray-500 text-[11px] truncate">Daftar piutang & pelunasan penjualan RPH</p>
           </div>
         </div>
 

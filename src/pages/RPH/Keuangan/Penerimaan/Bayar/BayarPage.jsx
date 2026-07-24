@@ -6,6 +6,7 @@ import {
 import usePenjualanSapiUtuh from '../../../../../hooks/usePenjualanSapiUtuh';
 import PenjualanBoningService from '../../../../../services/penjualanBoningService';
 import PenjualanKarkasService from '../../../../../services/penjualanKarkasService';
+import PenjualanKulitService from '../../../../../services/penjualanKulitService';
 import { useNotification } from '../../../../../components/shared/Notification';
 import SearchableSelect from '../../../../../components/shared/SearchableSelect';
 import DataTable from 'react-data-table-component';
@@ -53,6 +54,7 @@ const BayarPage = () => {
   const mode = searchParams.get('mode');
   const isBoning = jenis === 'boning';
   const isKarkas = jenis === 'karkas';
+  const isKulit = jenis === 'kulit';
   const isDetailOnly = mode === 'detail';
 
   const [penjualan, setPenjualan] = useState(null);
@@ -72,12 +74,14 @@ const BayarPage = () => {
       ? await PenjualanBoningService.getPembayaranHistory(pid)
       : isKarkas
       ? await PenjualanKarkasService.getPembayaranHistory(pid)
+      : isKulit
+      ? await PenjualanKulitService.getPembayaranHistory(pid)
       : await fetchPembayaranHistory(pid);
     if (result.success && result.data) {
       setPenjualan(result.data.penjualan);
       setHistory(result.data.history || []);
       setNamaPembayar(result.data.penjualan?.nama_pembeli || '');
-      if (isBoning || isKarkas) {
+      if (isBoning || isKarkas || isKulit) {
         setMetode(isBoning ? resolveBoningMetode(result.data.penjualan) : resolveRphMetode(result.data.penjualan));
       }
     } else {
@@ -88,7 +92,7 @@ const BayarPage = () => {
   useEffect(() => {
     if (pid) loadHistory();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pid, isBoning, isKarkas]);
+  }, [pid, isBoning, isKarkas, isKulit]);
 
   const grandTotal = (penjualan?.total_harga || 0) + (penjualan?.biaya_kirim || 0) + (penjualan?.biaya_potong || 0);
   const sisa = penjualan?.sisa_pembayaran || 0;
@@ -99,8 +103,11 @@ const BayarPage = () => {
     if (isKarkas) {
       return isDetailOnly ? 'Detail Penerimaan Karkas' : 'Pembayaran Penerimaan Karkas';
     }
+    if (isKulit) {
+      return isDetailOnly ? 'Detail Penerimaan Kulit' : 'Pembayaran Penerimaan Kulit';
+    }
     return 'Pembayaran / Pelunasan';
-  }, [isBoning, isKarkas, isDetailOnly]);
+  }, [isBoning, isKarkas, isKulit, isDetailOnly]);
 
   const handleNominalChange = (e) => {
     const raw = e.target.value.replace(/[^0-9]/g, '');
@@ -136,8 +143,8 @@ const BayarPage = () => {
 
     if (!nominalValue || nominalValue <= 0) newErrors.nominal = 'Nominal wajib diisi';
     else if (nominalValue > sisa) newErrors.nominal = `Maksimal ${formatRupiah(sisa)}`;
-    if (!metode) newErrors.metode = (isBoning || isKarkas)
-      ? `Metode pembayaran belum bisa ditentukan dari data penjualan ${isKarkas ? 'karkas' : 'boning'}.`
+    if (!metode) newErrors.metode = (isBoning || isKarkas || isKulit)
+      ? `Metode pembayaran belum bisa ditentukan dari data penjualan ${isKarkas ? 'karkas' : (isKulit ? 'kulit' : 'boning')}.`
       : 'Pilih metode pembayaran';
 
     if (Object.keys(newErrors).length > 0) {
@@ -155,6 +162,13 @@ const BayarPage = () => {
       })
       : isKarkas
       ? await PenjualanKarkasService.bayar({
+        pid,
+        nominal_pembayaran: nominalValue,
+        metode_pembayaran: metode,
+        nama_pembayar: namaPembayar || undefined,
+      })
+      : isKulit
+      ? await PenjualanKulitService.bayar({
         pid,
         nominal_pembayaran: nominalValue,
         metode_pembayaran: metode,
@@ -276,7 +290,7 @@ const BayarPage = () => {
           </div>
         )}
 
-        {(isBoning || isKarkas) && penjualan && (
+        {(isBoning || isKarkas || isKulit) && penjualan && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
               <p className="text-xs text-gray-500 font-medium uppercase">Tipe Pembayaran Penjualan</p>
@@ -336,12 +350,12 @@ const BayarPage = () => {
                       options={METODE_OPTIONS}
                       value={metode}
                       onChange={(val) => { setMetode(val || ''); if (formErrors.metode) setFormErrors((p) => ({ ...p, metode: '' })); }}
-                      placeholder={(isBoning || isKarkas) ? `Metode diambil dari penjualan ${isKarkas ? 'karkas' : 'boning'}` : 'Pilih metode'}
+                      placeholder={(isBoning || isKarkas || isKulit) ? `Metode diambil dari penjualan ${isKarkas ? 'karkas' : (isKulit ? 'kulit' : 'boning')}` : 'Pilih metode'}
                       isClearable={false}
-                      isDisabled={submitLoading || sisa <= 0 || isBoning || isKarkas}
+                      isDisabled={submitLoading || sisa <= 0 || isBoning || isKarkas || isKulit}
                     />
                     {formErrors.metode && <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {formErrors.metode}</p>}
-                    {(isBoning || isKarkas) && !formErrors.metode && (
+                    {(isBoning || isKarkas || isKulit) && !formErrors.metode && (
                       <p className="text-xs text-gray-500 mt-1">
                         Metode pembayaran mengikuti data penjualan awal.
                       </p>
@@ -360,7 +374,7 @@ const BayarPage = () => {
                     />
                   </div>
 
-                  {!isBoning && !isKarkas && (
+                  {!isBoning && !isKarkas && !isKulit && (
                     <div className="mb-5">
                       <label className="flex items-center gap-2 text-xs font-medium text-gray-600 mb-1">
                         <Upload className="w-3.5 h-3.5" />
