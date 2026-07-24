@@ -6,7 +6,7 @@ import {
 import usePenjualanSapiUtuh from '../../../../../hooks/usePenjualanSapiUtuh';
 import PenjualanBoningService from '../../../../../services/penjualanBoningService';
 import PenjualanKarkasService from '../../../../../services/penjualanKarkasService';
-import PenjualanKulitService from '../../../../../services/penjualanKulitService';
+import PenjualanKulitService from '../../../../../services/penjualanKulitService.js';
 import { useNotification } from '../../../../../components/shared/Notification';
 import SearchableSelect from '../../../../../components/shared/SearchableSelect';
 import DataTable from 'react-data-table-component';

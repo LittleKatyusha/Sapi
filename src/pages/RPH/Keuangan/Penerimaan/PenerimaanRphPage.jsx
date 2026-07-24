@@ -10,7 +10,7 @@ import usePenjualanSapiUtuh from '../../../../hooks/usePenjualanSapiUtuh';
 import PenjualanSapiUtuhService from '../../../../services/penjualanSapiUtuhService';
 import PenjualanBoningService from '../../../../services/penjualanBoningService';
 import PenjualanKarkasService from '../../../../services/penjualanKarkasService';
-import PenjualanKulitService from '../../../../services/penjualanKulitService';
+import PenjualanKulitService from '../../../../services/penjualanKulitService.js';
 import SearchableSelect from '../../../../components/shared/SearchableSelect';
 
 // Action menu cell with portal to escape table overflow clipping
