@@ -248,6 +248,7 @@ const FormField = ({ label, helperText, required = false, children }) => (
             detail.id_persetujuan_rph ?? detail.id_persetujuan ?? detail.id_mengetahui ?? null
           );
           setTipePembayaran(detail.tipe_pembayaran ?? 1);
+          setSelectedSupplier(detail.id_pemasok ?? null);
           setNotes(detail.keterangan ?? detail.note ?? '');
           setDetailItems(Array.isArray(detail.detail) ? detail.detail : detail.details || []);
         } else {
@@ -340,11 +341,14 @@ const FormField = ({ label, helperText, required = false, children }) => (
   const handleSubmit = async (event) => {
     event.preventDefault();
 
+    const parsedSupplier = selectedSupplier != null && selectedSupplier !== ''
+      ? parseInt(selectedSupplier, 10)
+      : null;
+
     const payload = {
       id_jenis_pembelian_rph: selectedJenisPembelian ?? null,
       id_persetujuan_rph: selectedMengetahui ?? null,
       tipe_pembayaran: tipePembayaran ?? null,
-      id_pemasok: selectedSupplier ?? null,
       keterangan: notes?.trim() || null,
       items: selectedItems.map((item) => {
         const parsedId = Number(
@@ -356,6 +360,11 @@ const FormField = ({ label, helperText, required = false, children }) => (
         };
       })
     };
+
+    // Only send id_pemasok for kredit; omit null so integer validation does not fail
+    if (Number(tipePembayaran) === 2 && Number.isFinite(parsedSupplier)) {
+      payload.id_pemasok = parsedSupplier;
+    }
 
     if (isEditMode) {
       payload.pid = detailId;

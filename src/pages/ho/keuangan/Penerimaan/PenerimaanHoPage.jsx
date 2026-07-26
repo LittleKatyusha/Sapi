@@ -19,19 +19,35 @@ const JENIS_PEMBELIAN_OPTIONS = [
 
 const ActionMenuCell = ({ row, onDetail, onBayar }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
+  const [menuPos, setMenuPos] = useState(null);
   const buttonRef = useRef(null);
   const menuRef = useRef(null);
 
-  const toggleMenu = () => {
-    if (!isOpen && buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect();
-      setMenuPos({
-        top: rect.bottom + window.scrollY + 4,
-        left: rect.left + window.scrollX - 140,
-      });
+  const updatePosition = useCallback(() => {
+    if (!buttonRef.current) return;
+    const rect = buttonRef.current.getBoundingClientRect();
+    const menuWidth = 160;
+    const gap = 4;
+    const padding = 8;
+    // position:fixed uses viewport coords — do not add scrollY/scrollX
+    let left = rect.right - menuWidth;
+    left = Math.max(padding, Math.min(left, window.innerWidth - menuWidth - padding));
+    let top = rect.bottom + gap;
+    if (top + 120 > window.innerHeight) {
+      top = Math.max(padding, rect.top - 120 - gap);
     }
-    setIsOpen((prev) => !prev);
+    setMenuPos({ top, left });
+  }, []);
+
+  const toggleMenu = (e) => {
+    e.stopPropagation();
+    if (!isOpen) {
+      updatePosition();
+      setIsOpen(true);
+    } else {
+      setIsOpen(false);
+      setMenuPos(null);
+    }
   };
 
   useEffect(() => {
@@ -41,27 +57,37 @@ const ActionMenuCell = ({ row, onDetail, onBayar }) => {
       const isInsideMenu = menuRef.current && menuRef.current.contains(e.target);
       if (!isInsideButton && !isInsideMenu) {
         setIsOpen(false);
+        setMenuPos(null);
       }
     };
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, [isOpen]);
+    const onScrollOrResize = () => updatePosition();
+    document.addEventListener('mousedown', handleClickOutside);
+    window.addEventListener('scroll', onScrollOrResize, true);
+    window.addEventListener('resize', onScrollOrResize);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('scroll', onScrollOrResize, true);
+      window.removeEventListener('resize', onScrollOrResize);
+    };
+  }, [isOpen, updatePosition]);
 
-  const menuContent = (
+  const menuContent = menuPos && (
     <div
       ref={menuRef}
       className="fixed bg-white rounded-xl shadow-2xl border border-gray-200 py-1 w-40 z-[99999]"
       style={{ top: menuPos.top, left: menuPos.left }}
     >
       <button
-        onClick={() => { setIsOpen(false); onDetail(row); }}
+        type="button"
+        onClick={() => { setIsOpen(false); setMenuPos(null); onDetail(row); }}
         className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 flex items-center gap-2 transition"
       >
         <Eye className="w-4 h-4 text-blue-500" /> Detail
       </button>
       {(row.sisa_pembayaran || 0) > 0 && (
         <button
-          onClick={() => { setIsOpen(false); onBayar(row); }}
+          type="button"
+          onClick={() => { setIsOpen(false); setMenuPos(null); onBayar(row); }}
           className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-emerald-50 flex items-center gap-2 transition"
         >
           <Banknote className="w-4 h-4 text-emerald-500" /> Terima
@@ -74,13 +100,14 @@ const ActionMenuCell = ({ row, onDetail, onBayar }) => {
     <div className="relative">
       <button
         ref={buttonRef}
+        type="button"
         onClick={toggleMenu}
         className={`p-2 rounded-lg transition ${isOpen ? 'bg-gray-100 text-gray-800' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'}`}
         title="Menu"
       >
         <MoreVertical className="w-5 h-5" />
       </button>
-      {isOpen && createPortal(menuContent, document.body)}
+      {isOpen && menuContent && createPortal(menuContent, document.body)}
     </div>
   );
 };
