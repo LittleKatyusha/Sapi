@@ -302,11 +302,16 @@ const FormField = ({ label, helperText, required = false, children }) => (
     const mappedItems = detailItems
       .map((detail) => {
         const detailIdValue = detail.id_produk ?? detail.id ?? detail.pid;
-        const option = itemOptions.find(
-          (item) =>
+        const detailSatuan = detail.id_satuan ?? null;
+        const option = itemOptions.find((item) => {
+          const idMatch =
             normalizeId(item.id) === normalizeId(detailIdValue) ||
-            Number(item.id) === Number(detailIdValue)
-        );
+            Number(item.id) === Number(detailIdValue);
+          if (!idMatch) return false;
+          // Cocokkan satuan juga — produk yang sama bisa punya baris BAL & DUS.
+          if (detailSatuan == null || item.id_satuan == null) return true;
+          return Number(item.id_satuan) === Number(detailSatuan);
+        });
 
         if (!option) return null;
 
@@ -354,8 +359,10 @@ const FormField = ({ label, helperText, required = false, children }) => (
         const parsedId = Number(
           item.id ?? item.id_produk ?? item._original?.id_produk ?? item._original?.id
         );
+        const parsedSatuan = Number(item.id_satuan ?? item._original?.id_satuan);
         return {
           id_produk: Number.isFinite(parsedId) ? parsedId : null,
+          id_satuan: Number.isFinite(parsedSatuan) ? parsedSatuan : null,
           jumlah: Number(item.qty ?? item.jumlah ?? 0)
         };
       })
@@ -632,7 +639,7 @@ const FormField = ({ label, helperText, required = false, children }) => (
                       </tr>
                     ) : (
                       selectedItems.map((item) => (
-                        <tr key={item.id} className="border-b border-slate-100">
+                        <tr key={item.key ?? item.id} className="border-b border-slate-100">
                           <td className="px-4 py-2">
                             <CheckSquare className="h-4 w-4 text-emerald-600" />
                           </td>

@@ -24,11 +24,15 @@ const PilihPakanOvkModal = ({
 
   const getDefaultPrice = (item) => item.priceOptions?.[0] ?? item.price ?? 0;
 
+  // id produk saja tidak unik — produk yang sama bisa punya baris per satuan
+  // (BAL/DUS), jadi seleksi di-key dengan kombinasi produk + satuan.
+  const getItemKey = (item) => item.key ?? item.id;
+
   useEffect(() => {
     if (!isOpen) return;
     const next = {};
     initialSelected.forEach((item) => {
-      next[item.id] = {
+      next[getItemKey(item)] = {
         selected: true,
         qty: item.qty ?? '',
         price: item.price || getDefaultPrice(item)
@@ -56,10 +60,11 @@ const PilihPakanOvkModal = ({
     setSelectedMap((prev) => {
       const next = { ...prev };
       filteredItems.forEach((item) => {
-        next[item.id] = {
+        const key = getItemKey(item);
+        next[key] = {
           selected: true,
-          qty: next[item.id]?.qty ?? '',
-          price: next[item.id]?.price || getDefaultPrice(item)
+          qty: next[key]?.qty ?? '',
+          price: next[key]?.price || getDefaultPrice(item)
         };
       });
       return next;
@@ -70,7 +75,7 @@ const PilihPakanOvkModal = ({
     setSelectedMap((prev) => {
       const next = { ...prev };
       filteredItems.forEach((item) => {
-        delete next[item.id];
+        delete next[getItemKey(item)];
       });
       return next;
     });
@@ -78,13 +83,14 @@ const PilihPakanOvkModal = ({
 
   const handleToggleSelect = (item) => {
     setSelectedMap((prev) => {
-      const current = prev[item.id];
+      const key = getItemKey(item);
+      const current = prev[key];
       const next = { ...prev };
       if (current?.selected) {
-        delete next[item.id];
+        delete next[key];
         return next;
       }
-      next[item.id] = {
+      next[key] = {
         selected: true,
         qty: current?.qty ?? '',
         price: current?.price || getDefaultPrice(item)
@@ -94,22 +100,24 @@ const PilihPakanOvkModal = ({
   };
 
   const handleQtyChange = (item, qty) => {
+    const key = getItemKey(item);
     setSelectedMap((prev) => ({
       ...prev,
-      [item.id]: {
+      [key]: {
         selected: true,
         qty: qty === '' ? '' : qty,
-        price: prev[item.id]?.price || getDefaultPrice(item)
+        price: prev[key]?.price || getDefaultPrice(item)
       }
     }));
   };
 
   const handlePriceChange = (item, price) => {
+    const key = getItemKey(item);
     setSelectedMap((prev) => ({
       ...prev,
-      [item.id]: {
+      [key]: {
         selected: true,
-        qty: prev[item.id]?.qty ?? '',
+        qty: prev[key]?.qty ?? '',
         price: Number(price)
       }
     }));
@@ -118,8 +126,8 @@ const PilihPakanOvkModal = ({
   const selectedItems = useMemo(() => {
     return Object.entries(selectedMap)
       .filter(([, value]) => value.selected)
-      .map(([id, value]) => {
-        const item = items.find((entry) => entry.id === id);
+      .map(([key, value]) => {
+        const item = items.find((entry) => getItemKey(entry) === key);
         if (!item) return null;
         return {
           ...item,
@@ -222,12 +230,12 @@ const PilihPakanOvkModal = ({
                   </tr>
                 )}
                 {!isLoading && !errorMessage && filteredItems.map((item) => {
-                  const current = selectedMap[item.id];
+                  const current = selectedMap[getItemKey(item)];
                   const isSelected = Boolean(current?.selected);
                   const hasPriceOptions = (item.priceOptions || []).length > 0;
                   return (
                     <tr
-                      key={item.id}
+                      key={getItemKey(item)}
                       className={`border-b border-slate-100 transition hover:bg-emerald-50/50 ${
                         isSelected ? 'bg-emerald-50' : ''
                       }`}

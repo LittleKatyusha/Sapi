@@ -204,6 +204,9 @@ class RphPembelianService {
 
   static transformProduk(item = {}) {
     const id = item.id || item.pid || item.id_produk || item.kode_barang || item.code;
+    // Satu produk bisa muncul lebih dari sekali dengan satuan berbeda (BAL/DUS),
+    // jadi identitas baris = produk + satuan, bukan id produk saja.
+    const idSatuan = item.id_satuan ?? item.idSatuan ?? null;
     const name =
       item.nama_produk ||
       item.nama_barang ||
@@ -230,6 +233,8 @@ class RphPembelianService {
 
     return {
       id: String(id ?? name),
+      id_satuan: idSatuan !== null && idSatuan !== '' ? Number(idSatuan) : null,
+      key: idSatuan !== null && idSatuan !== '' ? `${id}-${idSatuan}` : String(id ?? name),
       name,
       product,
       stock: stockText || '-',
