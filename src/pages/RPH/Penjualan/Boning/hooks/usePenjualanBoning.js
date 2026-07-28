@@ -11,6 +11,13 @@ const normalizePedagangOptions = (items = []) => items.map((item) => ({
   id_pedagang: item.id_pedagang,
   nama_alias: item.nama_alias,
   nama_identitas: item.nama_identitas,
+  saldo_awal: Number(item.saldo_awal || 0),
+  tabungan: Number(item.tabungan || 0),
+  kulit: Number(item.kulit || 0),
+  saldo_beku: Number(item.saldo_beku || 0),
+  saldo_keseluruhan: Number(item.saldo_keseluruhan ?? ((item.saldo_awal || 0) + (item.tabungan || 0) + (item.kulit || 0))),
+  saldo_akhir: Number(item.saldo_akhir ?? ((item.saldo_awal || 0) + (item.tabungan || 0) + (item.kulit || 0) - (item.saldo_beku || 0))),
+  limit_kredit: Number(item.limit_kredit || 0),
   label: item.label || `${item.nama_alias || item.nama_identitas || '-'} - ${item.id_pedagang || '-'}`,
 }));
 
@@ -40,8 +47,7 @@ const normalizeItemPotongOptions = (items = []) => items.map((item) => ({
   nama_item: item.name || item.nama_item || '-',
   id_jenis_potong: Number(item.id_jenis_potong || 0),
   stok_tersedia: Number(item.stok_tersedia || 0),
-  label: item.label
-    || `${item.name || item.nama_item || '-'}${item.jenis_potong ? ` - ${item.jenis_potong}` : ''}${item.stok_tersedia !== undefined ? ` - Stok: ${Number(item.stok_tersedia || 0).toFixed(3)} Kg` : ''}`,
+  label: `${item.name || item.nama_item || '-'}${item.jenis_potong ? ` - ${item.jenis_potong}` : ''}${item.stok_tersedia !== undefined ? ` - Stok: ${Math.round(Number(item.stok_tersedia || 0))} Kg` : ''}`,
 }));
 
 const usePenjualanBoning = () => {
@@ -148,6 +154,13 @@ const usePenjualanBoning = () => {
               id_pedagang: item.id_pedagang,
               nama_alias: item.nama_alias,
               nama_identitas: item.nama_identitas,
+              saldo_awal: item.saldo_awal,
+              tabungan: item.tabungan,
+              kulit: item.kulit,
+              saldo_beku: item.saldo_beku,
+              saldo_keseluruhan: item.saldo_keseluruhan,
+              saldo_akhir: item.saldo_akhir,
+              limit_kredit: item.limit_kredit,
             }))
           );
         }

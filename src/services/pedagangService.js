@@ -75,6 +75,30 @@ class PedagangService {
     }
   }
 
+  static async getHistorySaldo(pid, params = {}) {
+    try {
+      const response = await HttpClient.post(`${PEDAGANG_BASE}/history-saldo`, {
+        pid,
+        start: params.start || 0,
+        length: params.length || 100,
+        ...(params.jenis_transaksi && { jenis_transaksi: params.jenis_transaksi }),
+        ...(params.sumber_modul && { sumber_modul: params.sumber_modul }),
+      });
+      return {
+        success: true,
+        data: response?.data ?? response,
+        message: response?.message || 'History saldo berhasil dimuat',
+      };
+    } catch (error) {
+      const errorData = error?.data ?? error?.response?.data ?? null;
+      return {
+        success: false,
+        data: null,
+        message: errorData?.message || error?.message || 'Gagal memuat history saldo',
+      };
+    }
+  }
+
   /**
    * Create new pedagang with harga
    * @param {Object} payload - Form data including nested harga object

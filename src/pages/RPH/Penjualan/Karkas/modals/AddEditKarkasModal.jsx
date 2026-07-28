@@ -15,6 +15,8 @@ const AddEditKarkasModal = ({
     pid_pedagang: '',
     tgl_pemotongan: new Date().toISOString().split('T')[0],
     tipe_pembayaran: 1,
+    gunakan_saldo: false,
+    penggunaan_saldo: '',
     metode_pengiriman: 'DIAMBIL',
     ongkos_kirim: 0,
     is_gratis_ongkir: true,
@@ -45,6 +47,8 @@ const AddEditKarkasModal = ({
         pid_pedagang: editData.pedagang?.pid || '',
         tgl_pemotongan: editData.penjualan?.tgl_pemotongan || '',
         tipe_pembayaran: editData.penjualan?.tipe_pembayaran || 1,
+        gunakan_saldo: Number(editData.penjualan?.penggunaan_saldo || 0) > 0,
+        penggunaan_saldo: Number(editData.penjualan?.penggunaan_saldo || 0) > 0 ? String(editData.penjualan.penggunaan_saldo) : '',
         metode_pengiriman: editData.penjualan?.metode_pengiriman || 'DIAMBIL',
         ongkos_kirim: editData.penjualan?.ongkos_kirim || 0,
         is_gratis_ongkir: editData.penjualan?.is_gratis_ongkir ?? true,
@@ -65,6 +69,8 @@ const AddEditKarkasModal = ({
         pid_pedagang: '',
         tgl_pemotongan: new Date().toISOString().split('T')[0],
         tipe_pembayaran: 1,
+        gunakan_saldo: false,
+        penggunaan_saldo: '',
         metode_pengiriman: 'DIAMBIL',
         ongkos_kirim: 0,
         is_gratis_ongkir: true,
@@ -168,6 +174,7 @@ const AddEditKarkasModal = ({
         pid_pedagang: form.pid_pedagang,
         tgl_pemotongan: form.tgl_pemotongan,
         tipe_pembayaran: Number(form.tipe_pembayaran),
+        penggunaan_saldo: form.gunakan_saldo ? Number(form.penggunaan_saldo || 0) : 0,
         metode_pengiriman: form.metode_pengiriman,
         ongkos_kirim: isPickup ? 0 : (parseFloat(form.ongkos_kirim) || 0),
         is_gratis_ongkir: isPickup,
@@ -251,6 +258,12 @@ const AddEditKarkasModal = ({
               />
               {errors.tgl_pemotongan && <p className="text-xs text-red-500 mt-1">{errors.tgl_pemotongan}</p>}
             </div>
+          </div>
+
+          <div className="mb-4 rounded-lg border border-sky-200 bg-sky-50 p-3">
+            <label className="flex items-center gap-2 text-sm font-semibold text-sky-900"><input type="checkbox" checked={form.gunakan_saldo} onChange={(e) => setForm((prev) => ({ ...prev, gunakan_saldo: e.target.checked, penggunaan_saldo: e.target.checked ? prev.penggunaan_saldo : '' }))} /> Gunakan saldo pedagang</label>
+            <div className="mt-2 flex gap-2"><input type="number" min="0" step="0.01" disabled={!form.gunakan_saldo} value={form.penggunaan_saldo} onChange={(e) => setForm(f => ({ ...f, penggunaan_saldo: e.target.value }))} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="Nominal saldo" /><button type="button" disabled={!form.gunakan_saldo} onClick={() => setForm(f => ({ ...f, penggunaan_saldo: String(Math.max(0, Number(selectedPedagang?.saldo_keseluruhan || 0))) }))} className="rounded-lg border border-sky-300 px-3 text-xs font-bold text-sky-700 disabled:opacity-50">Maks</button></div>
+            <p className="mt-1 text-xs text-sky-700">Saldo tersedia: {formatCurrency(Number(selectedPedagang?.saldo_keseluruhan || 0))}</p>
           </div>
 
           {/* Row 2: Tipe Pembayaran + Ongkos Kirim */}

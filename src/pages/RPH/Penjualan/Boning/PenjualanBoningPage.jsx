@@ -361,7 +361,7 @@ const PenjualanBoningPage = () => {
       selector: (row) => row.total_berat,
       sortable: true,
       width: '130px',
-      cell: (row) => <span className="text-sm font-medium text-slate-700">{Number(row.total_berat || 0).toFixed(3)} Kg</span>,
+      cell: (row) => <span className="text-sm font-medium text-slate-700">{Math.round(Number(row.total_berat || 0))} Kg</span>,
     },
     {
       name: 'Total Harga',

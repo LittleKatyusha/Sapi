@@ -66,6 +66,7 @@ const DetailBoningModal = ({ isOpen, onClose, data }) => {
                 <div className="flex justify-between gap-3"><span>Total Harga Item</span><span className="font-semibold text-slate-900">{formatCurrency(header.total_harga)}</span></div>
                 <div className="flex justify-between gap-3"><span>Biaya Pengiriman</span><span className="font-semibold text-slate-900">{formatCurrency(header.biaya_pengiriman)}</span></div>
                 <div className="flex justify-between gap-3 border-t border-slate-200 pt-3"><span>Grand Total Tagihan</span><span className="font-bold text-slate-950">{formatCurrency(header.total_bayar)}</span></div>
+                <div className="flex justify-between gap-3"><span>Saldo Pedagang Digunakan</span><span className="font-semibold text-sky-700">{formatCurrency(header.penggunaan_saldo || 0)}</span></div>
                 <div className="flex justify-between gap-3"><span>Telah Dibayar</span><span className="font-semibold text-emerald-700">{formatCurrency(header.total_terbayar || 0)}</span></div>
                 <div className="flex justify-between gap-3"><span>Sisa Tagihan</span><span className="font-semibold text-rose-700">{formatCurrency(Math.max(0, Number(header.total_bayar || 0) - Number(header.total_terbayar || 0)))}</span></div>
                 <div className="flex justify-between gap-3 border-t border-slate-100 pt-3"><span>Bank</span><span className="font-semibold text-slate-900">{header.nama_bank ? `${header.nama_bank}${header.kode_bank ? ` (${header.kode_bank})` : ''}` : '-'}</span></div>

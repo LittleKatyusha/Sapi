@@ -291,7 +291,7 @@ const BayarPage = () => {
         )}
 
         {(isBoning || isKarkas || isKulit) && penjualan && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
               <p className="text-xs text-gray-500 font-medium uppercase">Tipe Pembayaran Penjualan</p>
               <p className="text-sm font-bold text-gray-800">{penjualan.tipe_pembayaran_label || '-'}</p>
@@ -299,6 +299,10 @@ const BayarPage = () => {
             <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
               <p className="text-xs text-gray-500 font-medium uppercase">Bank Dipilih</p>
               <p className="text-sm font-bold text-gray-800">{String(penjualan.tipe_pembayaran) === '2' ? formatBankLabel(penjualan) : 'Cash / Tunai'}</p>
+            </div>
+            <div className="bg-sky-50 rounded-xl border border-sky-100 p-4 shadow-sm">
+              <p className="text-xs text-sky-700 font-medium uppercase">Saldo Pedagang Digunakan</p>
+              <p className="text-sm font-bold text-sky-800">{formatRupiah(Number(penjualan.penggunaan_saldo || 0))}</p>
             </div>
           </div>
         )}
