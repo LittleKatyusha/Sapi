@@ -2,9 +2,9 @@ import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
-  PlusCircle, Search, Eye, Edit2, Trash2, FileText, MoreVertical,
+  PlusCircle, Search, Eye, Edit2, Trash2, FileText, MoreVertical, Wallet,
   ChevronDown, ChevronUp, ChevronLeft, ChevronRight, ArrowUpDown,
-  Users, Wallet, Activity, CheckCircle, XCircle, AlertCircle, Info,
+  Users, Activity, CheckCircle, XCircle, AlertCircle, Info,
   RotateCcw, Filter, Phone, MapPin, BarChart3, Loader2, Hash, User,
 } from 'lucide-react';
 import usePedagang from './hooks/usePedagang';
@@ -14,6 +14,7 @@ import AddEditPedagangModal from './modals/AddEditPedagangModal';
 import PedagangDetailModal from './modals/PedagangDetailModal';
 import DeleteConfirmationModal from './modals/DeleteConfirmationModal';
 import RekeningPedagangModal from './modals/RekeningPedagangModal';
+import TambahTabunganModal from './modals/TambahTabunganModal';
 
 const TIPE_LABELS = { 1: 'Langganan', 2: 'Umum' };
 const TIPE_OPTIONS = [
@@ -25,7 +26,7 @@ const DISPENSASI_OPTIONS = [
   { value: 0, label: 'Tidak Aktif' },
 ];
 
-const ActionMenuPortal = ({ row, menuPos, onClose, onDetail, onEdit, onRekening, onDelete }) => (
+const ActionMenuPortal = ({ row, menuPos, onClose, onDetail, onEdit, onRekening, onTabungan, onDelete }) => (
   <>
     <div className="fixed inset-0 z-[99998]" onClick={onClose} />
     <div
@@ -43,6 +44,12 @@ const ActionMenuPortal = ({ row, menuPos, onClose, onDetail, onEdit, onRekening,
         className="w-full text-left flex items-center gap-2 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition"
       >
         <Edit2 className="w-3.5 h-3.5 text-amber-500" /> Edit
+      </button>
+      <button
+        onClick={() => { onTabungan(row); onClose(); }}
+        className="w-full text-left flex items-center gap-2 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition"
+      >
+        <Wallet className="w-3.5 h-3.5 text-teal-500" /> Tambah Tabungan
       </button>
       <button
         onClick={() => { onRekening(row); onClose(); }}
@@ -102,6 +109,8 @@ const PedagangPage = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showRekeningModal, setShowRekeningModal] = useState(false);
   const [rekeningData, setRekeningData] = useState(null);
+  const [showTabunganModal, setShowTabunganModal] = useState(false);
+  const [tabunganData, setTabunganData] = useState(null);
   const [notification, setNotification] = useState(null);
   const [isFilterExpanded, setIsFilterExpanded] = useState(false);
   const [openMenuId, setOpenMenuId] = useState(null);
@@ -150,6 +159,11 @@ const PedagangPage = () => {
   const handleRekening = useCallback((item) => {
     setRekeningData(item);
     setShowRekeningModal(true);
+  }, []);
+
+  const handleTabungan = useCallback((item) => {
+    setTabunganData(item);
+    setShowTabunganModal(true);
   }, []);
 
   const handleConfirmDelete = useCallback(async () => {
@@ -255,6 +269,7 @@ const PedagangPage = () => {
           onDetail={handleDetail}
           onEdit={handleEdit}
           onRekening={handleRekening}
+          onTabungan={handleTabungan}
           onDelete={handleDelete}
         />,
         document.body
@@ -840,6 +855,28 @@ const PedagangPage = () => {
             }
           } catch {
             showNotification('Terjadi kesalahan saat mencetak rekening', 'error');
+          }
+        }}
+      />
+      <TambahTabunganModal
+        isOpen={showTabunganModal}
+        onClose={() => { setShowTabunganModal(false); setTabunganData(null); }}
+        pedagangData={tabunganData}
+        onSubmit={async ({ pid, nominal, note }) => {
+          try {
+            const PedagangService = (await import('../../../services/pedagangService')).default;
+            const result = await PedagangService.storeTabungan({ pid, nominal, note });
+            if (result.success) {
+              showNotification(result.message || 'Tabungan berhasil ditambahkan');
+              setShowTabunganModal(false);
+              setTabunganData(null);
+              fetchPedagang(pagination.currentPage, pagination.perPage);
+              fetchStatistics();
+            } else {
+              showNotification(result.message || 'Gagal menambahkan tabungan', 'error');
+            }
+          } catch {
+            showNotification('Terjadi kesalahan saat menambahkan tabungan', 'error');
           }
         }}
       />

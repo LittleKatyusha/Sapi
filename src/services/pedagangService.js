@@ -187,6 +187,64 @@ class PedagangService {
       };
     }
   }
+
+  /**
+   * Add nominal to pedagang's tabungan balance
+   * @param {Object} payload - { pid, nominal, note? }
+   * @returns {Promise} API response
+   */
+  static async storeTabungan(payload) {
+    try {
+      const response = await HttpClient.post(`${PEDAGANG_BASE}/tabungan/store`, payload);
+      return {
+        success: true,
+        data: response?.data ?? response,
+        message: response?.message || 'Tabungan berhasil ditambahkan',
+      };
+    } catch (error) {
+      const errorData = error?.data ?? error?.response?.data ?? null;
+      return {
+        success: false,
+        data: null,
+        message: errorData?.message || error?.message || 'Gagal menambahkan tabungan',
+      };
+    }
+  }
+
+  /**
+   * Get tabungan transaction history (server-side pagination)
+   * @param {Object} params - { pid, draw, start, length, search? }
+   * @returns {Promise} DataTable response
+   */
+  static async getTabunganHistory(params = {}) {
+    try {
+      const queryParams = new URLSearchParams({
+        pid: params.pid || '',
+        draw: params.draw || 1,
+        start: params.start || 0,
+        length: params.length || 5,
+        'search[value]': params.search || '',
+        _ts: Date.now(),
+      });
+      const response = await HttpClient.get(`${PEDAGANG_BASE}/tabungan/history?${queryParams.toString()}`);
+      return {
+        success: true,
+        data: response?.data ?? [],
+        recordsTotal: response?.recordsTotal ?? 0,
+        recordsFiltered: response?.recordsFiltered ?? 0,
+        draw: response?.draw,
+      };
+    } catch (error) {
+      const errorData = error?.data ?? error?.response?.data ?? null;
+      return {
+        success: false,
+        data: [],
+        recordsTotal: 0,
+        recordsFiltered: 0,
+        message: errorData?.message || error?.message || 'Gagal memuat history tabungan',
+      };
+    }
+  }
 }
 
 export default PedagangService;
