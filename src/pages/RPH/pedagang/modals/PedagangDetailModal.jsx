@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   X, User, Phone, MapPin, Store, Hash,
-  ChevronDown, ChevronUp, Wallet, TrendingUp, TrendingDown,
+  ChevronDown, ChevronUp, Wallet,
   Scissors, History,
 } from 'lucide-react';
 import { CUT_PARTS } from '../constants/cutParts';
@@ -42,20 +42,56 @@ const PedagangDetailModal = ({ isOpen, onClose, data }) => {
 
   const d = detail || data;
 
-  // Saldo summary items
-  const saldoItems = [
-    { label: 'Saldo Awal', value: d?.saldo_awal, icon: Wallet, color: 'bg-blue-100 text-blue-600' },
-    { label: 'Angkatan Terakhir', value: d?.angkatan_terakhir, icon: Scissors, color: 'bg-green-100 text-green-600' },
-    { label: 'Setoran Terakhir', value: d?.setoran_terakhir, icon: Wallet, color: 'bg-indigo-100 text-indigo-600' },
-    { label: 'Saldo', value: d?.saldo, icon: Wallet, color: 'bg-amber-100 text-amber-600' },
-    { label: 'Tabungan', value: d?.tabungan, icon: Wallet, color: 'bg-teal-100 text-teal-600' },
-    { label: 'Kulit', value: d?.kulit, icon: Wallet, color: 'bg-orange-100 text-orange-600' },
-    { label: 'Saldo Beku', value: d?.saldo_beku, icon: Wallet, color: 'bg-sky-100 text-sky-600' },
-    { label: 'Saldo Akhir', value: d?.saldo_akhir, icon: Wallet, color: 'bg-red-100 text-red-600' },
-    { label: 'Deposit Pedagang', value: d?.deposit_pedagang, icon: Wallet, color: 'bg-purple-100 text-purple-600' },
-    { label: 'Saldo Keseluruhan', value: d?.saldo_keseluruhan, icon: Wallet, color: 'bg-emerald-100 text-emerald-600' },
-    { label: 'Kenaikan Saldo', value: d?.kenaikan_saldo, icon: TrendingUp, color: 'bg-green-100 text-green-600' },
-    { label: 'Penurunan Saldo', value: d?.penurunan_saldo, icon: TrendingDown, color: 'bg-red-100 text-red-600' },
+  // Saldo components (input values)
+  const saldoComponents = [
+    {
+      label: 'Saldo Awal',
+      desc: 'Tabungan awal pedagang',
+      value: d?.saldo_awal,
+      icon: Wallet,
+      color: 'bg-blue-100 text-blue-600',
+    },
+    {
+      label: 'Tabungan',
+      desc: 'tabungan lain',
+      value: d?.tabungan,
+      icon: Wallet,
+      color: 'bg-teal-100 text-teal-600',
+    },
+    {
+      label: 'Kulit',
+      desc: 'Tabungan kulit pedagang',
+      value: d?.kulit,
+      icon: Wallet,
+      color: 'bg-orange-100 text-orange-600',
+    },
+    {
+      label: 'Saldo Beku',
+      desc: 'Hutang transaksi',
+      value: d?.saldo_beku,
+      icon: Wallet,
+      color: 'bg-rose-100 text-rose-600',
+    },
+  ];
+
+  // Derived summary (with formula)
+  const saldoSummary = [
+    {
+      label: 'Saldo Keseluruhan',
+      formula: 'Saldo Awal + Tabungan + Kulit',
+      value: d?.saldo_keseluruhan,
+      icon: Wallet,
+      color: 'bg-emerald-100 text-emerald-600',
+      ring: 'border-emerald-200',
+    },
+    {
+      label: 'Saldo Akhir',
+      formula: 'Saldo Awal + Tabungan + Kulit − Saldo Beku',
+      value: d?.saldo_akhir,
+      icon: Wallet,
+      color: 'bg-red-100 text-red-600',
+      ring: 'border-red-200',
+    },
   ];
 
   const toggleSection = (section) => {
@@ -202,18 +238,47 @@ const PedagangDetailModal = ({ isOpen, onClose, data }) => {
                 <Wallet className="w-4 h-4" />
                 Ringkasan Saldo
               </h4>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                {saldoItems.map(({ label, value, icon: Icon, color }) => (
-                  <div key={label} className="bg-white border border-gray-200 rounded-xl p-3">
-                    <div className="flex items-center gap-2 mb-1">
-                      <div className={`p-1.5 rounded-lg ${color}`}>
-                        <Icon className="w-3.5 h-3.5" />
+
+              {/* Komponen Saldo */}
+              <div className="mb-3">
+                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Komponen Saldo</p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {saldoComponents.map(({ label, desc, value, icon: Icon, color }) => (
+                    <div key={label} className="bg-white border border-gray-200 rounded-xl p-3">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <div className={`p-1.5 rounded-lg ${color}`}>
+                          <Icon className="w-3.5 h-3.5" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-gray-700 leading-tight truncate">{label}</p>
+                          <p className="text-[10px] text-gray-400 leading-tight truncate">{desc}</p>
+                        </div>
                       </div>
-                      <span className="text-xs text-gray-500">{label}</span>
+                      <p className="text-sm font-bold text-gray-800 tabular-nums">{formatCurrency(value)}</p>
                     </div>
-                    <p className="text-sm font-bold text-gray-800">{formatCurrency(value)}</p>
-                  </div>
-                ))}
+                  ))}
+                </div>
+              </div>
+
+              {/* Total Saldo (derived) */}
+              <div>
+                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Total Saldo</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {saldoSummary.map(({ label, formula, value, icon: Icon, color, ring }) => (
+                    <div key={label} className={`bg-white border-2 ${ring} rounded-xl p-3.5`}>
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <div className={`p-1.5 rounded-lg ${color}`}>
+                          <Icon className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-bold text-gray-800 leading-tight">{label}</p>
+                          <p className="text-[10px] text-gray-400 leading-tight italic truncate">{formula}</p>
+                        </div>
+                      </div>
+                      <p className="text-base font-extrabold text-gray-900 tabular-nums">{formatCurrency(value)}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 

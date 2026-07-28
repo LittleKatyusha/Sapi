@@ -69,7 +69,7 @@ const usePedagang = () => {
         search_id: svId,
         search_name: svName,
         search_hp: svHp,
-        orderColumn: 0,
+        orderColumn: 8,
         orderDir: 'desc',
         status_pedagang: statusFilter,
         pasar: pasarFilter,

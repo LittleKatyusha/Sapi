@@ -247,7 +247,7 @@ const PedagangPage = () => {
   const stats = useMemo(() => ({
     total: statistics?.summary?.total_pedagang ?? pagination.totalItems,
     saldoAkhir: statistics?.summary?.total_saldo_akhir ?? 0,
-    deposit: statistics?.summary?.total_deposit_pedagang ?? 0,
+    hutang: statistics?.summary?.total_saldo_beku ?? 0,
     dispensasiAktif: statistics?.summary?.total_dispensasi_aktif ?? 0,
   }), [statistics, pagination.totalItems]);
 
@@ -367,7 +367,7 @@ const PedagangPage = () => {
         <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-4">
           <StatCard title="Total Pedagang" value={statsLoading ? '...' : stats.total} icon={Users} accentColor="bg-blue-500" subtitle="Seluruh data" />
           <StatCard title="Total Saldo Akhir" value={statsLoading ? '...' : formatCurrency(stats.saldoAkhir)} icon={Wallet} accentColor="bg-amber-500" subtitle="Akumulasi saldo" />
-          <StatCard title="Total Deposit" value={statsLoading ? '...' : formatCurrency(stats.deposit)} icon={CheckCircle} accentColor="bg-emerald-500" subtitle="Akumulasi deposit" />
+          <StatCard title="Total Hutang" value={statsLoading ? '...' : formatCurrency(stats.hutang)} icon={AlertCircle} accentColor="bg-rose-500" subtitle="Akumulasi saldo beku" />
           <StatCard title="Dispensasi Aktif" value={statsLoading ? '...' : stats.dispensasiAktif} icon={Activity} accentColor="bg-purple-500" subtitle="Pedagang dengan dispensasi" />
         </div>
 
@@ -604,10 +604,10 @@ const PedagangPage = () => {
                   <th className="text-left text-[10px] font-bold text-gray-500 uppercase px-3 py-3">Pasar / Status</th>
                   <th className="text-right text-[10px] font-bold text-gray-500 uppercase px-3 py-3">
                     <button onClick={() => handleSort('saldo_akhir')} className="flex items-center gap-1 hover:text-gray-700 ml-auto">
-                      Saldo Akhir <SortIcon column="saldo_akhir" />
+                      Saldo <SortIcon column="saldo_akhir" />
                     </button>
                   </th>
-                  <th className="text-right text-[10px] font-bold text-gray-500 uppercase px-3 py-3">Tabungan + Deposit</th>
+                  <th className="text-right text-[10px] font-bold text-gray-500 uppercase px-3 py-3">Hutang</th>
                   <th className="text-center text-[10px] font-bold text-gray-500 uppercase px-3 py-3">Dispensasi</th>
                   <th className="text-center text-[10px] font-bold text-gray-500 uppercase px-3 py-3 w-10">Aksi</th>
                 </tr>
@@ -665,11 +665,20 @@ const PedagangPage = () => {
                         </div>
                       </td>
                       <td className="px-3 py-3 text-right">
-                        <span className="text-sm font-bold text-gray-800 tabular-nums">{formatCurrency(row.saldo_akhir)}</span>
+                        <div className="flex flex-col items-end gap-0.5">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[9px] text-gray-400 uppercase font-semibold">Keseluruhan</span>
+                            <span className="text-sm font-bold text-emerald-700 tabular-nums">{formatCurrency(row.saldo_keseluruhan)}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[9px] text-gray-400 uppercase font-semibold">Akhir</span>
+                            <span className="text-xs font-semibold text-gray-700 tabular-nums">{formatCurrency(row.saldo_akhir)}</span>
+                          </div>
+                        </div>
                       </td>
                       <td className="px-3 py-3 text-right">
-                        <span className="text-sm text-gray-600 tabular-nums">
-                          {formatCurrency(Number(row.tabungan || 0) + Number(row.deposit_pedagang || 0))}
+                        <span className="text-sm font-semibold text-rose-600 tabular-nums">
+                          {formatCurrency(row.saldo_beku)}
                         </span>
                       </td>
                       <td className="px-3 py-3 text-center">
@@ -743,8 +752,13 @@ const PedagangPage = () => {
                     </span>
                   </div>
                   <div>
-                    <p className="text-gray-400">Saldo Akhir</p>
-                    <p className="text-gray-800 font-bold">{formatCurrency(row.saldo_akhir)}</p>
+                    <p className="text-gray-400">Saldo Keseluruhan</p>
+                    <p className="text-emerald-700 font-bold">{formatCurrency(row.saldo_keseluruhan)}</p>
+                    <p className="text-[10px] text-gray-400">Akhir: {formatCurrency(row.saldo_akhir)}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-400">Hutang</p>
+                    <p className="text-rose-600 font-bold">{formatCurrency(row.saldo_beku)}</p>
                   </div>
                   <div>
                     <p className="text-gray-400">Dispensasi</p>
