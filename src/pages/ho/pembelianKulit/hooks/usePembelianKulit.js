@@ -328,7 +328,32 @@ const usePembelianKulit = () => {
             if (data.file && data.file instanceof File) {
                 formData.append('file', data.file);
             }
-            
+
+            // Add detail items for syncing during header update
+            if (data.detailItems && data.detailItems.length > 0) {
+                data.detailItems.forEach((item, index) => {
+                    // Include pid for existing items so backend can update them
+                    if (item.encryptedPid) {
+                        formData.append(`details[${index}][pid]`, item.encryptedPid);
+                    }
+                    formData.append(`details[${index}][id_office]`, parseInt(data.idOffice) || 1);
+                    formData.append(`details[${index}][id_item]`, parseInt(item.item_name_id) || 0);
+                    formData.append(`details[${index}][harga]`, parseFloat(item.harga) || 0);
+
+                    const persentaseValue = (() => {
+                        const raw = item.persentase;
+                        if (raw === undefined || raw === null || raw === '') return 0;
+                        const parsed = parseFloat(String(raw).replace(',', '.'));
+                        return isNaN(parsed) ? 0 : parsed;
+                    })();
+                    formData.append(`details[${index}][persentase]`, persentaseValue);
+
+                    formData.append(`details[${index}][berat]`, parseInt(item.berat) || 0);
+                    formData.append(`details[${index}][hpp]`, parseFloat(item.hpp) || 0);
+                    formData.append(`details[${index}][total_harga]`, parseFloat(item.total_harga || item.hpp) || 0);
+                });
+            }
+
             const jsonData = await HttpClient.post(`${KULIT_API_BASE}/update`, formData, {
                 // Don't set Content-Type for FormData - browser will set it automatically with boundary
                 skipCsrf: true // Skip CSRF token for JWT-based API

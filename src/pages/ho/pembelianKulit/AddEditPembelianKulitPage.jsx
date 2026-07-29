@@ -36,8 +36,7 @@ const AddEditPembelianKulitPage = () => {
     const {
         jenisPembelianOptions,
         loading: jenisPembelianLoading,
-        error: jenisPembelianError,
-        getLabelByValue: getJenisPembelianLabel
+        error: jenisPembelianError
     } = useJenisPembelianKulit();
 
     // Bank API integration for Syarat Pembelian
@@ -126,22 +125,6 @@ const AddEditPembelianKulitPage = () => {
             return fallback;
         }
         return value.toString();
-    };
-
-    // Helper functions for decimal formatting (for persentase field)
-    const formatDecimal = (value) => {
-        if (!value && value !== 0) return '';
-        const numValue = parseFloat(value);
-        if (isNaN(numValue)) return '';
-        // Format with comma as decimal separator (Indonesian style)
-        return numValue.toString().replace('.', ',');
-    };
-
-    const parseDecimal = (value) => {
-        if (!value) return 0;
-        // Replace comma with dot for parsing, then convert to float
-        const cleanValue = value.toString().replace(',', '.');
-        return parseFloat(cleanValue) || 0;
     };
 
     // Special handler for persentase input to allow comma typing
@@ -268,6 +251,7 @@ const AddEditPembelianKulitPage = () => {
                 }));
             }
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [headerData.tipe_pembayaran, bankOptions, tipePembayaranOptions]);
 
     // Ref to track if edit data has been loaded to prevent multiple API calls
@@ -391,7 +375,7 @@ const AddEditPembelianKulitPage = () => {
                             file: safeGetString(headerData.file), // Keep as string for display purposes
                             fileName: safeGetString(headerData.file_name) || safeGetString(headerData.fileName),
                             note: safeGetString(headerData.note) || safeGetString(headerData.catatan),
-                            tipe_pembayaran: safeGetString(headerData.tipe_pembayaran),
+                            tipe_pembayaran: headerData.tipe_pembayaran ? parseInt(headerData.tipe_pembayaran) : '',
                             due_date: safeGetString(headerData.due_date),
                             tipe_pembelian: jenisPembelianId || safeGetString(headerData.tipe_pembelian || headerData.jenis_pembelian)
                         });
@@ -447,6 +431,7 @@ const AddEditPembelianKulitPage = () => {
             
             loadEditData();
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isEdit, id, supplierOptions.length, officeOptions.length, farmOptions.length]);
 
 
