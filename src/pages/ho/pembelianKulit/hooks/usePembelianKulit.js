@@ -125,7 +125,11 @@ const usePembelianKulit = () => {
                     nota_ho: item.nota_ho,
                     // Also include the ID fields for potential conversion
                     id_farm: item.id_farm,
-                    id_syarat_pembelian: item.id_syarat_pembelian
+                    id_syarat_pembelian: item.id_syarat_pembelian,
+                    payment_status: item.payment_status,
+                    payment_status_label: item.payment_status_label,
+                    total_tagihan: item.total_tagihan,
+                    total_terbayar: item.total_terbayar
                 }));
                 
                 // Update pagination state from server response
