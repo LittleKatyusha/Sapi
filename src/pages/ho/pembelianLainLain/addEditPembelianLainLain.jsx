@@ -47,15 +47,12 @@ const AddEditPembelianLainLainPage = () => {
     const {
         itemLainLainOptions,
         loading: itemLainLainLoading,
-        error: itemLainLainError,
         fetchItemLainLain
     } = useItemLainLainSelect(selectedKlasifikasiForItems);
 
     // Jenis Pembelian Lain-Lain API integration
     const {
-        jenisPembelianOptions,
-        loading: jenisPembelianLoading,
-        error: jenisPembelianError
+        jenisPembelianOptions
     } = useJenisPembelianLainLain();
 
     // Bank API integration for Syarat Pembelian
@@ -137,6 +134,7 @@ const AddEditPembelianLainLainPage = () => {
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [editingDetailItem, setEditingDetailItem] = useState(null);
     const [isDetailModalSubmitting, setIsDetailModalSubmitting] = useState(false);
+    // eslint-disable-next-line no-unused-vars
     const [savingDetailId, setSavingDetailId] = useState(null); // Track which detail is being saved
 
 
@@ -281,7 +279,7 @@ const AddEditPembelianLainLainPage = () => {
                         setHeaderData({
                             nota: safeGetString(headerData.nota),
                             nota_ho: safeGetString(headerData.nota_ho),
-                            farm: headerData.id_farm ? parseInt(headerData.id_farm) : (headerData.farm ? parseInt(headerData.farm) : null),
+                            farm: headerData.id_farm ? String(headerData.id_farm) : (headerData.farm ? String(headerData.farm) : null),
                             syarat_pembelian: safeGetString(headerData.syarat_pembelian) || safeGetString(headerData.id_syarat_pembelian),
                             idOffice: officeId || (headerData.id_office ? parseInt(headerData.id_office) : null),
                             tipePembelian: tipePembelianId || (headerData.tipe_pembelian ? parseInt(headerData.tipe_pembelian) : null),
@@ -292,7 +290,7 @@ const AddEditPembelianLainLainPage = () => {
                             biaya_total: safeGetNumber(headerData.biaya_total) ?? safeGetNumber(headerData.total_belanja),
                             file: safeGetString(headerData.file), // Keep as string for display purposes
                             fileName: headerData.file ? headerData.file.split('/').pop() : '',
-                            tipe_pembayaran: safeGetString(headerData.tipe_pembayaran),
+                            tipe_pembayaran: headerData.tipe_pembayaran ? parseInt(headerData.tipe_pembayaran) : '',
                             due_date: safeGetString(headerData.due_date),
                             note: safeGetString(headerData.note) || safeGetString(headerData.catatan)
                         });
@@ -1187,7 +1185,6 @@ const AddEditPembelianLainLainPage = () => {
                 totalHargaItems: totals.totalHargaItems,
                 jenis_pembelian: 'Lain-Lain',
                 supplier: headerData.idSupplier,
-                nama_supplier: headerData.idSupplier,
                 jenis_supplier: '',
                 berat_total: totals.totalBerat // Map to berat_total for backend compatibility
             };
