@@ -4,6 +4,9 @@ import { API_ENDPOINTS } from '../../../../config/api';
 
 // HttpClient already handles JSON parsing and error handling internally
 
+// Base API endpoint for feedmil pembelian (module-level for stable reference)
+const FEEDMIL_API_BASE = API_ENDPOINTS.HO.FEEDMIL.PEMBELIAN;
+
 const usePembelianFeedmil = () => {
     const [pembelian, setPembelian] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -46,9 +49,6 @@ const usePembelianFeedmil = () => {
         perPage: 10
     });
 
-    // Base API endpoint for feedmil pembelian
-    const FEEDMIL_API_BASE = API_ENDPOINTS.HO.FEEDMIL.PEMBELIAN;
-    
     // Fetch klasifikasi feedmil data from ParameterSelectController
     const fetchKlasifikasiFeedmil = useCallback(async () => {
         try {
@@ -139,7 +139,7 @@ const usePembelianFeedmil = () => {
             
             // Add cache-busting parameter when forceRefresh is true
             const finalParams = forceRefresh ? `${params}&_t=${Date.now()}` : params;
-            const jsonData = await HttpClient.get(`${FEEDMIL_API_BASE}/data?${finalParams}`);
+            const jsonData = await HttpClient.get(`${FEEDMIL_API_BASE}/data?${finalParams}`, { cache: false });
             
             if (jsonData && jsonData.data) {
                 // Debug: Log raw API response to check nota_sistem field
@@ -178,7 +178,12 @@ const usePembelianFeedmil = () => {
                     // Also include the ID fields for potential conversion
                     id_farm: item.id_farm,
                     id_syarat_pembelian: item.id_syarat_pembelian,
-                    due_date: item.due_date
+                    due_date: item.due_date,
+                    // Payment fields from backend subqueries
+                    payment_status: item.payment_status,
+                    payment_status_label: item.payment_status_label,
+                    total_tagihan: item.total_tagihan,
+                    total_terbayar: item.total_terbayar
                 }));
                 
                 // Update pagination state from server response
@@ -211,7 +216,8 @@ const usePembelianFeedmil = () => {
             setLoading(false);
             setIsSearching(false);
         }
-    }, [searchTerm, filterJenisPembelian, advancedFilters]); // Remove serverPagination dependencies to prevent infinite loops
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- serverPagination deps intentionally omitted to prevent infinite loops
+    }, [searchTerm, filterJenisPembelian, advancedFilters]);
 
     // Create pembelian feedmil
     const createPembelian = useCallback(async (pembelianData) => {
@@ -303,9 +309,6 @@ const usePembelianFeedmil = () => {
             // Debug: Log detail items data types
             if (pembelianData.detailItems && pembelianData.detailItems.length > 0) {
             }
-            
-            // Debug: Check if auth token exists
-            const authToken = localStorage.getItem('authToken') || localStorage.getItem('token');
             
             // Try with explicit options to handle 302 redirect issue
             const jsonData = await HttpClient.post(`${FEEDMIL_API_BASE}/store`, formData, {
@@ -549,7 +552,7 @@ const usePembelianFeedmil = () => {
             setDeleteLoading(null);
             setLoading(false);
         }
-    }, [fetchPembelian, serverPagination.currentPage, serverPagination.perPage, searchTerm, filterJenisPembelian]);
+    }, [fetchPembelian, serverPagination.currentPage, serverPagination.perPage, serverPagination.totalItems, searchTerm, filterJenisPembelian]);
 
     // Get pembelian detail
     // Supports both API shapes:

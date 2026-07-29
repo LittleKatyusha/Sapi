@@ -55,9 +55,11 @@ const PembelianFeedmilPage = () => {
         return bank ? bank.nama : '';
     }, [banks]);
 
+    /* eslint-disable react-hooks/exhaustive-deps -- mount-only initial fetch */
     useEffect(() => {
         fetchPembelian();
     }, []);
+    /* eslint-enable react-hooks/exhaustive-deps */
 
     // Auto-refresh when user returns to the page (e.g., from edit page)
     useEffect(() => {
