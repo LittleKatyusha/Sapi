@@ -28,7 +28,7 @@ const DISPENSASI_OPTIONS = [
   { value: 0, label: 'Tidak Aktif' },
 ];
 
-const ActionMenuPortal = ({ row, menuPos, onClose, onDetail, onEdit, onRekening, onTabungan, onHistory, onDelete }) => (
+const ActionMenuPortal = ({ row, menuPos, onClose, onDetail, onEdit, onRekening, onTabungan, onHutang, onHistory, onDelete }) => (
   <>
     <div className="fixed inset-0 z-[99998]" onClick={onClose} />
     <div
@@ -52,6 +52,12 @@ const ActionMenuPortal = ({ row, menuPos, onClose, onDetail, onEdit, onRekening,
         className="w-full text-left flex items-center gap-2 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition"
       >
         <Wallet className="w-3.5 h-3.5 text-teal-500" /> Tambah Tabungan
+      </button>
+      <button
+        onClick={() => { onHutang(row); onClose(); }}
+        className="w-full text-left flex items-center gap-2 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition"
+      >
+        <Wallet className="w-3.5 h-3.5 text-rose-500" /> Lunasi Hutang
       </button>
       <button
         onClick={() => { onRekening(row); onClose(); }}
@@ -262,6 +268,21 @@ const PedagangPage = () => {
     setShowTabunganModal(true);
   }, []);
 
+  const handleHutang = useCallback((item) => {
+    navigate('/rph/keuangan/penerimaan', {
+      state: {
+        mode: 'bayar_hutang',
+        pedagang: {
+          pid: item?.pid,
+          nama_alias: item?.nama_alias,
+          nama_identitas: item?.nama_identitas,
+          id_pedagang: item?.id_pedagang,
+          saldo_beku: item?.saldo_beku,
+        },
+      },
+    });
+  }, [navigate]);
+
   const handleHistory = useCallback(async (item) => {
     setShowHistoryModal(true);
     setHistoryLoading(true);
@@ -386,6 +407,7 @@ const PedagangPage = () => {
           onEdit={handleEdit}
           onRekening={handleRekening}
           onTabungan={handleTabungan}
+          onHutang={handleHutang}
           onHistory={handleHistory}
           onDelete={handleDelete}
         />,
