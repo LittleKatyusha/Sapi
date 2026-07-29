@@ -395,6 +395,7 @@ function AppSecure() {
               <Route path="/rph/pembelian-pakan-ovk" element={<PembelianPakanOvkPage />} />
               <Route path="/rph/pembelian-pakan-ovk/add/:type" element={<AddPembelianPakanOvkPage />} />
               <Route path="/rph/pembelian-pakan-ovk/edit/:id" element={<AddPembelianPakanOvkPage />} />
+              <Route path="/rph/pembelian-pakan-ovk/detail/:id" element={<AddPembelianPakanOvkPage />} />
 
               {/* RPH Bahan Pembantu Routes */}
               <Route path="/rph/bahan-pembantu-rph" element={<BahanPembantuRphPage />} />

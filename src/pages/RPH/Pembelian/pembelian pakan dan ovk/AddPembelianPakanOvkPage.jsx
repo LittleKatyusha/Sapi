@@ -352,8 +352,10 @@ const FormField = ({ label, helperText, required = false, children }) => (
         const parsedId = Number(
           item.id ?? item.id_produk ?? item._original?.id_produk ?? item._original?.id
         );
+        const parsedSatuan = Number(item.id_satuan ?? item._original?.id_satuan);
         return {
           id_produk: Number.isFinite(parsedId) ? parsedId : null,
+          id_satuan: Number.isFinite(parsedSatuan) ? parsedSatuan : null,
           jumlah: Number(item.qty ?? item.jumlah ?? 0)
         };
       })

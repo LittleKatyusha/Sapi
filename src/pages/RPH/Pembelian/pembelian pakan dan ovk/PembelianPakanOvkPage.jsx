@@ -307,6 +307,8 @@ const MobilePurchaseCard = ({
     navigate(`/rph/pembelian-pakan-ovk/detail/${rowId}`, { state: { item: row, type: activeTab } });
     setOpenMenuIdDesktop(null);
     setOpenMenuIdMobile(null);
+    // hard refresh after detail navigation so page loads fresh data
+    setTimeout(() => window.location.reload(), 50);
   }, [navigate, activeTab]);
 
   const handleEdit = useCallback((row) => {

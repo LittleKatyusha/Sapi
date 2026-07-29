@@ -230,6 +230,7 @@ class RphPembelianService {
 
     return {
       id: String(id ?? name),
+      id_satuan: item.id_satuan ?? item._original?.id_satuan ?? null,
       name,
       product,
       stock: stockText || '-',
