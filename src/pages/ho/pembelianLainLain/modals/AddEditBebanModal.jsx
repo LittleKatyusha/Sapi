@@ -394,20 +394,17 @@ const AddEditBebanModal = ({
                                     <Building2 className="w-4 h-4" />
                                     Divisi *
                                 </label>
-                                <select
+                                <SearchableSelect
+                                    options={divisiOptions}
                                     value={formData.divisi}
-                                    onChange={(e) => handleChange('divisi', e.target.value)}
+                                    onChange={(value) => handleChange('divisi', value)}
                                     onBlur={() => handleBlur('divisi')}
-                                    disabled={isSubmitting || divisiLoading || isDetailMode}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 disabled:bg-gray-100"
-                                >
-                                    <option value="">Pilih Divisi</option>
-                                    {divisiOptions.map(option => (
-                                        <option key={option.value} value={option.value}>
-                                            {option.label}
-                                        </option>
-                                    ))}
-                                </select>
+                                    placeholder={divisiLoading ? 'Loading divisi...' : 'Pilih Divisi'}
+                                    isLoading={divisiLoading}
+                                    isDisabled={isSubmitting || divisiLoading || isDetailMode}
+                                    isClearable={false}
+                                    isSearchable={true}
+                                />
                                 {touched.divisi && errors.divisi && (
                                     <p className="text-xs text-red-600 mt-1">⚠️ {errors.divisi}</p>
                                 )}
@@ -553,22 +550,19 @@ const AddEditBebanModal = ({
                                     <CreditCard className="w-4 h-4" />
                                     Syarat Pembelian *
                                 </label>
-                                <select
+                                <SearchableSelect
+                                    options={tipePembayaranOptions}
                                     value={formData.syarat_pembelian}
-                                    onChange={(e) => handleChange('syarat_pembelian', e.target.value)}
+                                    onChange={(value) => handleChange('syarat_pembelian', value)}
                                     onBlur={() => handleBlur('syarat_pembelian')}
-                                    disabled={isSubmitting || tipePembayaranLoading || isDetailMode}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 disabled:bg-gray-100"
-                                >
-                                    <option value="">Pilih Syarat Pembelian</option>
-                                    {tipePembayaranOptions.map(option => (
-                                        <option key={option.value} value={option.value}>
-                                            {option.label}
-                                        </option>
-                                    ))}
-                                </select>
+                                    placeholder={tipePembayaranLoading ? 'Loading...' : 'Pilih Syarat Pembelian'}
+                                    isLoading={tipePembayaranLoading}
+                                    isDisabled={isSubmitting || tipePembayaranLoading || isDetailMode}
+                                    isClearable={false}
+                                    isSearchable={true}
+                                />
                                 {touched.syarat_pembelian && errors.syarat_pembelian && (
-                                    <p className="text-xs text-red-60 mt-1">⚠️ {errors.syarat_pembelian}</p>
+                                    <p className="text-xs text-red-600 mt-1">⚠️ {errors.syarat_pembelian}</p>
                                 )}
                                 {tipePembayaranLoading && (
                                     <div className="flex items-center mt-2 text-blue-600 text-sm">
