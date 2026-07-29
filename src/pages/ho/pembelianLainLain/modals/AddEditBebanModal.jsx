@@ -33,6 +33,7 @@ const AddEditBebanModal = ({
         divisi: '',
         jenis_beban: '',
         id_item: '', // New field for item beban biaya
+        nota: '', // Manual input for nota
         nilai: '',
         dibayarkan_oleh: '',
         tanggal_pembayaran: '',
@@ -60,20 +61,21 @@ const AddEditBebanModal = ({
         if (editingItem) {
             // Helper function to find value by label - improved to handle partial matches
             const findValueByLabel = (options, label) => {
-                if (!label || !options || options.length === 0) return '';
+                if (label === null || label === undefined || label === '' || !options || options.length === 0) return '';
                 
-                const normalizedLabel = label.trim().toLowerCase();
+                const normalizedLabel = String(label).trim().toLowerCase();
+                if (!normalizedLabel) return '';
                 
                 // Try exact match first
                 let found = options.find(opt =>
-                    opt.label?.trim().toLowerCase() === normalizedLabel
+                    opt.label?.toString().trim().toLowerCase() === normalizedLabel
                 );
                 
                 // If not found, try partial match (contains)
                 if (!found) {
                     found = options.find(opt =>
-                        opt.label?.trim().toLowerCase().includes(normalizedLabel) ||
-                        normalizedLabel.includes(opt.label?.trim().toLowerCase())
+                        opt.label?.toString().trim().toLowerCase().includes(normalizedLabel) ||
+                        normalizedLabel.includes(opt.label?.toString().trim().toLowerCase())
                     );
                 }
                 
@@ -82,22 +84,30 @@ const AddEditBebanModal = ({
 
             // Syarat Pembelian field should map from tipe_pembayaran (BANK/KAS/TUNAI)
             // Try to find the value in tipePembayaranOptions by matching the label
-            const tipePembayaranValue = findValueByLabel(tipePembayaranOptions, editingItem.tipe_pembayaran) || editingItem.tipe_pembayaran || '';
+            // Note: tipePembayaranOptions values are strings, so convert integer from backend
+            const tipePembayaranValue = findValueByLabel(tipePembayaranOptions, editingItem.tipe_pembayaran)
+                || (editingItem.tipe_pembayaran !== null && editingItem.tipe_pembayaran !== undefined ? String(editingItem.tipe_pembayaran) : '')
+                || '';
             // Bank field should map from syarat_pembelian (nama bank) or find by label
-            const bankValue = editingItem.id_syarat_pembelian || editingItem.bank_pengirim || findValueByLabel(bankOptions, editingItem.syarat_pembelian) || '';
+            // Note: bankOptions values are strings, so convert integer from backend
+            const bankValue = (editingItem.id_syarat_pembelian ? String(editingItem.id_syarat_pembelian) : '')
+                || (editingItem.bank_pengirim ? String(editingItem.bank_pengirim) : '')
+                || findValueByLabel(bankOptions, editingItem.syarat_pembelian)
+                || '';
 
             setFormData({
                 divisi: editingItem.divisi || editingItem.id_farm || findValueByLabel(divisiOptions, editingItem.farm) || '',
                 jenis_beban: editingItem.jenis_beban || editingItem.tipe_pembelian || findValueByLabel(jenisBebanOptions, editingItem.jenis_pembelian) || '',
                 id_item: editingItem.id_item?.toString() || '', // New field from backend
+                nota: editingItem.nota || '', // New field for nota
                 nilai: editingItem.nilai || editingItem.biaya_total || '',
                 dibayarkan_oleh: editingItem.dibayarkan_oleh || editingItem.nama_pembayar || '',
                 tanggal_pembayaran: editingItem.tanggal_pembayaran || editingItem.tgl_pembayaran || '',
                 peruntukan: editingItem.peruntukan || '',
                 keterangan: editingItem.keterangan || '',
-                // Bank field (id_syarat_pembelian) - maps to editingItem.syarat_pembelian (bank name)
+                // Bank field (id_syarat_pembelian) - convert to string to match bankOptions
                 id_syarat_pembelian: bankValue,
-                // Syarat Pembelian field (syarat_pembelian in form) - maps to editingItem.tipe_pembayaran (BANK/KAS)
+                // Syarat Pembelian field (syarat_pembelian in form) - convert to string to match tipePembayaranOptions
                 syarat_pembelian: tipePembayaranValue
             });
         } else {
@@ -105,6 +115,7 @@ const AddEditBebanModal = ({
                 divisi: '',
                 jenis_beban: '3',  // Auto-set for add mode
                 id_item: '', // New field
+                nota: '', // New field for nota
                 nilai: '',
                 dibayarkan_oleh: '',
                 tanggal_pembayaran: '',
@@ -323,6 +334,7 @@ const AddEditBebanModal = ({
             id_farm: formData.divisi,
             tipe_pembelian: formData.jenis_beban,
             id_item: formData.id_item, // New field for item beban biaya
+            nota: formData.nota.trim() || '-', // New field for nota
             biaya_total: parseNumber(formData.nilai) || 0,
             nama_pembayar: formData.dibayarkan_oleh.trim(),
             tgl_pembayaran: formData.tanggal_pembayaran,
@@ -408,6 +420,23 @@ const AddEditBebanModal = ({
                                 {touched.divisi && errors.divisi && (
                                     <p className="text-xs text-red-600 mt-1">⚠️ {errors.divisi}</p>
                                 )}
+                            </div>
+
+                            {/* Nota */}
+                            <div>
+                                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                    <FileText className="w-4 h-4" />
+                                    Nota
+                                </label>
+                                <input
+                                    type="text"
+                                    value={formData.nota}
+                                    onChange={(e) => handleChange('nota', e.target.value)}
+                                    disabled={isSubmitting || isDetailMode}
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 disabled:bg-gray-100"
+                                    placeholder="Masukkan nomor nota (opsional)..."
+                                />
+                                <p className="text-xs text-gray-500 mt-1">💡 Kosongkan jika tidak ada nota manual</p>
                             </div>
 
                             {/* Jenis Beban/Biaya */}

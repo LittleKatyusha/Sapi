@@ -252,9 +252,9 @@ const PembelianLainLainPage = () => {
         navigate(`/ho/pembelian-lain-lain/detail/${encodeURIComponent(id)}`);
     };
 
-    const handleBayar = (pembelian) => {
-        const id = pembelian.encryptedPid || pembelian.id;
-        if (!id || id.toString().startsWith('TEMP-') || id.toString().startsWith('beban-')) {
+    const handleBayar = useCallback((pembelian) => {
+        const id = pembelian.encryptedPid || pembelian.pid || pembelian.id;
+        if (!id || id.toString().startsWith('TEMP-')) {
             setNotification({
                 type: 'error',
                 message: 'Pembayaran tidak dapat dilanjutkan karena data belum tersimpan dengan benar'
@@ -262,7 +262,7 @@ const PembelianLainLainPage = () => {
             return;
         }
         navigate(`/ho/keuangan/pengeluaran/bayar/${encodeURIComponent(id)}`);
-    };
+    }, [navigate, setNotification]);
 
     // Handler khusus untuk edit beban
     const handleEditBeban = async (beban) => {
@@ -850,6 +850,20 @@ const PembelianLainLainPage = () => {
             )
         },
         {
+            name: 'Nota',
+            minWidth: '180px',
+            cell: row => (
+                <div className="space-y-0.5">
+                    <div className="text-sm font-medium text-gray-900 leading-tight">
+                        {row.nota && row.nota !== '-' ? row.nota : '-'}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                        {row.nota_sistem && row.nota_sistem !== '-' ? row.nota_sistem : '-'}
+                    </div>
+                </div>
+            )
+        },
+        {
             name: 'Tanggal & Divisi',
             minWidth: '160px',
             cell: row => (
@@ -906,6 +920,24 @@ const PembelianLainLainPage = () => {
             )
         },
         {
+            name: 'Status',
+            minWidth: '130px',
+            cell: row => {
+                const status = row.payment_status ?? 2;
+                const label = row.payment_status_label || (status === 1 ? 'Lunas' : status === 0 ? 'Belum Lunas' : 'Belum Bayar');
+                const styles = {
+                    1: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                    0: 'bg-amber-50 text-amber-700 border-amber-200',
+                    2: 'bg-rose-50 text-rose-700 border-rose-200',
+                };
+                return (
+                    <span className={`inline-flex px-2 py-1 text-[11px] font-semibold rounded-md border ${styles[status] || styles[2]}`}>
+                        {label}
+                    </span>
+                );
+            }
+        },
+        {
             name: 'PILIH',
             minWidth: '80px',
             maxWidth: '80px',
@@ -919,13 +951,14 @@ const PembelianLainLainPage = () => {
                             onEdit={handleEditBeban}
                             onDelete={(item) => handleDelete({...item, reportType: 'beban'})}
                             onDetail={handleDetailBeban}
+                            onBayar={handleBayar}
                             labels={{ tandaTerimaTitle: 'TANDA TERIMA BARANG - BIAYA-BIAYA' }}
                         />
                     </div>
                 );
             },
         },
-    ], [bebanPagination.currentPage, bebanPagination.perPage]);
+    ], [bebanPagination.currentPage, bebanPagination.perPage, handleBayar]);
 
     // Handler khusus untuk delete bahan pembantu
     const handleDeleteBahanPembantu = useCallback((bahanPembantu) => {

@@ -311,7 +311,7 @@ const AddEditBahanPembantuModal = ({
                     onClick={!isSubmitting ? onClose : undefined}
                 ></div>
 
-                <div className="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
+                <div className="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-6xl sm:w-full">
                     <div className="bg-gradient-to-r from-blue-500 to-indigo-600 px-6 py-4">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
@@ -338,7 +338,7 @@ const AddEditBahanPembantuModal = ({
                     </div>
 
                     <form onSubmit={handleSubmit} className="px-6 py-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             {/* Divisi */}
                             <div>
                                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
@@ -570,7 +570,7 @@ const AddEditBahanPembantuModal = ({
                             </div>
 
                             {/* Grand Total (Read-only calculated field) */}
-                            <div className="md:col-span-2">
+                            <div className="md:col-span-3">
                                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                                     <Calculator className="w-4 h-4" />
                                     Grand Total (Rp)
@@ -582,7 +582,7 @@ const AddEditBahanPembantuModal = ({
                             </div>
 
                             {/* Keterangan */}
-                            <div className="md:col-span-2">
+                            <div className="md:col-span-3">
                                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                                     <FileText className="w-4 h-4" />
                                     Keterangan
