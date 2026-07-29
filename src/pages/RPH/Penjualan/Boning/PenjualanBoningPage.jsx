@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import DataTable from 'react-data-table-component';
 import { Calendar, Eye, Loader2, MoreVertical, Pencil, PlusCircle, Search, Trash2, X } from 'lucide-react';
@@ -224,7 +224,7 @@ const PenjualanBoningPage = () => {
     setIsAddModalOpen(true);
   };
 
-  const handleLoadDetail = async (pid, onSuccess) => {
+  const handleLoadDetail = useCallback(async (pid, onSuccess) => {
     setDetailLoading(true);
     const res = await show(pid);
     setDetailLoading(false);
@@ -235,9 +235,9 @@ const PenjualanBoningPage = () => {
     }
 
     onSuccess(res.data);
-  };
+  }, [show]);
 
-  const handleOpenEdit = async (item) => {
+  const handleOpenEdit = useCallback(async (item) => {
     if (!pedagangList.length || !boningItems.length || !bankOptions.length || !pengirimOptions.length || !kendaraanOptions.length) {
       await fetchMasterData();
     }
@@ -245,14 +245,14 @@ const PenjualanBoningPage = () => {
       setSelectedItem(data);
       setIsEditModalOpen(true);
     });
-  };
+  }, [pedagangList, boningItems, bankOptions, pengirimOptions, kendaraanOptions, fetchMasterData, handleLoadDetail]);
 
-  const handleOpenDetail = async (item) => {
+  const handleOpenDetail = useCallback(async (item) => {
     await handleLoadDetail(item.pid, (data) => {
       setDetailData(data);
       setIsDetailModalOpen(true);
     });
-  };
+  }, [handleLoadDetail]);
 
   const handleOpenDelete = (item) => {
     setSelectedItem(item);
@@ -397,7 +397,7 @@ const PenjualanBoningPage = () => {
         </span>
       ),
     },
-  ]), [openMenuId, serverPagination]);
+  ]), [openMenuId, serverPagination, handleOpenDetail, handleOpenEdit]);
 
   return (
     <div className="min-h-screen bg-slate-50">

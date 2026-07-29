@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Eye, Loader2, MoreVertical, Pencil, Plus, RefreshCcw, Search, Trash2, X } from 'lucide-react';
 import PenjualanKulitService from '../../../../services/penjualanKulitService';
@@ -367,20 +367,20 @@ export default function PenjualanKulitPage() {
   const [notice, setNotice] = useState(null);
   const [openMenuId, setOpenMenuId] = useState(null);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     const res = await PenjualanKulitService.getData(filters);
     setRows(res.data || []);
     if (!res.success) setNotice({ type: 'error', message: res.message });
     setLoading(false);
-  };
+  }, [filters]);
 
   const loadMaster = async () => {
     const res = await PenjualanKulitService.getMasterData();
     if (res.success) setMaster(res.data || {});
   };
 
-  useEffect(() => { load(); loadMaster(); }, []);
+  useEffect(() => { load(); loadMaster(); }, [load]);
 
   useEffect(() => {
     if (!openMenuId) return undefined;

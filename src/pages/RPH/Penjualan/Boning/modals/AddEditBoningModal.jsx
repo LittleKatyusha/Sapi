@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Loader2, Plus, Trash2, X } from 'lucide-react';
 import SearchableSelect from '../../../../../components/shared/SearchableSelect';
 
@@ -195,7 +195,7 @@ const AddEditBoningModal = ({
     setPedagangHargaMap({});
   }, [editData, isEdit, isOpen]);
 
-  const loadPedagangHargaMap = async (pedagangPid) => {
+  const loadPedagangHargaMap = useCallback(async (pedagangPid) => {
     if (!pedagangPid || typeof fetchPedagangHarga !== 'function') {
       setPedagangHargaMap({});
       return {};
@@ -222,7 +222,7 @@ const AddEditBoningModal = ({
     }));
 
     return nextMap;
-  };
+  }, [fetchPedagangHarga]);
 
   useEffect(() => {
     let cancelled = false;
@@ -242,7 +242,7 @@ const AddEditBoningModal = ({
     return () => {
       cancelled = true;
     };
-  }, [fetchPedagangHarga, isOpen, selectedPedagang]);
+  }, [fetchPedagangHarga, isOpen, selectedPedagang, loadPedagangHargaMap]);
 
   const totals = useMemo(() => {
     const totalBerat = details.reduce((sum, item) => sum + Number(item.jumlah_kg || 0), 0);

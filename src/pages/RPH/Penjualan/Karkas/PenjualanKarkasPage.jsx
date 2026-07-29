@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Eye, Loader2, MoreVertical, Pencil, Plus, Search, Trash2, X } from 'lucide-react';
 import PenjualanKarkasService from '../../../../services/penjualanKarkasService';
@@ -374,8 +374,8 @@ export default function PenjualanKarkasPage() {
   const [rows, setRows] = useState([]); const [pedagang, setPedagang] = useState([]); const [sapi, setSapi] = useState([]); const [banks, setBanks] = useState([]); const [pengirim, setPengirim] = useState([]); const [kendaraan, setKendaraan] = useState([]); const [loading, setLoading] = useState(true); const [error, setError] = useState('');
   const [search, setSearch] = useState(''); const [page, setPage] = useState(1); const [total, setTotal] = useState(0); const [modal, setModal] = useState(null); const [form, setForm] = useState(initial()); const [saving, setSaving] = useState(false); const [detail, setDetail] = useState(null); const [openMenuId, setOpenMenuId] = useState(null); const [actionLoading, setActionLoading] = useState('');
   const perPage = 10;
-  const load = async () => { setLoading(true); try { const r = await PenjualanKarkasService.getData({ start: (page - 1) * perPage, length: perPage, draw: page, 'search[value]': search }); setRows(r.data || []); setTotal(r.recordsFiltered || 0); } catch (e) { setError(e.message); } finally { setLoading(false); } };
-  useEffect(() => { load(); }, [page, search]);
+  const load = useCallback(async () => { setLoading(true); try { const r = await PenjualanKarkasService.getData({ start: (page - 1) * perPage, length: perPage, draw: page, 'search[value]': search }); setRows(r.data || []); setTotal(r.recordsFiltered || 0); } catch (e) { setError(e.message); } finally { setLoading(false); } }, [page, search]);
+  useEffect(() => { load(); }, [load]);
   useEffect(() => {
     PenjualanKarkasService.optionsPedagang()
       .then((r) => setPedagang(optionRows(r)))
