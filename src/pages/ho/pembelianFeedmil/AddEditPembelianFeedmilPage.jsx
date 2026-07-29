@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Save, Plus, Trash2, Building2, User, Calendar, Truck, Hash, Package, X, Settings, AlertCircle, Weight, DollarSign, Upload, FileText } from 'lucide-react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Save, Plus, Trash2, Building2, User, Calendar, Truck, Hash, Package, X, Settings, AlertCircle, DollarSign, Upload, FileText } from 'lucide-react';
 import usePembelianFeedmil from './hooks/usePembelianFeedmil';
 import useParameterSelect from '../pembelian/hooks/useParameterSelect';
 import useJenisPembelianFeedmil from './hooks/useJenisPembelianFeedmil';
@@ -18,28 +18,20 @@ import { API_ENDPOINTS } from '../../../config/api';
 const AddEditPembelianFeedmilPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const location = useLocation();
     const isEdit = Boolean(id);
-    const cloneData = location.state?.cloneData;
     
     // Flag to prevent multiple API calls in edit mode
     const editDataLoaded = useRef(false);
     
     const {
-        getPembelianDetail,
         createPembelian,
         updatePembelian,
-        fetchPembelian,
-        pembelian: pembelianList,
-        loading,
-        error,
         updateDetail,
         deleteDetail
     } = usePembelianFeedmil();
 
     // Parameter Select integration - centralized data from ParameterSelectController
     const {
-        parameterData,
         supplierOptions,
         officeOptions,
         klasifikasiFeedmilOptions,
@@ -53,8 +45,7 @@ const AddEditPembelianFeedmilPage = () => {
     const {
         jenisPembelianOptions,
         loading: jenisPembelianLoading,
-        error: jenisPembelianError,
-        getLabelByValue
+        error: jenisPembelianError
     } = useJenisPembelianFeedmil();
 
     // Satuan API integration
@@ -116,21 +107,6 @@ const AddEditPembelianFeedmilPage = () => {
     const [isFileModalOpen, setIsFileModalOpen] = useState(false);
     const [existingFileName, setExistingFileName] = useState(null); // Track existing file name
 
-    // Default data untuk batch operations - aligned with backend validation
-    const [defaultData, setDefaultData] = useState({
-        item_name: '',
-        item_name_id: null, // Store the selected item ID
-        id_klasifikasi_feedmil: null, // Use null instead of empty string to avoid auto-selection
-        id_satuan: null,
-        harga: 0, // Harga satuan
-        persentase: 0, // Also change to 0 for consistency
-        jumlah: 1 // Quantity per row
-    });
-    const [batchCount, setBatchCount] = useState(0);
-    
-    // Ref to track if batchCount has been manually set by user
-    const batchCountManuallySetRef = useRef(false);
-    
     // Helper functions for number formatting (same as pembelian)
     const formatNumber = (value) => {
         if (value === null || value === undefined || value === '') return '';
@@ -162,22 +138,6 @@ const AddEditPembelianFeedmilPage = () => {
             return fallback;
         }
         return value.toString();
-    };
-
-    // Helper functions for decimal formatting (for persentase field)
-    const formatDecimal = (value) => {
-        if (!value && value !== 0) return '';
-        const numValue = parseFloat(value);
-        if (isNaN(numValue)) return '';
-        // Format with comma as decimal separator (Indonesian style)
-        return numValue.toString().replace('.', ',');
-    };
-
-    const parseDecimal = (value) => {
-        if (!value) return 0;
-        // Replace comma with dot for parsing, then convert to float
-        const cleanValue = value.toString().replace(',', '.');
-        return parseFloat(cleanValue) || 0;
     };
 
     // Special handler for persentase input to allow comma typing
@@ -320,7 +280,7 @@ const AddEditPembelianFeedmilPage = () => {
                 }));
             }
         }
-    }, [headerData.tipe_pembayaran, bankOptions, tipePembayaranOptions]);
+    }, [headerData.tipe_pembayaran, headerData.syarat_pembelian, bankOptions, tipePembayaranOptions]);
 
     // Note: Removed pembelian list fetching for edit mode since we now use /show endpoint directly
     // This eliminates the need to fetch all data and then filter by pubid
@@ -338,12 +298,10 @@ const AddEditPembelianFeedmilPage = () => {
                     // Set flag to prevent multiple calls
                     editDataLoaded.current = true;
                     
-                    const decodedId = decodeURIComponent(id);
-                    
                     // Get both header and detail data from /show endpoint only
                     // Supports: { data: { ...header, detail: [] } } and legacy { data: [...] }
                     const showResponse = await HttpClient.post(`${API_ENDPOINTS.HO.FEEDMIL.PEMBELIAN}/show`, {
-                        pid: id
+                        pid: decodeURIComponent(id)
                     });
                     
                     const payload = showResponse?.data;
@@ -577,7 +535,7 @@ const AddEditPembelianFeedmilPage = () => {
             
             loadEditData();
         }
-    }, [isEdit, id, supplierOptions.length, officeOptions.length, farmOptions.length, jenisPembelianOptions.length, tipePembayaranOptions.length, bankOptions.length]);
+    }, [isEdit, id, supplierOptions, officeOptions, farmOptions, jenisPembelianOptions, tipePembayaranOptions, bankOptions, itemFeedmilOptions]);
 
     // Reset edit data loaded flag when id changes
     useEffect(() => {
@@ -617,52 +575,18 @@ const AddEditPembelianFeedmilPage = () => {
     const addDetailItem = () => {
         const newItem = {
             id: Date.now(),
-            item_name: defaultData.item_name_display || defaultData.item_name || '',
-            item_name_id: defaultData.item_name || null,
-            id_klasifikasi_feedmil: defaultData.id_klasifikasi_feedmil || null, // Use null instead of empty string
-            id_satuan: defaultData.id_satuan || null,
-            harga: defaultData.harga || '',
-            persentase: defaultData.persentase || '', // Fix: correct spelling
-            jumlah: defaultData.jumlah || 1,
+            item_name: '',
+            item_name_id: null,
+            id_klasifikasi_feedmil: null,
+            id_satuan: null,
+            harga: '',
+            persentase: '',
+            jumlah: 1,
             hpp: '', // Will be calculated
             tgl_masuk_rph: ''
         };
-        
+
         setDetailItems(prev => [...prev, newItem]);
-    };
-
-    // Add multiple detail items (batch)
-    const addBatchDetailItems = () => {
-        if (!batchCount || batchCount < 1) {
-            setNotification({
-                type: 'error',
-                message: 'Jumlah batch harus diisi dan minimal 1 item'
-            });
-            return;
-        }
-
-        const newItems = [];
-        for (let i = 0; i < batchCount; i++) {
-            newItems.push({
-                id: Date.now() + i,
-                item_name: defaultData.item_name_display || defaultData.item_name || '',
-                item_name_id: defaultData.item_name || null,
-                id_klasifikasi_feedmil: defaultData.id_klasifikasi_feedmil || null, // Use null instead of empty string
-                id_satuan: defaultData.id_satuan || null,
-                harga: defaultData.harga || '',
-                persentase: defaultData.persentase || '', // Fix: correct spelling
-                jumlah: defaultData.jumlah || 1,
-                hpp: '', // Will be calculated
-                tgl_masuk_rph: ''
-            });
-        }
-        setDetailItems(prev => [...prev, ...newItems]);
-        
-        // Show success notification
-        setNotification({
-            type: 'success',
-            message: `Berhasil menambahkan ${batchCount} item dengan data default`
-        });
     };
 
     // Remove detail item - enhanced for edit mode
@@ -787,12 +711,13 @@ const AddEditPembelianFeedmilPage = () => {
             // Calculate HPP with new formula
             const harga = parseFloat(item.harga) || 0;
             const persentase = getParsedPersentase(item.persentase);
+            const jumlah = parseInt(item.jumlah) || 1;
             
-            // New HPP formula: HPP = harga * persentase / 100
+            // New HPP formula: HPP = harga * persentase / 100 (per unit)
             const hpp = harga * persentase / 100;
             
-            // Total Harga = harga + hpp
-            const totalHarga = harga + hpp;
+            // Total Harga = (harga + hpp) * jumlah
+            const totalHarga = (harga + hpp) * jumlah;
 
 
 
@@ -819,6 +744,7 @@ const AddEditPembelianFeedmilPage = () => {
                 harga: parseFloat(item.harga) || 0,
                 id_satuan: item.id_satuan ? parseInt(item.id_satuan) : null,
                 persentase: getParsedPersentase(item.persentase),
+                jumlah: parseInt(item.jumlah) || 1,
                 hpp: hpp,
                 total_harga: totalHarga
             };
@@ -911,24 +837,6 @@ const AddEditPembelianFeedmilPage = () => {
         }
     };
 
-    // Handle default data changes
-    const handleDefaultDataChange = (field, value) => {
-        if (field === 'item_name') {
-            // Find the display name for the selected item
-            const selectedItem = itemFeedmilOptions.find(item => item.value === value);
-            setDefaultData(prev => ({
-                ...prev,
-                item_name: value,
-                item_name_display: selectedItem ? selectedItem.label : ''
-            }));
-        } else {
-            setDefaultData(prev => ({
-                ...prev,
-                [field]: value
-            }));
-        }
-    };
-
     // Handle file upload
     const handleFileUpload = (file) => {
         if (file) {
@@ -1017,24 +925,27 @@ const AddEditPembelianFeedmilPage = () => {
 
     // Calculate totals
     const totals = useMemo(() => {
-        const totalJumlah = detailItems.length; // Count of items
+        const totalJumlah = detailItems.reduce((sum, item) => (parseInt(item.jumlah) || 1), 0); // Sum of qty
         const totalHargaBeli = detailItems.reduce((sum, item) => {
             const harga = parseFloat(item.harga);
-            return sum + (isNaN(harga) ? 0 : harga);
+            const jumlah = parseInt(item.jumlah) || 1;
+            return sum + (isNaN(harga) ? 0 : harga * jumlah);
         }, 0);
-        // Total HPP = sum of all HPP (harga * persentase / 100) calculated on-the-fly
+        // Total HPP = sum of all HPP (harga * persentase / 100 * jumlah) calculated on-the-fly
         const totalHPP = detailItems.reduce((sum, item) => {
             const harga = parseFloat(item.harga) || 0;
             const persentase = getParsedPersentase(item.persentase);
-            const hpp = harga * persentase / 100;
+            const jumlah = parseInt(item.jumlah) || 1;
+            const hpp = harga * persentase / 100 * jumlah;
             return sum + hpp;
         }, 0);
-        // Harga Jual = sum of all total_harga (harga + HPP) calculated on-the-fly
+        // Harga Jual = sum of all total_harga ((harga + hpp) * jumlah) calculated on-the-fly
         const totalHargaJual = detailItems.reduce((sum, item) => {
             const harga = parseFloat(item.harga) || 0;
             const persentase = getParsedPersentase(item.persentase);
+            const jumlah = parseInt(item.jumlah) || 1;
             const hpp = harga * persentase / 100;
-            const totalHarga = harga + hpp;
+            const totalHarga = (harga + hpp) * jumlah;
             return sum + totalHarga;
         }, 0);
         
@@ -1689,139 +1600,6 @@ const AddEditPembelianFeedmilPage = () => {
                     </div>
                 </div>
 
-                {/* Default Data & Batch Add */}
-                <div className="bg-white rounded-none sm:rounded-none p-4 sm:p-6 shadow-xl border border-gray-100">
-                    <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                        <Settings className="w-6 h-6 text-orange-600" />
-                        Data Default & Batch Add
-                    </h2>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6 mb-6">
-                        {/* Nama Item Default */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Nama Item Default
-                            </label>
-                            <SearchableSelect
-                                value={defaultData.item_name}
-                                onChange={(value) => handleDefaultDataChange('item_name', value)}
-                                options={itemFeedmilOptions}
-                                placeholder={parameterLoading ? 'Loading items...' : parameterError ? 'Error loading items' : 'Pilih Item Feedmil'}
-                                isLoading={parameterLoading}
-                                isDisabled={parameterLoading || parameterError}
-                                className="w-full"
-                            />
-                            {parameterError && (
-                                <p className="text-xs text-red-500 mt-1">
-                                    笞�・・Error loading items: {parameterError}
-                                </p>
-                            )}
-                        </div>
-
-                        {/* Klasifikasi Feedmil Default */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Klasifikasi Feedmil Default
-                            </label>
-                            <SearchableSelect
-                                value={defaultData.id_klasifikasi_feedmil}
-                                onChange={(value) => handleDefaultDataChange('id_klasifikasi_feedmil', value)}
-                                options={klasifikasiFeedmilOptions}
-                                placeholder={parameterLoading ? "Memuat..." : "Pilih Klasifikasi"}
-                                className="w-full"
-                                disabled={parameterLoading}
-                            />
-                            {parameterError && (
-                                <p className="text-xs text-red-600 mt-1">
-                                    笶・Error: {parameterError}
-                                </p>
-                            )}
-                        </div>
-
-                        {/* Satuan Default */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Satuan
-                            </label>
-                            <SearchableSelect
-                                value={defaultData.id_satuan}
-                                onChange={(value) => handleDefaultDataChange('id_satuan', value)}
-                                options={satuanOptions}
-                                placeholder={satuanLoading ? "Memuat..." : "Pilih Satuan"}
-                                className="w-full"
-                                disabled={satuanLoading}
-                            />
-                            {satuanError && (
-                                <p className="text-xs text-red-600 mt-1">
-                                    笶・Error: {satuanError}
-                                </p>
-                            )}
-                        </div>
-
-                        {/* Harga Default */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Harga Default (Rp)
-                            </label>
-                            <input
-                                type="text"
-                                value={formatNumber(defaultData.harga)}
-                                onChange={(e) => handleDefaultDataChange('harga', parseNumber(e.target.value))}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                                placeholder="300000"
-                            />
-                        </div>
-
-                        {/* Persentase Default */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Persentase Default (%)
-                            </label>
-                            <input
-                                type="text"
-                                value={defaultData.persentase || ''}
-                                onChange={(e) => handleDefaultDataChange('persentase', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                                placeholder="15,5"
-                            />
-                        </div>
-                    </div>
-
-                    {/* Batch Add Section */}
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-lg border border-orange-200">
-                        <div className="flex items-center gap-2">
-                            <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
-                                Jumlah Batch:
-                            </label>
-                            <input
-                                type="text"
-                                value={formatNumber(batchCount)}
-                                onChange={(e) => {
-                                    const rawValue = parseNumber(e.target.value);
-                                    batchCountManuallySetRef.current = true; // Mark as manually set
-                                    setBatchCount(rawValue);
-                                }}
-                                className="w-20 px-2 py-1 border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                                placeholder="0"
-                            />
-                        </div>
-                        
-                        <button
-                            onClick={addBatchDetailItems}
-                            className="bg-gradient-to-r from-orange-500 to-amber-600 text-white px-4 py-2 rounded-lg hover:from-orange-600 hover:to-amber-700 transition-all duration-300 flex items-center gap-2 text-sm font-medium shadow-md hover:shadow-lg"
-                        >
-                            <Plus className="w-4 h-4" />
-                            Tambah {formatNumber(batchCount)} Item Batch
-                        </button>
-
-                        {/* Info Text */}
-                        <div className="text-xs text-gray-600 ml-auto">
-                            <p>�庁 Isi data default untuk mempercepat input batch</p>
-                            <p>�統 Item baru akan menggunakan data default ini</p>
-                        </div>
-                    </div>
-                </div>
-
                 {/* Detail Items Table */}
                 <div className="bg-white rounded-none sm:rounded-none p-4 sm:p-6 shadow-xl border border-gray-100">
                     <div className="flex items-center justify-between mb-6">
@@ -1854,7 +1632,8 @@ const AddEditPembelianFeedmilPage = () => {
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[180px]">Nama Item</th>
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[120px]">Klasifikasi Feedmil</th>
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[120px]">Satuan</th>
-                                        <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[120px]">Harga (Rp)</th>
+                                        <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 w-24">Jumlah</th>
+                                        <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[120px]">Harga Satuan (Rp)</th>
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 w-20">Persentase (%)</th>
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[120px]">HPP (Rp)</th>
                                         <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[120px]">Total Harga</th>
@@ -1866,9 +1645,10 @@ const AddEditPembelianFeedmilPage = () => {
                                         // Calculate HPP with new formula: HPP = harga * persentase / 100
                                         const harga = parseFloat(item.harga) || 0;
                                         const persentase = getParsedPersentase(item.persentase); // Use comma-aware parsing
+                                        const jumlah = parseInt(item.jumlah) || 1;
                                         
                                         const hpp = harga * persentase / 100;
-                                        const totalHarga = harga + hpp;
+                                        const totalHarga = (harga + hpp) * jumlah;
                                         
                                         // Update item dengan calculated HPP and total_harga value
                                         if (item.hpp !== hpp || item.total_harga !== totalHarga) {
@@ -1928,7 +1708,18 @@ const AddEditPembelianFeedmilPage = () => {
                                                     />
                                                 </td>
                                                 
-                                                {/* Harga */}
+                                                {/* Jumlah (Qty) */}
+                                                <td className="p-2 sm:p-3">
+                                                    <input
+                                                        type="number"
+                                                        min="1"
+                                                        value={item.jumlah ?? 1}
+                                                        onChange={(e) => handleDetailChange(item.id, 'jumlah', parseInt(e.target.value) || 1)}
+                                                        className="w-full px-1 sm:px-2 py-1 border border-gray-300 rounded text-xs sm:text-sm"
+                                                    />
+                                                </td>
+                                                
+                                                {/* Harga Satuan */}
                                                 <td className="p-2 sm:p-3">
                                                     <input
                                                         type="text"

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { PlusCircle, Package, Truck, Calendar, CalendarDays, CalendarRange } from 'lucide-react';
+import { PlusCircle, Package, Truck, Calendar, CalendarDays, CalendarRange, Boxes } from 'lucide-react';
 
 import usePembelianOVK from './hooks/usePembelianOVK';
 import useFarmAPI from './hooks/useFarmAPI';
@@ -10,6 +10,7 @@ import PembelianOVKFilterPanel from './components/PembelianOVKFilterPanel';
 
 // Import modals
 import DeleteConfirmationModal from '../pembelianFeedmil/modals/DeleteConfirmationModal';
+import StokOvkModal from './modals/StokOvkModal';
 
 const PembelianOVKPage = () => {
     const navigate = useNavigate();
@@ -18,6 +19,7 @@ const PembelianOVKPage = () => {
     const [selectedPembelian, setSelectedPembelian] = useState(null);
     const [notification, setNotification] = useState(null);
     const [lastRefreshTime, setLastRefreshTime] = useState(Date.now());
+    const [isStokModalOpen, setIsStokModalOpen] = useState(false);
     
     const {
         pembelian: filteredData,
@@ -53,9 +55,11 @@ const PembelianOVKPage = () => {
         return bank ? bank.nama : '';
     }, [banks]);
 
+    /* eslint-disable react-hooks/exhaustive-deps -- mount-only initial fetch */
     useEffect(() => {
         fetchPembelian();
     }, []);
+    /* eslint-enable react-hooks/exhaustive-deps */
 
     // Auto-refresh when user returns to the page (e.g., from edit page)
     useEffect(() => {
@@ -268,7 +272,14 @@ const PembelianOVKPage = () => {
                         <StatCard title="Tahun Ini" value={stats.thisYear} icon={CalendarRange} accentColor="bg-indigo-500" />
                     </div>
 
-                    <div className="flex justify-end">
+                    <div className="flex justify-end gap-2">
+                        <button
+                            onClick={() => setIsStokModalOpen(true)}
+                            className="bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-4 py-2.5 rounded-lg shadow-sm hover:shadow transition-all duration-200 flex items-center gap-2 text-sm font-medium active:scale-[0.98]"
+                        >
+                            <Boxes className="w-4 h-4" />
+                            Lihat Stok
+                        </button>
                         <button
                             onClick={() => navigate('/ho/pembelian-ovk/add')}
                             className="bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-lg shadow-sm hover:shadow transition-all duration-200 flex items-center gap-2 text-sm font-medium active:scale-[0.98]"
@@ -403,6 +414,11 @@ const PembelianOVKPage = () => {
                     data={selectedPembelian}
                     loading={loading}
                     type="pembelian"
+                />
+
+                <StokOvkModal
+                    isOpen={isStokModalOpen}
+                    onClose={() => setIsStokModalOpen(false)}
                 />
             </div>
         </>

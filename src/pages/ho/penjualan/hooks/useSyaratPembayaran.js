@@ -58,44 +58,36 @@ const useSyaratPembayaran = (filterType = null) => {
     }, []);
 
     const syaratPembayaranOptions = useMemo(() => {
-        let options = syaratPembayaran.map(bank => ({
-            value: String(bank.id), // Convert to string to match form field format
+        // Identify the real KAS bank record (kode '001' + nama 'KAS') so we can
+        // send its integer id to the backend instead of a synthetic 'KAS' string.
+        const isKasBank = (b) => b && b.kode === '001' && b.nama && String(b.nama).toUpperCase() === 'KAS';
+        const kasBank = syaratPembayaran.find(isKasBank);
+
+        const buildOption = (bank) => ({
+            value: String(bank.id), // keep string for select matching
             label: bank.display_name || (bank.kode ? `[${bank.kode}] ${bank.nama}` : bank.nama),
-            id: bank.id,
+            id: bank.id,            // real integer id sent to backend
             kode: bank.kode,
             nama: bank.nama,
-            display_name: bank.display_name
-        }));
+            display_name: bank.display_name,
+            isKas: isKasBank(bank)
+        });
 
-        // Add "Kas" option at the beginning
-        const kasOption = {
-            value: 'KAS',
-            label: 'Kas',
-            id: 'KAS',
-            kode: 'KAS',
-            nama: 'Kas',
-            isKas: true
-        };
+        let options = syaratPembayaran.map(buildOption);
+
+        const kasOption = kasBank
+            ? buildOption(kasBank)
+            : { value: 'KAS', label: 'Kas', id: 'KAS', kode: 'KAS', nama: 'Kas', isKas: true };
 
         if (filterType === 'KAS') {
             // Only show Kas option
-            options = [kasOption];
+            options = kasBank ? [buildOption(kasBank)] : [kasOption];
         } else if (filterType === 'BANK') {
-            // Exclude Kas option (both manual 'KAS' value and bank records with kode/nama 'KAS'), show only actual banks
-            options = options.filter(opt => {
-                // Exclude manual KAS option
-                if (opt.value === 'KAS') return false;
-                // Exclude bank records that represent KAS (kode '001' and nama 'KAS')
-                if (opt.kode === '001' && opt.nama && opt.nama.toUpperCase() === 'KAS') return false;
-                return true;
-            });
+            // Exclude KAS record, show only actual banks
+            options = options.filter(opt => !opt.isKas);
         } else {
-            // Show all options with Kas at the beginning, but filter out duplicate KAS from bank list
-            options = options.filter(opt => {
-                // Skip bank records that represent KAS when showing all options
-                if (opt.kode === '001' && opt.nama && opt.nama.toUpperCase() === 'KAS') return false;
-                return true;
-            });
+            // Show all options with Kas at the beginning (no duplicate)
+            options = options.filter(opt => !opt.isKas);
             options = [kasOption, ...options];
         }
 

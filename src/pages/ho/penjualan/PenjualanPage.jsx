@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShoppingCart, Plus, TrendingUp, Calendar } from 'lucide-react';
+import { ShoppingCart, Plus, TrendingUp, Calendar, Boxes } from 'lucide-react';
 
 import usePenjualan from './hooks/usePenjualan';
 import { formatCurrency } from './utils/formatters';
@@ -10,6 +10,7 @@ import PenjualanCompactTable from './components/PenjualanCompactTable';
 import PenjualanCompactCard from './components/PenjualanCompactCard';
 import DeleteConfirmationModal from './modals/DeleteConfirmationModal';
 import PrintPenjualanModal from './modals/PrintPenjualanModal';
+import StokWarehouseModal from './modals/StokWarehouseModal';
 
 import PenjualanService from '../../../services/penjualanService';
 import Notification from '../../../components/shared/NotificationComponent';
@@ -52,6 +53,8 @@ const PenjualanPage = () => {
     const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
     const [printRow, setPrintRow] = useState(null);
     const [isDownloading, setIsDownloading] = useState(false);
+
+    const [isStokModalOpen, setIsStokModalOpen] = useState(false);
 
     const {
         penjualan,
@@ -193,12 +196,20 @@ const PenjualanPage = () => {
                             <p className="text-xs text-gray-500">Kelola data penjualan bahan baku pangan dan OVK</p>
                         </div>
                     </div>
-                    <button
-                        onClick={handleAddPenjualan}
-                        className="flex items-center gap-1.5 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
-                    >
-                        <Plus className="w-4 h-4" /> Tambah
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setIsStokModalOpen(true)}
+                            className="flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 rounded-lg text-sm font-medium transition-colors"
+                        >
+                            <Boxes className="w-4 h-4" /> Lihat Stok
+                        </button>
+                        <button
+                            onClick={handleAddPenjualan}
+                            className="flex items-center gap-1.5 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
+                        >
+                            <Plus className="w-4 h-4" /> Tambah
+                        </button>
+                    </div>
                 </div>
 
                 {/* Mini Stats */}
@@ -312,6 +323,12 @@ const PenjualanPage = () => {
                 onDownload={handlePrintDownload}
                 data={printRow}
                 isDownloading={isDownloading}
+            />
+
+            <StokWarehouseModal
+                isOpen={isStokModalOpen}
+                onClose={() => setIsStokModalOpen(false)}
+                activeTab={activeTab}
             />
         </div>
     );

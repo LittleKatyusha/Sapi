@@ -97,7 +97,7 @@ const usePenjualanForm = () => {
                         try {
                             const tipeResponse = await HttpClient.post('/api/system/parameter/dataByGroup', { group: 'tipe_pembayaran' });
                             const tipeList = extractApiData(tipeResponse);
-                            const matchedTipe = tipeList.find(t => t.value == record.tipe_pembayaran);
+                            const matchedTipe = tipeList.find(t => String(t.value) === String(record.tipe_pembayaran));
                             if (matchedTipe) {
                                 tipePembayaranValue = {
                                     value: matchedTipe.value,
@@ -380,24 +380,24 @@ const usePenjualanForm = () => {
                 nama_supir: formData.namaSupir,
                 plat_nomor: formData.platNomor,
                 tipe_pembayaran: formData.tipePembayaran?.value,
-                id_syarat_pembayaran: formData.syaratPembayaran?.value,
+                id_syarat_pembayaran: parseInt(formData.syaratPembayaran?.id ?? formData.syaratPembayaran?.value, 10),
                 nama_penerima: formData.namaPenerima,
                 keterangan: formData.keterangan,
                 items: detailProduk.map(item => ({
                     id_produk: parseInt(item.produk?.id || item.produk?.value, 10),
-                    jumlah: parseFloat(item.qty) || 0,
-                    harga_beli: item.produk?.hargaBeli || item.produk?.harga_beli || 0,
-                    harga_jual: item.produk?.hargaJual || item.produk?.harga_jual || 0,
-                    persentase: item.produk?.persentase || 0,
-                    subtotal: (item.produk?.hargaJual || item.produk?.harga_jual || 0) * (parseFloat(item.qty) || 0)
+                    jumlah: parseFloat(item.qty) || 0
                 }))
             };
 
+            // Idempotency key to prevent double-submit (double click / refresh)
+            const idempotencyKey = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+            const options = { headers: { 'X-Idempotency-Key': idempotencyKey } };
+
             if (isEditMode) {
-                await HttpClient.post('/api/ho/penjualan/update', { ...payload, pid });
+                await HttpClient.post('/api/ho/penjualan/update', { ...payload, pid }, options);
                 setNotification({ type: 'success', message: 'Penjualan berhasil diperbarui!' });
             } else {
-                await HttpClient.post('/api/ho/penjualan/store', payload);
+                await HttpClient.post('/api/ho/penjualan/store', payload, options);
                 setNotification({ type: 'success', message: 'File penjualan berhasil dibuat!' });
             }
 

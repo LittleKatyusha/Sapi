@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Building2, User, Calendar, Truck, Hash, Package, Eye, Weight, DollarSign } from 'lucide-react';
+import { ArrowLeft, Building2, Package, Eye } from 'lucide-react';
 import usePembelianFeedmil from './hooks/usePembelianFeedmil';
 import useFarmAPI from './hooks/useFarmAPI';
 import useBanksAPI from './hooks/useBanksAPI';
@@ -141,7 +141,12 @@ const PembelianFeedmilDetailPage = () => {
                             file: headerData.file || null
                         });
 
-                        const transformedDetailItems = detailItems.map((item, index) => ({
+                        const transformedDetailItems = detailItems
+                            .filter(item => {
+                                const j = item.jumlah;
+                                return j !== null && j !== undefined && j !== '' && Number(j) > 0;
+                            })
+                            .map((item, index) => ({
                             id: index + 1,
                             pubid: item.pid || item.pubid || '',
                             item_name: item.item_name || item.nama_item || '',
@@ -149,6 +154,7 @@ const PembelianFeedmilDetailPage = () => {
                             nama_klasifikasi_feedmil: item.nama_klasifikasi_feedmil || item.klasifikasi_feedmil || '',
                             harga: parseFloat(item.harga) || 0,
                             persentase: parseFloat(item.persentase) || 0,
+                            jumlah: parseInt(item.jumlah) || 0,
                             id_satuan: item.id_satuan || null,
                             satuan: item.satuan || '',
                             hpp: parseFloat(item.hpp) || 0,
@@ -183,7 +189,8 @@ const PembelianFeedmilDetailPage = () => {
         if (id && !pembelianData) {
             fetchDetail();
         }
-    }, [id]); // Remove getPembelianDetail dependency to prevent duplicate calls
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only fetch; adding getPembelianDetail/pembelianData causes duplicate calls
+    }, [id]);
 
     // Update farm and syarat_pembelian when farm/bank data becomes available
     useEffect(() => {
@@ -205,7 +212,7 @@ const PembelianFeedmilDetailPage = () => {
                 return prev;
             });
         }
-    }, [pembelianData?.id_farm, pembelianData?.id_syarat_pembelian, farmData, banks, getFarmName, getBankName]);
+    }, [pembelianData?.id_farm, pembelianData?.id_syarat_pembelian, farmData, banks, getFarmName, getBankName]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleBack = () => {
         navigate('/ho/pembelian-feedmil');
@@ -310,6 +317,21 @@ const PembelianFeedmilDetailPage = () => {
             )
         },
         {
+            name: 'Jumlah',
+            selector: row => row.jumlah,
+            sortable: true,
+            grow: 0.8,
+            minWidth: '80px',
+            center: true,
+            cell: row => (
+                <div className="w-full flex items-center justify-center">
+                    <span className="inline-flex px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-100 text-indigo-800">
+                        {row.jumlah || 0}
+                    </span>
+                </div>
+            )
+        },
+        {
             name: 'Satuan',
             selector: row => row.satuan || row.id_satuan,
             sortable: true,
@@ -325,7 +347,7 @@ const PembelianFeedmilDetailPage = () => {
             )
         },
         {
-            name: 'Harga',
+            name: 'Harga Satuan',
             selector: row => row.harga,
             sortable: true,
             grow: 1.2,
@@ -460,205 +482,80 @@ const PembelianFeedmilDetailPage = () => {
                 </div>
 
                 {/* Header Information */}
-                <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-xl border border-gray-100 w-full">
-                    <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                        <Building2 className="w-6 h-6 text-blue-600" />
+                <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-xl border border-gray-100 w-full">
+                    <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                        <Building2 className="w-5 h-5 text-blue-600" />
                         Informasi Pembelian Feedmil
                     </h2>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <Hash className="w-4 h-4 inline mr-1" />
-                                Nomor Nota
-                            </label>
-                            <p className="text-lg font-bold text-gray-900">
-                                {pembelianData.nota || '-'}
+
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 text-sm">
+                        <div>
+                            <p className="text-xs text-gray-500">Nomor Nota</p>
+                            <p className="font-semibold text-gray-900">{pembelianData.nota || '-'}</p>
+                        </div>
+                        <div>
+                            <p className="text-xs text-gray-500">Nota Sistem</p>
+                            <p className="font-semibold text-gray-900">{pembelianData.nota_sistem || '-'}</p>
+                        </div>
+                        <div>
+                            <p className="text-xs text-gray-500">Nota HO</p>
+                            <p className="font-semibold text-gray-900">{pembelianData.nota_ho || '-'}</p>
+                        </div>
+                        <div>
+                            <p className="text-xs text-gray-500">Supplier</p>
+                            <p className="font-semibold text-gray-900">{pembelianData.nama_supplier || '-'}</p>
+                        </div>
+                        <div>
+                            <p className="text-xs text-gray-500">Office</p>
+                            <p className="font-semibold text-gray-900">{pembelianData.nama_office || 'Head Office (HO)'}</p>
+                        </div>
+                        <div>
+                            <p className="text-xs text-gray-500">Farm</p>
+                            <p className="font-semibold text-gray-900">{pembelianData.farm || '-'}</p>
+                        </div>
+                        <div>
+                            <p className="text-xs text-gray-500">Syarat Pembelian</p>
+                            <p className="font-semibold text-gray-900">{pembelianData.syarat_pembelian || '-'}</p>
+                        </div>
+                        <div>
+                            <p className="text-xs text-gray-500">Jenis Pembelian</p>
+                            <p className="font-semibold text-gray-900">{pembelianData.jenis_pembelian || '-'}</p>
+                        </div>
+                        <div>
+                            <p className="text-xs text-gray-500">Tanggal Masuk</p>
+                            <p className="font-semibold text-gray-900">
+                                {pembelianData.tgl_masuk ? new Date(pembelianData.tgl_masuk).toLocaleDateString('id-ID') : '-'}
                             </p>
                         </div>
-
-                        <div className="bg-gradient-to-r from-sky-50 to-cyan-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <Hash className="w-4 h-4 inline mr-1" />
-                                Nota Sistem
-                            </label>
-                            <p className="text-lg font-bold text-gray-900">
-                                {pembelianData.nota_sistem || '-'}
-                            </p>
+                        <div>
+                            <p className="text-xs text-gray-500">Nama Sopir</p>
+                            <p className="font-semibold text-gray-900">{pembelianData.nama_supir || '-'}</p>
                         </div>
-
-                        <div className="bg-gradient-to-r from-cyan-50 to-blue-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <Hash className="w-4 h-4 inline mr-1" />
-                                Nota HO
-                            </label>
-                            <p className="text-lg font-bold text-gray-900">
-                                {pembelianData.nota_ho || '-'}
-                            </p>
+                        <div>
+                            <p className="text-xs text-gray-500">Plat Nomor</p>
+                            <p className="font-semibold text-gray-900 font-mono">{pembelianData.plat_nomor || '-'}</p>
                         </div>
-
-                        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <Building2 className="w-4 h-4 inline mr-1" />
-                                Farm
-                            </label>
-                            <p className="text-lg font-bold text-gray-900">
-                                {pembelianData.farm || '-'}
-                            </p>
+                        <div>
+                            <p className="text-xs text-gray-500">Total Belanja</p>
+                            <p className="font-semibold text-gray-900">{formatCurrency(pembelianData.biaya_total)}</p>
                         </div>
-
-                        <div className="bg-gradient-to-r from-emerald-50 to-green-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <Package className="w-4 h-4 inline mr-1" />
-                                Syarat Pembelian
-                            </label>
-                            <p className="text-lg font-bold text-gray-900">
-                                {pembelianData.syarat_pembelian || '-'}
-                            </p>
+                        <div>
+                            <p className="text-xs text-gray-500">Harga Beli</p>
+                            <p className="font-semibold text-gray-900">{formatCurrency(pembelianData.harga_beli)}</p>
                         </div>
-
-                        <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <Building2 className="w-4 h-4 inline mr-1" />
-                                Supplier
-                            </label>
-                            <p className="text-lg font-bold text-gray-900">
-                                {pembelianData.nama_supplier || '-'}
-                            </p>
+                        <div>
+                            <p className="text-xs text-gray-500">Harga Jual</p>
+                            <p className="font-semibold text-gray-900">{formatCurrency(pembelianData.harga_jual)}</p>
                         </div>
-
-                        <div className="bg-gradient-to-r from-purple-50 to-violet-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <Building2 className="w-4 h-4 inline mr-1" />
-                                Office
-                            </label>
-                            <p className="text-lg font-bold text-gray-900">
-                                {pembelianData.nama_office || 'Head Office (HO)'}
-                            </p>
+                        <div>
+                            <p className="text-xs text-gray-500">Biaya Lain</p>
+                            <p className="font-semibold text-gray-900">{formatCurrency(pembelianData.biaya_lain)}</p>
                         </div>
-
-                        <div className="bg-gradient-to-r from-orange-50 to-amber-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <Calendar className="w-4 h-4 inline mr-1" />
-                                Tanggal Masuk
-                            </label>
-                            <p className="text-lg font-bold text-gray-900">
-                                {pembelianData.tgl_masuk ? new Date(pembelianData.tgl_masuk).toLocaleDateString('id-ID', {
-                                    weekday: 'long',
-                                    year: 'numeric',
-                                    month: 'long',
-                                    day: 'numeric'
-                                }) : '-'}
-                            </p>
-                        </div>
-
-                        <div className="bg-gradient-to-r from-teal-50 to-cyan-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <User className="w-4 h-4 inline mr-1" />
-                                Nama Sopir
-                            </label>
-                            <p className="text-lg font-bold text-gray-900">
-                                {pembelianData.nama_supir || '-'}
-                            </p>
-                        </div>
-
-                        <div className="bg-gradient-to-r from-red-50 to-rose-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <Truck className="w-4 h-4 inline mr-1" />
-                                Plat Nomor
-                            </label>
-                            <p className="text-lg font-bold text-gray-900 font-mono">
-                                {pembelianData.plat_nomor || '-'}
-                            </p>
-                        </div>
-
-                        <div className="bg-gradient-to-r from-yellow-50 to-orange-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <Package className="w-4 h-4 inline mr-1" />
-                                Jenis Pembelian
-                            </label>
-                            <p className="text-lg font-bold text-gray-900">
-                                {pembelianData.jenis_pembelian || '-'}
-                            </p>
-                        </div>
-
-                        <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <DollarSign className="w-4 h-4 inline mr-1" />
-                                Harga Beli
-                            </label>
-                            <p className="text-lg font-bold text-gray-900">
-                                {pembelianData.harga_beli ? new Intl.NumberFormat('id-ID', {
-                                    style: 'currency',
-                                    currency: 'IDR',
-                                    minimumFractionDigits: 0,
-                                    maximumFractionDigits: 2
-                                }).format(pembelianData.harga_beli) : 'Rp 0'}
-                            </p>
-                        </div>
-
-                        <div className="bg-gradient-to-r from-emerald-50 to-teal-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <DollarSign className="w-4 h-4 inline mr-1" />
-                                Harga Jual
-                            </label>
-                            <p className="text-lg font-bold text-gray-900">
-                                {pembelianData.harga_jual ? new Intl.NumberFormat('id-ID', {
-                                    style: 'currency',
-                                    currency: 'IDR',
-                                    minimumFractionDigits: 0,
-                                    maximumFractionDigits: 2
-                                }).format(pembelianData.harga_jual) : 'Rp 0'}
-                            </p>
-                        </div>
-
-                        <div className="bg-gradient-to-r from-pink-50 to-rose-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <DollarSign className="w-4 h-4 inline mr-1" />
-                                Biaya Lain
-                            </label>
-                            <p className="text-lg font-bold text-gray-900">
-                                {pembelianData.biaya_lain ? new Intl.NumberFormat('id-ID', {
-                                    style: 'currency',
-                                    currency: 'IDR',
-                                    minimumFractionDigits: 0,
-                                    maximumFractionDigits: 2
-                                }).format(pembelianData.biaya_lain) : 'Rp 0'}
-                            </p>
-                        </div>
-
-                        <div className="bg-gradient-to-r from-amber-50 to-yellow-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <Truck className="w-4 h-4 inline mr-1" />
-                                Biaya Truk
-                            </label>
-                            <p className="text-lg font-bold text-gray-900">
-                                {pembelianData.biaya_truk ? new Intl.NumberFormat('id-ID', {
-                                    style: 'currency',
-                                    currency: 'IDR',
-                                    minimumFractionDigits: 0,
-                                    maximumFractionDigits: 2
-                                }).format(pembelianData.biaya_truk) : 'Rp 0'}
-                            </p>
-                        </div>
-
-                        <div className="bg-gradient-to-r from-rose-50 to-red-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <DollarSign className="w-4 h-4 inline mr-1" />
-                                Total Belanja
-                            </label>
-                            <p className="text-lg font-bold text-gray-900">
-                                {pembelianData.biaya_total ? new Intl.NumberFormat('id-ID', {
-                                    style: 'currency',
-                                    currency: 'IDR',
-                                    minimumFractionDigits: 0,
-                                    maximumFractionDigits: 2
-                                }).format(pembelianData.biaya_total) : 'Rp 0'}
-                            </p>
+                        <div>
+                            <p className="text-xs text-gray-500">Biaya Truk</p>
+                            <p className="font-semibold text-gray-900">{formatCurrency(pembelianData.biaya_truk)}</p>
                         </div>
                     </div>
-
-
                 </div>
 
                 {/* Detail Table */}
@@ -724,7 +621,6 @@ const PembelianFeedmilDetailPage = () => {
                             <div className="min-w-full">
                                 <StyleSheetManager shouldForwardProp={shouldForwardProp}>
                                     <DataTable
-                                    title="Daftar Detail Item Feedmil"
                                     columns={detailColumns}
                                     data={getPaginatedData()}
                                     pagination={false}

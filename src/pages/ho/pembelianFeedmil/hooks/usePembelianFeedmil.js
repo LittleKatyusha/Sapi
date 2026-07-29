@@ -124,7 +124,7 @@ const usePembelianFeedmil = () => {
                 start: ((currentPage - 1) * currentPerPage).toString(),
                 length: currentPerPage.toString(),
                 'search[value]': currentSearch || '',
-                'order[0][column]': '3', // tgl_masuk column
+                'order[0][column]': '19', // created_at column
                 'order[0][dir]': 'desc'
             });
 
@@ -295,10 +295,14 @@ const usePembelianFeedmil = () => {
                     
                     formData.append(`details[${index}][id_satuan]`, item.id_satuan ? parseInt(item.id_satuan) : '');
                     
+                    // Quantity per row (default 1 for backward compat)
+                    const itemJumlah = parseInt(item.jumlah) || 1;
+                    formData.append(`details[${index}][jumlah]`, itemJumlah);
+                    
                     // Calculate HPP and total_harga on-the-fly since they may not be stored in item state
                     const itemHarga = parseFloat(item.harga) || 0;
                     const calculatedHpp = itemHarga * persentaseValue / 100;
-                    const calculatedTotalHarga = itemHarga + calculatedHpp;
+                    const calculatedTotalHarga = (itemHarga + calculatedHpp) * itemJumlah;
                     
                     formData.append(`details[${index}][hpp]`, calculatedHpp);
                     formData.append(`details[${index}][total_harga]`, calculatedTotalHarga);
@@ -695,6 +699,7 @@ const usePembelianFeedmil = () => {
                      return result;
                  })(),
                 id_satuan: detailData.id_satuan ? parseInt(detailData.id_satuan) : null,
+                jumlah: parseInt(detailData.jumlah) || 1,
                 hpp: parseFloat(detailData.hpp || 0),
                 total_harga: parseFloat(detailData.total_harga || detailData.hpp || 0)
             };
