@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import DataTable from 'react-data-table-component';
 import {
@@ -57,18 +57,18 @@ const getStatusClasses = (status) => {
   return 'bg-amber-100 text-amber-700 border border-amber-200';
 };
 
-const SummaryCard = ({ title, value, subtext, icon: Icon, gradientClass }) => (
-  <div className={`${gradientClass} text-white p-4 sm:p-6 rounded-2xl shadow-lg`}>
-    <div className="flex items-start justify-between gap-3">
-      <div>
-        <p className="text-sm font-medium opacity-90">{title}</p>
-        <p className="mt-2 text-3xl font-bold">{value}</p>
-        <p className="mt-2 text-xs sm:text-sm opacity-85">{subtext}</p>
+const SummaryCard = ({ title, value, subtext, icon: Icon, accentClass }) => (
+  <div className="group rounded-xl border border-gray-200 bg-white p-3.5 shadow-sm transition-all hover:border-gray-300 hover:shadow-md">
+    <div className="flex items-center gap-3">
+      <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${accentClass}`}>
+        <Icon className="h-4 w-4" />
       </div>
-      <div className="rounded-xl bg-white/15 p-3">
-        <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-[11px] font-medium uppercase tracking-wide text-gray-500">{title}</p>
+        <p className="mt-0.5 truncate text-lg font-bold leading-tight text-gray-900">{value}</p>
       </div>
     </div>
+    <p className="mt-2 truncate text-[11px] text-gray-400">{subtext}</p>
   </div>
 );
 
@@ -297,19 +297,19 @@ const MobilePurchaseCard = ({
   const [isDeleting, setIsDeleting] = useState(false);
   const hasLoadedOnceRef = useRef(false);
 
- const activeData = pembelianData[activeTab] || [];
+ const activeData = useMemo(() => pembelianData[activeTab] || [], [pembelianData, activeTab]);
 
  const getRowId = (row) => row?.pid || row?.id || row?._original?.pid || row?._original?.id;
 
- const handleDetail = (row) => {
+ const handleDetail = useCallback((row) => {
    const rowId = getRowId(row);
     if (!rowId) return;
     navigate(`/rph/pembelian-pakan-ovk/detail/${rowId}`, { state: { item: row, type: activeTab } });
     setOpenMenuIdDesktop(null);
     setOpenMenuIdMobile(null);
-  };
+  }, [navigate, activeTab]);
 
-  const handleEdit = (row) => {
+  const handleEdit = useCallback((row) => {
     const rowId = getRowId(row);
     if (!rowId) return;
     navigate(`/rph/pembelian-pakan-ovk/edit/${rowId}`, { state: { item: row, type: activeTab } });
@@ -317,14 +317,15 @@ const MobilePurchaseCard = ({
     setOpenMenuIdMobile(null);
     // hard refresh after edit navigation
     setTimeout(() => window.location.reload(), 50);
-  };
-const handleDelete = (row) => {
+  }, [navigate, activeTab]);
+
+const handleDelete = useCallback((row) => {
     if (!row) return;
     setSelectedItem(row);
     setIsDeleteModalOpen(true);
     setOpenMenuIdDesktop(null);
     setOpenMenuIdMobile(null);
-  };
+  }, []);
 
   const handleConfirmDelete = async () => {
     if (!selectedItem) return;
@@ -401,7 +402,7 @@ const handleDelete = (row) => {
     return () => {
       isActive.current = false;
     };
-  }, [location.key]);
+  }, [location.key, activeTab]);
 const filteredData = useMemo(() => {
  const keyword = searchTerm.trim().toLowerCase();
  if (!keyword) return activeData;
@@ -523,7 +524,7 @@ const filteredData = useMemo(() => {
         )
       }
     ],
-    [openMenuIdDesktop, activeTab]
+    [openMenuIdDesktop, activeTab, handleDetail, handleEdit, handleDelete]
   );
 
   return (
@@ -545,105 +546,105 @@ const filteredData = useMemo(() => {
 
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/40 to-cyan-50/60">
         <div className="mx-auto max-w-full space-y-6">
-          <div className="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm sm:p-6">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-start gap-3">
-            <div className="rounded-2xl bg-emerald-100 p-3 text-emerald-700">
-            <ShoppingCart className="h-7 w-7" />
+          <div className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2.5">
+            <div className="rounded-lg bg-emerald-100 p-2 text-emerald-700">
+            <ShoppingCart className="h-5 w-5" />
             </div>
             <div>
-            <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
+            <h1 className="text-lg font-bold tracking-tight text-gray-900">
             Pembelian Bahan Baku & OVK
             </h1>
-            <p className="mt-1 text-sm text-gray-500 sm:text-base">
+            <p className="mt-0.5 text-xs text-gray-500">
             Kelola transaksi pembelian bahan baku, obat, vitamin, dan kebutuhan OVK untuk operasional RPH.
             </p>
             </div>
             </div>
            
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="flex shrink-0 items-center gap-3">
             {activeTab === 'pakan' ? (
             <button
             type="button"
             onClick={() => navigate('/rph/pembelian-pakan-ovk/add/pakan')}
-            className="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-200 bg-white px-5 py-3 text-sm font-semibold text-emerald-700 shadow-sm transition-all hover:bg-emerald-50 sm:text-base"
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-700 shadow-sm transition-all hover:bg-emerald-50"
             >
-            <PlusCircle className="h-5 w-5" />
-            Tambah Pembelian Bahan Baku
+            <PlusCircle className="h-4 w-4" />
+            Tambah Bahan Baku
             </button>
             ) : (
             <button
             type="button"
             onClick={() => navigate('/rph/pembelian-pakan-ovk/add/ovk')}
-            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-emerald-500 to-cyan-600 px-5 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:from-emerald-600 hover:to-cyan-700 sm:text-base"
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-emerald-700"
             >
-            <PlusCircle className="h-5 w-5" />
-            Tambah Pembelian OVK
+            <PlusCircle className="h-4 w-4" />
+            Tambah OVK
             </button>
             )}
             </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             <SummaryCard
             title={activeTab === 'ovk' ? 'Total Pembelian OVK' : 'Total Pembelian Bahan Baku'}
             value={stats.totalTransaksi}
             subtext={activeTab === 'ovk' ? 'Jumlah transaksi pembelian OVK' : 'Jumlah transaksi pembelian Bahan Baku'}
             icon={ClipboardList}
-            gradientClass="bg-gradient-to-br from-emerald-500 to-emerald-600"
+            accentClass="bg-emerald-100 text-emerald-600"
             />
             <SummaryCard
             title={activeTab === 'ovk' ? 'Jenis OVK' : 'Jenis Bahan Baku'}
             value={stats.jenisAktif}
             subtext={activeTab === 'ovk' ? 'Jenis OVK yang tercatat pada daftar' : 'Jenis Bahan Baku yang tercatat pada daftar'}
             icon={Pill}
-            gradientClass="bg-gradient-to-br from-blue-500 to-cyan-600"
+            accentClass="bg-blue-100 text-blue-600"
             />
             <SummaryCard
             title={activeTab === 'ovk' ? 'Total Jumlah OVK' : 'Total Jumlah Bahan Baku'}
             value={stats.totalUnit}
             subtext={activeTab === 'ovk' ? 'Akumulasi unit OVK yang dibeli' : 'Akumulasi unit Bahan Baku yang dibeli'}
             icon={Package}
-            gradientClass="bg-gradient-to-br from-violet-500 to-purple-600"
+            accentClass="bg-violet-100 text-violet-600"
             />
             <SummaryCard
             title="Total Harga"
             value={formatCurrency(stats.totalNominal)}
             subtext={activeTab === 'ovk' ? 'Akumulasi nilai pembelian OVK' : 'Akumulasi nilai pembelian Bahan Baku'}
             icon={Wallet}
-            gradientClass="bg-gradient-to-br from-amber-500 to-orange-500"
+            accentClass="bg-amber-100 text-amber-600"
             />
           </div>
 
           <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
           {/* Tab Headers */}
-          <div className="bg-gradient-to-r from-slate-50 to-gray-50">
-          <div className="flex border-b-2 border-gray-200">
+          <div className="border-b border-gray-200">
+          <div className="flex">
           <button
           onClick={() => handleTabChange('pakan')}
-          className={`relative flex-1 px-8 py-5 text-lg font-bold transition-all duration-300 ${
+          className={`relative flex-1 px-6 py-3 text-sm font-semibold transition-all ${
           activeTab === 'pakan'
-          ? 'text-white bg-gradient-to-r from-blue-600 to-cyan-600 shadow-lg'
-          : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+          ? 'text-emerald-700 bg-emerald-50/50'
+          : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
           }`}
           >
           <span className="relative z-10">Pembelian Bahan Baku</span>
           {activeTab === 'pakan' && (
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-400 to-cyan-400"></div>
+          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-500"></div>
           )}
           </button>
           <button
           onClick={() => handleTabChange('ovk')}
-          className={`relative flex-1 px-8 py-5 text-lg font-bold transition-all duration-300 ${
+          className={`relative flex-1 px-6 py-3 text-sm font-semibold transition-all ${
           activeTab === 'ovk'
-          ? 'text-white bg-gradient-to-r from-emerald-600 to-teal-600 shadow-lg'
-          : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+          ? 'text-emerald-700 bg-emerald-50/50'
+          : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
           }`}
           >
           <span className="relative z-10">Pembelian OVK</span>
           {activeTab === 'ovk' && (
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-400 to-teal-400"></div>
+          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-500"></div>
           )}
           </button>
           </div>
