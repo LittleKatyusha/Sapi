@@ -122,8 +122,9 @@ const AddEditPembelianFeedmilPage = () => {
         item_name_id: null, // Store the selected item ID
         id_klasifikasi_feedmil: null, // Use null instead of empty string to avoid auto-selection
         id_satuan: null,
-        harga: 0, // Also change to 0 for consistency
-        persentase: 0 // Also change to 0 for consistency
+        harga: 0, // Harga satuan
+        persentase: 0, // Also change to 0 for consistency
+        jumlah: 1 // Quantity per row
     });
     const [batchCount, setBatchCount] = useState(0);
     
@@ -554,6 +555,7 @@ const AddEditPembelianFeedmilPage = () => {
                                     persentase: (() => {
                                         return formatPersentaseFromBackend(item.persentase);
                                     })(),
+                                    jumlah: safeGetNumber(item.jumlah, 1) || 1,
                                     hpp: safeGetNumber(item.hpp, 0),
                                     total_harga: safeGetNumber(item.total_harga, 0),
                                     tgl_masuk_rph: safeGetString(item.tgl_masuk_rph) || new Date().toISOString().split('T')[0]
@@ -621,6 +623,7 @@ const AddEditPembelianFeedmilPage = () => {
             id_satuan: defaultData.id_satuan || null,
             harga: defaultData.harga || '',
             persentase: defaultData.persentase || '', // Fix: correct spelling
+            jumlah: defaultData.jumlah || 1,
             hpp: '', // Will be calculated
             tgl_masuk_rph: ''
         };
@@ -648,6 +651,7 @@ const AddEditPembelianFeedmilPage = () => {
                 id_satuan: defaultData.id_satuan || null,
                 harga: defaultData.harga || '',
                 persentase: defaultData.persentase || '', // Fix: correct spelling
+                jumlah: defaultData.jumlah || 1,
                 hpp: '', // Will be calculated
                 tgl_masuk_rph: ''
             });

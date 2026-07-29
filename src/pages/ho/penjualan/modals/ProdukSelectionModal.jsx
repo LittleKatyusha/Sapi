@@ -149,8 +149,6 @@ const ProdukSelectionModal = ({ isOpen, onClose, jenisPenjualan, idJenis, onSele
                                         <tr>
                                             <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Produk</th>
                                             <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Jenis</th>
-                                            <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Harga Beli</th>
-                                            <th className="px-4 py-2.5 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">%</th>
                                             <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Harga Jual</th>
                                             <th className="px-4 py-2.5 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">Stok</th>
                                             <th className="px-4 py-2.5 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide w-16">Aksi</th>
@@ -167,12 +165,6 @@ const ProdukSelectionModal = ({ isOpen, onClose, jenisPenjualan, idJenis, onSele
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <span className="text-xs text-gray-500">{produk.produk}</span>
-                                                </td>
-                                                <td className="px-4 py-3 text-sm text-right text-gray-500 whitespace-nowrap tabular-nums">
-                                                    {formatCurrency(produk.harga_beli)}
-                                                </td>
-                                                <td className="px-4 py-3 text-center text-xs text-gray-500">
-                                                    {produk.persentase}%
                                                 </td>
                                                 <td className="px-4 py-3 text-sm text-right font-medium text-gray-900 whitespace-nowrap tabular-nums">
                                                     {formatCurrency(produk.harga_jual)}
@@ -215,7 +207,6 @@ const ProdukSelectionModal = ({ isOpen, onClose, jenisPenjualan, idJenis, onSele
                                         </div>
                                         <div className="mt-2 flex items-center gap-4 text-xs text-gray-500">
                                             <span>Jual: <span className="font-medium text-gray-900">{formatCurrency(produk.harga_jual)}</span></span>
-                                            <span>Beli: {formatCurrency(produk.harga_beli)}</span>
                                             <span>Stok: {produk.jumlah}</span>
                                         </div>
                                     </div>

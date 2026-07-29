@@ -8,21 +8,11 @@ const PriceInfoPanel = ({ priceInfo }) => {
                 <h2 className="text-sm font-semibold text-gray-900">Ringkasan Harga</h2>
                 <p className="text-xs text-gray-500 mt-0.5">Estimasi margin dari produk yang dipilih.</p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-gray-100">
-                <SummaryItem
-                    label="Total Harga Beli"
-                    value={formatCurrency(priceInfo.hargaBeli)}
-                    muted
-                />
+            <div className="grid grid-cols-1">
                 <SummaryItem
                     label="Total Harga Jual"
                     value={formatCurrency(priceInfo.hargaJual)}
                     highlight
-                />
-                <SummaryItem
-                    label={priceInfo.isProfit ? 'Estimasi Laba' : 'Estimasi Rugi'}
-                    value={formatCurrency(priceInfo.labaRugi)}
-                    valueClassName={priceInfo.isProfit ? 'text-green-700' : 'text-red-700'}
                 />
             </div>
         </section>

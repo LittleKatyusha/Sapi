@@ -56,8 +56,6 @@ const ProdukDetailTable = ({ detailProduk, onQtyChange, onRemove, onAddProduk, i
                                 <tr>
                                     <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide w-10">No</th>
                                     <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Produk</th>
-                                    <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Harga Beli</th>
-                                    <th className="px-4 py-2.5 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">%</th>
                                     <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Harga Jual</th>
                                     <th className="px-4 py-2.5 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">QTY</th>
                                     <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Subtotal</th>
@@ -74,10 +72,6 @@ const ProdukDetailTable = ({ detailProduk, onQtyChange, onRemove, onAddProduk, i
                                             <td className="px-4 py-3 min-w-[180px]">
                                                 <p className="text-sm font-medium text-gray-900 truncate">{item.produk?.label}</p>
                                                 <p className="text-xs text-gray-500">{item.produk?.produk}</p>
-                                            </td>
-                                            <td className="px-4 py-3 text-xs text-right text-gray-500 whitespace-nowrap tabular-nums">{formatCurrency(item.produk?.hargaBeli || 0)}</td>
-                                            <td className="px-4 py-3 text-center">
-                                                <span className="text-xs text-gray-500">{item.produk?.persentase}%</span>
                                             </td>
                                             <td className="px-4 py-3 text-sm text-right font-medium text-gray-900 whitespace-nowrap tabular-nums">{formatCurrency(item.produk?.hargaJual || 0)}</td>
                                             <td className="px-4 py-3 text-center">
@@ -133,7 +127,6 @@ const ProdukDetailTable = ({ detailProduk, onQtyChange, onRemove, onAddProduk, i
                                     <div className="mt-3 flex items-end justify-between gap-3">
                                         <div className="text-xs text-gray-500">
                                             <p>Harga Jual: <span className="font-medium text-gray-900">{formatCurrency(item.produk?.hargaJual || 0)}</span></p>
-                                            <p className="mt-0.5">Harga Beli: {formatCurrency(item.produk?.hargaBeli || 0)} ({item.produk?.persentase}%)</p>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <input
