@@ -28,6 +28,7 @@ const AddEditBahanPembantuModal = ({
     const [formData, setFormData] = useState({
         divisi: null,
         jenis_pembelian: 4, // Auto-locked to "BAHAN PEMBANTU"
+        nota: '', // Manual nota input
         nama_produk: '',
         peruntukan: '',
         banyaknya: '',
@@ -99,14 +100,18 @@ const AddEditBahanPembantuModal = ({
                 satuanValue = findOptionIdByLabel(satuanOptions, editingItem.satuan);
             }
 
-            // Map syarat_pembayaran - from syarat_pembelian text
-            let syaratPembayaranValue = editingItem.id_syarat_pembelian || null;
+            // Map syarat_pembayaran - from tipe_pembayaran (BANK/KAS/TUNAI integer)
+            // syaratPembayaranOptions values are strings, so convert integer from backend
+            let syaratPembayaranValue = (editingItem.tipe_pembayaran !== null && editingItem.tipe_pembayaran !== undefined)
+                ? String(editingItem.tipe_pembayaran) : null;
             if (!syaratPembayaranValue && editingItem.syarat_pembelian && syaratPembayaranOptions.length > 0) {
                 syaratPembayaranValue = findOptionIdByLabel(syaratPembayaranOptions, editingItem.syarat_pembelian);
             }
 
-            // Map bank_pengirim - from tipe_pembayaran field in backend
-            let bankValue = editingItem.id_bank || null;
+            // Map bank_pengirim - from id_syarat_pembelian (bank ID integer)
+            // bankOptions values are strings, so convert integer from backend
+            let bankValue = (editingItem.id_syarat_pembelian !== null && editingItem.id_syarat_pembelian !== undefined)
+                ? String(editingItem.id_syarat_pembelian) : null;
             if (!bankValue && editingItem.tipe_pembayaran && bankOptions.length > 0) {
                 bankValue = findOptionIdByLabel(bankOptions, editingItem.tipe_pembayaran);
             }
@@ -114,14 +119,15 @@ const AddEditBahanPembantuModal = ({
             setFormData({
                 divisi: divisiValue,
                 jenis_pembelian: 4, // Always locked to "BAHAN PEMBANTU"
+                nota: editingItem.nota && editingItem.nota !== '-' ? editingItem.nota : '',
                 nama_produk: editingItem.nama_produk || '',
                 peruntukan: editingItem.peruntukan || '',
                 banyaknya: editingItem.jumlah || editingItem.banyaknya || '',
                 satuan: satuanValue,
                 harga_satuan: editingItem.harga_satuan || '',
                 pemasok: editingItem.pemasok || '',
-                biaya_kirim: editingItem.biaya_kirim || '',
-                biaya_lain_lain: editingItem.biaya_lain || editingItem.biaya_lain_lain || '',
+                biaya_kirim: editingItem.biaya_kirim != null ? String(editingItem.biaya_kirim) : '',
+                biaya_lain_lain: (editingItem.biaya_lain != null ? String(editingItem.biaya_lain) : '') || (editingItem.biaya_lain_lain != null ? String(editingItem.biaya_lain_lain) : ''),
                 syarat_pembayaran: syaratPembayaranValue,
                 bank_pengirim: bankValue,
                 keterangan: editingItem.keterangan || ''
@@ -130,6 +136,7 @@ const AddEditBahanPembantuModal = ({
             setFormData({
                 divisi: null,
                 jenis_pembelian: 4, // Always locked to "BAHAN PEMBANTU"
+                nota: '',
                 nama_produk: '',
                 peruntukan: '',
                 banyaknya: '',
@@ -264,6 +271,7 @@ const AddEditBahanPembantuModal = ({
         const dataToSave = {
             id_farm: parseInt(formData.divisi) || 0,
             tipe_pembelian: parseInt(formData.jenis_pembelian) || 4, // Always 4 for BAHAN PEMBANTU
+            nota: formData.nota.trim() || '-', // Manual nota input
             nama_produk: formData.nama_produk.trim(),
             peruntukan: formData.peruntukan.trim(),
             jumlah: parseFloat(formData.banyaknya) || 0,
@@ -373,6 +381,23 @@ const AddEditBahanPembantuModal = ({
                                     isDisabled={true}
                                     className="w-full"
                                 />
+                            </div>
+
+                            {/* Nota */}
+                            <div>
+                                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                    <FileText className="w-4 h-4" />
+                                    Nota
+                                </label>
+                                <input
+                                    type="text"
+                                    value={formData.nota}
+                                    onChange={(e) => handleChange('nota', e.target.value)}
+                                    disabled={isDetailMode || isSubmitting}
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 disabled:bg-gray-100"
+                                    placeholder="Masukkan nomor nota manual..."
+                                />
+                                <p className="text-xs text-gray-500 mt-1">💡 Kosongkan jika tidak ada. nota_sistem dibuat otomatis.</p>
                             </div>
 
                             {/* Nama Produk */}
@@ -570,7 +595,7 @@ const AddEditBahanPembantuModal = ({
                             </div>
 
                             {/* Grand Total (Read-only calculated field) */}
-                            <div className="md:col-span-3">
+                            <div className="md:col-span-2">
                                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                                     <Calculator className="w-4 h-4" />
                                     Grand Total (Rp)

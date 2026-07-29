@@ -980,6 +980,20 @@ const PembelianLainLainPage = () => {
             )
         },
         {
+            name: 'Nota',
+            minWidth: '180px',
+            cell: row => (
+                <div className="space-y-0.5">
+                    <div className="text-sm font-medium text-gray-900 leading-tight">
+                        {row.nota && row.nota !== '-' ? row.nota : '-'}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                        {row.nota_sistem && row.nota_sistem !== '-' ? row.nota_sistem : '-'}
+                    </div>
+                </div>
+            )
+        },
+        {
             name: 'Produk & Divisi',
             minWidth: '200px',
             cell: row => (
@@ -1070,6 +1084,24 @@ const PembelianLainLainPage = () => {
             )
         },
         {
+            name: 'Status',
+            minWidth: '130px',
+            cell: row => {
+                const status = row.payment_status ?? 2;
+                const label = row.payment_status_label || (status === 1 ? 'Lunas' : status === 0 ? 'Belum Lunas' : 'Belum Bayar');
+                const styles = {
+                    1: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                    0: 'bg-amber-50 text-amber-700 border-amber-200',
+                    2: 'bg-rose-50 text-rose-700 border-rose-200',
+                };
+                return (
+                    <span className={`inline-flex px-2 py-1 text-[11px] font-semibold rounded-md border ${styles[status] || styles[2]}`}>
+                        {label}
+                    </span>
+                );
+            }
+        },
+        {
             name: 'PILIH',
             minWidth: '80px',
             maxWidth: '80px',
@@ -1083,13 +1115,14 @@ const PembelianLainLainPage = () => {
                             onEdit={handleEditBahanPembantu}
                             onDelete={handleDeleteBahanPembantu}
                             onDetail={handleDetailBahanPembantu}
+                            onBayar={handleBayar}
                             labels={{ tandaTerimaTitle: 'TANDA TERIMA BARANG - BAHAN PEMBANTU' }}
                         />
                     </div>
                 );
             },
         },
-    ], [bahanPembantuPagination.currentPage, bahanPembantuPagination.perPage, handleEditBahanPembantu, handleDeleteBahanPembantu, handleDetailBahanPembantu]);
+    ], [bahanPembantuPagination.currentPage, bahanPembantuPagination.perPage, handleEditBahanPembantu, handleDeleteBahanPembantu, handleDetailBahanPembantu, handleBayar]);
 
     return (
         <>
