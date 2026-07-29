@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   AlertCircle,
   ArrowLeft,
@@ -9,7 +9,6 @@ import {
   Loader2,
   Save,
   ShoppingCart,
-  Sparkles,
   X
 } from 'lucide-react';
 import SearchableSelect from '../../../../components/shared/SearchableSelect';
@@ -121,20 +120,19 @@ const formatCurrency = (value) =>
   }).format(value || 0);
 
 const FormField = ({ label, helperText, required = false, children }) => (
-  <div className="space-y-2">
-    <label className="block text-sm font-semibold text-slate-700">
+  <div className="space-y-1.5">
+    <label className="block text-xs font-semibold text-gray-700">
       {label}
-      {required && <span className="ml-1 text-rose-500">*</span>}
+      {required && <span className="ml-0.5 text-rose-500">*</span>}
     </label>
     {children}
-    {helperText ? <p className="text-xs text-slate-400">{helperText}</p> : null}
+    {helperText ? <p className="text-[11px] text-gray-400">{helperText}</p> : null}
   </div>
 );
 
 
  const AddPembelianPakanOvkPage = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const { type, id, pubid } = useParams();
 
   const detailId = id || pubid;
@@ -422,10 +420,10 @@ const FormField = ({ label, helperText, required = false, children }) => (
 
   if (isLoadingDetail) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-cyan-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="h-10 w-10 animate-spin text-emerald-500 mx-auto" />
-          <p className="mt-3 text-sm font-medium text-slate-500">Memuat data...</p>
+          <Loader2 className="h-8 w-8 animate-spin text-emerald-500 mx-auto" />
+          <p className="mt-2 text-sm font-medium text-gray-500">Memuat data...</p>
         </div>
       </div>
     );
@@ -437,45 +435,40 @@ const FormField = ({ label, helperText, required = false, children }) => (
   const actionText = isEditMode ? 'Perbarui Data' : config.ctaText;
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br ${config.softAccentClass} p-3 sm:p-5 md:p-6`}>
-      <div className="w-full space-y-6">
-        <section className="overflow-hidden rounded-[30px] border border-white/70 bg-white shadow-[0_24px_80px_-32px_rgba(15,23,42,0.25)]">
-          <div className={`h-1.5 w-full bg-gradient-to-r ${config.accentClass}`} />
-          <div className="flex flex-col gap-5 p-5 sm:p-6 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-start gap-4">
+    <div className="min-h-screen bg-gray-50 p-3 sm:p-4 md:p-6">
+      <div className="w-full space-y-4">
+        <section className="rounded-xl border border-gray-200 bg-white shadow-sm">
+          <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+            <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={handleBack}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-600 transition hover:bg-slate-100"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:bg-gray-50"
                 aria-label="Kembali"
               >
-                <ArrowLeft className="h-5 w-5" />
+                <ArrowLeft className="h-4 w-4" />
               </button>
 
-              <div className="flex items-start gap-4">
-                <div className={`rounded-3xl p-4 ${config.iconBgClass}`}>
-                  <ShoppingCart className="h-7 w-7" />
+              <div className="flex items-center gap-2.5">
+                <div className={`rounded-lg p-2 ${config.iconBgClass}`}>
+                  <ShoppingCart className="h-5 w-5" />
                 </div>
                 <div>
-                  <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500">
-                    <Sparkles className="h-3.5 w-3.5" />
-                    Form Pengajuan RPH
-                  </div>
-                  <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+                  <h1 className="text-lg font-bold tracking-tight text-gray-900">
                     {pageTitle}
                   </h1>
-                  <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500 sm:text-base">
+                  <p className="mt-0.5 text-xs text-gray-500">
                     {config.subtitle}
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex shrink-0 items-center gap-2">
               <button
                 type="submit"
                 form="pembelian-pakan-ovk-form"
-                className={`inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r px-5 py-3 text-sm font-semibold text-white shadow-lg transition-all ${config.ctaClass}`}
+                className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-emerald-700 disabled:opacity-60"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
@@ -485,24 +478,23 @@ const FormField = ({ label, helperText, required = false, children }) => (
           </div>
         </section>
 
-        <div className="space-y-6">
+        <div className="space-y-4">
           <form
             id="pembelian-pakan-ovk-form"
             onSubmit={handleSubmit}
-            className="space-y-6"
+            className="space-y-4"
           >
-            <section className="rounded-[30px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-              <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-5">
+            <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+              <div className="flex items-center justify-between gap-3 border-b border-gray-100 pb-3">
                 <div>
-                  <h2 className="text-lg font-bold text-slate-900">Data Pengajuan</h2>
-                  <p className="mt-1 text-sm text-slate-500">
-                    Isi data utama pembelian, pilih item, dan lengkapi catatan sesuai kebutuhan operasional.
+                  <h2 className="text-sm font-bold text-gray-900">Data Pengajuan</h2>
+                  <p className="mt-0.5 text-xs text-gray-500">
+                    Isi data utama pembelian dan lengkapi catatan sesuai kebutuhan.
                   </p>
                 </div>
-
               </div>
 
-              <div className="mt-6 grid gap-5 md:grid-cols-2">
+              <div className="mt-4 grid gap-4 md:grid-cols-3">
                 <FormField
                   label="Pilih Jenis Pembelian"
                   helperText="Pilih jenis pembelian sebelum memilih item."
@@ -550,10 +542,10 @@ const FormField = ({ label, helperText, required = false, children }) => (
                     isDisabled={isItemSelectionDisabled}
                   />
                 </FormField>
-                
+
                 {tipePembayaran === 2 && (
                     <FormField label="Pilih Supplier" required>
-                        <SearchableSelect 
+                        <SearchableSelect
                             value={selectedSupplier}
                             onChange={setSelectedSupplier}
                             options={supplierOptions}
@@ -563,7 +555,7 @@ const FormField = ({ label, helperText, required = false, children }) => (
                     </FormField>
                 )}
 
-                <div className="md:col-span-2">
+                <div className="md:col-span-3">
                   <FormField
                     label={config.notesLabel}
                     helperText="Catatan ini bersifat opsional dan dapat digunakan untuk kebutuhan internal."
@@ -572,12 +564,12 @@ const FormField = ({ label, helperText, required = false, children }) => (
                       <textarea
                         value={notes}
                         onChange={(event) => setNotes(event.target.value)}
-                        rows={5}
-                        className="w-full rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-emerald-300 focus:bg-white focus:ring-4 focus:ring-emerald-100"
+                        rows={3}
+                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 outline-none transition focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100"
                         placeholder={config.notesPlaceholder}
                       />
-                      <div className="pointer-events-none absolute bottom-3 right-3 inline-flex items-center gap-1 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-medium text-slate-400 shadow-sm">
-                        <FileText className="h-3.5 w-3.5" />
+                      <div className="pointer-events-none absolute bottom-2 right-2 inline-flex items-center gap-1 rounded bg-gray-50 px-1.5 py-0.5 text-[10px] font-medium text-gray-400">
+                        <FileText className="h-3 w-3" />
                         {notes.length}/255
                       </div>
                     </div>
@@ -586,13 +578,13 @@ const FormField = ({ label, helperText, required = false, children }) => (
               </div>
             </section>
 
-            <section className="rounded-[24px] border border-slate-200 bg-white shadow-sm">
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4 sm:px-6">
+            <section className="rounded-xl border border-gray-200 bg-white shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-4 py-3 sm:px-5">
                 <div>
-                  <h3 className="text-sm font-semibold text-slate-900">
+                  <h3 className="text-sm font-semibold text-gray-900">
                     Detail Produk ({selectedItems.length} item)
                   </h3>
-                  <p className="mt-1 text-xs text-slate-500">
+                  <p className="mt-0.5 text-xs text-gray-500">
                     {selectedItems.length === 0
                       ? config.emptySelectionText
                       : `Total ${selectedItems.length} item dipilih dari modal.`}
@@ -602,9 +594,9 @@ const FormField = ({ label, helperText, required = false, children }) => (
                   type="button"
                   onClick={() => setIsItemModalOpen(true)}
                   disabled={isItemSelectionDisabled}
-                  className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-semibold shadow-sm transition ${
+                  className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
                     isItemSelectionDisabled
-                      ? 'cursor-not-allowed bg-slate-200 text-slate-500'
+                      ? 'cursor-not-allowed bg-gray-100 text-gray-400'
                       : 'bg-emerald-600 text-white hover:bg-emerald-700'
                   }`}
                 >
@@ -614,32 +606,32 @@ const FormField = ({ label, helperText, required = false, children }) => (
 
               <div className="overflow-x-auto">
                 <table className="min-w-full border-collapse text-xs">
-                  <thead className="bg-emerald-50 text-slate-600">
-                    <tr className="border-b border-emerald-100">
-                      <th className="w-12 px-4 py-2 text-left font-semibold">Pilih</th>
-                      <th className="px-4 py-2 text-left font-semibold">Nama Produk</th>
-                      <th className="px-4 py-2 text-left font-semibold">Produk</th>
-                      <th className="px-4 py-2 text-left font-semibold">Harga</th>
-                      <th className="px-4 py-2 text-left font-semibold">Jumlah Pembelian</th>
+                  <thead className="bg-gray-50 text-gray-600">
+                    <tr className="border-b border-gray-100">
+                      <th className="w-10 px-3 py-2 text-left font-semibold">Pilih</th>
+                      <th className="px-3 py-2 text-left font-semibold">Nama Produk</th>
+                      <th className="px-3 py-2 text-left font-semibold">Produk</th>
+                      <th className="px-3 py-2 text-left font-semibold">Harga</th>
+                      <th className="px-3 py-2 text-left font-semibold">Jumlah</th>
                     </tr>
                   </thead>
                   <tbody>
                     {selectedItems.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="px-4 py-8 text-center text-sm text-slate-500">
+                        <td colSpan={5} className="px-3 py-6 text-center text-sm text-gray-400">
                           {config.emptySelectionText}
                         </td>
                       </tr>
                     ) : (
                       selectedItems.map((item) => (
-                        <tr key={item.id} className="border-b border-slate-100">
-                          <td className="px-4 py-2">
+                        <tr key={item.id} className="border-b border-gray-50 hover:bg-gray-50/50">
+                          <td className="px-3 py-2">
                             <CheckSquare className="h-4 w-4 text-emerald-600" />
                           </td>
-                          <td className="px-4 py-2 font-semibold text-slate-700">{item.name}</td>
-                          <td className="px-4 py-2 text-slate-600">{item.product || '-'}</td>
-                          <td className="px-4 py-2 text-slate-700">{formatCurrency(item.price)}</td>
-                          <td className="px-4 py-2 text-slate-700">{item.qty ?? '-'}</td>
+                          <td className="px-3 py-2 font-semibold text-gray-700">{item.name}</td>
+                          <td className="px-3 py-2 text-gray-600">{item.product || '-'}</td>
+                          <td className="px-3 py-2 text-gray-700">{formatCurrency(item.price)}</td>
+                          <td className="px-3 py-2 text-gray-700">{item.qty ?? '-'}</td>
                         </tr>
                       ))
                     )}

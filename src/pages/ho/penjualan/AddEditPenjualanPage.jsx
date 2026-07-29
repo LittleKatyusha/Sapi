@@ -65,7 +65,7 @@ const AddEditPenjualanPage = () => {
         <div className="min-h-screen bg-slate-50 pb-24">
             {/* Sticky Header */}
             <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-200">
-                <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="px-4 sm:px-6 lg:px-8">
                     <div className="flex items-center gap-3 h-14">
                         <button
                             type="button"
@@ -91,7 +91,7 @@ const AddEditPenjualanPage = () => {
                 </div>
             </header>
 
-            <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
+            <main className="px-4 sm:px-6 lg:px-8 py-5">
                 <form onSubmit={handleSubmit} className="space-y-5">
                     {/* Informasi Penjualan */}
                     <section className="bg-white rounded-xl border border-gray-200/70 shadow-sm">
@@ -212,7 +212,7 @@ const AddEditPenjualanPage = () => {
 
             {/* Sticky Bottom Action Bar */}
             <div className="fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-gray-200 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
-                <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+                <div className="px-4 sm:px-6 lg:px-8 py-3">
                     <div className="flex items-center justify-between gap-4">
                         <div className="min-w-0">
                             <p className="text-xs text-gray-500">Total Penjualan</p>
