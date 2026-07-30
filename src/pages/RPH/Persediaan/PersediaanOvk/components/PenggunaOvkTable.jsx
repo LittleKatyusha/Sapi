@@ -1,24 +1,71 @@
 import React from 'react';
-import { Search, Loader2 } from 'lucide-react';
+import { ClipboardList, CalendarDays } from 'lucide-react';
+
+const SkeletonRows = ({ colCount = 4 }) => (
+  <>
+    {Array.from({ length: 6 }).map((_, i) => (
+      <tr key={i} className="border-b border-slate-100">
+        <td className="px-3 py-3 border-r border-slate-100">
+          <div className="w-6 h-4 rounded bg-slate-100 animate-pulse mx-auto" />
+        </td>
+        {Array.from({ length: colCount }).map((__, j) => (
+          <td key={j} className="px-3 py-3 border-r border-slate-100 last:border-r-0">
+            <div className="space-y-1.5">
+              <div className="w-20 h-4 rounded bg-slate-100 animate-pulse" />
+              <div className="w-16 h-3 rounded bg-slate-100 animate-pulse" />
+            </div>
+          </td>
+        ))}
+      </tr>
+    ))}
+  </>
+);
 
 const PenggunaOvkTable = ({ columns, data, loading }) => {
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-10">
-        <Loader2 className="h-6 w-6 animate-spin text-emerald-500" />
-        <span className="ml-2 text-sm text-gray-500">Memuat data penggunaan OVK...</span>
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200">
+                <th className="px-3 py-2.5 text-center text-xs font-bold text-slate-600 tracking-wide uppercase">No</th>
+                {columns.map((col) => (
+                  <th
+                    key={col.key}
+                    className="px-3 py-2.5 text-center text-xs font-bold text-slate-600 tracking-wide uppercase border-r border-slate-200 last:border-r-0"
+                    style={col.width ? { width: col.width } : undefined}
+                  >
+                    {col.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              <SkeletonRows colCount={columns.length} />
+            </tbody>
+          </table>
+        </div>
       </div>
     );
   }
 
   if (!data || data.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-gray-200 px-4 py-8 text-center">
-        <Search className="mx-auto h-8 w-8 text-gray-300" />
-        <p className="mt-2 font-medium text-sm text-gray-600">Belum ada data penggunaan OVK</p>
-        <p className="mt-0.5 text-xs text-gray-400">
-          Pilih tanggal untuk melihat data penggunaan OVK.
-        </p>
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+        <div className="flex flex-col items-center justify-center py-12 px-4">
+          <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-3">
+            <ClipboardList className="h-8 w-8 text-slate-400" />
+          </div>
+          <p className="text-slate-700 text-base font-bold">Belum ada riwayat pemakaian</p>
+          <p className="text-slate-500 text-sm mt-1 text-center max-w-xs">
+            Pilih rentang tanggal di atas untuk melihat data pemakaian OVK pada periode tersebut.
+          </p>
+          <p className="text-xs text-slate-400 mt-3 flex items-center gap-1.5">
+            <CalendarDays className="h-3.5 w-3.5" />
+            Data ditampilkan berdasarkan filter tanggal
+          </p>
+        </div>
       </div>
     );
   }
@@ -26,18 +73,16 @@ const PenggunaOvkTable = ({ columns, data, loading }) => {
   const totalColumns = columns.length;
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-gray-50 border-b border-gray-200">
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-600 tracking-wide">
-                No
-              </th>
+            <tr className="bg-slate-50 border-b border-slate-200">
+              <th className="px-3 py-2.5 text-center text-xs font-bold text-slate-600 tracking-wide uppercase">No</th>
               {columns.map((col, colIndex) => (
                 <th
                   key={col.key}
-                  className={`px-3 py-2 text-center text-xs font-semibold text-gray-600 tracking-wide${colIndex < totalColumns - 1 ? ' border-r border-gray-200' : ''}`}
+                  className={`px-3 py-2.5 text-center text-xs font-bold text-slate-600 tracking-wide uppercase${colIndex < totalColumns - 1 ? ' border-r border-slate-200' : ''}`}
                   style={col.width ? { width: col.width } : undefined}
                 >
                   {col.label}
@@ -45,13 +90,13 @@ const PenggunaOvkTable = ({ columns, data, loading }) => {
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-slate-100">
             {data.map((row, index) => (
               <tr
-                key={row.id}
-                className="transition-colors hover:bg-gray-50"
+                key={row.id || index}
+                className="transition-colors hover:bg-emerald-50/40"
               >
-                <td className="px-3 py-2 text-center text-xs text-gray-500 border-r border-gray-100">
+                <td className="px-3 py-2.5 text-center text-xs text-slate-500 border-r border-slate-100 font-medium">
                   {index + 1}
                 </td>
                 {columns.map((col, colIndex) => {
@@ -61,25 +106,25 @@ const PenggunaOvkTable = ({ columns, data, loading }) => {
                     const masuk = value?.masuk ?? 0;
                     const keluar = value?.keluar ?? 0;
                     return (
-                      <td key={col.key} className={`px-3 py-2 text-center text-xs text-gray-700${colIndex < totalColumns - 1 ? ' border-r border-gray-100' : ''}`}>
+                      <td key={col.key} className={`px-3 py-2.5 text-center text-xs text-slate-700${colIndex < totalColumns - 1 ? ' border-r border-slate-100' : ''}`}>
                         <div className="flex flex-col items-center gap-0.5">
                           <span
-                            className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium border ${
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold border ${
                               masuk > 0
-                                ? 'border-blue-200 bg-blue-50 text-blue-700'
-                                : 'border-gray-200 bg-gray-50 text-gray-400'
+                                ? 'border-sky-200 bg-sky-50 text-sky-700'
+                                : 'border-slate-200 bg-slate-50 text-slate-400'
                             }`}
                           >
-                            ↑ {masuk}
+                            <span>↑</span> {masuk}
                           </span>
                           <span
-                            className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium border ${
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold border ${
                               keluar > 0
-                                ? 'border-orange-200 bg-orange-50 text-orange-700'
-                                : 'border-gray-200 bg-gray-50 text-gray-400'
+                                ? 'border-rose-200 bg-rose-50 text-rose-700'
+                                : 'border-slate-200 bg-slate-50 text-slate-400'
                             }`}
                           >
-                            ↓ {keluar}
+                            <span>↓</span> {keluar}
                           </span>
                         </div>
                       </td>
@@ -89,12 +134,12 @@ const PenggunaOvkTable = ({ columns, data, loading }) => {
                   return (
                     <td
                       key={col.key}
-                      className={`px-3 py-2 text-center text-xs text-gray-700${colIndex < totalColumns - 1 ? ' border-r border-gray-100' : ''}`}
+                      className={`px-3 py-2.5 text-center text-xs text-slate-700${colIndex < totalColumns - 1 ? ' border-r border-slate-100' : ''}`}
                     >
                       {col.key === 'namaOvk' ? (
-                        <span className="font-medium text-gray-900">{value}</span>
+                        <span className="font-bold text-slate-900">{value}</span>
                       ) : col.key === 'satuan' ? (
-                        <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium border border-slate-200 bg-slate-50 text-slate-600">
+                        <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold border border-slate-200 bg-slate-50 text-slate-600">
                           {value}
                         </span>
                       ) : (
@@ -107,6 +152,15 @@ const PenggunaOvkTable = ({ columns, data, loading }) => {
             ))}
           </tbody>
         </table>
+      </div>
+      {/* Compact footer info */}
+      <div className="border-t border-slate-200 bg-slate-50/60 px-4 py-2.5 flex items-center justify-between">
+        <div className="text-xs text-slate-500">
+          Menampilkan <b className="text-slate-700">{data.length}</b> produk
+        </div>
+        <div className="text-xs text-slate-400">
+          Periode: <b className="text-slate-600">{columns.filter(c => c.dateKey).length}</b> hari
+        </div>
       </div>
     </div>
   );

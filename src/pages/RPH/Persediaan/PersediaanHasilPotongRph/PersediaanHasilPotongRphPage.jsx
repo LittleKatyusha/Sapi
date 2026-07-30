@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from 'react';
-import { Package, Scissors, Layers, Loader2 } from 'lucide-react';
+import React, { useState, useCallback, useEffect } from 'react';
+import { Package, Layers, Loader2, Beef, Boxes, CheckCircle2, XCircle, X } from 'lucide-react';
 import useDocumentTitle from '../../../../hooks/useDocumentTitle';
 import PersediaanTab from './components/PersediaanTab';
 import BoningTab from './components/BoningTab';
@@ -11,11 +11,20 @@ import StokSapiService from '../../../../services/stokSapiService';
 import PotongSapiBiasaModal from '../../StokSapi/modals/PotongSapiBiasaModal';
 
 const TABS = [
-  { id: 'boning', label: 'Boning', icon: Scissors },
-  { id: 'sapi', label: 'Sapi', icon: Package },
-  { id: 'karkas', label: 'Karkas', icon: Layers },
-  { id: 'kulit', label: 'Kulit', icon: Package },
+  { id: 'boning', label: 'Boning', icon: Beef, desc: 'Item potong boning' },
+  { id: 'sapi', label: 'Sapi', icon: Package, desc: 'Stok sapi hidup' },
+  { id: 'karkas', label: 'Karkas', icon: Layers, desc: 'Karkas utuh' },
+  { id: 'kulit', label: 'Kulit', icon: Boxes, desc: 'Hasil potong kulit' },
 ];
+
+const fetchTabCount = async (type) => {
+  try {
+    const res = await PersediaanHasilPotongService.getData(type, { start: 0, length: 1, search: '' });
+    return { type, count: res.success ? (res.recordsTotal || 0) : null };
+  } catch {
+    return { type, count: null };
+  }
+};
 
 const PersediaanHasilPotongRphPage = () => {
   useDocumentTitle('Persediaan Hasil Potong RPH');
@@ -33,14 +42,49 @@ const PersediaanHasilPotongRphPage = () => {
   const [tableRefreshKey, setTableRefreshKey] = useState(0);
   const [editSapiModalOpen, setEditSapiModalOpen] = useState(false);
   const [editSapiData, setEditSapiData] = useState(null);
+  const [tabCounts, setTabCounts] = useState({});
+
+  // Fetch all tab counts in parallel on mount (progressive disclosure of volume)
+  useEffect(() => {
+    Promise.all(TABS.map((t) => fetchTabCount(t.id))).then((results) => {
+      const counts = {};
+      results.forEach((r) => { counts[r.type] = r.count; });
+      setTabCounts(counts);
+    });
+  }, [tableRefreshKey]);
 
   const showNotification = useCallback((type, message) => {
-    setNotification({ type, message });
+    setNotification({ type, message, id: Date.now() });
   }, []);
 
   const clearNotification = useCallback(() => {
     setNotification(null);
   }, []);
+
+  // Auto-dismiss toast after 4s (non-intrusive, Stripe-style)
+  useEffect(() => {
+    if (!notification) return;
+    const timer = setTimeout(() => setNotification(null), 4000);
+    return () => clearTimeout(timer);
+  }, [notification]);
+
+  // Keyboard tab navigation: Left/Right arrows to switch tabs (when not in input)
+  useEffect(() => {
+    const handleKey = (e) => {
+      const tag = document.activeElement?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      const idx = TABS.findIndex((t) => t.id === activeTab);
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        setActiveTab(TABS[(idx + 1) % TABS.length].id);
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        setActiveTab(TABS[(idx - 1 + TABS.length) % TABS.length].id);
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [activeTab]);
 
   const handleOpenDetail = useCallback(async (item) => {
     setSelectedItem(item);
@@ -156,91 +200,100 @@ const PersediaanHasilPotongRphPage = () => {
   }, [showNotification]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/40 to-cyan-50/60">
-      <div className="mx-auto max-w-full space-y-6 p-4 sm:p-6">
-        <div className="rounded-2xl border border-emerald-100 bg-white p-5 shadow-lg sm:p-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div className="flex items-start gap-3">
-              <div className="rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 p-3 text-white">
-                <Package className="h-7 w-7" />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50/40">
+      <div className="mx-auto max-w-full space-y-4 p-4 sm:p-5 lg:p-6">
+        {/* Compact Header */}
+        <div className="relative overflow-hidden rounded-xl bg-white border border-slate-200 shadow-sm">
+          <div className="absolute inset-0 bg-gradient-to-r from-emerald-50/60 via-transparent to-transparent pointer-events-none" />
+          <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-md shadow-emerald-500/30">
+                <Package className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
-                  Persediaan Hasil Potong
-                </h1>
-                <p className="mt-1 text-sm text-gray-500 sm:text-base">
-                  Kelola data persediaan hasil potong RPH
-                </p>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Persediaan Hasil Potong</h1>
+                  <span className="hidden sm:inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-700">RPH</span>
+                </div>
+                <p className="text-sm text-slate-500 mt-0.5">Boning, Sapi, Karkas, dan Kulit — semua stok hasil potong dalam satu tempat</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-slate-500">
+              <div className="flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1.5 font-medium text-xs">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                Tersinkron
               </div>
             </div>
           </div>
         </div>
 
         {notification && (
-          <div className={`rounded-xl border p-4 flex items-start gap-3 shadow-sm ${
-            notification.type === 'success'
-              ? 'border-green-200 bg-green-50'
-              : 'border-red-200 bg-red-50'
-          }`}>
-            <div className={notification.type === 'success' ? 'text-green-600' : 'text-red-600'}>
-              {notification.type === 'success' ? (
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              ) : (
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              )}
+          <div className="fixed top-6 right-6 z-[80] animate-in">
+            <div className={`flex items-start gap-3 rounded-2xl border px-4 py-3.5 shadow-lg backdrop-blur-sm max-w-sm ${
+              notification.type === 'success'
+                ? 'border-emerald-200 bg-white/95'
+                : 'border-red-200 bg-white/95'
+            }`}>
+              <div className={`flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center ${
+                notification.type === 'success' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
+              }`}>
+                {notification.type === 'success'
+                  ? <CheckCircle2 className="h-5 w-5" />
+                  : <XCircle className="h-5 w-5" />}
+              </div>
+              <div className="flex-1 pt-0.5">
+                <p className={`text-sm font-bold ${notification.type === 'success' ? 'text-emerald-900' : 'text-red-900'}`}>
+                  {notification.type === 'success' ? 'Berhasil' : 'Gagal'}
+                </p>
+                <p className={`text-sm mt-0.5 ${notification.type === 'success' ? 'text-emerald-700' : 'text-red-700'}`}>
+                  {notification.message}
+                </p>
+              </div>
+              <button
+                onClick={clearNotification}
+                className="flex-shrink-0 p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+                aria-label="Tutup"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
-            <div className="flex-1">
-              <p className={`text-sm font-semibold ${notification.type === 'success' ? 'text-green-800' : 'text-red-800'}`}>
-                {notification.type === 'success' ? 'Berhasil' : 'Gagal'}
-              </p>
-              <p className={`text-sm ${notification.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
-                {notification.message}
-              </p>
-            </div>
-            <button
-              onClick={clearNotification}
-              className={`text-sm hover:opacity-70 ${notification.type === 'success' ? 'text-green-500' : 'text-red-500'}`}
-            >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
           </div>
         )}
 
-        <div className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg">
-          <div className="bg-gradient-to-r from-slate-50 to-gray-50">
-            <div className="flex border-b-2 border-gray-200">
-              {TABS.map((tab) => {
-                const Icon = tab.icon;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`relative flex-1 px-8 py-5 text-lg font-bold transition-all duration-300 ${
-                      activeTab === tab.id
-                        ? 'text-white bg-gradient-to-r from-emerald-600 to-teal-600 shadow-lg'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-                    }`}
-                  >
-                    <span className="relative z-10 flex items-center justify-center gap-2">
-                      <Icon className="h-5 w-5" />
-                      {tab.label}
+        {/* Card with Tabs */}
+        <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          {/* Tabs */}
+          <div className="flex items-center gap-1 border-b border-slate-200 bg-slate-50/80 px-2 pt-2 overflow-x-auto">
+            {TABS.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`relative flex items-center gap-2 rounded-t-lg px-4 py-2.5 text-sm font-bold transition-all whitespace-nowrap ${
+                    isActive
+                      ? 'bg-white text-emerald-700 shadow-sm border-t-2 border-x border-slate-200 -mb-px !border-t-emerald-600'
+                      : 'text-slate-500 hover:text-slate-800 hover:bg-white/60'
+                  }`}
+                >
+                  <Icon className={`h-4 w-4 ${isActive ? 'text-emerald-600' : 'text-slate-400'}`} />
+                  <span>{tab.label}</span>
+                  {tabCounts[tab.id] == null ? (
+                    <span className="ml-1 inline-flex items-center justify-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-300 animate-pulse">
+                      &middot;
                     </span>
-                    {activeTab === tab.id && (
-                      <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-400 to-teal-400" />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+                  ) : (
+                    <span className={`ml-1 inline-flex items-center justify-center rounded-full px-2 py-0.5 text-xs font-bold ${isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                      {tabCounts[tab.id] > 999 ? '999+' : tabCounts[tab.id]}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
 
-          <div className="bg-gradient-to-br from-slate-50/30 to-blue-50/30 p-4 sm:p-6">
+          <div className="p-4 sm:p-5">
             {activeTab === 'boning' ? (
               <BoningTab
                 refreshKey={tableRefreshKey}

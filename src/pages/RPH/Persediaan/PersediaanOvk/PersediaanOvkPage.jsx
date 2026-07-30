@@ -4,65 +4,74 @@ import PenggunaOvkTab from './components/PenggunaOvkTab';
 import PersediaanOvkTab from './components/PersediaanOvkTab';
 import PersediaanPakanTab from './components/PersediaanPakanTab';
 
+// IA restructure: Resep Pakan first (most used), Stok OVK, Riwayat Pemakaian
 const TABS = [
-  { id: 'pengguna', label: 'Pengguna OVK', icon: ClipboardList },
-  { id: 'persediaan', label: 'Persediaan OVK', icon: Package },
-  { id: 'persediaan-pakan', label: 'Persediaan Pakan', icon: Wheat },
+  { id: 'persediaan-pakan', label: 'Resep Pakan', icon: Wheat },
+  { id: 'persediaan', label: 'Stok OVK', icon: Package },
+  { id: 'pengguna', label: 'Riwayat Pemakaian', icon: ClipboardList },
 ];
 
 const PersediaanOvkPage = () => {
-  const [activeTab, setActiveTab] = useState('pengguna');
-  useEffect(() => { document.title = 'Persediaan Pakan dan OVK - RPH | TernaSys'; }, []);
+  const [activeTab, setActiveTab] = useState('persediaan-pakan');
+  useEffect(() => { document.title = 'Persediaan Pakan & OVK - RPH | TernaSys'; }, []);
 
   return (
-    <div className="flex flex-col h-full bg-gray-50/50">
-      {/* Compact Header + Tabs */}
-      <div className="sticky top-0 z-10 bg-white border-b border-gray-200 shadow-sm">
-        <div className="px-4 sm:px-6 pt-3 pb-0">
-          <div className="flex items-center gap-2.5">
-            <div className="rounded-lg bg-emerald-50 p-1.5 text-emerald-600">
-              <Package className="h-4 w-4" />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50/40">
+      <div className="mx-auto max-w-full space-y-4 p-4 sm:p-5 lg:p-6">
+        {/* Compact Header */}
+        <div className="relative overflow-hidden rounded-xl bg-white border border-slate-200 shadow-sm">
+          <div className="absolute inset-0 bg-gradient-to-r from-emerald-50/60 via-transparent to-transparent pointer-events-none" />
+          <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-md shadow-emerald-500/30">
+                <Package className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Persediaan Pakan & OVK</h1>
+                  <span className="hidden sm:inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-700">RPH</span>
+                </div>
+                <p className="text-sm text-slate-500 mt-0.5">Stok obat, vitamin, kit — riwayat pemakaian — resep pakan, semua dalam satu tempat</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-base font-semibold tracking-tight text-gray-900 sm:text-lg">
-                Persediaan Pakan dan OVK
-              </h1>
-              <p className="text-xs text-gray-500 hidden sm:block">
-                Kelola stok & penggunaan pakan, obat, vitamin, kebutuhan kesehatan hewan
-              </p>
+            <div className="flex items-center gap-2 text-sm text-slate-500">
+              <div className="flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1.5 font-medium text-xs">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                Tersinkron
+              </div>
             </div>
           </div>
+        </div>
 
-          {/* Segmented Tabs */}
-          <div className="mt-3 flex items-center gap-1 overflow-x-auto">
+        {/* Card with Tabs */}
+        <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          {/* Tabs */}
+          <div className="flex items-center gap-1 border-b border-slate-200 bg-slate-50/80 px-2 pt-2 overflow-x-auto">
             {TABS.map((tab) => {
               const Icon = tab.icon;
-              const active = activeTab === tab.id;
+              const isActive = activeTab === tab.id;
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`relative inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-t-lg transition-all whitespace-nowrap border-b-2 -mb-px ${
-                    active
-                      ? 'border-emerald-600 text-emerald-700 bg-emerald-50/60'
-                      : 'border-transparent text-gray-500 hover:text-gray-800 hover:bg-gray-50'
+                  className={`relative flex items-center gap-2 rounded-t-lg px-4 py-2.5 text-sm font-bold transition-all whitespace-nowrap ${
+                    isActive
+                      ? 'bg-white text-emerald-700 shadow-sm border-t-2 border-x border-slate-200 -mb-px !border-t-emerald-600'
+                      : 'text-slate-500 hover:text-slate-800 hover:bg-white/60'
                   }`}
                 >
-                  <Icon className={`h-4 w-4 ${active ? 'text-emerald-600' : 'text-gray-400'}`} />
-                  {tab.label}
+                  <Icon className={`h-4 w-4 ${isActive ? 'text-emerald-600' : 'text-slate-400'}`} />
+                  <span>{tab.label}</span>
                 </button>
               );
             })}
           </div>
-        </div>
-      </div>
 
-      {/* Tab Content - fills remaining height */}
-      <div className="flex-1 overflow-auto p-4 sm:p-6">
-        <div className="max-w-full mx-auto">
-          {activeTab === 'pengguna' && <PenggunaOvkTab />}
-          {activeTab === 'persediaan' && <PersediaanOvkTab />}
-          {activeTab === 'persediaan-pakan' && <PersediaanPakanTab />}
+          <div className="p-4 sm:p-5">
+            {activeTab === 'persediaan' && <PersediaanOvkTab />}
+            {activeTab === 'pengguna' && <PenggunaOvkTab />}
+            {activeTab === 'persediaan-pakan' && <PersediaanPakanTab />}
+          </div>
         </div>
       </div>
     </div>
