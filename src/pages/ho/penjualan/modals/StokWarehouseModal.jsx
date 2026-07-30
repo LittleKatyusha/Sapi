@@ -1,76 +1,102 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { X, Search, Package, AlertCircle, Boxes } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { X, Search, Package, AlertCircle, Boxes, SlidersHorizontal, RotateCcw } from 'lucide-react';
 import HttpClient from '../../../../services/httpClient';
-import { extractApiData } from '../utils/apiHelpers';
 import { formatCurrency } from '../utils/formatters';
 
 const ITEMS_PER_PAGE = 15;
+const LOW_STOCK_THRESHOLD = 10;
 
 const StokWarehouseModal = ({ isOpen, onClose, activeTab }) => {
     const [stokList, setStokList] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [currentPage, setCurrentPage] = useState(1);
 
-    // activeTab: 'bahan-baku' -> feedmil, 'ovk' -> ovk
-    // "Lihat Stok" on HO Penjualan shows stock that has already entered the
-    // warehouse (dt_stok_feedmil_warehouse / dt_stok_ovk_warehouse) — i.e.
-    // stock HO has sold to warehouse but not yet picked by RPH.
+    // Filter state (input)
+    const [searchInput, setSearchInput] = useState('');
+    const [lowStockInput, setLowStockInput] = useState(false);
+
+    // Applied filter state (sent to server)
+    const [appliedSearch, setAppliedSearch] = useState('');
+    const [appliedLowStock, setAppliedLowStock] = useState(false);
+
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalRecords, setTotalRecords] = useState(0);
+    const [lastPage, setLastPage] = useState(1);
+
     const endpoint = activeTab === 'ovk'
         ? '/api/warehouse/stok/ovk/data'
         : '/api/warehouse/stok/feedmil/data';
 
-    const title = activeTab === 'ovk' ? 'Stok OVK Warehouse' : 'Stok Bahan Baku Pangan Warehouse';
+    const title = activeTab === 'ovk' ? 'Stok OVK Warehouse' : 'Stok Feedmil Warehouse';
 
     const fetchStok = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
-            const response = await HttpClient.get(endpoint);
-            const data = extractApiData(response);
+            const response = await HttpClient.get(endpoint, {
+                params: {
+                    page: currentPage,
+                    per_page: ITEMS_PER_PAGE,
+                    search: appliedSearch,
+                    low_stock: appliedLowStock ? 1 : 0,
+                    low_stock_threshold: LOW_STOCK_THRESHOLD,
+                },
+                cache: false,
+            });
+            const payload = response ?? {};
+            const data = payload?.data ?? [];
             setStokList(Array.isArray(data) ? data : []);
+            setTotalRecords(payload?.recordsTotal ?? payload?.recordsFiltered ?? (Array.isArray(data) ? data.length : 0));
+            setLastPage(payload?.lastPage ?? 1);
         } catch (err) {
             setError(err?.message || 'Gagal memuat data stok');
             console.error('Error fetching stok warehouse:', err);
         } finally {
             setLoading(false);
         }
-    }, [endpoint]);
+    }, [endpoint, currentPage, appliedSearch, appliedLowStock]);
 
     useEffect(() => {
         if (isOpen) {
-            setSearchTerm('');
+            setSearchInput('');
+            setLowStockInput(false);
+            setAppliedSearch('');
+            setAppliedLowStock(false);
             setCurrentPage(1);
             fetchStok();
         }
-    }, [isOpen, fetchStok]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOpen, endpoint]);
 
     useEffect(() => {
+        if (isOpen) {
+            fetchStok();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentPage, appliedSearch, appliedLowStock]);
+
+    const handleSearch = () => {
+        setAppliedSearch(searchInput.trim());
+        setAppliedLowStock(lowStockInput);
         setCurrentPage(1);
-    }, [searchTerm]);
+    };
 
-    const filteredStok = useMemo(() =>
-        stokList.filter(item => {
-            const jumlah = parseFloat(item.jumlah);
-            // Hanya tampilkan yang jumlahnya tidak null dan > 0
-            if (item.jumlah === null || item.jumlah === undefined || item.jumlah === '' || isNaN(jumlah) || jumlah <= 0) {
-                return false;
-            }
-            return (item.NAME || item.name || '').toLowerCase().includes(searchTerm.toLowerCase());
-        }), [stokList, searchTerm]
-    );
+    const handleReset = () => {
+        setSearchInput('');
+        setLowStockInput(false);
+        setAppliedSearch('');
+        setAppliedLowStock(false);
+        setCurrentPage(1);
+    };
 
-    const totalPages = Math.ceil(filteredStok.length / ITEMS_PER_PAGE);
-    const paginatedStok = useMemo(() => {
-        const start = (currentPage - 1) * ITEMS_PER_PAGE;
-        return filteredStok.slice(start, start + ITEMS_PER_PAGE);
-    }, [filteredStok, currentPage]);
+    const handleKeyDown = (e) => {
+        if (e.key === 'Enter') {
+            handleSearch();
+        }
+    };
 
-    const totalJumlah = useMemo(
-        () => filteredStok.reduce((sum, item) => sum + (parseFloat(item.jumlah) || 0), 0),
-        [filteredStok]
-    );
+    const isFilterActive = appliedSearch !== '' || appliedLowStock;
+    const totalJumlah = stokList.reduce((sum, item) => sum + (parseFloat(item.jumlah) || 0), 0);
 
     if (!isOpen) return null;
 
@@ -86,7 +112,7 @@ const StokWarehouseModal = ({ isOpen, onClose, activeTab }) => {
                         <div>
                             <h2 className="text-base font-semibold text-gray-900">{title}</h2>
                             <p className="text-xs text-gray-500">
-                                Total {filteredStok.length} item · {totalJumlah} unit stok
+                                Total {totalRecords} item · {totalJumlah} unit stok (halaman ini)
                             </p>
                         </div>
                     </div>
@@ -98,17 +124,55 @@ const StokWarehouseModal = ({ isOpen, onClose, activeTab }) => {
                     </button>
                 </div>
 
-                {/* Search */}
-                <div className="px-5 py-3 border-b border-gray-100">
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                        <input
-                            type="text"
-                            placeholder="Cari nama produk..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-9 pr-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-colors"
-                        />
+                {/* Advanced Filter */}
+                <div className="px-5 py-3 border-b border-gray-100 space-y-2.5">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                        <div className="relative flex-1">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                            <input
+                                type="text"
+                                placeholder="Cari nama produk..."
+                                value={searchInput}
+                                onChange={(e) => setSearchInput(e.target.value)}
+                                onKeyDown={handleKeyDown}
+                                className="w-full pl-9 pr-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-colors"
+                            />
+                        </div>
+                        <label className="inline-flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 select-none">
+                            <input
+                                type="checkbox"
+                                checked={lowStockInput}
+                                onChange={(e) => setLowStockInput(e.target.checked)}
+                                className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500/20"
+                            />
+                            <span className="text-sm text-gray-700 inline-flex items-center gap-1.5">
+                                <SlidersHorizontal size={14} className="text-gray-500" />
+                                Stok menipis (≤{LOW_STOCK_THRESHOLD})
+                            </span>
+                        </label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={handleSearch}
+                            className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
+                        >
+                            <Search size={14} />
+                            Cari
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleReset}
+                            className="inline-flex items-center gap-1.5 px-4 py-1.5 border border-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+                        >
+                            <RotateCcw size={14} />
+                            Reset
+                        </button>
+                        {isFilterActive && (
+                            <span className="text-xs text-green-700 bg-green-50 px-2 py-1 rounded-full">
+                                Filter aktif
+                            </span>
+                        )}
                     </div>
                 </div>
 
@@ -132,14 +196,14 @@ const StokWarehouseModal = ({ isOpen, onClose, activeTab }) => {
                                 Coba Lagi
                             </button>
                         </div>
-                    ) : paginatedStok.length === 0 ? (
+                    ) : stokList.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-48 text-center">
                             <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
                                 <Search size={22} className="text-gray-400" />
                             </div>
                             <p className="text-sm font-medium text-gray-700">Tidak ada produk ditemukan</p>
                             <p className="text-xs text-gray-500 mt-0.5 max-w-xs">
-                                {searchTerm ? 'Coba kata kunci pencarian lain.' : 'Stok produk tidak tersedia.'}
+                                {isFilterActive ? 'Coba kata kunci lain atau reset filter.' : 'Stok produk tidak tersedia.'}
                             </p>
                         </div>
                     ) : (
@@ -156,9 +220,9 @@ const StokWarehouseModal = ({ isOpen, onClose, activeTab }) => {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-100">
-                                        {paginatedStok.map((item) => {
+                                        {stokList.map((item) => {
                                             const jumlah = parseFloat(item.jumlah) || 0;
-                                            const isLow = jumlah <= 0;
+                                            const isLow = jumlah <= LOW_STOCK_THRESHOLD;
                                             const rowKey = `${item.id}|${item.id_satuan ?? ''}`;
                                             return (
                                                 <tr key={rowKey} className="hover:bg-gray-50">
@@ -189,9 +253,9 @@ const StokWarehouseModal = ({ isOpen, onClose, activeTab }) => {
 
                             {/* Mobile Cards */}
                             <div className="sm:hidden space-y-3">
-                                {paginatedStok.map((item) => {
+                                {stokList.map((item) => {
                                     const jumlah = parseFloat(item.jumlah) || 0;
-                                    const isLow = jumlah <= 0;
+                                    const isLow = jumlah <= LOW_STOCK_THRESHOLD;
                                     const rowKey = `${item.id}|${item.id_satuan ?? ''}`;
                                     return (
                                         <div key={rowKey} className="border border-gray-100 rounded-lg p-3">
@@ -223,11 +287,11 @@ const StokWarehouseModal = ({ isOpen, onClose, activeTab }) => {
                 </div>
 
                 {/* Pagination */}
-                {!loading && filteredStok.length > 0 && (
+                {!loading && totalRecords > 0 && (
                     <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between text-sm">
                         <span className="text-gray-600">
                             Menampilkan {(currentPage - 1) * ITEMS_PER_PAGE + 1}–
-                            {Math.min(currentPage * ITEMS_PER_PAGE, filteredStok.length)} dari {filteredStok.length}
+                            {Math.min(currentPage * ITEMS_PER_PAGE, totalRecords)} dari {totalRecords}
                         </span>
                         <div className="flex items-center gap-2">
                             <button
@@ -237,10 +301,10 @@ const StokWarehouseModal = ({ isOpen, onClose, activeTab }) => {
                             >
                                 Sebelumnya
                             </button>
-                            <span className="text-gray-600 text-xs">Hal {currentPage}/{totalPages || 1}</span>
+                            <span className="text-gray-600 text-xs">Hal {currentPage}/{lastPage || 1}</span>
                             <button
-                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                                disabled={currentPage >= totalPages}
+                                onClick={() => setCurrentPage(p => Math.min(lastPage, p + 1))}
+                                disabled={currentPage >= lastPage}
                                 className="px-3 py-1.5 text-sm rounded-lg border border-gray-200 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50"
                             >
                                 Berikutnya

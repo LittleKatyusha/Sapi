@@ -10,9 +10,9 @@ class StokFeedmilHoService {
   /**
    * Get semua data stok feedmil HO
    */
-  static async getData() {
+  static async getData(params = {}, options = {}) {
     try {
-      const response = await HttpClient.get(API_ENDPOINTS.HO.STOK_FEEDMIL.DATA);
+      const response = await HttpClient.get(API_ENDPOINTS.HO.STOK_FEEDMIL.DATA, { params, ...options });
       return response;
     } catch (error) {
       throw error;
