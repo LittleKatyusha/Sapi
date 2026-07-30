@@ -14,6 +14,9 @@ const StokWarehouseModal = ({ isOpen, onClose, activeTab }) => {
     const [currentPage, setCurrentPage] = useState(1);
 
     // activeTab: 'bahan-baku' -> feedmil, 'ovk' -> ovk
+    // "Lihat Stok" on HO Penjualan shows stock that has already entered the
+    // warehouse (dt_stok_feedmil_warehouse / dt_stok_ovk_warehouse) — i.e.
+    // stock HO has sold to warehouse but not yet picked by RPH.
     const endpoint = activeTab === 'ovk'
         ? '/api/warehouse/stok/ovk/data'
         : '/api/warehouse/stok/feedmil/data';
@@ -156,8 +159,9 @@ const StokWarehouseModal = ({ isOpen, onClose, activeTab }) => {
                                         {paginatedStok.map((item) => {
                                             const jumlah = parseFloat(item.jumlah) || 0;
                                             const isLow = jumlah <= 0;
+                                            const rowKey = `${item.id}|${item.id_satuan ?? ''}`;
                                             return (
-                                                <tr key={item.id} className="hover:bg-gray-50">
+                                                <tr key={rowKey} className="hover:bg-gray-50">
                                                     <td className="px-4 py-3 text-sm text-gray-900 font-medium">
                                                         {item.NAME || item.name || '-'}
                                                     </td>
@@ -188,8 +192,9 @@ const StokWarehouseModal = ({ isOpen, onClose, activeTab }) => {
                                 {paginatedStok.map((item) => {
                                     const jumlah = parseFloat(item.jumlah) || 0;
                                     const isLow = jumlah <= 0;
+                                    const rowKey = `${item.id}|${item.id_satuan ?? ''}`;
                                     return (
-                                        <div key={item.id} className="border border-gray-100 rounded-lg p-3">
+                                        <div key={rowKey} className="border border-gray-100 rounded-lg p-3">
                                             <div className="flex items-start justify-between gap-2">
                                                 <div className="flex items-start gap-2 min-w-0">
                                                     <div className="w-8 h-8 rounded-md bg-green-50 flex items-center justify-center shrink-0">

@@ -105,7 +105,7 @@ export const pageTitleMap = {
   '/rph/bahan-pembantu-rph/detail/:id': 'RPH: Detail Bahan Pembantu',
   '/rph/persediaan-boning': 'Persediaan Boning - RPH',
   '/rph/persediaan-hasil-potong': 'Persediaan Hasil Potong - RPH',
-  '/rph/persediaan-ovk': 'Persediaan OVK dan Resep - RPH',
+  '/rph/persediaan-ovk': 'Persediaan Pakan dan OVK - RPH',
   '/rph/persediaan-pakan': 'Persediaan Pakan - RPH',
   '/rph/pedagang': 'Pedagang - RPH',
   '/rph/stok-sapi': 'Stok Sapi RPH',

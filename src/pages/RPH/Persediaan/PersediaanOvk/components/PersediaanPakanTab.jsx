@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import DataTable from 'react-data-table-component';
-import { Plus, Search, X, Loader2, Wheat, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Plus, Search, X, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import usePersediaanPakan from '../hooks/usePersediaanPakan';
 import BuatResepPakanModal from '../modals/BuatResepPakanModal';
 import PersediaanPakanActionButton from './PersediaanPakanActionButton';
@@ -132,7 +132,6 @@ const PersediaanPakanTab = () => {
     const {
         persediaanData,
         loading,
-        error,
         searchTerm,
         isSearching,
         searchError,
@@ -341,98 +340,75 @@ const PersediaanPakanTab = () => {
     ], [openMenuId, serverPagination]);
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-cyan-50">
+        <div className="space-y-4">
             <Notification notification={notification} onClose={() => setNotification(null)} />
 
-            {/* Header */}
-            <div className="bg-white border-b border-gray-100 shadow-sm">
-                <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                            <Wheat className="w-7 h-7 sm:w-8 sm:h-8 text-emerald-600" />
-                            <div>
-                                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 tracking-tight">
-                                    Persediaan Pakan
-                                </h1>
-                                <p className="text-gray-400 text-xs sm:text-sm mt-0.5">
-                                    Kelola data resep pakan
-                                </p>
-                            </div>
-                        </div>
+            {/* Search & Action Bar */}
+            <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+                <div className="relative flex-1 max-w-full sm:max-w-md">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    {isSearching && (
+                        <Loader2 className="absolute right-10 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500 animate-spin" />
+                    )}
+                    {searchTerm && !isSearching && (
                         <button
-                            onClick={handleOpenModal}
-                            className="flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-emerald-500 to-cyan-600 hover:from-emerald-600 hover:to-cyan-700 text-white rounded-full font-semibold shadow-md hover:shadow-lg transition-all duration-300 text-sm sm:text-base"
+                            onClick={clearSearch}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                         >
-                            <Plus className="w-5 h-5" />
-                            <span>Buat Resep</span>
+                            <X className="w-4 h-4" />
                         </button>
-                    </div>
-                </div>
-            </div>
-
-            <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-                {/* Search & Filter */}
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6">
-                    <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
-                        <div className="relative flex-1 max-w-full sm:max-w-md lg:max-w-lg">
-                            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                            {isSearching && (
-                                <Loader2 className="absolute right-12 top-1/2 transform -translate-y-1/2 w-4 h-4 text-emerald-500 animate-spin" />
-                            )}
-                            {searchTerm && !isSearching && (
-                                <button
-                                    onClick={clearSearch}
-                                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                                >
-                                    <X className="w-4 h-4" />
-                                </button>
-                            )}
-                            <input
-                                type="text"
-                                placeholder="Cari berdasarkan nama resep, keterangan..."
-                                value={searchTerm}
-                                onChange={(e) => handleSearch(e.target.value)}
-                                className={`w-full pl-12 ${searchTerm ? 'pr-12' : 'pr-4'} py-2.5 sm:py-3 border ${searchError ? 'border-red-300' : 'border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500'} rounded-full transition-all duration-200 text-sm sm:text-base shadow-sm hover:shadow-md`}
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                {/* Data Table */}
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                    <DataTable
-                        columns={columns}
-                        data={persediaanData || []}
-                        customStyles={enhancedTableStyles}
-                        progressPending={loading}
-                        progressComponent={
-                            <div className="flex items-center justify-center py-12">
-                                <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
-                                <span className="ml-3 text-gray-500">Memuat data...</span>
-                            </div>
-                        }
-                        noDataComponent={
-                            <div className="text-center py-12 text-gray-500">
-                                Tidak ada data ditemukan
-                            </div>
-                        }
-                        pagination
-                        paginationServer
-                        paginationTotalRows={serverPagination.totalRows}
-                        paginationPerPage={serverPagination.perPage}
-                        paginationDefaultPage={serverPagination.currentPage}
-                        onChangePage={handlePageChange}
-                        onChangeRowsPerPage={handlePerPageChange}
-                        paginationRowsPerPageOptions={[10, 25, 50, 100]}
-                        paginationComponent={props => <CustomPagination {...props} />}
-                        highlightOnHover
-                        pointerOnHover
-                        responsive
-                        dense
-                        fixedHeader
-                        fixedHeaderScrollHeight="calc(100vh - 400px)"
+                    )}
+                    <input
+                        type="text"
+                        placeholder="Cari nama resep, keterangan..."
+                        value={searchTerm}
+                        onChange={(e) => handleSearch(e.target.value)}
+                        className={`w-full pl-9 ${searchTerm ? 'pr-10' : 'pr-3'} py-2 text-sm border ${searchError ? 'border-red-300' : 'border-gray-200 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500'} rounded-lg bg-white transition-all outline-none`}
                     />
                 </div>
+                <button
+                    onClick={handleOpenModal}
+                    className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors whitespace-nowrap"
+                >
+                    <Plus className="w-4 h-4" />
+                    Buat Resep
+                </button>
+            </div>
+
+            {/* Data Table */}
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                <DataTable
+                    columns={columns}
+                    data={persediaanData || []}
+                    customStyles={enhancedTableStyles}
+                    progressPending={loading}
+                    progressComponent={
+                        <div className="flex items-center justify-center py-10">
+                            <Loader2 className="w-6 h-6 text-emerald-500 animate-spin" />
+                            <span className="ml-2 text-sm text-gray-500">Memuat data...</span>
+                        </div>
+                    }
+                    noDataComponent={
+                        <div className="text-center py-10 text-sm text-gray-500">
+                            Tidak ada data ditemukan
+                        </div>
+                    }
+                    pagination
+                    paginationServer
+                    paginationTotalRows={serverPagination.totalRows}
+                    paginationPerPage={serverPagination.perPage}
+                    paginationDefaultPage={serverPagination.currentPage}
+                    onChangePage={handlePageChange}
+                    onChangeRowsPerPage={handlePerPageChange}
+                    paginationRowsPerPageOptions={[10, 25, 50, 100]}
+                    paginationComponent={props => <CustomPagination {...props} />}
+                    highlightOnHover
+                    pointerOnHover
+                    responsive
+                    dense
+                    fixedHeader
+                    fixedHeaderScrollHeight="calc(100vh - 280px)"
+                />
             </div>
 
             {/* Modals */}

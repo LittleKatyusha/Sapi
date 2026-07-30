@@ -300,7 +300,17 @@ const FormField = ({ label, helperText, required = false, children }) => (
     const mappedItems = detailItems
       .map((detail) => {
         const detailIdValue = detail.id_produk ?? detail.id ?? detail.pid;
+        const detailSatuanValue = detail.id_satuan ?? detail._original?.id_satuan ?? null;
+
+        // Composite match (id_produk + id_satuan) — satu produk bisa punya
+        // beberapa satuan (MINYAK LITER vs DUS). Match id saja akan ambil
+        // satuan pertama, bikin key backend tidak cocok → dianggap item baru
+        // → stok diambil ulang → error "stok tidak cukup".
         const option = itemOptions.find(
+          (item) =>
+            normalizeId(item.id) === normalizeId(detailIdValue) &&
+            normalizeId(item.id_satuan) === normalizeId(detailSatuanValue)
+        ) ?? itemOptions.find(
           (item) =>
             normalizeId(item.id) === normalizeId(detailIdValue) ||
             Number(item.id) === Number(detailIdValue)
@@ -308,9 +318,20 @@ const FormField = ({ label, helperText, required = false, children }) => (
 
         if (!option) return null;
 
+        // Use stored detail.harga (MAX of original batch prices) — NOT
+        // option.price (current warehouse stock price). The original purchase
+        // may have bought at a different batch price than what's in warehouse
+        // now. Using current price makes the edit total mismatch the stored
+        // harga_total in the header.
+        const storedPrice = Number(detail.harga ?? detail.price ?? 0);
+
         return {
           ...option,
-          qty: Number(detail.jumlah ?? detail.qty ?? 0)
+          // Pertahankan id_satuan dari detail lama agar key (produk|satuan)
+          // backend tetap cocok dan item tidak dianggap baru.
+          id_satuan: detailSatuanValue ?? option.id_satuan,
+          qty: Number(detail.jumlah ?? detail.qty ?? 0),
+          price: storedPrice || option.price
         };
       })
       .filter(Boolean);
@@ -322,6 +343,19 @@ const FormField = ({ label, helperText, required = false, children }) => (
   const handleApplyItems = (items) => {
     setSelectedItems(items);
     setIsItemModalOpen(false);
+  };
+
+  const handleRemoveItem = (item) => {
+    const key = `${item.id}|${item.id_satuan ?? ''}`;
+    setSelectedItems((prev) => prev.filter((it) => `${it.id}|${it.id_satuan ?? ''}` !== key));
+  };
+
+  const handleQtyChange = (item, qty) => {
+    const value = qty === '' ? '' : Number(qty);
+    const key = `${item.id}|${item.id_satuan ?? ''}`;
+    setSelectedItems((prev) => prev.map((it) =>
+      `${it.id}|${it.id_satuan ?? ''}` === key ? { ...it, qty: value } : it
+    ));
   };
 
   const handleBack = () => navigate('/rph/pembelian-pakan-ovk');
@@ -338,6 +372,33 @@ const FormField = ({ label, helperText, required = false, children }) => (
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+
+    // Client-side validation — fail fast without round-tripping to the API.
+    if (!selectedJenisPembelian) {
+      setNotification({ type: 'error', message: 'Jenis pembelian wajib dipilih.' });
+      return;
+    }
+    if (!selectedMengetahui) {
+      setNotification({ type: 'error', message: 'Mengetahui wajib dipilih.' });
+      return;
+    }
+    if (!tipePembayaran) {
+      setNotification({ type: 'error', message: 'Tipe pembayaran wajib dipilih.' });
+      return;
+    }
+    if (Number(tipePembayaran) === 2 && (selectedSupplier == null || selectedSupplier === '')) {
+      setNotification({ type: 'error', message: 'Supplier wajib dipilih untuk pembayaran kredit.' });
+      return;
+    }
+    if (selectedItems.length === 0) {
+      setNotification({ type: 'error', message: 'Minimal 1 item harus dipilih.' });
+      return;
+    }
+    const invalidQty = selectedItems.find((item) => !Number(item.qty) || Number(item.qty) <= 0);
+    if (invalidQty) {
+      setNotification({ type: 'error', message: `Jumlah untuk ${invalidQty.name} harus lebih dari 0.` });
+      return;
+    }
 
     const parsedSupplier = selectedSupplier != null && selectedSupplier !== ''
       ? parseInt(selectedSupplier, 10)
@@ -416,6 +477,10 @@ const FormField = ({ label, helperText, required = false, children }) => (
 
   useEffect(() => {
     if (!notification) return;
+    // Don't auto-dismiss info notifications — they represent in-flight
+    // operations (e.g. "Menyimpan...") that should persist until the
+    // operation completes and replaces them with success/error.
+    if (notification.type === 'info') return;
     const timer = setTimeout(() => setNotification(null), 5000);
     return () => clearTimeout(timer);
   }, [notification]);
@@ -507,6 +572,7 @@ const FormField = ({ label, helperText, required = false, children }) => (
                     onChange={setSelectedJenisPembelian}
                     options={jenisPembelianOptions}
                     placeholder="Pilih Jenis Pembelian"
+                    isDisabled={isEditMode}
                   />
                 </FormField>
 
@@ -613,31 +679,79 @@ const FormField = ({ label, helperText, required = false, children }) => (
                       <th className="w-10 px-3 py-2 text-left font-semibold">Pilih</th>
                       <th className="px-3 py-2 text-left font-semibold">Nama Produk</th>
                       <th className="px-3 py-2 text-left font-semibold">Produk</th>
-                      <th className="px-3 py-2 text-left font-semibold">Harga</th>
-                      <th className="px-3 py-2 text-left font-semibold">Jumlah</th>
+                      <th className="px-3 py-2 text-right font-semibold">Harga</th>
+                      <th className="px-3 py-2 text-center font-semibold">Jumlah</th>
+                      <th className="px-3 py-2 text-right font-semibold">Subtotal</th>
+                      <th className="w-10 px-3 py-2 text-center font-semibold">Aksi</th>
                     </tr>
                   </thead>
                   <tbody>
                     {selectedItems.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="px-3 py-6 text-center text-sm text-gray-400">
+                        <td colSpan={7} className="px-3 py-6 text-center text-sm text-gray-400">
                           {config.emptySelectionText}
                         </td>
                       </tr>
                     ) : (
-                      selectedItems.map((item) => (
-                        <tr key={item.id} className="border-b border-gray-50 hover:bg-gray-50/50">
-                          <td className="px-3 py-2">
-                            <CheckSquare className="h-4 w-4 text-emerald-600" />
-                          </td>
-                          <td className="px-3 py-2 font-semibold text-gray-700">{item.name}</td>
-                          <td className="px-3 py-2 text-gray-600">{item.product || '-'}</td>
-                          <td className="px-3 py-2 text-gray-700">{formatCurrency(item.price)}</td>
-                          <td className="px-3 py-2 text-gray-700">{item.qty ?? '-'}</td>
-                        </tr>
-                      ))
+                      selectedItems.map((item) => {
+                        const qty = Number(item.qty ?? 0);
+                        const price = Number(item.price ?? 0);
+                        const subtotal = qty * price;
+                        return (
+                          <tr key={`${item.id}|${item.id_satuan ?? ''}`} className="border-b border-gray-50 hover:bg-gray-50/50">
+                            <td className="px-3 py-2">
+                              <CheckSquare className="h-4 w-4 text-emerald-600" />
+                            </td>
+                            <td className="px-3 py-2 font-semibold text-gray-700">{item.name}</td>
+                            <td className="px-3 py-2 text-gray-600">{item.product || '-'}</td>
+                            <td className="px-3 py-2 text-right text-gray-700">{formatCurrency(item.price)}</td>
+                            <td className="px-3 py-2 text-center text-gray-700">
+                              <input
+                                type="number"
+                                min="1"
+                                value={item.qty ?? ''}
+                                onChange={(e) => handleQtyChange(item, e.target.value)}
+                                className="w-20 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 outline-none transition focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100"
+                              />
+                            </td>
+                            <td className="px-3 py-2 text-right font-semibold text-gray-700">{formatCurrency(subtotal)}</td>
+                            <td className="px-3 py-2 text-center">
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveItem(item)}
+                                className="inline-flex h-6 w-6 items-center justify-center rounded-md text-gray-400 transition hover:bg-red-50 hover:text-red-600"
+                                aria-label={`Hapus ${item.name}`}
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
                     )}
                   </tbody>
+                  {selectedItems.length > 0 && (
+                    <tfoot>
+                      <tr className="border-t-2 border-gray-200 bg-gray-50">
+                        <td colSpan={3} className="px-3 py-3 text-right text-xs font-semibold text-gray-600">
+                          Total
+                        </td>
+                        <td className="px-3 py-3" />
+                        <td className="px-3 py-3 text-center text-xs font-bold text-gray-700">
+                          {selectedItems.reduce((acc, it) => acc + (Number(it.qty ?? 0) || 0), 0)}
+                        </td>
+                        <td className="px-3 py-3 text-right text-sm font-bold text-emerald-700">
+                          {formatCurrency(
+                            selectedItems.reduce(
+                              (acc, it) => acc + (Number(it.qty ?? 0) || 0) * (Number(it.price ?? 0) || 0),
+                              0
+                            )
+                          )}
+                        </td>
+                        <td className="px-3 py-3" />
+                      </tr>
+                    </tfoot>
+                  )}
                 </table>
               </div>
             </section>

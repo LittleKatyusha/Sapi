@@ -17,7 +17,7 @@ const PenggunaOvkTab = () => {
   } = usePenggunaOvk();
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <DateColumnPicker
         availableDates={availableDates}
         selectedDates={selectedDates}
@@ -25,14 +25,14 @@ const PenggunaOvkTab = () => {
       />
 
       {error && (
-        <div className="flex items-center justify-between rounded-xl border border-red-100 bg-red-50 px-4 py-3">
+        <div className="flex items-center justify-between rounded-lg border border-red-100 bg-red-50 px-3 py-2">
           <div className="flex items-center gap-2 text-sm text-red-700">
             <AlertCircle className="h-4 w-4" />
             <span>{error}</span>
           </div>
           <button
             onClick={refresh}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-red-100 px-3 py-1.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-200"
+            className="inline-flex items-center gap-1.5 rounded-md bg-red-100 px-2.5 py-1 text-xs font-semibold text-red-700 transition-colors hover:bg-red-200"
           >
             <RefreshCw className="h-3.5 w-3.5" />
             Coba Lagi

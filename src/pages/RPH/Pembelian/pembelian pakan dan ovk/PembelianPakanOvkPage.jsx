@@ -14,12 +14,14 @@ import {
   MoreHorizontal,
   Eye,
   Pencil,
-  Trash2
+  Ban,
+  Boxes
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { enhancedTableStyles } from '../pembelian sapi qurban/constants/tableStyles';
 import RphPembelianService from '../../../../services/rphPembelianService';
 import DeleteConfirmationModal from '../../../../components/shared/modals/DeleteConfirmationModal';
+import StokRphModal from './modals/StokRphModal';
 
 const PURCHASE_TYPES = {
   pakan: 1,
@@ -43,20 +45,6 @@ const formatDate = (value) =>
       })
     : '-';
 
-const getStatusClasses = (status) => {
-  const normalizedStatus = (status || '').toLowerCase();
-
-  if (normalizedStatus.includes('selesai')) {
-    return 'bg-green-100 text-green-700 border border-green-200';
-  }
-
-  if (normalizedStatus.includes('proses')) {
-    return 'bg-blue-100 text-blue-700 border border-blue-200';
-  }
-
-  return 'bg-amber-100 text-amber-700 border border-amber-200';
-};
-
 const SummaryCard = ({ title, value, subtext, icon: Icon, accentClass }) => (
   <div className="group rounded-xl border border-gray-200 bg-white p-3.5 shadow-sm transition-all hover:border-gray-300 hover:shadow-md">
     <div className="flex items-center gap-3">
@@ -72,7 +60,7 @@ const SummaryCard = ({ title, value, subtext, icon: Icon, accentClass }) => (
   </div>
 );
 
-const ActionMenu = ({ row, onClose, buttonRef, onDetail, onEdit, onDelete }) => {
+const ActionMenu = ({ row, onClose, buttonRef, onDetail, onEdit, onCancel }) => {
   const menuRef = useRef(null);
   const [menuStyle, setMenuStyle] = useState(null);
 
@@ -114,6 +102,8 @@ const ActionMenu = ({ row, onClose, buttonRef, onDetail, onEdit, onDelete }) => 
 
   if (!menuStyle) return null;
 
+  const canCancel = row.payment_status_label !== 'Lunas' && row.payment_status_label !== 'Belum Lunas';
+
   const actions = [
     {
       label: 'Detail',
@@ -132,12 +122,17 @@ const ActionMenu = ({ row, onClose, buttonRef, onDetail, onEdit, onDelete }) => 
       onClick: () => onEdit?.(row)
     },
     {
-      label: 'Hapus',
-      description: `Hapus data ${row.nomor}`,
-      icon: Trash2,
-      iconClass: 'text-red-600',
-      bgClass: 'bg-red-100',
-      onClick: () => onDelete?.(row)
+      label: canCancel ? 'Batalkan Transaksi' : 'Tidak Dapat Dibatalkan',
+      description: canCancel
+        ? `Kembalikan stok & hapus ${row.nomor}`
+        : 'Sudah dibayar / lunas',
+      icon: Ban,
+      iconClass: canCancel ? 'text-red-600' : 'text-gray-400',
+      bgClass: canCancel ? 'bg-red-100' : 'bg-gray-100',
+      disabled: !canCancel,
+      onClick: () => {
+        if (canCancel) onCancel?.(row);
+      }
     }
   ];
 
@@ -162,8 +157,11 @@ const ActionMenu = ({ row, onClose, buttonRef, onDetail, onEdit, onDelete }) => 
           <button
             key={action.label}
             type="button"
+            disabled={action.disabled}
             onClick={() => handleActionClick(action)}
-            className="flex w-full items-start gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-gray-50"
+            className={`flex w-full items-start gap-3 rounded-lg px-3 py-2 text-left transition-colors ${
+              action.disabled ? 'cursor-not-allowed opacity-50' : 'hover:bg-gray-50'
+            }`}
           >
             <div className={`mt-0.5 rounded-lg p-2 ${action.bgClass}`}>
               <action.icon className={`h-4 w-4 ${action.iconClass}`} />
@@ -180,7 +178,7 @@ const ActionMenu = ({ row, onClose, buttonRef, onDetail, onEdit, onDelete }) => 
   );
 };
 
-const ActionButton = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onDelete }) => {
+const ActionButton = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onCancel }) => {
   const buttonRef = useRef(null);
 
   return (
@@ -208,7 +206,7 @@ const ActionButton = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onDele
           buttonRef={buttonRef}
           onDetail={onDetail}
           onEdit={onEdit}
-          onDelete={onDelete}
+          onCancel={onCancel}
         />
       )}
     </div>
@@ -223,48 +221,17 @@ const MobilePurchaseCard = ({
   onCloseMenu,
   onDetail,
   onEdit,
-  onDelete
+  onCancel
 }) => (
-  <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-    <div className="h-1.5 bg-gradient-to-r from-emerald-500 to-cyan-500" />
-    <div className="space-y-4 p-4">
+  <div className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
+    <div className="space-y-3 p-3.5">
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-medium text-gray-400">#{index}</p>
-          <p className="mt-1 text-sm font-semibold text-emerald-700">{row.nomor}</p>
-          <p className="mt-1 text-sm font-medium text-gray-800">{row.jenisItem}</p>
+        <div className="flex flex-col gap-0.5">
+          <div className="inline-flex w-fit rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+            {row.nomor}
+          </div>
+          <div className="text-xs text-gray-500">{formatDate(row.tanggal)}</div>
         </div>
-        <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${getStatusClasses(row.status)}`}>
-          {row.status}
-        </span>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3 text-sm">
-        <div>
-          <p className="text-xs text-gray-400">Tanggal</p>
-          <p className="font-medium text-gray-700">{formatDate(row.tanggal)}</p>
-        </div>
-        <div>
-          <p className="text-xs text-gray-400">Pemasok</p>
-          <p className="font-medium text-gray-700">{row.supplier}</p>
-        </div>
-        <div>
-          <p className="text-xs text-gray-400">Jenis Item</p>
-          <p className="font-medium text-gray-700">{row.jenisItem}</p>
-        </div>
-        <div>
-          <p className="text-xs text-gray-400">Jumlah</p>
-          <p className="font-medium text-gray-700">
-            {row.jumlah} {row.satuan}
-          </p>
-        </div>
-        <div className="col-span-2">
-          <p className="text-xs text-gray-400">Total</p>
-          <p className="font-semibold text-emerald-700">{formatCurrency(row.total)}</p>
-        </div>
-      </div>
-
-      <div className="flex items-center justify-end border-t border-gray-100 pt-3">
         <ActionButton
           row={row}
           isOpen={isMenuOpen}
@@ -272,9 +239,51 @@ const MobilePurchaseCard = ({
           onClose={onCloseMenu}
           onDetail={onDetail}
           onEdit={onEdit}
-          onDelete={onDelete}
+          onCancel={onCancel}
         />
       </div>
+
+      <div className="text-sm font-semibold text-gray-800">{row.jenisItem}</div>
+
+      <div className="grid grid-cols-2 gap-2 text-xs">
+        <div>
+          <p className="text-gray-400">Jumlah</p>
+          <p className="font-medium text-slate-700">
+            <span className="rounded bg-slate-100 px-1.5 py-0.5">{row.jumlah} {row.satuan}</span>
+          </p>
+        </div>
+        <div>
+          <p className="text-gray-400">Pemasok</p>
+          <p className="font-medium text-gray-700">{row.supplier || '-'}</p>
+        </div>
+        <div className="col-span-2 flex items-center justify-between border-t border-gray-100 pt-2">
+          <p className="text-gray-400">Total</p>
+          <p className="font-semibold text-emerald-700">{formatCurrency(row.total)}</p>
+        </div>
+        <div className="col-span-2 flex items-center justify-between">
+          <p className="text-gray-400">Status</p>
+          {(() => {
+            const label = row.payment_status_label || 'Belum Bayar';
+            const badgeClass = label === 'Lunas'
+              ? 'bg-emerald-100 text-emerald-700'
+              : label === 'Belum Lunas'
+                ? 'bg-amber-100 text-amber-700'
+                : 'bg-red-100 text-red-700';
+            return (
+              <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${badgeClass}`}>
+                {label}
+              </span>
+            );
+          })()}
+        </div>
+      </div>
+
+      {row.status && (
+        <div className="border-t border-gray-100 pt-2 text-xs text-gray-600">
+          <span className="text-gray-400">Catatan: </span>
+          {row.status}
+        </div>
+      )}
     </div>
   </div>
 );
@@ -292,9 +301,10 @@ const MobilePurchaseCard = ({
     pakan: [],
     ovk: []
   });
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [isStokModalOpen, setIsStokModalOpen] = useState(false);
   const hasLoadedOnceRef = useRef(false);
 
  const activeData = useMemo(() => pembelianData[activeTab] || [], [pembelianData, activeTab]);
@@ -307,8 +317,6 @@ const MobilePurchaseCard = ({
     navigate(`/rph/pembelian-pakan-ovk/detail/${rowId}`, { state: { item: row, type: activeTab } });
     setOpenMenuIdDesktop(null);
     setOpenMenuIdMobile(null);
-    // hard refresh after detail navigation so page loads fresh data
-    setTimeout(() => window.location.reload(), 50);
   }, [navigate, activeTab]);
 
   const handleEdit = useCallback((row) => {
@@ -317,40 +325,43 @@ const MobilePurchaseCard = ({
     navigate(`/rph/pembelian-pakan-ovk/edit/${rowId}`, { state: { item: row, type: activeTab } });
     setOpenMenuIdDesktop(null);
     setOpenMenuIdMobile(null);
-    // hard refresh after edit navigation
-    setTimeout(() => window.location.reload(), 50);
   }, [navigate, activeTab]);
 
-const handleDelete = useCallback((row) => {
+const handleCancel = useCallback((row) => {
     if (!row) return;
+    const canCancel = row.payment_status_label !== 'Lunas' && row.payment_status_label !== 'Belum Lunas';
+    if (!canCancel) {
+      setErrorMessage('Transaksi yang sudah dibayar / lunas tidak dapat dibatalkan.');
+      return;
+    }
     setSelectedItem(row);
-    setIsDeleteModalOpen(true);
+    setIsCancelModalOpen(true);
     setOpenMenuIdDesktop(null);
     setOpenMenuIdMobile(null);
   }, []);
 
-  const handleConfirmDelete = async () => {
+  const handleConfirmCancel = async () => {
     if (!selectedItem) return;
     const rowId = getRowId(selectedItem);
     if (!rowId) return;
 
-    setIsDeleting(true);
+    setIsCancelling(true);
     setErrorMessage('');
 
     try {
-      const response = await RphPembelianService.deletePembelian(rowId);
+      const response = await RphPembelianService.cancelPembelian(rowId);
 
       if (!response.success) {
-        setErrorMessage(response.message || 'Gagal menghapus pembelian.');
+        setErrorMessage(response.message || 'Gagal membatalkan transaksi.');
         return;
       }
 
-      // hard refresh after delete
+      // hard refresh after cancel
       setTimeout(() => window.location.reload(), 50);
     } catch (error) {
-      setErrorMessage(error?.message || 'Gagal menghapus pembelian.');
+      setErrorMessage(error?.message || 'Gagal membatalkan transaksi.');
     } finally {
-      setIsDeleting(false);
+      setIsCancelling(false);
     }
   };
 
@@ -434,15 +445,15 @@ const filteredData = useMemo(() => {
     () => [
       {
         name: 'No',
-        width: '70px',
+        width: '52px',
         center: true,
         cell: (row, index) => (
-          <div className="w-full text-center font-semibold text-gray-500">{index + 1}</div>
+          <div className="w-full text-center text-xs font-semibold text-gray-400">{index + 1}</div>
         )
       },
       {
-        name: 'Pilih',
-        width: '80px',
+        name: 'Aksi',
+        width: '72px',
         center: true,
         ignoreRowClick: true,
         cell: (row) => (
@@ -457,76 +468,94 @@ const filteredData = useMemo(() => {
               onClose={() => setOpenMenuIdDesktop(null)}
               onDetail={handleDetail}
               onEdit={handleEdit}
-              onDelete={handleDelete}
+              onCancel={handleCancel}
             />
           </div>
         )
       },
       {
-        name: 'Nomor Pembelian',
+        name: 'Pembelian',
         selector: (row) => row.nomor,
         sortable: true,
-        minWidth: '170px',
+        minWidth: '220px',
+        grow: 1.2,
         cell: (row) => (
-          <div className="w-full">
-            <div className="inline-flex rounded-lg bg-emerald-50 px-3 py-1.5 font-semibold text-emerald-700">
+          <div className="flex flex-col gap-0.5 py-2">
+            <div className="inline-flex w-fit rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
               {row.nomor}
+            </div>
+            <div className="text-xs text-gray-500">{formatDate(row.tanggal)}</div>
+            <div className="text-xs font-medium text-gray-600">
+              <span className="text-gray-400">Pemasok: </span>
+              {row.supplier || '-'}
             </div>
           </div>
         )
       },
       {
-        name: 'Tanggal',
-        selector: (row) => row.tanggal,
-        sortable: true,
-        minWidth: '140px',
-        cell: (row) => <div className="text-sm font-medium text-gray-700">{formatDate(row.tanggal)}</div>
-      },
-      {
-        name: activeTab === 'ovk' ? 'Jenis OVK' : 'Jenis Bahan Baku',
+        name: activeTab === 'ovk' ? 'OVK' : 'Bahan Baku',
         selector: (row) => row.jenisItem,
         sortable: true,
-        minWidth: '220px',
+        minWidth: '240px',
         grow: 1.3,
-        cell: (row) => <div className="py-2 font-semibold text-gray-800">{row.jenisItem}</div>
-      },
-      {
-        name: 'Pemasok',
-        selector: (row) => row.supplier,
-        sortable: true,
-        minWidth: '200px',
-        cell: (row) => <div className="text-sm font-medium text-gray-700">{row.supplier}</div>
-      },
-      {
-        name: 'Jumlah',
-        selector: (row) => row.jumlah,
-        sortable: true,
-        width: '120px',
-        center: true,
         cell: (row) => (
-          <div className="rounded-lg bg-slate-100 px-3 py-1.5 text-sm font-semibold text-slate-700">
-            {row.jumlah} {row.satuan}
+          <div className="flex flex-col gap-0.5 py-2">
+            <div className="text-sm font-semibold text-gray-800">{row.jenisItem}</div>
+            <div className="text-xs font-medium text-slate-600">
+              <span className="rounded bg-slate-100 px-1.5 py-0.5 text-slate-700">
+                {row.jumlah} {row.satuan}
+              </span>
+            </div>
           </div>
         )
       },
       {
-        name: 'Total',
+        name: 'Total Harga',
         selector: (row) => row.total,
         sortable: true,
-        minWidth: '160px',
-        cell: (row) => <div className="font-semibold text-emerald-700">{formatCurrency(row.total)}</div>
+        minWidth: '150px',
+        right: true,
+        cell: (row) => (
+          <div className="py-2 text-right text-sm font-semibold text-emerald-700">
+            {formatCurrency(row.total)}
+          </div>
+        )
+      },
+      {
+        name: 'Status Pembayaran',
+        selector: (row) => row.payment_status_label,
+        sortable: true,
+        minWidth: '150px',
+        center: true,
+        cell: (row) => {
+          const label = row.payment_status_label || 'Belum Bayar';
+          const badgeClass = label === 'Lunas'
+            ? 'bg-emerald-100 text-emerald-700'
+            : label === 'Belum Lunas'
+              ? 'bg-amber-100 text-amber-700'
+              : 'bg-red-100 text-red-700';
+          return (
+            <div className="py-2">
+              <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${badgeClass}`}>
+                {label}
+              </span>
+            </div>
+          );
+        }
       },
       {
         name: 'Catatan',
         selector: (row) => row.status,
         sortable: true,
-        minWidth: '200px',
+        minWidth: '180px',
         cell: (row) => (
-          <div className="text-sm font-medium text-gray-700">{row.status || '-'}</div>
+          <div className="py-2 text-xs font-medium text-gray-600 line-clamp-2">
+            {row.status || '-'}
+          </div>
         )
       }
     ],
-    [openMenuIdDesktop, activeTab, handleDetail, handleEdit, handleDelete]
+    [openMenuIdDesktop, activeTab, handleDetail, handleEdit, handleCancel]
   );
 
   return (
@@ -565,6 +594,14 @@ const filteredData = useMemo(() => {
             </div>
            
             <div className="flex shrink-0 items-center gap-3">
+            <button
+            type="button"
+            onClick={() => setIsStokModalOpen(true)}
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition-all hover:bg-gray-50"
+            >
+            <Boxes className="h-4 w-4" />
+            Cek Stok
+            </button>
             {activeTab === 'pakan' ? (
             <button
             type="button"
@@ -742,7 +779,7 @@ const filteredData = useMemo(() => {
             onCloseMenu={() => setOpenMenuIdMobile(null)}
             onDetail={handleDetail}
             onEdit={handleEdit}
-            onDelete={handleDelete}
+            onCancel={handleCancel}
           />
         ))
       )}
@@ -752,19 +789,25 @@ const filteredData = useMemo(() => {
       </div>
       </div>
 
+      <StokRphModal
+        isOpen={isStokModalOpen}
+        onClose={() => setIsStokModalOpen(false)}
+        activeTab={activeTab}
+      />
+
       <DeleteConfirmationModal
-        isOpen={isDeleteModalOpen}
+        isOpen={isCancelModalOpen}
         onClose={() => {
-          setIsDeleteModalOpen(false);
+          setIsCancelModalOpen(false);
           setSelectedItem(null);
         }}
-        onConfirm={handleConfirmDelete}
-        loading={isDeleting}
-        title="Hapus Pembelian?"
+        onConfirm={handleConfirmCancel}
+        loading={isCancelling}
+        title="Batalkan Transaksi?"
         description={
           selectedItem
-            ? `Anda yakin ingin menghapus pembelian ${selectedItem.nomor || ''}? Tindakan ini tidak dapat dibatalkan.`
-            : 'Anda yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.'
+            ? `Anda yakin ingin membatalkan transaksi ${selectedItem.nomor || ''}? Stok akan dikembalikan ke warehouse dan transaksi dihapus dari daftar. Tindakan ini tidak dapat dibatalkan.`
+            : 'Anda yakin ingin membatalkan transaksi ini? Stok akan dikembalikan ke warehouse. Tindakan ini tidak dapat dibatalkan.'
         }
       />
     </>

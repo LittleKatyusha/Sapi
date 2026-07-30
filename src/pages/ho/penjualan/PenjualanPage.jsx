@@ -46,9 +46,9 @@ const PenjualanPage = () => {
     const [activeTab, setActiveTab] = useState('bahan-baku');
     const [notification, setNotification] = useState(null);
 
-    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
     const [selectedItem, setSelectedItem] = useState(null);
-    const [isDeleting, setIsDeleting] = useState(false);
+    const [isCancelling, setIsCancelling] = useState(false);
 
     const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
     const [printRow, setPrintRow] = useState(null);
@@ -144,31 +144,31 @@ const PenjualanPage = () => {
         navigate(PENJUALAN_ROUTES.EDIT, { state: { pid: id } });
     }, [navigate]);
 
-    const handleDelete = useCallback((row) => {
+    const handleCancel = useCallback((row) => {
         setSelectedItem(row);
-        setIsDeleteModalOpen(true);
+        setIsCancelModalOpen(true);
     }, []);
 
-    const handleConfirmDelete = useCallback(async () => {
+    const handleConfirmCancel = useCallback(async () => {
         if (!selectedItem) return;
         const pid = selectedItem.pubid || selectedItem.pid || selectedItem.id;
-        setIsDeleting(true);
+        setIsCancelling(true);
         try {
-            await PenjualanService.deletePenjualan(pid);
+            await PenjualanService.cancelPenjualan(pid);
             setNotification({
                 type: 'success',
-                message: `Data penjualan "${selectedItem.nomor_faktur || ''}" berhasil dihapus`
+                message: `Transaksi penjualan "${selectedItem.nomor_faktur || ''}" berhasil dibatalkan dan stok dikembalikan`
             });
-            setIsDeleteModalOpen(false);
+            setIsCancelModalOpen(false);
             setSelectedItem(null);
             handlePageChange(serverPagination.currentPage || 1);
         } catch (error) {
             setNotification({
                 type: 'error',
-                message: error.message || 'Gagal menghapus data penjualan'
+                message: error.message || 'Gagal membatalkan transaksi penjualan'
             });
         } finally {
-            setIsDeleting(false);
+            setIsCancelling(false);
         }
     }, [selectedItem, serverPagination.currentPage, handlePageChange]);
 
@@ -263,7 +263,7 @@ const PenjualanPage = () => {
                                 summary={summary}
                                 onDownload={handleDownload}
                                 onEdit={handleEdit}
-                                onDelete={handleDelete}
+                                onCancel={handleCancel}
                             />
                         </div>
 
@@ -285,7 +285,7 @@ const PenjualanPage = () => {
                                         index={(serverPagination.currentPage - 1) * serverPagination.perPage + index}
                                         onDownload={handleDownload}
                                         onEdit={handleEdit}
-                                        onDelete={handleDelete}
+                                        onCancel={handleCancel}
                                     />
                                 ))
                             )}
@@ -310,11 +310,11 @@ const PenjualanPage = () => {
             />
 
             <DeleteConfirmationModal
-                isOpen={isDeleteModalOpen}
-                onClose={() => setIsDeleteModalOpen(false)}
-                onConfirm={handleConfirmDelete}
+                isOpen={isCancelModalOpen}
+                onClose={() => setIsCancelModalOpen(false)}
+                onConfirm={handleConfirmCancel}
                 itemName={selectedItem?.nomor_faktur || 'data penjualan'}
-                isDeleting={isDeleting}
+                isDeleting={isCancelling}
             />
 
             <PrintPenjualanModal

@@ -2,8 +2,8 @@ import React from 'react';
 import { AlertCircle, X } from 'lucide-react';
 
 /**
- * Delete Confirmation Modal for Penjualan
- * Provides a confirmation dialog before deleting penjualan records
+ * Cancel Confirmation Modal for Penjualan
+ * Provides a confirmation dialog before cancelling penjualan records
  */
 const DeleteConfirmationModal = ({
     isOpen,
@@ -34,10 +34,10 @@ const DeleteConfirmationModal = ({
                                 </div>
                                 <div>
                                     <h3 className="text-lg font-bold text-white">
-                                        Konfirmasi Hapus
+                                        Konfirmasi Pembatalan
                                     </h3>
                                     <p className="text-red-100 text-sm">
-                                        Tindakan ini tidak dapat dibatalkan
+                                        Stok akan dikembalikan ke gudang
                                     </p>
                                 </div>
                             </div>
@@ -55,7 +55,7 @@ const DeleteConfirmationModal = ({
                     <div className="px-6 py-6">
                         <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
                             <p className="text-gray-800 text-center">
-                                Apakah Anda yakin ingin menghapus data penjualan ini?
+                                Apakah Anda yakin ingin membatalkan transaksi penjualan ini? Stok akan dikembalikan ke gudang.
                             </p>
                             {itemName && (
                                 <p className="text-gray-600 text-center mt-2 font-semibold">
@@ -70,8 +70,8 @@ const DeleteConfirmationModal = ({
                                 <div className="text-sm text-yellow-800">
                                     <p className="font-semibold mb-1">Perhatian:</p>
                                     <ul className="list-disc list-inside space-y-1">
-                                        <li>Data yang sudah dihapus tidak dapat dikembalikan</li>
-                                        <li>Pastikan Anda telah mempertimbangkan keputusan ini</li>
+                                        <li>Transaksi yang dibatalkan tidak dapat dikembalikan</li>
+                                        <li>Stok yang sudah terpakai akan dikembalikan otomatis</li>
                                     </ul>
                                 </div>
                             </div>
@@ -98,12 +98,12 @@ const DeleteConfirmationModal = ({
                                 {isDeleting ? (
                                     <>
                                         <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                        Menghapus...
+                                        Membatalkan...
                                     </>
                                 ) : (
                                     <>
                                         <AlertCircle className="w-4 h-4" />
-                                        Ya, Hapus
+                                        Ya, Batalkan
                                     </>
                                 )}
                             </button>

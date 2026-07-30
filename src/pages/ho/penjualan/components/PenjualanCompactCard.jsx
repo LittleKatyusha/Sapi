@@ -3,7 +3,7 @@ import { Package, User, Truck, Receipt, CreditCard, TrendingUp } from 'lucide-re
 import { formatCurrency, formatDate } from '../utils/formatters';
 import ActionButton from './ActionButton';
 
-const PenjualanCompactCard = ({ data, index, onDownload, onEdit, onDelete }) => {
+const PenjualanCompactCard = ({ data, index, onDownload, onEdit, onCancel }) => {
     const [openActionMenu, setOpenActionMenu] = useState(null);
 
     const paymentLabels = { 1: 'Tunai', 2: 'Tempo', 3: 'Transfer' };
@@ -33,7 +33,7 @@ const PenjualanCompactCard = ({ data, index, onDownload, onEdit, onDelete }) => 
                         setOpenMenuId={setOpenActionMenu}
                         onDownload={onDownload}
                         onEdit={onEdit}
-                        onDelete={onDelete}
+                        onCancel={onCancel}
                         isActive={openActionMenu === (data.id || data.pid)}
                     />
                 </div>

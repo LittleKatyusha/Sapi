@@ -1,8 +1,8 @@
 import React, { useRef, useLayoutEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Download, Edit, Trash2 } from 'lucide-react';
+import { Download, Edit, Ban } from 'lucide-react';
 
-const ActionMenu = ({ row, onDownload, onEdit, onDelete, onClose, buttonRef }) => {
+const ActionMenu = ({ row, onDownload, onEdit, onCancel, onClose, buttonRef }) => {
     const menuRef = useRef(null);
     const [menuStyle, setMenuStyle] = useState(null);
 
@@ -58,11 +58,11 @@ const ActionMenu = ({ row, onDownload, onEdit, onDelete, onClose, buttonRef }) =
         },
         { divider: true },
         {
-            label: 'Hapus Penjualan',
-            icon: Trash2,
-            onClick: () => onDelete(row),
+            label: 'Batalkan Penjualan',
+            icon: Ban,
+            onClick: () => onCancel(row),
             className: 'text-red-600',
-            description: 'Hapus data penjualan',
+            description: 'Batalkan transaksi & kembalikan stok',
             bg: 'bg-red-100',
             hoverBg: 'group-hover:bg-red-200',
             text: 'text-red-600',

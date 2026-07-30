@@ -64,6 +64,7 @@ const ProdukSelectionModal = ({ isOpen, onClose, jenisPenjualan, idJenis, onSele
             id: produk.id,
             value: produk.id,
             label: produk.NAME,
+            id_satuan: produk.id_satuan,
             hargaBeli: produk.harga_beli,
             hargaJual: produk.harga_jual,
             persentase: produk.persentase,

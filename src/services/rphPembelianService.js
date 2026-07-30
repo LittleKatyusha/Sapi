@@ -43,6 +43,7 @@ class RphPembelianService {
   static API_SHOW = '/api/rph/pembelian/show';
   static API_UPDATE = '/api/rph/pembelian/update';
   static API_DELETE = '/api/rph/pembelian/hapus';
+  static API_CANCEL = '/api/rph/pembelian/cancel';
 
   static async getProdukOptions(jenisProduk) {
     try {
@@ -186,6 +187,25 @@ class RphPembelianService {
     }
   }
 
+  static async cancelPembelian(pid) {
+    try {
+      const response = await HttpClient.post(this.API_CANCEL, { pid });
+      return {
+        success: true,
+        data: response?.data ?? response,
+        message: response?.message || 'Transaksi berhasil dibatalkan'
+      };
+    } catch (error) {
+      const errorData = error?.data ?? error?.response?.data ?? null;
+      console.error('Error cancelling RPH pembelian:', error);
+      return {
+        success: false,
+        data: errorData,
+        message: errorData?.message || error?.message || 'Gagal membatalkan transaksi'
+      };
+    }
+  }
+
   static transformData(item = {}) {
     return {
       id: item.pid || item.nomor_pemesanan || item.id,
@@ -198,6 +218,11 @@ class RphPembelianService {
       satuan: item.satuan || item.satuan_produk || '-',
       total: Number(item.harga_total) || 0,
       status: item.keterangan || item.status || 'Menunggu',
+      payment_status: Number(item.payment_status) || 0,
+      payment_status_label: item.payment_status_label || 'Belum Bayar',
+      total_tagihan: Number(item.total_tagihan) || 0,
+      total_terbayar: Number(item.total_terbayar) || 0,
+      sisa_pembayaran: Number(item.sisa_pembayaran) || 0,
       _original: item
     };
   }

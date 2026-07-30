@@ -191,14 +191,24 @@ const usePenjualanForm = () => {
                                 produkMap[p.id] = p;
                             });
 
+                            // Build composite map (id_produk|id_satuan) -> produk data
+                            // karena produk bisa punya beberapa satuan (LITER/KG/DUS)
+                            // dengan harga & stok berbeda.
+                            const produkCompositeMap = {};
+                            produkList.forEach(p => {
+                                produkCompositeMap[`${p.id}|${p.id_satuan}`] = p;
+                            });
+
                             // Map each detail to the format expected by ProdukDetailTable
                             const mappedDetails = details.map(item => {
-                                const produkData = produkMap[item.id_produk];
+                                const compositeKey = `${item.id_produk}|${item.id_satuan}`;
+                                const produkData = produkCompositeMap[compositeKey] || produkMap[item.id_produk];
                                 return {
                                     produk: produkData ? {
                                         id: produkData.id,
                                         value: produkData.id,
                                         label: produkData.NAME,
+                                        id_satuan: item.id_satuan ?? produkData.id_satuan,
                                         hargaBeli: produkData.harga_beli,
                                         hargaJual: produkData.harga_jual,
                                         persentase: produkData.persentase,
@@ -207,6 +217,7 @@ const usePenjualanForm = () => {
                                         id: item.id_produk,
                                         value: item.id_produk,
                                         label: `Produk #${item.id_produk}`,
+                                        id_satuan: item.id_satuan,
                                         hargaBeli: 0,
                                         hargaJual: 0,
                                         persentase: 0,
@@ -317,9 +328,11 @@ const usePenjualanForm = () => {
             ));
             setEditingIndex(null);
         } else {
-            // Duplicate check — if product already exists, show notification error
+            // Duplicate check — composite key (id_produk|id_satuan) karena produk
+            // bisa muncul beberapa kali dengan satuan berbeda.
+            const newKey = `${produk.id || produk.value}|${produk.id_satuan}`;
             const isDuplicate = detailProduk.some(
-                item => (item.produk?.id || item.produk?.value) === (produk.id || produk.value)
+                item => `${item.produk?.id || item.produk?.value}|${item.produk?.id_satuan}` === newKey
             );
             if (isDuplicate) {
                 setNotification({ type: 'error', message: 'Produk sudah ada dalam daftar' });
@@ -385,6 +398,7 @@ const usePenjualanForm = () => {
                 keterangan: formData.keterangan,
                 items: detailProduk.map(item => ({
                     id_produk: parseInt(item.produk?.id || item.produk?.value, 10),
+                    id_satuan: parseInt(item.produk?.id_satuan, 10),
                     jumlah: parseFloat(item.qty) || 0
                 }))
             };
