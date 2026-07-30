@@ -1,6 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { CheckSquare, Search, Square, X, AlertCircle, Loader2 } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { CheckSquare, Search, Square, X, AlertCircle, Loader2, RotateCcw, RefreshCw } from 'lucide-react';
 import PersediaanPakanService from '../../../../../services/persediaanPakanService';
+
+const ITEMS_PER_PAGE = 15;
 
 const formatCurrency = (value) =>
   new Intl.NumberFormat('id-ID', {
@@ -33,39 +35,68 @@ const BuatResepPakanModal = ({
   // Selected items state
   const [selectedMap, setSelectedMap] = useState({});
 
-  // Search state
-  const [searchTerm, setSearchTerm] = useState('');
+  // Search state - input vs applied
+  const [searchInput, setSearchInput] = useState('');
+  const [appliedSearch, setAppliedSearch] = useState('');
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const [lastPage, setLastPage] = useState(1);
 
   // Submit state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
 
-  // Fetch stok bahan baku on modal open - always fetch fresh data without caching
+  // Composite row key: view groups by id + satuan + harga, so same id can appear
+  // in multiple rows with different satuan/harga. Each row must be independently
+  // selectable.
+  const getRowKey = (item) => `${item.id}|${item.satuan || item.unit || ''}|${item.harga || 0}`;
+
+  // Fetch stok bahan baku with server-side pagination + search
+  const fetchStokBahanBaku = useCallback(async (page, search) => {
+    setLoadingStok(true);
+    setErrorStok('');
+    setStokBahanBaku([]);
+
+    let fetched = [];
+    let pagination = { recordsTotal: 0, lastPage: 1 };
+    try {
+      const response = await PersediaanPakanService.getStokBahanBaku({
+        page,
+        per_page: ITEMS_PER_PAGE,
+        search,
+      });
+      if (response.success) {
+        fetched = response.data || [];
+        setStokBahanBaku(fetched);
+        setTotalRecords(response.recordsTotal ?? fetched.length);
+        setLastPage(response.lastPage ?? 1);
+        pagination.recordsTotal = response.recordsTotal ?? fetched.length;
+        pagination.lastPage = response.lastPage ?? 1;
+      } else {
+        setErrorStok(response.message || 'Gagal memuat data stok bahan baku');
+        setTotalRecords(0);
+        setLastPage(1);
+      }
+    } catch (err) {
+      setErrorStok(err.message || 'Terjadi kesalahan saat memuat data');
+      setTotalRecords(0);
+      setLastPage(1);
+    } finally {
+      setLoadingStok(false);
+    }
+    return { fetched, pagination };
+  }, []);
+
+  // Load on modal open
   useEffect(() => {
     if (!isOpen) return;
 
-    const fetchStokBahanBaku = async () => {
-      setLoadingStok(true);
-      setErrorStok('');
-      // Clear previous data to ensure fresh fetch
-      setStokBahanBaku([]);
-      
-      try {
-        const response = await PersediaanPakanService.getStokBahanBaku();
-        if (response.success) {
-          setStokBahanBaku(response.data || []);
-        } else {
-          setErrorStok(response.message || 'Gagal memuat data stok bahan baku');
-        }
-      } catch (err) {
-        setErrorStok(err.message || 'Terjadi kesalahan saat memuat data');
-      } finally {
-        setLoadingStok(false);
-      }
-    };
-
-    // Always fetch fresh stok bahan baku data when modal opens
-    fetchStokBahanBaku();
+    // Reset filters & pagination
+    setSearchInput('');
+    setAppliedSearch('');
+    setCurrentPage(1);
 
     // Reset form for add mode
     if (!isEditMode) {
@@ -76,42 +107,64 @@ const BuatResepPakanModal = ({
       });
       setSelectedMap({});
     } else {
-      // Set form for edit mode with data from /show endpoint
       setFormData({
         name: editData.name || '',
         tgl_aktif: editData.tgl_aktif || '',
         keterangan: editData.keterangan || '',
       });
-      
-      // Populate selectedMap with detail items from /show response
-      if (editData.detail && Array.isArray(editData.detail)) {
+    }
+
+    setSubmitError('');
+
+    // Fetch first page, then populate selectedMap for edit mode
+    (async () => {
+      const { fetched } = await fetchStokBahanBaku(1, '');
+      if (isEditMode && editData?.detail && Array.isArray(editData.detail)) {
         const initialSelectedMap = {};
         editData.detail.forEach((item) => {
-          initialSelectedMap[item.id_produk] = {
+          const stokRow = fetched.find(
+            (entry) => entry.id === item.id_produk && Number(entry.harga) === Number(item.harga)
+          );
+          const key = stokRow ? getRowKey(stokRow) : `${item.id_produk}||${item.harga || 0}`;
+          initialSelectedMap[key] = {
             selected: true,
             jumlah: item.jumlah || 1,
           };
         });
         setSelectedMap(initialSelectedMap);
-      } else {
-        setSelectedMap({});
       }
-    }
-
-    setSearchTerm('');
-    setSubmitError('');
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, isEditMode, editData]);
 
-  // Filter items based on search
-  const filteredItems = useMemo(() => {
-    if (!searchTerm.trim()) return stokBahanBaku;
-    const lower = searchTerm.toLowerCase();
-    return stokBahanBaku.filter((item) =>
-      [item.name, item.produk]
-        .filter(Boolean)
-        .some((value) => value.toLowerCase().includes(lower))
-    );
-  }, [stokBahanBaku, searchTerm]);
+  // Refetch when page or applied search changes
+  useEffect(() => {
+    if (!isOpen) return;
+    fetchStokBahanBaku(currentPage, appliedSearch);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, appliedSearch]);
+
+  const handleSearch = () => {
+    setAppliedSearch(searchInput.trim());
+    setCurrentPage(1);
+  };
+
+  const handleResetSearch = () => {
+    setSearchInput('');
+    setAppliedSearch('');
+    setCurrentPage(1);
+  };
+
+  const handleKeyDownSearch = (e) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
+
+  const isFilterActive = appliedSearch !== '';
+
+  // Filter items based on search (client-side removed; server-side now)
+  const filteredItems = stokBahanBaku;
 
   // Calculate selected items and total
   const selectedItems = useMemo(() => {
@@ -122,8 +175,8 @@ const BuatResepPakanModal = ({
         const jumlah = value.jumlah;
         return typeof jumlah === 'number' && jumlah > 0;
       })
-      .map(([id, value]) => {
-        const item = stokBahanBaku.find((entry) => entry.id === Number(id));
+      .map(([key, value]) => {
+        const item = stokBahanBaku.find((entry) => getRowKey(entry) === key);
         if (!item) return null;
         return {
           ...item,
@@ -142,9 +195,10 @@ const BuatResepPakanModal = ({
     setSelectedMap((prev) => {
       const next = { ...prev };
       filteredItems.forEach((item) => {
-        next[item.id] = {
+        const key = getRowKey(item);
+        next[key] = {
           selected: true,
-          jumlah: next[item.id]?.jumlah !== undefined ? next[item.id].jumlah : '',
+          jumlah: next[key]?.jumlah !== undefined ? next[key].jumlah : '',
         };
       });
       return next;
@@ -155,20 +209,21 @@ const BuatResepPakanModal = ({
     setSelectedMap((prev) => {
       const next = { ...prev };
       filteredItems.forEach((item) => {
-        delete next[item.id];
+        delete next[getRowKey(item)];
       });
       return next;
     });
   };
 
   const handleToggleSelect = (item) => {
+    const key = getRowKey(item);
     setSelectedMap((prev) => {
-      const current = prev[item.id];
+      const current = prev[key];
       const next = { ...prev };
       if (current?.selected) {
-        delete next[item.id];
+        delete next[key];
       } else {
-        next[item.id] = {
+        next[key] = {
           selected: true,
           jumlah: current?.jumlah !== undefined ? current.jumlah : '',
         };
@@ -178,11 +233,12 @@ const BuatResepPakanModal = ({
   };
 
   const handleJumlahChange = (item, jumlah) => {
+    const key = getRowKey(item);
     // Allow empty string when user clears the input
     if (jumlah === '' || jumlah === null || jumlah === undefined) {
       setSelectedMap((prev) => ({
         ...prev,
-        [item.id]: {
+        [key]: {
           selected: true,
           jumlah: '', // Store as empty string
         },
@@ -204,7 +260,7 @@ const BuatResepPakanModal = ({
 
     setSelectedMap((prev) => ({
       ...prev,
-      [item.id]: {
+      [key]: {
         selected: true,
         jumlah: numJumlah,
       },
@@ -243,10 +299,10 @@ const BuatResepPakanModal = ({
     }
     
     // Validate quantities against stock
-    for (const [id, value] of Object.entries(selectedMap)) {
+    for (const [key, value] of Object.entries(selectedMap)) {
       if (!value.selected) continue;
       
-      const item = stokBahanBaku.find((entry) => entry.id === Number(id));
+      const item = stokBahanBaku.find((entry) => getRowKey(entry) === key);
       if (!item) continue;
       
       const jumlah = value.jumlah;
@@ -387,25 +443,60 @@ const BuatResepPakanModal = ({
 
           {/* Search and Select Actions */}
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="relative flex-1 min-w-[220px]">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Cari bahan baku..."
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm text-slate-700 outline-none transition focus:border-emerald-300 focus:bg-white focus:ring-4 focus:ring-emerald-100"
-                disabled={isSubmitting}
-              />
+            <div className="flex flex-1 flex-wrap items-center gap-2 min-w-[220px]">
+              <div className="relative flex-1 min-w-[180px]">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  onKeyDown={handleKeyDownSearch}
+                  placeholder="Cari nama bahan baku..."
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm text-slate-700 outline-none transition focus:border-emerald-300 focus:bg-white focus:ring-4 focus:ring-emerald-100"
+                  disabled={isSubmitting || loadingStok}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleSearch}
+                disabled={isSubmitting || loadingStok}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50"
+              >
+                <Search className="h-4 w-4" />
+                Cari
+              </button>
+              <button
+                type="button"
+                onClick={handleResetSearch}
+                disabled={isSubmitting || loadingStok}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 disabled:opacity-50"
+              >
+                <RotateCcw className="h-4 w-4" />
+                Reset
+              </button>
+              {isFilterActive && (
+                <span className="rounded-full bg-emerald-50 px-2 py-1 text-xs text-emerald-700">
+                  Filter aktif
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => fetchStokBahanBaku(currentPage, appliedSearch)}
+                disabled={isSubmitting || loadingStok}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 disabled:opacity-50"
+                title="Refresh"
+              >
+                <RefreshCw className={`h-4 w-4 ${loadingStok ? 'animate-spin' : ''}`} />
+              </button>
               <button
                 type="button"
                 onClick={handleSelectAll}
                 disabled={isSubmitting || loadingStok}
                 className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-50"
               >
-                Pilih Semua
+                Pilih Halaman
               </button>
               <button
                 type="button"
@@ -413,7 +504,7 @@ const BuatResepPakanModal = ({
                 disabled={isSubmitting || loadingStok}
                 className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 disabled:opacity-50"
               >
-                Deselect Semua
+                Deselect Halaman
               </button>
             </div>
           </div>
@@ -443,6 +534,7 @@ const BuatResepPakanModal = ({
                   <th className="w-12 border-b border-slate-200 px-3 py-2 text-center">Pilih</th>
                   <th className="border-b border-slate-200 px-3 py-2 text-left">Nama</th>
                   <th className="border-b border-slate-200 px-3 py-2 text-left">Produk</th>
+                  <th className="border-b border-slate-200 px-3 py-2 text-left">Satuan</th>
                   <th className="border-b border-slate-200 px-3 py-2 text-right">Harga</th>
                   <th className="border-b border-slate-200 px-3 py-2 text-center">Stok Tersedia</th>
                   <th className="border-b border-slate-200 px-3 py-2 text-center">Jumlah</th>
@@ -451,7 +543,7 @@ const BuatResepPakanModal = ({
               <tbody>
                 {loadingStok && (
                   <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-sm text-slate-500">
+                    <td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-500">
                       <div className="flex items-center justify-center gap-2">
                         <Loader2 className="h-4 w-4 animate-spin" />
                         Memuat data stok bahan baku...
@@ -461,13 +553,14 @@ const BuatResepPakanModal = ({
                 )}
                 {!loadingStok && !errorStok && filteredItems.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-sm text-slate-500">
-                      Tidak ada data stok bahan baku
+                    <td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-500">
+                      {isFilterActive ? 'Tidak ada data untuk pencarian ini' : 'Tidak ada data stok bahan baku'}
                     </td>
                   </tr>
                 )}
                 {!loadingStok && !errorStok && filteredItems.map((item) => {
-                  const current = selectedMap[item.id];
+                  const key = getRowKey(item);
+                  const current = selectedMap[key];
                   const isSelected = Boolean(current?.selected);
                   // Display empty string if jumlah is empty or not set, otherwise show the number
                   const jumlahValue = current?.jumlah !== undefined ? current.jumlah : '';
@@ -475,7 +568,7 @@ const BuatResepPakanModal = ({
 
                   return (
                     <tr
-                      key={item.id}
+                      key={key}
                       className={`border-b border-slate-100 transition hover:bg-emerald-50/50 ${
                         isSelected ? 'bg-emerald-50' : ''
                       } ${isOverStock ? 'bg-red-50' : ''}`}
@@ -496,6 +589,7 @@ const BuatResepPakanModal = ({
                       </td>
                       <td className="px-3 py-2 font-semibold text-slate-700">{item.name}</td>
                       <td className="px-3 py-2 text-slate-600">{item.produk || '-'}</td>
+                      <td className="px-3 py-2 text-slate-600">{item.satuan || item.unit || '-'}</td>
                       <td className="px-3 py-2 text-right text-slate-600">
                         {formatCurrency(item.harga)}
                       </td>
@@ -529,6 +623,37 @@ const BuatResepPakanModal = ({
               </tbody>
             </table>
           </div>
+
+          {/* Pagination Controls */}
+          {!loadingStok && !errorStok && totalRecords > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-2 px-1 pt-3 text-sm">
+              <span className="text-slate-600">
+                Menampilkan {(currentPage - 1) * ITEMS_PER_PAGE + 1}–
+                {Math.min(currentPage * ITEMS_PER_PAGE, totalRecords)} dari {totalRecords}
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1 || isSubmitting}
+                  className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Sebelumnya
+                </button>
+                <span className="text-xs text-slate-600">
+                  Hal {currentPage}/{lastPage || 1}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((p) => Math.min(lastPage, p + 1))}
+                  disabled={currentPage >= lastPage || isSubmitting}
+                  className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Berikutnya
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Footer */}

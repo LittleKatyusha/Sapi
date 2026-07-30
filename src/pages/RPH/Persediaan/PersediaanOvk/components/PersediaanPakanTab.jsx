@@ -244,22 +244,22 @@ const PersediaanPakanTab = () => {
         }
     };
 
-    // Define columns
+    // Define columns - clean & informative
     const columns = useMemo(() => [
         {
             name: 'No',
-            width: '50px',
+            width: '56px',
             sortable: false,
             center: true,
             cell: (row, index) => (
-                <div className="font-semibold text-gray-600 text-center w-full">
+                <div className="text-gray-500 text-sm text-center w-full font-medium">
                     {(serverPagination.currentPage - 1) * serverPagination.perPage + index + 1}
                 </div>
             ),
         },
         {
-            name: 'Pilih',
-            width: '70px',
+            name: '',
+            width: '60px',
             ignoreRowClick: true,
             center: true,
             cell: row => (
@@ -279,10 +279,10 @@ const PersediaanPakanTab = () => {
             name: 'Tanggal',
             selector: row => row.tgl_aktif,
             sortable: true,
-            width: '140px',
+            width: '130px',
             center: true,
             cell: row => (
-                <div className="font-medium text-gray-800 text-center w-full whitespace-nowrap">
+                <div className="text-gray-700 text-center w-full whitespace-nowrap text-sm font-medium">
                     {formatDate(row.tgl_aktif)}
                 </div>
             ),
@@ -291,24 +291,27 @@ const PersediaanPakanTab = () => {
             name: 'Nama Resep',
             selector: row => row.name,
             sortable: true,
-            minWidth: '200px',
+            minWidth: '240px',
             cell: row => (
-                <div className="text-left font-medium text-gray-800 text-sm w-full" title={row.name}>
-                    {row.name || '-'}
+                <div className="text-left w-full" title={row.keterangan || row.name}>
+                    <div className="font-semibold text-gray-900 text-sm leading-snug">{row.name || '-'}</div>
+                    {row.keterangan && (
+                        <div className="text-xs text-gray-400 line-clamp-1 leading-snug mt-0.5">{row.keterangan}</div>
+                    )}
                 </div>
             ),
         },
         {
-            name: 'Total Jumlah',
+            name: 'Jumlah',
             selector: row => row.total_jumlah,
             sortable: true,
-            width: '130px',
+            width: '110px',
             center: true,
             cell: row => (
                 <div className="flex justify-center w-full">
-                    <div className="bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-lg font-semibold whitespace-nowrap text-center">
+                    <span className="inline-flex items-center justify-center min-w-[44px] px-2.5 py-1 rounded-md bg-gray-50 text-gray-700 text-sm font-semibold">
                         {row.total_jumlah || 0}
-                    </div>
+                    </span>
                 </div>
             ),
         },
@@ -317,23 +320,10 @@ const PersediaanPakanTab = () => {
             selector: row => row.harga_total,
             sortable: true,
             width: '160px',
-            center: true,
+            right: true,
             cell: row => (
-                <div className="flex justify-center w-full">
-                    <div className="bg-green-50 text-green-700 px-3 py-1.5 rounded-lg font-semibold text-sm whitespace-nowrap text-center">
-                        {formatCurrency(row.harga_total)}
-                    </div>
-                </div>
-            ),
-        },
-        {
-            name: 'Keterangan',
-            selector: row => row.keterangan,
-            sortable: true,
-            minWidth: '200px',
-            cell: row => (
-                <div className="text-sm text-gray-600 line-clamp-2 w-full" title={row.keterangan}>
-                    {row.keterangan || '-'}
+                <div className="text-right w-full whitespace-nowrap text-sm font-semibold text-emerald-700">
+                    {formatCurrency(row.harga_total)}
                 </div>
             ),
         },
