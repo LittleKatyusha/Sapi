@@ -665,16 +665,6 @@ const AddEditPembelianPage = () => {
 
     // Golongan 1, 2, 3 tersedia untuk semua tipe supplier (tidak ada filter/reset otomatis)
 
-    // Calculate total weight for SUPPLIER (PERORANGAN): Total Berat = Jumlah Ekor × Berat per Sapi
-    const calculatedBeratTotal = useMemo(() => {
-        if (!isSupplierPerorangan) return 0;
-        
-        const totalSapi = parseInt(headerData.totalSapi) || 0;
-        const beratPerSapi = parseFloat(defaultData.berat) || 0;
-        
-        return totalSapi * beratPerSapi;
-    }, [isSupplierPerorangan, headerData.totalSapi, defaultData.berat]);
-
     // Calculate price per kilo for SUPPLIER (PERORANGAN)
     const hargaPerKilo = useMemo(() => {
         if (!isSupplierPerorangan) return 0;
@@ -713,15 +703,51 @@ const AddEditPembelianPage = () => {
         return jumlahHarga / totalBerat;
     }, [isSupplierPerorangan2, headerData.hargaTotal, headerData.beratTotal]);
 
-    // Auto-update berat total when in SUPPLIER (PERORANGAN) mode (excluding Type 2)
+    // Computed total harga beli from detail items (harga per kilo × berat)
+    const totalHargaBeliDetail = useMemo(() => {
+        return detailItems.reduce((sum, item) => {
+            const harga = parseFloat(item.harga) || 0;
+            const berat = parseFloat(item.berat) || 0;
+            return sum + (harga * berat);
+        }, 0);
+    }, [detailItems]);
+
+    // Computed total berat from detail items
+    const totalBeratDetail = useMemo(() => {
+        return detailItems.reduce((sum, item) => sum + (parseFloat(item.berat) || 0), 0);
+    }, [detailItems]);
+
+    // Computed harga total = biaya truck + biaya lain + total harga beli dari detail
+    const computedHargaTotal = useMemo(() => {
+        const biayaTruck = parseFloat(headerData.biayaTruck) || 0;
+        const biayaLain = parseFloat(headerData.biayaLain) || 0;
+        return biayaTruck + biayaLain + totalHargaBeliDetail;
+    }, [headerData.biayaTruck, headerData.biayaLain, totalHargaBeliDetail]);
+
+    // Auto-sync computed hargaTotal into headerData (readonly field)
     useEffect(() => {
-        if (isSupplierPerorangan && !isSupplierPerorangan2 && calculatedBeratTotal > 0) {
-            setHeaderData(prev => ({
-                ...prev,
-                beratTotal: calculatedBeratTotal
-            }));
-        }
-    }, [isSupplierPerorangan, isSupplierPerorangan2, calculatedBeratTotal]);
+        setHeaderData(prev => {
+            if (prev.hargaTotal === computedHargaTotal) return prev;
+            return { ...prev, hargaTotal: computedHargaTotal };
+        });
+    }, [computedHargaTotal]);
+
+    // Auto-update berat total from detail items (except SUPPLIER PERORANGAN 2 where it's manual input)
+    useEffect(() => {
+        if (isSupplierPerorangan2) return; // manual input mode
+        setHeaderData(prev => {
+            if (prev.beratTotal === totalBeratDetail) return prev;
+            return { ...prev, beratTotal: totalBeratDetail };
+        });
+    }, [totalBeratDetail, isSupplierPerorangan2]);
+
+    // Auto-update total sapi from detail items count
+    useEffect(() => {
+        setHeaderData(prev => {
+            if (prev.totalSapi === detailItems.length) return prev;
+            return { ...prev, totalSapi: detailItems.length };
+        });
+    }, [detailItems.length]);
 
     // Auto-update default price when in SUPPLIER (PERORANGAN) mode (excluding Type 2)
     useEffect(() => {
@@ -2112,38 +2138,34 @@ const AddEditPembelianPage = () => {
                         <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Berat Total (kg)
-                                        {isSupplierPerorangan && !isSupplierPerorangan2 && (
-                                            <span className="ml-2 text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full">
-                                                Read Only - SUPPLIER (PERORANGAN)
+                                        {!isSupplierPerorangan2 && (
+                                            <span className="ml-2 text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
+                                                Otomatis dari Detail Ternak
                                             </span>
                                         )}
                                     </label>
                                     <input
                                         type="text"
-                                        value={formatNumber(headerData.beratTotal)}
+                                        value={formatNumber(isSupplierPerorangan2 ? headerData.beratTotal : totalBeratDetail)}
                                         onChange={(e) => {
                                             const rawValue = parseNumber(e.target.value);
                                             handleHeaderChange('beratTotal', rawValue);
                                         }}
                                         className={`w-full px-2.5 py-1.5 border rounded-lg ${
-                                            isSupplierPerorangan && !isSupplierPerorangan2
-                                                ? 'border-orange-300 bg-orange-50 text-gray-600 cursor-not-allowed' 
-                                                : isSupplierPerorangan2
-                                                    ? 'border-blue-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-                                                : 'border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-red-500'
+                                            isSupplierPerorangan2
+                                                ? 'border-blue-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                                                : 'border-gray-200 bg-gray-50 text-gray-700 cursor-not-allowed font-semibold'
                                         }`}
                                         placeholder="0"
                                         min="0"
                                         step="0.1"
-                                        readOnly={isSupplierPerorangan && !isSupplierPerorangan2}
-                                        disabled={isSupplierPerorangan && !isSupplierPerorangan2}
+                                        readOnly={!isSupplierPerorangan2}
+                                        disabled={!isSupplierPerorangan2}
                                     />
                                     <p className="text-xs text-gray-500 mt-1">
                                         💡 {isSupplierPerorangan2
                                             ? 'Input manual total berat untuk perhitungan berat per sarpi dan harga per kilo'
-                                            : isSupplierPerorangan 
-                                            ? 'Berat total otomatis dihitung: Total Sapi × Berat per Sapi' 
-                                            : 'Total berat semua hewan dalam pembelian ini'
+                                            : 'Berat total otomatis dari jumlah berat semua item di Detail Ternak'
                                         }
                                     </p>
 
@@ -2155,36 +2177,35 @@ const AddEditPembelianPage = () => {
                                     </label>
                                     <input
                                         type="text"
-                                        value={formatNumber(headerData.hargaTotal)}
-                                        onChange={(e) => {
-                                            const rawValue = parseNumber(e.target.value);
-                                            handleHeaderChange('hargaTotal', rawValue);
-                                        }}
-                                        className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                        value={formatNumber(computedHargaTotal)}
+                                        readOnly
+                                        tabIndex={-1}
+                                        className="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg bg-gray-50 text-gray-700 cursor-not-allowed font-semibold"
                                         placeholder="0"
                                     />
                                     <p className="text-xs text-gray-500 mt-1">
-                                        💡 Total harga keseluruhan pembelian
+                                        💡 Otomatis: Biaya Truck + Biaya Lain + Total Harga Beli (harga/kilo × berat)
                                     </p>
                                 </div>
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Total Ternak (ekor)
+                                        <span className="ml-2 text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
+                                            Otomatis dari Detail Ternak
+                                        </span>
                                     </label>
                                     <input
                                         type="text"
-                                        value={formatNumber(headerData.totalSapi)}
-                                        onChange={(e) => {
-                                            const rawValue = parseNumber(e.target.value);
-                                            handleHeaderChange('totalSapi', rawValue);
-                                        }}
-                                        className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                        value={formatNumber(detailItems.length)}
+                                        readOnly
+                                        tabIndex={-1}
+                                        className="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg bg-gray-50 text-gray-700 cursor-not-allowed font-semibold"
                                         placeholder="0"
                                         min="0"
                                     />
                                     <p className="text-xs text-gray-500 mt-1">
-                                        💡 Total jumlah Ternak dalam pembelian ini
+                                        💡 Total ternak otomatis dari jumlah item di Detail Ternak
                                     </p>
                                 </div>
 
@@ -2723,7 +2744,7 @@ const AddEditPembelianPage = () => {
 
                             {/* Summary */}
                             <div className="mt-4 bg-gradient-to-r from-gray-50 to-slate-100 p-3 rounded-lg">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-center">
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
                                     <div>
                                         <p className="text-xl font-bold text-indigo-600">
                                             {detailItems.length}
@@ -2732,9 +2753,21 @@ const AddEditPembelianPage = () => {
                                     </div>
                                     <div>
                                         <p className="text-xl font-bold text-green-600">
-                                            {detailItems.reduce((sum, item) => sum + (parseFloat(item.berat) || 0), 0)} kg
+                                            {formatNumber(detailItems.reduce((sum, item) => sum + (parseFloat(item.berat) || 0), 0))} kg
                                         </p>
                                         <p className="text-xs text-gray-600">Total Berat</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xl font-bold text-emerald-600">
+                                            Rp {formatNumber(totalHargaBeliDetail)}
+                                        </p>
+                                        <p className="text-xs text-gray-600">Total Harga Beli</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xl font-bold text-blue-600">
+                                            Rp {formatNumber(computedHargaTotal)}
+                                        </p>
+                                        <p className="text-xs text-gray-600">Harga Total (+Truck +Lain)</p>
                                     </div>
                                 </div>
                             </div>
