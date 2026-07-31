@@ -185,24 +185,37 @@ const usePenjualanForm = () => {
                             );
                             const produkList = extractApiData(produkResponse);
 
-                            // Build a map of id_produk -> produk data
+                            // Build a map of id_produk -> produk data (first match)
                             const produkMap = {};
                             produkList.forEach(p => {
-                                produkMap[p.id] = p;
+                                if (!produkMap[p.id]) produkMap[p.id] = p;
                             });
 
-                            // Build composite map (id_produk|id_satuan) -> produk data
-                            // karena produk bisa punya beberapa satuan (LITER/KG/DUS)
-                            // dengan harga & stok berbeda.
+                            // Build (id_produk|id_satuan) -> produk data (first match) fallback
+                            const produkSatuanMap = {};
+                            produkList.forEach(p => {
+                                const k = `${p.id}|${p.id_satuan}`;
+                                if (!produkSatuanMap[k]) produkSatuanMap[k] = p;
+                            });
+
+                            // Build composite map (id_produk|id_satuan|harga_jual) -> produk data
+                            // karena produk bisa punya beberapa satuan/harga dengan stok berbeda.
                             const produkCompositeMap = {};
                             produkList.forEach(p => {
-                                produkCompositeMap[`${p.id}|${p.id_satuan}`] = p;
+                                produkCompositeMap[`${p.id}|${p.id_satuan}|${p.harga_jual}`] = p;
                             });
 
                             // Map each detail to the format expected by ProdukDetailTable
                             const mappedDetails = details.map(item => {
-                                const compositeKey = `${item.id_produk}|${item.id_satuan}`;
-                                const produkData = produkCompositeMap[compositeKey] || produkMap[item.id_produk];
+                                // Fallback for old records: compute unit harga_jual from harga_total/jumlah
+                                const detailHargaJual = item.harga_jual != null
+                                    ? Number(item.harga_jual)
+                                    : (item.harga_total != null && item.jumlah > 0
+                                        ? Number(item.harga_total) / Number(item.jumlah)
+                                        : 0);
+                                const compositeKey = `${item.id_produk}|${item.id_satuan}|${detailHargaJual}`;
+                                const satuanKey = `${item.id_produk}|${item.id_satuan}`;
+                                const produkData = produkCompositeMap[compositeKey] || produkSatuanMap[satuanKey] || produkMap[item.id_produk];
                                 return {
                                     produk: produkData ? {
                                         id: produkData.id,
@@ -210,7 +223,7 @@ const usePenjualanForm = () => {
                                         label: produkData.NAME,
                                         id_satuan: item.id_satuan ?? produkData.id_satuan,
                                         hargaBeli: produkData.harga_beli,
-                                        hargaJual: produkData.harga_jual,
+                                        hargaJual: detailHargaJual || produkData.harga_jual,
                                         persentase: produkData.persentase,
                                         produk: produkData.produk
                                     } : {
@@ -219,7 +232,7 @@ const usePenjualanForm = () => {
                                         label: `Produk #${item.id_produk}`,
                                         id_satuan: item.id_satuan,
                                         hargaBeli: 0,
-                                        hargaJual: 0,
+                                        hargaJual: detailHargaJual,
                                         persentase: 0,
                                         produk: '-'
                                     },
@@ -328,11 +341,11 @@ const usePenjualanForm = () => {
             ));
             setEditingIndex(null);
         } else {
-            // Duplicate check — composite key (id_produk|id_satuan) karena produk
-            // bisa muncul beberapa kali dengan satuan berbeda.
-            const newKey = `${produk.id || produk.value}|${produk.id_satuan}`;
+            // Duplicate check — composite key (id_produk|id_satuan|hargaJual) karena
+            // produk bisa muncul beberapa kali dengan satuan/harga berbeda.
+            const newKey = `${produk.id || produk.value}|${produk.id_satuan}|${produk.hargaJual}`;
             const isDuplicate = detailProduk.some(
-                item => `${item.produk?.id || item.produk?.value}|${item.produk?.id_satuan}` === newKey
+                item => `${item.produk?.id || item.produk?.value}|${item.produk?.id_satuan}|${item.produk?.hargaJual}` === newKey
             );
             if (isDuplicate) {
                 setNotification({ type: 'error', message: 'Produk sudah ada dalam daftar' });
@@ -399,6 +412,7 @@ const usePenjualanForm = () => {
                 items: detailProduk.map(item => ({
                     id_produk: parseInt(item.produk?.id || item.produk?.value, 10),
                     id_satuan: parseInt(item.produk?.id_satuan, 10),
+                    harga_jual: parseFloat(item.produk?.hargaJual) || 0,
                     jumlah: parseFloat(item.qty) || 0
                 }))
             };

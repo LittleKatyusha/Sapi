@@ -202,7 +202,7 @@ const ProdukSelectionModal = ({ isOpen, onClose, jenisPenjualan, idJenis, onSele
                                     <tbody className="divide-y divide-gray-100">
                                         {produkList.map((produk) => (
                                             <tr
-                                                key={produk.id}
+                                                key={`${produk.id}|${produk.id_satuan}|${produk.harga_jual}`}
                                                 className="group hover:bg-gray-50/60 transition-colors"
                                             >
                                                 <td className="px-4 py-3">
@@ -235,7 +235,7 @@ const ProdukSelectionModal = ({ isOpen, onClose, jenisPenjualan, idJenis, onSele
                             <div className="sm:hidden divide-y divide-gray-100">
                                 {produkList.map((produk) => (
                                     <div
-                                        key={produk.id}
+                                        key={`${produk.id}|${produk.id_satuan}|${produk.harga_jual}`}
                                         className="py-3 first:pt-0 last:pb-0"
                                     >
                                         <div className="flex items-start justify-between gap-3">
