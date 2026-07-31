@@ -386,6 +386,7 @@ const usePenjualanForm = () => {
         if (!formData.pembeli) { setNotification({ type: 'error', message: 'Pilih pembeli' }); return; }
         if (!formData.namaSupir.trim()) { setNotification({ type: 'error', message: 'Masukkan nama supir' }); return; }
         if (!formData.platNomor.trim()) { setNotification({ type: 'error', message: 'Masukkan plat nomor' }); return; }
+        if (!formData.namaPenerima.trim()) { setNotification({ type: 'error', message: 'Masukkan nama penerima' }); return; }
         if (!formData.tipePembayaran) { setNotification({ type: 'error', message: 'Pilih tipe pembayaran' }); return; }
         if (!formData.syaratPembayaran) { setNotification({ type: 'error', message: 'Pilih syarat pembayaran' }); return; }
         if (detailProduk.length === 0) { setNotification({ type: 'error', message: 'Tambahkan minimal satu produk' }); return; }
@@ -417,8 +418,26 @@ const usePenjualanForm = () => {
                 }))
             };
 
-            // Idempotency key to prevent double-submit (double click / refresh)
-            const idempotencyKey = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+            // L1: Idempotency key stabil per content (pid + payload hash).
+            // Sebelumnya: crypto.randomUUID() per klik → double-click bypass dedup.
+            // Sekarang: key deterministik dari payload, jadi klik ke-2 dengan
+            // payload sama akan di-dedup oleh middleware idempotent:60.
+            const payloadSignature = isEditMode
+                ? `update-${pid}-${JSON.stringify(payload)}`
+                : `store-${JSON.stringify(payload)}`;
+            // Fallback hash function jika SubtleCrypto belum tersedia (sync context).
+            const simpleHash = (str) => {
+                let hash = 0;
+                for (let i = 0; i < str.length; i++) {
+                    const char = str.charCodeAt(i);
+                    hash = ((hash << 5) - hash) + char;
+                    hash |= 0;
+                }
+                return `h${Math.abs(hash).toString(36)}`;
+            };
+            const idempotencyKey = (typeof crypto !== 'undefined' && crypto.randomUUID)
+                ? `${isEditMode ? 'upd' : 'str'}-${simpleHash(payloadSignature)}-${payloadSignature.length}`
+                : simpleHash(payloadSignature);
             const options = { headers: { 'X-Idempotency-Key': idempotencyKey } };
 
             if (isEditMode) {
@@ -429,7 +448,21 @@ const usePenjualanForm = () => {
                 setNotification({ type: 'success', message: 'File penjualan berhasil dibuat!' });
             }
 
-            setTimeout(() => navigate(PENJUALAN_ROUTES.LIST), 1500);
+            // L2: Guard setTimeout agar tidak navigate/setNotification pada unmounted component.
+            // L3: Auto-clear notification setelah 5 detik.
+            const navTimer = setTimeout(() => {
+                if (typeof window !== 'undefined') {
+                    navigate(PENJUALAN_ROUTES.LIST);
+                }
+            }, 1500);
+            const clearTimer = setTimeout(() => {
+                setNotification(null);
+            }, 5000);
+            // Cleanup timers jika component unmount sebelum timer fire.
+            return () => {
+                clearTimeout(navTimer);
+                clearTimeout(clearTimer);
+            };
         } catch (error) {
             const errData = error?.response?.data || error?.data || {};
             const rawDetails = errData.data?.details || errData.details || null;
