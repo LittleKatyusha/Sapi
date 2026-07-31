@@ -1,6 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Building2, User, Calendar, Truck, Hash, Package, Eye, Weight, DollarSign } from 'lucide-react';
+import {
+    ArrowLeft, Building2, User, Calendar, Truck, Hash, Package,
+    Weight, DollarSign, FileText, Tag, MapPin, ClipboardList,
+    ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, AlertCircle
+} from 'lucide-react';
 import usePembelianOVK from './hooks/usePembelianOVK';
 import useFarmAPI from './hooks/useFarmAPI';
 import useBanksAPI from '../pembelianFeedmil/hooks/useBanksAPI';
@@ -212,6 +216,7 @@ const PembelianOVKDetailPage = () => {
                             nama_klasifikasi_ovk: item.nama_klasifikasi_ovk || '',
                             harga: parseFloat(item.harga) || 0,
                             persentase: parseFloat(item.persentase) || 0,
+                            jumlah: parseInt(item.jumlah_detail) || (parseInt(item.jumlah) || 0),
                             id_satuan: item.id_satuan || null,
                             satuan: item.satuan || '',
                             hpp: parseFloat(item.hpp) || 0,
@@ -294,125 +299,137 @@ const PembelianOVKDetailPage = () => {
         }
     }, [notification]);
 
-    // Columns for detail table - Sesuai dengan struktur database tr_pembelian_ho_ovk_detail
+    // Computed summary values
+    const summary = useMemo(() => {
+        const totalJumlah = detailData.reduce((sum, item) => sum + (parseInt(item.jumlah) || 0), 0);
+        const totalHargaBeli = detailData.reduce((sum, item) => sum + (parseFloat(item.harga) || 0) * (parseInt(item.jumlah) || 0), 0);
+        const totalHargaJual = detailData.reduce((sum, item) => sum + (parseFloat(item.total_harga) || 0), 0);
+        const headerJumlah = parseInt(pembelianData?.jumlah) || 0;
+        return {
+            totalJumlah: headerJumlah || totalJumlah,
+            totalHargaBeli,
+            totalHargaJual
+        };
+    }, [detailData, pembelianData?.jumlah]);
+
+    // Info field definitions for grouped layout
+    const InfoField = ({ icon: Icon, label, value, mono }) => (
+        <div className="flex flex-col gap-1 py-2.5 px-3 rounded-lg hover:bg-slate-50 transition-colors">
+            <div className="flex items-center gap-1.5 text-slate-500">
+                <Icon className="w-3.5 h-3.5 flex-shrink-0" />
+                <span className="text-xs font-medium uppercase tracking-wide">{label}</span>
+            </div>
+            <p className={`text-sm font-semibold text-slate-900 ${mono ? 'font-mono' : ''}`}>
+                {value || '-'}
+            </p>
+        </div>
+    );
+
+    // Columns for detail table
     const detailColumns = [
         {
             name: 'No',
             selector: (row, index) => getRowNumber(index),
             sortable: false,
-            minWidth: '60px',
-            maxWidth: '80px',
+            width: '50px',
             center: true,
             ignoreRowClick: true,
             cell: (row, index) => (
-                <div className="font-semibold text-gray-600 w-full flex items-center justify-center">
-                    {getRowNumber(index)}
-                </div>
+                <span className="text-sm font-medium text-slate-400">{getRowNumber(index)}</span>
             )
         },
         {
-            name: 'Nama Item',
+            name: 'Item',
             selector: row => row.item_name,
             sortable: true,
-            width: '250px',
-            wrap: true,
+            minWidth: '260px',
+            grow: 2,
             cell: row => (
-                <div className="flex items-center justify-center w-full h-full min-h-[40px] px-2">
-                    <div className="text-center font-medium text-gray-800 leading-tight force-wrap">
-                        {row.item_name || '-'}
+                <div className="py-2.5 px-1 text-left w-full">
+                    <p className="text-sm font-semibold text-slate-900 leading-snug">{row.item_name || '-'}</p>
+                    <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                        {row.nama_klasifikasi_ovk && (
+                            <span className="inline-flex px-2 py-0.5 text-[11px] font-medium rounded bg-slate-100 text-slate-600">
+                                {row.nama_klasifikasi_ovk}
+                            </span>
+                        )}
+                        {row.satuan && (
+                            <span className="inline-flex px-2 py-0.5 text-[11px] font-medium rounded bg-blue-50 text-blue-600">
+                                {row.satuan}
+                            </span>
+                        )}
                     </div>
                 </div>
             )
         },
         {
-            name: 'Klasifikasi OVK',
-            selector: row => row.nama_klasifikasi_ovk,
+            name: 'Harga Satuan',
+            selector: row => row.harga,
             sortable: true,
-            width: '160px',
-            wrap: true,
+            minWidth: '150px',
+            right: true,
+            cell: row => (
+                <div className="py-2.5 px-1 text-right w-full">
+                    <p className="text-sm font-semibold text-slate-900">{formatCurrency(row.harga)}</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">per {row.satuan || 'unit'}</p>
+                </div>
+            )
+        },
+        {
+            name: 'Qty',
+            selector: row => row.jumlah,
+            sortable: true,
+            width: '70px',
             center: true,
+            cell: row => (
+                <span className="inline-flex items-center justify-center min-w-[32px] px-2.5 py-1 text-sm font-semibold rounded-md bg-blue-50 text-blue-700">
+                    {row.jumlah ?? 0}
+                </span>
+            )
+        },
+        {
+            name: 'HPP & Margin',
+            selector: row => row.hpp,
+            sortable: true,
+            minWidth: '160px',
+            right: true,
+            cell: row => (
+                <div className="py-2.5 px-1 text-right w-full">
+                    <p className="text-sm font-semibold text-slate-900">{formatCurrency(row.hpp)}</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                        {row.persentase ? `${parseFloat(row.persentase).toFixed(1)}% margin` : 'tanpa margin'}
+                    </p>
+                </div>
+            )
+        },
+        {
+            name: 'Total Harga Beli',
+            selector: row => (parseFloat(row.harga) || 0) * (parseInt(row.jumlah) || 0),
+            sortable: true,
+            minWidth: '170px',
+            right: true,
             cell: row => {
-                // Use nama_klasifikasi_ovk directly from API response
-                const klasifikasiName = row.nama_klasifikasi_ovk;
+                const total = (parseFloat(row.harga) || 0) * (parseInt(row.jumlah) || 0);
                 return (
-                    <div className="w-full flex items-center justify-center">
-                        <span className="inline-flex px-3 py-1.5 text-xs font-medium rounded-lg bg-green-100 text-green-800">
-                            {klasifikasiName || 'Tidak ada klasifikasi'}
-                        </span>
+                    <div className="py-2.5 px-1 text-right w-full">
+                        <p className="text-sm font-bold text-emerald-700">{formatCurrency(total)}</p>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                            {row.jumlah ?? 0} × {formatCurrency(row.harga)}
+                        </p>
                     </div>
                 );
             }
         },
         {
-            name: 'Satuan',
-            selector: row => row.satuan || row.id_satuan,
-            sortable: true,
-            width: '130px',
-            wrap: true,
-            cell: row => (
-                <div className="flex items-center justify-center w-full h-full min-h-[40px]">
-                    <div className="bg-gray-50 text-gray-700 px-3 py-2 rounded-lg font-semibold text-center">
-                        {row.satuan || '-'}
-                    </div>
-                </div>
-            )
-        },
-        {
-            name: 'Harga',
-            selector: row => row.harga,
-            sortable: true,
-            width: '170px',
-            wrap: true,
-            center: true,
-            cell: row => (
-                <div className="w-full flex items-center justify-center">
-                    <span className="inline-flex px-3 py-2 text-sm font-semibold rounded-lg bg-green-100 text-green-800">
-                        {formatCurrency(row.harga)}
-                    </span>
-                </div>
-            )
-        },
-        {
-            name: 'Persentase',
-            selector: row => row.persentase,
-            sortable: true,
-            width: '130px',
-            wrap: true,
-            cell: row => (
-                <div className="flex items-center justify-center w-full h-full min-h-[40px] px-2">
-                    <div className="bg-blue-50 text-blue-700 px-3 py-2 rounded-lg font-medium text-center text-xs leading-tight">
-                        {row.persentase ? `${parseFloat(row.persentase).toFixed(1)}%` : '-'}
-                    </div>
-                </div>
-            )
-        },
-        {
-            name: 'HPP',
-            selector: row => row.hpp,
-            sortable: true,
-            width: '170px',
-            wrap: true,
-            center: true,
-            cell: row => (
-                <div className="w-full flex items-center justify-center">
-                    <span className="inline-flex px-3 py-2 text-sm font-semibold rounded-lg bg-purple-100 text-purple-800">
-                        {formatCurrency(row.hpp)}
-                    </span>
-                </div>
-            )
-        },
-        {
-            name: 'Total Harga',
+            name: 'Total Harga Jual',
             selector: row => row.total_harga,
             sortable: true,
-            width: '190px',
-            wrap: true,
-            center: true,
+            minWidth: '170px',
+            right: true,
             cell: row => (
-                <div className="w-full flex items-center justify-center">
-                    <span className="inline-flex px-3 py-2 text-sm font-semibold rounded-lg bg-red-100 text-red-800">
-                        {formatCurrency(row.total_harga)}
-                    </span>
+                <div className="py-2.5 px-1 text-right w-full">
+                    <p className="text-sm font-bold text-slate-900">{formatCurrency(row.total_harga)}</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">termasuk HPP</p>
                 </div>
             )
         },
@@ -420,28 +437,59 @@ const PembelianOVKDetailPage = () => {
             name: 'Tgl Masuk RPH',
             selector: row => row.tgl_masuk_rph,
             sortable: true,
-            width: '160px',
-            wrap: true,
+            minWidth: '130px',
+            center: true,
             cell: row => (
-                <div className="flex items-center justify-center w-full h-full min-h-[40px]">
-                    <div className="text-center font-medium text-gray-800 no-wrap">
+                <div className="py-2.5 px-1 w-full text-center">
+                    <p className="text-sm font-medium text-slate-700 whitespace-nowrap">
                         {row.tgl_masuk_rph ? new Date(row.tgl_masuk_rph).toLocaleDateString('id-ID', {
-                            day: '2-digit',
-                            month: '2-digit', 
-                            year: 'numeric'
+                            day: '2-digit', month: 'short', year: 'numeric'
                         }) : '-'}
-                    </div>
+                    </p>
+                    {row.tgl_masuk_rph && (
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                            {new Date(row.tgl_masuk_rph).toLocaleDateString('id-ID', { weekday: 'short' })}
+                        </p>
+                    )}
                 </div>
             )
         }
     ];
 
+    const formatDate = (dateStr) => {
+        if (!dateStr) return '-';
+        return new Date(dateStr).toLocaleDateString('id-ID', {
+            day: '2-digit', month: 'short', year: 'numeric'
+        });
+    };
+
     if (loading) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                    <p className="text-gray-500 text-lg mt-4">Memuat detail pembelian OVK...</p>
+            <div className="min-h-screen bg-slate-50 p-4 sm:p-6">
+                <div className="w-full space-y-4">
+                    <div className="bg-white rounded-xl border border-slate-200 p-5 flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-slate-100 animate-pulse" />
+                        <div className="space-y-2">
+                            <div className="h-5 w-48 bg-slate-100 rounded animate-pulse" />
+                            <div className="h-3 w-32 bg-slate-100 rounded animate-pulse" />
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                        {[1, 2, 3, 4].map(i => (
+                            <div key={i} className="bg-white rounded-xl border border-slate-200 p-5 space-y-3">
+                                <div className="h-3 w-20 bg-slate-100 rounded animate-pulse" />
+                                <div className="h-6 w-28 bg-slate-100 rounded animate-pulse" />
+                            </div>
+                        ))}
+                    </div>
+                    <div className="bg-white rounded-xl border border-slate-200 p-5">
+                        <div className="h-5 w-40 bg-slate-100 rounded animate-pulse mb-4" />
+                        <div className="space-y-3">
+                            {[1, 2, 3, 4].map(i => (
+                                <div key={i} className="h-12 bg-slate-50 rounded-lg animate-pulse" />
+                            ))}
+                        </div>
+                    </div>
                 </div>
             </div>
         );
@@ -449,17 +497,18 @@ const PembelianOVKDetailPage = () => {
 
     if (error || !pembelianData) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="text-red-600 mb-4">
-                        <Package size={48} className="mx-auto" />
+            <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+                <div className="max-w-md w-full bg-white rounded-xl border border-slate-200 shadow-sm p-8 text-center">
+                    <div className="w-12 h-12 mx-auto rounded-full bg-red-50 flex items-center justify-center mb-4">
+                        <AlertCircle className="w-6 h-6 text-red-500" />
                     </div>
-                    <h2 className="text-xl font-semibold text-gray-900 mb-2">Data Tidak Ditemukan</h2>
-                    <p className="text-gray-600 mb-4">{error || 'Detail pembelian OVK tidak dapat dimuat'}</p>
+                    <h2 className="text-lg font-semibold text-slate-900 mb-1">Data Tidak Ditemukan</h2>
+                    <p className="text-sm text-slate-500 mb-5">{error || 'Detail pembelian OVK tidak dapat dimuat'}</p>
                     <button
                         onClick={handleBack}
-                        className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                        className="inline-flex items-center gap-2 bg-slate-900 text-white text-sm font-medium px-4 py-2.5 rounded-lg hover:bg-slate-800 transition-colors"
                     >
+                        <ArrowLeft className="w-4 h-4" />
                         Kembali ke Daftar
                     </button>
                 </div>
@@ -467,314 +516,150 @@ const PembelianOVKDetailPage = () => {
         );
     }
 
+    const summaryCards = [
+        { label: 'Total Item', value: summary.totalJumlah, icon: Hash, color: 'text-blue-600 bg-blue-50' },
+        { label: 'Berat Total', value: pembelianData.berat_total ? `${parseFloat(pembelianData.berat_total).toFixed(1)} kg` : '-', icon: Weight, color: 'text-indigo-600 bg-indigo-50' },
+        { label: 'Total Harga Beli', value: formatCurrency(summary.totalHargaBeli), icon: DollarSign, color: 'text-emerald-600 bg-emerald-50' },
+        { label: 'Biaya Total', value: formatCurrency(pembelianData.biaya_total), icon: DollarSign, color: 'text-slate-700 bg-slate-100' }
+    ];
+
     return (
         <>
             <style>{`
-                .word-break-all {
-                    word-break: break-all;
-                    overflow-wrap: break-word;
-                    hyphens: auto;
-                }
-                
-                .no-wrap {
-                    white-space: nowrap;
-                    overflow: visible;
-                    text-overflow: clip;
-                }
-                
-                .force-wrap {
-                    white-space: normal;
-                    word-wrap: break-word;
-                    overflow-wrap: break-word;
-                }
-                
-                /* Custom scrollbar styling */
-                .table-scroll-container::-webkit-scrollbar {
-                    height: 8px;
-                }
-                
-                .table-scroll-container::-webkit-scrollbar-track {
-                    background: #f1f5f9;
-                    border-radius: 4px;
-                }
-                
-                .table-scroll-container::-webkit-scrollbar-thumb {
-                    background: #cbd5e1;
-                    border-radius: 4px;
-                    transition: background 0.2s ease;
-                }
-                
-                .table-scroll-container::-webkit-scrollbar-thumb:hover {
-                    background: #94a3b8;
-                }
-                
-                /* Hide scrollbar on Firefox while keeping functionality */
-                .table-scroll-container {
-                    scrollbar-width: thin;
-                    scrollbar-color: #cbd5e1 #f1f5f9;
-                }
-                
-                /* Force header center alignment override */
+                .no-wrap { white-space: nowrap; overflow: visible; text-overflow: clip; }
+                .force-wrap { white-space: normal; word-wrap: break-word; overflow-wrap: break-word; }
+                .table-scroll-container::-webkit-scrollbar { height: 6px; }
+                .table-scroll-container::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 3px; }
+                .table-scroll-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+                .table-scroll-container::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+                .table-scroll-container { scrollbar-width: thin; scrollbar-color: #cbd5e1 #f1f5f9; }
                 .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol {
-                    text-align: center !important;
-                    display: flex !important;
-                    align-items: center !important;
-                    justify-content: center !important;
+                    text-align: center !important; display: flex !important;
+                    align-items: center !important; justify-content: center !important;
                 }
-                
                 .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol > div {
-                    text-align: center !important;
-                    width: 100% !important;
-                    display: flex !important;
-                    align-items: center !important;
-                    justify-content: center !important;
+                    text-align: center !important; width: 100% !important;
+                    display: flex !important; align-items: center !important; justify-content: center !important;
                 }
-                
-                /* Override sort buttons and text alignment */
                 .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol .rdt_TableCol_Sortable {
-                    text-align: center !important;
-                    display: flex !important;
-                    align-items: center !important;
-                    justify-content: center !important;
-                    width: 100% !important;
+                    text-align: center !important; display: flex !important;
+                    align-items: center !important; justify-content: center !important; width: 100% !important;
                 }
-                
-                .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol span {
-                    text-align: center !important;
-                }
+                .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol span { text-align: center !important; }
             `}</style>
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-0">
-            <div className="w-full space-y-6 sm:space-y-8">
-                {/* Header */}
-                <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-xl border border-gray-100 w-full">
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="flex items-center gap-4">
+        <div className="min-h-screen bg-slate-50 w-full p-4 sm:p-6">
+            <div className="w-full space-y-5">
+                {/* Page Header */}
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 sm:p-5">
+                    <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3 min-w-0">
                             <button
                                 onClick={handleBack}
-                                className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                className="flex-shrink-0 p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
                             >
-                                <ArrowLeft size={24} />
+                                <ArrowLeft className="w-5 h-5" />
                             </button>
-                            <div>
-                                <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-1 sm:mb-2 flex items-center gap-2">
-                                    <Eye size={28} className="text-blue-500" />
+                            <div className="min-w-0">
+                                <h1 className="text-lg sm:text-xl font-bold text-slate-900 truncate">
                                     Detail Pembelian OVK
                                 </h1>
-                                <p className="text-gray-600 text-sm sm:text-base">
-                                    Informasi lengkap pembelian OVK (Obat, Vitamin, Kimia) dan detail produk
+                                <p className="text-xs sm:text-sm text-slate-500 truncate">
+                                    {pembelianData.nota || 'Tanpa Nota'} · {pembelianData.nama_supplier || '-'}
                                 </p>
                             </div>
                         </div>
+                        {pembelianData.jenis_pembelian && (
+                            <span className="flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-50 text-blue-700 border border-blue-100">
+                                <Tag className="w-3.5 h-3.5" />
+                                {pembelianData.jenis_pembelian}
+                            </span>
+                        )}
                     </div>
                 </div>
 
-                {/* Header Information */}
-                <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-xl border border-gray-100 w-full">
-                    <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                        <Building2 className="w-6 h-6 text-blue-600" />
-                        Informasi Pembelian OVK
-                    </h2>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <Hash className="w-4 h-4 inline mr-1" />
-                                Nomor Nota
-                            </label>
-                            <p className="text-lg font-bold text-gray-900">
-                                {pembelianData.nota || '-'}
-                            </p>
-                        </div>
+                {/* Summary Cards */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                    {summaryCards.map((card, idx) => {
+                        const Icon = card.icon;
+                        return (
+                            <div key={idx} className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 sm:p-5">
+                                <div className="flex items-center gap-3">
+                                    <div className={`flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${card.color}`}>
+                                        <Icon className="w-4.5 h-4.5" />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">{card.label}</p>
+                                        <p className="text-sm sm:text-base font-bold text-slate-900 truncate mt-0.5">{card.value}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
 
-                        <div className="bg-gradient-to-r from-cyan-50 to-blue-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <Hash className="w-4 h-4 inline mr-1" />
-                                Nota HO
-                            </label>
-                            <p className="text-lg font-bold text-gray-900">
-                                {pembelianData.nota_ho || '-'}
-                            </p>
+                {/* Info Sections */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    {/* Dokumen */}
+                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+                        <div className="flex items-center gap-2 mb-3 pb-3 border-b border-slate-100">
+                            <FileText className="w-4 h-4 text-slate-400" />
+                            <h3 className="text-sm font-semibold text-slate-900">Dokumen</h3>
                         </div>
-
-                        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <Building2 className="w-4 h-4 inline mr-1" />
-                                Farm
-                            </label>
-                            <p className="text-lg font-bold text-gray-900">
-                                {pembelianData.farm || '-'}
-                            </p>
-                        </div>
-
-                        <div className="bg-gradient-to-r from-emerald-50 to-green-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <Package className="w-4 h-4 inline mr-1" />
-                                Syarat Pembelian
-                            </label>
-                            <p className="text-lg font-bold text-gray-900">
-                                {pembelianData.syarat_pembelian || '-'}
-                            </p>
-                        </div>
-
-                        <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <Building2 className="w-4 h-4 inline mr-1" />
-                                Supplier
-                            </label>
-                            <p className="text-lg font-bold text-gray-900">
-                                {pembelianData.nama_supplier || '-'}
-                            </p>
-                        </div>
-
-                        <div className="bg-gradient-to-r from-purple-50 to-violet-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <Building2 className="w-4 h-4 inline mr-1" />
-                                Office
-                            </label>
-                            <p className="text-lg font-bold text-gray-900">
-                                {pembelianData.nama_office || 'Head Office (HO)'}
-                            </p>
-                        </div>
-
-                        <div className="bg-gradient-to-r from-orange-50 to-amber-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <Calendar className="w-4 h-4 inline mr-1" />
-                                Tanggal Masuk
-                            </label>
-                            <p className="text-lg font-bold text-gray-900">
-                                {pembelianData.tgl_masuk ? new Date(pembelianData.tgl_masuk).toLocaleDateString('id-ID', {
-                                    weekday: 'long',
-                                    year: 'numeric',
-                                    month: 'long',
-                                    day: 'numeric'
-                                }) : '-'}
-                            </p>
-                        </div>
-
-                        <div className="bg-gradient-to-r from-teal-50 to-cyan-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <User className="w-4 h-4 inline mr-1" />
-                                Nama Sopir
-                            </label>
-                            <p className="text-lg font-bold text-gray-900">
-                                {pembelianData.nama_supir || '-'}
-                            </p>
-                        </div>
-
-                        <div className="bg-gradient-to-r from-red-50 to-rose-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <Truck className="w-4 h-4 inline mr-1" />
-                                Plat Nomor
-                            </label>
-                            <p className="text-lg font-bold text-gray-900 font-mono">
-                                {pembelianData.plat_nomor || '-'}
-                            </p>
-                        </div>
-
-                        <div className="bg-gradient-to-r from-yellow-50 to-orange-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <Package className="w-4 h-4 inline mr-1" />
-                                Jenis Pembelian
-                            </label>
-                            <p className="text-lg font-bold text-gray-900">
-                                {pembelianData.jenis_pembelian || '-'}
-                            </p>
-                        </div>
-
-                        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <Weight className="w-4 h-4 inline mr-1" />
-                                Berat Total
-                            </label>
-                            <p className="text-lg font-bold text-gray-900">
-                                {pembelianData.berat_total ? `${parseFloat(pembelianData.berat_total).toFixed(1)} kg` : '-'}
-                            </p>
-                        </div>
-
-                        <div className="bg-gradient-to-r from-pink-50 to-rose-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <DollarSign className="w-4 h-4 inline mr-1" />
-                                Biaya Truk
-                            </label>
-                            <p className="text-lg font-bold text-gray-900">
-                                {pembelianData.biaya_truk ? new Intl.NumberFormat('id-ID', {
-                                    style: 'currency',
-                                    currency: 'IDR',
-                                    minimumFractionDigits: 0,
-                                    maximumFractionDigits: 0
-                                }).format(pembelianData.biaya_truk) : 'Rp 0'}
-                            </p>
-                        </div>
-
-                        <div className="bg-gradient-to-r from-cyan-50 to-teal-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <DollarSign className="w-4 h-4 inline mr-1" />
-                                Biaya Lain
-                            </label>
-                            <p className="text-lg font-bold text-gray-900">
-                                {pembelianData.biaya_lain ? new Intl.NumberFormat('id-ID', {
-                                    style: 'currency',
-                                    currency: 'IDR',
-                                    minimumFractionDigits: 0,
-                                    maximumFractionDigits: 0
-                                }).format(pembelianData.biaya_lain) : 'Rp 0'}
-                            </p>
-                        </div>
-
-                        <div className="bg-gradient-to-r from-emerald-50 to-green-50 p-4 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
-                                <DollarSign className="w-4 h-4 inline mr-1" />
-                                Biaya Total
-                            </label>
-                            <p className="text-lg font-bold text-gray-900">
-                                {pembelianData.biaya_total ? new Intl.NumberFormat('id-ID', {
-                                    style: 'currency',
-                                    currency: 'IDR',
-                                    minimumFractionDigits: 0,
-                                    maximumFractionDigits: 0
-                                }).format(pembelianData.biaya_total) : 'Rp 0'}
-                            </p>
+                        <div className="space-y-1">
+                            <InfoField icon={Hash} label="Nomor Nota" value={pembelianData.nota} />
+                            <InfoField icon={Hash} label="Nota HO" value={pembelianData.nota_ho} />
+                            <InfoField icon={ClipboardList} label="Syarat Pembelian" value={pembelianData.syarat_pembelian} />
                         </div>
                     </div>
 
+                    {/* Supplier & Pengiriman */}
+                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+                        <div className="flex items-center gap-2 mb-3 pb-3 border-b border-slate-100">
+                            <Truck className="w-4 h-4 text-slate-400" />
+                            <h3 className="text-sm font-semibold text-slate-900">Supplier & Pengiriman</h3>
+                        </div>
+                        <div className="space-y-1">
+                            <InfoField icon={Building2} label="Supplier" value={pembelianData.nama_supplier} />
+                            <InfoField icon={MapPin} label="Farm" value={pembelianData.farm} />
+                            <InfoField icon={Calendar} label="Tanggal Masuk" value={formatDate(pembelianData.tgl_masuk)} />
+                            <InfoField icon={User} label="Nama Sopir" value={pembelianData.nama_supir} />
+                            <InfoField icon={Truck} label="Plat Nomor" value={pembelianData.plat_nomor} mono />
+                        </div>
+                    </div>
 
+                    {/* Biaya */}
+                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+                        <div className="flex items-center gap-2 mb-3 pb-3 border-b border-slate-100">
+                            <DollarSign className="w-4 h-4 text-slate-400" />
+                            <h3 className="text-sm font-semibold text-slate-900">Biaya</h3>
+                        </div>
+                        <div className="space-y-1">
+                            <InfoField icon={DollarSign} label="Biaya Ongkos Kirim" value={formatCurrency(pembelianData.biaya_truk)} />
+                            <InfoField icon={DollarSign} label="Biaya Lain-Lain" value={formatCurrency(pembelianData.biaya_lain)} />
+                            <InfoField icon={DollarSign} label="Total Harga Jual" value={formatCurrency(summary.totalHargaJual)} />
+                            <InfoField icon={DollarSign} label="Biaya Total" value={formatCurrency(pembelianData.biaya_total)} />
+                        </div>
+                    </div>
                 </div>
 
                 {/* Detail Table */}
-                <div className="bg-white rounded-xl shadow-lg border border-gray-100 relative overflow-hidden">
-                    {/* Enhanced Scroll Indicator - Top */}
-                    <div className="px-6 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <Package className="w-5 h-5 text-green-600" />
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                            <Package className="w-4 h-4 text-slate-400" />
                             <div>
-                                <h2 className="text-lg font-bold text-gray-900">Detail Item OVK</h2>
-                                <p className="text-gray-500 text-xs mt-1">
-                                    Rincian setiap item OVK dalam pembelian ini
-                                </p>
+                                <h2 className="text-sm font-semibold text-slate-900">Detail Item OVK</h2>
+                                <p className="text-xs text-slate-500 mt-0.5">Rincian setiap item dalam pembelian ini</p>
                             </div>
                         </div>
-                        <div className="flex items-center gap-4">
-                            <div className="flex items-center text-sm text-gray-600">
-                                <svg className="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16l-4-4m0 0l4-4m-4 4h18"></path>
-                                </svg>
-                                Tabel responsif menggunakan ruang optimal
-                                <svg className="w-4 h-4 ml-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m0-4H3"></path>
-                                </svg>
-                            </div>
-                            <div className="text-xs text-gray-500">
-                                {detailData.length} item{detailData.length !== 1 ? 's' : ''}
-                            </div>
-                        </div>
+                        <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md">
+                            {detailData.length} item{detailData.length !== 1 ? 's' : ''}
+                        </span>
                     </div>
-                    
-                    {/* Table Container with proper scroll */}
-                    <div className="w-full overflow-x-auto max-w-full table-scroll-container" onScroll={handleTableScroll}>
-                        <div className="min-w-full">
-                            <StyleSheetManager shouldForwardProp={shouldForwardProp}>
-                                <DataTable
-                                title="Daftar Detail Item OVK"
+
+                    <div className="w-full overflow-x-auto table-scroll-container" onScroll={handleTableScroll}>
+                        <StyleSheetManager shouldForwardProp={shouldForwardProp}>
+                            <DataTable
                                 columns={detailColumns}
                                 data={getPaginatedData()}
                                 pagination={false}
@@ -782,160 +667,56 @@ const PembelianOVKDetailPage = () => {
                                     ...enhancedOVKTableStyles,
                                     table: {
                                         ...enhancedOVKTableStyles.table,
-                                        style: {
-                                            ...enhancedOVKTableStyles.table.style,
-                                            width: '100%',
-                                            minWidth: '100%',
-                                            tableLayout: 'auto',
-                                        }
+                                        style: { ...enhancedOVKTableStyles.table.style, width: '100%', minWidth: '100%', tableLayout: 'auto' }
                                     },
                                     tableWrapper: {
                                         ...enhancedOVKTableStyles.tableWrapper,
-                                        style: {
-                                            ...enhancedOVKTableStyles.tableWrapper.style,
-                                            overflowX: 'visible',
-                                            overflowY: 'visible',
-                                            width: '100%',
-                                            border: 'none',
-                                            borderRadius: '0',
-                                            WebkitOverflowScrolling: 'touch',
-                                            position: 'relative',
-                                            scrollBehavior: 'smooth',
-                                        }
+                                        style: { ...enhancedOVKTableStyles.tableWrapper.style, overflowX: 'visible', overflowY: 'visible', width: '100%', border: 'none', borderRadius: '0', WebkitOverflowScrolling: 'touch', position: 'relative', scrollBehavior: 'smooth' }
                                     },
                                     headCells: {
                                         ...enhancedOVKTableStyles.headCells,
                                         style: {
                                             ...enhancedOVKTableStyles.headCells.style,
                                             textAlign: 'center !important',
-                                            // Only keep first column (No) sticky
-                                            '&:first-child': {
-                                                position: 'sticky',
-                                                left: 0,
-                                                zIndex: 1002,
-                                                backgroundColor: '#f8fafc',
-                                                borderRight: '2px solid #e5e7eb',
-                                                boxShadow: '1px 0 2px rgba(0, 0, 0, 0.05)',
-                                            },
-                                            // Override untuk menghapus sticky pada kolom kedua (Nama Item) di detail page
-                                            '&:nth-child(2)': {
-                                                position: 'static',
-                                                left: 'auto',
-                                                zIndex: 'auto',
-                                                backgroundColor: '#f8fafc',
-                                                borderLeft: 'none',
-                                                borderRight: '1px solid #e5e7eb',
-                                                boxShadow: 'none',
-                                                willChange: 'auto',
-                                                minWidth: 'auto',
-                                                maxWidth: 'auto',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                textAlign: 'center !important',
-                                            },
-                                        },
+                                            '&:first-child': { position: 'sticky', left: 0, zIndex: 1002, backgroundColor: '#f8fafc', borderRight: '2px solid #e5e7eb', boxShadow: '1px 0 2px rgba(0,0,0,0.05)' },
+                                            '&:nth-child(2)': { position: 'static', left: 'auto', zIndex: 'auto', backgroundColor: '#f8fafc', borderLeft: 'none', borderRight: '1px solid #e5e7eb', boxShadow: 'none', minWidth: 'auto', maxWidth: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center !important' }
+                                        }
                                     },
                                     cells: {
                                         ...enhancedOVKTableStyles.cells,
                                         style: {
                                             ...enhancedOVKTableStyles.cells.style,
-                                            textAlign: 'center !important',
-                                            display: 'flex !important',
-                                            alignItems: 'center !important',
-                                            justifyContent: 'center !important',
-                                            // Only keep first column (No) sticky
-                                            '&:first-child': {
-                                                position: 'sticky',
-                                                left: 0,
-                                                zIndex: 999,
-                                                backgroundColor: '#ffffff !important',
-                                                borderRight: '2px solid #e5e7eb',
-                                                boxShadow: '1px 0 2px rgba(0, 0, 0, 0.05)',
-                                                display: 'flex !important',
-                                                alignItems: 'center !important',
-                                                justifyContent: 'center !important',
-                                            },
-                                            // Override untuk menghapus sticky pada kolom kedua (Nama Item) di detail page
-                                            '&:nth-child(2)': {
-                                                position: 'static',
-                                                left: 'auto',
-                                                zIndex: 'auto',
-                                                backgroundColor: '#ffffff !important',
-                                                borderLeft: 'none',
-                                                borderRight: '1px solid #f3f4f6',
-                                                boxShadow: 'none',
-                                                willChange: 'auto',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                minWidth: 'auto',
-                                                maxWidth: 'auto',
-                                            },
+                                            textAlign: 'center !important', display: 'flex !important', alignItems: 'center !important', justifyContent: 'center !important',
+                                            '&:first-child': { position: 'sticky', left: 0, zIndex: 999, backgroundColor: '#ffffff !important', borderRight: '2px solid #e5e7eb', boxShadow: '1px 0 2px rgba(0,0,0,0.05)', display: 'flex !important', alignItems: 'center !important', justifyContent: 'center !important' },
+                                            '&:nth-child(2)': { position: 'static', left: 'auto', zIndex: 'auto', backgroundColor: '#ffffff !important', borderLeft: 'none', borderRight: '1px solid #f3f4f6', boxShadow: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 'auto', maxWidth: 'auto' }
                                         }
                                     }
                                 }}
-                                wrapperStyle={{ 'data-detail-table-wrapper': 'true' }}
                                 noDataComponent={
-                                    <div className="text-center py-12">
-                                        <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                                        <p className="text-gray-500 text-lg">Tidak ada detail item OVK ditemukan</p>
+                                    <div className="text-center py-16">
+                                        <Package className="w-12 h-12 text-slate-200 mx-auto mb-3" />
+                                        <p className="text-sm text-slate-500">Tidak ada detail item OVK</p>
                                     </div>
                                 }
                                 responsive={false}
                                 highlightOnHover
                                 pointerOnHover
                             />
-                            </StyleSheetManager>
-                        </div>
+                        </StyleSheetManager>
                     </div>
-                    
-                    {/* Enhanced Scroll Status Footer */}
-                    <div className="bg-gray-50 px-4 py-2 border-t border-gray-200">
-                        <div className="flex items-center justify-between text-xs text-gray-500">
-                            <span className="flex items-center gap-1">
-                                {scrollPosition.canScrollLeft && (
-                                    <span className="text-blue-600 font-medium">&larr; Scroll kiri</span>
-                                )}
-                                {!scrollPosition.canScrollLeft && !scrollPosition.canScrollRight && (
-                                    <span className="text-green-600 font-medium">Tampilan optimal</span>
-                                )}
-                                {scrollPosition.canScrollRight && (
-                                    <span className="text-blue-600 font-medium">Scroll kanan &rarr;</span>
-                                )}
-                            </span>
-                            <span className="text-gray-400">
-                                {detailData.length} item detail OVK
-                            </span>
+
+                    {/* Pagination */}
+                    <div className="border-t border-slate-100 px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
+                        <div className="text-xs text-slate-600">
+                            {pagination.totalItems === 0 ? 0 : ((pagination.currentPage - 1) * pagination.perPage) + 1}–{Math.min(pagination.currentPage * pagination.perPage, pagination.totalItems)} dari {pagination.totalItems}
                         </div>
-                    </div>
-                    
-                    {/* Custom Pagination - Fixed outside scroll area */}
-                    <div className="border-t border-gray-200 bg-gray-50 px-6 py-4 flex items-center justify-between rounded-b-xl">
-                        <div className="flex items-center text-sm text-gray-700">
-                            <span>
-                                Menampilkan{' '}
-                                <span className="font-semibold">
-                                    {pagination.totalItems === 0 ? 0 : ((pagination.currentPage - 1) * pagination.perPage) + 1}
-                                </span>
-                                {' '}sampai{' '}
-                                <span className="font-semibold">
-                                    {Math.min(pagination.currentPage * pagination.perPage, pagination.totalItems)}
-                                </span>
-                                {' '}dari{' '}
-                                <span className="font-semibold">{pagination.totalItems}</span>
-                                {' '}hasil
-                            </span>
-                        </div>
-                        
-                        <div className="flex items-center space-x-2">
-                            {/* Rows per page selector */}
-                            <div className="flex items-center space-x-2">
-                                <span className="text-sm text-gray-700">Rows per page:</span>
+                        <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-1.5">
+                                <span className="text-xs text-slate-500">Rows:</span>
                                 <select
                                     value={pagination.perPage}
                                     onChange={(e) => handlePerPageChange(parseInt(e.target.value))}
-                                    className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                                    className="border border-slate-200 rounded-md px-2 py-1 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
                                 >
                                     <option value={10}>10</option>
                                     <option value={25}>25</option>
@@ -943,53 +724,21 @@ const PembelianOVKDetailPage = () => {
                                     <option value={100}>100</option>
                                 </select>
                             </div>
-                            
-                            {/* Pagination buttons */}
-                            <div className="flex items-center space-x-1">
-                                <button
-                                    onClick={() => handlePageChange(1)}
-                                    disabled={pagination.currentPage === 1}
-                                    className="p-2 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    title="First page"
-                                >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-                                    </svg>
+                            <div className="flex items-center gap-0.5">
+                                <button onClick={() => handlePageChange(1)} disabled={pagination.currentPage === 1} className="p-1.5 rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-40 disabled:cursor-not-allowed transition-colors" title="First">
+                                    <ChevronsLeft className="w-4 h-4" />
                                 </button>
-                                <button
-                                    onClick={() => handlePageChange(pagination.currentPage - 1)}
-                                    disabled={pagination.currentPage === 1}
-                                    className="p-2 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    title="Previous page"
-                                >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-                                    </svg>
+                                <button onClick={() => handlePageChange(pagination.currentPage - 1)} disabled={pagination.currentPage === 1} className="p-1.5 rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-40 disabled:cursor-not-allowed transition-colors" title="Prev">
+                                    <ChevronLeft className="w-4 h-4" />
                                 </button>
-                                
-                                <span className="px-3 py-1 text-sm font-medium">
-                                    {pagination.currentPage} of {pagination.totalPages}
+                                <span className="px-2.5 py-1 text-xs font-medium text-slate-700 min-w-[60px] text-center">
+                                    {pagination.currentPage} / {pagination.totalPages || 1}
                                 </span>
-                                
-                                <button
-                                    onClick={() => handlePageChange(pagination.currentPage + 1)}
-                                    disabled={pagination.currentPage === pagination.totalPages}
-                                    className="p-2 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    title="Next page"
-                                >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                                    </svg>
+                                <button onClick={() => handlePageChange(pagination.currentPage + 1)} disabled={pagination.currentPage === pagination.totalPages || pagination.totalPages === 0} className="p-1.5 rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-40 disabled:cursor-not-allowed transition-colors" title="Next">
+                                    <ChevronRight className="w-4 h-4" />
                                 </button>
-                                <button
-                                    onClick={() => handlePageChange(pagination.totalPages)}
-                                    disabled={pagination.currentPage === pagination.totalPages}
-                                    className="p-2 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    title="Last page"
-                                >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-                                    </svg>
+                                <button onClick={() => handlePageChange(pagination.totalPages)} disabled={pagination.currentPage === pagination.totalPages || pagination.totalPages === 0} className="p-1.5 rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-40 disabled:cursor-not-allowed transition-colors" title="Last">
+                                    <ChevronsRight className="w-4 h-4" />
                                 </button>
                             </div>
                         </div>
@@ -998,12 +747,8 @@ const PembelianOVKDetailPage = () => {
 
                 {/* Notification */}
                 {notification && (
-                    <div className={`fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 ${
-                        notification.type === 'success'
-                            ? 'bg-green-500 text-white'
-                            : 'bg-red-500 text-white'
-                    }`}>
-                        <p className="text-sm font-medium">{notification.message}</p>
+                    <div className={`fixed top-4 right-4 px-4 py-3 rounded-lg shadow-lg z-50 text-sm font-medium ${notification.type === 'success' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'}`}>
+                        {notification.message}
                     </div>
                 )}
             </div>

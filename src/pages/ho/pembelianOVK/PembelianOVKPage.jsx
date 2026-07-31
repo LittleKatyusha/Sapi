@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { PlusCircle, Package, Truck, Calendar, CalendarDays, CalendarRange, Boxes } from 'lucide-react';
+import { PlusCircle, Package, Truck, Calendar, CalendarDays, CalendarRange, Boxes, XCircle } from 'lucide-react';
 
 import usePembelianOVK from './hooks/usePembelianOVK';
 import useFarmAPI from './hooks/useFarmAPI';
@@ -151,11 +151,11 @@ const PembelianOVKPage = () => {
             const encryptedPid = pembelian.encryptedPid || pembelian.id;
             
             if (!encryptedPid) {
-                throw new Error('ID pembelian tidak tersedia untuk penghapusan');
+                throw new Error('ID pembelian tidak tersedia untuk cancel');
             }
             
             if (encryptedPid.toString().startsWith('TEMP-')) {
-                throw new Error('Item ini adalah data sementara dan tidak dapat dihapus');
+                throw new Error('Item ini adalah data sementara dan tidak dapat dicancel');
             }
 
             const result = await deletePembelian(encryptedPid, pembelian);
@@ -163,11 +163,11 @@ const PembelianOVKPage = () => {
             if (result.success) {
                 setNotification({
                     type: 'success',
-                    message: result.message || 'Data pembelian OVK berhasil dihapus'
+                    message: result.message || 'Data pembelian OVK berhasil dicancel'
                 });
                 handleCloseDeleteModal();
             } else {
-                let errorMessage = result.message || 'Gagal menghapus data pembelian OVK';
+                let errorMessage = result.message || 'Gagal memcancel data pembelian OVK';
                 setNotification({
                     type: 'error',
                     message: errorMessage
@@ -176,7 +176,7 @@ const PembelianOVKPage = () => {
         } catch (error) {
             setNotification({
                 type: 'error',
-                message: error.message || 'Terjadi kesalahan saat menghapus data pembelian OVK'
+                message: error.message || 'Terjadi kesalahan saat memcancel data pembelian OVK'
             });
         }
     }, [deletePembelian]);
@@ -414,6 +414,11 @@ const PembelianOVKPage = () => {
                     data={selectedPembelian}
                     loading={loading}
                     type="pembelian"
+                    titleText="Konfirmasi Cancel"
+                    confirmText="Cancel"
+                    bodyText="Apakah Anda yakin ingin memcancel pembelian ini? Stok dan data pembayaran akan dihapus juga."
+                    warningText={<><strong>Peringatan:</strong> Tindakan ini akan menghapus stok dan data pembayaran terkait.</>}
+                    icon={XCircle}
                 />
 
                 <StokOvkModal

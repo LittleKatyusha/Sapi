@@ -5,7 +5,7 @@ import {
   MoreHorizontal,
   Eye,
   Pencil,
-  Trash2,
+  XCircle,
   Calendar,
   MapPin,
   ChevronDown,
@@ -322,14 +322,16 @@ const RowActionMenu = ({
       >
         <ClipboardCheck className="w-4 h-4" /> Tanda Terima Barang
       </button>
-      <button
-        type="button"
-        onClick={() => { onDelete(row); onClose(); }}
-        className={`${itemClass} text-red-600 hover:bg-red-50`}
-        role="menuitem"
-      >
-        <Trash2 className="w-4 h-4" /> Hapus
-      </button>
+      {row.payment_status === 2 && (
+        <button
+          type="button"
+          onClick={() => { onDelete(row); onClose(); }}
+          className={`${itemClass} text-red-600 hover:bg-red-50`}
+          role="menuitem"
+        >
+          <XCircle className="w-4 h-4" /> Cancel
+        </button>
+      )}
     </div>
   );
 

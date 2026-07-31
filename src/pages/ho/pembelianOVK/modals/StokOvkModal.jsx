@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { X, Search, Package, AlertCircle, Boxes, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { X, Search, Package, AlertCircle, Boxes, RefreshCw, RotateCcw, ChevronLeft, ChevronRight } from 'lucide-react';
 import StokOvkHoService from '../../../../services/stokOvkHoService';
 import { formatCurrency } from '../../penjualan/utils/formatters';
 
-const ITEMS_PER_PAGE = 15;
+const DEFAULT_PER_PAGE = 15;
 
 const formatNumber = (val) =>
     new Intl.NumberFormat('id-ID').format(val || 0);
@@ -12,16 +12,24 @@ const StokOvkModal = ({ isOpen, onClose }) => {
     const [stokList, setStokList] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-    const [searchTerm, setSearchTerm] = useState('');
+    // Input field (what user types)
+    const [searchInput, setSearchInput] = useState('');
+    // Applied search (what's actually sent to server)
+    const [appliedSearch, setAppliedSearch] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
+    const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE);
+    const [totalRecords, setTotalRecords] = useState(0);
+    const [totalPages, setTotalPages] = useState(1);
 
-    const fetchStok = useCallback(async () => {
+    const fetchStok = useCallback(async (page = 1, search = '', perPg = DEFAULT_PER_PAGE) => {
         setLoading(true);
         setError(null);
         try {
-            const response = await StokOvkHoService.getData();
+            const response = await StokOvkHoService.getData({ search, page, perPage: perPg });
             const rows = response?.data ?? response ?? [];
             setStokList(Array.isArray(rows) ? rows : []);
+            setTotalRecords(response?.recordsTotal ?? response?.recordsFiltered ?? (Array.isArray(rows) ? rows.length : 0));
+            setTotalPages(response?.lastPage ?? (Math.ceil((response?.recordsTotal || 0) / perPg) || 1));
         } catch (err) {
             setError(err?.message || 'Gagal memuat data stok OVK');
             console.error('Error fetching stok OVK HO:', err);
@@ -32,42 +40,41 @@ const StokOvkModal = ({ isOpen, onClose }) => {
 
     useEffect(() => {
         if (isOpen) {
-            setSearchTerm('');
+            setSearchInput('');
+            setAppliedSearch('');
             setCurrentPage(1);
-            fetchStok();
+            setPerPage(DEFAULT_PER_PAGE);
+            fetchStok(1, '', DEFAULT_PER_PAGE);
         }
     }, [isOpen, fetchStok]);
 
-    useEffect(() => {
+    const handleSearch = () => {
+        setAppliedSearch(searchInput.trim());
         setCurrentPage(1);
-    }, [searchTerm]);
+        fetchStok(1, searchInput.trim(), perPage);
+    };
 
-    // Hanya tampilkan yang jumlahnya tidak null dan > 0
-    const filteredStok = useMemo(() =>
-        stokList.filter(item => {
-            const jumlah = parseFloat(item.jumlah);
-            if (item.jumlah === null || item.jumlah === undefined || item.jumlah === '' || isNaN(jumlah) || jumlah <= 0) {
-                return false;
-            }
-            return (item.NAME || item.name || '').toLowerCase().includes(searchTerm.toLowerCase());
-        }), [stokList, searchTerm]
-    );
+    const handleReset = () => {
+        setSearchInput('');
+        setAppliedSearch('');
+        setCurrentPage(1);
+        fetchStok(1, '', perPage);
+    };
 
-    const totalPages = Math.ceil(filteredStok.length / ITEMS_PER_PAGE);
-    const paginatedStok = useMemo(() => {
-        const start = (currentPage - 1) * ITEMS_PER_PAGE;
-        return filteredStok.slice(start, start + ITEMS_PER_PAGE);
-    }, [filteredStok, currentPage]);
+    const handlePageChange = (newPage) => {
+        if (newPage < 1 || newPage > totalPages) return;
+        setCurrentPage(newPage);
+        fetchStok(newPage, appliedSearch, perPage);
+    };
 
-    const totalJumlah = useMemo(
-        () => filteredStok.reduce((sum, item) => sum + (parseFloat(item.jumlah) || 0), 0),
-        [filteredStok]
-    );
+    const handlePerPageChange = (newPerPage) => {
+        setPerPage(newPerPage);
+        setCurrentPage(1);
+        fetchStok(1, appliedSearch, newPerPage);
+    };
 
-    const totalNilai = useMemo(
-        () => filteredStok.reduce((sum, item) => sum + (parseFloat(item.harga_jual) || 0) * (parseFloat(item.jumlah) || 0), 0),
-        [filteredStok]
-    );
+    const startItem = totalRecords === 0 ? 0 : (currentPage - 1) * perPage + 1;
+    const endItem = Math.min(currentPage * perPage, totalRecords);
 
     if (!isOpen) return null;
 
@@ -83,13 +90,13 @@ const StokOvkModal = ({ isOpen, onClose }) => {
                         <div>
                             <h2 className="text-base font-semibold text-gray-900">Stok OVK HO</h2>
                             <p className="text-xs text-gray-500">
-                                Total {filteredStok.length} item · {formatNumber(totalJumlah)} unit · {formatCurrency(totalNilai)}
+                                Total {totalRecords} item
                             </p>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
                         <button
-                            onClick={fetchStok}
+                            onClick={() => fetchStok(currentPage, appliedSearch, perPage)}
                             disabled={loading}
                             className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
                             title="Refresh"
@@ -105,17 +112,36 @@ const StokOvkModal = ({ isOpen, onClose }) => {
                     </div>
                 </div>
 
-                {/* Search */}
+                {/* Search + Reset */}
                 <div className="px-5 py-3 border-b border-gray-100">
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                        <input
-                            type="text"
-                            placeholder="Cari nama item..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-9 pr-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-colors"
-                        />
+                    <div className="flex items-center gap-2">
+                        <div className="relative flex-1">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                            <input
+                                type="text"
+                                placeholder="Cari nama item..."
+                                value={searchInput}
+                                onChange={(e) => setSearchInput(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
+                                className="w-full pl-9 pr-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-colors"
+                            />
+                        </div>
+                        <button
+                            onClick={handleSearch}
+                            disabled={loading}
+                            className="inline-flex items-center gap-1.5 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+                        >
+                            <Search className="w-4 h-4" />
+                            Cari
+                        </button>
+                        <button
+                            onClick={handleReset}
+                            disabled={loading}
+                            className="inline-flex items-center gap-1.5 px-4 py-2 bg-white hover:bg-gray-50 text-gray-600 border border-gray-200 text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+                        >
+                            <RotateCcw className="w-4 h-4" />
+                            Reset
+                        </button>
                     </div>
                 </div>
 
@@ -133,20 +159,20 @@ const StokOvkModal = ({ isOpen, onClose }) => {
                             </div>
                             <p className="text-sm text-red-600 font-medium text-center">{error}</p>
                             <button
-                                onClick={fetchStok}
+                                onClick={() => fetchStok(currentPage, appliedSearch, perPage)}
                                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
                             >
                                 Coba Lagi
                             </button>
                         </div>
-                    ) : paginatedStok.length === 0 ? (
+                    ) : stokList.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-48 text-center">
                             <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
                                 <Search size={22} className="text-gray-400" />
                             </div>
                             <p className="text-sm font-medium text-gray-700">Tidak ada stok ditemukan</p>
                             <p className="text-xs text-gray-500 mt-0.5 max-w-xs">
-                                {searchTerm ? 'Coba kata kunci pencarian lain.' : 'Tidak ada item dengan stok tersedia.'}
+                                {appliedSearch ? 'Coba kata kunci pencarian lain.' : 'Tidak ada item dengan stok tersedia.'}
                             </p>
                         </div>
                     ) : (
@@ -164,7 +190,7 @@ const StokOvkModal = ({ isOpen, onClose }) => {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-100">
-                                        {paginatedStok.map((item) => {
+                                        {stokList.map((item) => {
                                             const jumlah = parseFloat(item.jumlah) || 0;
                                             return (
                                                 <tr key={item.id} className="hover:bg-gray-50">
@@ -199,7 +225,7 @@ const StokOvkModal = ({ isOpen, onClose }) => {
 
                             {/* Mobile Cards */}
                             <div className="sm:hidden space-y-3">
-                                {paginatedStok.map((item) => {
+                                {stokList.map((item) => {
                                     const jumlah = parseFloat(item.jumlah) || 0;
                                     return (
                                         <div key={item.id} className="border border-gray-100 rounded-lg p-3">
@@ -228,27 +254,38 @@ const StokOvkModal = ({ isOpen, onClose }) => {
                 </div>
 
                 {/* Pagination */}
-                {!loading && filteredStok.length > 0 && (
-                    <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between text-sm">
-                        <span className="text-gray-600">
-                            Menampilkan {(currentPage - 1) * ITEMS_PER_PAGE + 1}–
-                            {Math.min(currentPage * ITEMS_PER_PAGE, filteredStok.length)} dari {filteredStok.length}
-                        </span>
+                {!loading && totalRecords > 0 && (
+                    <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between text-sm gap-3 flex-wrap">
+                        <div className="flex items-center gap-2 text-gray-600">
+                            <span>Tampilkan</span>
+                            <select
+                                value={perPage}
+                                onChange={(e) => handlePerPageChange(Number(e.target.value))}
+                                className="px-2 py-1 border border-gray-200 rounded-lg text-sm text-gray-700 bg-white focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                            >
+                                {[10, 15, 25, 50, 100].map(v => (
+                                    <option key={v} value={v}>{v}</option>
+                                ))}
+                            </select>
+                            <span>• {startItem}–{endItem} dari {totalRecords}</span>
+                        </div>
                         <div className="flex items-center gap-2">
                             <button
-                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                                disabled={currentPage === 1}
-                                className="px-3 py-1.5 text-sm rounded-lg border border-gray-200 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50"
+                                onClick={() => handlePageChange(currentPage - 1)}
+                                disabled={currentPage <= 1}
+                                className="p-1.5 rounded-lg border border-gray-200 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50"
+                                title="Halaman sebelumnya"
                             >
-                                Sebelumnya
+                                <ChevronLeft className="w-4 h-4" />
                             </button>
-                            <span className="text-gray-600 text-xs">Hal {currentPage}/{totalPages || 1}</span>
+                            <span className="text-gray-600 text-xs min-w-[60px] text-center">Hal {currentPage}/{totalPages || 1}</span>
                             <button
-                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                onClick={() => handlePageChange(currentPage + 1)}
                                 disabled={currentPage >= totalPages}
-                                className="px-3 py-1.5 text-sm rounded-lg border border-gray-200 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50"
+                                className="p-1.5 rounded-lg border border-gray-200 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50"
+                                title="Halaman berikutnya"
                             >
-                                Berikutnya
+                                <ChevronRight className="w-4 h-4" />
                             </button>
                         </div>
                     </div>
