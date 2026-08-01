@@ -210,6 +210,7 @@ class RphPembelianService {
     return {
       id: item.pid || item.nomor_pemesanan || item.id,
       pid: item.pid,
+      payment_pid: item.payment_pid || null,
       nomor: item.nomor_pemesanan || '- ',
       tanggal: item.tgl_pemesanan || item.created_at || null,
       supplier: item.pemasok || '- ',

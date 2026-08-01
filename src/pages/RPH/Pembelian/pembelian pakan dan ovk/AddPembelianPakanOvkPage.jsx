@@ -301,12 +301,18 @@ const FormField = ({ label, helperText, required = false, children }) => (
       .map((detail) => {
         const detailIdValue = detail.id_produk ?? detail.id ?? detail.pid;
         const detailSatuanValue = detail.id_satuan ?? detail._original?.id_satuan ?? null;
+        const detailHargaValue = Number(detail.harga ?? detail.price ?? 0);
 
-        // Composite match (id_produk + id_satuan) — satu produk bisa punya
-        // beberapa satuan (MINYAK LITER vs DUS). Match id saja akan ambil
-        // satuan pertama, bikin key backend tidak cocok → dianggap item baru
-        // → stok diambil ulang → error "stok tidak cukup".
+        // Composite match (id_produk + id_satuan + harga) — item yang sama
+        // bisa punya satuan berbeda (MINYAK LITER vs DUS) DAN satuan yang sama
+        // bisa punya harga berbeda (batch/supplier beda). Match id+satuan saja
+        // akan ambil row harga pertama, bikin stok & key backend tidak cocok.
         const option = itemOptions.find(
+          (item) =>
+            normalizeId(item.id) === normalizeId(detailIdValue) &&
+            normalizeId(item.id_satuan) === normalizeId(detailSatuanValue) &&
+            Number(item.price ?? item.harga ?? 0) === detailHargaValue
+        ) ?? itemOptions.find(
           (item) =>
             normalizeId(item.id) === normalizeId(detailIdValue) &&
             normalizeId(item.id_satuan) === normalizeId(detailSatuanValue)
@@ -327,8 +333,8 @@ const FormField = ({ label, helperText, required = false, children }) => (
 
         return {
           ...option,
-          // Pertahankan id_satuan dari detail lama agar key (produk|satuan)
-          // backend tetap cocok dan item tidak dianggap baru.
+          // Pertahankan id_satuan & harga dari detail lama agar key
+          // (produk|satuan|harga) backend tetap cocok dan item tidak dianggap baru.
           id_satuan: detailSatuanValue ?? option.id_satuan,
           qty: Number(detail.jumlah ?? detail.qty ?? 0),
           price: storedPrice || option.price
@@ -345,16 +351,20 @@ const FormField = ({ label, helperText, required = false, children }) => (
     setIsItemModalOpen(false);
   };
 
+  // Key unik = (id_produk, id_satuan, harga). Item yang sama dengan satuan
+  // sama tapi harga berbeda harus diperlakukan sebagai baris terpisah.
+  const itemKey = (item) => `${item.id}|${item.id_satuan ?? ''}|${item.price ?? item.harga ?? 0}`;
+
   const handleRemoveItem = (item) => {
-    const key = `${item.id}|${item.id_satuan ?? ''}`;
-    setSelectedItems((prev) => prev.filter((it) => `${it.id}|${it.id_satuan ?? ''}` !== key));
+    const key = itemKey(item);
+    setSelectedItems((prev) => prev.filter((it) => itemKey(it) !== key));
   };
 
   const handleQtyChange = (item, qty) => {
     const value = qty === '' ? '' : Number(qty);
-    const key = `${item.id}|${item.id_satuan ?? ''}`;
+    const key = itemKey(item);
     setSelectedItems((prev) => prev.map((it) =>
-      `${it.id}|${it.id_satuan ?? ''}` === key ? { ...it, qty: value } : it
+      itemKey(it) === key ? { ...it, qty: value } : it
     ));
   };
 
@@ -414,10 +424,12 @@ const FormField = ({ label, helperText, required = false, children }) => (
           item.id ?? item.id_produk ?? item._original?.id_produk ?? item._original?.id
         );
         const parsedSatuan = Number(item.id_satuan ?? item._original?.id_satuan);
+        const parsedHarga = Number(item.price ?? item.harga ?? item._original?.harga ?? 0);
         return {
           id_produk: Number.isFinite(parsedId) ? parsedId : null,
           id_satuan: Number.isFinite(parsedSatuan) ? parsedSatuan : null,
-          jumlah: Number(item.qty ?? item.jumlah ?? 0)
+          jumlah: Number(item.qty ?? item.jumlah ?? 0),
+          harga: Number.isFinite(parsedHarga) ? parsedHarga : 0
         };
       })
     };
@@ -698,7 +710,7 @@ const FormField = ({ label, helperText, required = false, children }) => (
                         const price = Number(item.price ?? 0);
                         const subtotal = qty * price;
                         return (
-                          <tr key={`${item.id}|${item.id_satuan ?? ''}`} className="border-b border-gray-50 hover:bg-gray-50/50">
+                          <tr key={itemKey(item)} className="border-b border-gray-50 hover:bg-gray-50/50">
                             <td className="px-3 py-2">
                               <CheckSquare className="h-4 w-4 text-emerald-600" />
                             </td>

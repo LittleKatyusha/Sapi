@@ -22,12 +22,13 @@ const PilihPakanOvkModal = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMap, setSelectedMap] = useState({});
 
+  // Warehouse stock is keyed by (id_produk, id_satuan, price) — same product can
+  // appear in multiple satuan (e.g. MINYAK LITER vs DUS) AND same product+satuan
+  // can have different prices (different batches/suppliers). Using id+satuan
+  // alone makes one checkbox toggle every row of that product+satuan, even
+  // when prices differ.
   const getDefaultPrice = (item) => item.priceOptions?.[0] ?? item.price ?? 0;
-
-  // Warehouse stock is keyed by (id_produk, id_satuan) — same product can
-  // appear in multiple satuan (e.g. MINYAK LITER vs DUS). Using id alone
-  // makes one checkbox toggle every satuan row of that product.
-  const getRowKey = (item) => `${item.id}|${item.id_satuan ?? ''}`;
+  const getRowKey = (item) => `${item.id}|${item.id_satuan ?? ''}|${getDefaultPrice(item)}`;
 
   // Qty already in this transaction (from initialSelected). In edit mode,
   // warehouse stock has already been reduced by these amounts, so the

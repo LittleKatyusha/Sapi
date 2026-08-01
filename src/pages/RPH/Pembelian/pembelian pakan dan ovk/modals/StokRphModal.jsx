@@ -34,13 +34,13 @@ const StokRphModal = ({ isOpen, onClose, activeTab }) => {
   const [lastPage, setLastPage] = useState(1);
 
   // pakan -> stok bahan baku feedmill yang sudah masuk RPH (dt_stok_feedmil_rph)
-  // ovk  -> stok OVK warehouse (belum ada endpoint stok OVK RPH)
+  // ovk  -> stok OVK yang sudah masuk RPH (sys_tr_pembelian_rph_detail is_keluar=0)
   const { endpoint, baseParams, title } = (() => {
     if (activeTab === 'ovk') {
       return {
-        endpoint: '/api/rph/pembelian/getproduk',
-        baseParams: { jenis: 2 },
-        title: 'Stok OVK Warehouse'
+        endpoint: '/api/rph/persediaan/ovk/datastok',
+        baseParams: {},
+        title: 'Stok OVK di RPH'
       };
     }
     return {

@@ -333,26 +333,46 @@ const usePenjualanForm = () => {
         setFormData(prev => ({ ...prev, [name]: value }));
     }, []);
 
-    const handleProdukSelect = useCallback((produk) => {
-        if (editingIndex !== null) {
-            // Update existing item
+    const handleProdukSelect = useCallback((produkOrArray) => {
+        // Support both single produk and array of produks (multi-select)
+        const produks = Array.isArray(produkOrArray) ? produkOrArray : [produkOrArray];
+
+        if (editingIndex !== null && !Array.isArray(produkOrArray)) {
+            // Update existing item (single-select edit mode only)
+            const produk = produks[0];
             setDetailProduk(prev => prev.map((item, i) =>
                 i === editingIndex ? { ...item, produk } : item
             ));
             setEditingIndex(null);
-        } else {
-            // Duplicate check — composite key (id_produk|id_satuan|hargaJual) karena
-            // produk bisa muncul beberapa kali dengan satuan/harga berbeda.
+            return;
+        }
+
+        // Add mode — bisa multiple sekaligus
+        const existingKeys = new Set(
+            detailProduk.map(item => `${item.produk?.id || item.produk?.value}|${item.produk?.id_satuan}|${item.produk?.hargaJual}`)
+        );
+
+        const toAdd = [];
+        let duplicateCount = 0;
+        produks.forEach(produk => {
             const newKey = `${produk.id || produk.value}|${produk.id_satuan}|${produk.hargaJual}`;
-            const isDuplicate = detailProduk.some(
-                item => `${item.produk?.id || item.produk?.value}|${item.produk?.id_satuan}|${item.produk?.hargaJual}` === newKey
-            );
-            if (isDuplicate) {
-                setNotification({ type: 'error', message: 'Produk sudah ada dalam daftar' });
-                return;
+            if (existingKeys.has(newKey)) {
+                duplicateCount++;
+            } else {
+                existingKeys.add(newKey);
+                toAdd.push({ produk, qty: produk.qty != null ? String(produk.qty) : '' });
             }
-            // Add new item
-            setDetailProduk(prev => [...prev, { produk, qty: '' }]);
+        });
+
+        if (toAdd.length === 0) {
+            setNotification({ type: 'error', message: duplicateCount > 1 ? 'Semua produk sudah ada dalam daftar' : 'Produk sudah ada dalam daftar' });
+            return;
+        }
+
+        setDetailProduk(prev => [...prev, ...toAdd]);
+
+        if (duplicateCount > 0 && toAdd.length > 0) {
+            setNotification({ type: 'info', message: `${toAdd.length} produk ditambahkan, ${duplicateCount} produk dilewati (sudah ada)` });
         }
     }, [editingIndex, detailProduk]);
 

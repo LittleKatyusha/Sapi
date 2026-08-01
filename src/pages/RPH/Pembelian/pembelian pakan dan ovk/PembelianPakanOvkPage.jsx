@@ -15,7 +15,8 @@ import {
   Eye,
   Pencil,
   Ban,
-  Boxes
+  Boxes,
+  CreditCard
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { enhancedTableStyles } from '../pembelian sapi qurban/constants/tableStyles';
@@ -60,7 +61,7 @@ const SummaryCard = ({ title, value, subtext, icon: Icon, accentClass }) => (
   </div>
 );
 
-const ActionMenu = ({ row, onClose, buttonRef, onDetail, onEdit, onCancel }) => {
+const ActionMenu = ({ row, onClose, buttonRef, onDetail, onEdit, onCancel, onBayar }) => {
   const menuRef = useRef(null);
   const [menuStyle, setMenuStyle] = useState(null);
 
@@ -103,6 +104,7 @@ const ActionMenu = ({ row, onClose, buttonRef, onDetail, onEdit, onCancel }) => 
   if (!menuStyle) return null;
 
   const canCancel = row.payment_status_label !== 'Lunas' && row.payment_status_label !== 'Belum Lunas';
+  const canBayar = row.payment_status_label !== 'Lunas' && !!row.payment_pid;
 
   const actions = [
     {
@@ -112,6 +114,17 @@ const ActionMenu = ({ row, onClose, buttonRef, onDetail, onEdit, onCancel }) => 
       iconClass: 'text-sky-600',
       bgClass: 'bg-sky-100',
       onClick: () => onDetail?.(row)
+    },
+    {
+      label: 'Bayar',
+      description: canBayar ? `Bayar tagihan ${row.nomor}` : 'Tagihan sudah lunas',
+      icon: CreditCard,
+      iconClass: canBayar ? 'text-emerald-600' : 'text-gray-400',
+      bgClass: canBayar ? 'bg-emerald-100' : 'bg-gray-100',
+      disabled: !canBayar,
+      onClick: () => {
+        if (canBayar) onBayar?.(row);
+      }
     },
     {
       label: 'Edit',
@@ -178,7 +191,7 @@ const ActionMenu = ({ row, onClose, buttonRef, onDetail, onEdit, onCancel }) => 
   );
 };
 
-const ActionButton = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onCancel }) => {
+const ActionButton = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onCancel, onBayar }) => {
   const buttonRef = useRef(null);
 
   return (
@@ -207,6 +220,7 @@ const ActionButton = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onCanc
           onDetail={onDetail}
           onEdit={onEdit}
           onCancel={onCancel}
+          onBayar={onBayar}
         />
       )}
     </div>
@@ -221,7 +235,8 @@ const MobilePurchaseCard = ({
   onCloseMenu,
   onDetail,
   onEdit,
-  onCancel
+  onCancel,
+  onBayar
 }) => (
   <div className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
     <div className="space-y-3 p-3.5">
@@ -240,6 +255,7 @@ const MobilePurchaseCard = ({
           onDetail={onDetail}
           onEdit={onEdit}
           onCancel={onCancel}
+          onBayar={onBayar}
         />
       </div>
 
@@ -326,6 +342,13 @@ const MobilePurchaseCard = ({
     setOpenMenuIdDesktop(null);
     setOpenMenuIdMobile(null);
   }, [navigate, activeTab]);
+
+  const handleBayar = useCallback((row) => {
+    if (!row?.payment_pid) return;
+    navigate(`/rph/keuangan/pengeluaran/bayar/${encodeURIComponent(row.payment_pid)}`);
+    setOpenMenuIdDesktop(null);
+    setOpenMenuIdMobile(null);
+  }, [navigate]);
 
 const handleCancel = useCallback((row) => {
     if (!row) return;
@@ -469,6 +492,7 @@ const filteredData = useMemo(() => {
               onDetail={handleDetail}
               onEdit={handleEdit}
               onCancel={handleCancel}
+              onBayar={handleBayar}
             />
           </div>
         )
@@ -555,7 +579,7 @@ const filteredData = useMemo(() => {
         )
       }
     ],
-    [openMenuIdDesktop, activeTab, handleDetail, handleEdit, handleCancel]
+    [openMenuIdDesktop, activeTab, handleDetail, handleEdit, handleCancel, handleBayar]
   );
 
   return (
@@ -780,6 +804,7 @@ const filteredData = useMemo(() => {
             onDetail={handleDetail}
             onEdit={handleEdit}
             onCancel={handleCancel}
+            onBayar={handleBayar}
           />
         ))
       )}
