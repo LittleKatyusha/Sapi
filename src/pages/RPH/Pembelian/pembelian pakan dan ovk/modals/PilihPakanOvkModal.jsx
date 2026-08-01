@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { CheckSquare, Search, Square, X } from 'lucide-react';
 
 const formatCurrency = (value) =>
@@ -27,8 +27,8 @@ const PilihPakanOvkModal = ({
   // can have different prices (different batches/suppliers). Using id+satuan
   // alone makes one checkbox toggle every row of that product+satuan, even
   // when prices differ.
-  const getDefaultPrice = (item) => item.priceOptions?.[0] ?? item.price ?? 0;
-  const getRowKey = (item) => `${item.id}|${item.id_satuan ?? ''}|${getDefaultPrice(item)}`;
+  const getDefaultPrice = useCallback((item) => item.priceOptions?.[0] ?? item.price ?? 0, []);
+  const getRowKey = useCallback((item) => `${item.id}|${item.id_satuan ?? ''}|${getDefaultPrice(item)}`, [getDefaultPrice]);
 
   // Qty already in this transaction (from initialSelected). In edit mode,
   // warehouse stock has already been reduced by these amounts, so the
@@ -41,7 +41,7 @@ const PilihPakanOvkModal = ({
       map[getRowKey(item)] = Number(item.qty ?? 0);
     });
     return map;
-  }, [initialSelected]);
+  }, [initialSelected, getRowKey]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -55,7 +55,7 @@ const PilihPakanOvkModal = ({
     });
     setSelectedMap(next);
     setSearchTerm('');
-  }, [isOpen, initialSelected]);
+  }, [isOpen, initialSelected, getRowKey, getDefaultPrice]);
 
   // Extract base product name and satuan from display name.
   // Warehouse view returns names like "MINYAK (KG)" — we split so the
@@ -91,7 +91,7 @@ const PilihPakanOvkModal = ({
       const bName = splitNameSatuan(b).baseName.toLowerCase();
       return aName.localeCompare(bName, 'id');
     });
-  }, [items, searchTerm, initialQtyMap]);
+  }, [items, searchTerm, initialQtyMap, getRowKey]);
 
   const handleSelectAll = () => {
     setSelectedMap((prev) => {
@@ -161,7 +161,7 @@ const PilihPakanOvkModal = ({
         };
       })
       .filter(Boolean);
-  }, [items, selectedMap]);
+  }, [items, selectedMap, getRowKey]);
 
   const totalPrice = selectedItems.reduce(
     (acc, item) => acc + (item.price || 0) * (item.qty || 0),
