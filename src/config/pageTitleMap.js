@@ -51,6 +51,7 @@ export const pageTitleMap = {
   '/system/permission-management': 'System: Permission Management',
   '/system/users': 'System: User Management',
   '/system/menu-management': 'System: Menu Management',
+  '/system/manual-job': 'System: Manual Job - Database Backup',
   '/system/parameters': 'System: Parameter Management',
   '/pembayaran/doka': 'Pembayaran Doka & Sapi',
   '/pembayaran/doka/detail/:id': 'Detail Pembayaran Doka & Sapi',

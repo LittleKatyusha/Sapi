@@ -68,6 +68,7 @@ const PermissionManagementPage = lazy(() => import('./pages/system/PermissionMan
 const RolePage = lazy(() => import('./pages/system/RolePage'));
 const MenuManagementPage = lazy(() => import('./pages/system/MenuManagementPage'));
 const UsersPage = lazy(() => import('./pages/system/UsersPage'));
+const ManualJobPage = lazy(() => import('./pages/system/ManualJobPage'));
 
 // HO Pages - Lazy loaded
 const PembelianHOPage = lazy(() => import('./pages/ho/pembelian/PembelianHOPage'));
@@ -565,6 +566,7 @@ function AppSecure() {
               <Route path="/system/roles" element={<RolePage />} />
               <Route path="/system/users" element={<UsersPage />} />
               <Route path="/system/menu-management" element={<MenuManagementPage />} />
+              <Route path="/system/manual-job" element={<ManualJobPage />} />
 
               {/* Legacy redirect: keuangan/pengeluaran → /ho/keuangan/pengeluaran */}
               <Route path="/keuangan/pengeluaran" element={<Navigate to="/ho/keuangan/pengeluaran" replace />} />
