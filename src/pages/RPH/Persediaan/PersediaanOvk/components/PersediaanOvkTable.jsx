@@ -7,8 +7,19 @@ import customTableStyles from '../../PersediaanHasilPotongRph/constants/tableSty
 
 const STOK_MENIPIS_THRESHOLD = 5;
 
+// API returns ID format thousand separators: "16.500", "1.120.000"
+const parseNumber = (value) => {
+  if (typeof value === 'number') return isFinite(value) ? value : 0;
+  const cleaned = String(value ?? '')
+    .replace(/\./g, '')
+    .replace(/,/g, '.')
+    .replace(/[^\d.-]/g, '');
+  const num = Number(cleaned);
+  return isFinite(num) ? num : 0;
+};
+
 const formatRupiah = (value) => {
-  const num = Number(String(value ?? '').replace(/[^\d.-]/g, ''));
+  const num = parseNumber(value);
   if (!isFinite(num) || num === 0) return 'Rp 0';
   return new Intl.NumberFormat('id-ID', {
     style: 'currency',
@@ -16,11 +27,6 @@ const formatRupiah = (value) => {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(num);
-};
-
-const parseNumber = (value) => {
-  const num = Number(String(value ?? '').replace(/[^\d.-]/g, ''));
-  return isFinite(num) ? num : 0;
 };
 
 const SortIcon = ({ direction }) => {
