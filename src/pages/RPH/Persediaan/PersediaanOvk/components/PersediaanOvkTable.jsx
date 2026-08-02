@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useRef, useLayoutEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef, useLayoutEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import DataTable from 'react-data-table-component';
 import { Search, X, RefreshCw, Package, MoreVertical, Eye, AlertTriangle, TrendingUp, Boxes, ArrowUp, ArrowDown, ChevronsUpDown } from 'lucide-react';
@@ -6,6 +6,17 @@ import usePersediaanOvk from '../hooks/usePersediaanOvk';
 import customTableStyles from '../../PersediaanHasilPotongRph/constants/tableStyles';
 
 const STOK_MENIPIS_THRESHOLD = 5;
+
+// Composite key: API groups by produk + satuan + harga (same nama_produk can appear multiple times)
+const getRowKey = (row, index) => {
+  if (!row) return `idx-${index}`;
+  const id = row.id_produk ?? row.id;
+  const satuan = row.id_satuan ?? row.satuan ?? '';
+  const harga = row.harga ?? row.nominal ?? '';
+  if (id != null && id !== '') return `${id}|${satuan}|${harga}`;
+  if (row.nama_produk) return `${row.nama_produk}|${satuan}|${harga}|${index}`;
+  return `idx-${index}`;
+};
 
 // API returns ID format thousand separators: "16.500", "1.120.000"
 const parseNumber = (value) => {
@@ -84,14 +95,19 @@ const ActionMenu = ({ row, buttonRef, onClose }) => {
   );
 };
 
-const ActionButton = ({ row, isOpen, onToggle, onClose }) => {
+const ActionButton = ({ row, rowKey, openMenuId, onToggle, onClose }) => {
   const buttonRef = useRef(null);
+  const isOpen = openMenuId === rowKey;
   return (
     <div className="relative flex justify-center">
       <button
         ref={buttonRef}
         type="button"
-        onClick={(e) => { e.stopPropagation(); onToggle(); }}
+        onClick={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          onToggle(rowKey);
+        }}
         className={`rounded-lg p-1.5 border transition-all ${
           isOpen
             ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
@@ -176,20 +192,34 @@ const PersediaanOvkTable = () => {
   const [openMenuId, setOpenMenuId] = useState(null);
   const searchInputRef = useRef(null);
 
+  const handleToggleMenu = useCallback((rowKey) => {
+    setOpenMenuId((prev) => (prev === rowKey ? null : rowKey));
+  }, []);
+
+  const handleCloseMenu = useCallback(() => {
+    setOpenMenuId(null);
+  }, []);
+
   useEffect(() => {
     const handleKey = (e) => {
       if (e.key === '/' && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA' && document.activeElement?.tagName !== 'SELECT') {
         e.preventDefault();
         searchInputRef.current?.focus();
       }
-      if (e.key === 'Escape' && searchTerm) {
-        setSearchTerm('');
-        searchInputRef.current?.blur();
+      if (e.key === 'Escape') {
+        if (openMenuId != null) {
+          setOpenMenuId(null);
+          return;
+        }
+        if (searchTerm) {
+          setSearchTerm('');
+          searchInputRef.current?.blur();
+        }
       }
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [searchTerm]);
+  }, [searchTerm, openMenuId]);
 
   const filteredData = useMemo(() => {
     if (!searchTerm) return persediaanData;
@@ -212,14 +242,16 @@ const PersediaanOvkTable = () => {
       name: 'Aksi',
       width: '70px',
       center: true,
+      ignoreRowClick: true,
       cell: (row, index) => {
-        const rowKey = row.nama_produk || row.id || `idx-${index}`;
+        const rowKey = getRowKey(row, index);
         return (
           <ActionButton
             row={row}
-            isOpen={openMenuId === rowKey}
-            onToggle={() => setOpenMenuId(openMenuId === rowKey ? null : rowKey)}
-            onClose={() => setOpenMenuId(null)}
+            rowKey={rowKey}
+            openMenuId={openMenuId}
+            onToggle={handleToggleMenu}
+            onClose={handleCloseMenu}
           />
         );
       },
@@ -277,7 +309,7 @@ const PersediaanOvkTable = () => {
         );
       },
     },
-  ]), [openMenuId, persediaanData]);
+  ]), [openMenuId, persediaanData, handleToggleMenu, handleCloseMenu]);
 
   const clearSearch = () => setSearchTerm('');
 
@@ -467,7 +499,7 @@ const PersediaanOvkTable = () => {
           const isMenipis = jumlah > 0 && jumlah <= STOK_MENIPIS_THRESHOLD;
           const status = isHabis ? 'Habis' : isMenipis ? 'Menipis' : 'Aman';
           const color = isHabis ? 'bg-red-100 text-red-700' : isMenipis ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700';
-          const rowKey = item.nama_produk || item.id || `idx-${index}`;
+          const rowKey = getRowKey(item, index);
           return (
             <div key={rowKey} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
               <div className="p-3.5">
@@ -481,9 +513,10 @@ const PersediaanOvkTable = () => {
                   </div>
                   <ActionButton
                     row={item}
-                    isOpen={openMenuId === rowKey}
-                    onToggle={() => setOpenMenuId(openMenuId === rowKey ? null : rowKey)}
-                    onClose={() => setOpenMenuId(null)}
+                    rowKey={rowKey}
+                    openMenuId={openMenuId}
+                    onToggle={handleToggleMenu}
+                    onClose={handleCloseMenu}
                   />
                 </div>
                 <div className="mt-2.5 grid grid-cols-2 gap-2">
