@@ -16,24 +16,32 @@ class PersediaanPakanService {
   static API_SHOW = '/api/rph/persediaan/pakan/show';
 
   /**
-   * Get stok bahan baku (raw material stock) list
-   * @returns {Promise} API response with stock data (id, name, produk, harga, jumlah)
+   * Get stok bahan baku (raw material stock) list with server-side pagination + search
+   * @param {Object} params - { page, per_page, search }
+   * @returns {Promise} API response with stock data and pagination metadata
    */
-  static async getStokBahanBaku() {
+  static async getStokBahanBaku(params = {}) {
     try {
-      // Add timestamp to prevent caching
-      const url = `${this.API_STOK_BAHAN_BAKU}?_ts=${Date.now()}`;
-      const response = await HttpClient.get(url);
-      const rawData = Array.isArray(response?.data)
-        ? response.data
-        : Array.isArray(response)
-          ? response
-          : [];
+      const query = {
+        page: params.page ?? 1,
+        per_page: params.per_page ?? 15,
+        search: params.search ?? '',
+        _ts: Date.now(),
+      };
+      const response = await HttpClient.get(this.API_STOK_BAHAN_BAKU, { params: query, cache: false });
+      // HttpClient returns parsed JSON body: { status, data: [...], recordsTotal, lastPage, ... }
+      const payload = response ?? {};
+      const rawData = Array.isArray(payload?.data) ? payload.data : [];
 
       return {
         success: true,
         data: rawData.map(this.transformStokBahanBaku),
-        message: response?.message || 'Data stok bahan baku berhasil dimuat'
+        recordsTotal: payload?.recordsTotal ?? rawData.length,
+        recordsFiltered: payload?.recordsFiltered ?? rawData.length,
+        page: payload?.page ?? query.page,
+        perPage: payload?.perPage ?? query.per_page,
+        lastPage: payload?.lastPage ?? 1,
+        message: payload?.message || 'Data stok bahan baku berhasil dimuat'
       };
     } catch (error) {
       const errorData = error?.data ?? error?.response?.data ?? null;
@@ -56,6 +64,7 @@ class PersediaanPakanService {
       id: item.id,
       name: item.name || '-',
       produk: item.produk || '-',
+      satuan: item.satuan || item.unit || '-',
       harga: Number(item.harga) || 0,
       jumlah: Number(item.jumlah) || 0,
     };

@@ -7,8 +7,14 @@ const DeleteConfirmationModal = ({
     onConfirm, 
     data, 
     loading = false, 
-    type = "data" 
+    type = "data",
+    titleText,
+    confirmText,
+    bodyText,
+    warningText,
+    icon: IconProp
 }) => {
+    const Icon = IconProp || Trash2;
     if (!isOpen || !data) return null;
 
     const handleConfirm = () => {
@@ -23,7 +29,7 @@ const DeleteConfirmationModal = ({
                 <div className="flex items-center justify-between p-6 border-b border-gray-200">
                     <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                         <AlertTriangle className="w-6 h-6 text-red-600" />
-                        Konfirmasi Hapus
+                        {titleText || 'Konfirmasi Hapus'}
                     </h2>
                     <button
                         onClick={onClose}
@@ -38,13 +44,13 @@ const DeleteConfirmationModal = ({
                 <div className="p-6">
                     <div className="text-center mb-6">
                         <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <Trash2 className="w-8 h-8 text-red-600" />
+                            <Icon className="w-8 h-8 text-red-600" />
                         </div>
                         <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                            Hapus {type === 'pembelian' ? 'Pembelian Feedmil' : 'Data'}?
+                            {titleText ? `${titleText} ${type === 'pembelian' ? 'Pembelian' : 'Data'}?` : `Hapus ${type === 'pembelian' ? 'Pembelian Feedmil' : 'Data'}?`}
                         </h3>
                         <p className="text-gray-600">
-                            Apakah Anda yakin ingin menghapus {type === 'pembelian' ? 'data pembelian feedmil' : 'data'} ini?
+                            {bodyText || `Apakah Anda yakin ingin menghapus ${type === 'pembelian' ? 'data pembelian feedmil' : 'data'} ini?`}
                         </p>
                     </div>
 
@@ -93,7 +99,7 @@ const DeleteConfirmationModal = ({
 
                     <div className="bg-red-50 p-4 rounded-lg border-l-4 border-red-400">
                         <p className="text-sm text-red-800">
-                            <strong>Peringatan:</strong> Tindakan ini tidak dapat dibatalkan. Data akan dihapus secara permanen.
+                            {warningText || <><strong>Peringatan:</strong> Tindakan ini tidak dapat dibatalkan. Data akan dihapus secara permanen.</>}
                         </p>
                     </div>
                 </div>
@@ -118,8 +124,8 @@ const DeleteConfirmationModal = ({
                             <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                         ) : (
                             <>
-                                <Trash2 className="w-4 h-4" />
-                                Hapus
+                                <Icon className="w-4 h-4" />
+                                {confirmText || 'Hapus'}
                             </>
                         )}
                     </button>

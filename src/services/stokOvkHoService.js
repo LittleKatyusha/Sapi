@@ -8,11 +8,18 @@ import { API_ENDPOINTS } from '../config/api';
 
 class StokOvkHoService {
   /**
-   * Get semua data stok OVK HO
+   * Get data stok OVK HO dengan server-side pagination & search
    */
-  static async getData() {
+  static async getData(params = {}) {
     try {
-      const response = await HttpClient.get(API_ENDPOINTS.HO.STOK_OVK.DATA);
+      const { search = '', page = 1, perPage = 15, lowStock = false } = params;
+      const query = new URLSearchParams({
+        search,
+        page: String(page),
+        per_page: String(perPage),
+        low_stock: String(lowStock),
+      }).toString();
+      const response = await HttpClient.get(`${API_ENDPOINTS.HO.STOK_OVK.DATA}?${query}`);
       return response;
     } catch (error) {
       throw error;

@@ -98,6 +98,7 @@ export const ROUTE_PATHS = Object.freeze({
   SYSTEM_ROLES: '/system/roles',
   SYSTEM_USERS: '/system/users',
   SYSTEM_MENU_MANAGEMENT: '/system/menu-management',
+  SYSTEM_MANUAL_JOB: '/system/manual-job',
 
   // Settings
   SETTINGS: '/settings',

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Eye, Loader2, MoreVertical, Pencil, Plus, RefreshCcw, Search, Trash2, X } from 'lucide-react';
 import PenjualanKulitService from '../../../../services/penjualanKulitService';
@@ -23,6 +23,8 @@ const emptyForm = () => ({
   tanggal_penjualan: todayInput(),
   id_pedagang: '',
   tipe_pembayaran: '1',
+  gunakan_saldo: false,
+  penggunaan_saldo: '',
   id_syarat_pembelian: '',
   pengiriman: 'DIAMBIL',
   id_pengirim: '',
@@ -174,6 +176,8 @@ function PenjualanKulitForm({ open, mode, initialData, master, saving, onClose, 
         tanggal_penjualan: (p.tanggal_penjualan || '').replace(' ', 'T').slice(0, 16),
         id_pedagang: String(p.id_pedagang || ''),
         tipe_pembayaran: String(p.tipe_pembayaran || '1'),
+        gunakan_saldo: Number(p.penggunaan_saldo || 0) > 0,
+        penggunaan_saldo: Number(p.penggunaan_saldo || 0) > 0 ? String(p.penggunaan_saldo) : '',
         id_syarat_pembelian: p.id_syarat_pembelian || p.id_bank ? String(p.id_syarat_pembelian || p.id_bank) : '',
         pengiriman: p.pengiriman || 'DIAMBIL',
         id_pengirim: p.id_pengirim ? String(p.id_pengirim) : '',
@@ -215,6 +219,11 @@ function PenjualanKulitForm({ open, mode, initialData, master, saving, onClose, 
   const selectedStock = useMemo(
     () => formStockOptions.find((x) => String(x.id) === String(line.id_stok_kulit_rph)),
     [line.id_stok_kulit_rph, formStockOptions]
+  );
+
+  const selectedPedagang = useMemo(
+    () => (master.pedagang || []).find((item) => String(item.id) === String(form.id_pedagang)) || null,
+    [master.pedagang, form.id_pedagang]
   );
 
   const totals = useMemo(() => {
@@ -262,6 +271,8 @@ function PenjualanKulitForm({ open, mode, initialData, master, saving, onClose, 
   const submit = (posting = false) => {
     setError('');
     if (!form.id_pedagang) return setError('Pedagang wajib dipilih.');
+    if (form.gunakan_saldo && Number(form.penggunaan_saldo || 0) <= 0) return setError('Nominal penggunaan saldo wajib lebih dari 0.');
+    if (form.gunakan_saldo && Number(form.penggunaan_saldo || 0) > totals.totalPenjualan) return setError('Nominal penggunaan saldo tidak boleh melebihi total tagihan.');
     if (form.tipe_pembayaran === '2' && !form.id_syarat_pembelian) return setError('Bank wajib dipilih untuk pembayaran kredit.');
     if (!form.details.length) return setError('Minimal satu detail kulit wajib ditambahkan.');
     if (form.pengiriman === 'DIANTAR' && (!form.id_pengirim || !form.id_kendaraan_ekspedisi || !form.alamat_pengiriman.trim() || !form.nama_penerima.trim())) {
@@ -272,6 +283,7 @@ function PenjualanKulitForm({ open, mode, initialData, master, saving, onClose, 
       tanggal_penjualan: form.tanggal_penjualan.replace('T', ' ') + ':00',
       id_pedagang: Number(form.id_pedagang),
       id_syarat_pembelian: form.tipe_pembayaran === '2' ? Number(form.id_syarat_pembelian) : null,
+      penggunaan_saldo: form.gunakan_saldo ? Number(form.penggunaan_saldo || 0) : 0,
       id_pengirim: form.pengiriman === 'DIANTAR' ? Number(form.id_pengirim) : null,
       id_kendaraan_ekspedisi: form.pengiriman === 'DIANTAR' ? Number(form.id_kendaraan_ekspedisi) : null,
       biaya_pengiriman: form.pengiriman === 'DIANTAR' ? Number(parseNominalInput(form.biaya_pengiriman) || 0).toFixed(2) : '0.00',
@@ -334,8 +346,9 @@ function PenjualanKulitForm({ open, mode, initialData, master, saving, onClose, 
             </div>
           </div>
         </div>
+        <div className="border-t bg-sky-50 px-5 py-3"><label className="flex items-center gap-2 text-sm font-semibold text-sky-900"><input type="checkbox" checked={form.gunakan_saldo} onChange={(e) => setForm((prev) => ({ ...prev, gunakan_saldo: e.target.checked, penggunaan_saldo: e.target.checked ? prev.penggunaan_saldo : '' }))} /> Gunakan saldo pedagang</label><div className="mt-2 flex max-w-md gap-2"><input type="text" inputMode="numeric" min="0.01" step="0.01" required={form.gunakan_saldo} disabled={!form.gunakan_saldo} value={nominalInput(form.penggunaan_saldo)} onChange={(e) => setForm((prev) => ({ ...prev, penggunaan_saldo: String(Math.min(Number(parseNominalInput(e.target.value) || 0), totals.totalPenjualan)) }))} className={inputClass} placeholder="Nominal saldo" /><button type="button" disabled={!form.gunakan_saldo} onClick={() => setForm((prev) => ({ ...prev, penggunaan_saldo: String(Math.min(Number(selectedPedagang?.saldo_keseluruhan || 0), totals.totalPenjualan)) }))} className="rounded-lg border border-sky-300 px-3 text-xs font-bold text-sky-700 disabled:opacity-50">Maks</button></div><p className="mt-1 text-xs text-sky-700">Saldo tersedia: {money(selectedPedagang?.saldo_keseluruhan || 0)}</p></div>
         <div className="flex flex-wrap items-center justify-between gap-3 border-t bg-slate-50 px-5 py-4">
-          <div className="grid grid-cols-2 gap-4 text-sm md:grid-cols-4"><div><span className="text-slate-500">Total berat</span><div className="font-bold">{kg(totals.totalBerat)}</div></div><div><span className="text-slate-500">Total kulit</span><div className="font-bold">{money(totals.totalHarga)}</div></div><div><span className="text-slate-500">Biaya pengiriman</span><div className="font-bold">{money(totals.biayaPengiriman)}</div></div><div><span className="text-slate-500">Total Tagihan</span><div className="font-bold">{money(totals.totalPenjualan)}</div></div></div>
+          <div className="grid grid-cols-2 gap-4 text-sm md:grid-cols-5"><div><span className="text-slate-500">Total berat</span><div className="font-bold">{kg(totals.totalBerat)}</div></div><div><span className="text-slate-500">Total kulit</span><div className="font-bold">{money(totals.totalHarga)}</div></div><div><span className="text-slate-500">Biaya pengiriman</span><div className="font-bold">{money(totals.biayaPengiriman)}</div></div><div><span className="text-slate-500">Total Tagihan</span><div className="font-bold">{money(totals.totalPenjualan)}</div></div><div className="rounded-lg bg-rose-50 px-3 py-2"><span className="text-rose-600">Sisa Tagihan</span><div className="font-bold text-rose-700">{money(Math.max(totals.totalPenjualan - (form.gunakan_saldo ? Number(form.penggunaan_saldo || 0) : 0), 0))}</div></div></div>
           <div className="flex gap-2"><button className="rounded-lg border px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-white" onClick={onClose}>Batal</button><button disabled={saving} className="inline-flex items-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60" onClick={() => submit(mode !== 'edit')}>{saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Simpan</button></div>
         </div>
       </div>
@@ -354,20 +367,20 @@ export default function PenjualanKulitPage() {
   const [notice, setNotice] = useState(null);
   const [openMenuId, setOpenMenuId] = useState(null);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     const res = await PenjualanKulitService.getData(filters);
     setRows(res.data || []);
     if (!res.success) setNotice({ type: 'error', message: res.message });
     setLoading(false);
-  };
+  }, [filters]);
 
   const loadMaster = async () => {
     const res = await PenjualanKulitService.getMasterData();
     if (res.success) setMaster(res.data || {});
   };
 
-  useEffect(() => { load(); loadMaster(); }, []);
+  useEffect(() => { load(); loadMaster(); }, [load]);
 
   useEffect(() => {
     if (!openMenuId) return undefined;
@@ -448,7 +461,7 @@ export default function PenjualanKulitPage() {
 
       <PenjualanKulitForm open={modal === 'add' || modal === 'edit'} mode={modal} initialData={selected} master={master} saving={saving} onClose={() => setModal(null)} onSubmit={save} />
       {modal === 'detail' && selected ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"><div className="w-full max-w-3xl rounded-xl bg-white shadow-2xl"><div className="flex justify-between border-b px-5 py-4"><h2 className="text-lg font-bold">Detail {selected.penjualan.no_kwitansi}</h2><button onClick={() => setModal(null)}><X className="h-5 w-5" /></button></div><div className="p-5"><div className="grid gap-3 text-sm md:grid-cols-3"><div><span className="text-slate-500">Pedagang</span><div className="font-semibold">{selected.penjualan.nama_pedagang}</div></div><div><span className="text-slate-500">Status</span><div className="font-semibold">{selected.penjualan.status}</div></div><div><span className="text-slate-500">Total</span><div className="font-semibold">{money(selected.penjualan.total_penjualan)}</div></div></div><div className="mt-5 overflow-hidden rounded-lg border"><table className="min-w-full text-sm"><thead className="bg-slate-50 text-left text-xs uppercase text-slate-500"><tr><th className="px-3 py-2">Kulit</th><th className="px-3 py-2 text-right">Berat</th><th className="px-3 py-2 text-right">Harga</th><th className="px-3 py-2 text-right">Subtotal</th></tr></thead><tbody>{selected.details.map((d) => <tr key={d.id} className="border-t"><td className="px-3 py-2">{[d.item_potong_name || d.item_kulit_name, d.klasifikasi_hewan_name].filter(Boolean).join(' - ')}</td><td className="px-3 py-2 text-right">{kg(d.berat_kulit)}</td><td className="px-3 py-2 text-right">{money(d.harga_per_kg)}</td><td className="px-3 py-2 text-right">{money(d.subtotal)}</td></tr>)}</tbody></table></div></div></div></div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"><div className="w-full max-w-3xl rounded-xl bg-white shadow-2xl"><div className="flex justify-between border-b px-5 py-4"><h2 className="text-lg font-bold">Detail {selected.penjualan.no_kwitansi}</h2><button onClick={() => setModal(null)}><X className="h-5 w-5" /></button></div><div className="p-5"><div className="grid gap-3 text-sm md:grid-cols-4"><div><span className="text-slate-500">Pedagang</span><div className="font-semibold">{selected.penjualan.nama_pedagang}</div></div><div><span className="text-slate-500">Status</span><div className="font-semibold">{selected.penjualan.status}</div></div><div><span className="text-slate-500">Total</span><div className="font-semibold">{money(selected.penjualan.total_penjualan)}</div></div><div><span className="text-slate-500">Saldo Pedagang Digunakan</span><div className="font-semibold text-sky-700">{money(selected.penjualan.penggunaan_saldo || 0)}</div></div></div><div className="mt-5 overflow-hidden rounded-lg border"><table className="min-w-full text-sm"><thead className="bg-slate-50 text-left text-xs uppercase text-slate-500"><tr><th className="px-3 py-2">Kulit</th><th className="px-3 py-2 text-right">Berat</th><th className="px-3 py-2 text-right">Harga</th><th className="px-3 py-2 text-right">Subtotal</th></tr></thead><tbody>{selected.details.map((d) => <tr key={d.id} className="border-t"><td className="px-3 py-2">{[d.item_potong_name || d.item_kulit_name, d.klasifikasi_hewan_name].filter(Boolean).join(' - ')}</td><td className="px-3 py-2 text-right">{kg(d.berat_kulit)}</td><td className="px-3 py-2 text-right">{money(d.harga_per_kg)}</td><td className="px-3 py-2 text-right">{money(d.subtotal)}</td></tr>)}</tbody></table></div></div></div></div>
       ) : null}
     </div>
   );

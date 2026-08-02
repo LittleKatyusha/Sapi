@@ -174,8 +174,8 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
                 alamat: d.alamat || '', pasar: d.pasar || '',
                 saldo_awal: d.saldo_awal || '', tabungan: d.tabungan || '',
                 kulit: d.kulit || '', saldo_beku: d.saldo_beku || '',
-                id_office: d.id_office || '',
-                tipe_pedagang: d.tipe_pedagang != null ? String(d.tipe_pedagang) : '',
+                id_office: d.id_office != null ? Number(d.id_office) : '',
+                tipe_pedagang: d.tipe_pedagang != null ? Number(d.tipe_pedagang) : '',
               });
               if (Array.isArray(d.harga)) {
                 const filledHarga = {};

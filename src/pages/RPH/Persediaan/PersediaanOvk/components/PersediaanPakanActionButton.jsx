@@ -1,5 +1,5 @@
 import React, { useRef, useState, useMemo } from "react";
-import { MoreHorizontal } from "lucide-react";
+import { MoreVertical } from "lucide-react";
 import PersediaanPakanActionMenu from "./PersediaanPakanActionMenu";
 
 const PersediaanPakanActionButton = ({ row, openMenuId, setOpenMenuId, onEdit, onDelete, isActive }) => {
@@ -40,7 +40,7 @@ const PersediaanPakanActionButton = ({ row, openMenuId, setOpenMenuId, onEdit, o
         aria-label="Menu Aksi"
         aria-expanded={isOpen}
       >
-        <MoreHorizontal
+        <MoreVertical
           size={16}
           className={`transition-transform duration-150 ${
             isOpen ? "rotate-90" : "group-hover:rotate-90"

@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import DataTable from 'react-data-table-component';
 import {
@@ -14,12 +14,15 @@ import {
   MoreHorizontal,
   Eye,
   Pencil,
-  Trash2
+  Ban,
+  Boxes,
+  CreditCard
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { enhancedTableStyles } from '../pembelian sapi qurban/constants/tableStyles';
 import RphPembelianService from '../../../../services/rphPembelianService';
 import DeleteConfirmationModal from '../../../../components/shared/modals/DeleteConfirmationModal';
+import StokRphModal from './modals/StokRphModal';
 
 const PURCHASE_TYPES = {
   pakan: 1,
@@ -43,36 +46,22 @@ const formatDate = (value) =>
       })
     : '-';
 
-const getStatusClasses = (status) => {
-  const normalizedStatus = (status || '').toLowerCase();
-
-  if (normalizedStatus.includes('selesai')) {
-    return 'bg-green-100 text-green-700 border border-green-200';
-  }
-
-  if (normalizedStatus.includes('proses')) {
-    return 'bg-blue-100 text-blue-700 border border-blue-200';
-  }
-
-  return 'bg-amber-100 text-amber-700 border border-amber-200';
-};
-
-const SummaryCard = ({ title, value, subtext, icon: Icon, gradientClass }) => (
-  <div className={`${gradientClass} text-white p-4 sm:p-6 rounded-2xl shadow-lg`}>
-    <div className="flex items-start justify-between gap-3">
-      <div>
-        <p className="text-sm font-medium opacity-90">{title}</p>
-        <p className="mt-2 text-3xl font-bold">{value}</p>
-        <p className="mt-2 text-xs sm:text-sm opacity-85">{subtext}</p>
+const SummaryCard = ({ title, value, subtext, icon: Icon, accentClass }) => (
+  <div className="group rounded-xl border border-gray-200 bg-white p-3.5 shadow-sm transition-all hover:border-gray-300 hover:shadow-md">
+    <div className="flex items-center gap-3">
+      <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${accentClass}`}>
+        <Icon className="h-4 w-4" />
       </div>
-      <div className="rounded-xl bg-white/15 p-3">
-        <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-[11px] font-medium uppercase tracking-wide text-gray-500">{title}</p>
+        <p className="mt-0.5 truncate text-lg font-bold leading-tight text-gray-900">{value}</p>
       </div>
     </div>
+    <p className="mt-2 truncate text-[11px] text-gray-400">{subtext}</p>
   </div>
 );
 
-const ActionMenu = ({ row, onClose, buttonRef, onDetail, onEdit, onDelete }) => {
+const ActionMenu = ({ row, onClose, buttonRef, onDetail, onEdit, onCancel, onBayar }) => {
   const menuRef = useRef(null);
   const [menuStyle, setMenuStyle] = useState(null);
 
@@ -114,6 +103,9 @@ const ActionMenu = ({ row, onClose, buttonRef, onDetail, onEdit, onDelete }) => 
 
   if (!menuStyle) return null;
 
+  const canCancel = row.payment_status_label !== 'Lunas' && row.payment_status_label !== 'Belum Lunas';
+  const canBayar = row.payment_status_label !== 'Lunas' && !!row.payment_pid;
+
   const actions = [
     {
       label: 'Detail',
@@ -124,6 +116,17 @@ const ActionMenu = ({ row, onClose, buttonRef, onDetail, onEdit, onDelete }) => 
       onClick: () => onDetail?.(row)
     },
     {
+      label: 'Bayar',
+      description: canBayar ? `Bayar tagihan ${row.nomor}` : 'Tagihan sudah lunas',
+      icon: CreditCard,
+      iconClass: canBayar ? 'text-emerald-600' : 'text-gray-400',
+      bgClass: canBayar ? 'bg-emerald-100' : 'bg-gray-100',
+      disabled: !canBayar,
+      onClick: () => {
+        if (canBayar) onBayar?.(row);
+      }
+    },
+    {
       label: 'Edit',
       description: `Ubah data ${row.nomor}`,
       icon: Pencil,
@@ -132,12 +135,17 @@ const ActionMenu = ({ row, onClose, buttonRef, onDetail, onEdit, onDelete }) => 
       onClick: () => onEdit?.(row)
     },
     {
-      label: 'Hapus',
-      description: `Hapus data ${row.nomor}`,
-      icon: Trash2,
-      iconClass: 'text-red-600',
-      bgClass: 'bg-red-100',
-      onClick: () => onDelete?.(row)
+      label: canCancel ? 'Batalkan Transaksi' : 'Tidak Dapat Dibatalkan',
+      description: canCancel
+        ? `Kembalikan stok & hapus ${row.nomor}`
+        : 'Sudah dibayar / lunas',
+      icon: Ban,
+      iconClass: canCancel ? 'text-red-600' : 'text-gray-400',
+      bgClass: canCancel ? 'bg-red-100' : 'bg-gray-100',
+      disabled: !canCancel,
+      onClick: () => {
+        if (canCancel) onCancel?.(row);
+      }
     }
   ];
 
@@ -162,8 +170,11 @@ const ActionMenu = ({ row, onClose, buttonRef, onDetail, onEdit, onDelete }) => 
           <button
             key={action.label}
             type="button"
+            disabled={action.disabled}
             onClick={() => handleActionClick(action)}
-            className="flex w-full items-start gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-gray-50"
+            className={`flex w-full items-start gap-3 rounded-lg px-3 py-2 text-left transition-colors ${
+              action.disabled ? 'cursor-not-allowed opacity-50' : 'hover:bg-gray-50'
+            }`}
           >
             <div className={`mt-0.5 rounded-lg p-2 ${action.bgClass}`}>
               <action.icon className={`h-4 w-4 ${action.iconClass}`} />
@@ -180,7 +191,7 @@ const ActionMenu = ({ row, onClose, buttonRef, onDetail, onEdit, onDelete }) => 
   );
 };
 
-const ActionButton = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onDelete }) => {
+const ActionButton = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onCancel, onBayar }) => {
   const buttonRef = useRef(null);
 
   return (
@@ -208,7 +219,8 @@ const ActionButton = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onDele
           buttonRef={buttonRef}
           onDetail={onDetail}
           onEdit={onEdit}
-          onDelete={onDelete}
+          onCancel={onCancel}
+          onBayar={onBayar}
         />
       )}
     </div>
@@ -223,48 +235,18 @@ const MobilePurchaseCard = ({
   onCloseMenu,
   onDetail,
   onEdit,
-  onDelete
+  onCancel,
+  onBayar
 }) => (
-  <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-    <div className="h-1.5 bg-gradient-to-r from-emerald-500 to-cyan-500" />
-    <div className="space-y-4 p-4">
+  <div className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
+    <div className="space-y-3 p-3.5">
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-medium text-gray-400">#{index}</p>
-          <p className="mt-1 text-sm font-semibold text-emerald-700">{row.nomor}</p>
-          <p className="mt-1 text-sm font-medium text-gray-800">{row.jenisItem}</p>
+        <div className="flex flex-col gap-0.5">
+          <div className="inline-flex w-fit rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+            {row.nomor}
+          </div>
+          <div className="text-xs text-gray-500">{formatDate(row.tanggal)}</div>
         </div>
-        <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${getStatusClasses(row.status)}`}>
-          {row.status}
-        </span>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3 text-sm">
-        <div>
-          <p className="text-xs text-gray-400">Tanggal</p>
-          <p className="font-medium text-gray-700">{formatDate(row.tanggal)}</p>
-        </div>
-        <div>
-          <p className="text-xs text-gray-400">Pemasok</p>
-          <p className="font-medium text-gray-700">{row.supplier}</p>
-        </div>
-        <div>
-          <p className="text-xs text-gray-400">Jenis Item</p>
-          <p className="font-medium text-gray-700">{row.jenisItem}</p>
-        </div>
-        <div>
-          <p className="text-xs text-gray-400">Jumlah</p>
-          <p className="font-medium text-gray-700">
-            {row.jumlah} {row.satuan}
-          </p>
-        </div>
-        <div className="col-span-2">
-          <p className="text-xs text-gray-400">Total</p>
-          <p className="font-semibold text-emerald-700">{formatCurrency(row.total)}</p>
-        </div>
-      </div>
-
-      <div className="flex items-center justify-end border-t border-gray-100 pt-3">
         <ActionButton
           row={row}
           isOpen={isMenuOpen}
@@ -272,9 +254,52 @@ const MobilePurchaseCard = ({
           onClose={onCloseMenu}
           onDetail={onDetail}
           onEdit={onEdit}
-          onDelete={onDelete}
+          onCancel={onCancel}
+          onBayar={onBayar}
         />
       </div>
+
+      <div className="text-sm font-semibold text-gray-800">{row.jenisItem}</div>
+
+      <div className="grid grid-cols-2 gap-2 text-xs">
+        <div>
+          <p className="text-gray-400">Jumlah</p>
+          <p className="font-medium text-slate-700">
+            <span className="rounded bg-slate-100 px-1.5 py-0.5">{row.jumlah} {row.satuan}</span>
+          </p>
+        </div>
+        <div>
+          <p className="text-gray-400">Pemasok</p>
+          <p className="font-medium text-gray-700">{row.supplier || '-'}</p>
+        </div>
+        <div className="col-span-2 flex items-center justify-between border-t border-gray-100 pt-2">
+          <p className="text-gray-400">Total</p>
+          <p className="font-semibold text-emerald-700">{formatCurrency(row.total)}</p>
+        </div>
+        <div className="col-span-2 flex items-center justify-between">
+          <p className="text-gray-400">Status</p>
+          {(() => {
+            const label = row.payment_status_label || 'Belum Bayar';
+            const badgeClass = label === 'Lunas'
+              ? 'bg-emerald-100 text-emerald-700'
+              : label === 'Belum Lunas'
+                ? 'bg-amber-100 text-amber-700'
+                : 'bg-red-100 text-red-700';
+            return (
+              <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${badgeClass}`}>
+                {label}
+              </span>
+            );
+          })()}
+        </div>
+      </div>
+
+      {row.status && (
+        <div className="border-t border-gray-100 pt-2 text-xs text-gray-600">
+          <span className="text-gray-400">Catatan: </span>
+          {row.status}
+        </div>
+      )}
     </div>
   </div>
 );
@@ -292,62 +317,74 @@ const MobilePurchaseCard = ({
     pakan: [],
     ovk: []
   });
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [isStokModalOpen, setIsStokModalOpen] = useState(false);
   const hasLoadedOnceRef = useRef(false);
 
- const activeData = pembelianData[activeTab] || [];
+ const activeData = useMemo(() => pembelianData[activeTab] || [], [pembelianData, activeTab]);
 
  const getRowId = (row) => row?.pid || row?.id || row?._original?.pid || row?._original?.id;
 
- const handleDetail = (row) => {
+ const handleDetail = useCallback((row) => {
    const rowId = getRowId(row);
     if (!rowId) return;
     navigate(`/rph/pembelian-pakan-ovk/detail/${rowId}`, { state: { item: row, type: activeTab } });
     setOpenMenuIdDesktop(null);
     setOpenMenuIdMobile(null);
-  };
+  }, [navigate, activeTab]);
 
-  const handleEdit = (row) => {
+  const handleEdit = useCallback((row) => {
     const rowId = getRowId(row);
     if (!rowId) return;
     navigate(`/rph/pembelian-pakan-ovk/edit/${rowId}`, { state: { item: row, type: activeTab } });
     setOpenMenuIdDesktop(null);
     setOpenMenuIdMobile(null);
-    // hard refresh after edit navigation
-    setTimeout(() => window.location.reload(), 50);
-  };
-const handleDelete = (row) => {
-    if (!row) return;
-    setSelectedItem(row);
-    setIsDeleteModalOpen(true);
+  }, [navigate, activeTab]);
+
+  const handleBayar = useCallback((row) => {
+    if (!row?.payment_pid) return;
+    navigate(`/rph/keuangan/pengeluaran/bayar/${encodeURIComponent(row.payment_pid)}`);
     setOpenMenuIdDesktop(null);
     setOpenMenuIdMobile(null);
-  };
+  }, [navigate]);
 
-  const handleConfirmDelete = async () => {
+const handleCancel = useCallback((row) => {
+    if (!row) return;
+    const canCancel = row.payment_status_label !== 'Lunas' && row.payment_status_label !== 'Belum Lunas';
+    if (!canCancel) {
+      setErrorMessage('Transaksi yang sudah dibayar / lunas tidak dapat dibatalkan.');
+      return;
+    }
+    setSelectedItem(row);
+    setIsCancelModalOpen(true);
+    setOpenMenuIdDesktop(null);
+    setOpenMenuIdMobile(null);
+  }, []);
+
+  const handleConfirmCancel = async () => {
     if (!selectedItem) return;
     const rowId = getRowId(selectedItem);
     if (!rowId) return;
 
-    setIsDeleting(true);
+    setIsCancelling(true);
     setErrorMessage('');
 
     try {
-      const response = await RphPembelianService.deletePembelian(rowId);
+      const response = await RphPembelianService.cancelPembelian(rowId);
 
       if (!response.success) {
-        setErrorMessage(response.message || 'Gagal menghapus pembelian.');
+        setErrorMessage(response.message || 'Gagal membatalkan transaksi.');
         return;
       }
 
-      // hard refresh after delete
+      // hard refresh after cancel
       setTimeout(() => window.location.reload(), 50);
     } catch (error) {
-      setErrorMessage(error?.message || 'Gagal menghapus pembelian.');
+      setErrorMessage(error?.message || 'Gagal membatalkan transaksi.');
     } finally {
-      setIsDeleting(false);
+      setIsCancelling(false);
     }
   };
 
@@ -401,7 +438,7 @@ const handleDelete = (row) => {
     return () => {
       isActive.current = false;
     };
-  }, [location.key]);
+  }, [location.key, activeTab]);
 const filteredData = useMemo(() => {
  const keyword = searchTerm.trim().toLowerCase();
  if (!keyword) return activeData;
@@ -431,15 +468,15 @@ const filteredData = useMemo(() => {
     () => [
       {
         name: 'No',
-        width: '70px',
+        width: '52px',
         center: true,
         cell: (row, index) => (
-          <div className="w-full text-center font-semibold text-gray-500">{index + 1}</div>
+          <div className="w-full text-center text-xs font-semibold text-gray-400">{index + 1}</div>
         )
       },
       {
-        name: 'Pilih',
-        width: '80px',
+        name: 'Aksi',
+        width: '72px',
         center: true,
         ignoreRowClick: true,
         cell: (row) => (
@@ -454,76 +491,95 @@ const filteredData = useMemo(() => {
               onClose={() => setOpenMenuIdDesktop(null)}
               onDetail={handleDetail}
               onEdit={handleEdit}
-              onDelete={handleDelete}
+              onCancel={handleCancel}
+              onBayar={handleBayar}
             />
           </div>
         )
       },
       {
-        name: 'Nomor Pembelian',
+        name: 'Pembelian',
         selector: (row) => row.nomor,
         sortable: true,
-        minWidth: '170px',
+        minWidth: '220px',
+        grow: 1.2,
         cell: (row) => (
-          <div className="w-full">
-            <div className="inline-flex rounded-lg bg-emerald-50 px-3 py-1.5 font-semibold text-emerald-700">
+          <div className="flex flex-col gap-0.5 py-2">
+            <div className="inline-flex w-fit rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
               {row.nomor}
+            </div>
+            <div className="text-xs text-gray-500">{formatDate(row.tanggal)}</div>
+            <div className="text-xs font-medium text-gray-600">
+              <span className="text-gray-400">Pemasok: </span>
+              {row.supplier || '-'}
             </div>
           </div>
         )
       },
       {
-        name: 'Tanggal',
-        selector: (row) => row.tanggal,
-        sortable: true,
-        minWidth: '140px',
-        cell: (row) => <div className="text-sm font-medium text-gray-700">{formatDate(row.tanggal)}</div>
-      },
-      {
-        name: activeTab === 'ovk' ? 'Jenis OVK' : 'Jenis Bahan Baku',
+        name: activeTab === 'ovk' ? 'OVK' : 'Bahan Baku',
         selector: (row) => row.jenisItem,
         sortable: true,
-        minWidth: '220px',
+        minWidth: '240px',
         grow: 1.3,
-        cell: (row) => <div className="py-2 font-semibold text-gray-800">{row.jenisItem}</div>
-      },
-      {
-        name: 'Pemasok',
-        selector: (row) => row.supplier,
-        sortable: true,
-        minWidth: '200px',
-        cell: (row) => <div className="text-sm font-medium text-gray-700">{row.supplier}</div>
-      },
-      {
-        name: 'Jumlah',
-        selector: (row) => row.jumlah,
-        sortable: true,
-        width: '120px',
-        center: true,
         cell: (row) => (
-          <div className="rounded-lg bg-slate-100 px-3 py-1.5 text-sm font-semibold text-slate-700">
-            {row.jumlah} {row.satuan}
+          <div className="flex flex-col gap-0.5 py-2">
+            <div className="text-sm font-semibold text-gray-800">{row.jenisItem}</div>
+            <div className="text-xs font-medium text-slate-600">
+              <span className="rounded bg-slate-100 px-1.5 py-0.5 text-slate-700">
+                {row.jumlah} {row.satuan}
+              </span>
+            </div>
           </div>
         )
       },
       {
-        name: 'Total',
+        name: 'Total Harga',
         selector: (row) => row.total,
         sortable: true,
-        minWidth: '160px',
-        cell: (row) => <div className="font-semibold text-emerald-700">{formatCurrency(row.total)}</div>
+        minWidth: '150px',
+        right: true,
+        cell: (row) => (
+          <div className="py-2 text-right text-sm font-semibold text-emerald-700">
+            {formatCurrency(row.total)}
+          </div>
+        )
+      },
+      {
+        name: 'Status Pembayaran',
+        selector: (row) => row.payment_status_label,
+        sortable: true,
+        minWidth: '150px',
+        center: true,
+        cell: (row) => {
+          const label = row.payment_status_label || 'Belum Bayar';
+          const badgeClass = label === 'Lunas'
+            ? 'bg-emerald-100 text-emerald-700'
+            : label === 'Belum Lunas'
+              ? 'bg-amber-100 text-amber-700'
+              : 'bg-red-100 text-red-700';
+          return (
+            <div className="py-2">
+              <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${badgeClass}`}>
+                {label}
+              </span>
+            </div>
+          );
+        }
       },
       {
         name: 'Catatan',
         selector: (row) => row.status,
         sortable: true,
-        minWidth: '200px',
+        minWidth: '180px',
         cell: (row) => (
-          <div className="text-sm font-medium text-gray-700">{row.status || '-'}</div>
+          <div className="py-2 text-xs font-medium text-gray-600 line-clamp-2">
+            {row.status || '-'}
+          </div>
         )
       }
     ],
-    [openMenuIdDesktop, activeTab]
+    [openMenuIdDesktop, activeTab, handleDetail, handleEdit, handleCancel, handleBayar]
   );
 
   return (
@@ -545,105 +601,113 @@ const filteredData = useMemo(() => {
 
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/40 to-cyan-50/60">
         <div className="mx-auto max-w-full space-y-6">
-          <div className="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm sm:p-6">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-start gap-3">
-            <div className="rounded-2xl bg-emerald-100 p-3 text-emerald-700">
-            <ShoppingCart className="h-7 w-7" />
+          <div className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2.5">
+            <div className="rounded-lg bg-emerald-100 p-2 text-emerald-700">
+            <ShoppingCart className="h-5 w-5" />
             </div>
             <div>
-            <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
+            <h1 className="text-lg font-bold tracking-tight text-gray-900">
             Pembelian Bahan Baku & OVK
             </h1>
-            <p className="mt-1 text-sm text-gray-500 sm:text-base">
+            <p className="mt-0.5 text-xs text-gray-500">
             Kelola transaksi pembelian bahan baku, obat, vitamin, dan kebutuhan OVK untuk operasional RPH.
             </p>
             </div>
             </div>
            
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="flex shrink-0 items-center gap-3">
+            <button
+            type="button"
+            onClick={() => setIsStokModalOpen(true)}
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition-all hover:bg-gray-50"
+            >
+            <Boxes className="h-4 w-4" />
+            Cek Stok
+            </button>
             {activeTab === 'pakan' ? (
             <button
             type="button"
             onClick={() => navigate('/rph/pembelian-pakan-ovk/add/pakan')}
-            className="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-200 bg-white px-5 py-3 text-sm font-semibold text-emerald-700 shadow-sm transition-all hover:bg-emerald-50 sm:text-base"
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-700 shadow-sm transition-all hover:bg-emerald-50"
             >
-            <PlusCircle className="h-5 w-5" />
-            Tambah Pembelian Bahan Baku
+            <PlusCircle className="h-4 w-4" />
+            Tambah Bahan Baku
             </button>
             ) : (
             <button
             type="button"
             onClick={() => navigate('/rph/pembelian-pakan-ovk/add/ovk')}
-            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-emerald-500 to-cyan-600 px-5 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:from-emerald-600 hover:to-cyan-700 sm:text-base"
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-emerald-700"
             >
-            <PlusCircle className="h-5 w-5" />
-            Tambah Pembelian OVK
+            <PlusCircle className="h-4 w-4" />
+            Tambah OVK
             </button>
             )}
             </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             <SummaryCard
             title={activeTab === 'ovk' ? 'Total Pembelian OVK' : 'Total Pembelian Bahan Baku'}
             value={stats.totalTransaksi}
             subtext={activeTab === 'ovk' ? 'Jumlah transaksi pembelian OVK' : 'Jumlah transaksi pembelian Bahan Baku'}
             icon={ClipboardList}
-            gradientClass="bg-gradient-to-br from-emerald-500 to-emerald-600"
+            accentClass="bg-emerald-100 text-emerald-600"
             />
             <SummaryCard
             title={activeTab === 'ovk' ? 'Jenis OVK' : 'Jenis Bahan Baku'}
             value={stats.jenisAktif}
             subtext={activeTab === 'ovk' ? 'Jenis OVK yang tercatat pada daftar' : 'Jenis Bahan Baku yang tercatat pada daftar'}
             icon={Pill}
-            gradientClass="bg-gradient-to-br from-blue-500 to-cyan-600"
+            accentClass="bg-blue-100 text-blue-600"
             />
             <SummaryCard
             title={activeTab === 'ovk' ? 'Total Jumlah OVK' : 'Total Jumlah Bahan Baku'}
             value={stats.totalUnit}
             subtext={activeTab === 'ovk' ? 'Akumulasi unit OVK yang dibeli' : 'Akumulasi unit Bahan Baku yang dibeli'}
             icon={Package}
-            gradientClass="bg-gradient-to-br from-violet-500 to-purple-600"
+            accentClass="bg-violet-100 text-violet-600"
             />
             <SummaryCard
             title="Total Harga"
             value={formatCurrency(stats.totalNominal)}
             subtext={activeTab === 'ovk' ? 'Akumulasi nilai pembelian OVK' : 'Akumulasi nilai pembelian Bahan Baku'}
             icon={Wallet}
-            gradientClass="bg-gradient-to-br from-amber-500 to-orange-500"
+            accentClass="bg-amber-100 text-amber-600"
             />
           </div>
 
           <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
           {/* Tab Headers */}
-          <div className="bg-gradient-to-r from-slate-50 to-gray-50">
-          <div className="flex border-b-2 border-gray-200">
+          <div className="border-b border-gray-200">
+          <div className="flex">
           <button
           onClick={() => handleTabChange('pakan')}
-          className={`relative flex-1 px-8 py-5 text-lg font-bold transition-all duration-300 ${
+          className={`relative flex-1 px-6 py-3 text-sm font-semibold transition-all ${
           activeTab === 'pakan'
-          ? 'text-white bg-gradient-to-r from-blue-600 to-cyan-600 shadow-lg'
-          : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+          ? 'text-emerald-700 bg-emerald-50/50'
+          : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
           }`}
           >
           <span className="relative z-10">Pembelian Bahan Baku</span>
           {activeTab === 'pakan' && (
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-400 to-cyan-400"></div>
+          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-500"></div>
           )}
           </button>
           <button
           onClick={() => handleTabChange('ovk')}
-          className={`relative flex-1 px-8 py-5 text-lg font-bold transition-all duration-300 ${
+          className={`relative flex-1 px-6 py-3 text-sm font-semibold transition-all ${
           activeTab === 'ovk'
-          ? 'text-white bg-gradient-to-r from-emerald-600 to-teal-600 shadow-lg'
-          : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+          ? 'text-emerald-700 bg-emerald-50/50'
+          : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
           }`}
           >
           <span className="relative z-10">Pembelian OVK</span>
           {activeTab === 'ovk' && (
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-400 to-teal-400"></div>
+          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-500"></div>
           )}
           </button>
           </div>
@@ -739,7 +803,8 @@ const filteredData = useMemo(() => {
             onCloseMenu={() => setOpenMenuIdMobile(null)}
             onDetail={handleDetail}
             onEdit={handleEdit}
-            onDelete={handleDelete}
+            onCancel={handleCancel}
+            onBayar={handleBayar}
           />
         ))
       )}
@@ -749,19 +814,25 @@ const filteredData = useMemo(() => {
       </div>
       </div>
 
+      <StokRphModal
+        isOpen={isStokModalOpen}
+        onClose={() => setIsStokModalOpen(false)}
+        activeTab={activeTab}
+      />
+
       <DeleteConfirmationModal
-        isOpen={isDeleteModalOpen}
+        isOpen={isCancelModalOpen}
         onClose={() => {
-          setIsDeleteModalOpen(false);
+          setIsCancelModalOpen(false);
           setSelectedItem(null);
         }}
-        onConfirm={handleConfirmDelete}
-        loading={isDeleting}
-        title="Hapus Pembelian?"
+        onConfirm={handleConfirmCancel}
+        loading={isCancelling}
+        title="Batalkan Transaksi?"
         description={
           selectedItem
-            ? `Anda yakin ingin menghapus pembelian ${selectedItem.nomor || ''}? Tindakan ini tidak dapat dibatalkan.`
-            : 'Anda yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.'
+            ? `Anda yakin ingin membatalkan transaksi ${selectedItem.nomor || ''}? Stok akan dikembalikan ke warehouse dan transaksi dihapus dari daftar. Tindakan ini tidak dapat dibatalkan.`
+            : 'Anda yakin ingin membatalkan transaksi ini? Stok akan dikembalikan ke warehouse. Tindakan ini tidak dapat dibatalkan.'
         }
       />
     </>

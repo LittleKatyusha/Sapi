@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import {
   Wallet, Search, Eye, Loader2, Banknote, MoreVertical, ArrowUpCircle, CheckCircle, Clock,
-  SlidersHorizontal, ChevronDown, RotateCcw
+  SlidersHorizontal, ChevronDown, RotateCcw, X, AlertCircle
 } from 'lucide-react';
 import DataTable from 'react-data-table-component';
 import usePengeluaranRph from '../../../../hooks/usePengeluaranRph';
@@ -12,8 +12,11 @@ import SearchableSelect from '../../../../components/shared/SearchableSelect';
 const JENIS_PEMBELIAN_OPTIONS = [
   { value: 'sapi', label: 'Pembelian Sapi RPH' },
   { value: 'qurban', label: 'Pembelian Sapi Qurban' },
-  { value: 'feedmil', label: 'Pembelian Feedmil' },
-  { value: 'ovk', label: 'Pembelian OVK' },
+  { value: 'rph_feedmil', label: 'Pembelian Pakan (RPH)' },
+  { value: 'rph_ovk', label: 'Pembelian OVK (RPH)' },
+  { value: 'rph_hewan', label: 'Pembelian Hewan (RPH)' },
+  // { value: 'feedmil', label: 'Pembelian Feedmil (HO)' },
+  // { value: 'ovk', label: 'Pembelian OVK (HO)' },
   { value: 'lain_lain', label: 'Pembelian Lain-Lain' },
   { value: 'kulit', label: 'Pembelian Kulit' },
   { value: 'rph_feedmil', label: 'Pembelian Feedmil RPH (dari HO)' },
@@ -184,6 +187,8 @@ const INITIAL_ADVANCED = {
 
 const PengeluaranRphPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const hutangCtx = location.state?.mode === 'bayar_hutang' ? location.state?.pedagang : null;
   const [activeTab, setActiveTab] = useState('transaksi');
   const [jenisValue, setJenisValue] = useState('sapi');
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -275,7 +280,7 @@ const PengeluaranRphPage = () => {
 
   const columns = useMemo(() => {
     if (isHistory) {
-      return [
+      const cols = [
         {
           name: 'No PO / Nota',
           cell: (r) => (
@@ -316,9 +321,23 @@ const PengeluaranRphPage = () => {
           cell: (r) => <span className="text-sm text-gray-600">{r.nama_pembayar || '-'}</span>,
         },
       ];
+      if (hutangCtx) {
+        cols.splice(0, 0, {
+          name: 'Pedagang',
+          cell: () => (
+            <div className="py-1">
+              <div className="text-sm font-semibold text-gray-800 truncate max-w-[160px]">
+                {hutangCtx.nama_alias || hutangCtx.nama_identitas || '-'}
+              </div>
+              <div className="text-xs text-gray-500">{hutangCtx.id_pedagang || '-'}</div>
+            </div>
+          ),
+        });
+      }
+      return cols;
     }
 
-    return [
+    const cols = [
       {
         name: 'No PO / Nota',
         cell: (r) => (
@@ -379,7 +398,21 @@ const PengeluaranRphPage = () => {
         cell: (r) => <ActionMenuCell row={r} onDetail={onDetail} onBayar={onBayar} />,
       },
     ];
-  }, [isHistory, onBayar, onDetail]);
+    if (hutangCtx) {
+      cols.splice(0, 0, {
+        name: 'Pedagang',
+        cell: () => (
+          <div className="py-1">
+            <div className="text-sm font-semibold text-gray-800 truncate max-w-[160px]">
+              {hutangCtx.nama_alias || hutangCtx.nama_identitas || '-'}
+            </div>
+            <div className="text-xs text-gray-500">{hutangCtx.id_pedagang || '-'}</div>
+          </div>
+        ),
+      });
+    }
+    return cols;
+  }, [isHistory, onBayar, onDetail, hutangCtx]);
 
   const customStyles = {
     headRow: { style: { backgroundColor: '#f8fafc', borderBottom: '2px solid #e2e8f0', minHeight: '44px' } },
@@ -401,6 +434,47 @@ const PengeluaranRphPage = () => {
             <p className="text-gray-500 text-[11px] truncate">Pembayaran Pembelian Sapi RPH ke HO</p>
           </div>
         </div>
+
+        {/* Bayar Hutang Context Banner */}
+        {hutangCtx && (
+          <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 flex items-start gap-3">
+            <div className="w-9 h-9 rounded-lg bg-rose-100 flex items-center justify-center shrink-0">
+              <AlertCircle className="w-5 h-5 text-rose-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-sm font-bold text-rose-800">Lunasi Hutang Pedagang</h2>
+                <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 text-[10px] font-semibold uppercase tracking-wide">
+                  Bayar Hutang
+                </span>
+              </div>
+              <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                <div>
+                  <p className="text-rose-600 uppercase font-semibold text-[10px] tracking-wide">Nama Pedagang</p>
+                  <p className="text-sm font-semibold text-gray-800 truncate">
+                    {hutangCtx.nama_alias || hutangCtx.nama_identitas || '-'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-rose-600 uppercase font-semibold text-[10px] tracking-wide">ID Pedagang</p>
+                  <p className="text-sm font-semibold text-gray-800 truncate">{hutangCtx.id_pedagang || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-rose-600 uppercase font-semibold text-[10px] tracking-wide">Sisa Hutang</p>
+                  <p className="text-sm font-bold text-rose-700 tabular-nums">{formatRupiah(hutangCtx.saldo_beku)}</p>
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate(location.pathname, { replace: true, state: {} })}
+              className="p-1.5 rounded-lg text-rose-400 hover:bg-rose-100 hover:text-rose-600 transition shrink-0"
+              title="Tutup"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
 
         {/* Summary Cards - always visible */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

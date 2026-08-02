@@ -1,6 +1,15 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Loader2, Plus, Trash2, X } from 'lucide-react';
 import SearchableSelect from '../../../../../components/shared/SearchableSelect';
+
+const PAYMENT_OPTIONS = [
+  { value: 'CASH', label: 'Tunai (Cash)' },
+  { value: 'BANK', label: 'Kredit (Bank)' },
+];
+const SHIPPING_OPTIONS = [
+  { value: 'DIAMBIL', label: 'Diambil' },
+  { value: 'DIANTAR', label: 'Diantar' },
+];
 
 const createEmptyDetail = () => ({
   id_item_potong: '',
@@ -46,6 +55,8 @@ const AddEditBoningModal = ({
     tgl_penjualan: new Date().toISOString().split('T')[0],
     tipe_pembayaran: 'CASH',
     jumlah_pembayaran: '',
+    gunakan_saldo: false,
+    penggunaan_saldo: '',
     id_syarat_pembelian: '',
     tanggal_pembayaran: '',
     pengiriman: 'DIAMBIL',
@@ -87,7 +98,7 @@ const AddEditBoningModal = ({
       })
       .map((item) => ({
         value: String(item.id_item_potong),
-        label: item.label || `${item.nama_item} - Stok: ${formatNumber(item.stok_tersedia)} Kg`,
+        label: `${item.nama_item || '-'} - Stok: ${Math.round(Number(item.stok_tersedia || 0))} Kg`,
       }));
   }, [boningItems, editData?.detail_items, itemPotongOptions]);
 
@@ -140,6 +151,8 @@ const AddEditBoningModal = ({
         // Cek null/undefined eksplisit agar kas cicilan (0) ditangani benar & tak salah jatuh ke tagihan penuh
         // yang akan mengubah transaksi cicilan menjadi cash secara tidak sengaja saat diedit.
         jumlah_pembayaran: String(header.total_terbayar !== null && header.total_terbayar !== undefined ? header.total_terbayar : ''),
+        gunakan_saldo: Number(header.penggunaan_saldo || 0) > 0,
+        penggunaan_saldo: Number(header.penggunaan_saldo || 0) > 0 ? String(header.penggunaan_saldo) : '',
         id_syarat_pembelian: header.id_syarat_pembelian ? String(header.id_syarat_pembelian) : '',
         tanggal_pembayaran: '',
         pengiriman: header.pengiriman || 'DIAMBIL',
@@ -162,6 +175,8 @@ const AddEditBoningModal = ({
         tgl_penjualan: new Date().toISOString().split('T')[0],
         tipe_pembayaran: 'CASH',
         jumlah_pembayaran: '',
+        gunakan_saldo: false,
+        penggunaan_saldo: '',
         id_syarat_pembelian: '',
         tanggal_pembayaran: '',
         pengiriman: 'DIAMBIL',
@@ -180,7 +195,7 @@ const AddEditBoningModal = ({
     setPedagangHargaMap({});
   }, [editData, isEdit, isOpen]);
 
-  const loadPedagangHargaMap = async (pedagangPid) => {
+  const loadPedagangHargaMap = useCallback(async (pedagangPid) => {
     if (!pedagangPid || typeof fetchPedagangHarga !== 'function') {
       setPedagangHargaMap({});
       return {};
@@ -207,7 +222,7 @@ const AddEditBoningModal = ({
     }));
 
     return nextMap;
-  };
+  }, [fetchPedagangHarga]);
 
   useEffect(() => {
     let cancelled = false;
@@ -227,7 +242,7 @@ const AddEditBoningModal = ({
     return () => {
       cancelled = true;
     };
-  }, [fetchPedagangHarga, isOpen, selectedPedagang]);
+  }, [fetchPedagangHarga, isOpen, selectedPedagang, loadPedagangHargaMap]);
 
   const totals = useMemo(() => {
     const totalBerat = details.reduce((sum, item) => sum + Number(item.jumlah_kg || 0), 0);
@@ -247,6 +262,7 @@ const AddEditBoningModal = ({
     acc[key] = (acc[key] || 0) + Number(item.jumlah_kg || 0);
     return acc;
   }, {}), [details]);
+  const maxPenggunaanSaldo = Math.min(Number(selectedPedagang?.saldo_keseluruhan || 0), totals.grandTotal);
 
   const updateForm = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -340,6 +356,8 @@ const AddEditBoningModal = ({
     const nextErrors = {};
 
     if (!form.id_pedagang) nextErrors.id_pedagang = 'Pedagang wajib dipilih.';
+    if (form.gunakan_saldo && Number(form.penggunaan_saldo || 0) <= 0) nextErrors.penggunaan_saldo = 'Nominal penggunaan saldo wajib lebih dari 0.';
+    if (form.gunakan_saldo && Number(form.penggunaan_saldo || 0) > totals.grandTotal) nextErrors.penggunaan_saldo = 'Nominal penggunaan saldo tidak boleh melebihi total tagihan.';
     if (!form.tgl_penjualan) nextErrors.tgl_penjualan = 'Tanggal penjualan wajib diisi.';
     if (!details.length) nextErrors.details = 'Minimal satu item penjualan wajib diisi.';
 
@@ -358,15 +376,8 @@ const AddEditBoningModal = ({
       }
     });
 
-    if (form.tipe_pembayaran === 'CASH') {
-      if (!form.jumlah_pembayaran || Number(form.jumlah_pembayaran) <= 0) {
-        nextErrors.jumlah_pembayaran = 'Jumlah pembayaran wajib diisi untuk pembayaran cash.';
-      }
-    }
-
     if (form.tipe_pembayaran === 'BANK') {
       if (!form.id_syarat_pembelian) nextErrors.id_syarat_pembelian = 'Syarat pembayaran wajib dipilih untuk pembayaran bank.';
-      if (!form.tanggal_pembayaran) nextErrors.tanggal_pembayaran = 'Tanggal pembayaran wajib diisi untuk pembayaran bank.';
 
       // R-06: Hard-block cicilan bila melampaui limit kredit pedagang (mirror guard backend).
       // Hanya ditegakkan bila limit_kredit > 0 (0 = tidak diset). Di Boning, tipe 'BANK' = cicilan.
@@ -413,6 +424,7 @@ const AddEditBoningModal = ({
     })),
     tipe_pembayaran: form.tipe_pembayaran,
     jumlah_pembayaran: form.tipe_pembayaran === 'CASH' ? Number(form.jumlah_pembayaran || 0) : null,
+    penggunaan_saldo: form.gunakan_saldo ? Number(form.penggunaan_saldo || 0) : 0,
     id_syarat_pembelian: form.tipe_pembayaran === 'BANK' ? Number(form.id_syarat_pembelian) : null,
     tanggal_pembayaran: form.tipe_pembayaran === 'BANK' ? form.tanggal_pembayaran : null,
     pengiriman: form.pengiriman,
@@ -495,31 +507,25 @@ const AddEditBoningModal = ({
 
               <div>
                 <label className="mb-2 block text-sm font-semibold text-slate-700">Tipe Pembayaran</label>
-                <select
+                <SearchableSelect
                   value={form.tipe_pembayaran}
-                  onChange={(event) => setForm((prev) => ({
+                  onChange={(value) => setForm((prev) => ({
                     ...prev,
-                    tipe_pembayaran: event.target.value,
-                    jumlah_pembayaran: event.target.value === 'BANK' ? '' : prev.jumlah_pembayaran,
-                    id_syarat_pembelian: event.target.value === 'CASH' ? '' : prev.id_syarat_pembelian,
-                    tanggal_pembayaran: event.target.value === 'CASH' ? '' : prev.tanggal_pembayaran,
+                    tipe_pembayaran: value || 'CASH',
+                    jumlah_pembayaran: value === 'BANK' ? '' : prev.jumlah_pembayaran,
+                    id_syarat_pembelian: value === 'CASH' ? '' : prev.id_syarat_pembelian,
+                    tanggal_pembayaran: value === 'CASH' ? '' : prev.tanggal_pembayaran,
                   }))}
-                  className={`w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 ${errors.tipe_pembayaran ? 'border-rose-400' : 'border-slate-300'}`}
-                >
-                  <option value="CASH">Cash</option>
-                  <option value="BANK">Bank</option>
-                </select>
+                  options={PAYMENT_OPTIONS}
+                  placeholder="Pilih pembayaran"
+                  accentColor="red"
+                  isClearable={false}
+                />
                 {errors.tipe_pembayaran && <p className="mt-1 text-xs text-rose-600">{errors.tipe_pembayaran}</p>}
               </div>
 
-              {form.tipe_pembayaran === 'CASH' ? (
+              {form.tipe_pembayaran === 'CASH' ? null : (
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">Jumlah Pembayaran</label>
-                  <input type="number" min="0" step="0.01" value={form.jumlah_pembayaran} onChange={(event) => updateForm('jumlah_pembayaran', event.target.value)} className={inputClass} placeholder="0" />
-                  {errors.jumlah_pembayaran && <p className="mt-1 text-xs text-rose-600">{errors.jumlah_pembayaran}</p>}
-                </div>
-              ) : (
-                <div className="grid gap-4 md:grid-cols-2">
                   <div>
                     <label className="mb-2 block text-sm font-semibold text-slate-700">Syarat Pembayaran</label>
                     <SearchableSelect
@@ -531,11 +537,6 @@ const AddEditBoningModal = ({
                     />
                     {errors.id_syarat_pembelian && <p className="mt-1 text-xs text-rose-600">{errors.id_syarat_pembelian}</p>}
                   </div>
-                  <div>
-                    <label className="mb-2 block text-sm font-semibold text-slate-700">Tanggal Pembayaran</label>
-                    <input type="date" value={form.tanggal_pembayaran} onChange={(event) => updateForm('tanggal_pembayaran', event.target.value)} className={inputClass} />
-                    {errors.tanggal_pembayaran && <p className="mt-1 text-xs text-rose-600">{errors.tanggal_pembayaran}</p>}
-                  </div>
                 </div>
               )}
             </div>
@@ -543,22 +544,22 @@ const AddEditBoningModal = ({
             <div className="space-y-4">
               <div>
                 <label className="mb-2 block text-sm font-semibold text-slate-700">Pengiriman</label>
-                <select
+                <SearchableSelect
                   value={form.pengiriman}
-                  onChange={(event) => setForm((prev) => ({
+                  onChange={(value) => setForm((prev) => ({
                     ...prev,
-                    pengiriman: event.target.value,
-                    biaya_pengiriman: event.target.value === 'DIAMBIL' ? '' : prev.biaya_pengiriman,
-                    alamat_pengiriman: event.target.value === 'DIAMBIL' ? '' : prev.alamat_pengiriman,
-                    id_pengirim: event.target.value === 'DIAMBIL' ? '' : prev.id_pengirim,
-                    id_kendaraan_ekspedisi: event.target.value === 'DIAMBIL' ? '' : prev.id_kendaraan_ekspedisi,
-                    nama_penerima: event.target.value === 'DIAMBIL' ? '' : prev.nama_penerima,
+                    pengiriman: value || 'DIAMBIL',
+                    biaya_pengiriman: value === 'DIAMBIL' ? '' : prev.biaya_pengiriman,
+                    alamat_pengiriman: value === 'DIAMBIL' ? '' : prev.alamat_pengiriman,
+                    id_pengirim: value === 'DIAMBIL' ? '' : prev.id_pengirim,
+                    id_kendaraan_ekspedisi: value === 'DIAMBIL' ? '' : prev.id_kendaraan_ekspedisi,
+                    nama_penerima: value === 'DIAMBIL' ? '' : prev.nama_penerima,
                   }))}
-                  className={inputClass}
-                >
-                  <option value="DIAMBIL">Diambil</option>
-                  <option value="DIANTAR">Diantar</option>
-                </select>
+                  options={SHIPPING_OPTIONS}
+                  placeholder="Pilih pengiriman"
+                  accentColor="red"
+                  isClearable={false}
+                />
               </div>
 
               {form.pengiriman === 'DIANTAR' && (
@@ -654,7 +655,7 @@ const AddEditBoningModal = ({
                           isDisabled={isEdit && Boolean(editData?.detail_items?.[index])}
                         />
                         {isEdit && editData?.detail_items?.[index] && <p className="mt-1 text-xs text-amber-600">Item potong lama dikunci saat edit transaksi.</p>}
-                        {item.id_item_potong && <p className="mt-1 text-xs text-slate-500">Stok tersedia: {formatNumber(stokTersedia)} Kg</p>}
+                        {item.id_item_potong && <p className="mt-1 text-xs text-slate-500">Stok tersedia: {Math.round(stokTersedia)} Kg</p>}
                         {errors[`details.${index}.id_item_potong`] && <p className="mt-1 text-xs text-rose-600">{errors[`details.${index}.id_item_potong`]}</p>}
                       </div>
 
@@ -698,10 +699,17 @@ const AddEditBoningModal = ({
             </div>
           </div>
 
+          <div className="border-t bg-sky-50 px-5 py-3">
+            <label className="flex items-center gap-2 text-sm font-semibold text-sky-900"><input type="checkbox" checked={form.gunakan_saldo} onChange={(e) => setForm((prev) => ({ ...prev, gunakan_saldo: e.target.checked, penggunaan_saldo: e.target.checked ? prev.penggunaan_saldo : '' }))} /> Gunakan saldo pedagang</label>
+            <div className="mt-2 flex max-w-md gap-2"><input type="text" inputMode="numeric" required={form.gunakan_saldo} disabled={!form.gunakan_saldo} value={formatMoneyInput(form.penggunaan_saldo)} onChange={(e) => updateForm('penggunaan_saldo', String(Math.min(Number(parseMoneyInput(e.target.value) || 0), totals.grandTotal)))} className={inputClass} placeholder="Nominal saldo" /><button type="button" disabled={!form.gunakan_saldo} onClick={() => updateForm('penggunaan_saldo', String(maxPenggunaanSaldo))} className="rounded-lg border border-sky-300 px-3 text-xs font-bold text-sky-700 disabled:opacity-50">Maks</button></div>
+            <p className="mt-1 text-xs text-sky-700">Saldo tersedia: {formatCurrency(Number(selectedPedagang?.saldo_keseluruhan || 0))}</p>
+            {errors.penggunaan_saldo && <p className="mt-1 text-xs text-rose-600">{errors.penggunaan_saldo}</p>}
+          </div>
+
           <div className="grid gap-4 lg:grid-cols-4">
             <div className="rounded-2xl border border-slate-200 bg-white p-4">
               <div className="text-sm text-slate-500">Total Berat</div>
-              <div className="mt-1 text-lg font-bold text-slate-900">{formatNumber(totals.totalBerat)} Kg</div>
+              <div className="mt-1 text-lg font-bold text-slate-900">{formatNumber(totals.totalBerat, 0)} Kg</div>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-white p-4">
               <div className="text-sm text-slate-500">Total Harga Item</div>
@@ -714,6 +722,8 @@ const AddEditBoningModal = ({
             <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4">
               <div className="text-sm text-rose-600">Grand Total Tagihan</div>
               <div className="mt-1 text-lg font-bold text-rose-700">{formatCurrency(totals.grandTotal)}</div>
+              <div className="mt-2 border-t border-rose-200 pt-2 text-xs text-rose-600">Sisa Tagihan</div>
+              <div className="text-lg font-bold text-rose-700">{formatCurrency(Math.max(totals.grandTotal - (form.gunakan_saldo ? Number(form.penggunaan_saldo || 0) : 0), 0))}</div>
             </div>
           </div>
 

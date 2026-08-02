@@ -97,7 +97,7 @@ const usePenjualanForm = () => {
                         try {
                             const tipeResponse = await HttpClient.post('/api/system/parameter/dataByGroup', { group: 'tipe_pembayaran' });
                             const tipeList = extractApiData(tipeResponse);
-                            const matchedTipe = tipeList.find(t => t.value == record.tipe_pembayaran);
+                            const matchedTipe = tipeList.find(t => String(t.value) === String(record.tipe_pembayaran));
                             if (matchedTipe) {
                                 tipePembayaranValue = {
                                     value: matchedTipe.value,
@@ -185,30 +185,54 @@ const usePenjualanForm = () => {
                             );
                             const produkList = extractApiData(produkResponse);
 
-                            // Build a map of id_produk -> produk data
+                            // Build a map of id_produk -> produk data (first match)
                             const produkMap = {};
                             produkList.forEach(p => {
-                                produkMap[p.id] = p;
+                                if (!produkMap[p.id]) produkMap[p.id] = p;
+                            });
+
+                            // Build (id_produk|id_satuan) -> produk data (first match) fallback
+                            const produkSatuanMap = {};
+                            produkList.forEach(p => {
+                                const k = `${p.id}|${p.id_satuan}`;
+                                if (!produkSatuanMap[k]) produkSatuanMap[k] = p;
+                            });
+
+                            // Build composite map (id_produk|id_satuan|harga_jual) -> produk data
+                            // karena produk bisa punya beberapa satuan/harga dengan stok berbeda.
+                            const produkCompositeMap = {};
+                            produkList.forEach(p => {
+                                produkCompositeMap[`${p.id}|${p.id_satuan}|${p.harga_jual}`] = p;
                             });
 
                             // Map each detail to the format expected by ProdukDetailTable
                             const mappedDetails = details.map(item => {
-                                const produkData = produkMap[item.id_produk];
+                                // Fallback for old records: compute unit harga_jual from harga_total/jumlah
+                                const detailHargaJual = item.harga_jual != null
+                                    ? Number(item.harga_jual)
+                                    : (item.harga_total != null && item.jumlah > 0
+                                        ? Number(item.harga_total) / Number(item.jumlah)
+                                        : 0);
+                                const compositeKey = `${item.id_produk}|${item.id_satuan}|${detailHargaJual}`;
+                                const satuanKey = `${item.id_produk}|${item.id_satuan}`;
+                                const produkData = produkCompositeMap[compositeKey] || produkSatuanMap[satuanKey] || produkMap[item.id_produk];
                                 return {
                                     produk: produkData ? {
                                         id: produkData.id,
                                         value: produkData.id,
                                         label: produkData.NAME,
+                                        id_satuan: item.id_satuan ?? produkData.id_satuan,
                                         hargaBeli: produkData.harga_beli,
-                                        hargaJual: produkData.harga_jual,
+                                        hargaJual: detailHargaJual || produkData.harga_jual,
                                         persentase: produkData.persentase,
                                         produk: produkData.produk
                                     } : {
                                         id: item.id_produk,
                                         value: item.id_produk,
                                         label: `Produk #${item.id_produk}`,
+                                        id_satuan: item.id_satuan,
                                         hargaBeli: 0,
-                                        hargaJual: 0,
+                                        hargaJual: detailHargaJual,
                                         persentase: 0,
                                         produk: '-'
                                     },
@@ -309,24 +333,46 @@ const usePenjualanForm = () => {
         setFormData(prev => ({ ...prev, [name]: value }));
     }, []);
 
-    const handleProdukSelect = useCallback((produk) => {
-        if (editingIndex !== null) {
-            // Update existing item
+    const handleProdukSelect = useCallback((produkOrArray) => {
+        // Support both single produk and array of produks (multi-select)
+        const produks = Array.isArray(produkOrArray) ? produkOrArray : [produkOrArray];
+
+        if (editingIndex !== null && !Array.isArray(produkOrArray)) {
+            // Update existing item (single-select edit mode only)
+            const produk = produks[0];
             setDetailProduk(prev => prev.map((item, i) =>
                 i === editingIndex ? { ...item, produk } : item
             ));
             setEditingIndex(null);
-        } else {
-            // Duplicate check — if product already exists, show notification error
-            const isDuplicate = detailProduk.some(
-                item => (item.produk?.id || item.produk?.value) === (produk.id || produk.value)
-            );
-            if (isDuplicate) {
-                setNotification({ type: 'error', message: 'Produk sudah ada dalam daftar' });
-                return;
+            return;
+        }
+
+        // Add mode — bisa multiple sekaligus
+        const existingKeys = new Set(
+            detailProduk.map(item => `${item.produk?.id || item.produk?.value}|${item.produk?.id_satuan}|${item.produk?.hargaJual}`)
+        );
+
+        const toAdd = [];
+        let duplicateCount = 0;
+        produks.forEach(produk => {
+            const newKey = `${produk.id || produk.value}|${produk.id_satuan}|${produk.hargaJual}`;
+            if (existingKeys.has(newKey)) {
+                duplicateCount++;
+            } else {
+                existingKeys.add(newKey);
+                toAdd.push({ produk, qty: produk.qty != null ? String(produk.qty) : '' });
             }
-            // Add new item
-            setDetailProduk(prev => [...prev, { produk, qty: '' }]);
+        });
+
+        if (toAdd.length === 0) {
+            setNotification({ type: 'error', message: duplicateCount > 1 ? 'Semua produk sudah ada dalam daftar' : 'Produk sudah ada dalam daftar' });
+            return;
+        }
+
+        setDetailProduk(prev => [...prev, ...toAdd]);
+
+        if (duplicateCount > 0 && toAdd.length > 0) {
+            setNotification({ type: 'info', message: `${toAdd.length} produk ditambahkan, ${duplicateCount} produk dilewati (sudah ada)` });
         }
     }, [editingIndex, detailProduk]);
 
@@ -360,6 +406,7 @@ const usePenjualanForm = () => {
         if (!formData.pembeli) { setNotification({ type: 'error', message: 'Pilih pembeli' }); return; }
         if (!formData.namaSupir.trim()) { setNotification({ type: 'error', message: 'Masukkan nama supir' }); return; }
         if (!formData.platNomor.trim()) { setNotification({ type: 'error', message: 'Masukkan plat nomor' }); return; }
+        if (!formData.namaPenerima.trim()) { setNotification({ type: 'error', message: 'Masukkan nama penerima' }); return; }
         if (!formData.tipePembayaran) { setNotification({ type: 'error', message: 'Pilih tipe pembayaran' }); return; }
         if (!formData.syaratPembayaran) { setNotification({ type: 'error', message: 'Pilih syarat pembayaran' }); return; }
         if (detailProduk.length === 0) { setNotification({ type: 'error', message: 'Tambahkan minimal satu produk' }); return; }
@@ -380,28 +427,62 @@ const usePenjualanForm = () => {
                 nama_supir: formData.namaSupir,
                 plat_nomor: formData.platNomor,
                 tipe_pembayaran: formData.tipePembayaran?.value,
-                id_syarat_pembayaran: formData.syaratPembayaran?.value,
+                id_syarat_pembayaran: parseInt(formData.syaratPembayaran?.id ?? formData.syaratPembayaran?.value, 10),
                 nama_penerima: formData.namaPenerima,
                 keterangan: formData.keterangan,
                 items: detailProduk.map(item => ({
                     id_produk: parseInt(item.produk?.id || item.produk?.value, 10),
-                    jumlah: parseFloat(item.qty) || 0,
-                    harga_beli: item.produk?.hargaBeli || item.produk?.harga_beli || 0,
-                    harga_jual: item.produk?.hargaJual || item.produk?.harga_jual || 0,
-                    persentase: item.produk?.persentase || 0,
-                    subtotal: (item.produk?.hargaJual || item.produk?.harga_jual || 0) * (parseFloat(item.qty) || 0)
+                    id_satuan: parseInt(item.produk?.id_satuan, 10),
+                    harga_jual: parseFloat(item.produk?.hargaJual) || 0,
+                    jumlah: parseFloat(item.qty) || 0
                 }))
             };
 
+            // L1: Idempotency key stabil per content (pid + payload hash).
+            // Sebelumnya: crypto.randomUUID() per klik → double-click bypass dedup.
+            // Sekarang: key deterministik dari payload, jadi klik ke-2 dengan
+            // payload sama akan di-dedup oleh middleware idempotent:60.
+            const payloadSignature = isEditMode
+                ? `update-${pid}-${JSON.stringify(payload)}`
+                : `store-${JSON.stringify(payload)}`;
+            // Fallback hash function jika SubtleCrypto belum tersedia (sync context).
+            const simpleHash = (str) => {
+                let hash = 0;
+                for (let i = 0; i < str.length; i++) {
+                    const char = str.charCodeAt(i);
+                    hash = ((hash << 5) - hash) + char;
+                    hash |= 0;
+                }
+                return `h${Math.abs(hash).toString(36)}`;
+            };
+            const idempotencyKey = (typeof crypto !== 'undefined' && crypto.randomUUID)
+                ? `${isEditMode ? 'upd' : 'str'}-${simpleHash(payloadSignature)}-${payloadSignature.length}`
+                : simpleHash(payloadSignature);
+            const options = { headers: { 'X-Idempotency-Key': idempotencyKey } };
+
             if (isEditMode) {
-                await HttpClient.post('/api/ho/penjualan/update', { ...payload, pid });
+                await HttpClient.post('/api/ho/penjualan/update', { ...payload, pid }, options);
                 setNotification({ type: 'success', message: 'Penjualan berhasil diperbarui!' });
             } else {
-                await HttpClient.post('/api/ho/penjualan/store', payload);
+                await HttpClient.post('/api/ho/penjualan/store', payload, options);
                 setNotification({ type: 'success', message: 'File penjualan berhasil dibuat!' });
             }
 
-            setTimeout(() => navigate(PENJUALAN_ROUTES.LIST), 1500);
+            // L2: Guard setTimeout agar tidak navigate/setNotification pada unmounted component.
+            // L3: Auto-clear notification setelah 5 detik.
+            const navTimer = setTimeout(() => {
+                if (typeof window !== 'undefined') {
+                    navigate(PENJUALAN_ROUTES.LIST);
+                }
+            }, 1500);
+            const clearTimer = setTimeout(() => {
+                setNotification(null);
+            }, 5000);
+            // Cleanup timers jika component unmount sebelum timer fire.
+            return () => {
+                clearTimeout(navTimer);
+                clearTimeout(clearTimer);
+            };
         } catch (error) {
             const errData = error?.response?.data || error?.data || {};
             const rawDetails = errData.data?.details || errData.details || null;

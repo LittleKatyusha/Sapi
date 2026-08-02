@@ -541,7 +541,7 @@ const ModernPembelianTable = ({
                 <TableHeader label="Supplier" caption="Nama & Plat Nomor" sortKey="nama_supplier" />
                 <TableHeader label="Tanggal Masuk" caption="Tgl kedatangan" sortKey="tgl_masuk" />
                 <TableHeader label="Jumlah" caption="Jumlah ekor" sortKey="jumlah" align="right" />
-                <TableHeader label="Total Biaya" caption="Biaya + Berat" sortKey="biaya_total" align="right" />
+                <TableHeader label="Total Biaya" caption="Biaya Sapi + Total" sortKey="biaya_total" align="right" />
                 <TableHeader label="Jenis Pembelian" caption="Tipe supplier" sortKey="jenis_pembelian" />
                 <th className="pb-3 pt-4 px-2 text-xs font-semibold text-gray-500 uppercase tracking-wider text-left">Status Bayar</th>
                 <th className="pb-3 pt-4 px-2 text-xs font-semibold text-gray-500 uppercase tracking-wider text-left">Jatuh Tempo</th>
@@ -621,7 +621,7 @@ const ModernPembelianTable = ({
                       <td className="px-4 py-3.5 text-right">
                         <div className="text-sm font-semibold text-gray-900">{formatCurrency(row.biaya_total)}</div>
                         <div className="text-xs text-gray-500 mt-0.5">
-                          {row.berat_total ? `${parseFloat(row.berat_total).toFixed(1)} kg total` : 'Berat belum tersedia'}
+                          {formatCurrency((parseFloat(row.biaya_total) || 0) + (parseFloat(row.biaya_lain) || 0) + (parseFloat(row.biaya_truk) || 0))} total
                         </div>
                       </td>
                       <td className="px-4 py-3.5">
@@ -753,8 +753,10 @@ const ModernPembelianTable = ({
                   <div className="text-sm font-medium text-indigo-700">{row.jumlah || 0} ekor</div>
                 </div>
                 <div>
-                  <div className="text-xs text-gray-500 mb-0.5">Total Biaya</div>
+                  <div className="text-xs text-gray-500 mb-0.5">Biaya Sapi</div>
                   <div className="text-sm font-semibold text-gray-900">{formatCurrency(row.biaya_total)}</div>
+                  <div className="text-xs text-gray-500 mb-0.5 mt-1">Total + Lain & Truk</div>
+                  <div className="text-sm font-semibold text-indigo-700">{formatCurrency((parseFloat(row.biaya_total) || 0) + (parseFloat(row.biaya_lain) || 0) + (parseFloat(row.biaya_truk) || 0))}</div>
                 </div>
               </div>
 

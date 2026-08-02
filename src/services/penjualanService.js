@@ -106,6 +106,21 @@ class PenjualanService {
   }
 
   /**
+   * Cancel a Penjualan record by pid (soft delete + stock return)
+   * @param {string} pid - The public ID (pubid) of the penjualan to cancel
+   * @returns {Promise} API response
+   */
+  static async cancelPenjualan(pid) {
+    try {
+      const response = await HttpClient.post(`${API_ENDPOINTS.HO.PENJUALAN}/cancel`, { pid });
+      return response;
+    } catch (error) {
+      console.error(`Error cancelling Penjualan (pid=${pid}):`, error);
+      throw error;
+    }
+  }
+
+  /**
    * Generic PDF report download for penjualan
    * @param {string} endpoint - Full API endpoint path
    * @param {Object} params - Query parameters

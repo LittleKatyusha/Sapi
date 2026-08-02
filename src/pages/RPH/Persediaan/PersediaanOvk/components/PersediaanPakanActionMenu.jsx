@@ -10,6 +10,8 @@ const PersediaanPakanActionMenu = ({ row, onEdit, onDelete, onClose, buttonRef }
     function updatePosition() {
       if (buttonRef?.current) {
         const btnRect = buttonRef.current.getBoundingClientRect();
+        // Skip if button is hidden (display:none) — prevents duplicate menu at (0,0)
+        if (btnRect.width === 0 && btnRect.height === 0) return;
         setMenuStyle({
           position: "absolute",
           left: btnRect.left + window.scrollX,

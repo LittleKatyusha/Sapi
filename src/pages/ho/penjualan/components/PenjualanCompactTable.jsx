@@ -101,7 +101,7 @@ const PenjualanCompactTable = ({
     summary,
     onDownload,
     onEdit,
-    onDelete
+    onCancel
 }) => {
     const searchInputRef = useRef(null);
     const [openMenuId, setOpenMenuId] = useState(null);
@@ -233,7 +233,7 @@ const PenjualanCompactTable = ({
                                                         setOpenMenuId={setOpenMenuId}
                                                         onDownload={onDownload}
                                                         onEdit={onEdit}
-                                                        onDelete={onDelete}
+                                                        onCancel={onCancel}
                                                         isActive={openMenuId === (row.id || row.pid)}
                                                     />
                                                 </div>

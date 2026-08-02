@@ -68,6 +68,7 @@ const PermissionManagementPage = lazy(() => import('./pages/system/PermissionMan
 const RolePage = lazy(() => import('./pages/system/RolePage'));
 const MenuManagementPage = lazy(() => import('./pages/system/MenuManagementPage'));
 const UsersPage = lazy(() => import('./pages/system/UsersPage'));
+const ManualJobPage = lazy(() => import('./pages/system/ManualJobPage'));
 
 // HO Pages - Lazy loaded
 const PembelianHOPage = lazy(() => import('./pages/ho/pembelian/PembelianHOPage'));
@@ -121,7 +122,7 @@ const ReturnPenjualanPage = lazy(() => import('./pages/RPH/PenjualanSapiUtuh/Ret
 const ReturnHistoryPage = lazy(() => import('./pages/RPH/PenjualanSapiUtuh/ReturnHistoryPage'));
 const PenjualanBoningPage = lazy(() => import('./pages/RPH/Penjualan/Boning/PenjualanBoningPage'));
 const PenjualanKarkasPage = lazy(() => import('./pages/RPH/Penjualan/Karkas/PenjualanKarkasPage'));
-const PenjualanKulitPage = lazy(() => import('./pages/RPH/Penjualan/Kulit/PenjualanKulitPage'));
+const PenjualanKulitPage = lazy(() => import('./pages/RPH/Penjualan/Kulit/PenjualanKulitPage.jsx'));
 
 // RPH Keuangan Penerimaan Page - Lazy loaded
 const PenerimaanRphPage = lazy(() => import('./pages/RPH/Keuangan/Penerimaan/PenerimaanRphPage'));
@@ -395,6 +396,7 @@ function AppSecure() {
               <Route path="/rph/pembelian-pakan-ovk" element={<PembelianPakanOvkPage />} />
               <Route path="/rph/pembelian-pakan-ovk/add/:type" element={<AddPembelianPakanOvkPage />} />
               <Route path="/rph/pembelian-pakan-ovk/edit/:id" element={<AddPembelianPakanOvkPage />} />
+              <Route path="/rph/pembelian-pakan-ovk/detail/:id" element={<AddPembelianPakanOvkPage />} />
 
               {/* RPH Bahan Pembantu Routes */}
               <Route path="/rph/bahan-pembantu-rph" element={<BahanPembantuRphPage />} />
@@ -564,6 +566,7 @@ function AppSecure() {
               <Route path="/system/roles" element={<RolePage />} />
               <Route path="/system/users" element={<UsersPage />} />
               <Route path="/system/menu-management" element={<MenuManagementPage />} />
+              <Route path="/system/manual-job" element={<ManualJobPage />} />
 
               {/* Legacy redirect: keuangan/pengeluaran → /ho/keuangan/pengeluaran */}
               <Route path="/keuangan/pengeluaran" element={<Navigate to="/ho/keuangan/pengeluaran" replace />} />

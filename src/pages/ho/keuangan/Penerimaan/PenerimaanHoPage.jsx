@@ -15,8 +15,6 @@ const JENIS_PEMBELIAN_OPTIONS = [
   { value: 'feedmil', label: 'Pembelian Feedmil' },
   { value: 'ovk', label: 'Pembelian OVK' },
   { value: 'lain_lain', label: 'Pembelian Lain-Lain' },
-  { value: 'rph_feedmil', label: 'Pembelian Feedmil RPH (dari HO)' },
-  { value: 'rph_ovk', label: 'Pembelian OVK RPH (dari HO)' },
 ];
 
 const ActionMenuCell = ({ row, onDetail, onBayar }) => {

@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Eye, Loader2, MoreVertical, Pencil, Plus, Search, Trash2, X } from 'lucide-react';
 import PenjualanKarkasService from '../../../../services/penjualanKarkasService';
 import SearchableSelect from '../../../../components/shared/SearchableSelect';
+import { useNotification } from '../../../../components/shared/Notification';
 import DetailKarkasModal from './modals/DetailKarkasModal';
 
 const money = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(n) || 0);
@@ -13,7 +14,7 @@ const formatNumberInput = (value) => {
 };
 const parseNumberInput = (value) => String(value || '').replace(/\./g, '').replace(',', '.').replace(/[^\d.]/g, '');
 const blankItem = (harga = 0) => ({ id_pembelian_ho_detail: '', berat_paha_depan_kg: '', berat_paha_belakang_kg: '', harga_karkas_aktual: harga || '', berat_kulit_kg: 0, perlakuan_kulit: 'DITABUNG', nominal_kulit: '', alasan_perubahan_harga: '' });
-const initial = (harga = 0) => ({ id_pedagang: '', tanggal_penjualan: new Date().toISOString().slice(0, 10), tipe_pembayaran: '1', id_syarat_pembelian: '', pengiriman: 'DIAMBIL', biaya_pengiriman: 0, alamat_pengiriman: '', id_pengirim: '', id_kendaraan_ekspedisi: '', nama_penerima: '', keterangan: '', items: [blankItem(harga)] });
+const initial = (harga = 0) => ({ id_pedagang: '', tanggal_penjualan: new Date().toISOString().slice(0, 10), tipe_pembayaran: '1', id_syarat_pembelian: '', gunakan_saldo: false, penggunaan_saldo: '', pengiriman: 'DIAMBIL', biaya_pengiriman: 0, alamat_pengiriman: '', id_pengirim: '', id_kendaraan_ekspedisi: '', nama_penerima: '', keterangan: '', items: [blankItem(harga)] });
 const optionRows = (response) => Array.isArray(response) ? response : (response?.data || []);
 const toSelectOptions = (items) => items.map((item) => ({ value: String(item.id), label: item.label }));
 const sapiCode = (item) => item.code_eartag || String(item.label || '').split(' - ')[0].split(' \u2014 ')[0].split(' \u00e2\u20ac\u201d ')[0] || item.eartag || '-';
@@ -47,6 +48,14 @@ const paymentStatusLabel = (row) => {
   if (row.status_transaksi === 'BATAL') return 'Batal';
   if (row.payment_status_label) return row.payment_status_label;
   return Number(row.payment_status) === 1 ? 'Lunas' : (Number(row.payment_status) === 0 ? 'DP' : 'Belum Dibayar');
+};
+const getRequestErrorMessage = (error, fallback) => {
+  const validation = error?.data?.data;
+  if (validation && typeof validation === 'object') {
+    const first = Object.values(validation).flat().find(Boolean);
+    if (first) return first;
+  }
+  return error?.data?.message || error?.message || fallback;
 };
 const paymentStatusClass = (row) => {
   if (row.status_transaksi === 'BATAL') return 'bg-rose-100 text-rose-700';
@@ -303,7 +312,7 @@ const KarkasFormModal = ({
                   </div>
 
                   <div className="mt-3 grid gap-2 rounded-xl bg-slate-50 px-3 py-2 text-sm sm:grid-cols-3">
-                    <div><span className="text-slate-500">Total berat</span><div className="font-semibold text-slate-800">{totalBerat.toFixed(2)} kg</div></div>
+                    <div><span className="text-slate-500">Total berat</span><div className="font-semibold text-slate-800">{Math.round(totalBerat)} kg</div></div>
                     <div><span className="text-slate-500">Nominal karkas</span><div className="font-semibold text-slate-800">{money(nominalKarkas)}</div></div>
                     <div><span className="text-slate-500">Subtotal item</span><div className="font-semibold text-slate-800">{money(nominalKarkas + (x.perlakuan_kulit === 'DIAMBIL' ? nominalKulit : 0))}</div></div>
                   </div>
@@ -317,10 +326,22 @@ const KarkasFormModal = ({
           <textarea value={form.keterangan || ''} onChange={e => setHeader('keterangan', e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-red-500 focus:ring-1 focus:ring-red-500" rows="2" />
         </Field>
 
+        {(() => {
+          const selected = pedagang.find((item) => String(item.id) === String(form.id_pedagang));
+          const availableSaldo = Number(selected?.saldo_keseluruhan || 0);
+          return (
+            <div className="border-t bg-sky-50 px-5 py-3">
+              <label className="flex items-center gap-2 text-sm font-semibold text-sky-900"><input type="checkbox" checked={Boolean(form.gunakan_saldo)} onChange={(e) => setHeader('gunakan_saldo', e.target.checked)} /> Gunakan saldo pedagang</label>
+              <div className="mt-2 flex max-w-md gap-2"><MoneyInput min="0.01" required={form.gunakan_saldo} disabled={!form.gunakan_saldo} value={form.penggunaan_saldo} onChange={(value) => setHeader('penggunaan_saldo', Math.min(Number(value || 0), totals.n + (form.pengiriman === 'DIANTAR' ? Number(form.biaya_pengiriman || 0) : 0)))} /><button type="button" disabled={!form.gunakan_saldo} className="rounded-lg border border-sky-300 bg-white px-3 text-xs font-bold text-sky-700 disabled:opacity-50" onClick={() => setHeader('penggunaan_saldo', Math.min(availableSaldo, totals.n + (form.pengiriman === 'DIANTAR' ? Number(form.biaya_pengiriman || 0) : 0)))}>Maks</button></div>
+              <p className="mt-1 text-xs text-sky-700">Saldo tersedia: {money(availableSaldo)}</p>
+            </div>
+          );
+        })()}
+
         <div className="grid gap-4 lg:grid-cols-4">
           <div className="rounded-2xl border border-slate-200 bg-white p-4">
             <div className="text-sm text-slate-500">Total Berat</div>
-            <div className="mt-1 text-lg font-bold text-slate-900">{totals.w.toFixed(2)} kg</div>
+            <div className="mt-1 text-lg font-bold text-slate-900">{Math.round(totals.w)} kg</div>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-white p-4">
             <div className="text-sm text-slate-500">Kulit Ditabung</div>
@@ -334,6 +355,8 @@ const KarkasFormModal = ({
           <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4">
             <div className="text-sm text-rose-600">Grand Total Tagihan</div>
             <div className="mt-1 text-lg font-bold text-rose-700">{money(totals.n + (form.pengiriman === 'DIANTAR' ? Number(form.biaya_pengiriman || 0) : 0))}</div>
+            <div className="mt-2 border-t border-rose-200 pt-2 text-xs text-rose-600">Sisa Tagihan</div>
+            <div className="text-lg font-bold text-rose-700">{money(Math.max(totals.n + (form.pengiriman === 'DIANTAR' ? Number(form.biaya_pengiriman || 0) : 0) - (form.gunakan_saldo ? Number(form.penggunaan_saldo || 0) : 0), 0))}</div>
           </div>
         </div>
 
@@ -347,11 +370,12 @@ const KarkasFormModal = ({
 );
 
 export default function PenjualanKarkasPage() {
+  const { showError } = useNotification();
   const [rows, setRows] = useState([]); const [pedagang, setPedagang] = useState([]); const [sapi, setSapi] = useState([]); const [banks, setBanks] = useState([]); const [pengirim, setPengirim] = useState([]); const [kendaraan, setKendaraan] = useState([]); const [loading, setLoading] = useState(true); const [error, setError] = useState('');
   const [search, setSearch] = useState(''); const [page, setPage] = useState(1); const [total, setTotal] = useState(0); const [modal, setModal] = useState(null); const [form, setForm] = useState(initial()); const [saving, setSaving] = useState(false); const [detail, setDetail] = useState(null); const [openMenuId, setOpenMenuId] = useState(null); const [actionLoading, setActionLoading] = useState('');
   const perPage = 10;
-  const load = async () => { setLoading(true); try { const r = await PenjualanKarkasService.getData({ start: (page - 1) * perPage, length: perPage, draw: page, 'search[value]': search }); setRows(r.data || []); setTotal(r.recordsFiltered || 0); } catch (e) { setError(e.message); } finally { setLoading(false); } };
-  useEffect(() => { load(); }, [page, search]);
+  const load = useCallback(async () => { setLoading(true); try { const r = await PenjualanKarkasService.getData({ start: (page - 1) * perPage, length: perPage, draw: page, 'search[value]': search }); setRows(r.data || []); setTotal(r.recordsFiltered || 0); } catch (e) { setError(e.message); } finally { setLoading(false); } }, [page, search]);
+  useEffect(() => { load(); }, [load]);
   useEffect(() => {
     PenjualanKarkasService.optionsPedagang()
       .then((r) => setPedagang(optionRows(r)))
@@ -370,7 +394,7 @@ export default function PenjualanKarkasPage() {
       .catch((e) => setError(e.message || 'Gagal memuat daftar kendaraan ekspedisi'));
   }, []);
   const openCreate = () => { setForm(initial()); setModal('form'); };
-  const openEdit = async (row) => { if (isPaidRow(row)) { setError('Transaksi yang sudah dibayar tidak bisa diedit.'); return; } setActionLoading('Memuat data edit...'); try { const r = await PenjualanKarkasService.show(row.pid); const details = r.data.details || []; setSapi(current => { const byId = new Map(current.map(item => [String(item.id), item])); details.forEach(detail => { const id = String(detail.id_pembelian_ho_detail || ''); if (id && !byId.has(id)) byId.set(id, detailToSapiOption(detail)); }); return Array.from(byId.values()); }); setForm({ ...initial(), ...r.data.penjualan, id_pedagang: r.data.penjualan.id_pedagang, items: details.map(x => ({ ...x, nominal_kulit: x.nominal_kulit ?? '' })) }); setModal('form'); } catch (e) { setError(e.message); } finally { setActionLoading(''); } };
+  const openEdit = async (row) => { if (isPaidRow(row)) { setError('Transaksi yang sudah dibayar tidak bisa diedit.'); return; } setActionLoading('Memuat data edit...'); try { const r = await PenjualanKarkasService.show(row.pid); const details = r.data.details || []; setSapi(current => { const byId = new Map(current.map(item => [String(item.id), item])); details.forEach(detail => { const id = String(detail.id_pembelian_ho_detail || ''); if (id && !byId.has(id)) byId.set(id, detailToSapiOption(detail)); }); return Array.from(byId.values()); }); const usage = Number(r.data.penjualan.penggunaan_saldo || 0); setForm({ ...initial(), ...r.data.penjualan, id_pedagang: r.data.penjualan.id_pedagang, gunakan_saldo: r.data.penjualan.is_penggunaan_saldo === 'YA' || usage > 0, penggunaan_saldo: usage || '', items: details.map(x => ({ ...x, nominal_kulit: x.nominal_kulit ?? '' })) }); setModal('form'); } catch (e) { setError(e.message); } finally { setActionLoading(''); } };
   const setHeader = (key, value) => setForm(f => ({ ...f, [key]: value }));
   const setItem = (i, key, value) => setForm(f => ({ ...f, items: f.items.map((x, n) => n === i ? { ...x, [key]: value } : x) }));
   const selectPaymentType = (value) => setForm(f => ({ ...f, tipe_pembayaran: value || '1', id_syarat_pembelian: value === '2' ? f.id_syarat_pembelian : '' }));
@@ -388,7 +412,7 @@ export default function PenjualanKarkasPage() {
       n: a.n + nominalKarkas + (x.perlakuan_kulit === 'DIAMBIL' ? nominalKulit : 0),
     };
   }, { w: 0, karkas: 0, kulitDiambil: 0, kulitDitabung: 0, n: 0 }), [form.items]);
-  const save = async (e) => { e.preventDefault(); setSaving(true); setActionLoading('Menyimpan transaksi...'); setError(''); try { if (form.tipe_pembayaran === '2' && !form.id_syarat_pembelian) throw new Error('Bank wajib dipilih untuk pembayaran kredit.'); if (form.pengiriman === 'DIANTAR' && !form.id_pengirim) throw new Error('Pengirim wajib dipilih untuk pengiriman diantar.'); if (form.pengiriman === 'DIANTAR' && !form.id_kendaraan_ekspedisi) throw new Error('Kendaraan ekspedisi wajib dipilih untuk pengiriman diantar.'); const payload = { ...form, pid: form.pid, id_pedagang: Number(form.id_pedagang), id_syarat_pembelian: form.tipe_pembayaran === '2' ? Number(form.id_syarat_pembelian) : null, biaya_pengiriman: form.pengiriman === 'DIANTAR' ? Number(form.biaya_pengiriman || 0) : 0, alamat_pengiriman: form.pengiriman === 'DIANTAR' ? form.alamat_pengiriman : null, id_pengirim: form.pengiriman === 'DIANTAR' ? Number(form.id_pengirim) : null, id_kendaraan_ekspedisi: form.pengiriman === 'DIANTAR' ? Number(form.id_kendaraan_ekspedisi) : null, nama_penerima: form.pengiriman === 'DIANTAR' ? form.nama_penerima : null, items: form.items.map(x => ({ ...x, id_pembelian_ho_detail: Number(x.id_pembelian_ho_detail), berat_paha_depan_kg: Number(x.berat_paha_depan_kg), berat_paha_belakang_kg: Number(x.berat_paha_belakang_kg), harga_karkas_aktual: Number(x.harga_karkas_aktual), berat_kulit_kg: Number(x.berat_kulit_kg || 0), nominal_kulit: Number(x.nominal_kulit || 0) })) }; const r = form.pid ? await PenjualanKarkasService.update(payload) : await PenjualanKarkasService.store(payload); if (r.success === false) throw new Error(r.message); setModal(null); await load(); } catch (e) { setError(e.message); } finally { setSaving(false); setActionLoading(''); } };
+  const save = async (e) => { e.preventDefault(); setSaving(true); setActionLoading('Menyimpan transaksi...'); setError(''); try { if (form.tipe_pembayaran === '2' && !form.id_syarat_pembelian) throw new Error('Bank wajib dipilih untuk pembayaran kredit.'); if (form.pengiriman === 'DIANTAR' && !form.id_pengirim) throw new Error('Pengirim wajib dipilih untuk pengiriman diantar.'); if (form.pengiriman === 'DIANTAR' && !form.id_kendaraan_ekspedisi) throw new Error('Kendaraan ekspedisi wajib dipilih untuk pengiriman diantar.'); const payload = { ...form, pid: form.pid, id_pedagang: Number(form.id_pedagang), penggunaan_saldo: form.gunakan_saldo ? Number(form.penggunaan_saldo || 0) : 0, id_syarat_pembelian: form.tipe_pembayaran === '2' ? Number(form.id_syarat_pembelian) : null, biaya_pengiriman: form.pengiriman === 'DIANTAR' ? Number(form.biaya_pengiriman || 0) : 0, alamat_pengiriman: form.pengiriman === 'DIANTAR' ? form.alamat_pengiriman : null, id_pengirim: form.pengiriman === 'DIANTAR' ? Number(form.id_pengirim) : null, id_kendaraan_ekspedisi: form.pengiriman === 'DIANTAR' ? Number(form.id_kendaraan_ekspedisi) : null, nama_penerima: form.pengiriman === 'DIANTAR' ? form.nama_penerima : null, items: form.items.map(x => ({ ...x, id_pembelian_ho_detail: Number(x.id_pembelian_ho_detail), berat_paha_depan_kg: Number(x.berat_paha_depan_kg), berat_paha_belakang_kg: Number(x.berat_paha_belakang_kg), harga_karkas_aktual: Number(x.harga_karkas_aktual), berat_kulit_kg: Number(x.berat_kulit_kg || 0), nominal_kulit: Number(x.nominal_kulit || 0) })) }; const r = form.pid ? await PenjualanKarkasService.update(payload) : await PenjualanKarkasService.store(payload); if (r.success === false) throw new Error(r.message); setModal(null); await load(); } catch (e) { const message = getRequestErrorMessage(e, 'Gagal menyimpan penjualan karkas.'); setError(message); showError(message); } finally { setSaving(false); setActionLoading(''); } };
   const cancel = async (row) => { if (isPaidRow(row)) { setError('Transaksi yang sudah dibayar tidak bisa dihapus.'); return; } if (!window.confirm(`Hapus transaksi ${row.no_kwitansi}?`)) return; setActionLoading('Menghapus transaksi...'); try { await PenjualanKarkasService.hapus(row.pid); await load(); } catch (e) { setError(e.message); } finally { setActionLoading(''); } };
   const openDetail = async (row) => { setActionLoading('Memuat detail transaksi...'); try { const x = await PenjualanKarkasService.show(row.pid); setDetail(x.data); } catch (e) { setError(e.message); } finally { setActionLoading(''); } };
   const available = (selected) => sapi.filter(x => (!x.isEditOption || form.pid) && !form.items.some(i => String(i.id_pembelian_ho_detail) === String(x.id) && String(x.id) !== String(selected)));
@@ -416,7 +440,7 @@ export default function PenjualanKarkasPage() {
       <div className="overflow-x-auto overflow-y-visible">
         <table className="min-w-full text-sm">
           <thead className="border-b border-slate-200 bg-white text-left text-xs font-semibold uppercase text-slate-500"><tr><th className="px-5 py-4 text-center">No</th><th className="px-5 py-4 text-center">Aksi</th><th className="px-5 py-4">No. Kwitansi</th><th className="px-5 py-4">Tanggal</th><th className="px-5 py-4">Pedagang</th><th className="px-5 py-4">Sapi</th><th className="px-5 py-4">Total Berat</th><th className="px-5 py-4">Total Tagihan</th><th className="px-5 py-4">Status</th></tr></thead>
-          <tbody className="divide-y divide-slate-100">{loading ? <tr><td colSpan="9" className="p-12 text-center text-slate-500">Memuat data penjualan karkas...</td></tr> : rows.length === 0 ? <tr><td colSpan="9" className="p-12 text-center text-slate-500">Belum ada transaksi penjualan karkas.</td></tr> : rows.map((r, index) => <tr key={r.pid} className="transition hover:bg-rose-50/40"><td className="px-5 py-4 text-center font-semibold text-slate-500">{((page - 1) * perPage) + index + 1}</td><td className="px-5 py-4"><div className="flex justify-center"><RowActionButton row={r} isOpen={openMenuId === r.pid} onToggle={(pid) => setOpenMenuId((current) => (current === pid ? null : pid))} onClose={() => setOpenMenuId(null)} onDetail={openDetail} onEdit={openEdit} onDelete={cancel} disabled={Boolean(actionLoading) || saving} /></div></td><td className="px-5 py-4"><span className="rounded-lg bg-rose-50 px-2 py-1 font-mono text-xs text-rose-700">{r.no_kwitansi || '-'}</span></td><td className="px-5 py-4 text-slate-700">{String(r.tanggal_penjualan || '').slice(0, 10)}</td><td className="px-5 py-4 font-semibold text-slate-800">{r.nama_pedagang || '-'}</td><td className="px-5 py-4 text-slate-700">{r.jumlah_sapi}</td><td className="px-5 py-4 font-medium text-slate-700">{Number(r.total_berat || 0).toFixed(2)} kg</td><td className="px-5 py-4 font-semibold text-emerald-700">{money(r.total_bayar || r.total_harga)}</td><td className="px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${paymentStatusClass(r)}`}>{paymentStatusLabel(r)}</span></td></tr>)}</tbody>
+          <tbody className="divide-y divide-slate-100">{loading ? <tr><td colSpan="9" className="p-12 text-center text-slate-500">Memuat data penjualan karkas...</td></tr> : rows.length === 0 ? <tr><td colSpan="9" className="p-12 text-center text-slate-500">Belum ada transaksi penjualan karkas.</td></tr> : rows.map((r, index) => <tr key={r.pid} className="transition hover:bg-rose-50/40"><td className="px-5 py-4 text-center font-semibold text-slate-500">{((page - 1) * perPage) + index + 1}</td><td className="px-5 py-4"><div className="flex justify-center"><RowActionButton row={r} isOpen={openMenuId === r.pid} onToggle={(pid) => setOpenMenuId((current) => (current === pid ? null : pid))} onClose={() => setOpenMenuId(null)} onDetail={openDetail} onEdit={openEdit} onDelete={cancel} disabled={Boolean(actionLoading) || saving} /></div></td><td className="px-5 py-4"><span className="rounded-lg bg-rose-50 px-2 py-1 font-mono text-xs text-rose-700">{r.no_kwitansi || '-'}</span></td><td className="px-5 py-4 text-slate-700">{String(r.tanggal_penjualan || '').slice(0, 10)}</td><td className="px-5 py-4 font-semibold text-slate-800">{r.nama_pedagang || '-'}</td><td className="px-5 py-4 text-slate-700">{r.jumlah_sapi}</td><td className="px-5 py-4 font-medium text-slate-700">{Math.round(Number(r.total_berat || 0))} kg</td><td className="px-5 py-4 font-semibold text-emerald-700">{money(r.total_bayar || r.total_harga)}</td><td className="px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${paymentStatusClass(r)}`}>{paymentStatusLabel(r)}</span></td></tr>)}</tbody>
         </table>
       </div>
       <div className="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4 lg:flex-row lg:items-center lg:justify-between"><span className="text-sm text-slate-600">Menampilkan <strong>{total ? ((page - 1) * perPage) + 1 : 0}</strong> sampai <strong>{Math.min(page * perPage, total)}</strong> dari <strong>{total}</strong> data</span><div className="flex items-center gap-2"><button disabled={page <= 1 || loading || Boolean(actionLoading)} onClick={() => setPage(p => p - 1)} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-50">Prev</button><span className="text-sm font-medium text-slate-700">{page}</span><button disabled={page * perPage >= total || loading || Boolean(actionLoading)} onClick={() => setPage(p => p + 1)} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-50">Next</button></div></div>

@@ -96,7 +96,7 @@ export const convertToDataTablesParams = (
     page = 1,
     perPage = 10,
     searchTerm = '',
-    orderColumn = 'due_date',
+    orderColumn = 'created_at',
     orderDir = 'desc',
     filters = {}
 ) => {
@@ -106,23 +106,21 @@ export const convertToDataTablesParams = (
         'settlement_date': 6,
         'nota': 10,
         'tgl_masuk': 12,
-        'total_tagihan': 8
+        'total_tagihan': 8,
+        'id_pembayaran': 1,
+        'created_at': 13
     };
 
-    const columnIndex = columnMap[orderColumn] || 5;
+    const columnIndex = columnMap[orderColumn] || 13;
 
     return {
         draw: 1,
         start: (page - 1) * perPage,
         length: perPage,
-        search: {
-            value: searchTerm,
-            regex: false
-        },
-        order: [{
-            column: columnIndex,
-            dir: orderDir
-        }],
+        'search[value]': searchTerm,
+        'search[regex]': false,
+        'order[0][column]': columnIndex,
+        'order[0][dir]': orderDir,
         ...filters
     };
 };

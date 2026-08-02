@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { CheckSquare, Search, Square, X } from 'lucide-react';
 
 const formatCurrency = (value) =>
@@ -24,15 +24,11 @@ const PilihPakanOvkModal = ({
 
   const getDefaultPrice = (item) => item.priceOptions?.[0] ?? item.price ?? 0;
 
-  // id produk saja tidak unik — produk yang sama bisa punya baris per satuan
-  // (BAL/DUS), jadi seleksi di-key dengan kombinasi produk + satuan.
-  const getItemKey = (item) => item.key ?? item.id;
-
   useEffect(() => {
     if (!isOpen) return;
     const next = {};
     initialSelected.forEach((item) => {
-      next[getItemKey(item)] = {
+      next[item.id] = {
         selected: true,
         qty: item.qty ?? '',
         price: item.price || getDefaultPrice(item)
@@ -40,28 +36,49 @@ const PilihPakanOvkModal = ({
     });
     setSelectedMap(next);
     setSearchTerm('');
-  }, [isOpen, initialSelected]);
+  }, [isOpen, initialSelected, getRowKey, getDefaultPrice]);
+
+  // Extract base product name and satuan from display name.
+  // Warehouse view returns names like "MINYAK (KG)" — we split so the
+  // satuan gets its own column and same products group together when sorted.
+  const splitNameSatuan = (item) => {
+    const rawName = item.name || '';
+    const match = rawName.match(/^(.+?)\s*\(([^)]+)\)\s*$/);
+    if (match) {
+      return { baseName: match[1].trim(), satuan: match[2].trim() };
+    }
+    return { baseName: rawName, satuan: item.unit || '' };
+  };
 
   const filteredItems = useMemo(() => {
+    // In edit mode, an item may have warehouse stock 0 but still be in
+    // the transaction (already taken). Show it so user can adjust/remove.
     const withStock = items.filter((item) => {
-      const stock = Number(item.qty ?? item.stock ?? 0);
-      return stock > 0;
+      const warehouseStock = Number(item.stock ?? item.qty ?? 0);
+      const alreadyTaken = initialQtyMap[getRowKey(item)] ?? 0;
+      return warehouseStock > 0 || alreadyTaken > 0;
     });
-    if (!searchTerm.trim()) return withStock;
-    const lower = searchTerm.toLowerCase();
-    return withStock.filter((item) =>
-      [item.name, item.product]
-        .filter(Boolean)
-        .some((value) => value.toLowerCase().includes(lower))
-    );
-  }, [items, searchTerm]);
+    if (searchTerm.trim()) {
+      const lower = searchTerm.toLowerCase();
+      return withStock.filter((item) =>
+        [item.name, item.product]
+          .filter(Boolean)
+          .some((value) => value.toLowerCase().includes(lower))
+      );
+    }
+    // Sort by base product name so same products (different satuan) group together.
+    return [...withStock].sort((a, b) => {
+      const aName = splitNameSatuan(a).baseName.toLowerCase();
+      const bName = splitNameSatuan(b).baseName.toLowerCase();
+      return aName.localeCompare(bName, 'id');
+    });
+  }, [items, searchTerm, initialQtyMap, getRowKey]);
 
   const handleSelectAll = () => {
     setSelectedMap((prev) => {
       const next = { ...prev };
       filteredItems.forEach((item) => {
-        const key = getItemKey(item);
-        next[key] = {
+        next[item.id] = {
           selected: true,
           qty: next[key]?.qty ?? '',
           price: next[key]?.price || getDefaultPrice(item)
@@ -75,16 +92,16 @@ const PilihPakanOvkModal = ({
     setSelectedMap((prev) => {
       const next = { ...prev };
       filteredItems.forEach((item) => {
-        delete next[getItemKey(item)];
+        delete next[item.id];
       });
       return next;
     });
   };
 
   const handleToggleSelect = (item) => {
+    const key = getRowKey(item);
     setSelectedMap((prev) => {
-      const key = getItemKey(item);
-      const current = prev[key];
+      const current = prev[item.id];
       const next = { ...prev };
       if (current?.selected) {
         delete next[key];
@@ -100,24 +117,22 @@ const PilihPakanOvkModal = ({
   };
 
   const handleQtyChange = (item, qty) => {
-    const key = getItemKey(item);
     setSelectedMap((prev) => ({
       ...prev,
       [key]: {
         selected: true,
         qty: qty === '' ? '' : qty,
-        price: prev[key]?.price || getDefaultPrice(item)
+        price: prev[item.id]?.price || getDefaultPrice(item)
       }
     }));
   };
 
   const handlePriceChange = (item, price) => {
-    const key = getItemKey(item);
     setSelectedMap((prev) => ({
       ...prev,
-      [key]: {
+      [item.id]: {
         selected: true,
-        qty: prev[key]?.qty ?? '',
+        qty: prev[item.id]?.qty ?? '',
         price: Number(price)
       }
     }));
@@ -126,8 +141,8 @@ const PilihPakanOvkModal = ({
   const selectedItems = useMemo(() => {
     return Object.entries(selectedMap)
       .filter(([, value]) => value.selected)
-      .map(([key, value]) => {
-        const item = items.find((entry) => getItemKey(entry) === key);
+      .map(([id, value]) => {
+        const item = items.find((entry) => entry.id === id);
         if (!item) return null;
         return {
           ...item,
@@ -136,7 +151,7 @@ const PilihPakanOvkModal = ({
         };
       })
       .filter(Boolean);
-  }, [items, selectedMap]);
+  }, [items, selectedMap, getRowKey]);
 
   const totalPrice = selectedItems.reduce(
     (acc, item) => acc + (item.price || 0) * (item.qty || 0),
@@ -208,37 +223,56 @@ const PilihPakanOvkModal = ({
                 <tr>
                   <th className="w-12 border-b border-slate-200 px-3 py-2 text-center">Pilih</th>
                   <th className="border-b border-slate-200 px-3 py-2 text-left">Nama Produk</th>
+                  <th className="border-b border-slate-200 px-3 py-2 text-left">Satuan</th>
                   <th className="border-b border-slate-200 px-3 py-2 text-left">Produk</th>
-                  <th className="border-b border-slate-200 px-3 py-2 text-left">Harga</th>
-                  <th className="border-b border-slate-200 px-3 py-2 text-left">Stok</th>
+                  <th className="border-b border-slate-200 px-3 py-2 text-right">Harga</th>
+                  <th className="border-b border-slate-200 px-3 py-2 text-right">Stok Tersedia</th>
                   <th className="border-b border-slate-200 px-3 py-2 text-left">Jumlah Pembelian</th>
                 </tr>
               </thead>
               <tbody>
                 {isLoading && (
                   <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-sm text-slate-500">
+                    <td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-500">
                       Memuat data produk...
                     </td>
                   </tr>
                 )}
                 {!isLoading && errorMessage && (
                   <tr>
-                    <td colSpan={6} className="px-4 py-6 text-center text-sm text-red-600">
+                    <td colSpan={7} className="px-4 py-6 text-center text-sm text-red-600">
                       {errorMessage}
                     </td>
                   </tr>
                 )}
                 {!isLoading && !errorMessage && filteredItems.map((item) => {
-                  const current = selectedMap[getItemKey(item)];
+                  const current = selectedMap[item.id];
                   const isSelected = Boolean(current?.selected);
-                  const hasPriceOptions = (item.priceOptions || []).length > 0;
+                  const { baseName, satuan } = splitNameSatuan(item);
+                  const prevBaseName = idx > 0 ? splitNameSatuan(filteredItems[idx - 1]).baseName : null;
+                  // Visual grouping: thicker top border when product changes.
+                  const groupBorder = idx > 0 && prevBaseName !== baseName;
+
+                  // Effective stock = warehouse stock + qty already in this
+                  // transaction. In edit mode, warehouse stock was already
+                  // reduced by the previous save, so we add back what's
+                  // already allocated to this purchase.
+                  const warehouseStock = Number(item.stock ?? item.qty ?? 0);
+                  const alreadyTaken = initialQtyMap[rowKey] ?? 0;
+                  const effectiveStock = warehouseStock + alreadyTaken;
+                  const stockColor =
+                    effectiveStock <= 0 ? 'bg-red-100 text-red-700 border-red-200'
+                    : effectiveStock <= 5 ? 'bg-amber-100 text-amber-700 border-amber-200'
+                    : 'bg-emerald-100 text-emerald-700 border-emerald-200';
+                  const enteredQty = Number(current?.qty ?? 0);
+                  const isOverStock = enteredQty > 0 && enteredQty > effectiveStock;
+
                   return (
                     <tr
-                      key={getItemKey(item)}
+                      key={item.id}
                       className={`border-b border-slate-100 transition hover:bg-emerald-50/50 ${
                         isSelected ? 'bg-emerald-50' : ''
-                      }`}
+                      } ${groupBorder ? 'border-t-2 border-t-slate-200' : ''}`}
                     >
                       <td className="px-3 py-2 text-center">
                         <button
@@ -253,29 +287,51 @@ const PilihPakanOvkModal = ({
                           )}
                         </button>
                       </td>
-                      <td className="px-3 py-2 font-semibold text-slate-700">{item.name}</td>
-                      <td className="px-3 py-2 text-slate-600">{item.product || '-'}</td>
-                      <td className="px-3 py-2">
-                        <span className="text-sm text-slate-500">
-                          {formatCurrency(getDefaultPrice(item))}
+                      <td className="px-3 py-2 font-semibold text-slate-700">{baseName}</td>
+                      <td className="px-3 py-2 text-slate-600">
+                        <span className="inline-flex rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
+                          {satuan || '-'}
                         </span>
                       </td>
-                      <td className="px-3 py-2 text-slate-600">{item.qty ?? item.stock ?? '-'}</td>
+                      <td className="px-3 py-2 text-slate-600">{item.product || '-'}</td>
+                      <td className="px-3 py-2 text-right text-sm text-slate-600">
+                        {formatCurrency(getDefaultPrice(item))}
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-semibold ${stockColor}`}>
+                          <span className="opacity-70">Tersedia:</span>
+                          <span>{effectiveStock}{satuan ? ` ${satuan}` : ''}</span>
+                        </span>
+                        {alreadyTaken > 0 && (
+                          <p className="mt-1 text-[10px] font-medium text-slate-400">
+                            {warehouseStock} gudang + {alreadyTaken} transaksi ini
+                          </p>
+                        )}
+                      </td>
                       <td className="px-3 py-2">
                         <input
                           type="number"
                           min="0"
+                          max={effectiveStock || undefined}
                           value={current?.qty ?? ''}
                           onChange={(event) => handleQtyChange(item, event.target.value === '' ? '' : Number(event.target.value))}
-                          className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-700"
+                          className={`w-full rounded-lg border bg-white px-2 py-1.5 text-sm text-slate-700 ${
+                            isOverStock ? 'border-red-400 focus:ring-2 focus:ring-red-100' : 'border-slate-200 focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100'
+                          }`}
+                          placeholder="0"
                         />
+                        {isOverStock && (
+                          <p className="mt-1 text-[10px] font-medium text-red-600">
+                            Melebihi stok ({effectiveStock})
+                          </p>
+                        )}
                       </td>
                     </tr>
                   );
                 })}
                 {!isLoading && !errorMessage && filteredItems.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-sm text-slate-500">
+                    <td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-500">
                       Data tidak ditemukan.
                     </td>
                   </tr>

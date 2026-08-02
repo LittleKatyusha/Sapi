@@ -4,69 +4,72 @@ import PenggunaOvkTab from './components/PenggunaOvkTab';
 import PersediaanOvkTab from './components/PersediaanOvkTab';
 import PersediaanPakanTab from './components/PersediaanPakanTab';
 
+// IA restructure: Resep Pakan first (most used), Stok OVK, Riwayat Pemakaian
 const TABS = [
-  { id: 'pengguna', label: 'Pengguna OVK', icon: ClipboardList },
-  { id: 'persediaan', label: 'Persediaan OVK', icon: Package },
-  { id: 'persediaan-pakan', label: 'Persediaan Pakan', icon: Wheat },
+  { id: 'persediaan-pakan', label: 'Resep Pakan', icon: Wheat },
+  { id: 'persediaan', label: 'Stok OVK', icon: Package },
+  { id: 'pengguna', label: 'Riwayat Pemakaian', icon: ClipboardList },
 ];
 
 const PersediaanOvkPage = () => {
-  const [activeTab, setActiveTab] = useState('pengguna');
-  useEffect(() => { document.title = 'Persediaan OVK dan Resep - RPH | TernaSys'; }, []);
+  const [activeTab, setActiveTab] = useState('persediaan-pakan');
+  useEffect(() => { document.title = 'Persediaan Pakan & OVK - RPH | TernaSys'; }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/40 to-cyan-50/60">
-      <div className="mx-auto max-w-full space-y-6">
-        {/* Header */}
-        <div className="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm sm:p-6">
-          <div className="flex items-start gap-3">
-            <div className="rounded-2xl bg-emerald-100 p-3 text-emerald-700">
-              <Package className="h-7 w-7" />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50/40">
+      <div className="mx-auto max-w-full space-y-4 p-4 sm:p-5 lg:p-6">
+        {/* Compact Header */}
+        <div className="relative overflow-hidden rounded-xl bg-white border border-slate-200 shadow-sm">
+          <div className="absolute inset-0 bg-gradient-to-r from-emerald-50/60 via-transparent to-transparent pointer-events-none" />
+          <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-md shadow-emerald-500/30">
+                <Package className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Persediaan Pakan & OVK</h1>
+                  <span className="hidden sm:inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-700">RPH</span>
+                </div>
+                <p className="text-sm text-slate-500 mt-0.5">Stok obat, vitamin, kit — riwayat pemakaian — resep pakan, semua dalam satu tempat</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
-                Persediaan OVK dan Resep
-              </h1>
-              <p className="mt-1 text-sm text-gray-500 sm:text-base">
-                Kelola persediaan dan penggunaan obat-obatan, vitamin, dan kebutuhan kesehatan hewan (OVK).
-              </p>
+            <div className="flex items-center gap-2 text-sm text-slate-500">
+              <div className="flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1.5 font-medium text-xs">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                Tersinkron
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg">
-          <div className="bg-gradient-to-r from-slate-50 to-gray-50">
-            <div className="flex border-b-2 border-gray-200">
-              {TABS.map((tab) => {
-                const Icon = tab.icon;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`relative flex-1 px-8 py-5 text-lg font-bold transition-all duration-300 ${
-                      activeTab === tab.id
-                        ? 'text-white bg-gradient-to-r from-emerald-600 to-teal-600 shadow-lg'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-                    }`}
-                  >
-                    <span className="relative z-10 flex items-center justify-center gap-2">
-                      <Icon className="h-5 w-5" />
-                      {tab.label}
-                    </span>
-                    {activeTab === tab.id && (
-                      <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-400 to-teal-400" />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+        {/* Card with Tabs */}
+        <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          {/* Tabs */}
+          <div className="flex items-center gap-1 border-b border-slate-200 bg-slate-50/80 px-2 pt-2 overflow-x-auto">
+            {TABS.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`relative flex items-center gap-2 rounded-t-lg px-4 py-2.5 text-sm font-bold transition-all whitespace-nowrap ${
+                    isActive
+                      ? 'bg-white text-emerald-700 shadow-sm border-t-2 border-x border-slate-200 -mb-px !border-t-emerald-600'
+                      : 'text-slate-500 hover:text-slate-800 hover:bg-white/60'
+                  }`}
+                >
+                  <Icon className={`h-4 w-4 ${isActive ? 'text-emerald-600' : 'text-slate-400'}`} />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
           </div>
 
-          {/* Tab Content */}
-          <div className="bg-gradient-to-br from-slate-50/30 to-blue-50/30 p-6">
-            {activeTab === 'pengguna' && <PenggunaOvkTab />}
+          <div className="p-4 sm:p-5">
             {activeTab === 'persediaan' && <PersediaanOvkTab />}
+            {activeTab === 'pengguna' && <PenggunaOvkTab />}
             {activeTab === 'persediaan-pakan' && <PersediaanPakanTab />}
           </div>
         </div>

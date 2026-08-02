@@ -4,6 +4,7 @@ const PermissionManagementPage = lazy(() => import('../pages/system/PermissionMa
 const RolePage = lazy(() => import('../pages/system/RolePage'));
 const MenuManagementPage = lazy(() => import('../pages/system/MenuManagementPage'));
 const UsersPage = lazy(() => import('../pages/system/UsersPage'));
+const ManualJobPage = lazy(() => import('../pages/system/ManualJobPage'));
 
 export const systemRoutes = [
   {
@@ -21,5 +22,9 @@ export const systemRoutes = [
   {
     path: '/system/menu-management',
     element: <MenuManagementPage />
+  },
+  {
+    path: '/system/manual-job',
+    element: <ManualJobPage />
   }
 ];

@@ -1,69 +1,102 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { X, Search, ShoppingBag, ChevronLeft, ChevronRight, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { X, Search, ShoppingBag, ChevronLeft, ChevronRight, AlertCircle, RotateCcw, CheckSquare, Square } from 'lucide-react';
 import HttpClient from '../../../../services/httpClient';
 import { formatCurrency } from '../utils/formatters';
-import { extractApiData } from '../utils/apiHelpers';
 
-const ITEMS_PER_PAGE = 15;
+const PER_PAGE_OPTIONS = [15, 25, 50, 100];
 
-const ProdukSelectionModal = ({ isOpen, onClose, jenisPenjualan, idJenis, onSelectProduk }) => {
+const produkKey = (produk) => `${produk.id}|${produk.id_satuan}|${produk.harga_jual}`;
+
+const ProdukSelectionModal = ({ isOpen, onClose, jenisPenjualan, idJenis, onSelectProduk, isEditMode = false }) => {
     const [produkList, setProdukList] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [searchTerm, setSearchTerm] = useState('');
+    const [searchInput, setSearchInput] = useState('');
+    const [appliedSearch, setAppliedSearch] = useState('');
     const [error, setError] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
+    const [perPage, setPerPage] = useState(15);
+    const [totalRecords, setTotalRecords] = useState(0);
+    const [totalPages, setTotalPages] = useState(1);
+    const [selectedKeys, setSelectedKeys] = useState(new Set());
+    const [qtyMap, setQtyMap] = useState({}); // key -> qty string
 
-    const fetchProduk = useCallback(async () => {
+    const fetchProduk = useCallback(async (page = 1, search = '', pPerPage = perPage) => {
         if (!idJenis) return;
         setLoading(true);
         setError(null);
         try {
             const response = await HttpClient.post('/api/ho/penjualan/getProdukByJenisPenjualan', {
-                id_jenis: idJenis
+                id_jenis: idJenis,
+                search,
+                page,
+                per_page: pPerPage,
             });
 
-            const data = extractApiData(response);
+            const payload = response || {};
+            const data = Array.isArray(payload?.data) ? payload.data : (Array.isArray(payload) ? payload : []);
+            const recTotal = payload?.recordsTotal ?? payload?.recordsFiltered ?? data.length;
+            const lastPage = payload?.lastPage ?? (pPerPage > 0 ? Math.ceil(recTotal / pPerPage) : 1);
+
             setProdukList(data);
+            setTotalRecords(recTotal);
+            setTotalPages(lastPage || 1);
         } catch (err) {
             setError('Gagal memuat data produk');
             console.error('Error fetching produk:', err);
         } finally {
             setLoading(false);
         }
-    }, [idJenis]);
+    }, [idJenis, perPage]);
 
-    // Fetch produk when modal opens; reset searchTerm and currentPage
+    // Fetch produk when modal opens; reset state
     useEffect(() => {
         if (isOpen && idJenis) {
-            setSearchTerm('');
+            setSearchInput('');
+            setAppliedSearch('');
             setCurrentPage(1);
-            fetchProduk();
+            setPerPage(15);
+            setSelectedKeys(new Set());
+            setQtyMap({});
+            fetchProduk(1, '', 15);
         }
     }, [isOpen, idJenis, fetchProduk]);
 
-    const filteredProduk = useMemo(() =>
-        produkList.filter(item =>
-            (parseFloat(item.jumlah) || 0) > 0 &&
-            item.NAME?.toLowerCase().includes(searchTerm.toLowerCase())
-        ), [produkList, searchTerm]
-    );
+    // Multi-select mode only when NOT editing a single item
+    const multiSelect = !isEditMode;
 
-    const totalPages = Math.ceil(filteredProduk.length / ITEMS_PER_PAGE);
-    const paginatedProduk = useMemo(() => {
-        const start = (currentPage - 1) * ITEMS_PER_PAGE;
-        return filteredProduk.slice(start, start + ITEMS_PER_PAGE);
-    }, [filteredProduk, currentPage]);
-
-    // Reset page when search changes
-    useEffect(() => {
+    const handleSearch = () => {
+        const term = searchInput.trim();
+        setAppliedSearch(term);
         setCurrentPage(1);
-    }, [searchTerm]);
+        fetchProduk(1, term, perPage);
+    };
+
+    const handleReset = () => {
+        setSearchInput('');
+        setAppliedSearch('');
+        setCurrentPage(1);
+        fetchProduk(1, '', perPage);
+    };
+
+    const handlePageChange = (newPage) => {
+        if (newPage < 1 || newPage > totalPages) return;
+        setCurrentPage(newPage);
+        fetchProduk(newPage, appliedSearch, perPage);
+    };
+
+    const handlePerPageChange = (newPerPage) => {
+        setPerPage(newPerPage);
+        setCurrentPage(1);
+        fetchProduk(1, appliedSearch, newPerPage);
+    };
 
     const handleSelectProduk = (produk) => {
+        // Single-select mode (edit existing item) — langsung tutup modal
         onSelectProduk({
             id: produk.id,
             value: produk.id,
             label: produk.NAME,
+            id_satuan: produk.id_satuan,
             hargaBeli: produk.harga_beli,
             hargaJual: produk.harga_jual,
             persentase: produk.persentase,
@@ -71,6 +104,92 @@ const ProdukSelectionModal = ({ isOpen, onClose, jenisPenjualan, idJenis, onSele
         });
         onClose();
     };
+
+    const toggleSelect = (produk) => {
+        const key = produkKey(produk);
+        setSelectedKeys(prev => {
+            const next = new Set(prev);
+            if (next.has(key)) {
+                next.delete(key);
+            } else {
+                next.add(key);
+            }
+            return next;
+        });
+        // Initialize qty to '1' when selected (user can edit later)
+        setQtyMap(prev => {
+            if (prev[key]) return prev; // keep existing qty
+            return { ...prev, [key]: '1' };
+        });
+    };
+
+    const handleQtyInputChange = (produk, value) => {
+        const key = produkKey(produk);
+        setQtyMap(prev => ({ ...prev, [key]: value }));
+    };
+
+    const allOnPageSelected = useMemo(() => {
+        if (produkList.length === 0) return false;
+        return produkList.every(p => selectedKeys.has(produkKey(p)));
+    }, [produkList, selectedKeys]);
+
+    const toggleSelectAllOnPage = () => {
+        setSelectedKeys(prev => {
+            const next = new Set(prev);
+            if (allOnPageSelected) {
+                // Unselect all on current page
+                produkList.forEach(p => next.delete(produkKey(p)));
+            } else {
+                // Select all on current page
+                produkList.forEach(p => next.add(produkKey(p)));
+            }
+            return next;
+        });
+        // Initialize qty for newly selected items
+        setQtyMap(prev => {
+            const next = { ...prev };
+            if (allOnPageSelected) {
+                // Unselecting: optionally clear qty for unselected
+                produkList.forEach(p => { delete next[produkKey(p)]; });
+            } else {
+                // Selecting: init qty to '1' if not set
+                produkList.forEach(p => {
+                    const k = produkKey(p);
+                    if (!next[k]) next[k] = '1';
+                });
+            }
+            return next;
+        });
+    };
+
+    const handleAddSelected = () => {
+        const selectedProduks = produkList
+            .filter(p => selectedKeys.has(produkKey(p)))
+            .map(produk => {
+                const key = produkKey(produk);
+                return {
+                    id: produk.id,
+                    value: produk.id,
+                    label: produk.NAME,
+                    id_satuan: produk.id_satuan,
+                    hargaBeli: produk.harga_beli,
+                    hargaJual: produk.harga_jual,
+                    persentase: produk.persentase,
+                    produk: produk.produk,
+                    qty: qtyMap[key] || ''
+                };
+            });
+
+        if (selectedProduks.length === 0) return;
+
+        onSelectProduk(selectedProduks);
+        setSelectedKeys(new Set());
+        setQtyMap({});
+        onClose();
+    };
+
+    const startIdx = totalRecords > 0 ? (currentPage - 1) * perPage + 1 : 0;
+    const endIdx = Math.min(currentPage * perPage, totalRecords);
 
     if (!isOpen) return null;
 
@@ -80,13 +199,20 @@ const ProdukSelectionModal = ({ isOpen, onClose, jenisPenjualan, idJenis, onSele
                 {/* Header */}
                 <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100">
                     <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-lg bg-green-50 flex items-center justify-center">
-                            <ShoppingBag className="text-green-600" size={20} />
+                        <div className="flex items-center gap-2">
+                            <div className="w-9 h-9 rounded-lg bg-green-50 flex items-center justify-center">
+                                <ShoppingBag className="text-green-600" size={20} />
+                            </div>
+                            <div>
+                                <h2 className="text-base font-semibold text-gray-900">Pilih Produk</h2>
+                                <p className="text-xs text-gray-500">{jenisPenjualan ? `Jenis: ${jenisPenjualan}` : 'Pilih produk untuk penjualan'}</p>
+                            </div>
                         </div>
-                        <div>
-                            <h2 className="text-base font-semibold text-gray-900">Pilih Produk</h2>
-                            <p className="text-xs text-gray-500">{jenisPenjualan ? `Jenis: ${jenisPenjualan}` : 'Pilih produk untuk penjualan'}</p>
-                        </div>
+                        {multiSelect && selectedKeys.size > 0 && (
+                            <span className="ml-2 px-2.5 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">
+                                {selectedKeys.size} terpilih
+                            </span>
+                        )}
                     </div>
                     <button
                         onClick={onClose}
@@ -96,17 +222,36 @@ const ProdukSelectionModal = ({ isOpen, onClose, jenisPenjualan, idJenis, onSele
                     </button>
                 </div>
 
-                {/* Search */}
+                {/* Search + Reset */}
                 <div className="px-5 py-3 border-b border-gray-100">
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                        <input
-                            type="text"
-                            placeholder="Cari nama produk..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-9 pr-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-colors"
-                        />
+                    <div className="flex items-center gap-2">
+                        <div className="relative flex-1">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                            <input
+                                type="text"
+                                placeholder="Cari nama produk..."
+                                value={searchInput}
+                                onChange={(e) => setSearchInput(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
+                                className="w-full pl-9 pr-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-colors"
+                            />
+                        </div>
+                        <button
+                            type="button"
+                            onClick={handleSearch}
+                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 active:bg-green-800 transition-colors text-sm font-medium flex items-center gap-1.5 whitespace-nowrap"
+                        >
+                            <Search size={16} />
+                            Cari
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleReset}
+                            className="px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors text-sm font-medium flex items-center gap-1.5 whitespace-nowrap"
+                        >
+                            <RotateCcw size={16} />
+                            Reset
+                        </button>
                     </div>
                 </div>
 
@@ -124,20 +269,20 @@ const ProdukSelectionModal = ({ isOpen, onClose, jenisPenjualan, idJenis, onSele
                             </div>
                             <p className="text-sm text-red-600 font-medium text-center">{error}</p>
                             <button
-                                onClick={fetchProduk}
+                                onClick={() => fetchProduk(currentPage, appliedSearch, perPage)}
                                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
                             >
                                 Coba Lagi
                             </button>
                         </div>
-                    ) : paginatedProduk.length === 0 ? (
+                    ) : produkList.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-48 text-center">
                             <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
                                 <Search size={22} className="text-gray-400" />
                             </div>
                             <p className="text-sm font-medium text-gray-700">Tidak ada produk ditemukan</p>
                             <p className="text-xs text-gray-500 mt-0.5 max-w-xs">
-                                {searchTerm ? 'Coba kata kunci pencarian lain.' : 'Stok produk tidak tersedia.'}
+                                {appliedSearch ? 'Coba kata kunci pencarian lain.' : 'Stok produk tidak tersedia.'}
                             </p>
                         </div>
                     ) : (
@@ -147,79 +292,144 @@ const ProdukSelectionModal = ({ isOpen, onClose, jenisPenjualan, idJenis, onSele
                                 <table className="w-full text-sm">
                                     <thead className="bg-gray-50 sticky top-0">
                                         <tr>
+                                            {multiSelect && (
+                                                <th className="px-3 py-2.5 text-center w-10">
+                                                    <button
+                                                        type="button"
+                                                        onClick={toggleSelectAllOnPage}
+                                                        className="inline-flex items-center justify-center text-green-600 hover:text-green-700"
+                                                        title="Pilih semua di halaman ini"
+                                                    >
+                                                        {allOnPageSelected ? <CheckSquare size={18} /> : <Square size={18} />}
+                                                    </button>
+                                                </th>
+                                            )}
                                             <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Produk</th>
                                             <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Jenis</th>
-                                            <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Harga Beli</th>
-                                            <th className="px-4 py-2.5 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">%</th>
                                             <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Harga Jual</th>
                                             <th className="px-4 py-2.5 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">Stok</th>
+                                            {multiSelect && (
+                                                <th className="px-4 py-2.5 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide w-28">Qty</th>
+                                            )}
                                             <th className="px-4 py-2.5 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide w-16">Aksi</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-100">
-                                        {paginatedProduk.map((produk) => (
-                                            <tr
-                                                key={produk.id}
-                                                className="group hover:bg-gray-50/60 transition-colors"
-                                            >
-                                                <td className="px-4 py-3">
-                                                    <p className="text-sm font-medium text-gray-900">{produk.NAME}</p>
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    <span className="text-xs text-gray-500">{produk.produk}</span>
-                                                </td>
-                                                <td className="px-4 py-3 text-sm text-right text-gray-500 whitespace-nowrap tabular-nums">
-                                                    {formatCurrency(produk.harga_beli)}
-                                                </td>
-                                                <td className="px-4 py-3 text-center text-xs text-gray-500">
-                                                    {produk.persentase}%
-                                                </td>
-                                                <td className="px-4 py-3 text-sm text-right font-medium text-gray-900 whitespace-nowrap tabular-nums">
-                                                    {formatCurrency(produk.harga_jual)}
-                                                </td>
-                                                <td className="px-4 py-3 text-center text-sm text-gray-700">
-                                                    {produk.jumlah}
-                                                </td>
-                                                <td className="px-4 py-3 text-center">
-                                                    <button
-                                                        onClick={() => handleSelectProduk(produk)}
-                                                        className="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 active:bg-green-800 transition-colors text-xs font-medium"
-                                                    >
-                                                        Pilih
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))}
+                                        {produkList.map((produk) => {
+                                            const key = produkKey(produk);
+                                            const isSelected = selectedKeys.has(key);
+                                            return (
+                                                <tr
+                                                    key={key}
+                                                    className={`group transition-colors ${isSelected ? 'bg-green-50/70' : 'hover:bg-gray-50/60'}`}
+                                                >
+                                                    {multiSelect && (
+                                                        <td className="px-3 py-3 text-center">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => toggleSelect(produk)}
+                                                                className="inline-flex items-center justify-center text-green-600 hover:text-green-700"
+                                                            >
+                                                                {isSelected ? <CheckSquare size={18} /> : <Square size={18} />}
+                                                            </button>
+                                                        </td>
+                                                    )}
+                                                    <td className="px-4 py-3">
+                                                        <p className="text-sm font-medium text-gray-900">{produk.NAME}</p>
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <span className="text-xs text-gray-500">{produk.produk}</span>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-sm text-right font-medium text-gray-900 whitespace-nowrap tabular-nums">
+                                                        {formatCurrency(produk.harga_jual)}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-center text-sm text-gray-700">
+                                                        {produk.jumlah}
+                                                    </td>
+                                                    {multiSelect && (
+                                                        <td className="px-4 py-3 text-center">
+                                                            <input
+                                                                type="number"
+                                                                value={isSelected ? (qtyMap[key] || '') : ''}
+                                                                onChange={(e) => handleQtyInputChange(produk, e.target.value)}
+                                                                onFocus={() => { if (!isSelected) toggleSelect(produk); }}
+                                                                placeholder={isSelected ? '0' : '-'}
+                                                                step="0.01"
+                                                                min="0"
+                                                                disabled={!isSelected}
+                                                                className="w-20 px-2 py-1.5 bg-white border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 text-center text-sm tabular-nums disabled:bg-gray-50 disabled:text-gray-300"
+                                                            />
+                                                        </td>
+                                                    )}
+                                                    <td className="px-4 py-3 text-center">
+                                                        <button
+                                                            onClick={() => handleSelectProduk(produk)}
+                                                            className="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 active:bg-green-800 transition-colors text-xs font-medium"
+                                                        >
+                                                            {multiSelect ? 'Pilih' : 'Ganti'}
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
                                     </tbody>
                                 </table>
                             </div>
 
                             {/* Mobile Card List */}
                             <div className="sm:hidden divide-y divide-gray-100">
-                                {paginatedProduk.map((produk) => (
-                                    <div
-                                        key={produk.id}
-                                        className="py-3 first:pt-0 last:pb-0"
-                                    >
-                                        <div className="flex items-start justify-between gap-3">
-                                            <div className="min-w-0 flex-1">
-                                                <p className="text-sm font-medium text-gray-900">{produk.NAME}</p>
-                                                <p className="text-xs text-gray-500 mt-0.5">{produk.produk}</p>
+                                {produkList.map((produk) => {
+                                    const key = produkKey(produk);
+                                    const isSelected = selectedKeys.has(key);
+                                    return (
+                                        <div
+                                            key={key}
+                                            className={`py-3 first:pt-0 last:pb-0 ${isSelected ? 'bg-green-50/70 -mx-5 px-5' : ''}`}
+                                        >
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div className="min-w-0 flex-1 flex items-start gap-2">
+                                                    {multiSelect && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => toggleSelect(produk)}
+                                                            className="mt-0.5 inline-flex items-center justify-center text-green-600 hover:text-green-700 flex-shrink-0"
+                                                        >
+                                                            {isSelected ? <CheckSquare size={18} /> : <Square size={18} />}
+                                                        </button>
+                                                    )}
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className="text-sm font-medium text-gray-900">{produk.NAME}</p>
+                                                        <p className="text-xs text-gray-500 mt-0.5">{produk.produk}</p>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={() => handleSelectProduk(produk)}
+                                                    className="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 active:bg-green-800 transition-colors text-xs font-medium whitespace-nowrap"
+                                                >
+                                                    {multiSelect ? 'Pilih' : 'Ganti'}
+                                                </button>
                                             </div>
-                                            <button
-                                                onClick={() => handleSelectProduk(produk)}
-                                                className="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 active:bg-green-800 transition-colors text-xs font-medium whitespace-nowrap"
-                                            >
-                                                Pilih
-                                            </button>
+                                            <div className="mt-2 flex items-center gap-4 text-xs text-gray-500">
+                                                <span>Jual: <span className="font-medium text-gray-900">{formatCurrency(produk.harga_jual)}</span></span>
+                                                <span>Stok: {produk.jumlah}</span>
+                                                {multiSelect && isSelected && (
+                                                    <span className="ml-auto flex items-center gap-1">
+                                                        Qty:
+                                                        <input
+                                                            type="number"
+                                                            value={qtyMap[key] || ''}
+                                                            onChange={(e) => handleQtyInputChange(produk, e.target.value)}
+                                                            placeholder="0"
+                                                            step="0.01"
+                                                            min="0"
+                                                            className="w-16 px-2 py-1 bg-white border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 text-center text-sm tabular-nums"
+                                                        />
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
-                                        <div className="mt-2 flex items-center gap-4 text-xs text-gray-500">
-                                            <span>Jual: <span className="font-medium text-gray-900">{formatCurrency(produk.harga_jual)}</span></span>
-                                            <span>Beli: {formatCurrency(produk.harga_beli)}</span>
-                                            <span>Stok: {produk.jumlah}</span>
-                                        </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </>
                     )}
@@ -228,18 +438,41 @@ const ProdukSelectionModal = ({ isOpen, onClose, jenisPenjualan, idJenis, onSele
                 {/* Footer */}
                 <div className="px-5 py-3 border-t border-gray-100 bg-gray-50 rounded-b-xl">
                     <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
-                        <p className="text-xs text-gray-500">
-                            Menampilkan <span className="font-medium text-gray-700">
-                                {filteredProduk.length > 0 ? ((currentPage - 1) * ITEMS_PER_PAGE) + 1 : 0}
-                                -{Math.min(currentPage * ITEMS_PER_PAGE, filteredProduk.length)}
-                            </span> dari <span className="font-medium text-gray-700">{filteredProduk.length}</span> produk
-                        </p>
+                        <div className="flex items-center gap-3 text-xs text-gray-500">
+                            <div className="flex items-center gap-1.5">
+                                <span>Per halaman:</span>
+                                <select
+                                    value={perPage}
+                                    onChange={(e) => handlePerPageChange(Number(e.target.value))}
+                                    className="px-2 py-1 bg-white border border-gray-200 rounded-md text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-green-500/30"
+                                >
+                                    {PER_PAGE_OPTIONS.map(opt => (
+                                        <option key={opt} value={opt}>{opt}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <span>
+                                Menampilkan <span className="font-medium text-gray-700">{startIdx}-{endIdx}</span> dari <span className="font-medium text-gray-700">{totalRecords}</span> produk
+                            </span>
+                        </div>
 
                         <div className="flex items-center gap-2">
+                            {multiSelect && (
+                                <button
+                                    type="button"
+                                    onClick={handleAddSelected}
+                                    disabled={selectedKeys.size === 0}
+                                    className="px-4 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 active:bg-green-800 transition-colors text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
+                                >
+                                    <CheckSquare size={14} />
+                                    Tambahkan{selectedKeys.size > 0 ? ` (${selectedKeys.size})` : ''}
+                                </button>
+                            )}
+
                             {totalPages > 1 && (
                                 <div className="flex items-center gap-1">
                                     <button
-                                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                        onClick={() => handlePageChange(currentPage - 1)}
                                         disabled={currentPage === 1}
                                         className="p-1.5 rounded-md border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                                     >
@@ -266,7 +499,7 @@ const ProdukSelectionModal = ({ isOpen, onClose, jenisPenjualan, idJenis, onSele
                                             ) : (
                                                 <button
                                                     key={page}
-                                                    onClick={() => setCurrentPage(page)}
+                                                    onClick={() => handlePageChange(page)}
                                                     className={`min-w-[28px] h-7 rounded-md text-xs font-medium transition-colors ${
                                                         currentPage === page
                                                             ? 'bg-green-600 text-white'
@@ -280,7 +513,7 @@ const ProdukSelectionModal = ({ isOpen, onClose, jenisPenjualan, idJenis, onSele
                                     }
 
                                     <button
-                                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                        onClick={() => handlePageChange(currentPage + 1)}
                                         disabled={currentPage === totalPages}
                                         className="p-1.5 rounded-md border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                                     >

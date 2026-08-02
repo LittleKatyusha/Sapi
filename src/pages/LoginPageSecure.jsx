@@ -1,9 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthSecure } from '../hooks/useAuthSecure';
-import { Eye, EyeOff, Shield, Clock, AlertTriangle } from 'lucide-react';
+import { Eye, EyeOff, Shield, AlertTriangle } from 'lucide-react';
 
 import SecurityNotification from '../components/security/SecurityNotification';
+
+// Use Cloudflare's official Turnstile test sitekey on localhost to avoid
+// domain-restriction/network issues during local development. This test key
+// always passes verification. Production keeps the real sitekey.
+const isLocalDev = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+const TURNSTILE_SITEKEY = isLocalDev
+  ? '1x00000000000000000000AA'
+  : '0x4AAAAAABk4XOgg4RBl7dSz';
 
 const LoginPageSecure = () => {
   const [formData, setFormData] = useState({
@@ -15,9 +23,7 @@ const LoginPageSecure = () => {
   const [captchaToken, setCaptchaToken] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [notification, setNotification] = useState(null);
-  const [loginAttempts, setLoginAttempts] = useState(0);
   const [isBlocked, setIsBlocked] = useState(false);
-  const [blockTimeRemaining, setBlockTimeRemaining] = useState(0);
   const [inputErrors, setInputErrors] = useState({});
   const [captchaLoaded, setCaptchaLoaded] = useState(false);
   const [captchaRetryCount, setCaptchaRetryCount] = useState(0);
@@ -73,7 +79,7 @@ const LoginPageSecure = () => {
       try {
         
         widgetId = window.turnstile.render(container, {
-          sitekey: '0x4AAAAAABk4XOgg4RBl7dSz',
+          sitekey: TURNSTILE_SITEKEY,
           theme: 'dark',
           size: 'normal',
           callback: (token) => {
@@ -227,8 +233,6 @@ const LoginPageSecure = () => {
   useEffect(() => {
     // Always ensure rate limiting is disabled
     setIsBlocked(false);
-    setLoginAttempts(0);
-    setBlockTimeRemaining(0);
   }, [formData.email]);
 
   const validateInput = (name, value) => {
@@ -331,7 +335,6 @@ const LoginPageSecure = () => {
         setError('Email/username atau password salah');
         
         if (result.attempts) {
-          setLoginAttempts(result.attempts);
           const remaining = result.maxAttempts - result.attempts;
           
           if (remaining <= 2 && remaining > 0) {
@@ -344,7 +347,6 @@ const LoginPageSecure = () => {
         
         if (result.blocked) {
           setIsBlocked(true);
-          setBlockTimeRemaining(result.remainingTime);
         }
         
         // Reset captcha on error with enhanced handling
@@ -386,11 +388,6 @@ const LoginPageSecure = () => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const formatBlockTime = (timeMs) => {
-    const minutes = Math.ceil(timeMs / (1000 * 60));
-    return `${minutes} menit`;
   };
 
   return (

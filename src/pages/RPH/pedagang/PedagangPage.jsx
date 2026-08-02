@@ -2,18 +2,21 @@ import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
-  PlusCircle, Search, Eye, Edit2, Trash2, FileText, MoreVertical,
+  PlusCircle, Search, Eye, Edit2, Trash2, FileText, MoreVertical, Wallet,
   ChevronDown, ChevronUp, ChevronLeft, ChevronRight, ArrowUpDown,
-  Users, Wallet, Activity, CheckCircle, XCircle, AlertCircle, Info,
+  Users, Activity, CheckCircle, XCircle, AlertCircle, Info,
   RotateCcw, Filter, Phone, MapPin, BarChart3, Loader2, Hash, User,
+  History, X,
 } from 'lucide-react';
 import usePedagang from './hooks/usePedagang';
+import PedagangService from '../../../services/pedagangService';
 import { formatCurrency, getStatusBadgeClasses, getStatusLabel, PEDAGANG_STATUS_OPTIONS } from './utils/formatters';
 import SearchableSelect from '../../../components/shared/SearchableSelect';
 import AddEditPedagangModal from './modals/AddEditPedagangModal';
 import PedagangDetailModal from './modals/PedagangDetailModal';
 import DeleteConfirmationModal from './modals/DeleteConfirmationModal';
 import RekeningPedagangModal from './modals/RekeningPedagangModal';
+import TambahTabunganModal from './modals/TambahTabunganModal';
 
 const TIPE_LABELS = { 1: 'Langganan', 2: 'Umum' };
 const TIPE_OPTIONS = [
@@ -25,7 +28,7 @@ const DISPENSASI_OPTIONS = [
   { value: 0, label: 'Tidak Aktif' },
 ];
 
-const ActionMenuPortal = ({ row, menuPos, onClose, onDetail, onEdit, onRekening, onDelete }) => (
+const ActionMenuPortal = ({ row, menuPos, onClose, onDetail, onEdit, onRekening, onTabungan, onHutang, onHistory, onDelete }) => (
   <>
     <div className="fixed inset-0 z-[99998]" onClick={onClose} />
     <div
@@ -45,10 +48,28 @@ const ActionMenuPortal = ({ row, menuPos, onClose, onDetail, onEdit, onRekening,
         <Edit2 className="w-3.5 h-3.5 text-amber-500" /> Edit
       </button>
       <button
+        onClick={() => { onTabungan(row); onClose(); }}
+        className="w-full text-left flex items-center gap-2 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition"
+      >
+        <Wallet className="w-3.5 h-3.5 text-teal-500" /> Tambah Tabungan
+      </button>
+      <button
+        onClick={() => { onHutang(row); onClose(); }}
+        className="w-full text-left flex items-center gap-2 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition"
+      >
+        <Wallet className="w-3.5 h-3.5 text-rose-500" /> Lunasi Hutang
+      </button>
+      <button
         onClick={() => { onRekening(row); onClose(); }}
         className="w-full text-left flex items-center gap-2 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition"
       >
         <FileText className="w-3.5 h-3.5 text-emerald-500" /> Cetak Rekening
+      </button>
+      <button
+        onClick={() => { onHistory(row); onClose(); }}
+        className="w-full text-left flex items-center gap-2 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition"
+      >
+        <History className="w-3.5 h-3.5 text-indigo-500" /> History Saldo
       </button>
       <div className="border-t border-gray-100 my-1" />
       <button
@@ -76,6 +97,91 @@ const StatCard = React.memo(({ title, value, icon: Icon, accentColor, subtitle }
   </div>
 ));
 
+const HistorySaldoModal = ({ open, loading, data, onClose }) => {
+  if (!open) return null;
+
+  const summary = data?.summary || {};
+  const rows = data?.history || [];
+  const pedagang = data?.pedagang || {};
+  const name = pedagang.nama_alias || pedagang.nama_identitas || '-';
+
+  return createPortal(
+    <div className="fixed inset-0 z-[100000] flex items-center justify-center bg-black/40 p-4">
+      <div className="w-full max-w-5xl overflow-hidden rounded-xl bg-white shadow-2xl">
+        <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+          <div>
+            <h2 className="text-base font-bold text-gray-900">History Saldo Pedagang</h2>
+            <p className="mt-0.5 text-xs text-gray-500">{name} - {pedagang.id_pedagang || '-'}</p>
+          </div>
+          <button onClick={onClose} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100" aria-label="Tutup history saldo">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 border-b border-gray-100 bg-gray-50 px-5 py-4 md:grid-cols-4">
+          {[
+            ['Saldo Awal', summary.saldo_awal],
+            ['Tabungan', summary.tabungan],
+            ['Kulit', summary.kulit],
+            ['Saldo Beku', summary.saldo_beku],
+            ['Saldo Akhir', summary.saldo_akhir],
+          ].map(([label, value]) => (
+            <div key={label} className="rounded-lg border border-gray-100 bg-white p-3">
+              <p className="text-[10px] font-semibold uppercase text-gray-500">{label}</p>
+              <p className="mt-1 text-sm font-bold text-gray-900">{formatCurrency(value || 0)}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="max-h-[58vh] overflow-auto">
+          {loading ? (
+            <div className="flex items-center justify-center gap-2 py-12 text-sm text-gray-500">
+              <Loader2 className="h-4 w-4 animate-spin" /> Memuat history saldo...
+            </div>
+          ) : rows.length === 0 ? (
+            <div className="py-12 text-center text-sm text-gray-500">Belum ada history saldo untuk pedagang ini.</div>
+          ) : (
+            <table className="min-w-full divide-y divide-gray-100 text-sm">
+              <thead className="sticky top-0 bg-white">
+                <tr className="text-left text-[11px] font-semibold uppercase text-gray-500">
+                  <th className="px-4 py-3">Tanggal</th>
+                  <th className="px-4 py-3">No Bukti</th>
+                  <th className="px-4 py-3">Transaksi</th>
+                  <th className="px-4 py-3 text-right">Hutang</th>
+                  <th className="px-4 py-3 text-right">Pembayaran</th>
+                  <th className="px-4 py-3 text-right">Kulit</th>
+                  <th className="px-4 py-3 text-right">Saldo Akhir</th>
+                  <th className="px-4 py-3">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {rows.map((row) => (
+                  <tr key={row.pid || row.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 text-gray-600">{String(row.tanggal_transaksi || '').slice(0, 16)}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-gray-700">{row.no_bukti || '-'}</td>
+                    <td className="px-4 py-3">
+                      <div className="font-semibold text-gray-800">{row.jenis_transaksi || '-'}</div>
+                      <div className="text-xs text-gray-500">{row.keterangan || row.sumber_modul || '-'}</div>
+                    </td>
+                    <td className="px-4 py-3 text-right text-rose-700">{formatCurrency(row.nominal_hutang || 0)}</td>
+                    <td className="px-4 py-3 text-right text-emerald-700">{formatCurrency(row.nominal_pembayaran || 0)}</td>
+                    <td className="px-4 py-3 text-right text-amber-700">{formatCurrency(row.nominal_kulit || 0)}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-gray-900">{formatCurrency(row.saldo_akhir_setelah || 0)}</td>
+                    <td className="px-4 py-3">
+                      <span className="rounded-full bg-gray-100 px-2 py-1 text-[10px] font-semibold text-gray-600">{row.status_posting || '-'}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+};
+
 const PedagangPage = () => {
   const navigate = useNavigate();
   const {
@@ -102,6 +208,11 @@ const PedagangPage = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showRekeningModal, setShowRekeningModal] = useState(false);
   const [rekeningData, setRekeningData] = useState(null);
+  const [showTabunganModal, setShowTabunganModal] = useState(false);
+  const [tabunganData, setTabunganData] = useState(null);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [historyData, setHistoryData] = useState(null);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [notification, setNotification] = useState(null);
   const [isFilterExpanded, setIsFilterExpanded] = useState(false);
   const [openMenuId, setOpenMenuId] = useState(null);
@@ -151,6 +262,46 @@ const PedagangPage = () => {
     setRekeningData(item);
     setShowRekeningModal(true);
   }, []);
+
+  const handleTabungan = useCallback((item) => {
+    setTabunganData(item);
+    setShowTabunganModal(true);
+  }, []);
+
+  const handleHutang = useCallback((item) => {
+    navigate('/rph/keuangan/penerimaan', {
+      state: {
+        mode: 'bayar_hutang',
+        pedagang: {
+          pid: item?.pid,
+          nama_alias: item?.nama_alias,
+          nama_identitas: item?.nama_identitas,
+          id_pedagang: item?.id_pedagang,
+          saldo_beku: item?.saldo_beku,
+        },
+      },
+    });
+  }, [navigate]);
+
+  const handleHistory = useCallback(async (item) => {
+    setShowHistoryModal(true);
+    setHistoryLoading(true);
+    setHistoryData(null);
+    try {
+      const result = await PedagangService.getHistorySaldo(item.pid);
+      if (result.success) {
+        setHistoryData(result.data);
+      } else {
+        showNotification(result.message || 'Gagal memuat history saldo', 'error');
+        setShowHistoryModal(false);
+      }
+    } catch {
+      showNotification('Gagal memuat history saldo', 'error');
+      setShowHistoryModal(false);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, [showNotification]);
 
   const handleConfirmDelete = useCallback(async () => {
     if (!deleteData) return;
@@ -233,7 +384,7 @@ const PedagangPage = () => {
   const stats = useMemo(() => ({
     total: statistics?.summary?.total_pedagang ?? pagination.totalItems,
     saldoAkhir: statistics?.summary?.total_saldo_akhir ?? 0,
-    deposit: statistics?.summary?.total_deposit_pedagang ?? 0,
+    hutang: statistics?.summary?.total_saldo_beku ?? 0,
     dispensasiAktif: statistics?.summary?.total_dispensasi_aktif ?? 0,
   }), [statistics, pagination.totalItems]);
 
@@ -255,6 +406,9 @@ const PedagangPage = () => {
           onDetail={handleDetail}
           onEdit={handleEdit}
           onRekening={handleRekening}
+          onTabungan={handleTabungan}
+          onHutang={handleHutang}
+          onHistory={handleHistory}
           onDelete={handleDelete}
         />,
         document.body
@@ -352,7 +506,7 @@ const PedagangPage = () => {
         <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-4">
           <StatCard title="Total Pedagang" value={statsLoading ? '...' : stats.total} icon={Users} accentColor="bg-blue-500" subtitle="Seluruh data" />
           <StatCard title="Total Saldo Akhir" value={statsLoading ? '...' : formatCurrency(stats.saldoAkhir)} icon={Wallet} accentColor="bg-amber-500" subtitle="Akumulasi saldo" />
-          <StatCard title="Total Deposit" value={statsLoading ? '...' : formatCurrency(stats.deposit)} icon={CheckCircle} accentColor="bg-emerald-500" subtitle="Akumulasi deposit" />
+          <StatCard title="Total Hutang" value={statsLoading ? '...' : formatCurrency(stats.hutang)} icon={AlertCircle} accentColor="bg-rose-500" subtitle="Akumulasi saldo beku" />
           <StatCard title="Dispensasi Aktif" value={statsLoading ? '...' : stats.dispensasiAktif} icon={Activity} accentColor="bg-purple-500" subtitle="Pedagang dengan dispensasi" />
         </div>
 
@@ -589,10 +743,10 @@ const PedagangPage = () => {
                   <th className="text-left text-[10px] font-bold text-gray-500 uppercase px-3 py-3">Pasar / Status</th>
                   <th className="text-right text-[10px] font-bold text-gray-500 uppercase px-3 py-3">
                     <button onClick={() => handleSort('saldo_akhir')} className="flex items-center gap-1 hover:text-gray-700 ml-auto">
-                      Saldo Akhir <SortIcon column="saldo_akhir" />
+                      Saldo <SortIcon column="saldo_akhir" />
                     </button>
                   </th>
-                  <th className="text-right text-[10px] font-bold text-gray-500 uppercase px-3 py-3">Tabungan + Deposit</th>
+                  <th className="text-right text-[10px] font-bold text-gray-500 uppercase px-3 py-3">Hutang</th>
                   <th className="text-center text-[10px] font-bold text-gray-500 uppercase px-3 py-3">Dispensasi</th>
                   <th className="text-center text-[10px] font-bold text-gray-500 uppercase px-3 py-3 w-10">Aksi</th>
                 </tr>
@@ -650,11 +804,20 @@ const PedagangPage = () => {
                         </div>
                       </td>
                       <td className="px-3 py-3 text-right">
-                        <span className="text-sm font-bold text-gray-800 tabular-nums">{formatCurrency(row.saldo_akhir)}</span>
+                        <div className="flex flex-col items-end gap-0.5">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[9px] text-gray-400 uppercase font-semibold">Keseluruhan</span>
+                            <span className="text-sm font-bold text-emerald-700 tabular-nums">{formatCurrency(row.saldo_keseluruhan)}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[9px] text-gray-400 uppercase font-semibold">Akhir</span>
+                            <span className="text-xs font-semibold text-gray-700 tabular-nums">{formatCurrency(row.saldo_akhir)}</span>
+                          </div>
+                        </div>
                       </td>
                       <td className="px-3 py-3 text-right">
-                        <span className="text-sm text-gray-600 tabular-nums">
-                          {formatCurrency(Number(row.tabungan || 0) + Number(row.deposit_pedagang || 0))}
+                        <span className="text-sm font-semibold text-rose-600 tabular-nums">
+                          {formatCurrency(row.saldo_beku)}
                         </span>
                       </td>
                       <td className="px-3 py-3 text-center">
@@ -728,8 +891,13 @@ const PedagangPage = () => {
                     </span>
                   </div>
                   <div>
-                    <p className="text-gray-400">Saldo Akhir</p>
-                    <p className="text-gray-800 font-bold">{formatCurrency(row.saldo_akhir)}</p>
+                    <p className="text-gray-400">Saldo Keseluruhan</p>
+                    <p className="text-emerald-700 font-bold">{formatCurrency(row.saldo_keseluruhan)}</p>
+                    <p className="text-[10px] text-gray-400">Akhir: {formatCurrency(row.saldo_akhir)}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-400">Hutang</p>
+                    <p className="text-rose-600 font-bold">{formatCurrency(row.saldo_beku)}</p>
                   </div>
                   <div>
                     <p className="text-gray-400">Dispensasi</p>
@@ -842,6 +1010,34 @@ const PedagangPage = () => {
             showNotification('Terjadi kesalahan saat mencetak rekening', 'error');
           }
         }}
+      />
+      <TambahTabunganModal
+        isOpen={showTabunganModal}
+        onClose={() => { setShowTabunganModal(false); setTabunganData(null); }}
+        pedagangData={tabunganData}
+        onSubmit={async ({ pid, nominal, note }) => {
+          try {
+            const PedagangService = (await import('../../../services/pedagangService')).default;
+            const result = await PedagangService.storeTabungan({ pid, nominal, note });
+            if (result.success) {
+              showNotification(result.message || 'Tabungan berhasil ditambahkan');
+              setShowTabunganModal(false);
+              setTabunganData(null);
+              fetchPedagang(pagination.currentPage, pagination.perPage);
+              fetchStatistics();
+            } else {
+              showNotification(result.message || 'Gagal menambahkan tabungan', 'error');
+            }
+          } catch {
+            showNotification('Terjadi kesalahan saat menambahkan tabungan', 'error');
+          }
+        }}
+      />
+      <HistorySaldoModal
+        open={showHistoryModal}
+        loading={historyLoading}
+        data={historyData}
+        onClose={() => { setShowHistoryModal(false); setHistoryData(null); }}
       />
     </div>
   );

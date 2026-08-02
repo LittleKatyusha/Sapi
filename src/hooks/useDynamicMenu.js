@@ -243,6 +243,7 @@ export const useDynamicMenu = () => {
             'permission-management': '/system/permission-management',
             'roles': '/system/roles',
             'users': '/system/users',
+            'manual-job': '/system/manual-job',
             'settings': '/settings'
           };
           

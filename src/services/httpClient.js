@@ -314,9 +314,13 @@ class HttpClient {
     return performanceMonitor.measureApiCall(endpoint, async () => {
       const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
       
+      // Separate headers from the rest so the spread below cannot overwrite
+      // the Authorization header that buildHeaders injects.
+      const { headers: customHeaders = {}, ...restOptions } = options;
+
       // Skip CSRF completely for JWT authentication
       let body = null;
-      let headers = await buildHeaders(options.headers);
+      let headers = await buildHeaders(customHeaders);
       
       // Handle different data types
       if (data instanceof FormData) {
@@ -332,7 +336,7 @@ class HttpClient {
         headers,
         body,
         credentials: 'include',
-        ...options
+        ...restOptions
       };
       
       const response = await fetch(url, fetchOptions);
@@ -349,8 +353,9 @@ class HttpClient {
     return performanceMonitor.measureApiCall(endpoint, async () => {
       const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
       
+      const { headers: customHeaders = {}, ...restOptions } = options;
       let body = null;
-      let headers = await buildHeaders(options.headers);
+      let headers = await buildHeaders(customHeaders);
       
       if (data instanceof FormData) {
         body = data;
@@ -364,7 +369,7 @@ class HttpClient {
         headers,
         body,
         credentials: 'include',
-        ...options
+        ...restOptions
       });
       
       await handleResponseError(response);
@@ -379,11 +384,12 @@ class HttpClient {
     return performanceMonitor.measureApiCall(endpoint, async () => {
       const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
       
+      const { headers: customHeaders = {}, ...restOptions } = options;
       const response = await fetch(url, {
         method: 'DELETE',
-        headers: await buildHeaders(options.headers),
+        headers: await buildHeaders(customHeaders),
         credentials: 'include',
-        ...options
+        ...restOptions
       });
       
       await handleResponseError(response);
@@ -414,8 +420,9 @@ class HttpClient {
   static async request(method, endpoint, data = null, options = {}) {
     const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
     
+    const { headers: customHeaders = {}, ...restOptions } = options;
     let body = null;
-    let headers = await buildHeaders(options.headers);
+    let headers = await buildHeaders(customHeaders);
     
     if (data instanceof FormData) {
       body = data;
@@ -429,7 +436,7 @@ class HttpClient {
       headers,
       body,
       credentials: 'include',
-      ...options
+      ...restOptions
     });
     
     await handleResponseError(response);
