@@ -131,7 +131,7 @@ const FormField = ({ label, helperText, required = false, children }) => (
 );
 
 
- const AddPembelianPakanOvkPage = () => {
+const AddPembelianPakanOvkPage = () => {
   const navigate = useNavigate();
   const { type, id, pubid } = useParams();
 
@@ -300,15 +300,27 @@ const FormField = ({ label, helperText, required = false, children }) => (
     const mappedItems = detailItems
       .map((detail) => {
         const detailIdValue = detail.id_produk ?? detail.id ?? detail.pid;
+        const detailSatuanValue = detail.id_satuan ?? detail._original?.id_satuan ?? null;
+        const detailHargaValue = Number(detail.harga ?? detail.price ?? 0);
+
+        // Composite match (id_produk + id_satuan + harga) — item yang sama
+        // bisa punya satuan berbeda (MINYAK LITER vs DUS) DAN satuan yang sama
+        // bisa punya harga berbeda (batch/supplier beda). Match id+satuan saja
+        // akan ambil row harga pertama, bikin stok & key backend tidak cocok.
         const option = itemOptions.find(
           (item) =>
+            normalizeId(item.id) === normalizeId(detailIdValue) &&
+            normalizeId(item.id_satuan) === normalizeId(detailSatuanValue) &&
+            Number(item.price ?? item.harga ?? 0) === detailHargaValue
+        ) ?? itemOptions.find(
+          (item) =>
+            normalizeId(item.id) === normalizeId(detailIdValue) &&
+            normalizeId(item.id_satuan) === normalizeId(detailSatuanValue)
+        ) ?? itemOptions.find(
+          (item) =>
             normalizeId(item.id) === normalizeId(detailIdValue) ||
-            Number(item.id) === Number(detailIdValue);
-          if (!idMatch) return false;
-          // Cocokkan satuan juga — produk yang sama bisa punya baris BAL & DUS.
-          if (detailSatuan == null || item.id_satuan == null) return true;
-          return Number(item.id_satuan) === Number(detailSatuan);
-        });
+            Number(item.id) === Number(detailIdValue)
+        );
 
         if (!option) return null;
 
@@ -411,9 +423,13 @@ const FormField = ({ label, helperText, required = false, children }) => (
         const parsedId = Number(
           item.id ?? item.id_produk ?? item._original?.id_produk ?? item._original?.id
         );
+        const parsedSatuan = Number(item.id_satuan ?? item._original?.id_satuan);
+        const parsedHarga = Number(item.price ?? item.harga ?? item._original?.harga ?? 0);
         return {
           id_produk: Number.isFinite(parsedId) ? parsedId : null,
-          jumlah: Number(item.qty ?? item.jumlah ?? 0)
+          id_satuan: Number.isFinite(parsedSatuan) ? parsedSatuan : null,
+          jumlah: Number(item.qty ?? item.jumlah ?? 0),
+          harga: Number.isFinite(parsedHarga) ? parsedHarga : 0
         };
       })
     };
@@ -689,17 +705,41 @@ const FormField = ({ label, helperText, required = false, children }) => (
                         </td>
                       </tr>
                     ) : (
-                      selectedItems.map((item) => (
-                        <tr key={item.id} className="border-b border-slate-100">
-                          <td className="px-4 py-2">
-                            <CheckSquare className="h-4 w-4 text-emerald-600" />
-                          </td>
-                          <td className="px-4 py-2 font-semibold text-slate-700">{item.name}</td>
-                          <td className="px-4 py-2 text-slate-600">{item.product || '-'}</td>
-                          <td className="px-4 py-2 text-slate-700">{formatCurrency(item.price)}</td>
-                          <td className="px-4 py-2 text-slate-700">{item.qty ?? '-'}</td>
-                        </tr>
-                      ))
+                      selectedItems.map((item) => {
+                        const qty = Number(item.qty ?? 0);
+                        const price = Number(item.price ?? 0);
+                        const subtotal = qty * price;
+                        return (
+                          <tr key={itemKey(item)} className="border-b border-gray-50 hover:bg-gray-50/50">
+                            <td className="px-3 py-2">
+                              <CheckSquare className="h-4 w-4 text-emerald-600" />
+                            </td>
+                            <td className="px-3 py-2 font-semibold text-gray-700">{item.name}</td>
+                            <td className="px-3 py-2 text-gray-600">{item.product || '-'}</td>
+                            <td className="px-3 py-2 text-right text-gray-700">{formatCurrency(item.price)}</td>
+                            <td className="px-3 py-2 text-center text-gray-700">
+                              <input
+                                type="number"
+                                min="1"
+                                value={item.qty ?? ''}
+                                onChange={(e) => handleQtyChange(item, e.target.value)}
+                                className="w-20 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 outline-none transition focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100"
+                              />
+                            </td>
+                            <td className="px-3 py-2 text-right font-semibold text-gray-700">{formatCurrency(subtotal)}</td>
+                            <td className="px-3 py-2 text-center">
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveItem(item)}
+                                className="inline-flex h-6 w-6 items-center justify-center rounded-md text-gray-400 transition hover:bg-red-50 hover:text-red-600"
+                                aria-label={`Hapus ${item.name}`}
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
                     )}
                   </tbody>
                   {selectedItems.length > 0 && (
