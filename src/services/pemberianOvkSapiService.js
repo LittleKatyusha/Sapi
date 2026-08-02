@@ -190,6 +190,32 @@ class PemberianOvkSapiService {
     }
   }
 
+  /**
+   * Unique option key: same product can exist with different satuan/harga.
+   * Using product id alone makes react-select select every matching row.
+   */
+  static buildOvkOptionValue(item = {}) {
+    const idProduk = item.id_produk ?? item.id;
+    const idSatuan = item.id_satuan ?? '';
+    const harga = Number(item.harga ?? String(item.nominal || '0').replace(/\./g, '')) || 0;
+    return `${idProduk}|${idSatuan}|${harga}`;
+  }
+
+  static parseOvkOptionValue(value) {
+    if (value === null || value === undefined || value === '') {
+      return { id_produk: null, id_satuan: null, harga: null };
+    }
+    if (typeof value === 'number' || /^\d+$/.test(String(value))) {
+      return { id_produk: Number(value), id_satuan: null, harga: null };
+    }
+    const [idProduk, idSatuan, harga] = String(value).split('|');
+    return {
+      id_produk: idProduk ? Number(idProduk) : null,
+      id_satuan: idSatuan !== '' && idSatuan !== undefined ? Number(idSatuan) : null,
+      harga: harga !== '' && harga !== undefined ? Number(harga) : null,
+    };
+  }
+
   static async getOvkOptions() {
     try {
       const response = await PersediaanOvkService.getSummary();
@@ -201,15 +227,33 @@ class PemberianOvkSapiService {
         };
       }
 
+      const rows = Array.isArray(response.data) ? response.data : [];
       return {
         success: true,
-        data: (response.data || []).map((item) => ({
-          value: item.id_produk || item.id, // backend product ID
-          label: item.nama_produk || item.namaOvk || 'OVK',
-          satuan: item.satuan,
-          stok: item.jumlah ?? item.stok ?? 0,
-          harga: item.harga ?? 0,
-        })),
+        data: rows.map((item) => {
+          const idProduk = item.id_produk ?? item.id;
+          const harga =
+            item.harga !== undefined && item.harga !== null
+              ? Number(item.harga)
+              : Number(String(item.nominal || '0').replace(/\./g, '')) || 0;
+          const nama = item.nama_produk || item.namaOvk || 'OVK';
+          const satuan = item.satuan || '';
+          const stok = item.jumlah ?? item.stok ?? 0;
+          const labelParts = [nama];
+          if (satuan) labelParts.push(`(${satuan})`);
+          if (harga > 0) labelParts.push(`— Rp ${harga.toLocaleString('id-ID')}`);
+          if (stok !== undefined && stok !== null) labelParts.push(`[stok ${stok}]`);
+
+          return {
+            value: this.buildOvkOptionValue({ ...item, id_produk: idProduk, harga }),
+            label: labelParts.join(' '),
+            id_produk: Number(idProduk),
+            id_satuan: item.id_satuan != null ? Number(item.id_satuan) : null,
+            satuan,
+            stok,
+            harga,
+          };
+        }),
         message: 'Daftar OVK berhasil dimuat',
       };
     } catch (error) {

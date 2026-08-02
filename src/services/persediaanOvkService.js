@@ -91,7 +91,8 @@ class PersediaanOvkService {
    */
   static async getSummary() {
     try {
-      const response = await HttpClient.get(this.API_REKAP);
+      // length=0 → backend returns all stock rows (needed for dropdown options)
+      const response = await HttpClient.get(`${this.API_REKAP}?draw=1&start=0&length=0`);
       return {
         success: true,
         data: response?.data ?? response,

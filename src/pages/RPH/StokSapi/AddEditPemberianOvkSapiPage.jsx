@@ -299,9 +299,12 @@ const AddEditPemberianOvkSapiPage = () => {
       };
       response = await PemberianOvkSapiService.update(payload);
     } else {
+      const ovkSelection = PemberianOvkSapiService.parseOvkOptionValue(selectedOvk);
       const payload = {
         pid: selectedCow, // cow pid
-        id_produk: Number(selectedOvk),
+        id_produk: Number(ovkSelection.id_produk),
+        ...(ovkSelection.id_satuan != null ? { id_satuan: Number(ovkSelection.id_satuan) } : {}),
+        ...(ovkSelection.harga != null ? { harga: Number(ovkSelection.harga) } : {}),
         tgl_pemberian_ovk: tglPemberian,
         jam_pemberian_ovk: jamPemberian,
         nama_peternak: namaPeternak.trim(),
