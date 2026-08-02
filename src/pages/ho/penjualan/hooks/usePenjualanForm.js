@@ -120,44 +120,40 @@ const usePenjualanForm = () => {
                         }
                     }
 
-                    // Map syarat_pembayaran — fetch from bank API and match by value
+                    // Map syarat_pembayaran — always resolve to integer bank id (never 'KAS' string)
                     let syaratPembayaranValue = null;
                     if (record.id_syarat_pembayaran != null) {
-                        // Check if it's a KAS value (cash)
-                        if (String(record.id_syarat_pembayaran).toUpperCase() === 'KAS') {
-                            syaratPembayaranValue = {
-                                value: 'KAS',
-                                label: 'Kas',
-                                id: 'KAS',
-                                kode: 'KAS',
-                                nama: 'Kas',
-                                isKas: true
-                            };
-                        } else {
-                            // It's a bank ID - try to fetch and match
-                            try {
-                                const bankResponse = await HttpClient.get(`${API_ENDPOINTS.MASTER.BANK}/all`);
-                                const bankList = bankResponse?.data || bankResponse || [];
-                                const matchedBank = bankList.find(b => String(b.id) === String(record.id_syarat_pembayaran));
-                                if (matchedBank) {
-                                    syaratPembayaranValue = {
-                                        value: String(matchedBank.id),
-                                        label: matchedBank.display_name || (matchedBank.kode ? `[${matchedBank.kode}] ${matchedBank.nama}` : matchedBank.nama),
-                                        id: matchedBank.id,
-                                        kode: matchedBank.kode,
-                                        nama: matchedBank.nama
-                                    };
-                                } else {
-                                    syaratPembayaranValue = {
-                                        value: String(record.id_syarat_pembayaran),
-                                        label: `Bank #${record.id_syarat_pembayaran}`
-                                    };
-                                }
-                            } catch (bankError) {
-                                console.error('Error fetching syarat pembayaran for edit:', bankError);
+                        try {
+                            const bankResponse = await HttpClient.get(`${API_ENDPOINTS.MASTER.BANK}/all`);
+                            const bankList = bankResponse?.data || bankResponse || [];
+                            const isKasBank = (b) => b && b.kode === '001' && b.nama && String(b.nama).toUpperCase() === 'KAS';
+                            const raw = record.id_syarat_pembayaran;
+                            const matchedBank = String(raw).toUpperCase() === 'KAS'
+                                ? bankList.find(isKasBank)
+                                : bankList.find(b => String(b.id) === String(raw));
+                            if (matchedBank) {
+                                syaratPembayaranValue = {
+                                    value: String(matchedBank.id),
+                                    label: matchedBank.display_name || (matchedBank.kode ? `[${matchedBank.kode}] ${matchedBank.nama}` : matchedBank.nama),
+                                    id: matchedBank.id,
+                                    kode: matchedBank.kode,
+                                    nama: matchedBank.nama,
+                                    isKas: isKasBank(matchedBank)
+                                };
+                            } else if (!Number.isNaN(parseInt(raw, 10))) {
+                                syaratPembayaranValue = {
+                                    value: String(raw),
+                                    label: `Bank #${raw}`,
+                                    id: parseInt(raw, 10)
+                                };
+                            }
+                        } catch (bankError) {
+                            console.error('Error fetching syarat pembayaran for edit:', bankError);
+                            if (!Number.isNaN(parseInt(record.id_syarat_pembayaran, 10))) {
                                 syaratPembayaranValue = {
                                     value: String(record.id_syarat_pembayaran),
-                                    label: `Bank #${record.id_syarat_pembayaran}`
+                                    label: `Bank #${record.id_syarat_pembayaran}`,
+                                    id: parseInt(record.id_syarat_pembayaran, 10)
                                 };
                             }
                         }
@@ -299,25 +295,10 @@ const usePenjualanForm = () => {
             const newData = { ...prev, [field]: value };
             if (field === 'jenisPenjualan') newData.produk = null;
             
-            // Auto-handle syaratPembayaran when tipePembayaran changes
+            // Reset syarat when tipe changes. KAS is auto-filled from bank options
+            // (integer id) in AddEditPenjualanPage — never send synthetic id: 'KAS'.
             if (field === 'tipePembayaran') {
-                if (value?.value === '1') {
-                    // KAS selected - auto select "Kas" option
-                    newData.syaratPembayaran = {
-                        value: 'KAS',
-                        label: 'Kas',
-                        id: 'KAS',
-                        kode: 'KAS',
-                        nama: 'Kas',
-                        isKas: true
-                    };
-                } else if (value?.value === '2') {
-                    // BANK selected - clear and let user pick from bank list
-                    newData.syaratPembayaran = null;
-                } else {
-                    // Neither KAS nor BANK selected - clear syaratPembayaran
-                    newData.syaratPembayaran = null;
-                }
+                newData.syaratPembayaran = null;
             }
             
             return newData;
@@ -411,6 +392,18 @@ const usePenjualanForm = () => {
         if (!formData.syaratPembayaran) { setNotification({ type: 'error', message: 'Pilih syarat pembayaran' }); return; }
         if (detailProduk.length === 0) { setNotification({ type: 'error', message: 'Tambahkan minimal satu produk' }); return; }
 
+        const idSyaratPembayaran = parseInt(
+            formData.syaratPembayaran?.id ?? formData.syaratPembayaran?.value,
+            10
+        );
+        if (Number.isNaN(idSyaratPembayaran)) {
+            setNotification({
+                type: 'error',
+                message: 'Syarat pembayaran tidak valid. Pilih ulang Kas/Bank (pastikan master bank KAS tersedia).'
+            });
+            return;
+        }
+
         // Validate each detail item
         for (let i = 0; i < detailProduk.length; i++) {
             if (!detailProduk[i].qty || parseFloat(detailProduk[i].qty) <= 0) {
@@ -427,7 +420,7 @@ const usePenjualanForm = () => {
                 nama_supir: formData.namaSupir,
                 plat_nomor: formData.platNomor,
                 tipe_pembayaran: formData.tipePembayaran?.value,
-                id_syarat_pembayaran: parseInt(formData.syaratPembayaran?.id ?? formData.syaratPembayaran?.value, 10),
+                id_syarat_pembayaran: idSyaratPembayaran,
                 nama_penerima: formData.namaPenerima,
                 keterangan: formData.keterangan,
                 items: detailProduk.map(item => ({

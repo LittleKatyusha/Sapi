@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { ArrowLeft, ShoppingCart, Save } from 'lucide-react';
 import Select from 'react-select';
 import { selectStyles } from './constants/selectStyles';
@@ -15,6 +15,15 @@ const jenisPenjualanOptions = [
     { value: 1, label: 'Feedmil', id_jenis: 1 },
     { value: 2, label: 'OVK', id_jenis: 2 },
 ];
+
+const isTipeKas = (tipe) => String(tipe?.value) === '1';
+
+const needsKasId = (syarat) => {
+    if (!syarat) return true;
+    if (syarat.isKas && Number.isNaN(parseInt(syarat.id ?? syarat.value, 10))) return true;
+    if (String(syarat.id) === 'KAS' || String(syarat.value) === 'KAS') return true;
+    return false;
+};
 
 const AddEditPenjualanPage = () => {
     const { pembeliOptions, pembeliLoading } = usePembeli();
@@ -43,8 +52,26 @@ const AddEditPenjualanPage = () => {
 
     // Determine filter type based on selected tipePembayaran
     // tipe_pembayaran: '1' = KAS, '2' = BANK
-    const filterType = formData.tipePembayaran?.value === '1' ? 'KAS' : (formData.tipePembayaran?.value === '2' ? 'BANK' : null);
+    const filterType = isTipeKas(formData.tipePembayaran)
+        ? 'KAS'
+        : (String(formData.tipePembayaran?.value) === '2' ? 'BANK' : null);
     const { syaratPembayaranOptions, syaratPembayaranLoading } = useSyaratPembayaran(filterType);
+
+    // Auto-select real KAS bank (integer id) when tipe = cash — never send 'KAS' string.
+    useEffect(() => {
+        if (!isTipeKas(formData.tipePembayaran) || syaratPembayaranLoading) return;
+        const kasOpt = syaratPembayaranOptions.find((o) => o.isKas)
+            || syaratPembayaranOptions.find((o) => !Number.isNaN(parseInt(o.id ?? o.value, 10)));
+        if (!kasOpt || Number.isNaN(parseInt(kasOpt.id ?? kasOpt.value, 10))) return;
+        if (!needsKasId(formData.syaratPembayaran)) return;
+        handleSelectChange('syaratPembayaran', kasOpt);
+    }, [
+        formData.tipePembayaran,
+        formData.syaratPembayaran,
+        syaratPembayaranOptions,
+        syaratPembayaranLoading,
+        handleSelectChange,
+    ]);
 
     const onQtyChange = useCallback((index, value) => {
         handleQtyChange(index, value);
