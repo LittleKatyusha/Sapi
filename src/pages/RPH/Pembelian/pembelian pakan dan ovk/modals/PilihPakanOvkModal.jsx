@@ -22,13 +22,32 @@ const PilihPakanOvkModal = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMap, setSelectedMap] = useState({});
 
-  const getDefaultPrice = (item) => item.priceOptions?.[0] ?? item.price ?? 0;
+  // Warehouse stock is keyed by (id_produk, id_satuan, price) — same product can
+  // appear in multiple satuan (e.g. MINYAK LITER vs DUS) AND same product+satuan
+  // can have different prices (different batches/suppliers). Using id+satuan
+  // alone makes one checkbox toggle every row of that product+satuan, even
+  // when prices differ.
+  const getDefaultPrice = useCallback((item) => item.priceOptions?.[0] ?? item.price ?? 0, []);
+  const getRowKey = useCallback((item) => `${item.id}|${item.id_satuan ?? ''}|${getDefaultPrice(item)}`, [getDefaultPrice]);
+
+  // Qty already in this transaction (from initialSelected). In edit mode,
+  // warehouse stock has already been reduced by these amounts, so the
+  // effective available stock = current_warehouse_stock + already_taken.
+  // Without this, editing a purchase shows "Melebihi stok" for the user's
+  // own previously-saved qty.
+  const initialQtyMap = useMemo(() => {
+    const map = {};
+    initialSelected.forEach((item) => {
+      map[getRowKey(item)] = Number(item.qty ?? 0);
+    });
+    return map;
+  }, [initialSelected, getRowKey]);
 
   useEffect(() => {
     if (!isOpen) return;
     const next = {};
     initialSelected.forEach((item) => {
-      next[item.id] = {
+      next[getRowKey(item)] = {
         selected: true,
         qty: item.qty ?? '',
         price: item.price || getDefaultPrice(item)
@@ -78,7 +97,8 @@ const PilihPakanOvkModal = ({
     setSelectedMap((prev) => {
       const next = { ...prev };
       filteredItems.forEach((item) => {
-        next[item.id] = {
+        const key = getRowKey(item);
+        next[key] = {
           selected: true,
           qty: next[key]?.qty ?? '',
           price: next[key]?.price || getDefaultPrice(item)
@@ -92,7 +112,7 @@ const PilihPakanOvkModal = ({
     setSelectedMap((prev) => {
       const next = { ...prev };
       filteredItems.forEach((item) => {
-        delete next[item.id];
+        delete next[getRowKey(item)];
       });
       return next;
     });
@@ -101,7 +121,7 @@ const PilihPakanOvkModal = ({
   const handleToggleSelect = (item) => {
     const key = getRowKey(item);
     setSelectedMap((prev) => {
-      const current = prev[item.id];
+      const current = prev[key];
       const next = { ...prev };
       if (current?.selected) {
         delete next[key];
@@ -117,23 +137,13 @@ const PilihPakanOvkModal = ({
   };
 
   const handleQtyChange = (item, qty) => {
+    const key = getRowKey(item);
     setSelectedMap((prev) => ({
       ...prev,
       [key]: {
         selected: true,
         qty: qty === '' ? '' : qty,
-        price: prev[item.id]?.price || getDefaultPrice(item)
-      }
-    }));
-  };
-
-  const handlePriceChange = (item, price) => {
-    setSelectedMap((prev) => ({
-      ...prev,
-      [item.id]: {
-        selected: true,
-        qty: prev[item.id]?.qty ?? '',
-        price: Number(price)
+        price: prev[key]?.price || getDefaultPrice(item)
       }
     }));
   };
@@ -141,8 +151,8 @@ const PilihPakanOvkModal = ({
   const selectedItems = useMemo(() => {
     return Object.entries(selectedMap)
       .filter(([, value]) => value.selected)
-      .map(([id, value]) => {
-        const item = items.find((entry) => entry.id === id);
+      .map(([key, value]) => {
+        const item = items.find((entry) => getRowKey(entry) === key);
         if (!item) return null;
         return {
           ...item,
@@ -245,8 +255,9 @@ const PilihPakanOvkModal = ({
                     </td>
                   </tr>
                 )}
-                {!isLoading && !errorMessage && filteredItems.map((item) => {
-                  const current = selectedMap[item.id];
+                {!isLoading && !errorMessage && filteredItems.map((item, idx) => {
+                  const rowKey = getRowKey(item);
+                  const current = selectedMap[rowKey];
                   const isSelected = Boolean(current?.selected);
                   const { baseName, satuan } = splitNameSatuan(item);
                   const prevBaseName = idx > 0 ? splitNameSatuan(filteredItems[idx - 1]).baseName : null;
@@ -269,7 +280,7 @@ const PilihPakanOvkModal = ({
 
                   return (
                     <tr
-                      key={item.id}
+                      key={rowKey}
                       className={`border-b border-slate-100 transition hover:bg-emerald-50/50 ${
                         isSelected ? 'bg-emerald-50' : ''
                       } ${groupBorder ? 'border-t-2 border-t-slate-200' : ''}`}
