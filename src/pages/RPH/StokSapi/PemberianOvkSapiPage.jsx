@@ -209,6 +209,7 @@ const DetailModal = ({ row, onClose, onEdit }) => {
     ['Tanggal Pemberian', row.tgl_pemberian_ovk],
     ['Jam Pemberian', String(row.jam_pemberian_ovk || '').slice(0, 5)],
     ['Nama Peternak', row.nama_peternak],
+    ['Jumlah (Qty)', row.jumlah != null ? String(row.jumlah) : '1'],
     ['Harga', formatCurrency(row.harga)],
     ['Eartag Sapi', row.eartag_sapi || row.eartag || '-'],
     ['Nama Sapi', row.nama_sapi || '-'],
@@ -667,6 +668,17 @@ const PemberianOvkSapiPage = () => {
       sortable: true,
       minWidth: '150px',
       cell: (row) => <span className="text-slate-700">{row.nama_peternak || '-'}</span>,
+    },
+    {
+      name: 'Qty',
+      selector: (row) => row.jumlah,
+      center: true,
+      width: '90px',
+      cell: (row) => (
+        <span className="inline-flex min-w-[2rem] items-center justify-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
+          {row.jumlah != null ? row.jumlah : 1}
+        </span>
+      ),
     },
     {
       name: 'Harga',

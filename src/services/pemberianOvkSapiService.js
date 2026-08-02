@@ -81,6 +81,7 @@ class PemberianOvkSapiService {
       jam_pemberian_ovk: item.jam_pemberian_ovk || '-',
       nama_peternak: item.nama_peternak || '-',
       harga: item.harga ?? null,
+      jumlah: item.jumlah != null ? Number(item.jumlah) : 1,
     };
   }
 

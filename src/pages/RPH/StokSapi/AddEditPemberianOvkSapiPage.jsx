@@ -120,6 +120,7 @@ const AddEditPemberianOvkSapiPage = () => {
   const [tglPemberian, setTglPemberian] = useState(getToday);
   const [jamPemberian, setJamPemberian] = useState('08:00');
   const [namaPeternak, setNamaPeternak] = useState('');
+  const [jumlah, setJumlah] = useState(1);
 
   // Loading/Submit states
   const [isLoadingCowOptions, setIsLoadingCowOptions] = useState(false);
@@ -197,6 +198,7 @@ const AddEditPemberianOvkSapiPage = () => {
     setTglPemberian(stateRecord.tgl_pemberian_ovk || getToday());
     setJamPemberian(String(stateRecord.jam_pemberian_ovk || '08:00').slice(0, 5));
     setNamaPeternak(stateRecord.nama_peternak === '-' ? '' : stateRecord.nama_peternak || '');
+    setJumlah(Number(stateRecord.jumlah) > 0 ? Number(stateRecord.jumlah) : 1);
   }, [stateRecord]);
 
   // Fetch detail from server in Edit Mode if state is missing
@@ -217,6 +219,7 @@ const AddEditPemberianOvkSapiPage = () => {
         setTglPemberian(detail.tgl_pemberian_ovk || getToday());
         setJamPemberian(String(detail.jam_pemberian_ovk || '08:00').slice(0, 5));
         setNamaPeternak(detail.nama_peternak || '');
+        setJumlah(Number(detail.jumlah) > 0 ? Number(detail.jumlah) : 1);
       } else {
         setNotification({ type: 'error', message: response.message || 'Gagal memuat detail data' });
       }
@@ -256,6 +259,17 @@ const AddEditPemberianOvkSapiPage = () => {
     [ovkOptions, selectedOvk]
   );
 
+  const maxStok = useMemo(() => {
+    const stok = Number(selectedOvkDetail?.stok);
+    return Number.isFinite(stok) && stok > 0 ? stok : 0;
+  }, [selectedOvkDetail]);
+
+  // Reset qty when product changes (create mode)
+  useEffect(() => {
+    if (isEditMode) return;
+    setJumlah(1);
+  }, [selectedOvk, isEditMode]);
+
   const selectedCowDetail = useMemo(() => {
     if (stateCow) return stateCow;
     if (isEditMode) return detailInfo;
@@ -284,6 +298,18 @@ const AddEditPemberianOvkSapiPage = () => {
       return;
     }
 
+    const qty = Number(jumlah);
+    if (!isEditMode) {
+      if (!Number.isFinite(qty) || qty < 1) {
+        setNotification({ type: 'error', message: 'Jumlah (qty) minimal 1.' });
+        return;
+      }
+      if (maxStok > 0 && qty > maxStok) {
+        setNotification({ type: 'error', message: `Jumlah melebihi stok tersedia (${maxStok}).` });
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     setNotification({ type: 'info', message: isEditMode ? 'Memperbarui data...' : 'Menyimpan data...' });
 
@@ -305,6 +331,7 @@ const AddEditPemberianOvkSapiPage = () => {
         id_produk: Number(ovkSelection.id_produk),
         ...(ovkSelection.id_satuan != null ? { id_satuan: Number(ovkSelection.id_satuan) } : {}),
         ...(ovkSelection.harga != null ? { harga: Number(ovkSelection.harga) } : {}),
+        jumlah: qty,
         tgl_pemberian_ovk: tglPemberian,
         jam_pemberian_ovk: jamPemberian,
         nama_peternak: namaPeternak.trim(),
@@ -465,9 +492,50 @@ const AddEditPemberianOvkSapiPage = () => {
                   <p className="font-semibold">{selectedOvkDetail.label}</p>
                   <p className="mt-1 text-xs text-cyan-700">
                     Stok tersedia: {selectedOvkDetail.stok ?? '-'} {selectedOvkDetail.satuan || ''} | Harga satuan: {selectedOvkDetail.harga ? `Rp ${Number(selectedOvkDetail.harga).toLocaleString('id-ID')}` : '-'}
+                    {jumlah > 0 && selectedOvkDetail.harga
+                      ? ` | Estimasi total: Rp ${(Number(selectedOvkDetail.harga) * Number(jumlah)).toLocaleString('id-ID')}`
+                      : ''}
                   </p>
                 </div>
               ) : null}
+
+              {!isEditMode ? (
+                <Field
+                  label="Jumlah (Qty)"
+                  required
+                  helperText={
+                    selectedOvkDetail
+                      ? `Maksimal ${maxStok || 0} ${selectedOvkDetail.satuan || ''} sesuai stok tersedia.`
+                      : 'Pilih produk OVK terlebih dahulu.'
+                  }
+                >
+                  <input
+                    type="number"
+                    min={1}
+                    max={maxStok > 0 ? maxStok : undefined}
+                    step={1}
+                    value={jumlah}
+                    onChange={(event) => {
+                      const next = event.target.value;
+                      if (next === '') {
+                        setJumlah('');
+                        return;
+                      }
+                      const num = Math.floor(Number(next));
+                      if (!Number.isFinite(num)) return;
+                      setJumlah(num < 1 ? 1 : num);
+                    }}
+                    disabled={isSubmitting || !selectedOvk}
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 px-4 text-sm text-slate-700 outline-none transition focus:border-emerald-300 focus:bg-white focus:ring-4 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
+                    required
+                  />
+                </Field>
+              ) : (
+                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Jumlah (Qty)</p>
+                  <p className="mt-1 text-sm font-semibold text-slate-800">{jumlah || 1}</p>
+                </div>
+              )}
 
               <Field label="Tanggal Pemberian" required>
                 <div className="relative">
