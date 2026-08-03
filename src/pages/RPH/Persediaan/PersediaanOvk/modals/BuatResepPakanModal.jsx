@@ -120,15 +120,38 @@ const BuatResepPakanModal = ({
     (async () => {
       const { fetched } = await fetchStokBahanBaku(1, '');
       if (isEditMode && editData?.detail && Array.isArray(editData.detail)) {
-        const initialSelectedMap = {};
+        // Group detail by id_produk, sum jumlah — collapse duplicate batch rows
+        const grouped = {};
         editData.detail.forEach((item) => {
-          const stokRow = fetched.find(
-            (entry) => entry.id === item.id_produk && Number(entry.harga) === Number(item.harga)
+          const pid = item.id_produk;
+          if (!grouped[pid]) {
+            grouped[pid] = { id_produk: pid, jumlah: 0, harga: Number(item.harga || 0) };
+          }
+          grouped[pid].jumlah += Number(item.jumlah || 1);
+        });
+
+        const initialSelectedMap = {};
+        Object.values(grouped).forEach((grp) => {
+          // Prefer row with matching id_produk + harga AND stock > 0
+          let stokRow = fetched.find(
+            (entry) => entry.id === grp.id_produk && Number(entry.harga) === Number(grp.harga) && Number(entry.jumlah) > 0
           );
-          const key = stokRow ? getRowKey(stokRow) : `${item.id_produk}||${item.harga || 0}`;
+          // Fallback: any row with matching id_produk AND stock > 0
+          if (!stokRow) {
+            stokRow = fetched.find((entry) => entry.id === grp.id_produk && Number(entry.jumlah) > 0);
+          }
+          // Fallback: matching id_produk + harga (even if stock 0)
+          if (!stokRow) {
+            stokRow = fetched.find((entry) => entry.id === grp.id_produk && Number(entry.harga) === Number(grp.harga));
+          }
+          // Last resort: first row with matching id_produk
+          if (!stokRow) {
+            stokRow = fetched.find((entry) => entry.id === grp.id_produk);
+          }
+          const key = stokRow ? getRowKey(stokRow) : `${grp.id_produk}||${grp.harga || 0}`;
           initialSelectedMap[key] = {
             selected: true,
-            jumlah: item.jumlah || 1,
+            jumlah: grp.jumlah,
           };
         });
         setSelectedMap(initialSelectedMap);

@@ -2,7 +2,7 @@ import React, { useRef, useState, useMemo } from "react";
 import { MoreVertical } from "lucide-react";
 import PersediaanPakanActionMenu from "./PersediaanPakanActionMenu";
 
-const PersediaanPakanActionButton = ({ row, openMenuId, setOpenMenuId, onEdit, onDelete, isActive }) => {
+const PersediaanPakanActionButton = ({ row, openMenuId, setOpenMenuId, onEdit, onDelete, onDetail, isActive }) => {
   const buttonRef = useRef(null);
   const [isAnimating, setIsAnimating] = useState(false);
 
@@ -52,6 +52,7 @@ const PersediaanPakanActionButton = ({ row, openMenuId, setOpenMenuId, onEdit, o
           row={row}
           onEdit={onEdit}
           onDelete={onDelete}
+          onDetail={onDetail}
           onClose={() => setOpenMenuId(null)}
           buttonRef={buttonRef}
         />

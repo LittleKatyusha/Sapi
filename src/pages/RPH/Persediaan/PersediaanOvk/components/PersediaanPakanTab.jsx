@@ -106,7 +106,7 @@ const Notification = React.memo(({ notification, onClose }) => {
     );
 });
 
-const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, itemName, isDeleting }) => {
+const CancelConfirmationModal = ({ isOpen, onClose, onConfirm, itemName, isDeleting }) => {
     if (!isOpen) return null;
 
     return (
@@ -125,8 +125,8 @@ const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, itemName, isDelet
                                     <AlertCircle className="w-6 h-6 text-white" />
                                 </div>
                                 <div>
-                                    <h3 className="text-lg font-bold text-white">Konfirmasi Hapus</h3>
-                                    <p className="text-red-100 text-sm">Tindakan ini tidak dapat dibatalkan</p>
+                                    <h3 className="text-lg font-bold text-white">Konfirmasi Cancel</h3>
+                                    <p className="text-red-100 text-sm">Stok bahan baku akan dikembalikan</p>
                                 </div>
                             </div>
                             <button
@@ -141,7 +141,7 @@ const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, itemName, isDelet
 
                     <div className="px-6 py-6">
                         <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
-                            <p className="text-gray-800 text-center">Apakah Anda yakin ingin menghapus resep pakan ini?</p>
+                            <p className="text-gray-800 text-center">Apakah Anda yakin ingin membatalkan resep pakan ini? Stok bahan baku yang terpakai akan dikembalikan.</p>
                             {itemName && (
                                 <p className="text-gray-600 text-center mt-2 font-semibold">"{itemName}"</p>
                             )}
@@ -156,7 +156,7 @@ const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, itemName, isDelet
                                 disabled={isDeleting}
                                 className="px-6 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium disabled:opacity-50"
                             >
-                                Batal
+                                Tutup
                             </button>
                             <button
                                 type="button"
@@ -167,14 +167,141 @@ const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, itemName, isDelet
                                 {isDeleting ? (
                                     <>
                                         <Loader2 className="w-4 h-4 animate-spin" />
-                                        Menghapus...
+                                        Membatalkan...
                                     </>
                                 ) : (
                                     <>
                                         <AlertCircle className="w-4 h-4" />
-                                        Hapus
+                                        Cancel
                                     </>
                                 )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const DetailResepPakanModal = ({ isOpen, onClose, item, detail, loading, formatCurrency, formatDate }) => {
+    if (!isOpen) return null;
+
+    const details = detail?.detail || [];
+    const totalHarga = Array.isArray(details)
+        ? details.reduce((sum, d) => sum + (Number(d.subtotal || (Number(d.harga || 0) * Number(d.jumlah || 0))) || 0), 0)
+        : 0;
+    const totalJumlah = Array.isArray(details)
+        ? details.reduce((sum, d) => sum + (Number(d.jumlah || 0)), 0)
+        : 0;
+
+    return (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+            <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                <div
+                    className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+                    onClick={onClose}
+                ></div>
+
+                <div className="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+                    <div className="bg-gradient-to-r from-sky-500 to-cyan-600 px-6 py-4">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                                    <FileText className="w-6 h-6 text-white" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-white">Detail Resep Pakan</h3>
+                                    <p className="text-sky-100 text-sm">{item?.name || ''}</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={onClose}
+                                className="text-white/80 hover:text-white hover:bg-white/10 rounded-lg p-2 transition-colors"
+                            >
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="px-6 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
+                        {loading ? (
+                            <div className="flex items-center justify-center py-10">
+                                <Loader2 className="w-6 h-6 animate-spin text-sky-500" />
+                                <span className="ml-2 text-sm text-slate-500">Memuat detail...</span>
+                            </div>
+                        ) : !Array.isArray(details) || details.length === 0 ? (
+                            <div className="text-center py-10 text-sm text-slate-500">Tidak ada bahan baku tercatat</div>
+                        ) : (
+                            <>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                    <div className="rounded-lg bg-slate-50 px-3 py-2">
+                                        <div className="text-[10px] font-semibold text-slate-500 uppercase">Tanggal Aktif</div>
+                                        <div className="text-sm font-bold text-slate-800">{item?.tgl_aktif ? formatDate(item.tgl_aktif) : '-'}</div>
+                                    </div>
+                                    <div className="rounded-lg bg-slate-50 px-3 py-2">
+                                        <div className="text-[10px] font-semibold text-slate-500 uppercase">Total Bahan</div>
+                                        <div className="text-sm font-bold text-slate-800">{totalJumlah} item</div>
+                                    </div>
+                                    <div className="rounded-lg bg-slate-50 px-3 py-2">
+                                        <div className="text-[10px] font-semibold text-slate-500 uppercase">Jenis Bahan</div>
+                                        <div className="text-sm font-bold text-slate-800">{details.length} bahan</div>
+                                    </div>
+                                    <div className="rounded-lg bg-emerald-50 px-3 py-2">
+                                        <div className="text-[10px] font-semibold text-emerald-600 uppercase">Harga Total</div>
+                                        <div className="text-sm font-bold text-emerald-700">{formatCurrency(totalHarga)}</div>
+                                    </div>
+                                </div>
+
+                                {item?.keterangan && (
+                                    <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
+                                        <div className="text-[10px] font-semibold text-amber-600 uppercase">Keterangan</div>
+                                        <div className="text-sm text-slate-700 mt-0.5">{item.keterangan}</div>
+                                    </div>
+                                )}
+
+                                <div className="border border-slate-200 rounded-xl overflow-hidden">
+                                    <table className="w-full text-sm">
+                                        <thead className="bg-slate-50 text-slate-600">
+                                            <tr>
+                                                <th className="px-3 py-2 text-left font-semibold text-xs uppercase tracking-wide">No</th>
+                                                <th className="px-3 py-2 text-left font-semibold text-xs uppercase tracking-wide">Bahan Baku</th>
+                                                <th className="px-3 py-2 text-center font-semibold text-xs uppercase tracking-wide">Jumlah</th>
+                                                <th className="px-3 py-2 text-right font-semibold text-xs uppercase tracking-wide">Harga</th>
+                                                <th className="px-3 py-2 text-right font-semibold text-xs uppercase tracking-wide">Subtotal</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100">
+                                            {details.map((d, idx) => (
+                                                <tr key={idx} className="hover:bg-slate-50">
+                                                    <td className="px-3 py-2.5 text-slate-500">{idx + 1}</td>
+                                                    <td className="px-3 py-2.5 font-semibold text-slate-800">{d.nama_produk || '-'}</td>
+                                                    <td className="px-3 py-2.5 text-center text-slate-700">{Number(d.jumlah || 0)}</td>
+                                                    <td className="px-3 py-2.5 text-right text-slate-700">{formatCurrency(d.harga)}</td>
+                                                    <td className="px-3 py-2.5 text-right font-bold text-emerald-700">{formatCurrency(d.subtotal || (Number(d.harga || 0) * Number(d.jumlah || 0)))}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                        <tfoot className="bg-slate-50">
+                                            <tr>
+                                                <td colSpan={3} className="px-3 py-2.5 text-right font-semibold text-slate-600">Total</td>
+                                                <td className="px-3 py-2.5 text-right font-bold text-emerald-700" colSpan={2}>{formatCurrency(totalHarga)}</td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </>
+                        )}
+                    </div>
+
+                    <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
+                        <div className="flex justify-end">
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className="px-6 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                            >
+                                Tutup
                             </button>
                         </div>
                     </div>
@@ -191,6 +318,9 @@ const PersediaanPakanTab = () => {
     const [editingItem, setEditingItem] = useState(null);
     const [deleteItem, setDeleteItem] = useState(null);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [detailItem, setDetailItem] = useState(null);
+    const [detailData, setDetailData] = useState(null);
+    const [isLoadingDetail, setIsLoadingDetail] = useState(false);
 
     const {
         persediaanData,
@@ -245,7 +375,27 @@ const PersediaanPakanTab = () => {
         }
     };
 
-    // Handle delete
+    // Handle lihat detail
+    const handleDetailClick = async (item) => {
+        setOpenMenuId(null);
+        setDetailItem(item);
+        setDetailData(null);
+        setIsLoadingDetail(true);
+        try {
+            const response = await PersediaanPakanService.showResep(item.pid);
+            if (response.success && response.data) {
+                setDetailData(response.data);
+            } else {
+                setNotification({ type: 'error', message: response.message || 'Gagal memuat detail resep' });
+            }
+        } catch (err) {
+            setNotification({ type: 'error', message: err.message || 'Terjadi kesalahan saat memuat detail' });
+        } finally {
+            setIsLoadingDetail(false);
+        }
+    };
+
+    // Handle cancel resep pakan — stok bahan baku dikembalikan
     const handleDeleteClick = (item) => {
         setDeleteItem(item);
         setOpenMenuId(null);
@@ -256,16 +406,16 @@ const PersediaanPakanTab = () => {
 
         setIsDeleting(true);
         try {
-            setNotification({ type: 'info', message: 'Menghapus data...' });
+            setNotification({ type: 'info', message: 'Membatalkan resep pakan...' });
             
             const response = await PersediaanPakanService.deleteResep(deleteItem.pid);
             
             if (response.success) {
-                setNotification({ type: 'success', message: response.message || 'Data berhasil dihapus' });
+                setNotification({ type: 'success', message: response.message || 'Resep pakan berhasil dibatalkan, stok bahan baku dikembalikan' });
                 setDeleteItem(null);
                 refresh();
             } else {
-                setNotification({ type: 'error', message: response.message || 'Gagal menghapus data' });
+                setNotification({ type: 'error', message: response.message || 'Gagal membatalkan resep pakan' });
             }
         } catch (err) {
             setNotification({ type: 'error', message: err.message || 'Terjadi kesalahan' });
@@ -333,6 +483,7 @@ const PersediaanPakanTab = () => {
                         setOpenMenuId={setOpenMenuId}
                         onEdit={handleEdit}
                         onDelete={handleDeleteClick}
+                        onDetail={handleDetailClick}
                         isActive={openMenuId === (row.pid || row.id)}
                     />
                 </div>
@@ -342,14 +493,19 @@ const PersediaanPakanTab = () => {
             name: 'Tanggal & Resep',
             selector: row => row.name,
             sortable: true,
-            minWidth: '280px',
+            minWidth: '260px',
             cell: row => (
                 <div className="text-left w-full py-1" title={row.keterangan || row.name}>
                     <div className="font-bold text-slate-900 text-sm leading-tight">{row.name || '-'}</div>
-                    <div className="flex items-center gap-1.5 mt-1">
+                    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                         <span className="inline-flex items-center rounded bg-sky-50 px-1.5 py-0.5 text-[10px] font-bold text-sky-700 border border-sky-100">
                             {formatDate(row.tgl_aktif)}
                         </span>
+                        {row.satuan && (
+                            <span className="inline-flex items-center rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-600 border border-slate-200">
+                                {row.satuan}
+                            </span>
+                        )}
                         {row.keterangan && (
                             <span className="text-xs text-slate-400 line-clamp-1 leading-snug">{row.keterangan}</span>
                         )}
@@ -358,15 +514,39 @@ const PersediaanPakanTab = () => {
             ),
         },
         {
-            name: 'Jumlah Bahan',
-            selector: row => row.total_jumlah,
+            name: 'Komposisi Bahan',
+            selector: row => row.daftar_bahan,
             sortable: true,
-            width: '130px',
+            minWidth: '240px',
+            cell: row => (
+                <div className="text-left w-full py-1" title={row.daftar_bahan || ''}>
+                    <div className="text-sm text-slate-700 leading-snug line-clamp-2">
+                        {row.daftar_bahan || <span className="text-slate-400">-</span>}
+                    </div>
+                    <div className="flex items-center gap-1.5 mt-1">
+                        <span className="inline-flex items-center rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 border border-amber-100">
+                            {row.jumlah_bahan_distinct || 0} bahan
+                        </span>
+                        <span className="inline-flex items-center rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-600 border border-slate-200">
+                            {row.total_jumlah || 0} item
+                        </span>
+                    </div>
+                </div>
+            ),
+        },
+        {
+            name: 'Pemakaian',
+            selector: row => row.jumlah_pemakaian,
+            sortable: true,
+            width: '140px',
             center: true,
             cell: row => (
-                <div className="flex justify-center w-full">
-                    <span className="inline-flex items-center justify-center min-w-[44px] px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 text-sm font-bold">
-                        {row.total_jumlah || 0}
+                <div className="flex flex-col items-center justify-center w-full py-1">
+                    <span className={`inline-flex items-center justify-center min-w-[44px] px-2.5 py-1 rounded-md text-sm font-bold ${(row.jumlah_pemakaian || 0) > 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-slate-100 text-slate-500'}`}>
+                        {row.jumlah_pemakaian || 0}x
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-medium mt-0.5">
+                        {row.tgl_pemakaian_terakhir ? `Terakhir ${formatDate(row.tgl_pemakaian_terakhir)}` : 'Belum pernah'}
                     </span>
                 </div>
             ),
@@ -380,9 +560,6 @@ const PersediaanPakanTab = () => {
             cell: row => (
                 <div className="text-right w-full whitespace-nowrap py-1">
                     <div className="text-sm font-bold text-emerald-700">{formatCurrency(row.harga_total)}</div>
-                    <div className="text-[10px] text-slate-400 font-medium mt-0.5">
-                        {row.total_jumlah > 0 ? formatCurrency(Math.round((row.harga_total || 0) / row.total_jumlah)) + '/bahan' : '-'}
-                    </div>
                 </div>
             ),
         },
@@ -555,6 +732,7 @@ const PersediaanPakanTab = () => {
                                     setOpenMenuId={setOpenMenuId}
                                     onEdit={handleEdit}
                                     onDelete={handleDeleteClick}
+                                    onDetail={handleDetailClick}
                                     isActive={openMenuId === (row.pid || row.id)}
                                 />
                             </div>
@@ -566,9 +744,6 @@ const PersediaanPakanTab = () => {
                                 <div className="rounded-lg bg-slate-50 px-2.5 py-2">
                                     <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Harga Total</div>
                                     <div className="text-sm font-bold text-emerald-700">{formatCurrency(row.harga_total)}</div>
-                                    <div className="text-[10px] text-slate-400 font-medium mt-0.5">
-                                        {row.total_jumlah > 0 ? formatCurrency(Math.round((row.harga_total || 0) / row.total_jumlah)) + '/bahan' : '-'}
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -584,12 +759,22 @@ const PersediaanPakanTab = () => {
                 editData={editingItem}
             />
 
-            <DeleteConfirmationModal
+            <CancelConfirmationModal
                 isOpen={!!deleteItem}
                 onClose={() => setDeleteItem(null)}
                 onConfirm={handleDeleteConfirm}
                 itemName={deleteItem?.name}
                 isDeleting={isDeleting}
+            />
+
+            <DetailResepPakanModal
+                isOpen={!!detailItem}
+                onClose={() => { setDetailItem(null); setDetailData(null); }}
+                item={detailItem}
+                detail={detailData}
+                loading={isLoadingDetail}
+                formatCurrency={formatCurrency}
+                formatDate={formatDate}
             />
         </div>
     );

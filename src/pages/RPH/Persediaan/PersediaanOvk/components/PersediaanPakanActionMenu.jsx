@@ -1,8 +1,8 @@
 import React, { useRef, useState, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Ban, Eye } from "lucide-react";
 
-const PersediaanPakanActionMenu = ({ row, onEdit, onDelete, onClose, buttonRef }) => {
+const PersediaanPakanActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef }) => {
   const menuRef = useRef(null);
   const [menuStyle, setMenuStyle] = useState(null);
 
@@ -43,6 +43,17 @@ const PersediaanPakanActionMenu = ({ row, onEdit, onDelete, onClose, buttonRef }
 
   const actions = [
     {
+      label: "Lihat Detail",
+      icon: Eye,
+      onClick: () => onDetail(row),
+      description: "Lihat detail bahan baku resep pakan.",
+      bg: "bg-sky-100",
+      text: "text-sky-600",
+    },
+    {
+      divider: true,
+    },
+    {
       label: "Edit",
       icon: Pencil,
       onClick: () => onEdit(row),
@@ -54,10 +65,10 @@ const PersediaanPakanActionMenu = ({ row, onEdit, onDelete, onClose, buttonRef }
       divider: true,
     },
     {
-      label: "Hapus",
-      icon: Trash2,
+      label: "Cancel",
+      icon: Ban,
       onClick: () => onDelete(row),
-      description: "Hapus data resep pakan.",
+      description: "Batalkan resep pakan, stok bahan baku dikembalikan.",
       bg: "bg-red-100",
       text: "text-red-600",
     },
