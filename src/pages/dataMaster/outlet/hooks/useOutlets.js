@@ -1,215 +1,151 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import HttpClient from '../../../../services/httpClient';
 import { API_ENDPOINTS } from '../../../../config/api';
 
+const STORAGE_KEY = 'outlet-filters';
+
+const DEFAULT_STATE = {
+    page: 1,
+    perPage: 10,
+    search: '',
+    sortField: 'id',
+    sortDir: 'asc',
+    filterStatus: 'all',
+};
+
+const loadPersistedState = () => {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return DEFAULT_STATE;
+        const parsed = JSON.parse(raw);
+        return { ...DEFAULT_STATE, ...parsed, page: 1 };
+    } catch {
+        return DEFAULT_STATE;
+    }
+};
+
 const useOutlets = () => {
+    const persisted = useMemo(loadPersistedState, []);
+
     const [outlets, setOutlets] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [filterStatus, setFilterStatus] = useState('all');
 
-    // Server-side pagination state
-    const [serverPagination, setServerPagination] = useState({
-        currentPage: 1,
-        totalPages: 1,
-        totalItems: 0,
-        perPage: 1000 // Increased to fetch more data
+    const [searchInput, setSearchInput] = useState(persisted.search);
+    const [searchTerm, setSearchTerm] = useState(persisted.search);
+    const [page, setPage] = useState(persisted.page);
+    const [perPage, setPerPage] = useState(persisted.perPage);
+    const [sortField, setSortField] = useState(persisted.sortField);
+    const [sortDir, setSortDir] = useState(persisted.sortDir);
+    const [filterStatus, setFilterStatus] = useState(persisted.filterStatus);
+    const [selectedIds, setSelectedIds] = useState([]);
+
+    const [meta, setMeta] = useState({
+        total: 0,
+        current_page: 1,
+        per_page: perPage,
+        last_page: 1,
+        from: 0,
+        to: 0,
     });
 
-    // Fetch data dari API dengan DataTables server-side pagination format
-    const fetchOutlets = useCallback(async (page = 1, perPage = 1000) => {
+    // Persist filter state to localStorage
+    useEffect(() => {
+        const state = {
+            page,
+            perPage,
+            search: searchInput,
+            sortField,
+            sortDir,
+            filterStatus,
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }, [page, perPage, searchInput, sortField, sortDir, filterStatus]);
+
+    // Debounce search input → searchTerm (400ms)
+    useEffect(() => {
+        const t = setTimeout(() => {
+            setSearchTerm(searchInput);
+            setPage(1);
+        }, 400);
+        return () => clearTimeout(t);
+    }, [searchInput]);
+
+    const fetchOutlets = useCallback(async () => {
         setLoading(true);
         setError(null);
-        
         try {
-            console.log('Fetching outlets from backend...');
-            
-            // DataTables pagination parameters (sama seperti eartag)
-            const start = (page - 1) * perPage; // Calculate offset
             const params = {
-                'start': start.toString(),
-                'length': perPage.toString(),
-                'draw': '1',
-                'search[value]': '', // Empty search for now
-                'order[0][column]': '0',
-                'order[0][dir]': 'asc',
-                'kategori': '1' // Filter hanya kategori = 1
+                page,
+                per_page: perPage,
+                search: searchTerm,
+                sort_field: sortField,
+                sort_dir: sortDir,
+                kategori: 1,
             };
-            
-            const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.OUTLET}/data`, {
-                params: params
-            });
-            
-            console.log('Response received');
-            
-            let dataArray = [];
-            let paginationMeta = {};
-            
-            // Handle DataTables response format
-            if (result.draw && result.data && Array.isArray(result.data)) {
-                // DataTables format: {draw: 1, recordsTotal: 100, recordsFiltered: 100, data: [...]}
-                dataArray = result.data;
-                paginationMeta = {
-                    draw: result.draw,
-                    recordsTotal: result.recordsTotal,
-                    recordsFiltered: result.recordsFiltered,
-                    total: result.recordsTotal,
-                    filtered: result.recordsFiltered,
-                    current_page: page,
-                    per_page: perPage,
-                    last_page: Math.ceil(result.recordsTotal / perPage)
-                };
-                console.log('DataTables response received:', dataArray.length, 'items');
-                console.log('Raw backend data sample:', dataArray.slice(0, 2)); // Log first 2 items
-                console.log('Backend data fields:', dataArray[0] ? Object.keys(dataArray[0]) : 'No data');
-            } else {
-                console.error('Unexpected API response format:', result);
-                throw new Error(`Format response API tidak sesuai. Response: ${JSON.stringify(result).substring(0, 200)}...`);
-            }
-            
-            // Update server pagination state
-            if (Object.keys(paginationMeta).length > 0) {
-                setServerPagination({
-                    currentPage: paginationMeta.current_page || page,
-                    totalPages: paginationMeta.last_page || Math.ceil((paginationMeta.total || paginationMeta.recordsTotal || dataArray.length) / perPage),
-                    totalItems: paginationMeta.total || paginationMeta.recordsTotal || dataArray.length,
-                    perPage: paginationMeta.per_page || perPage
-                });
-            }
-            
-            if (dataArray.length >= 0) {
-                const validatedData = dataArray.map((item, index) => ({
+
+            const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.OUTLET}/data`, { params, cache: false });
+
+            if (result.status === 'ok' && result.data) {
+                const payload = result.data;
+                const rows = Array.isArray(payload.data) ? payload.data : [];
+                const validatedData = rows.map((item, index) => ({
                     pubid: item.pubid || `TEMP-${index + 1}`,
                     encryptedPid: item.pid || item.pubid,
+                    id: item.id,
                     name: item.nama || 'Nama tidak tersedia',
-                    location: item.alamat || 'Alamat tidak tersedia',
-                    manager: item.manager || 'Manager tidak tersedia',
-                    type: item.type || 'Type tidak tersedia',
-                    status: item.status !== undefined ? item.status : 1, // 1 = aktif, 0 = tidak aktif
-                    phone: item.kontak || 'Kontak tidak tersedia',
+                    location: item.alamat || '-',
+                    phone: item.kontak || '-',
+                    status: item.status !== undefined ? item.status : 1,
                     description: item.description || '',
-                    openTime: item.openTime || '08:00',
-                    closeTime: item.closeTime || '17:00',
                     established: item.created_at || new Date().toISOString(),
-                    id: item.pubid || `TEMP-${index + 1}`
                 }));
-                
-                // Debug logging untuk melihat status outlet
-                console.log('Outlet data received:', validatedData);
-                console.log('Outlet status breakdown:', {
-                    active: validatedData.filter(item => item.status === 1).length,
-                    inactive: validatedData.filter(item => item.status === 0).length,
-                    total: validatedData.length
-                });
-                
                 setOutlets(validatedData);
-                setError(null); // Clear error on success
+                const m = payload.meta || {};
+                setMeta({
+                    total: m.total != null ? m.total : rows.length,
+                    current_page: m.current_page != null ? m.current_page : page,
+                    per_page: m.per_page != null ? m.per_page : perPage,
+                    last_page: m.last_page != null ? m.last_page : 1,
+                    from: m.from != null ? m.from : 0,
+                    to: m.to != null ? m.to : 0,
+                });
             } else {
-                throw new Error('Tidak ada data outlet yang diterima dari server');
+                throw new Error('Format response API tidak sesuai');
             }
         } catch (err) {
             setError(`API Error: ${err.message}`);
-            
-            // Fallback ke data dummy dengan outlet aktif dan tidak aktif
-            setOutlets([
-                {
-                    id: "OUT001",
-                    pubid: "outlet-001",
-                    name: "Outlet Peternakan Maju",
-                    location: "Jl. Raya Bogor No. 123, Jakarta Timur",
-                    manager: "Budi Santoso",
-                    type: "Retail",
-                    status: 1, // 1 = aktif, 0 = tidak aktif
-                    phone: "021-8876543",
-                    description: "Outlet utama untuk penjualan produk sapi segar dan olahan daging",
-                    openTime: "06:00",
-                    closeTime: "18:00",
-                    established: "2020-01-15"
-                },
-                {
-                    id: "OUT002",
-                    pubid: "outlet-002",
-                    name: "Outlet Ternak Sejahtera",
-                    location: "Jl. Sudirman No. 45, Jakarta Selatan",
-                    manager: "Siti Rahayu",
-                    type: "Wholesale",
-                    status: 1,
-                    phone: "021-7765432",
-                    description: "Outlet grosir untuk distribusi ke restoran dan hotel",
-                    openTime: "05:00",
-                    closeTime: "20:00",
-                    established: "2019-03-20"
-                },
-                {
-                    id: "OUT003",
-                    pubid: "outlet-003",
-                    name: "Outlet Sapi Premium",
-                    location: "Jl. Kemang Raya No. 88, Jakarta Selatan",
-                    manager: "Ahmad Wijaya",
-                    type: "Retail",
-                    status: 0, // Tidak aktif
-                    phone: "021-6654321",
-                    description: "Outlet sedang dalam renovasi",
-                    openTime: "07:00",
-                    closeTime: "21:00",
-                    established: "2021-06-10"
-                },
-                {
-                    id: "OUT004",
-                    pubid: "outlet-004",
-                    name: "Outlet Daging Segar",
-                    location: "Jl. Fatmawati No. 67, Jakarta Selatan",
-                    manager: "Rina Kartika",
-                    type: "Retail",
-                    status: 0, // Tidak aktif
-                    phone: "021-5543210",
-                    description: "Sedang dalam proses renovasi dan upgrade fasilitas",
-                    openTime: "06:30",
-                    closeTime: "19:00",
-                    established: "2018-11-05"
-                },
-                {
-                    id: "OUT005",
-                    pubid: "outlet-005",
-                    name: "Outlet Ternak Nusantara",
-                    location: "Jl. Cipete Raya No. 156, Jakarta Selatan",
-                    manager: "Doni Prasetyo",
-                    type: "Wholesale",
-                    status: 1,
-                    phone: "021-4432109",
-                    description: "Pusat distribusi regional untuk wilayah Jakarta dan sekitarnya",
-                    openTime: "04:00",
-                    closeTime: "22:00",
-                    established: "2017-08-30"
-                }
-            ]);
+            setOutlets([]);
+            setMeta({ total: 0, current_page: 1, per_page: perPage, last_page: 1, from: 0, to: 0 });
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [page, perPage, searchTerm, sortField, sortDir]);
+
+    // Refetch when params change
+    useEffect(() => {
+        fetchOutlets();
+    }, [fetchOutlets]);
+
+    // Clear selection when data params change
+    useEffect(() => {
+        setSelectedIds([]);
+    }, [searchTerm, page, perPage, sortField, sortDir, filterStatus]);
 
     // Create outlet
     const createOutlet = useCallback(async (outletData) => {
         setLoading(true);
         setError(null);
-        
         try {
             const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.OUTLET}/store`, {
                 nama: outletData.name,
                 alamat: outletData.location,
                 kontak: outletData.phone,
                 status: outletData.status,
-                kategori: 1 // Set kategori = 1 untuk outlet
+                kategori: 1,
             });
-            
-            await fetchOutlets(1, 1000); // Refresh data
-            
-            return {
-                success: true,
-                message: result.message || 'Outlet berhasil ditambahkan'
-            };
-            
+            fetchOutlets();
+            return { success: true, message: result.message || 'Outlet berhasil ditambahkan' };
         } catch (err) {
             const errorMsg = err.message || 'Terjadi kesalahan saat menyimpan data';
             setError(errorMsg);
@@ -223,29 +159,19 @@ const useOutlets = () => {
     const updateOutlet = useCallback(async (pubid, outletData) => {
         setLoading(true);
         setError(null);
-        
         try {
-            const outlet = outlets.find(o => o.pubid === pubid);
-            if (!outlet) {
-                throw new Error('Outlet tidak ditemukan');
-            }
-            
+            const outlet = outlets.find((o) => o.pubid === pubid);
+            if (!outlet) throw new Error('Outlet tidak ditemukan');
             const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.OUTLET}/update`, {
                 pid: outlet.encryptedPid || outlet.pubid,
                 nama: outletData.name,
                 alamat: outletData.location,
                 kontak: outletData.phone,
                 status: outletData.status,
-                kategori: 1 // Set kategori = 1 untuk outlet
+                kategori: 1,
             });
-            
-            await fetchOutlets(1, 1000); // Refresh data
-            
-            return {
-                success: true,
-                message: result.message || 'Outlet berhasil diperbarui'
-            };
-            
+            fetchOutlets();
+            return { success: true, message: result.message || 'Outlet berhasil diperbarui' };
         } catch (err) {
             const errorMsg = err.message || 'Terjadi kesalahan saat memperbarui data';
             setError(errorMsg);
@@ -259,85 +185,128 @@ const useOutlets = () => {
     const deleteOutlet = useCallback(async (pubid) => {
         setLoading(true);
         setError(null);
-        
         try {
-            const outlet = outlets.find(o => o.pubid === pubid);
-            if (!outlet) {
-                throw new Error('Outlet tidak ditemukan');
-            }
-            
+            const outlet = outlets.find((o) => o.pubid === pubid);
+            if (!outlet) throw new Error('Outlet tidak ditemukan');
             const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.OUTLET}/hapus`, {
-                pid: outlet.encryptedPid || outlet.pubid
+                pid: outlet.encryptedPid || outlet.pubid,
             });
-            
-            await fetchOutlets(1, 1000); // Refresh data
-            
-            return {
-                success: true,
-                message: result.message || 'Outlet berhasil dihapus'
-            };
-            
+            fetchOutlets();
+            return { success: true, message: result.message || 'Outlet berhasil dihapus' };
         } catch (err) {
             const errorMsg = err.message || 'Terjadi kesalahan saat menghapus data';
             setError(errorMsg);
-            
-            // Fallback: hapus dari data dummy jika API error
-            console.log('API delete failed, removing from dummy data:', pubid);
-            const updatedOutlets = outlets.filter(outlet => outlet.pubid !== pubid);
-            setOutlets(updatedOutlets);
-            
-            return {
-                success: true,
-                message: 'Outlet berhasil dihapus (simulasi)'
-            };
+            return { success: false, message: errorMsg };
         } finally {
             setLoading(false);
         }
     }, [fetchOutlets, outlets]);
 
-    // Filter dan search data
-    const filteredData = useMemo(() => {
-        return outlets.filter(item => {
-            const matchesSearch =
-                item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                item.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                item.phone.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                (item.description && item.description.toLowerCase().includes(searchTerm.toLowerCase()));
-            
-            const matchesStatus = filterStatus === 'all' ||
-                (filterStatus === 'active' && item.status === 1) ||
-                (filterStatus === 'inactive' && item.status === 0);
-            
-            return matchesSearch && matchesStatus;
-        });
-    }, [outlets, searchTerm, filterStatus]);
+    // Bulk delete
+    const bulkDelete = useCallback(async (pubids) => {
+        if (!pubids || pubids.length === 0) return { success: true, message: 'Tidak ada data dipilih' };
+        setLoading(true);
+        setError(null);
+        try {
+            const results = await Promise.allSettled(
+                pubids.map((pid) => {
+                    const outlet = outlets.find((o) => o.pubid === pid);
+                    if (!outlet) return Promise.resolve();
+                    return HttpClient.post(`${API_ENDPOINTS.MASTER.OUTLET}/hapus`, {
+                        pid: outlet.encryptedPid || pid,
+                    });
+                })
+            );
+            const failed = results.filter((r) => r.status === 'rejected');
+            fetchOutlets();
+            if (failed.length > 0) {
+                return { success: false, message: `${failed.length} dari ${pubids.length} gagal dihapus` };
+            }
+            return { success: true, message: `${pubids.length} data berhasil dihapus` };
+        } catch (err) {
+            const errorMsg = err.message || 'Terjadi kesalahan saat menghapus data';
+            setError(errorMsg);
+            return { success: false, message: errorMsg };
+        } finally {
+            setLoading(false);
+        }
+    }, [fetchOutlets, outlets]);
 
     // Statistics
-    const stats = useMemo(() => {
-        const total = outlets.length;
-        const active = outlets.filter(item => item.status === 1).length;
-        
-        return {
-            total,
-            active
-        };
+    const stats = useMemo(() => ({
+        total: meta.total,
+        active: meta.total,
+    }), [meta.total]);
+
+    const handleSort = useCallback((field) => {
+        if (sortField === field) {
+            setSortDir((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+        } else {
+            setSortField(field);
+            setSortDir('asc');
+        }
+        setPage(1);
+    }, [sortField]);
+
+    const resetFilters = useCallback(() => {
+        setSearchInput('');
+        setSearchTerm('');
+        setFilterStatus('all');
+        setSortField('id');
+        setSortDir('asc');
+        setPage(1);
+    }, []);
+
+    const toggleSelectId = useCallback((pubid) => {
+        setSelectedIds((prev) =>
+            prev.includes(pubid) ? prev.filter((id) => id !== pubid) : [...prev, pubid]
+        );
+    }, []);
+
+    const toggleSelectAll = useCallback(() => {
+        setSelectedIds((prev) => {
+            if (prev.length === outlets.length && outlets.length > 0) return [];
+            return outlets.map((o) => o.pubid);
+        });
     }, [outlets]);
 
+    const clearSelection = useCallback(() => setSelectedIds([]), []);
+
     return {
-        outlets: filteredData,
+        outlets,
         loading,
         error,
+        // search
+        searchInput,
+        setSearchInput,
         searchTerm,
-        setSearchTerm,
+        // pagination
+        page,
+        setPage,
+        perPage,
+        setPerPage,
+        meta,
+        // sorting
+        sortField,
+        sortDir,
+        handleSort,
+        // filter
         filterStatus,
         setFilterStatus,
+        resetFilters,
+        // selection
+        selectedIds,
+        toggleSelectId,
+        toggleSelectAll,
+        clearSelection,
+        // stats
         stats,
+        // CRUD
         fetchOutlets,
         createOutlet,
         updateOutlet,
         deleteOutlet,
-        // Server pagination info
-        serverPagination
+        bulkDelete,
     };
 };
 

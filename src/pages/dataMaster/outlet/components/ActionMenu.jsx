@@ -35,22 +35,27 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef }) => 
 
     const getMenuPosition = () => {
         if (!buttonRef.current) return { top: 0, left: 0 };
-        
+
         const buttonRect = buttonRef.current.getBoundingClientRect();
         const menuWidth = 180;
-        const menuHeight = 120;
-        
+        const menuHeight = 140;
+
         let top = buttonRect.bottom + 8;
         let left = buttonRect.left - menuWidth + buttonRect.width;
-        
-        // Adjust if menu goes off screen
+
+        // Flip to right-side if overflow left
         if (left < 8) {
             left = buttonRect.right + 8;
         }
-        if (top + menuHeight > window.innerHeight - 8) {
-            top = buttonRect.top - menuHeight - 8;
+        // If overflow right, align to button's right edge
+        if (left + menuWidth > window.innerWidth - 8) {
+            left = Math.max(8, buttonRect.right - menuWidth);
         }
-        
+        // Flip above if overflow bottom
+        if (top + menuHeight > window.innerHeight - 8) {
+            top = Math.max(8, buttonRect.top - menuHeight - 8);
+        }
+
         return { top, left };
     };
 
