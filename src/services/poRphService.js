@@ -255,6 +255,7 @@ class PoRphService {
       total_terbayar: parseFloat(item.total_terbayar) || 0,
       sisa_pembayaran: parseFloat(item.sisa_pembayaran) || 0,
       pembayaran_pid: item.pembayaran_pid || null,
+      animal_types: Array.isArray(item.animal_types) ? item.animal_types : [],
       
       // Dates
       tgl_pesanan: item.tgl_pesanan || item.created_at,

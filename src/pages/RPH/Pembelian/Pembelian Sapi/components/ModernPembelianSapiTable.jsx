@@ -343,6 +343,7 @@ const ModernPembelianSapiTable = ({
                 <TableHeader label="Tanggal" sortKey="created_at" />
                 <TableHeader label="Persetujuan" sortKey="persetujuan" />
                 <TableHeader label="Jumlah" sortKey="jumlah" align="right" />
+                <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-left">Jenis Hewan</th>
                 <TableHeader label="Harga" sortKey="harga" align="right" />
                 <TableHeader label="Surat Jalan" />
                 <TableHeader label="Faktur" />
@@ -390,6 +391,19 @@ const ModernPembelianSapiTable = ({
                         {row.jumlah || 0}
                         <span className="text-[10px] font-normal text-indigo-500">ekor</span>
                       </span>
+                    </td>
+                    <td className="px-3 py-2.5">
+                      {row.animal_types && row.animal_types.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {row.animal_types.map((type, i) => (
+                            <span key={`${rowId}-at-${i}`} className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-emerald-50 text-emerald-700 border-emerald-200 whitespace-nowrap">
+                              {type}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-gray-400">-</span>
+                      )}
                     </td>
                     <td className="px-3 py-2.5 text-right whitespace-nowrap">
                       <div className="font-medium text-emerald-700">{formatCurrency(row.harga || row.biaya_total || 0)}</div>
