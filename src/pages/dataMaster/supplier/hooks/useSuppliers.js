@@ -1,237 +1,158 @@
-import { useState, useMemo, useCallback } from 'react';
-import { useAuthSecure } from '../../../../hooks/useAuthSecure';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import HttpClient from '../../../../services/httpClient';
 import { API_ENDPOINTS } from '../../../../config/api';
 
+const STORAGE_KEY = 'supplier-filters';
+
+const DEFAULT_STATE = {
+    page: 1,
+    perPage: 10,
+    search: '',
+    sortField: 'id',
+    sortDir: 'asc',
+    filterJenis: 'all',
+    filterKategori: 'all',
+};
+
+const loadPersistedState = () => {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return DEFAULT_STATE;
+        const parsed = JSON.parse(raw);
+        return { ...DEFAULT_STATE, ...parsed, page: 1 };
+    } catch {
+        return DEFAULT_STATE;
+    }
+};
+
 const useSuppliers = () => {
-    const { getAuthHeader, loading: authLoading } = useAuthSecure();
+    const persisted = useMemo(loadPersistedState, []);
+
     const [suppliers, setSuppliers] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [filterStatus, setFilterStatus] = useState('all');
-    const [filterKategori, setFilterKategori] = useState('all');
-    
-    // Server-side pagination state
-    const [serverPagination, setServerPagination] = useState({
-        currentPage: 1,
-        totalPages: 1,
-        totalItems: 0,
-        perPage: 100 // Default fetch all data
+
+    const [searchInput, setSearchInput] = useState(persisted.search);
+    const [searchTerm, setSearchTerm] = useState(persisted.search);
+    const [page, setPage] = useState(persisted.page);
+    const [perPage, setPerPage] = useState(persisted.perPage);
+    const [sortField, setSortField] = useState(persisted.sortField);
+    const [sortDir, setSortDir] = useState(persisted.sortDir);
+    const [filterJenis, setFilterJenis] = useState(persisted.filterJenis);
+    const [filterKategori, setFilterKategori] = useState(persisted.filterKategori);
+    const [selectedIds, setSelectedIds] = useState([]);
+
+    const [meta, setMeta] = useState({
+        total: 0,
+        current_page: 1,
+        per_page: perPage,
+        last_page: 1,
+        from: 0,
+        to: 0,
     });
 
-    // API Base URL
     const API_BASE = API_ENDPOINTS.MASTER.SUPPLIER;
 
-    // Function untuk test koneksi API
-    const testApiConnection = useCallback(async () => {
-        try {
-            const authHeader = getAuthHeader();
-            
-            if (!authHeader.Authorization) {
-                return { success: false, message: 'Token authorization tidak ditemukan' };
-            }
-            
-            const response = await HttpClient.head(`${API_BASE}/data`);
-            return { success: true, message: 'Koneksi API berhasil' };
-        } catch (error) {
-            return { success: false, message: `Network error: ${error.message}` };
-        }
-    }, [getAuthHeader]);
+    // Persist filter state
+    useEffect(() => {
+        const state = {
+            page,
+            perPage,
+            search: searchInput,
+            sortField,
+            sortDir,
+            filterJenis,
+            filterKategori,
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }, [page, perPage, searchInput, sortField, sortDir, filterJenis, filterKategori]);
 
-    // Fetch data dari API dengan DataTables server-side pagination format
-    const fetchSuppliers = useCallback(async (page = 1, perPage = 100) => {
-        console.log('useSuppliersAPI: Loading data from backend (no auth check)...');
-        
-        // Wait for auth to finish loading
-        if (authLoading) {
-            console.log('useSuppliersAPI: Waiting for authentication to load...');
-            return;
-        }
-        
+    // Debounce search
+    useEffect(() => {
+        const t = setTimeout(() => {
+            setSearchTerm(searchInput);
+            setPage(1);
+        }, 400);
+        return () => clearTimeout(t);
+    }, [searchInput]);
+
+    const fetchSuppliers = useCallback(async () => {
         setLoading(true);
         setError(null);
-        
         try {
-            const authHeader = getAuthHeader();
-            if (!authHeader.Authorization) {
-                console.log('Skipping API call - user not authenticated');
-                throw new Error('Token authentication tidak ditemukan. Silakan login ulang.');
-            }
-            
-            console.log('useSuppliersAPI: Making API call to backend with authentication...');
-            
-            // DataTables pagination parameters (sama seperti eartag)
-            const start = (page - 1) * perPage; // Calculate offset
-            // Build query parameters manually instead of using URL constructor
-            const queryParams = new URLSearchParams({
-                'start': start.toString(),
-                'length': perPage.toString(),
-                'draw': '1',
-                'search[value]': '', // Empty search for now
-                'order[0][column]': '0',
-                'order[0][dir]': 'asc'
-            });
-            
-            const result = await HttpClient.get(`${API_BASE}/data?${queryParams.toString()}`);
-            
-            console.log('Response received');
-            
-            let dataArray = [];
-            let paginationMeta = {};
-            
-            // Handle DataTables response format
-            if (result.draw && result.data && Array.isArray(result.data)) {
-                // DataTables format: {draw: 1, recordsTotal: 100, recordsFiltered: 100, data: [...]}
-                dataArray = result.data;
-                paginationMeta = {
-                    draw: result.draw,
-                    recordsTotal: result.recordsTotal,
-                    recordsFiltered: result.recordsFiltered,
-                    total: result.recordsTotal,
-                    filtered: result.recordsFiltered,
-                    current_page: page,
-                    per_page: perPage,
-                    last_page: Math.ceil(result.recordsTotal / perPage)
-                };
-                console.log('DataTables response received:', dataArray.length, 'items');
-            } else if (result.status === 'ok' && result.data && Array.isArray(result.data)) {
-                // Fallback format: {status: 'ok', data: [...]}
-                dataArray = result.data;
-                console.log('Alternative format received:', dataArray.length, 'items');
-            } else {
-                console.error('Unexpected API response format:', result);
-                throw new Error(`Format response API tidak sesuai. Response: ${JSON.stringify(result).substring(0, 200)}...`);
-            }
-            
-            // Update server pagination state
-            if (Object.keys(paginationMeta).length > 0) {
-                setServerPagination({
-                    currentPage: paginationMeta.current_page || page,
-                    totalPages: paginationMeta.last_page || Math.ceil((paginationMeta.total || paginationMeta.recordsTotal || dataArray.length) / perPage),
-                    totalItems: paginationMeta.total || paginationMeta.recordsTotal || dataArray.length,
-                    perPage: paginationMeta.per_page || perPage
-                });
-            }
-            
-            if (dataArray.length >= 0) {
-                const validatedData = dataArray.map((item, index) => ({
+            const params = {
+                page,
+                per_page: perPage,
+                search: searchTerm,
+                sort_field: sortField,
+                sort_dir: sortDir,
+            };
+            if (filterJenis && filterJenis !== 'all') params.jenis_supplier = filterJenis;
+            if (filterKategori && filterKategori !== 'all') params.kategori_supplier = filterKategori;
+
+            const result = await HttpClient.get(`${API_BASE}/data`, { params, cache: false });
+
+            if (result.status === 'ok' && result.data) {
+                const payload = result.data;
+                const rows = Array.isArray(payload.data) ? payload.data : [];
+                const validatedData = rows.map((item, index) => ({
                     pubid: item.pubid || `TEMP-${index + 1}`,
                     encryptedPid: item.pid || item.pubid,
+                    id: item.id,
                     name: item.name || 'Nama tidak tersedia',
                     description: item.description || '',
-                    address: item.address || item.address || '',
-                    status: item.status !== undefined ? item.status : 1,
-
-                    jenis_supplier: item.jenis_supplier || '',
-                    kategori_supplier: item.kategori_supplier || ''
+                    address: item.address || '',
+                    jenis_supplier: item.jenis_supplier || '-',
+                    jenis_supplier_raw: item.jenis_supplier_raw != null ? item.jenis_supplier_raw : item.jenis_supplier,
+                    kategori_supplier: item.kategori_supplier || '-',
+                    kategori_supplier_raw: item.kategori_supplier_raw != null ? item.kategori_supplier_raw : item.kategori_supplier,
+                    created_at: item.created_at || '',
                 }));
-                
                 setSuppliers(validatedData);
-                setError(null); // Clear error on success
+                const m = payload.meta || {};
+                setMeta({
+                    total: m.total != null ? m.total : rows.length,
+                    current_page: m.current_page != null ? m.current_page : page,
+                    per_page: m.per_page != null ? m.per_page : perPage,
+                    last_page: m.last_page != null ? m.last_page : 1,
+                    from: m.from != null ? m.from : 0,
+                    to: m.to != null ? m.to : 0,
+                });
             } else {
-                throw new Error('Tidak ada data supplier yang diterima dari server');
+                throw new Error('Format response API tidak sesuai');
             }
         } catch (err) {
             setError(`API Error: ${err.message}`);
-            
-            // Fallback ke data dummy
-            setSuppliers([
-                {
-                    pubid: "SUP001",
-                    encryptedPid: "SUP001",
-                    name: "PT. Sumber Berkah",
-                    description: "Supplier pakan ternak berkualitas tinggi",
-                    address: "Jl. Raya Bogor No. 123, Jakarta Selatan",
-
-                    jenis_supplier: "Perusahaan",
-                    kategori_supplier: "Ternak",
-                    status: 1
-                },
-                {
-                    pubid: "SUP002",
-                    encryptedPid: "SUP002",
-                    name: "CV. Mitra Tani",
-                    description: "Supplier obat-obatan hewan dan vitamin",
-                    address: "Jl. Gatot Subroto No. 456, Jakarta Pusat",
-
-                    jenis_supplier: "Perusahaan",
-                    kategori_supplier: "Feedmil",
-                    status: 1
-                },
-                {
-                    pubid: "SUP003",
-                    encryptedPid: "SUP003",
-                    name: "UD. Cahaya Mandiri",
-                    description: "Supplier peralatan peternakan",
-                    address: "Jl. Sudirman No. 789, Jakarta Barat",
-
-                    jenis_supplier: "Perorangan",
-                    kategori_supplier: "Ovk",
-                    status: 0
-                },
-                {
-                    pubid: "SUP004",
-                    encryptedPid: "SUP004",
-                    name: "PT. Agro Nusantara",
-                    description: "Supplier bibit dan pakan organik",
-                    address: "Jl. Thamrin No. 321, Jakarta Utara",
-
-                    jenis_supplier: "Perusahaan",
-                    kategori_supplier: "Ternak",
-                    status: 1
-                },
-                {
-                    pubid: "SUP005",
-                    encryptedPid: "SUP005",
-                    name: "CV. Jaya Abadi",
-                    description: "Supplier alat kesehatan hewan",
-                    address: "Jl. Hayam Wuruk No. 654, Jakarta Timur",
-
-                    jenis_supplier: "Perusahaan",
-                    kategori_supplier: "Feedmil",
-                    status: 1
-                }
-            ]);
+            setSuppliers([]);
+            setMeta({ total: 0, current_page: 1, per_page: perPage, last_page: 1, from: 0, to: 0 });
         } finally {
             setLoading(false);
         }
-    }, [getAuthHeader, authLoading]);
+    }, [API_BASE, page, perPage, searchTerm, sortField, sortDir, filterJenis, filterKategori]);
 
-    // Create supplier
+    useEffect(() => {
+        fetchSuppliers();
+    }, [fetchSuppliers]);
+
+    useEffect(() => {
+        setSelectedIds([]);
+    }, [searchTerm, page, perPage, sortField, sortDir, filterJenis, filterKategori]);
+
+    // Create
     const createSupplier = useCallback(async (supplierData) => {
         setLoading(true);
         setError(null);
-        
-        const requiredParams = ['name', 'description', 'address', 'jenis_supplier', 'kategori_supplier'];
-        const missingParams = requiredParams.filter(param =>
-            supplierData[param] === undefined || supplierData[param] === null || supplierData[param] === ''
-        );
-        
-        if (missingParams.length > 0) {
-            const errorMsg = `Parameter wajib tidak lengkap: ${missingParams.join(', ')}`;
-            setError(errorMsg);
-            return { success: false, message: errorMsg };
-        }
-        
         try {
-
-            const cleanSupplierData = {
+            const cleanData = {
                 name: String(supplierData.name).trim(),
-                description: String(supplierData.description).trim(),
-                address: String(supplierData.address).trim(),
+                description: String(supplierData.description || '').trim(),
+                address: String(supplierData.address || '').trim(),
                 jenis_supplier: parseInt(supplierData.jenis_supplier, 10),
-                kategori_supplier: parseInt(supplierData.kategori_supplier, 10)
+                kategori_supplier: parseInt(supplierData.kategori_supplier, 10),
             };
-            
-            const result = await HttpClient.post(`${API_BASE}/store`, cleanSupplierData);
-            await fetchSuppliers();
-            
-            return { 
-                success: true, 
-                message: result.message || 'Data berhasil ditambahkan' 
-            };
-            
+            const result = await HttpClient.post(`${API_BASE}/store`, cleanData);
+            fetchSuppliers();
+            return { success: true, message: result.message || 'Data berhasil ditambahkan' };
         } catch (err) {
             const errorMsg = err.message || 'Terjadi kesalahan saat menyimpan data';
             setError(errorMsg);
@@ -239,55 +160,26 @@ const useSuppliers = () => {
         } finally {
             setLoading(false);
         }
-    }, [getAuthHeader, fetchSuppliers, suppliers]);
+    }, [API_BASE, fetchSuppliers]);
 
-    // Update supplier - menggunakan encrypted PID dari backend
+    // Update
     const updateSupplier = useCallback(async (pubid, supplierData) => {
         setLoading(true);
         setError(null);
-        
         try {
-            const supplier = suppliers.find(s => s.pubid === pubid);
-            if (!supplier) {
-                throw new Error('Supplier tidak ditemukan');
-            }
-            
-            if (!supplier.encryptedPid) {
-                supplier.encryptedPid = pubid;
-            }
-            
-            const requiredParams = ['name', 'description', 'address', 'jenis_supplier', 'kategori_supplier'];
-            const missingParams = requiredParams.filter(param =>
-                supplierData[param] === undefined || supplierData[param] === null || supplierData[param] === ''
-            );
-            
-            if (missingParams.length > 0) {
-                const errorMsg = `Parameter wajib tidak lengkap: ${missingParams.join(', ')}`;
-                setError(errorMsg);
-                return { success: false, message: errorMsg };
-            }
-            
+            const supplier = suppliers.find((s) => s.pubid === pubid);
+            if (!supplier) throw new Error('Supplier tidak ditemukan');
             const cleanData = {
+                pid: supplier.encryptedPid || pubid,
                 name: String(supplierData.name).trim(),
-                description: String(supplierData.description).trim(),
-                address: String(supplierData.address).trim(),
+                description: String(supplierData.description || '').trim(),
+                address: String(supplierData.address || '').trim(),
                 jenis_supplier: parseInt(supplierData.jenis_supplier, 10),
-                kategori_supplier: parseInt(supplierData.kategori_supplier, 10)
+                kategori_supplier: parseInt(supplierData.kategori_supplier, 10),
             };
-            
-            const payload = {
-                pid: supplier.encryptedPid,
-                ...cleanData
-            };
-            
-            const result = await HttpClient.post(`${API_BASE}/update`, payload);
-            await fetchSuppliers();
-            
-            return {
-                success: true,
-                message: result.message || 'Data berhasil diperbarui'
-            };
-            
+            const result = await HttpClient.post(`${API_BASE}/update`, cleanData);
+            fetchSuppliers();
+            return { success: true, message: result.message || 'Data berhasil diperbarui' };
         } catch (err) {
             const errorMsg = err.message || 'Terjadi kesalahan saat memperbarui data';
             setError(errorMsg);
@@ -295,35 +187,20 @@ const useSuppliers = () => {
         } finally {
             setLoading(false);
         }
-    }, [getAuthHeader, fetchSuppliers, suppliers]);
+    }, [API_BASE, fetchSuppliers, suppliers]);
 
-    // Delete supplier - menggunakan encrypted PID dari backend
+    // Delete
     const deleteSupplier = useCallback(async (pubid) => {
         setLoading(true);
         setError(null);
-        
         try {
-            const supplier = suppliers.find(s => s.pubid === pubid);
-            if (!supplier) {
-                throw new Error('Supplier tidak ditemukan');
-            }
-            
-            if (!supplier.encryptedPid) {
-                supplier.encryptedPid = pubid;
-            }
-            
-            const payload = {
-                pid: supplier.encryptedPid
-            };
-            
-            const result = await HttpClient.post(`${API_BASE}/hapus`, payload);
-            await fetchSuppliers();
-            
-            return {
-                success: true,
-                message: result.message || 'Data berhasil dihapus'
-            };
-            
+            const supplier = suppliers.find((s) => s.pubid === pubid);
+            if (!supplier) throw new Error('Supplier tidak ditemukan');
+            const result = await HttpClient.post(`${API_BASE}/hapus`, {
+                pid: supplier.encryptedPid || pubid,
+            });
+            fetchSuppliers();
+            return { success: true, message: result.message || 'Data berhasil dihapus' };
         } catch (err) {
             const errorMsg = err.message || 'Terjadi kesalahan saat menghapus data';
             setError(errorMsg);
@@ -331,221 +208,116 @@ const useSuppliers = () => {
         } finally {
             setLoading(false);
         }
-    }, [fetchSuppliers, getAuthHeader, suppliers]);
+    }, [API_BASE, fetchSuppliers, suppliers]);
 
-    // Filter dan search data
-    const filteredData = useMemo(() => {
-        if (!suppliers || !Array.isArray(suppliers)) {
-            return [];
-        }
-        
-        return suppliers.filter(item => {
-            if (!item) return false;
-            
-            try {
-                const matchesSearch =
-                    (item.name && item.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                    (item.pubid && item.pubid.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                    (item.description && item.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                    (item.address && item.address.toLowerCase().includes(searchTerm.toLowerCase()));
-                    
-                const matchesStatus = filterStatus === 'all' ||
-                    (filterStatus === 'active' && item.status === 1) ||
-                    (filterStatus === 'inactive' && item.status === 0);
-                
-                const matchesKategori = filterKategori === 'all' ||
-                    (filterKategori === 'Ternak' && (item.kategori_supplier === '1' || item.kategori_supplier === 'Ternak' || item.kategori_supplier === 'TERNAK')) ||
-                    (filterKategori === 'Feedmil' && (item.kategori_supplier === '2' || item.kategori_supplier === 'Feedmil' || item.kategori_supplier === 'FEEDMIL')) ||
-                    (filterKategori === 'Ovk' && (item.kategori_supplier === '3' || item.kategori_supplier === 'Ovk' || item.kategori_supplier === 'OVK'));
-                      
-                return matchesSearch && matchesStatus && matchesKategori;
-            } catch (error) {
-                console.warn('Error filtering item:', item, error);
-                return false;
-            }
-        });
-    }, [suppliers, searchTerm, filterStatus, filterKategori]);
-
-    // Statistics
-    const stats = useMemo(() => {
-        if (!suppliers || !Array.isArray(suppliers)) {
-            return {
-                total: 0,
-                active: 0,
-                inactive: 0
-            };
-        }
-        
+    // Bulk delete
+    const bulkDelete = useCallback(async (pubids) => {
+        if (!pubids || pubids.length === 0) return { success: true, message: 'Tidak ada data dipilih' };
+        setLoading(true);
+        setError(null);
         try {
-            const total = suppliers.length;
-            const active = suppliers.filter(item => item && item.status === 1).length;
-            const inactive = suppliers.filter(item => item && item.status === 0).length;
-            
-            return {
-                total,
-                active,
-                inactive
-            };
-        } catch (error) {
-            console.warn('Error calculating stats:', error);
-            return {
-                total: 0,
-                active: 0,
-                inactive: 0
-            };
+            const results = await Promise.allSettled(
+                pubids.map((pid) => {
+                    const supplier = suppliers.find((s) => s.pubid === pid);
+                    if (!supplier) return Promise.resolve();
+                    return HttpClient.post(`${API_BASE}/hapus`, {
+                        pid: supplier.encryptedPid || pid,
+                    });
+                })
+            );
+            const failed = results.filter((r) => r.status === 'rejected');
+            fetchSuppliers();
+            if (failed.length > 0) {
+                return { success: false, message: `${failed.length} dari ${pubids.length} gagal dihapus` };
+            }
+            return { success: true, message: `${pubids.length} data berhasil dihapus` };
+        } catch (err) {
+            const errorMsg = err.message || 'Terjadi kesalahan saat menghapus data';
+            setError(errorMsg);
+            return { success: false, message: errorMsg };
+        } finally {
+            setLoading(false);
         }
+    }, [API_BASE, fetchSuppliers, suppliers]);
+
+    // Stats
+    const stats = useMemo(() => ({
+        total: meta.total,
+        active: meta.total,
+    }), [meta.total]);
+
+    const handleSort = useCallback((field) => {
+        if (sortField === field) {
+            setSortDir((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+        } else {
+            setSortField(field);
+            setSortDir('asc');
+        }
+        setPage(1);
+    }, [sortField]);
+
+    const resetFilters = useCallback(() => {
+        setSearchInput('');
+        setSearchTerm('');
+        setFilterJenis('all');
+        setFilterKategori('all');
+        setSortField('id');
+        setSortDir('asc');
+        setPage(1);
+    }, []);
+
+    const toggleSelectId = useCallback((pubid) => {
+        setSelectedIds((prev) =>
+            prev.includes(pubid) ? prev.filter((id) => id !== pubid) : [...prev, pubid]
+        );
+    }, []);
+
+    const toggleSelectAll = useCallback(() => {
+        setSelectedIds((prev) => {
+            if (prev.length === suppliers.length && suppliers.length > 0) return [];
+            return suppliers.map((s) => s.pubid);
+        });
     }, [suppliers]);
 
-    // Duplicate supplier
-    const duplicateSupplier = useCallback(async (supplierData) => {
-        if (!supplierData) return { success: false, message: 'Data supplier tidak ditemukan' };
-
-        try {
-            const duplicatedData = {
-                name: `${supplierData.name} (Copy)`,
-                description: `${supplierData.description || ''} - Salinan dari ${supplierData.name}`,
-                address: supplierData.address || '',
-                jenis_supplier: supplierData.jenis_supplier || '',
-                kategori_supplier: supplierData.kategori_supplier || '',
-                status: 0 // Default inactive for duplicated items
-            };
-
-            return await createSupplier(duplicatedData);
-        } catch (error) {
-            const errorMsg = 'Terjadi kesalahan saat menduplikasi data';
-            setError(errorMsg);
-            return { success: false, message: errorMsg };
-        }
-    }, [suppliers, createSupplier]);
-
-    // Toggle supplier status
-    const toggleSupplierStatus = useCallback(async (pubid) => {
-        const supplier = suppliers.find(s => s.pubid === pubid);
-        if (!supplier) {
-            return { success: false, message: 'Supplier tidak ditemukan' };
-        }
-
-        const newStatus = supplier.status === 1 ? 0 : 1;
-        const updatedData = {
-            ...supplier,
-            status: newStatus
-        };
-
-        try {
-            const result = await updateSupplier(pubid, updatedData);
-            if (result.success) {
-                return {
-                    success: true,
-                    message: `Supplier berhasil ${newStatus === 1 ? 'diaktifkan' : 'dinonaktifkan'}`
-                };
-            }
-            return result;
-        } catch (error) {
-            const errorMsg = 'Terjadi kesalahan saat mengubah status';
-            setError(errorMsg);
-            return { success: false, message: errorMsg };
-        }
-    }, [suppliers, updateSupplier]);
-
-    // Export supplier data
-    const exportSupplier = useCallback(async (supplierData, format = 'json') => {
-        if (!supplierData) return { success: false, message: 'Data supplier tidak ditemukan' };
-
-        try {
-            let exportData;
-            let filename;
-            let mimeType;
-
-            switch (format.toLowerCase()) {
-                case 'json':
-                    exportData = JSON.stringify(supplierData, null, 2);
-                    filename = `supplier_${supplierData.pubid}_${new Date().toISOString().split('T')[0]}.json`;
-                    mimeType = 'application/json';
-                    break;
-                case 'csv':
-                    const csvHeaders = 'ID,Nama,Deskripsi,Alamat,Jenis,Kategori,Status\n';
-                    const csvData = `${supplierData.pubid},"${supplierData.name}","${supplierData.description || ''}","${supplierData.address || ''}","${supplierData.jenis_supplier || ''}","${supplierData.kategori_supplier || ''}",${supplierData.status === 1 ? 'Aktif' : 'Tidak Aktif'}`;
-                    exportData = csvHeaders + csvData;
-                    filename = `supplier_${supplierData.pubid}_${new Date().toISOString().split('T')[0]}.csv`;
-                    mimeType = 'text/csv';
-                    break;
-                default:
-                    throw new Error('Format export tidak didukung');
-            }
-
-            // Create download link
-            const blob = new Blob([exportData], { type: mimeType });
-            const url = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = filename;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
-
-            return { success: true, message: `Data berhasil diekspor sebagai ${format.toUpperCase()}` };
-        } catch (error) {
-            const errorMsg = `Gagal mengekspor data: ${error.message}`;
-            setError(errorMsg);
-            return { success: false, message: errorMsg };
-        }
-    }, []);
-
-    // Share supplier data
-    const shareSupplier = useCallback(async (supplierData) => {
-        if (!supplierData) return { success: false, message: 'Data supplier tidak ditemukan' };
-
-        try {
-            const shareText = `Supplier: ${supplierData.name}\nDeskripsi: ${supplierData.description || 'Tidak ada deskripsi'}\nAlamat: ${supplierData.address || 'Tidak ada alamat'}\nJenis: ${supplierData.jenis_supplier || '-'}\nKategori: ${supplierData.kategori_supplier || '-'}\nStatus: ${supplierData.status === 1 ? 'Aktif' : 'Tidak Aktif'}`;
-            
-            if (navigator.share) {
-                // Use Web Share API if available
-                await navigator.share({
-                    title: `Data Supplier - ${supplierData.name}`,
-                    text: shareText,
-                    url: window.location.href
-                });
-                return { success: true, message: 'Data berhasil dibagikan' };
-            } else {
-                // Fallback to clipboard
-                await navigator.clipboard.writeText(shareText);
-                return { success: true, message: 'Data berhasil disalin ke clipboard' };
-            }
-        } catch (error) {
-            if (error.name === 'AbortError') {
-                // User cancelled the share
-                return { success: false, message: 'Pembagian dibatalkan' };
-            }
-            
-            const errorMsg = 'Gagal membagikan data';
-            setError(errorMsg);
-            return { success: false, message: errorMsg };
-        }
-    }, []);
+    const clearSelection = useCallback(() => setSelectedIds([]), []);
 
     return {
-        suppliers: filteredData,
+        suppliers,
         loading,
         error,
+        // search
+        searchInput,
+        setSearchInput,
         searchTerm,
-        setSearchTerm,
-        filterStatus,
-        setFilterStatus,
+        // pagination
+        page,
+        setPage,
+        perPage,
+        setPerPage,
+        meta,
+        // sorting
+        sortField,
+        sortDir,
+        handleSort,
+        // filters
+        filterJenis,
+        setFilterJenis,
         filterKategori,
         setFilterKategori,
+        resetFilters,
+        // selection
+        selectedIds,
+        toggleSelectId,
+        toggleSelectAll,
+        clearSelection,
+        // stats
         stats,
+        // CRUD
         fetchSuppliers,
         createSupplier,
         updateSupplier,
         deleteSupplier,
-        duplicateSupplier,
-        toggleSupplierStatus,
-        exportSupplier,
-        shareSupplier,
-        testApiConnection,
-        // Server pagination info
-        serverPagination
+        bulkDelete,
     };
 };
 
