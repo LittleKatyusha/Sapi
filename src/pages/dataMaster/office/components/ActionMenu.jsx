@@ -10,11 +10,28 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef }) => 
         function updatePosition() {
             if (buttonRef?.current) {
                 const btnRect = buttonRef.current.getBoundingClientRect();
+                const menuWidth = 192; // w-48
+                const menuHeight = 220; // approx
+                const viewportW = window.innerWidth;
+                const viewportH = window.innerHeight;
+
+                // Horizontal: default left-align with button; flip to right-align if overflow right
+                let left = btnRect.left + window.scrollX;
+                if (left + menuWidth > viewportW - 8) {
+                    left = Math.max(8, btnRect.right + window.scrollX - menuWidth);
+                }
+
+                // Vertical: default below; flip above if overflow bottom
+                let top = btnRect.bottom + window.scrollY + 8;
+                if (top - window.scrollY + menuHeight > viewportH - 8) {
+                    top = Math.max(8, btnRect.top + window.scrollY - menuHeight - 8);
+                }
+
                 setMenuStyle({
                     position: 'absolute',
-                    left: btnRect.left + window.scrollX,
-                    top: btnRect.bottom + window.scrollY + 8,
-                    zIndex: 9999
+                    left,
+                    top,
+                    zIndex: 9999,
                 });
             }
         }

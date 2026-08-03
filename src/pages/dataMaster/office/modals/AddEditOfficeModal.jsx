@@ -1,5 +1,99 @@
-import React, { useState, useEffect } from 'react';
-import { Edit2, Plus, X, Building2, Hash, FileText, MapPin } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Edit2, Plus, X, Building2, FileText, MapPin, Check, ChevronDown } from 'lucide-react';
+
+const KATEGORI_PALETTE = [
+    { ring: 'ring-emerald-500', bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-500', solid: 'bg-emerald-500' },
+    { ring: 'ring-sky-500', bg: 'bg-sky-50', text: 'text-sky-700', dot: 'bg-sky-500', solid: 'bg-sky-500' },
+    { ring: 'ring-amber-500', bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-500', solid: 'bg-amber-500' },
+    { ring: 'ring-violet-500', bg: 'bg-violet-50', text: 'text-violet-700', dot: 'bg-violet-500', solid: 'bg-violet-500' },
+    { ring: 'ring-slate-500', bg: 'bg-slate-100', text: 'text-slate-700', dot: 'bg-slate-500', solid: 'bg-slate-500' },
+];
+
+const KategoriPicker = ({ value, onChange, options, loading, error }) => {
+    const [open, setOpen] = useState(false);
+    const wrapRef = useRef(null);
+
+    useEffect(() => {
+        const handleClick = (e) => {
+            if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
+        };
+        document.addEventListener('mousedown', handleClick);
+        return () => document.removeEventListener('mousedown', handleClick);
+    }, []);
+
+    const selected = options.find((k) => String(k.value) === String(value));
+    const selectedPalette = selected
+        ? KATEGORI_PALETTE[(Number(selected.value) || 5) - 1] || KATEGORI_PALETTE[4]
+        : null;
+
+    return (
+        <div className="relative" ref={wrapRef}>
+            <button
+                type="button"
+                onClick={() => !loading && setOpen((o) => !o)}
+                disabled={loading}
+                className={`w-full px-4 py-3 border rounded-xl flex items-center justify-between gap-2 transition-colors duration-200 text-left ${
+                    error ? 'border-red-300 bg-red-50' : 'border-gray-300 hover:border-gray-400'
+                } ${loading ? 'bg-gray-100 cursor-not-allowed' : 'bg-white cursor-pointer'} ${open ? 'ring-2 ring-red-200 border-red-400' : ''}`}
+            >
+                {loading ? (
+                    <span className="text-sm text-gray-400">Memuat kategori...</span>
+                ) : selected ? (
+                    <span className="flex items-center gap-2 min-w-0">
+                        <span className={`h-2.5 w-2.5 flex-shrink-0 rounded-full ${selectedPalette.dot}`} />
+                        <span className="truncate text-sm font-medium text-gray-800">{selected.label}</span>
+                    </span>
+                ) : (
+                    <span className="text-sm text-gray-400">Pilih Kategori</span>
+                )}
+                <ChevronDown size={16} className={`flex-shrink-0 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+            </button>
+
+            {open && !loading && (
+                <div className="absolute z-30 mt-1.5 w-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
+                    <div className="max-h-64 overflow-y-auto p-2 space-y-1">
+                        {options.length === 0 ? (
+                            <div className="px-3 py-6 text-center text-xs text-gray-400">Tidak ada kategori tersedia</div>
+                        ) : (
+                            options.map((kategori, idx) => {
+                                const palette = KATEGORI_PALETTE[(Number(kategori.value) || 5) - 1] || KATEGORI_PALETTE[idx % KATEGORI_PALETTE.length];
+                                const isSelected = String(kategori.value) === String(value);
+                                return (
+                                    <button
+                                        type="button"
+                                        key={`opt-${kategori.id || kategori.value || idx}`}
+                                        onClick={() => {
+                                            onChange({ target: { name: 'id_kategori', value: String(kategori.value) } });
+                                            setOpen(false);
+                                        }}
+                                        className={`w-full flex items-start gap-3 rounded-lg px-3 py-2.5 text-left transition-colors ${
+                                            isSelected ? `${palette.bg} ring-1 ${palette.ring}` : 'hover:bg-gray-50'
+                                        }`}
+                                    >
+                                        <span className={`mt-1 h-2.5 w-2.5 flex-shrink-0 rounded-full ${palette.dot}`} />
+                                        <div className="min-w-0 flex-1">
+                                            <div className={`text-sm font-medium ${isSelected ? palette.text : 'text-gray-800'}`}>
+                                                {kategori.label}
+                                            </div>
+                                            {kategori.description && (
+                                                <div className="mt-0.5 text-xs text-gray-500 line-clamp-2">
+                                                    {kategori.description}
+                                                </div>
+                                            )}
+                                        </div>
+                                        {isSelected && <Check size={16} className={`flex-shrink-0 ${palette.text}`} />}
+                                    </button>
+                                );
+                            })
+                        )}
+                    </div>
+                </div>
+            )}
+            {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+            {loading && <p className="mt-1 text-xs text-gray-500">Mengambil data kategori dari database...</p>}
+        </div>
+    );
+};
 
 const AddEditOfficeModal = ({
     isOpen,
@@ -191,32 +285,13 @@ const AddEditOfficeModal = ({
                         <label className="block text-sm font-semibold text-gray-700 mb-2">
                             Kategori *
                         </label>
-                        <select
-                            name="id_kategori"
+                        <KategoriPicker
                             value={formData.id_kategori}
                             onChange={handleInputChange}
-                            disabled={kategoriLoading}
-                            className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors duration-200 ${
-                                errors.id_kategori ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                            } ${kategoriLoading ? 'bg-gray-100 cursor-not-allowed' : ''}`}
-                        >
-                            <option key="empty" value="">
-                                {kategoriLoading ? 'Memuat kategori...' : 'Pilih Kategori'}
-                            </option>
-                            {getActiveKategori().map((kategori, index) => (
-                                <option key={`modal-kategori-${kategori.id || kategori.value || index}`} value={String(kategori.value)}>
-                                    {kategori.label}
-                                </option>
-                            ))}
-                        </select>
-                        {errors.id_kategori && (
-                            <p className="mt-1 text-sm text-red-600">{errors.id_kategori}</p>
-                        )}
-                        {kategoriLoading && (
-                            <p className="mt-1 text-xs text-gray-500">
-                                📡 Mengambil data kategori dari database...
-                            </p>
-                        )}
+                            options={getActiveKategori()}
+                            loading={kategoriLoading}
+                            error={errors.id_kategori}
+                        />
                     </div>
 
 
