@@ -428,10 +428,10 @@ const PembelianSapi = () => {
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                             <div>
                                 <h1 className="text-lg sm:text-xl font-bold text-gray-900">
-                                    Kelola data pembelian sapi
+                                    Kelola data pembelian doka & sapi
                                 </h1>
                                 <p className="text-sm text-gray-500">
-                                    Kelola data pembelian sapi dan ternak
+                                    Kelola data pembelian doka & sapi dan ternak
                                 </p>
                             </div>
                             <button
@@ -515,7 +515,7 @@ const PembelianSapi = () => {
                             <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
                                 <div className="text-center">
                                     <p className="text-sm font-semibold text-gray-900 mb-1">Belum ada data</p>
-                                    <p className="text-xs text-gray-500 mb-3">Data pembelian sapi akan muncul di sini.</p>
+                                    <p className="text-xs text-gray-500 mb-3">Data pembelian doka & sapi akan muncul di sini.</p>
                                     <button
                                         onClick={handleOpenAddModal}
                                         className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-md text-xs font-medium transition-colors"
