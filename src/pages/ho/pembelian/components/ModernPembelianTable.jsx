@@ -686,7 +686,7 @@ const ModernPembelianTable = ({
                               <InfoItem icon={Truck} label="Nama Supir" value={row.nama_supir} />
                               <InfoItem icon={Banknote} label="Biaya Lain-lain" value={formatCurrency(row.biaya_lain)} valueClass="text-gray-900" />
                               <InfoItem icon={Wallet} label="Biaya Truk" value={formatCurrency(row.biaya_truk)} valueClass="text-gray-900" />
-                              <InfoItem icon={Package} label="Total Belanja" value={formatCurrency(row.total_belanja)} valueClass="text-gray-900" />
+                              <InfoItem icon={Package} label="Total Harga Jual" value={formatCurrency(row.total_belanja)} valueClass="text-gray-900" />
                               <InfoItem icon={Calendar} label="Jatuh Tempo" value={row.due_date ? formatDate(row.due_date) : '-'} />
                               <InfoItem icon={Wallet} label="Total Tagihan" value={formatCurrency(row.total_tagihan)} valueClass="text-gray-900" />
                               <InfoItem icon={Banknote} label="Total Terbayar" value={formatCurrency(row.total_terbayar)} valueClass="text-gray-900" />

@@ -17,7 +17,6 @@ import {
   Loader2
 } from 'lucide-react';
 import LaporanPembelianService from '../../../../services/laporanPembelianService';
-import { API_ENDPOINTS, API_BASE_URL } from '../../../../config/api';
 
 const PembelianCard = ({
     data,
@@ -358,13 +357,13 @@ const PembelianCard = ({
                     </span>
                 </div>
 
-                {/* Total Belanja */}
+                {/* Total Harga Jual */}
                 <div>
                     <div className="flex items-center gap-2 mb-1.5">
                         <div className="p-1.5 rounded-lg bg-green-100">
                             <Package className="w-4 h-4 text-green-600" />
                         </div>
-                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Total</span>
+                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Total Harga Jual</span>
                     </div>
                     <span className="inline-flex px-4 py-2 text-base font-bold rounded-xl bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 shadow-inner">
                         {data.total_belanja ? new Intl.NumberFormat('id-ID', {
