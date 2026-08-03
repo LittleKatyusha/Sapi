@@ -35,6 +35,7 @@ const inputClass = 'w-full rounded-xl border border-slate-300 px-3 py-2.5 text-s
 
 const AddEditBoningModal = ({
   isOpen,
+  fullPage = false,
   onClose,
   onSubmit,
   editData,
@@ -451,8 +452,8 @@ const AddEditBoningModal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[1200] flex items-start justify-center overflow-y-auto bg-black/50 px-4 py-6" onClick={onClose}>
-      <div className="w-full max-w-6xl rounded-3xl bg-white shadow-2xl" onClick={(event) => event.stopPropagation()}>
+    <div className={fullPage ? 'min-h-screen bg-slate-50' : 'fixed inset-0 z-[1200] flex items-start justify-center overflow-y-auto bg-black/50 px-4 py-6'} onClick={fullPage ? undefined : onClose}>
+      <div className={fullPage ? 'min-h-screen w-full overflow-hidden bg-white' : 'w-full max-w-6xl rounded-3xl bg-white shadow-2xl'} onClick={(event) => event.stopPropagation()}>
         <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
           <div>
             <h2 className="text-xl font-bold text-slate-900">{isEdit ? 'Edit Penjualan Boning' : 'Tambah Penjualan Boning'}</h2>

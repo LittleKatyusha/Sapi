@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { Eye, Loader2, MoreVertical, Pencil, Plus, RefreshCcw, Search, Trash2, X } from 'lucide-react';
 import PenjualanKulitService from '../../../../services/penjualanKulitService';
@@ -161,7 +162,7 @@ function RowActionButton({ row, isOpen, onToggle, onClose, onDetail, onEdit, onD
   );
 }
 
-function PenjualanKulitForm({ open, mode, initialData, master, saving, onClose, onSubmit }) {
+function PenjualanKulitForm({ open, mode, initialData, master, saving, onClose, onSubmit, fullPage = false }) {
   const [form, setForm] = useState(emptyForm());
   const [line, setLine] = useState(emptyLine);
   const [error, setError] = useState('');
@@ -297,8 +298,8 @@ function PenjualanKulitForm({ open, mode, initialData, master, saving, onClose, 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-      <div className="max-h-[92vh] w-full max-w-6xl overflow-hidden rounded-xl bg-white shadow-2xl">
+    <div className={fullPage ? 'min-h-screen bg-slate-50 p-4 md:p-6' : 'fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4'}>
+      <div className={fullPage ? 'min-h-screen w-full overflow-hidden bg-white' : 'max-h-[92vh] w-full max-w-6xl overflow-hidden rounded-xl bg-white shadow-2xl'}>
         <div className="flex items-center justify-between border-b px-5 py-4">
           <div>
             <h2 className="text-lg font-bold text-slate-900">{mode === 'edit' ? 'Edit Penjualan Kulit' : 'Tambah Penjualan Kulit'}</h2>
@@ -357,6 +358,10 @@ function PenjualanKulitForm({ open, mode, initialData, master, saving, onClose, 
 }
 
 export default function PenjualanKulitPage() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { pid: routePid } = useParams();
+  const isFormPage = location.pathname.endsWith('/add') || location.pathname.includes('/edit/');
   const [rows, setRows] = useState([]);
   const [master, setMaster] = useState({});
   const [loading, setLoading] = useState(true);
@@ -390,10 +395,7 @@ export default function PenjualanKulitPage() {
   }, [openMenuId]);
 
   const openEdit = async (row) => {
-    const res = await PenjualanKulitService.show(row.pid);
-    if (!res.success) return setNotice({ type: 'error', message: res.message });
-    setSelected(res.data);
-    setModal('edit');
+    navigate(`/rph/penjualan-kulit/edit/${row.pid}`);
   };
 
   const openDetail = async (row) => {
@@ -416,6 +418,7 @@ export default function PenjualanKulitPage() {
     setSaving(false);
     if (res.success) {
       setModal(null);
+      if (isFormPage) navigate('/rph/penjualan-kulit');
       await Promise.all([load(), loadMaster()]);
     }
   };
@@ -431,11 +434,21 @@ export default function PenjualanKulitPage() {
     if (res.success) await load();
   };
 
+  useEffect(() => {
+    if (!isFormPage || !routePid) return;
+    PenjualanKulitService.show(routePid).then((res) => {
+      if (res.success) setSelected(res.data);
+      else setNotice({ type: 'error', message: res.message });
+    });
+  }, [isFormPage, routePid]);
+
+  if (isFormPage) return <PenjualanKulitForm fullPage open mode={routePid ? 'edit' : 'add'} initialData={routePid ? selected : null} master={master} saving={saving} onClose={() => navigate('/rph/penjualan-kulit')} onSubmit={save} />;
+
   return (
     <div className="min-h-screen bg-slate-50 p-4 md:p-6">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div><h1 className="text-2xl font-bold text-slate-900">Penjualan Kulit</h1><p className="text-sm text-slate-500">Pencatatan penjualan dan kontrol stok kulit RPH.</p></div>
-        <button className="inline-flex items-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700" onClick={() => { setSelected(null); setModal('add'); }}><Plus className="mr-2 h-4 w-4" />Tambah</button>
+        <button className="inline-flex items-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700" onClick={() => navigate('/rph/penjualan-kulit/add')}><Plus className="mr-2 h-4 w-4" />Tambah</button>
       </div>
       {notice ? <div className={`mb-4 flex items-center justify-between rounded-lg border px-4 py-3 text-sm ${notice.type === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-rose-200 bg-rose-50 text-rose-700'}`}><span>{notice.message}</span><button onClick={() => setNotice(null)}><X className="h-4 w-4" /></button></div> : null}
       <div className="mb-4 grid gap-3 rounded-lg border bg-white p-4 md:grid-cols-5">

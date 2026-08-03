@@ -440,8 +440,14 @@ function AppSecure() {
               <Route path="/rph/penjualan-sapi-utuh/return/:pid" element={<ReturnPenjualanPage />} />
               <Route path="/rph/penjualan-sapi-utuh/return-history" element={<ReturnHistoryPage />} />
               <Route path="/rph/penjualan-boning" element={<PenjualanBoningPage />} />
+              <Route path="/rph/penjualan-boning/add" element={<PenjualanBoningPage />} />
+              <Route path="/rph/penjualan-boning/edit/:pid" element={<PenjualanBoningPage />} />
               <Route path="/rph/penjualan-karkas" element={<PenjualanKarkasPage />} />
+              <Route path="/rph/penjualan-karkas/add" element={<PenjualanKarkasPage />} />
+              <Route path="/rph/penjualan-karkas/edit/:pid" element={<PenjualanKarkasPage />} />
               <Route path="/rph/penjualan-kulit" element={<PenjualanKulitPage />} />
+              <Route path="/rph/penjualan-kulit/add" element={<PenjualanKulitPage />} />
+              <Route path="/rph/penjualan-kulit/edit/:pid" element={<PenjualanKulitPage />} />
 
               {/* RPH Keuangan Routes */}
               <Route path="/rph/keuangan/penerimaan" element={<PenerimaanRphPage />} />

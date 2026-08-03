@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import DataTable from 'react-data-table-component';
 import { Calendar, Eye, Loader2, MoreVertical, Pencil, PlusCircle, Search, Trash2, X } from 'lucide-react';
@@ -175,6 +176,10 @@ const RowActionButton = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onD
 };
 
 const PenjualanBoningPage = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { pid: routePid } = useParams();
+  const isFormPage = location.pathname.endsWith('/add') || location.pathname.includes('/edit/');
   const {
     dataList, loading, error,
     searchTerm, dateRange, serverPagination,
@@ -221,7 +226,7 @@ const PenjualanBoningPage = () => {
       await fetchMasterData();
     }
     setSelectedItem(null);
-    setIsAddModalOpen(true);
+    navigate('/rph/penjualan-boning/add');
   };
 
   const handleLoadDetail = useCallback(async (pid, onSuccess) => {
@@ -238,6 +243,10 @@ const PenjualanBoningPage = () => {
   }, [show]);
 
   const handleOpenEdit = useCallback(async (item) => {
+    if (!isFormPage) {
+      navigate(`/rph/penjualan-boning/edit/${item.pid}`);
+      return;
+    }
     if (!pedagangList.length || !boningItems.length || !bankOptions.length || !pengirimOptions.length || !kendaraanOptions.length) {
       await fetchMasterData();
     }
@@ -245,7 +254,12 @@ const PenjualanBoningPage = () => {
       setSelectedItem(data);
       setIsEditModalOpen(true);
     });
-  }, [pedagangList, boningItems, bankOptions, pengirimOptions, kendaraanOptions, fetchMasterData, handleLoadDetail]);
+  }, [isFormPage, navigate, pedagangList, boningItems, bankOptions, pengirimOptions, kendaraanOptions, fetchMasterData, handleLoadDetail]);
+
+  useEffect(() => {
+    if (!isFormPage || !routePid) return;
+    handleLoadDetail(routePid, (data) => setSelectedItem(data));
+  }, [isFormPage, routePid, handleLoadDetail]);
 
   const handleOpenDetail = useCallback(async (item) => {
     await handleLoadDetail(item.pid, (data) => {
@@ -268,6 +282,7 @@ const PenjualanBoningPage = () => {
 
     setNotification({ type: 'success', message: res.message || 'Penjualan boning berhasil disimpan' });
     setIsAddModalOpen(false);
+    if (isFormPage) navigate('/rph/penjualan-boning');
     refresh();
     fetchMasterData();
   };
@@ -281,6 +296,7 @@ const PenjualanBoningPage = () => {
 
     setNotification({ type: 'success', message: res.message || 'Penjualan boning berhasil diperbarui' });
     setIsEditModalOpen(false);
+    if (isFormPage) navigate('/rph/penjualan-boning');
     refresh();
     fetchMasterData();
   };
@@ -398,6 +414,13 @@ const PenjualanBoningPage = () => {
       ),
     },
   ]), [openMenuId, serverPagination, handleOpenDetail, handleOpenEdit]);
+
+  if (isFormPage) {
+    const formData = routePid ? selectedItem : null;
+    return <div className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 lg:px-8">
+      <AddEditBoningModal fullPage isOpen onClose={() => navigate('/rph/penjualan-boning')} onSubmit={routePid ? handleUpdate : handleStore} editData={formData} pedagangList={pedagangList} boningItems={boningItems} itemPotongOptions={itemPotongOptions} bankOptions={bankOptions} pengirimOptions={pengirimOptions} kendaraanOptions={kendaraanOptions} fetchHarga={fetchHarga} fetchPedagangHarga={fetchPedagangHarga} loading={routePid ? updateLoading : createLoading} masterLoading={masterLoading} idOffice={idOffice} />
+    </div>;
+  }
 
   return (
     <div className="min-h-screen bg-slate-50">

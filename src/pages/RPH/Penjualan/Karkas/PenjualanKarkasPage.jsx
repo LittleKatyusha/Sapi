@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { Eye, Loader2, MoreVertical, Pencil, Plus, Search, Trash2, X } from 'lucide-react';
 import PenjualanKarkasService from '../../../../services/penjualanKarkasService';
@@ -174,6 +175,7 @@ const RowActionButton = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onD
 };
 
 const KarkasFormModal = ({
+  fullPage = false,
   form,
   saving,
   totals,
@@ -192,8 +194,8 @@ const KarkasFormModal = ({
   addItem,
   removeItem,
 }) => (
-  <div className="fixed inset-0 z-50 overflow-y-auto bg-black/40 p-4">
-    <form onSubmit={onSubmit} className="mx-auto max-w-6xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+  <div className={fullPage ? 'min-h-screen bg-slate-50' : 'fixed inset-0 z-50 overflow-y-auto bg-black/40 p-4'}>
+    <form onSubmit={onSubmit} className={fullPage ? 'min-h-screen w-full overflow-hidden bg-white' : 'mx-auto max-w-6xl overflow-hidden rounded-2xl bg-white shadow-2xl'}>
       <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
         <div>
           <h2 className="text-lg font-bold text-slate-900">{form.pid ? 'Edit' : 'Tambah'} Penjualan Karkas</h2>
@@ -370,6 +372,10 @@ const KarkasFormModal = ({
 );
 
 export default function PenjualanKarkasPage() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { pid: routePid } = useParams();
+  const isFormPage = location.pathname.endsWith('/add') || location.pathname.includes('/edit/');
   const { showError } = useNotification();
   const [rows, setRows] = useState([]); const [pedagang, setPedagang] = useState([]); const [sapi, setSapi] = useState([]); const [banks, setBanks] = useState([]); const [pengirim, setPengirim] = useState([]); const [kendaraan, setKendaraan] = useState([]); const [loading, setLoading] = useState(true); const [error, setError] = useState('');
   const [search, setSearch] = useState(''); const [page, setPage] = useState(1); const [total, setTotal] = useState(0); const [modal, setModal] = useState(null); const [form, setForm] = useState(initial()); const [saving, setSaving] = useState(false); const [detail, setDetail] = useState(null); const [openMenuId, setOpenMenuId] = useState(null); const [actionLoading, setActionLoading] = useState('');
@@ -393,8 +399,10 @@ export default function PenjualanKarkasPage() {
       .then((r) => setKendaraan(optionRows(r)))
       .catch((e) => setError(e.message || 'Gagal memuat daftar kendaraan ekspedisi'));
   }, []);
-  const openCreate = () => { setForm(initial()); setModal('form'); };
-  const openEdit = async (row) => { if (isPaidRow(row)) { setError('Transaksi yang sudah dibayar tidak bisa diedit.'); return; } setActionLoading('Memuat data edit...'); try { const r = await PenjualanKarkasService.show(row.pid); const details = r.data.details || []; setSapi(current => { const byId = new Map(current.map(item => [String(item.id), item])); details.forEach(detail => { const id = String(detail.id_pembelian_ho_detail || ''); if (id && !byId.has(id)) byId.set(id, detailToSapiOption(detail)); }); return Array.from(byId.values()); }); const usage = Number(r.data.penjualan.penggunaan_saldo || 0); setForm({ ...initial(), ...r.data.penjualan, id_pedagang: r.data.penjualan.id_pedagang, gunakan_saldo: r.data.penjualan.is_penggunaan_saldo === 'YA' || usage > 0, penggunaan_saldo: usage || '', items: details.map(x => ({ ...x, nominal_kulit: x.nominal_kulit ?? '' })) }); setModal('form'); } catch (e) { setError(e.message); } finally { setActionLoading(''); } };
+  const loadEdit = useCallback(async (id) => { setActionLoading('Memuat data edit...'); try { const r = await PenjualanKarkasService.show(id); const details = r.data.details || []; setSapi(current => { const byId = new Map(current.map(item => [String(item.id), item])); details.forEach(detail => { const itemId = String(detail.id_pembelian_ho_detail || ''); if (itemId && !byId.has(itemId)) byId.set(itemId, detailToSapiOption(detail)); }); return Array.from(byId.values()); }); const usage = Number(r.data.penjualan.penggunaan_saldo || 0); setForm({ ...initial(), ...r.data.penjualan, id_pedagang: r.data.penjualan.id_pedagang, gunakan_saldo: r.data.penjualan.is_penggunaan_saldo === 'YA' || usage > 0, penggunaan_saldo: usage || '', items: details.map(x => ({ ...x, nominal_kulit: x.nominal_kulit ?? '' })) }); } catch (e) { setError(e.message); } finally { setActionLoading(''); } }, []);
+  useEffect(() => { if (isFormPage && routePid) loadEdit(routePid); else if (isFormPage) setForm(initial()); }, [isFormPage, routePid, loadEdit]);
+  const openCreate = () => navigate('/rph/penjualan-karkas/add');
+  const openEdit = async (row) => { if (isPaidRow(row)) { setError('Transaksi yang sudah dibayar tidak bisa diedit.'); return; } navigate(`/rph/penjualan-karkas/edit/${row.pid}`); };
   const setHeader = (key, value) => setForm(f => ({ ...f, [key]: value }));
   const setItem = (i, key, value) => setForm(f => ({ ...f, items: f.items.map((x, n) => n === i ? { ...x, [key]: value } : x) }));
   const selectPaymentType = (value) => setForm(f => ({ ...f, tipe_pembayaran: value || '1', id_syarat_pembelian: value === '2' ? f.id_syarat_pembelian : '' }));
@@ -412,10 +420,12 @@ export default function PenjualanKarkasPage() {
       n: a.n + nominalKarkas + (x.perlakuan_kulit === 'DIAMBIL' ? nominalKulit : 0),
     };
   }, { w: 0, karkas: 0, kulitDiambil: 0, kulitDitabung: 0, n: 0 }), [form.items]);
-  const save = async (e) => { e.preventDefault(); setSaving(true); setActionLoading('Menyimpan transaksi...'); setError(''); try { if (form.tipe_pembayaran === '2' && !form.id_syarat_pembelian) throw new Error('Bank wajib dipilih untuk pembayaran kredit.'); if (form.pengiriman === 'DIANTAR' && !form.id_pengirim) throw new Error('Pengirim wajib dipilih untuk pengiriman diantar.'); if (form.pengiriman === 'DIANTAR' && !form.id_kendaraan_ekspedisi) throw new Error('Kendaraan ekspedisi wajib dipilih untuk pengiriman diantar.'); const payload = { ...form, pid: form.pid, id_pedagang: Number(form.id_pedagang), penggunaan_saldo: form.gunakan_saldo ? Number(form.penggunaan_saldo || 0) : 0, id_syarat_pembelian: form.tipe_pembayaran === '2' ? Number(form.id_syarat_pembelian) : null, biaya_pengiriman: form.pengiriman === 'DIANTAR' ? Number(form.biaya_pengiriman || 0) : 0, alamat_pengiriman: form.pengiriman === 'DIANTAR' ? form.alamat_pengiriman : null, id_pengirim: form.pengiriman === 'DIANTAR' ? Number(form.id_pengirim) : null, id_kendaraan_ekspedisi: form.pengiriman === 'DIANTAR' ? Number(form.id_kendaraan_ekspedisi) : null, nama_penerima: form.pengiriman === 'DIANTAR' ? form.nama_penerima : null, items: form.items.map(x => ({ ...x, id_pembelian_ho_detail: Number(x.id_pembelian_ho_detail), berat_paha_depan_kg: Number(x.berat_paha_depan_kg), berat_paha_belakang_kg: Number(x.berat_paha_belakang_kg), harga_karkas_aktual: Number(x.harga_karkas_aktual), berat_kulit_kg: Number(x.berat_kulit_kg || 0), nominal_kulit: Number(x.nominal_kulit || 0) })) }; const r = form.pid ? await PenjualanKarkasService.update(payload) : await PenjualanKarkasService.store(payload); if (r.success === false) throw new Error(r.message); setModal(null); await load(); } catch (e) { const message = getRequestErrorMessage(e, 'Gagal menyimpan penjualan karkas.'); setError(message); showError(message); } finally { setSaving(false); setActionLoading(''); } };
+  const save = async (e) => { e.preventDefault(); setSaving(true); setActionLoading('Menyimpan transaksi...'); setError(''); try { if (form.tipe_pembayaran === '2' && !form.id_syarat_pembelian) throw new Error('Bank wajib dipilih untuk pembayaran kredit.'); if (form.pengiriman === 'DIANTAR' && !form.id_pengirim) throw new Error('Pengirim wajib dipilih untuk pengiriman diantar.'); if (form.pengiriman === 'DIANTAR' && !form.id_kendaraan_ekspedisi) throw new Error('Kendaraan ekspedisi wajib dipilih untuk pengiriman diantar.'); const payload = { ...form, pid: form.pid, id_pedagang: Number(form.id_pedagang), penggunaan_saldo: form.gunakan_saldo ? Number(form.penggunaan_saldo || 0) : 0, id_syarat_pembelian: form.tipe_pembayaran === '2' ? Number(form.id_syarat_pembelian) : null, biaya_pengiriman: form.pengiriman === 'DIANTAR' ? Number(form.biaya_pengiriman || 0) : 0, alamat_pengiriman: form.pengiriman === 'DIANTAR' ? form.alamat_pengiriman : null, id_pengirim: form.pengiriman === 'DIANTAR' ? Number(form.id_pengirim) : null, id_kendaraan_ekspedisi: form.pengiriman === 'DIANTAR' ? Number(form.id_kendaraan_ekspedisi) : null, nama_penerima: form.pengiriman === 'DIANTAR' ? form.nama_penerima : null, items: form.items.map(x => ({ ...x, id_pembelian_ho_detail: Number(x.id_pembelian_ho_detail), berat_paha_depan_kg: Number(x.berat_paha_depan_kg), berat_paha_belakang_kg: Number(x.berat_paha_belakang_kg), harga_karkas_aktual: Number(x.harga_karkas_aktual), berat_kulit_kg: Number(x.berat_kulit_kg || 0), nominal_kulit: Number(x.nominal_kulit || 0) })) }; const r = form.pid ? await PenjualanKarkasService.update(payload) : await PenjualanKarkasService.store(payload); if (r.success === false) throw new Error(r.message); setModal(null); await load(); if (isFormPage) navigate('/rph/penjualan-karkas'); } catch (e) { const message = getRequestErrorMessage(e, 'Gagal menyimpan penjualan karkas.'); setError(message); showError(message); } finally { setSaving(false); setActionLoading(''); } };
   const cancel = async (row) => { if (isPaidRow(row)) { setError('Transaksi yang sudah dibayar tidak bisa dihapus.'); return; } if (!window.confirm(`Hapus transaksi ${row.no_kwitansi}?`)) return; setActionLoading('Menghapus transaksi...'); try { await PenjualanKarkasService.hapus(row.pid); await load(); } catch (e) { setError(e.message); } finally { setActionLoading(''); } };
   const openDetail = async (row) => { setActionLoading('Memuat detail transaksi...'); try { const x = await PenjualanKarkasService.show(row.pid); setDetail(x.data); } catch (e) { setError(e.message); } finally { setActionLoading(''); } };
   const available = (selected) => sapi.filter(x => (!x.isEditOption || form.pid) && !form.items.some(i => String(i.id_pembelian_ho_detail) === String(x.id) && String(x.id) !== String(selected)));
+
+  if (isFormPage) return <KarkasFormModal fullPage form={form} saving={saving} totals={totals} pedagang={pedagang} banks={banks} pengirim={pengirim} kendaraan={kendaraan} available={available} onClose={() => navigate('/rph/penjualan-karkas')} onSubmit={save} selectPedagang={selectPedagang} selectPaymentType={selectPaymentType} selectShipping={selectShipping} setHeader={setHeader} setItem={setItem} addItem={() => setForm(f => ({ ...f, items: [...f.items, blankItem()] }))} removeItem={(i) => setForm(f => ({ ...f, items: f.items.filter((_, n) => n !== i) }))} />;
 
   return <div className="min-h-screen bg-slate-50"><div className="space-y-6 px-4 py-5 sm:px-6 lg:px-8">
     <div className="rounded-3xl border border-white/60 bg-white/90 p-6 shadow-xl shadow-rose-100/50">
