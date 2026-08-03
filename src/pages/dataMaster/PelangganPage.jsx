@@ -1,68 +1,85 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import DataTable from 'react-data-table-component';
-import { Search, Filter, PlusCircle, AlertCircle, CheckCircle, XCircle, Users, Hash, Activity, LayoutGrid, List, MapPin, Phone } from 'lucide-react';
+import React, { useState, useMemo, useCallback } from 'react';
+import {
+    PlusCircle, Search, Users, MapPin, Phone,
+    ChevronUp, ChevronDown, ChevronsUpDown, RotateCcw,
+    Trash2, AlertTriangle, CheckCircle,
+} from 'lucide-react';
 
-// Import modal yang sudah dipisahkan
+import ActionButton from './pelanggan/components/ActionButton';
 import AddEditPelangganModal from './pelanggan/modals/AddEditPelangganModal';
 import PelangganDetailModal from './pelanggan/modals/PelangganDetailModal';
 import DeleteConfirmationModal from '../../components/shared/modals/DeleteConfirmationModal';
-
-// Import custom hook yang sudah dipisahkan
 import usePelanggan from './pelanggan/hooks/usePelanggan';
 
-// Import komponen yang sudah dipisahkan
-import ActionButton from './pelanggan/components/ActionButton';
-import StatusBadge from './pelanggan/components/StatusBadge';
-import CardView from './pelanggan/components/CardView';
+const SortIcon = ({ field, sortField, sortDir }) => {
+    if (sortField !== field) return <ChevronsUpDown size={13} className="text-gray-300" />;
+    return sortDir === 'asc'
+        ? <ChevronUp size={13} className="text-red-600" />
+        : <ChevronDown size={13} className="text-red-600" />;
+};
 
-// Import constants yang sudah dipisahkan
-import customTableStyles from './pelanggan/constants/tableStyles';
+const SkeletonRow = () => (
+    <tr className="border-b border-gray-100">
+        <td className="px-4 py-3"><div className="h-4 w-4 rounded bg-gray-200 animate-pulse" /></td>
+        <td className="px-4 py-3"><div className="h-4 w-24 rounded bg-gray-200 animate-pulse" /></td>
+        <td className="px-4 py-3"><div className="h-4 w-48 rounded bg-gray-200 animate-pulse" /></td>
+        <td className="px-4 py-3"><div className="h-4 w-40 rounded bg-gray-200 animate-pulse" /></td>
+        <td className="px-4 py-3"><div className="h-4 w-24 rounded bg-gray-200 animate-pulse" /></td>
+        <td className="px-4 py-3"><div className="h-4 w-20 rounded bg-gray-200 animate-pulse" /></td>
+        <td className="px-4 py-3"><div className="h-4 w-8 rounded bg-gray-200 animate-pulse ml-auto" /></td>
+    </tr>
+);
+
+const EmptyState = () => (
+    <tr>
+        <td colSpan={7} className="py-16 text-center">
+            <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+            <p className="text-gray-500 font-medium">Tidak ada data pelanggan ditemukan</p>
+            <p className="text-gray-400 text-sm mt-1">Coba ubah kata kunci pencarian atau reset filter</p>
+        </td>
+    </tr>
+);
+
+const StatusBadge = ({ status }) => {
+    const isActive = status === 1;
+    return (
+        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${
+            isActive
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                : 'bg-red-50 text-red-700 border-red-100'
+        }`}>
+            {isActive ? <CheckCircle size={12} className="mr-1" /> : <AlertTriangle size={12} className="mr-1" />}
+            {isActive ? 'Aktif' : 'Tidak Aktif'}
+        </span>
+    );
+};
 
 const PelangganPage = () => {
-    // State management
     const [showAddModal, setShowAddModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [editData, setEditData] = useState(null);
     const [detailData, setDetailData] = useState(null);
     const [deleteData, setDeleteData] = useState(null);
+    const [bulkDeleteData, setBulkDeleteData] = useState(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const [openMenuId, setOpenMenuId] = useState(null);
-    const [viewMode, setViewMode] = useState('table'); // 'table' atau 'card'
-    const [notification, setNotification] = useState({ show: false, message: '', type: '' });
-    
-    // State untuk pagination card view
-    const [cardCurrentPage, setCardCurrentPage] = useState(1);
-    const [cardItemsPerPage, setCardItemsPerPage] = useState(12);
-    
-    // Custom hook untuk data management
+
     const {
-        pelanggan: filteredData,
+        pelanggan,
         loading,
         error,
-        searchTerm,
-        setSearchTerm,
-        filterStatus,
-        setFilterStatus,
+        searchInput, setSearchInput,
+        page, setPage,
+        perPage, setPerPage,
+        meta,
+        sortField, sortDir, handleSort,
+        resetFilters,
+        selectedIds, toggleSelectId, toggleSelectAll, clearSelection,
         stats,
-        fetchPelanggan,
-        createPelanggan,
-        updatePelanggan,
-        deletePelanggan
+        createPelanggan, updatePelanggan, deletePelanggan, bulkDelete,
     } = usePelanggan();
 
-    // Fetch data saat component mount - dengan DataTables parameter
-    useEffect(() => {
-        fetchPelanggan(1, 1000); // Fetch page 1 dengan 1000 items per page
-    }, [fetchPelanggan]);
-
-    // Show notification
-    const showNotification = useCallback((message, type = 'success') => {
-        setNotification({ show: true, message, type });
-        setTimeout(() => setNotification({ show: false, message: '', type: '' }), 3000);
-    }, []);
-
-    // Event handlers
     const handleAdd = useCallback(() => {
         setEditData(null);
         setShowAddModal(true);
@@ -77,381 +94,346 @@ const PelangganPage = () => {
         setDeleteData(item);
     }, []);
 
-    const handleConfirmDelete = useCallback(async () => {
-        if (!deleteData) return;
-        setIsDeleting(true);
-        try {
-            const result = await deletePelanggan(deleteData.pubid);
-            if (result.success) {
-                console.log('Delete success:', result.message);
-                showNotification(result.message || 'Data berhasil dihapus');
-            } else {
-                console.error('Delete failed:', result.message);
-                showNotification(result.message || 'Gagal menghapus data', 'error');
-            }
-        } catch (error) {
-            console.error('Delete error:', error);
-            showNotification('Terjadi kesalahan saat menghapus data', 'error');
-        } finally {
-            setIsDeleting(false);
-            setDeleteData(null);
-        }
-    }, [deleteData, deletePelanggan, showNotification]);
-
     const handleDetail = useCallback((item) => {
         setDetailData(item);
         setShowDetailModal(true);
     }, []);
 
-    const handleSave = useCallback(async (formData) => {
+    const handleConfirmDelete = useCallback(async () => {
+        if (!deleteData) return;
+        setIsDeleting(true);
         try {
-            let result;
-            if (editData) {
-                // Update existing pelanggan
-                result = await updatePelanggan(editData.pubid, formData);
-            } else {
-                // Create new pelanggan
-                result = await createPelanggan(formData);
-            }
-            
-            if (result.success) {
-                console.log('Save success:', result.message);
-                showNotification(result.message || (editData ? 'Data berhasil diperbarui' : 'Data berhasil ditambahkan'));
-                setShowAddModal(false);
-                setShowEditModal(false);
-                setEditData(null);
-            } else {
-                console.error('Save failed:', result.message);
-                showNotification(result.message || 'Gagal menyimpan data', 'error');
-            }
-        } catch (error) {
-            console.error('Save error:', error);
-            showNotification('Terjadi kesalahan saat menyimpan data', 'error');
+            await deletePelanggan(deleteData.pubid);
+        } finally {
+            setIsDeleting(false);
+            setDeleteData(null);
         }
-    }, [editData, updatePelanggan, createPelanggan, showNotification]);
+    }, [deleteData, deletePelanggan]);
 
-    // Handler untuk pagination card view
-    const handleCardPageChange = useCallback((page) => {
-        setCardCurrentPage(page);
-    }, []);
-
-    const handleCardItemsPerPageChange = useCallback((itemsPerPage) => {
-        setCardItemsPerPage(itemsPerPage);
-        setCardCurrentPage(1); // Reset ke halaman pertama saat mengubah items per page
-    }, []);
-
-    // Reset pagination card view saat viewMode berubah
-    const handleViewModeChange = useCallback((mode) => {
-        setViewMode(mode);
-        if (mode === 'card') {
-            setCardCurrentPage(1); // Reset ke halaman pertama saat switch ke card view
+    const handleConfirmBulkDelete = useCallback(async () => {
+        if (!bulkDeleteData) return;
+        setIsDeleting(true);
+        try {
+            await bulkDelete(bulkDeleteData);
+            clearSelection();
+        } finally {
+            setIsDeleting(false);
+            setBulkDeleteData(null);
         }
-    }, []);
+    }, [bulkDeleteData, bulkDelete, clearSelection]);
 
-    // Table columns configuration - Konsisten dengan SupplierPage
-    const columns = useMemo(() => [
-        {
-            name: 'No.',
-            width: '5%',
-            cell: (row, index) => (
-                <div className="font-medium text-gray-600 text-sm text-center">
-                    {index + 1}
-                </div>
-            ),
-            ignoreRowClick: true
-        },
-        {
-            name: 'Nama',
-            selector: row => row.name,
-            sortable: true,
-            width: '25%',
-            cell: row => (
-                <div className="text-center px-2">
-                    <div className="break-words">
-                        <span className="text-sm font-medium text-gray-800 block">{row.name}</span>
-                        <span className="text-xs text-gray-500 block">Pelanggan</span>
-                    </div>
-                </div>
-            )
-        },
-        {
-            name: 'Alamat',
-            selector: row => row.address,
-            sortable: true,
-            width: '35%',
-            cell: row => (
-                <div className="text-center px-3 py-2">
-                    <div className="break-words text-sm text-gray-600">
-                        {row.address || '-'}
-                    </div>
-                </div>
-            )
-        },
-        {
-            name: 'Kontak',
-            selector: row => row.phone,
-            sortable: true,
-            width: '15%',
-            cell: row => (
-                <div className="text-center px-2">
-                    <span className="text-sm text-gray-600 break-words">{row.phone || '-'}</span>
-                </div>
-            )
-        },
-        {
-            name: 'Status',
-            selector: row => row.status,
-            sortable: true,
-            width: '10%',
-            cell: row => (
-                <div className="flex justify-center items-center">
-                    <StatusBadge status={row.status} />
-                </div>
-            )
-        },
-        {
-            name: 'Aksi',
-            width: '10%',
-            cell: row => (
-                <div className="flex items-center justify-center">
-                    <ActionButton
-                        row={row}
-                        openMenuId={openMenuId}
-                        setOpenMenuId={setOpenMenuId}
-                        onEdit={handleEdit}
-                        onDelete={handleDelete}
-                        onDetail={handleDetail}
-                        isActive={openMenuId === row.pubid}
-                        usePortal={true}
-                    />
-                </div>
-            ),
-            ignoreRowClick: true
+    const handleSave = useCallback(async (formData) => {
+        if (editData) {
+            await updatePelanggan(editData.pubid, formData);
+        } else {
+            await createPelanggan(formData);
         }
-    ], [openMenuId, handleEdit, handleDelete, handleDetail]);
+        setShowAddModal(false);
+        setShowEditModal(false);
+        setEditData(null);
+    }, [editData, updatePelanggan, createPelanggan]);
+
+    const allSelected = pelanggan.length > 0 && selectedIds.length === pelanggan.length;
+    const someSelected = selectedIds.length > 0 && selectedIds.length < pelanggan.length;
+    const hasActiveFilter = searchInput || sortField !== 'id' || sortDir !== 'asc';
+
+    const pageNumbers = useMemo(() => {
+        const pages = [];
+        const maxButtons = 5;
+        let start = Math.max(1, page - Math.floor(maxButtons / 2));
+        let end = Math.min(meta.last_page || 1, start + maxButtons - 1);
+        if (end - start + 1 < maxButtons) start = Math.max(1, end - maxButtons + 1);
+        for (let i = start; i <= end; i++) pages.push(i);
+        return pages;
+    }, [page, meta.last_page]);
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-2 sm:p-4 md:p-6">
-            {/* Notification */}
-            {notification.show && (
-                <div className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg ${
-                    notification.type === 'error' ? 'bg-red-500' : 'bg-green-500'
-                } text-white flex items-center gap-2`}>
-                    {notification.type === 'error' ?
-                        <XCircle className="w-5 h-5" /> :
-                        <CheckCircle className="w-5 h-5" />
-                    }
-                    {notification.message}
+        <div className="min-h-screen bg-gray-50/50 p-4 md:p-6">
+            <div className="max-w-[1600px] mx-auto space-y-4">
+                {/* Header */}
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h1 className="text-xl md:text-2xl font-bold text-gray-900">Data Pelanggan</h1>
+                        <p className="text-sm text-gray-500 mt-0.5">Kelola data pelanggan perusahaan dengan mudah</p>
+                    </div>
+                    <button
+                        onClick={handleAdd}
+                        className="inline-flex items-center gap-2 bg-red-600 text-white px-4 py-2.5 rounded-xl hover:bg-red-700 transition-colors text-sm font-medium shadow-sm"
+                    >
+                        <PlusCircle size={18} />
+                        Tambah Pelanggan
+                    </button>
                 </div>
-            )}
 
-            <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
-                {/* Header Section */}
-                <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-xl border border-gray-100">
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-1 sm:mb-2">
-                                Data Pelanggan
-                            </h1>
-                            <p className="text-gray-600 text-sm sm:text-base">
-                                Kelola data pelanggan perusahaan dengan mudah
-                            </p>
+                {/* Stat cards */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="bg-white rounded-xl border border-gray-200 p-4">
+                        <div className="flex items-center gap-3">
+                            <div className="h-9 w-9 rounded-lg bg-red-50 flex items-center justify-center">
+                                <Users size={16} className="text-red-600" />
+                            </div>
+                            <div>
+                                <div className="text-xs text-gray-500">Total Pelanggan</div>
+                                <div className="text-lg font-bold text-gray-900">{stats.total}</div>
+                            </div>
                         </div>
-                        <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
+                    </div>
+                    <div className="bg-white rounded-xl border border-gray-200 p-4">
+                        <div className="flex items-center gap-3">
+                            <div className="h-9 w-9 rounded-lg bg-emerald-50 flex items-center justify-center">
+                                <CheckCircle size={16} className="text-emerald-600" />
+                            </div>
+                            <div>
+                                <div className="text-xs text-gray-500">Aktif</div>
+                                <div className="text-lg font-bold text-gray-900">{stats.active}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="bg-white rounded-xl border border-gray-200 p-4">
+                        <div className="flex items-center gap-3">
+                            <div className="h-9 w-9 rounded-lg bg-sky-50 flex items-center justify-center">
+                                <MapPin size={16} className="text-sky-600" />
+                            </div>
+                            <div>
+                                <div className="text-xs text-gray-500">Halaman</div>
+                                <div className="text-lg font-bold text-gray-900">{meta.current_page} / {meta.last_page || 1}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="bg-white rounded-xl border border-gray-200 p-4">
+                        <div className="flex items-center gap-3">
+                            <div className="h-9 w-9 rounded-lg bg-amber-50 flex items-center justify-center">
+                                <Phone size={16} className="text-amber-600" />
+                            </div>
+                            <div>
+                                <div className="text-xs text-gray-500">Terpilih</div>
+                                <div className="text-lg font-bold text-gray-900">{selectedIds.length}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Filter bar */}
+                <div className="bg-white rounded-xl border border-gray-200 p-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <div className="relative flex-1 max-w-md">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <input
+                            type="text"
+                            placeholder="Cari nama, alamat, atau kontak pelanggan..."
+                            value={searchInput}
+                            onChange={(e) => setSearchInput(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm"
+                        />
+                    </div>
+                    {hasActiveFilter && (
+                        <button
+                            onClick={resetFilters}
+                            className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50"
+                        >
+                            <RotateCcw size={14} />
+                            Reset
+                        </button>
+                    )}
+                </div>
+
+                {/* Bulk action bar */}
+                {selectedIds.length > 0 && (
+                    <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-2.5 flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-sm text-red-700">
+                            <AlertTriangle size={16} />
+                            <span className="font-medium">{selectedIds.length} pelanggan terpilih</span>
+                        </div>
+                        <div className="flex items-center gap-2">
                             <button
-                                onClick={handleAdd}
-                                className="bg-gradient-to-r from-red-500 to-rose-600 text-white px-4 py-2 sm:px-6 sm:py-3 rounded-xl sm:rounded-2xl hover:from-red-600 hover:to-rose-700 transition-all duration-300 flex items-center gap-2 font-medium shadow-lg hover:shadow-xl text-sm sm:text-base"
+                                onClick={() => setBulkDeleteData(selectedIds)}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700"
                             >
-                                <PlusCircle className="w-5 h-5" />
-                                Tambah Pelanggan
+                                <Trash2 size={14} />
+                                Hapus Terpilih
                             </button>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Filters and Search */}
-                <div className="bg-white rounded-2xl p-3 sm:p-6 shadow-lg border border-gray-100">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 sm:items-center sm:justify-between">
-                        {/* Search */}
-                        <div className="relative flex-1 max-w-full sm:max-w-md">
-                            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                            <input
-                                type="text"
-                                placeholder="Cari pelanggan..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-12 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors duration-200 text-sm sm:text-base"
-                            />
-                        </div>
-
-                        {/* Filters */}
-                        <div className="flex flex-wrap gap-2 sm:gap-3">
-                            {/* Status Filter */}
-                            <div className="flex items-center gap-2">
-                                <Filter className="w-4 h-4 text-gray-500" />
-                                <select
-                                    value={filterStatus}
-                                    onChange={(e) => setFilterStatus(e.target.value)}
-                                    className="px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 text-xs sm:text-sm"
-                                >
-                                    <option value="all">Semua Status</option>
-                                    <option value="active">Pelanggan Aktif</option>
-                                    <option value="inactive">Pelanggan Tidak Aktif</option>
-                                </select>
-                            </div>
-
-                            {/* View Mode Toggle */}
-                            <div className="flex bg-gray-100 rounded-xl p-1">
-                                <button
-                                    onClick={() => handleViewModeChange('table')}
-                                    className={`px-2.5 py-2 rounded-lg transition-colors duration-200 text-xs sm:text-base ${
-                                        viewMode === 'table'
-                                            ? 'bg-white text-red-600 shadow-sm'
-                                            : 'text-gray-600 hover:text-red-600'
-                                    }`}
-                                    title="Tampilan Tabel"
-                                >
-                                    <List className="w-4 h-4" />
-                                </button>
-                                <button
-                                    onClick={() => handleViewModeChange('card')}
-                                    className={`px-2.5 py-2 rounded-lg transition-colors duration-200 text-xs sm:text-base ${
-                                        viewMode === 'card'
-                                            ? 'bg-white text-red-600 shadow-sm'
-                                            : 'text-gray-600 hover:text-red-600'
-                                    }`}
-                                    title="Tampilan Kartu"
-                                >
-                                    <LayoutGrid className="w-4 h-4" />
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Error Display */}
-                {error && (
-                    <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-                        <div className="flex items-start">
-                            <Activity className="w-5 h-5 text-red-500 mr-2 mt-0.5 flex-shrink-0" />
-                            <div className="flex-1">
-                                <p className="text-red-700 text-sm font-medium mb-1">Koneksi API Error:</p>
-                                <p className="text-red-600 text-sm">{error}</p>
-                                <p className="text-red-500 text-xs mt-2">
-                                    💡 Menggunakan data dummy sebagai fallback. Coba refresh halaman untuk mencoba lagi.
-                                </p>
-                            </div>
+                            <button
+                                onClick={clearSelection}
+                                className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg"
+                            >
+                                Batal
+                            </button>
                         </div>
                     </div>
                 )}
 
-                {/* Data Display */}
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 relative overflow-x-auto flex flex-col min-h-[400px]">
-                    {/* Overlay anti-hover row, hanya muncul saat menu aktif */}
-                    {openMenuId && viewMode === 'table' && (
-                        <div
-                            className="absolute inset-0 z-[99998] bg-transparent pointer-events-auto"
-                            style={{cursor: 'default'}}
-                        />
-                    )}
-                    <div className="flex-1 flex flex-col">
-                        {loading ? (
-                            <div className="flex-1 flex items-center justify-center py-12">
-                                <div className="text-center">
-                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mx-auto mb-4"></div>
-                                    <p className="text-gray-500">Memuat data...</p>
-                                </div>
-                            </div>
-                        ) : viewMode === 'table' ? (
-                            <div className={`w-full h-full overflow-x-auto ${openMenuId ? 'pointer-events-none' : ''} flex-1 flex flex-col`}>
-                                <div className="w-full h-full flex-1 flex flex-col">
-                                    <div className="w-full" style={{display: 'flex', flexDirection: 'column', height: '100%'}}>
-                                        <DataTable
-                                            columns={columns}
-                                            data={filteredData}
-                                            pagination
-                                            paginationPerPage={10}
-                                            paginationRowsPerPageOptions={[5, 10, 15, 20]}
-                                            style={{ width: '100%' }}
-                                            customStyles={{
-                                                ...customTableStyles,
-                                                table: {
-                                                    style: {
-                                                        ...customTableStyles.table.style,
-                                                        minHeight: '100%',
-                                                        height: '100%',
-                                                        display: 'flex',
-                                                        flexDirection: 'column',
-                                                        width: '100%',
-                                                    }
-                                                },
-                                                headRow: {
-                                                    style: {
-                                                        ...customTableStyles.headRow.style,
-                                                        flex: '0 0 auto',
-                                                    }
-                                                },
-                                                body: {
-                                                    style: {
-                                                        flex: '1 1 auto',
-                                                        minHeight: '250px',
-                                                        display: 'flex',
-                                                        flexDirection: 'column',
-                                                        justifyContent: 'stretch',
-                                                        width: '100%',
-                                                    }
-                                                },
-                                                rows: {
-                                                    style: {
-                                                        ...customTableStyles.rows.style,
-                                                        flex: '1 0 auto',
-                                                        width: '100%',
-                                                    }
-                                                },
-                                            }}
-                                            noDataComponent={
-                                                <div className="text-center py-12">
-                                                    <Users className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                                                    <p className="text-gray-500 text-lg">Tidak ada data pelanggan ditemukan</p>
-                                                </div>
-                                            }
-                                            responsive
-                                            highlightOnHover={true}
-                                            pointerOnHover={true}
+                {/* Table */}
+                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead className="bg-gray-50/80 border-b border-gray-200 sticky top-0 z-10">
+                                <tr>
+                                    <th className="px-4 py-3 w-10">
+                                        <input
+                                            type="checkbox"
+                                            checked={allSelected}
+                                            ref={(el) => { if (el) el.indeterminate = someSelected; }}
+                                            onChange={toggleSelectAll}
+                                            className="w-4 h-4 rounded border-gray-300 text-red-600 focus:ring-red-500 cursor-pointer"
                                         />
-                                    </div>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="p-2 sm:p-6 flex-1 flex flex-col">
-                                {filteredData.length === 0 ? (
-                                    <div className="flex-1 flex items-center justify-center">
-                                        <div className="text-center">
-                                            <Users className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                                            <p className="text-gray-500 text-lg">Tidak ada data pelanggan ditemukan</p>
-                                        </div>
-                                    </div>
+                                    </th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-16">No</th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer select-none" onClick={() => handleSort('nama')}>
+                                        <div className="inline-flex items-center gap-1.5">Nama <SortIcon field="nama" sortField={sortField} sortDir={sortDir} /></div>
+                                    </th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer select-none" onClick={() => handleSort('alamat')}>
+                                        <div className="inline-flex items-center gap-1.5">Alamat <SortIcon field="alamat" sortField={sortField} sortDir={sortDir} /></div>
+                                    </th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer select-none" onClick={() => handleSort('kontak')}>
+                                        <div className="inline-flex items-center gap-1.5">Kontak <SortIcon field="kontak" sortField={sortField} sortDir={sortDir} /></div>
+                                    </th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                                {loading ? (
+                                    Array.from({ length: 8 }).map((_, i) => <SkeletonRow key={`sk-${i}`} />)
+                                ) : pelanggan.length === 0 ? (
+                                    <EmptyState />
                                 ) : (
-                                    <CardView
-                                        data={filteredData}
-                                        onEdit={handleEdit}
-                                        onDelete={handleDelete}
-                                        onDetail={handleDetail}
-                                        openMenuId={openMenuId}
-                                        setOpenMenuId={setOpenMenuId}
-                                        loading={loading}
-                                        error={error}
-                                        currentPage={cardCurrentPage}
-                                        itemsPerPage={cardItemsPerPage}
-                                        onPageChange={handleCardPageChange}
-                                        onItemsPerPageChange={handleCardItemsPerPageChange}
-                                        itemsPerPageOptions={[6, 12, 18, 24]}
-                                    />
+                                    pelanggan.map((row, index) => {
+                                        const isSelected = selectedIds.includes(row.pubid);
+                                        return (
+                                            <tr
+                                                key={row.pubid}
+                                                className={`group transition-colors ${isSelected ? 'bg-red-50/50' : 'hover:bg-gray-50'}`}
+                                            >
+                                                <td className="px-4 py-3">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isSelected}
+                                                        onChange={() => toggleSelectId(row.pubid)}
+                                                        className="w-4 h-4 rounded border-gray-300 text-red-600 focus:ring-red-500 cursor-pointer"
+                                                    />
+                                                </td>
+                                                <td className="px-4 py-3 text-gray-500 font-medium">
+                                                    {meta.from + index}
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <Users size={15} className="text-gray-400 flex-shrink-0" />
+                                                        <div className="min-w-0">
+                                                            <div className="font-medium text-gray-800 truncate max-w-[220px]" title={row.name}>
+                                                                {row.name}
+                                                            </div>
+                                                            <div className="text-xs text-gray-500">Pelanggan</div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <div className="flex items-center gap-1.5 text-gray-600">
+                                                        <MapPin size={13} className="flex-shrink-0 text-gray-400" />
+                                                        <span className="max-w-[260px] truncate" title={row.address}>
+                                                            {row.address || '-'}
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <div className="flex items-center gap-1.5 text-gray-600">
+                                                        <Phone size={13} className="flex-shrink-0 text-gray-400" />
+                                                        <span>{row.phone || '-'}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <StatusBadge status={row.status} />
+                                                </td>
+                                                <td className="px-4 py-3 text-right">
+                                                    <div className="flex items-center justify-end">
+                                                        <ActionButton
+                                                            row={row}
+                                                            openMenuId={openMenuId}
+                                                            setOpenMenuId={setOpenMenuId}
+                                                            onEdit={handleEdit}
+                                                            onDelete={handleDelete}
+                                                            onDetail={handleDetail}
+                                                            isActive={openMenuId === row.pubid}
+                                                            usePortal={true}
+                                                        />
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
                                 )}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Pagination footer */}
+                    <div className="border-t border-gray-200 px-4 py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="text-xs text-gray-500">
+                            Menampilkan <span className="font-medium text-gray-700">{meta.from || 0}</span>–<span className="font-medium text-gray-700">{meta.to || 0}</span> dari <span className="font-medium text-gray-700">{meta.total || 0}</span> data
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                                <span>Baris:</span>
+                                <select
+                                    value={perPage}
+                                    onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1); }}
+                                    className="px-2 py-1 border border-gray-300 rounded-md text-xs focus:ring-1 focus:ring-red-500"
+                                >
+                                    {[10, 25, 50, 100].map((n) => (
+                                        <option key={n} value={n}>{n}</option>
+                                    ))}
+                                </select>
                             </div>
-                        )}
+                            <div className="flex items-center gap-1">
+                                <button
+                                    onClick={() => setPage(1)}
+                                    disabled={page <= 1}
+                                    className="px-2 py-1 text-xs border border-gray-300 rounded-md disabled:opacity-40 hover:bg-gray-50"
+                                >
+                                    «
+                                </button>
+                                <button
+                                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                    disabled={page <= 1}
+                                    className="px-2 py-1 text-xs border border-gray-300 rounded-md disabled:opacity-40 hover:bg-gray-50"
+                                >
+                                    ‹
+                                </button>
+                                {pageNumbers.map((p) => (
+                                    <button
+                                        key={p}
+                                        onClick={() => setPage(p)}
+                                        className={`px-2.5 py-1 text-xs border rounded-md ${
+                                            p === page
+                                                ? 'bg-red-600 text-white border-red-600'
+                                                : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                                        }`}
+                                    >
+                                        {p}
+                                    </button>
+                                ))}
+                                <button
+                                    onClick={() => setPage((p) => Math.min(meta.last_page || 1, p + 1))}
+                                    disabled={page >= (meta.last_page || 1)}
+                                    className="px-2 py-1 text-xs border border-gray-300 rounded-md disabled:opacity-40 hover:bg-gray-50"
+                                >
+                                    ›
+                                </button>
+                                <button
+                                    onClick={() => setPage(meta.last_page || 1)}
+                                    disabled={page >= (meta.last_page || 1)}
+                                    className="px-2 py-1 text-xs border border-gray-300 rounded-md disabled:opacity-40 hover:bg-gray-50"
+                                >
+                                    »
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
+
+                {error && (
+                    <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">
+                        {error}
+                    </div>
+                )}
             </div>
 
             {/* Modals */}
@@ -482,6 +464,15 @@ const PelangganPage = () => {
                 onConfirm={handleConfirmDelete}
                 title={`Hapus Pelanggan "${deleteData?.name || ''}"?`}
                 description="Tindakan ini akan menghapus data pelanggan secara permanen dan tidak dapat dibatalkan."
+                loading={isDeleting}
+            />
+
+            <DeleteConfirmationModal
+                isOpen={!!bulkDeleteData}
+                onClose={() => { setBulkDeleteData(null); setIsDeleting(false); }}
+                onConfirm={handleConfirmBulkDelete}
+                title={`Hapus ${bulkDeleteData?.length || 0} pelanggan terpilih?`}
+                description="Tindakan ini akan menghapus semua pelanggan terpilih secara permanen dan tidak dapat dibatalkan."
                 loading={isDeleting}
             />
         </div>

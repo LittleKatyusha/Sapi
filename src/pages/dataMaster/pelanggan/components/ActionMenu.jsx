@@ -1,28 +1,61 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useRef, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Eye, Edit2, Trash2 } from 'lucide-react';
 
 const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef }) => {
     const menuRef = useRef(null);
+    const [menuStyle, setMenuStyle] = useState(null);
 
-    useEffect(() => {
+    useLayoutEffect(() => {
+        function updatePosition() {
+            if (buttonRef?.current) {
+                const btnRect = buttonRef.current.getBoundingClientRect();
+                const menuWidth = 180;
+                const menuHeight = 160;
+
+                let top = btnRect.bottom + window.scrollY + 8;
+                let left = btnRect.left + window.scrollX - menuWidth + btnRect.width;
+
+                // Flip to right-side if overflow left
+                if (left < window.scrollX + 8) {
+                    left = btnRect.right + window.scrollX + 8;
+                }
+                // If overflow right, align to button's right edge
+                if (left + menuWidth > window.scrollX + window.innerWidth - 8) {
+                    left = Math.max(window.scrollX + 8, btnRect.right + window.scrollX - menuWidth);
+                }
+                // Flip above if overflow bottom
+                if (top + menuHeight > window.scrollY + window.innerHeight - 8) {
+                    top = Math.max(window.scrollY + 8, btnRect.top + window.scrollY - menuHeight - 8);
+                }
+
+                setMenuStyle({
+                    position: 'absolute',
+                    left,
+                    top,
+                    zIndex: 99999,
+                });
+            }
+        }
+        updatePosition();
+        window.addEventListener('scroll', updatePosition, true);
+        window.addEventListener('resize', updatePosition);
         const handleClickOutside = (event) => {
-            if (menuRef.current && !menuRef.current.contains(event.target) && 
+            if (menuRef.current && !menuRef.current.contains(event.target) &&
                 buttonRef.current && !buttonRef.current.contains(event.target)) {
                 onClose();
             }
         };
-
         const handleEscape = (event) => {
             if (event.key === 'Escape') {
                 onClose();
             }
         };
-
         document.addEventListener('mousedown', handleClickOutside);
         document.addEventListener('keydown', handleEscape);
-        
         return () => {
+            window.removeEventListener('scroll', updatePosition, true);
+            window.removeEventListener('resize', updatePosition);
             document.removeEventListener('mousedown', handleClickOutside);
             document.removeEventListener('keydown', handleEscape);
         };
@@ -33,37 +66,13 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef }) => 
         onClose();
     };
 
-    const getMenuPosition = () => {
-        if (!buttonRef.current) return { top: 0, left: 0 };
-        
-        const buttonRect = buttonRef.current.getBoundingClientRect();
-        const menuWidth = 180;
-        const menuHeight = 120;
-        
-        let top = buttonRect.bottom + 8;
-        let left = buttonRect.left - menuWidth + buttonRect.width;
-        
-        // Adjust if menu goes off screen
-        if (left < 8) {
-            left = buttonRect.right + 8;
-        }
-        if (top + menuHeight > window.innerHeight - 8) {
-            top = buttonRect.top - menuHeight - 8;
-        }
-        
-        return { top, left };
-    };
-
-    const position = getMenuPosition();
+    if (!menuStyle) return null;
 
     const menuContent = (
         <div
             ref={menuRef}
-            className="fixed bg-white rounded-xl shadow-2xl border border-gray-200 py-2 min-w-[180px] z-[99999] animate-in fade-in-0 zoom-in-95 duration-200"
-            style={{
-                top: `${position.top}px`,
-                left: `${position.left}px`,
-            }}
+            className="absolute bg-white rounded-xl shadow-2xl border border-gray-200 py-2 min-w-[180px] animate-in fade-in-0 zoom-in-95 duration-200"
+            style={menuStyle}
         >
             <button
                 onClick={() => handleAction(onDetail)}
