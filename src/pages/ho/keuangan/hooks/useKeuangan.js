@@ -81,7 +81,7 @@ const useKeuangan = (activeTab = 'belum-dibayar', tipePembayaran = 1) => {
                 page,
                 perPage,
                 search,
-                'tgl_masuk',
+                'created_at',
                 'desc',
                 filterObj
             );

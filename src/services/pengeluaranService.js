@@ -108,10 +108,10 @@ export const convertToDataTablesParams = (
         'tgl_masuk': 12,
         'total_tagihan': 8,
         'id_pembayaran': 1,
-        'created_at': 13
+        'created_at': 1
     };
 
-    const columnIndex = columnMap[orderColumn] || 13;
+    const columnIndex = columnMap[orderColumn] || 1;
 
     return {
         draw: 1,
