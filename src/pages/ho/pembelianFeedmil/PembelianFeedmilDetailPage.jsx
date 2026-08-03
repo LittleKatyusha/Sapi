@@ -142,13 +142,9 @@ const PembelianFeedmilDetailPage = () => {
                         });
 
                         const transformedDetailItems = detailItems
-                            .filter(item => {
-                                const j = item.jumlah;
-                                return j !== null && j !== undefined && j !== '' && Number(j) > 0;
-                            })
                             .map((item, index) => ({
                             id: index + 1,
-                            pubid: item.pid || item.pubid || '',
+                            pubid: item.pid || item.pubid || item.pubid_detail || '',
                             item_name: item.item_name || item.nama_item || '',
                             id_klasifikasi_feedmil: item.id_klasifikasi_feedmil || '',
                             nama_klasifikasi_feedmil: item.nama_klasifikasi_feedmil || item.klasifikasi_feedmil || '',
