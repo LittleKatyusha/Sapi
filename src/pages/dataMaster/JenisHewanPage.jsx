@@ -1,339 +1,452 @@
-import React, { useState, useMemo, useCallback, useEffect } from "react";
-import DataTable from "react-data-table-component";
-import { PlusCircle, Search, LayoutGrid, List } from "lucide-react";
-import ActionButton from "./jenisHewan/components/ActionButton";
+import React, { useState, useMemo, useCallback } from 'react';
+import {
+    PlusCircle, Search, PawPrint, Hash, Activity,
+    ChevronUp, ChevronDown, ChevronsUpDown, RotateCcw,
+    Trash2, AlertTriangle, CheckCircle,
+} from 'lucide-react';
 
-// Komponen dan hooks terpisah
-import CardView from "./jenisHewan/components/CardView";
-import AddEditJenisHewanModal from "./jenisHewan/modals/AddEditJenisHewanModal";
-import JenisHewanDetailModal from "./jenisHewan/modals/JenisHewanDetailModal";
-import DeleteConfirmationModal from "./jenisHewan/modals/DeleteConfirmationModal";
-import useJenisHewan from "./jenisHewan/hooks/useJenisHewan";
-import customTableStyles from "./jenisHewan/constants/tableStyles";
+import ActionButton from './jenisHewan/components/ActionButton';
+import AddEditJenisHewanModal from './jenisHewan/modals/AddEditJenisHewanModal';
+import JenisHewanDetailModal from './jenisHewan/modals/JenisHewanDetailModal';
+import DeleteConfirmationModal from './jenisHewan/modals/DeleteConfirmationModal';
+import useJenisHewan from './jenisHewan/hooks/useJenisHewan';
 
-// Main Page
+const SortIcon = ({ field, sortField, sortDir }) => {
+    if (sortField !== field) return <ChevronsUpDown size={13} className="text-gray-300" />;
+    return sortDir === 'asc'
+        ? <ChevronUp size={13} className="text-red-600" />
+        : <ChevronDown size={13} className="text-red-600" />;
+};
+
+const SkeletonRow = () => (
+    <tr className="border-b border-gray-100">
+        <td className="px-4 py-3"><div className="h-4 w-4 rounded bg-gray-200 animate-pulse" /></td>
+        <td className="px-4 py-3"><div className="h-4 w-10 rounded bg-gray-200 animate-pulse" /></td>
+        <td className="px-4 py-3"><div className="h-4 w-48 rounded bg-gray-200 animate-pulse" /></td>
+        <td className="px-4 py-3"><div className="h-4 w-24 rounded bg-gray-200 animate-pulse" /></td>
+        <td className="px-4 py-3"><div className="h-4 w-8 rounded bg-gray-200 animate-pulse ml-auto" /></td>
+    </tr>
+);
+
+const EmptyState = () => (
+    <tr>
+        <td colSpan={5} className="py-16 text-center">
+            <PawPrint className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+            <p className="text-gray-500 font-medium">Tidak ada data jenis hewan ditemukan</p>
+            <p className="text-gray-400 text-sm mt-1">Coba ubah kata kunci pencarian atau reset filter</p>
+        </td>
+    </tr>
+);
+
 const JenisHewanPage = () => {
-  // State
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [showDetailModal, setShowDetailModal] = useState(false);
-  const [editData, setEditData] = useState(null);
-  const [detailData, setDetailData] = useState(null);
-  const [deleteData, setDeleteData] = useState(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [openMenuId, setOpenMenuId] = useState(null);
-  const [viewMode, setViewMode] = useState("table");
+    const [showAddModal, setShowAddModal] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [showDetailModal, setShowDetailModal] = useState(false);
+    const [editData, setEditData] = useState(null);
+    const [detailData, setDetailData] = useState(null);
+    const [deleteData, setDeleteData] = useState(null);
+    const [bulkDeleteData, setBulkDeleteData] = useState(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [openMenuId, setOpenMenuId] = useState(null);
 
-  // Custom hook
-  const {
-    jenisHewan,
-    loading,
-    error,
-    createJenisHewan,
-    updateJenisHewan,
-    deleteJenisHewan,
-    fetchJenisHewan,
-    searchTerm,
-    setSearchTerm,
-    filterNama,
-    setFilterNama,
-    stats,
-  } = useJenisHewan();
+    const {
+        jenisHewan,
+        loading,
+        error,
+        searchInput, setSearchInput,
+        page, setPage,
+        perPage, setPerPage,
+        meta,
+        sortField, sortDir, handleSort,
+        resetFilters,
+        selectedIds, toggleSelectId, toggleSelectAll, clearSelection,
+        stats,
+        createJenisHewan, updateJenisHewan, deleteJenisHewan, bulkDelete,
+    } = useJenisHewan();
 
-  // Load data on component mount only if authenticated
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
-    const isTokenValid = token && token.trim() !== '' && token !== 'null' && token !== 'undefined';
-    
-    if (isAuthenticated && isTokenValid) {
-      fetchJenisHewan();
-    }
-  }, [fetchJenisHewan]);
+    const handleAdd = useCallback(() => {
+        setEditData(null);
+        setShowAddModal(true);
+    }, []);
 
-  // Event handlers
-  const handleAdd = useCallback(() => {
-    setEditData(null);
-    setShowAddModal(true);
-  }, []);
+    const handleEdit = useCallback((item) => {
+        setEditData(item);
+        setShowEditModal(true);
+    }, []);
 
-  const handleEdit = useCallback((item) => {
-    setEditData(item);
-    setShowEditModal(true);
-  }, []);
+    const handleDelete = useCallback((item) => {
+        setDeleteData(item);
+    }, []);
 
-  const handleDetail = useCallback((item) => {
-    setDetailData(item);
-    setShowDetailModal(true);
-  }, []);
+    const handleDetail = useCallback((item) => {
+        setDetailData(item);
+        setShowDetailModal(true);
+    }, []);
 
-  const handleDelete = useCallback((item) => {
-    setDeleteData(item);
-  }, []);
-
-  const handleConfirmDelete = useCallback(async () => {
-    if (!deleteData) return;
-    setIsDeleting(true);
-    const result = await deleteJenisHewan(deleteData.pubid);
-    setIsDeleting(false);
-    setDeleteData(null);
-    
-    if (!result.success) {
-      console.error('Delete error:', result.message);
-      // Bisa ditambahkan notifikasi error di sini
-    }
-  }, [deleteData, deleteJenisHewan]);
-
-  const handleSave = useCallback(async (formData) => {
-    let result;
-    
-    if (formData.pubid) {
-      result = await updateJenisHewan(formData.pubid, formData);
-    } else {
-      result = await createJenisHewan(formData);
-    }
-    
-    if (result.success) {
-      setShowAddModal(false);
-      setShowEditModal(false);
-      setEditData(null);
-    } else {
-      console.error('Save error:', result.message);
-      // Bisa ditambahkan notifikasi error di sini
-    }
-  }, [createJenisHewan, updateJenisHewan]);
-
-  // Table columns (kolom aksi di pojok kanan, dummy di tengah)
-  const columns = useMemo(() => [
-    {
-      name: "No",
-      selector: row => row.order_no,
-      sortable: true,
-      cell: row => (
-        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm font-medium">
-          {row.order_no}
-        </span>
-      ),
-      width: "100px"
-    },
-    {
-      name: "Nama Jenis Hewan",
-      selector: row => row.name,
-      sortable: true,
-      cell: row => (
-        <div className="flex flex-col">
-          <span className="font-semibold text-gray-800">{row.name}</span>
-          <span className="text-xs text-gray-500 truncate">{row.description}</span>
-        </div>
-      )
-    },
-    {
-      name: "Status",
-      selector: row => row.status,
-      sortable: true,
-      cell: row => (
-        <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
-          row.status === 1
-            ? 'bg-green-100 text-green-800'
-            : 'bg-red-100 text-red-800'
-        }`}>
-          {row.status === 1 ? 'Aktif' : 'Tidak Aktif'}
-        </span>
-      ),
-      width: "120px"
-    },
-    {
-      name: "Aksi",
-      cell: row => (
-        <div style={{ position: "relative", right: 0, background: "#fff", zIndex: 10, overflow: "hidden" }}>
-          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", width: "100%" }}>
-            <ActionButton
-              row={row}
-              openMenuId={openMenuId}
-              setOpenMenuId={setOpenMenuId}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              onDetail={handleDetail}
-              isActive={openMenuId === row.pubid}
-              usePortal={true}
-            />
-          </div>
-        </div>
-      ),
-      ignoreRowClick: true,
-      allowOverflow: true,
-      center: true,
-      width: "80px"
-    }
-  ], [openMenuId, handleEdit, handleDelete, handleDetail]);
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-2 sm:p-4 md:p-6">
-      <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
-        {/* Header Section */}
-        <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-xl border border-gray-100">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-1 sm:mb-2">
-                Manajemen Jenis Hewan
-              </h1>
-              <p className="text-gray-600 text-sm sm:text-base">
-                Kelola daftar jenis hewan ternak dengan mudah
-              </p>
-            </div>
-            <div className="flex flex-col gap-2 sm:flex-row sm:gap-4">
-              <button
-                onClick={handleAdd}
-                className="bg-gradient-to-r from-red-500 to-rose-600 text-white px-4 py-2 sm:px-6 sm:py-3 rounded-xl sm:rounded-2xl hover:from-red-600 hover:to-rose-700 transition-all duration-300 flex items-center gap-2 font-medium shadow-lg hover:shadow-xl text-sm sm:text-base"
-              >
-                <PlusCircle className="w-5 h-5" />
-                Tambah Jenis Hewan
-              </button>
-            </div>
-          </div>
-        </div>
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4 md:gap-6">
-          <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg">
-            <h3 className="text-xs sm:text-sm font-medium opacity-90">Total Jenis Hewan</h3>
-            <p className="text-xl sm:text-3xl font-bold">{stats.total}</p>
-          </div>
-          <div className="bg-gradient-to-br from-green-500 to-emerald-600 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg">
-            <h3 className="text-xs sm:text-sm font-medium opacity-90">Sapi</h3>
-            <p className="text-xl sm:text-3xl font-bold">{stats.sapi}</p>
-          </div>
-          <div className="bg-gradient-to-br from-orange-500 to-amber-600 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg">
-            <h3 className="text-xs sm:text-sm font-medium opacity-90">Domba</h3>
-            <p className="text-xl sm:text-3xl font-bold">{stats.domba}</p>
-          </div>
-          <div className="bg-gradient-to-br from-red-500 to-rose-600 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg">
-            <h3 className="text-xs sm:text-sm font-medium opacity-90">Kambing</h3>
-            <p className="text-xl sm:text-3xl font-bold">{stats.kambing}</p>
-          </div>
-        </div>
-        {/* Filters and Search */}
-        <div className="bg-white rounded-2xl p-3 sm:p-6 shadow-lg border border-gray-100">
-          <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 sm:items-center sm:justify-between">
-            <div className="relative flex-1 max-w-full sm:max-w-md">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Cari jenis hewan..."
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors duration-200 text-sm sm:text-base"
-              />
-            </div>
-            <div className="flex flex-wrap gap-2 sm:gap-3">
-              <select
-                value={filterNama}
-                onChange={e => setFilterNama(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 text-xs sm:text-sm"
-              >
-                <option value="all">Semua Jenis</option>
-                <option value="sapi">Sapi</option>
-                <option value="domba">Domba</option>
-                <option value="kambing">Kambing</option>
-              </select>
-              <div className="flex bg-gray-100 rounded-xl p-1">
-                <button
-                  onClick={() => setViewMode("table")}
-                  className={`px-2.5 py-2 rounded-lg transition-colors duration-200 text-xs sm:text-base ${
-                    viewMode === "table"
-                      ? "bg-white text-red-600 shadow-sm"
-                      : "text-gray-600 hover:text-red-600"
-                  }`}
-                >
-                  <List className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => setViewMode("card")}
-                  className={`px-2.5 py-2 rounded-lg transition-colors duration-200 text-xs sm:text-base ${
-                    viewMode === "card"
-                      ? "bg-white text-red-600 shadow-sm"
-                      : "text-gray-600 hover:text-red-600"
-                  }`}
-                >
-                  <LayoutGrid className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-        {/* Data Display */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-x-auto">
-          <div>
-            {viewMode === "table" ? (
-              <div className="w-full min-w-[600px]">
-                <DataTable
-                  columns={columns}
-                  data={jenisHewan}
-                  pagination
-                  paginationPerPage={10}
-                  paginationRowsPerPageOptions={[5, 10, 15, 20]}
-                  customStyles={customTableStyles}
-                  noDataComponent={
-                    <div className="text-center py-12">
-                      <p className="text-gray-500 text-lg">Tidak ada data jenis hewan ditemukan</p>
-                    </div>
-                  }
-                  progressPending={loading}
-                  responsive
-                  highlightOnHover={true}
-                  pointerOnHover={true}
-                  tableLayout="auto"
-                  style={{ width: '100%' }}
-                />
-              </div>
-            ) : (
-              <div className="p-2 sm:p-6">
-                <CardView
-                  data={jenisHewan}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                  onDetail={handleDetail}
-                  openMenuId={openMenuId}
-                  setOpenMenuId={setOpenMenuId}
-                />
-              </div>
-            )}
-          </div>
-        </div>
-        {/* Modals */}
-        {(showAddModal || showEditModal) && (
-          <AddEditJenisHewanModal
-            item={editData}
-            onClose={() => {
-              setShowAddModal(false);
-              setShowEditModal(false);
-              setEditData(null);
-            }}
-            onSave={handleSave}
-            loading={loading}
-          />
-        )}
-        <JenisHewanDetailModal
-          isOpen={showDetailModal}
-          onClose={() => {
-            setShowDetailModal(false);
-            setDetailData(null);
-          }}
-          data={detailData}
-        />
-        <DeleteConfirmationModal
-          isOpen={!!deleteData}
-          onClose={() => {
-            setDeleteData(null);
+    const handleConfirmDelete = useCallback(async () => {
+        if (!deleteData) return;
+        setIsDeleting(true);
+        try {
+            await deleteJenisHewan(deleteData.pubid);
+        } finally {
             setIsDeleting(false);
-          }}
-          onConfirm={handleConfirmDelete}
-          title={`Hapus Jenis Hewan "${deleteData?.name || ""}"?`}
-          description="Tindakan ini akan menghapus jenis hewan secara permanen dan tidak dapat dibatalkan."
-          loading={isDeleting}
-        />
-      </div>
-    </div>
-  );
+            setDeleteData(null);
+        }
+    }, [deleteData, deleteJenisHewan]);
+
+    const handleConfirmBulkDelete = useCallback(async () => {
+        if (!bulkDeleteData) return;
+        setIsDeleting(true);
+        try {
+            await bulkDelete(bulkDeleteData);
+            clearSelection();
+        } finally {
+            setIsDeleting(false);
+            setBulkDeleteData(null);
+        }
+    }, [bulkDeleteData, bulkDelete, clearSelection]);
+
+    const handleSave = useCallback(async (formData) => {
+        if (editData) {
+            await updateJenisHewan(editData.pubid, formData);
+        } else {
+            await createJenisHewan(formData);
+        }
+        setShowAddModal(false);
+        setShowEditModal(false);
+        setEditData(null);
+    }, [editData, updateJenisHewan, createJenisHewan]);
+
+    const allSelected = jenisHewan.length > 0 && selectedIds.length === jenisHewan.length;
+    const someSelected = selectedIds.length > 0 && selectedIds.length < jenisHewan.length;
+    const hasActiveFilter = searchInput || sortField !== 'id' || sortDir !== 'asc';
+
+    const pageNumbers = useMemo(() => {
+        const pages = [];
+        const maxButtons = 5;
+        let start = Math.max(1, page - Math.floor(maxButtons / 2));
+        let end = Math.min(meta.last_page || 1, start + maxButtons - 1);
+        if (end - start + 1 < maxButtons) start = Math.max(1, end - maxButtons + 1);
+        for (let i = start; i <= end; i++) pages.push(i);
+        return pages;
+    }, [page, meta.last_page]);
+
+    return (
+        <div className="min-h-screen bg-gray-50/50 p-4 md:p-6">
+            <div className="max-w-[1600px] mx-auto space-y-4">
+                {/* Header */}
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h1 className="text-xl md:text-2xl font-bold text-gray-900">Manajemen Jenis Hewan</h1>
+                        <p className="text-sm text-gray-500 mt-0.5">Kelola daftar jenis hewan ternak dengan mudah</p>
+                    </div>
+                    <button
+                        onClick={handleAdd}
+                        className="inline-flex items-center gap-2 bg-red-600 text-white px-4 py-2.5 rounded-xl hover:bg-red-700 transition-colors text-sm font-medium shadow-sm"
+                    >
+                        <PlusCircle size={18} />
+                        Tambah Jenis Hewan
+                    </button>
+                </div>
+
+                {/* Stat cards */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="bg-white rounded-xl border border-gray-200 p-4">
+                        <div className="flex items-center gap-3">
+                            <div className="h-9 w-9 rounded-lg bg-red-50 flex items-center justify-center">
+                                <PawPrint size={16} className="text-red-600" />
+                            </div>
+                            <div>
+                                <div className="text-xs text-gray-500">Total Jenis Hewan</div>
+                                <div className="text-lg font-bold text-gray-900">{stats.total}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="bg-white rounded-xl border border-gray-200 p-4">
+                        <div className="flex items-center gap-3">
+                            <div className="h-9 w-9 rounded-lg bg-emerald-50 flex items-center justify-center">
+                                <CheckCircle size={16} className="text-emerald-600" />
+                            </div>
+                            <div>
+                                <div className="text-xs text-gray-500">Aktif</div>
+                                <div className="text-lg font-bold text-gray-900">{stats.active}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="bg-white rounded-xl border border-gray-200 p-4">
+                        <div className="flex items-center gap-3">
+                            <div className="h-9 w-9 rounded-lg bg-sky-50 flex items-center justify-center">
+                                <Hash size={16} className="text-sky-600" />
+                            </div>
+                            <div>
+                                <div className="text-xs text-gray-500">Halaman</div>
+                                <div className="text-lg font-bold text-gray-900">{meta.current_page} / {meta.last_page || 1}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="bg-white rounded-xl border border-gray-200 p-4">
+                        <div className="flex items-center gap-3">
+                            <div className="h-9 w-9 rounded-lg bg-amber-50 flex items-center justify-center">
+                                <Activity size={16} className="text-amber-600" />
+                            </div>
+                            <div>
+                                <div className="text-xs text-gray-500">Terpilih</div>
+                                <div className="text-lg font-bold text-gray-900">{selectedIds.length}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Filter bar */}
+                <div className="bg-white rounded-xl border border-gray-200 p-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <div className="relative flex-1 max-w-md">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <input
+                            type="text"
+                            placeholder="Cari nama atau deskripsi jenis hewan..."
+                            value={searchInput}
+                            onChange={(e) => setSearchInput(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm"
+                        />
+                    </div>
+                    {hasActiveFilter && (
+                        <button
+                            onClick={resetFilters}
+                            className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50"
+                        >
+                            <RotateCcw size={14} />
+                            Reset
+                        </button>
+                    )}
+                </div>
+
+                {/* Bulk action bar */}
+                {selectedIds.length > 0 && (
+                    <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-2.5 flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-sm text-red-700">
+                            <AlertTriangle size={16} />
+                            <span className="font-medium">{selectedIds.length} jenis hewan terpilih</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setBulkDeleteData(selectedIds)}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700"
+                            >
+                                <Trash2 size={14} />
+                                Hapus Terpilih
+                            </button>
+                            <button
+                                onClick={clearSelection}
+                                className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg"
+                            >
+                                Batal
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {/* Table */}
+                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead className="bg-gray-50/80 border-b border-gray-200 sticky top-0 z-10">
+                                <tr>
+                                    <th className="px-4 py-3 w-10">
+                                        <input
+                                            type="checkbox"
+                                            checked={allSelected}
+                                            ref={(el) => { if (el) el.indeterminate = someSelected; }}
+                                            onChange={toggleSelectAll}
+                                            className="w-4 h-4 rounded border-gray-300 text-red-600 focus:ring-red-500 cursor-pointer"
+                                        />
+                                    </th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-16">No</th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer select-none" onClick={() => handleSort('name')}>
+                                        <div className="inline-flex items-center gap-1.5">Nama Jenis Hewan <SortIcon field="name" sortField={sortField} sortDir={sortDir} /></div>
+                                    </th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer select-none" onClick={() => handleSort('description')}>
+                                        <div className="inline-flex items-center gap-1.5">Deskripsi <SortIcon field="description" sortField={sortField} sortDir={sortDir} /></div>
+                                    </th>
+                                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                                {loading ? (
+                                    Array.from({ length: 8 }).map((_, i) => <SkeletonRow key={`sk-${i}`} />)
+                                ) : jenisHewan.length === 0 ? (
+                                    <EmptyState />
+                                ) : (
+                                    jenisHewan.map((row, index) => {
+                                        const isSelected = selectedIds.includes(row.pubid);
+                                        return (
+                                            <tr
+                                                key={row.pubid}
+                                                className={`group transition-colors ${isSelected ? 'bg-red-50/50' : 'hover:bg-gray-50'}`}
+                                            >
+                                                <td className="px-4 py-3">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isSelected}
+                                                        onChange={() => toggleSelectId(row.pubid)}
+                                                        className="w-4 h-4 rounded border-gray-300 text-red-600 focus:ring-red-500 cursor-pointer"
+                                                    />
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-blue-50 text-blue-700 text-xs font-semibold">
+                                                        {row.order_no || (meta.from + index)}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <PawPrint size={15} className="text-gray-400 flex-shrink-0" />
+                                                        <div className="min-w-0">
+                                                            <div className="font-medium text-gray-800 truncate max-w-[260px]" title={row.name}>
+                                                                {row.name}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <div className="text-gray-600 max-w-[400px] truncate" title={row.description}>
+                                                        {row.description || '-'}
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-3 text-right">
+                                                    <div className="flex items-center justify-end">
+                                                        <ActionButton
+                                                            row={row}
+                                                            openMenuId={openMenuId}
+                                                            setOpenMenuId={setOpenMenuId}
+                                                            onEdit={handleEdit}
+                                                            onDelete={handleDelete}
+                                                            onDetail={handleDetail}
+                                                            isActive={openMenuId === row.pubid}
+                                                            usePortal={true}
+                                                        />
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Pagination footer */}
+                    <div className="border-t border-gray-200 px-4 py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="text-xs text-gray-500">
+                            Menampilkan <span className="font-medium text-gray-700">{meta.from || 0}</span>–<span className="font-medium text-gray-700">{meta.to || 0}</span> dari <span className="font-medium text-gray-700">{meta.total || 0}</span> data
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                                <span>Baris:</span>
+                                <select
+                                    value={perPage}
+                                    onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1); }}
+                                    className="px-2 py-1 border border-gray-300 rounded-md text-xs focus:ring-1 focus:ring-red-500"
+                                >
+                                    {[10, 25, 50, 100].map((n) => (
+                                        <option key={n} value={n}>{n}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="flex items-center gap-1">
+                                <button
+                                    onClick={() => setPage(1)}
+                                    disabled={page <= 1}
+                                    className="px-2 py-1 text-xs border border-gray-300 rounded-md disabled:opacity-40 hover:bg-gray-50"
+                                >
+                                    «
+                                </button>
+                                <button
+                                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                    disabled={page <= 1}
+                                    className="px-2 py-1 text-xs border border-gray-300 rounded-md disabled:opacity-40 hover:bg-gray-50"
+                                >
+                                    ‹
+                                </button>
+                                {pageNumbers.map((p) => (
+                                    <button
+                                        key={p}
+                                        onClick={() => setPage(p)}
+                                        className={`px-2.5 py-1 text-xs border rounded-md ${
+                                            p === page
+                                                ? 'bg-red-600 text-white border-red-600'
+                                                : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                                        }`}
+                                    >
+                                        {p}
+                                    </button>
+                                ))}
+                                <button
+                                    onClick={() => setPage((p) => Math.min(meta.last_page || 1, p + 1))}
+                                    disabled={page >= (meta.last_page || 1)}
+                                    className="px-2 py-1 text-xs border border-gray-300 rounded-md disabled:opacity-40 hover:bg-gray-50"
+                                >
+                                    ›
+                                </button>
+                                <button
+                                    onClick={() => setPage(meta.last_page || 1)}
+                                    disabled={page >= (meta.last_page || 1)}
+                                    className="px-2 py-1 text-xs border border-gray-300 rounded-md disabled:opacity-40 hover:bg-gray-50"
+                                >
+                                    »
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {error && (
+                    <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">
+                        {error}
+                    </div>
+                )}
+            </div>
+
+            {/* Modals */}
+            {(showAddModal || showEditModal) && (
+                <AddEditJenisHewanModal
+                    item={editData}
+                    onClose={() => {
+                        setShowAddModal(false);
+                        setShowEditModal(false);
+                        setEditData(null);
+                    }}
+                    onSave={handleSave}
+                    loading={loading}
+                />
+            )}
+
+            <JenisHewanDetailModal
+                isOpen={showDetailModal}
+                onClose={() => {
+                    setShowDetailModal(false);
+                    setDetailData(null);
+                }}
+                data={detailData}
+            />
+
+            <DeleteConfirmationModal
+                isOpen={!!deleteData}
+                onClose={() => { setDeleteData(null); setIsDeleting(false); }}
+                onConfirm={handleConfirmDelete}
+                title={`Hapus Jenis Hewan "${deleteData?.name || ''}"?`}
+                description="Tindakan ini akan menghapus jenis hewan secara permanen dan tidak dapat dibatalkan."
+                loading={isDeleting}
+            />
+
+            <DeleteConfirmationModal
+                isOpen={!!bulkDeleteData}
+                onClose={() => { setBulkDeleteData(null); setIsDeleting(false); }}
+                onConfirm={handleConfirmBulkDelete}
+                title={`Hapus ${bulkDeleteData?.length || 0} jenis hewan terpilih?`}
+                description="Tindakan ini akan menghapus semua jenis hewan terpilih secara permanen dan tidak dapat dibatalkan."
+                loading={isDeleting}
+            />
+        </div>
+    );
 };
 
 export default JenisHewanPage;

@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useLayoutEffect } from 'react';
+import React, { useRef, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Eye, Edit, Trash2 } from 'lucide-react';
 
@@ -10,12 +10,30 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef }) => 
         function updatePosition() {
             if (buttonRef?.current) {
                 const btnRect = buttonRef.current.getBoundingClientRect();
-                const menuWidth = 192; // w-48 = 192px
+                const menuWidth = 192;
+                const menuHeight = 260;
+
+                let top = btnRect.bottom + window.scrollY + 8;
+                let left = btnRect.left + window.scrollX - menuWidth + btnRect.width;
+
+                // Flip to right-side if overflow left
+                if (left < window.scrollX + 8) {
+                    left = btnRect.right + window.scrollX + 8;
+                }
+                // If overflow right, align to button's right edge
+                if (left + menuWidth > window.scrollX + window.innerWidth - 8) {
+                    left = Math.max(window.scrollX + 8, btnRect.right + window.scrollX - menuWidth);
+                }
+                // Flip above if overflow bottom
+                if (top + menuHeight > window.scrollY + window.innerHeight - 8) {
+                    top = Math.max(window.scrollY + 8, btnRect.top + window.scrollY - menuHeight - 8);
+                }
+
                 setMenuStyle({
                     position: 'absolute',
-                    left: btnRect.right + window.scrollX - menuWidth, // Position to the left
-                    top: btnRect.bottom + window.scrollY + 8,
-                    zIndex: 9999
+                    left,
+                    top,
+                    zIndex: 99999,
                 });
             }
         }
