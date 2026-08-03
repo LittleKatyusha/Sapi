@@ -63,6 +63,7 @@ const validateAndMapPembelianItem = (item, index) => {
         total_tagihan: parseFloat(item.total_tagihan) || 0,
         total_terbayar: parseFloat(item.total_terbayar) || 0,
         due_date: item.due_date || null,
+        animal_types: Array.isArray(item.animal_types) ? item.animal_types : [],
         createdAt: item.created_at || new Date().toISOString(),
         updatedAt: item.updated_at || new Date().toISOString(),
         id: item.pid || `TEMP-${index + 1}`

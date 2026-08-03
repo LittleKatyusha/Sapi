@@ -541,6 +541,7 @@ const ModernPembelianTable = ({
                 <TableHeader label="Supplier" caption="Nama & Plat Nomor" sortKey="nama_supplier" />
                 <TableHeader label="Tanggal Masuk" caption="Tgl kedatangan" sortKey="tgl_masuk" />
                 <TableHeader label="Jumlah" caption="Jumlah ekor" sortKey="jumlah" align="right" />
+                <th className="pb-3 pt-4 px-2 text-xs font-semibold text-gray-500 uppercase tracking-wider text-left">Jenis Hewan</th>
                 <TableHeader label="Total Biaya" caption="Biaya Sapi + Total" sortKey="biaya_total" align="right" />
                 <TableHeader label="Jenis Pembelian" caption="Tipe supplier" sortKey="jenis_pembelian" />
                 <th className="pb-3 pt-4 px-2 text-xs font-semibold text-gray-500 uppercase tracking-wider text-left">Status Bayar</th>
@@ -618,6 +619,19 @@ const ModernPembelianTable = ({
                           <span className="text-xs font-normal text-indigo-500">ekor</span>
                         </div>
                       </td>
+                      <td className="px-2 py-3.5">
+                        {row.animal_types && row.animal_types.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {row.animal_types.map((type, i) => (
+                              <span key={`${rowId}-at-${i}`} className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-emerald-50 text-emerald-700 border-emerald-200 whitespace-nowrap">
+                                {type}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-gray-400">-</span>
+                        )}
+                      </td>
                       <td className="px-4 py-3.5 text-right">
                         <div className="text-sm font-semibold text-gray-900">{formatCurrency(row.biaya_total)}</div>
                         <div className="text-xs text-gray-500 mt-0.5">
@@ -662,7 +676,7 @@ const ModernPembelianTable = ({
                     </tr>
                     {isExpanded && (
                       <tr className="bg-gray-50/60">
-                        <td colSpan={9} className="px-4 py-4">
+                        <td colSpan={10} className="px-4 py-4">
                           <div className="bg-white rounded-lg border border-gray-100 p-4 shadow-sm">
                             <div className="flex items-center gap-2 mb-3">
                               <Info className="w-4 h-4 text-gray-400" />
@@ -753,16 +767,24 @@ const ModernPembelianTable = ({
                   <div className="text-sm font-medium text-indigo-700">{row.jumlah || 0} ekor</div>
                 </div>
                 <div>
-                  <div className="text-xs text-gray-500 mb-0.5">Biaya Sapi</div>
-                  <div className="text-sm font-semibold text-gray-900">{formatCurrency(row.biaya_total)}</div>
-                  <div className="text-xs text-gray-500 mb-0.5 mt-1">Total + Lain & Truk</div>
-                  <div className="text-sm font-semibold text-indigo-700">{formatCurrency((parseFloat(row.biaya_total) || 0) + (parseFloat(row.biaya_lain) || 0) + (parseFloat(row.biaya_truk) || 0))}</div>
+                  <div className="text-xs text-gray-500 mb-0.5">Jenis Hewan</div>
+                  {row.animal_types && row.animal_types.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {row.animal_types.map((type, i) => (
+                        <span key={`m-${rowId}-at-${i}`} className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium border bg-emerald-50 text-emerald-700 border-emerald-200">
+                          {type}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-sm text-gray-400">-</span>
+                  )}
                 </div>
               </div>
 
               <div className="flex items-center justify-between pt-2 border-t border-gray-50">
                 <div className="text-xs text-gray-500">
-                  Berat: {row.berat_total ? `${parseFloat(row.berat_total).toFixed(1)} kg` : '-'}
+                  Berat: {row.berat_total ? `${parseFloat(row.berat_total).toFixed(1)} kg` : '-'} • {formatCurrency(row.biaya_total)}
                 </div>
                 <div className="flex items-center gap-1.5">
                   <PaymentStatusBadge status={row.payment_status} label={row.payment_status_label} />
