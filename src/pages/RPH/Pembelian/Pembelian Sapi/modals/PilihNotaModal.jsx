@@ -332,6 +332,8 @@ const PilihNotaModal = ({ isOpen, onClose, onSelect, idOffice }) => {
                                 <tr>
                                     <th className="px-4 py-2.5 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider w-10"></th>
                                     <th className="px-4 py-2.5 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Nota</th>
+                                    <th className="px-4 py-2.5 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Jenis</th>
+                                    <th className="px-4 py-2.5 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Hewan</th>
                                     <th className="px-4 py-2.5 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Supplier</th>
                                     <th className="px-4 py-2.5 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Tgl Masuk</th>
                                     <th className="px-4 py-2.5 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Pengirim</th>
@@ -364,6 +366,23 @@ const PilihNotaModal = ({ isOpen, onClose, onSelect, idOffice }) => {
                                                     <span className="text-[11px] text-gray-500 font-mono">
                                                         {nota.nota || '-'}
                                                     </span>
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-indigo-50 text-indigo-700">
+                                                    {nota.jenis_pembelian || (nota.tipe_pembelian != null ? `Tipe ${nota.tipe_pembelian}` : '-')}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <div className="flex flex-wrap gap-1">
+                                                    {(nota.animal_types && nota.animal_types.length > 0)
+                                                        ? nota.animal_types.map((type, i) => (
+                                                            <span key={i} className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-50 text-emerald-700">
+                                                                {type}
+                                                            </span>
+                                                        ))
+                                                        : <span className="text-[11px] text-gray-400">-</span>
+                                                    }
                                                 </div>
                                             </td>
                                             <td className="px-4 py-3">

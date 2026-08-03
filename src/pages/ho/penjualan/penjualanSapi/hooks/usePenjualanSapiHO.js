@@ -94,8 +94,8 @@ const usePenjualanSapiHO = () => {
                 'length': currentPerPage.toString(),
                 'draw': currentPage.toString(),
                 'search[value]': currentSearch || '',
-                'order[0][column]': '0',
-                'order[0][dir]': 'asc',
+                'order[0][column]': '4',
+                'order[0][dir]': 'desc',
                 '_': Date.now() // Cache buster
             };
             

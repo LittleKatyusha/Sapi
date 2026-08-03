@@ -613,6 +613,60 @@ const usePembelianHO = () => {
         }
     }, []);
 
+    // Server-side paginated detail data (DataTables format)
+    const getPembelianDetailPaginated = useCallback(async (encryptedPid, params = {}) => {
+        setLoading(true);
+        setError(null);
+
+        try {
+            let pid = encryptedPid;
+            try {
+                pid = decodeURIComponent(encryptedPid);
+            } catch {
+                pid = encryptedPid;
+            }
+
+            const queryParams = {
+                pid,
+                start: params.start ?? 0,
+                length: params.length ?? 10,
+                draw: params.draw ?? 1,
+                'search[value]': params.search ?? '',
+                'order[0][column]': params.orderColumn ?? '0',
+                'order[0][dir]': params.orderDir ?? 'asc',
+                _: Date.now(),
+            };
+
+            const result = await HttpClient.get(
+                API_ENDPOINTS.HO.PEMBELIAN_SHOW_PAGINATED,
+                { params: queryParams, cache: false }
+            );
+
+            return {
+                success: true,
+                data: result.data || [],
+                header: result.header || null,
+                totals: result.totals || null,
+                draw: result.draw,
+                recordsTotal: result.recordsTotal ?? 0,
+                recordsFiltered: result.recordsFiltered ?? 0,
+            };
+        } catch (err) {
+            const errorMsg = err.message || 'Terjadi kesalahan saat mengambil detail pembelian';
+            setError(errorMsg);
+            return {
+                success: false,
+                data: [],
+                header: null,
+                draw: params.draw ?? 1,
+                recordsTotal: 0,
+                recordsFiltered: 0,
+            };
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
     // Memoized computed stats for better performance
     const stats = useMemo(() => {
         const total = pembelian.length;
@@ -1030,6 +1084,7 @@ const usePembelianHO = () => {
         deletePembelian,
         deleteLoading,
         getPembelianDetail,
+        getPembelianDetailPaginated,
         createDetail,
         updateDetail,
         deleteDetail,

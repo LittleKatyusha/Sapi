@@ -87,7 +87,7 @@ class PoRphService {
         length: params.length || 10,
         draw: params.draw || 1,
         'search[value]': params.search || '',
-        'order[0][column]': params.orderColumn || '0',
+        'order[0][column]': params.orderColumn || '3',
         'order[0][dir]': params.orderDir || 'desc',
         _: Date.now() // Cache buster
       };
