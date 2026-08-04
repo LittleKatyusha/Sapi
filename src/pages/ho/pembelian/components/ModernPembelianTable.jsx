@@ -284,14 +284,16 @@ const RowActionMenu = ({
       >
         <Eye className="w-4 h-4" /> Lihat Detail
       </button>
-      <button
-        type="button"
-        onClick={() => { onEdit(row); onClose(); }}
-        className={`${itemClass} text-gray-700`}
-        role="menuitem"
-      >
-        <Pencil className="w-4 h-4" /> Edit Data
-      </button>
+      {Number(row.payment_status) !== 1 && (
+        <button
+          type="button"
+          onClick={() => { onEdit(row); onClose(); }}
+          className={`${itemClass} text-gray-700`}
+          role="menuitem"
+        >
+          <Pencil className="w-4 h-4" /> Edit Data
+        </button>
+      )}
       {onBayar && Number(row.payment_status) !== 1 && (
         <button
           type="button"
@@ -328,14 +330,16 @@ const RowActionMenu = ({
           <ClipboardCheck className="w-4 h-4" /> Download Tanda Terima
         </button>
       )}
-      <button
-        type="button"
-        onClick={() => { onDelete(row); onClose(); }}
-        className={`${itemClass} text-red-600 hover:bg-red-50`}
-        role="menuitem"
-      >
-        <Trash2 className="w-4 h-4" /> Hapus
-      </button>
+      {Number(row.payment_status) !== 1 && (
+        <button
+          type="button"
+          onClick={() => { onDelete(row); onClose(); }}
+          className={`${itemClass} text-red-600 hover:bg-red-50`}
+          role="menuitem"
+        >
+          <Trash2 className="w-4 h-4" /> Hapus
+        </button>
+      )}
     </div>
   );
 

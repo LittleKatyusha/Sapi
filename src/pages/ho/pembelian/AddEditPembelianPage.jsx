@@ -1,14 +1,13 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import EditableDetailDataTable from './components/EditableDetailDataTable';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Save, Plus, Trash2, Building2, User, Calendar, Truck, Hash, Package, X, Settings, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Building2, User, Calendar, Truck, Hash, Package, X, Settings, AlertCircle } from 'lucide-react';
 import usePembelianHO from './hooks/usePembelianHO';
 import useParameterSelect from './hooks/useParameterSelect';
 import useTipePembelian from './hooks/useTipePembelian';
 import useTipePembayaran from '../../../hooks/useTipePembayaran';
 import useBanksAPI from '../pembelianKulit/hooks/useBanksAPI';
 import SearchableSelect from '../../../components/shared/SearchableSelect';
-import { API_ENDPOINTS, API_BASE_URL } from '../../../config/api';
 
 const AddEditPembelianPage = () => {
     const { id } = useParams(); // ID untuk edit mode
@@ -23,11 +22,7 @@ const AddEditPembelianPage = () => {
         updatePembelian,
         updateDetail,
         deleteDetail,
-        saveHeaderOnly,
-        saveDetailsOnly,
         // fetchPembelian and pembelianList no longer needed for edit mode
-        loading,
-        error
     } = usePembelianHO();
 
     // Header form state - Office now selectable (moved up to avoid reference error)
@@ -206,6 +201,7 @@ const AddEditPembelianPage = () => {
                 }));
             }
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [headerData.purchase_type, bankOptions, tipePembayaranOptions]);
 
     // Get master data from centralized parameter endpoint with supplier filter
@@ -224,10 +220,6 @@ const AddEditPembelianPage = () => {
     }, tipePembelianOptions, headerData.tipePembelian, ['eartag', 'supplier', 'office', 'klasifikasihewan', 'farm']);
 
     // Office options now come from useParameterSelect
-
-    // Extract raw data for compatibility with existing logic
-    const availableKlasifikasi = parameterData.klasifikasihewan || [];
-    const availableSuppliers = parameterData.supplier || [];
 
     // File upload state
     const [selectedFile, setSelectedFile] = useState(null);
@@ -330,6 +322,7 @@ const AddEditPembelianPage = () => {
                 }));
             }
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [headerData.tipePembelian, headerData.idSupplier, filteredSupplierOptions, isEdit, id, supplierOptions.length]);
 
     // Removed redundant supplier preloading - useParameterSelect already handles this
@@ -480,7 +473,8 @@ const AddEditPembelianPage = () => {
                         note: firstDetail.note || '', // Note field from backend
                         purchase_type: firstDetail.tipe_pembayaran || '',
                         due_date: firstDetail.due_date || '',
-                        syarat_pembelian: firstDetail.syarat_pembelian || firstDetail.id_syarat_pembelian || ''
+                        syarat_pembelian: firstDetail.syarat_pembelian
+                            || (firstDetail.id_syarat_pembelian ? String(firstDetail.id_syarat_pembelian) : '')
                     };
                     
                     console.log('📋 Final header data for edit:', {
@@ -611,7 +605,8 @@ const AddEditPembelianPage = () => {
                 note: cloneData.note || '', // Load note from clone data
                 purchase_type: cloneData.tipe_pembayaran || '',
                 due_date: cloneData.due_date || '',
-                syarat_pembelian: cloneData.syarat_pembelian || cloneData.id_syarat_pembelian || '',
+                syarat_pembelian: cloneData.syarat_pembelian
+                    || (cloneData.id_syarat_pembelian ? String(cloneData.id_syarat_pembelian) : ''),
                 // markup removed - no longer needed
             });
             
@@ -629,6 +624,7 @@ const AddEditPembelianPage = () => {
         }
         // Remove automatic detail item creation for new records
         // Users will add details manually using the "Tambah Detail" button
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isEdit, id, cloneData, isDataReady, hasRequiredData, officeOptions]);
 
     // Removed office mapping useEffect - now using id_office directly from backend
@@ -712,6 +708,15 @@ const AddEditPembelianPage = () => {
         }, 0);
     }, [detailItems]);
 
+    // Computed total harga jual from detail items (HPP × berat per item)
+    const totalHargaJualDetail = useMemo(() => {
+        return detailItems.reduce((sum, item) => {
+            const hpp = parseFloat(item.hpp) || 0;
+            const berat = parseFloat(item.berat) || 0;
+            return sum + (hpp * berat);
+        }, 0);
+    }, [detailItems]);
+
     // Computed total berat from detail items
     const totalBeratDetail = useMemo(() => {
         return detailItems.reduce((sum, item) => sum + (parseFloat(item.berat) || 0), 0);
@@ -723,6 +728,19 @@ const AddEditPembelianPage = () => {
         const biayaLain = parseFloat(headerData.biayaLain) || 0;
         return biayaTruck + biayaLain + totalHargaBeliDetail;
     }, [headerData.biayaTruck, headerData.biayaLain, totalHargaBeliDetail]);
+
+    // Grand totals (harga jual/beli + biaya truck + biaya lain)
+    const grandTotalJual = useMemo(() => {
+        const biayaTruck = parseFloat(headerData.biayaTruck) || 0;
+        const biayaLain = parseFloat(headerData.biayaLain) || 0;
+        return totalHargaJualDetail + biayaTruck + biayaLain;
+    }, [totalHargaJualDetail, headerData.biayaTruck, headerData.biayaLain]);
+
+    const grandTotalBeli = useMemo(() => {
+        const biayaTruck = parseFloat(headerData.biayaTruck) || 0;
+        const biayaLain = parseFloat(headerData.biayaLain) || 0;
+        return totalHargaBeliDetail + biayaTruck + biayaLain;
+    }, [totalHargaBeliDetail, headerData.biayaTruck, headerData.biayaLain]);
 
     // Auto-sync computed hargaTotal into headerData (readonly field)
     useEffect(() => {
@@ -1182,7 +1200,6 @@ const AddEditPembelianPage = () => {
 
         // Check if this is an existing item from database or a new frontend-only item
         const hasDetailIdentifier = !!(item.encryptedPid || item.pid || item.pubidDetail);
-        const isTimestampId = typeof item.id === 'number' && item.id > 1000000000; // Timestamp-based IDs are > 1B
         const isSequentialId = typeof item.id === 'number' && item.id < 1000; // Sequential IDs from database are usually small
         
         // An item is existing if it has detail identifier AND is sequential ID (from backend mapping)
@@ -1636,205 +1653,6 @@ const AddEditPembelianPage = () => {
             setNotification({
                 type: 'error',
                 message: err.message || 'Terjadi kesalahan saat menyimpan data'
-            });
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    // New function: Save header only (without details)
-    const handleSaveHeader = async () => {
-        // Validate header fields only
-        const headerValidationErrors = [];
-        
-        if (!headerData.nota) headerValidationErrors.push('Nota harus diisi');
-        if (!headerData.idSupplier) headerValidationErrors.push('Supplier harus dipilih');
-        if (!headerData.tglMasuk) headerValidationErrors.push('Tanggal masuk harus diisi');
-        if (!headerData.namaSupir) headerValidationErrors.push('Nama supir harus diisi');
-        if (!headerData.platNomor) headerValidationErrors.push('Plat nomor harus diisi');
-        if (!headerData.biayaTruck || parseInt(headerData.biayaTruck) <= 0) headerValidationErrors.push('Biaya truck harus diisi dan > 0');
-        
-        // Tipe Pembayaran dan Jatuh Tempo validation for header-only save
-        if (!headerData.purchase_type) {
-            headerValidationErrors.push('Tipe Pembayaran harus dipilih');
-        } else if (![1, 2].includes(parseInt(headerData.purchase_type))) {
-            headerValidationErrors.push('Tipe Pembayaran harus 1 atau 2');
-        }
-        
-        // Conditional validation for due date based on payment type
-        // If payment type is cash (assumed to be 1), due date is optional
-        // If payment type is credit (assumed to be 2), due date is required
-        if (headerData.purchase_type && parseInt(headerData.purchase_type) === 2) { // Credit payment
-            if (!headerData.due_date) {
-                headerValidationErrors.push('Tanggal jatuh tempo harus diisi untuk pembayaran kredit');
-            }
-        }
-
-        // Syarat Pembelian validation for header-only save
-        if (!headerData.syarat_pembelian) {
-            headerValidationErrors.push('Syarat Pembelian harus dipilih');
-        }
-        
-        if (headerValidationErrors.length > 0) {
-            setNotification({
-                type: 'error',
-                message: headerValidationErrors.join(', ')
-            });
-            return;
-        }
-
-        setIsSubmitting(true);
-        
-        try {
-            // Prepare header data without details
-            const headerOnlyData = {
-                ...headerData,
-                jumlah: isSupplierPerorangan ? (parseInt(headerData.totalSapi) || 0) : 0, // Set to 0 if no details
-                biayaTruck: parseFloat(headerData.biayaTruck),
-                biayaLain: parseFloat(headerData.biayaLain) || 0,
-                biayaTotal: parseFloat(headerData.hargaTotal) || 0, // Map hargaTotal to biayaTotal for backend
-                totalSapi: parseInt(headerData.totalSapi) || 0,
-                tipePembelian: parseInt(headerData.tipePembelian) || 1,
-                tipe_pembayaran: parseInt(headerData.purchase_type) || 1,
-                due_date: headerData.due_date,
-                syarat_pembelian: parseInt(headerData.syarat_pembelian) || null,
-                file: selectedFile,
-                details: [] // Empty array for header-only save
-            };
-
-            let result;
-            if (isEdit) {
-                // For edit mode, update header only
-                const editData = {
-                    pid: id,
-                    ...headerOnlyData
-                };
-                result = await updatePembelian(editData, true, filteredSupplierOptions);
-            } else {
-                // For add mode, create header only using new function
-                const headerDataForAPI = {
-                    id_office: headerOnlyData.idOffice,
-                    nota: headerOnlyData.nota,
-                    id_supplier: headerOnlyData.idSupplier,
-                    tgl_masuk: headerOnlyData.tglMasuk,
-                    id_farm: headerOnlyData.idFarm ? parseInt(headerOnlyData.idFarm) : null, // Farm ID
-                    nama_supir: headerOnlyData.namaSupir,
-                    plat_nomor: headerOnlyData.platNomor,
-                    jumlah: headerOnlyData.jumlah,
-                    biaya_truk: headerOnlyData.biayaTruck,
-                    biaya_lain: headerOnlyData.biayaLain,
-                    biaya_total: headerOnlyData.biayaTotal,
-                    berat_total: headerOnlyData.beratTotal, // Add missing berat_total mapping
-                    tipe_pembelian: headerOnlyData.tipePembelian,
-                    tipe_pembayaran: headerOnlyData.purchase_type,
-                    due_date: headerOnlyData.due_date,
-                    syarat_pembelian: headerOnlyData.syarat_pembelian,
-                    file: headerOnlyData.file
-                };
-                result = await saveHeaderOnly(headerDataForAPI, filteredSupplierOptions);
-            }
-
-            if (result.success) {
-
-                
-                setNotification({
-                    type: 'success',
-                    message: 'Header pembelian berhasil disimpan! Detail dapat ditambahkan nanti.'
-                });
-                
-                // If this was a new record, navigate to edit mode
-                if (!isEdit && result.data?.id) {
-                    setTimeout(() => {
-                        navigate(`/ho/pembelian/edit/${result.data.id}`);
-                    }, 1500);
-                }
-            } else {
-                setNotification({
-                    type: 'error',
-                    message: result.message
-                });
-            }
-        } catch (err) {
-            setNotification({
-                type: 'error',
-                message: err.message || 'Terjadi kesalahan saat menyimpan header'
-            });
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    // New function: Save details only (requires existing header)
-    const handleSaveDetails = async () => {
-        if (!isEdit) {
-            setNotification({
-                type: 'error',
-                message: 'Header pembelian harus disimpan terlebih dahulu sebelum menyimpan detail'
-            });
-            return;
-        }
-
-        if (detailItems.length === 0) {
-            setNotification({
-                type: 'error',
-                message: 'Tidak ada detail untuk disimpan'
-            });
-            return;
-        }
-
-        // Validate detail items
-        const detailValidationErrors = [];
-        detailItems.forEach((item, index) => {
-            if (!item.idKlasifikasiHewan) detailValidationErrors.push(`Detail ${index + 1}: Klasifikasi hewan harus dipilih`);
-            if (!item.harga || item.harga <= 0) detailValidationErrors.push(`Detail ${index + 1}: Harga harus diisi dan > 0`);
-            if (!item.berat || item.berat <= 0) detailValidationErrors.push(`Detail ${index + 1}: Berat harus diisi dan > 0`);
-        });
-
-        if (detailValidationErrors.length > 0) {
-            setNotification({
-                type: 'error',
-                message: detailValidationErrors.join(', ')
-            });
-            return;
-        }
-
-        setIsSubmitting(true);
-        
-        try {
-            // Prepare details data
-            const detailsData = detailItems.map(item => ({
-                id_office: parseInt(headerData.idOffice) || 1, // Use selected office ID (integer)
-                eartag: String(item.eartag),
-                eartag_supplier: String(item.eartagSupplier || ''), // Add eartag_supplier
-                id_klasifikasi_hewan: parseInt(item.idKlasifikasiHewan),
-                golongan: item.golongan ? parseInt(item.golongan) : null,
-                harga: parseFloat(item.harga),
-                berat: parseInt(item.berat),
-                persentase: parseFloat(item.persentase) || 0,
-                hpp: parseFloat(item.hpp),
-                total_harga: item.berat * parseFloat(item.hpp)
-            }));
-
-            // Update pembelian with details only using new function
-            const result = await saveDetailsOnly(id, detailsData);
-
-            if (result.success) {
-
-                
-                setNotification({
-                    type: 'success',
-                    message: 'Detail pembelian berhasil disimpan!'
-                });
-            } else {
-                setNotification({
-                    type: 'error',
-                    message: result.message
-                });
-            }
-        } catch (err) {
-            setNotification({
-                type: 'error',
-                message: err.message || 'Terjadi kesalahan saat menyimpan detail'
             });
         } finally {
             setIsSubmitting(false);
@@ -2744,7 +2562,7 @@ const AddEditPembelianPage = () => {
 
                             {/* Summary */}
                             <div className="mt-4 bg-gradient-to-r from-gray-50 to-slate-100 p-3 rounded-lg">
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
+                                <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-center">
                                     <div>
                                         <p className="text-xl font-bold text-indigo-600">
                                             {detailItems.length}
@@ -2758,16 +2576,58 @@ const AddEditPembelianPage = () => {
                                         <p className="text-xs text-gray-600">Total Berat</p>
                                     </div>
                                     <div>
-                                        <p className="text-xl font-bold text-emerald-600">
+                                        <p className="text-xl font-bold text-amber-600">
                                             Rp {formatNumber(totalHargaBeliDetail)}
                                         </p>
                                         <p className="text-xs text-gray-600">Total Harga Beli</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xl font-bold text-emerald-600">
+                                            Rp {formatNumber(totalHargaJualDetail)}
+                                        </p>
+                                        <p className="text-xs text-gray-600">Total Harga Jual</p>
                                     </div>
                                     <div>
                                         <p className="text-xl font-bold text-blue-600">
                                             Rp {formatNumber(computedHargaTotal)}
                                         </p>
                                         <p className="text-xs text-gray-600">Harga Total (+Truck +Lain)</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Grand Total Footer — match detail page style */}
+                            <div className="mt-3 px-5 py-3 border-t border-gray-100 bg-gradient-to-r from-amber-50 to-emerald-50 grid grid-cols-1 md:grid-cols-2 gap-3 rounded-lg">
+                                <div className="flex flex-col gap-1">
+                                    <div className="text-xs text-gray-600">
+                                        <span className="font-medium">Total Harga Jual: </span>
+                                        <span className="font-semibold text-emerald-700">Rp {formatNumber(totalHargaJualDetail)}</span>
+                                        <span className="mx-2 text-gray-300">+</span>
+                                        <span className="font-medium">Biaya Lain: </span>
+                                        <span className="font-semibold text-gray-700">Rp {formatNumber(headerData.biayaLain)}</span>
+                                        <span className="mx-2 text-gray-300">+</span>
+                                        <span className="font-medium">Biaya Truk: </span>
+                                        <span className="font-semibold text-gray-700">Rp {formatNumber(headerData.biayaTruck)}</span>
+                                    </div>
+                                    <div className="text-sm">
+                                        <span className="font-medium text-gray-700">Grand Total Jual: </span>
+                                        <span className="font-bold text-red-600">Rp {formatNumber(grandTotalJual)}</span>
+                                    </div>
+                                </div>
+                                <div className="flex flex-col gap-1 md:items-end">
+                                    <div className="text-xs text-gray-600">
+                                        <span className="font-medium">Total Harga Beli: </span>
+                                        <span className="font-semibold text-amber-700">Rp {formatNumber(totalHargaBeliDetail)}</span>
+                                        <span className="mx-2 text-gray-300">+</span>
+                                        <span className="font-medium">Biaya Lain: </span>
+                                        <span className="font-semibold text-gray-700">Rp {formatNumber(headerData.biayaLain)}</span>
+                                        <span className="mx-2 text-gray-300">+</span>
+                                        <span className="font-medium">Biaya Truk: </span>
+                                        <span className="font-semibold text-gray-700">Rp {formatNumber(headerData.biayaTruck)}</span>
+                                    </div>
+                                    <div className="text-sm">
+                                        <span className="font-medium text-gray-700">Grand Total Beli: </span>
+                                        <span className="font-bold text-amber-700">Rp {formatNumber(grandTotalBeli)}</span>
                                     </div>
                                 </div>
                             </div>
