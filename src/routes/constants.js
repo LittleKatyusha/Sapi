@@ -100,6 +100,16 @@ export const ROUTE_PATHS = Object.freeze({
   SYSTEM_MENU_MANAGEMENT: '/system/menu-management',
   SYSTEM_MANUAL_JOB: '/system/manual-job',
 
+  // Accounting
+  ACCOUNTING_COA: '/akuntansi/coa',
+  ACCOUNTING_JOURNAL: '/akuntansi/jurnal',
+  ACCOUNTING_LEDGER: '/akuntansi/buku-besar',
+  ACCOUNTING_TRIAL_BALANCE: '/akuntansi/neraca-saldo',
+  ACCOUNTING_INCOME_STATEMENT: '/akuntansi/laba-rugi',
+  ACCOUNTING_BALANCE_SHEET: '/akuntansi/neraca',
+  ACCOUNTING_SETTING: '/akuntansi/setting',
+  ACCOUNTING_PERIOD: '/akuntansi/periode',
+
   // Settings
   SETTINGS: '/settings',
 
@@ -121,6 +131,7 @@ export const ROUTE_GROUPS = Object.freeze({
   HEAD_OFFICE: 'head_office',
   RPH: 'rph',
   PAYMENTS: 'payments',
+  ACCOUNTING: 'accounting',
   SYSTEM: 'system',
   SETTINGS: 'settings'
 });

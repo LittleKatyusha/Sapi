@@ -22,6 +22,16 @@ const LeaveRequestPage = lazy(() => import('./pages/humanResources/LeaveRequestP
 const DeliveryOrderPage = lazy(() => import('./pages/operations/DeliveryOrderPage'));
 const SettingsPageSecure = lazy(() => import('./pages/SettingsPageSecure'));
 
+// Accounting Pages - Lazy loaded
+const CoaPage = lazy(() => import('./pages/accounting/CoaPage'));
+const JournalPage = lazy(() => import('./pages/accounting/JournalPage'));
+const LedgerPage = lazy(() => import('./pages/accounting/LedgerPage'));
+const TrialBalancePage = lazy(() => import('./pages/accounting/TrialBalancePage'));
+const IncomeStatementPage = lazy(() => import('./pages/accounting/IncomeStatementPage'));
+const BalanceSheetPage = lazy(() => import('./pages/accounting/BalanceSheetPage'));
+const AccountingSettingPage = lazy(() => import('./pages/accounting/SettingPage'));
+const PeriodPage = lazy(() => import('./pages/accounting/PeriodPage'));
+
 // Data Master - Lazy loaded
 const KandangOfficePage = lazy(() => import('./pages/dataMaster/KandangOfficePage'));
 const JenisHewanPage = lazy(() => import('./pages/dataMaster/JenisHewanPage'));
@@ -333,6 +343,17 @@ function AppSecure() {
 
               {/* Settings Route */}
               <Route path="/settings" element={<SettingsPageSecure />} />
+
+              {/* Accounting Routes */}
+              <Route path="/akuntansi/coa" element={<CoaPage />} />
+              <Route path="/akuntansi/jurnal" element={<JournalPage />} />
+              <Route path="/akuntansi/buku-besar" element={<LedgerPage />} />
+              <Route path="/akuntansi/neraca-saldo" element={<TrialBalancePage />} />
+              <Route path="/akuntansi/laba-rugi" element={<IncomeStatementPage />} />
+              <Route path="/akuntansi/neraca" element={<BalanceSheetPage />} />
+              <Route path="/akuntansi/pengaturan" element={<AccountingSettingPage />} />
+              <Route path="/akuntansi/setting" element={<AccountingSettingPage />} />
+              <Route path="/akuntansi/periode" element={<PeriodPage />} />
 
               {/* Master Data Routes */}
               <Route path="/master-data/kandang-office" element={<KandangOfficePage />} />

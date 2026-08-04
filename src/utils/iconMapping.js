@@ -1,7 +1,7 @@
 import {
   Home, Users, Package, FileText, Settings, Menu, LogOut,
   ChevronDown, ChevronRight, Shield, Beef, DollarSign,
-  ShoppingCart, TrendingUp, RotateCcw, Truck, UserCheck, Key,
+  ShoppingCart, TrendingUp, RotateCcw, Truck, UserCheck, Key, Calculator,
   Building2, ArrowLeft, Plus, Search, Filter, Download, Eye, Edit, Trash2, Syringe,
   BarChart3, Receipt, Database, Zap, Globe, Lock, Bell, Mail,
   Calendar, Clock, MapPin, Phone, CreditCard, Bookmark,
@@ -28,6 +28,7 @@ export const ICON_MAPPING = {
   'table': Table,
   
   // Business & Office
+  'calculator': Calculator,
   'building': Building2,
   'users': Users,
   'user-check': UserCheck,

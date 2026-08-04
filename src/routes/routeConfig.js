@@ -14,6 +14,7 @@ import { boningRoutes } from './boning';
 import { hoRoutes } from './ho';
 import { rphRoutes } from './rph';
 import { paymentRoutes } from './payment';
+import { accountingRoutes } from './accounting';
 import { systemRoutes } from './system';
 
 // Build production-ready route configurations
@@ -183,6 +184,22 @@ function buildRouteConfiguration() {
         cache: ROUTE_METADATA.CACHE_STRATEGY.LONG_TERM, // Payment history doesn't change frequently
         priority: ROUTE_METADATA.LOAD_PRIORITY.NORMAL,
         permission: ROUTE_METADATA.PERMISSION_LEVEL.AUTHENTICATED
+      }
+    });
+  });
+
+  // Accounting routes
+  accountingRoutes.forEach(route => {
+    routeBuilder.addRoute({
+      ...route,
+      metadata: {
+        group: ROUTE_GROUPS.ACCOUNTING,
+        cache: ROUTE_METADATA.CACHE_STRATEGY.SHORT_TERM,
+        priority: ROUTE_METADATA.LOAD_PRIORITY.NORMAL,
+        permission: ROUTE_METADATA.PERMISSION_LEVEL.AUTHENTICATED,
+        validation: {
+          searchParams: ['search', 'status', 'date_from', 'date_to', 'page', 'limit']
+        }
       }
     });
   });

@@ -125,4 +125,15 @@ export const pageTitleMap = {
   '/rph/penawaran/detail/:pid': 'RPH: Detail Penawaran',
   '/rph/stok-sapi-qurban': 'RPH: Stok Sapi Qurban',
   '/rph/perpindahan-ternak': 'RPH: Perpindahan Ternak',
+
+  // Accounting Module
+  '/akuntansi/coa': 'Chart of Accounts (COA)',
+  '/akuntansi/jurnal': 'Jurnal Umum',
+  '/akuntansi/buku-besar': 'Buku Besar',
+  '/akuntansi/neraca-saldo': 'Neraca Saldo',
+  '/akuntansi/laba-rugi': 'Laporan Laba Rugi',
+  '/akuntansi/neraca': 'Laporan Neraca',
+  '/akuntansi/pengaturan': 'Pengaturan Akunting',
+  '/akuntansi/setting': 'Pengaturan Akunting',
+  '/akuntansi/periode': 'Periode Akunting',
   };
