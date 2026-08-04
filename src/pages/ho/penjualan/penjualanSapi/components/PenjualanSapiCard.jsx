@@ -112,8 +112,8 @@ const PenjualanSapiCard = ({ data, onDetail, onDownloadOrder, onDownloadSuratJal
                     </div>
                 </div>
                 <div className="col-span-2">
-                    <p className="text-[10px] text-gray-500">Total Harga</p>
-                    <p className="text-sm font-semibold text-gray-900">{formatCurrency(data.biaya_total)}</p>
+                    <p className="text-[10px] text-gray-500">Total Harga Jual</p>
+                    <p className="text-sm font-semibold text-gray-900">{formatCurrency(data.harga)}</p>
                 </div>
             </div>
         </div>

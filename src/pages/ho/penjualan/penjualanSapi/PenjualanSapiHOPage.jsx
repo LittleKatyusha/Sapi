@@ -555,7 +555,7 @@ const PenjualanSapiHOPage = () => {
                                     <TableHeader className="w-10">No</TableHeader>
                                     <TableHeader field="rph">Customer & Dokumen</TableHeader>
                                     <TableHeader field="tgl_masuk">Tanggal</TableHeader>
-                                    <TableHeader field="jumlah">Jumlah & Total</TableHeader>
+                                    <TableHeader field="jumlah">Jumlah & Total Harga Jual</TableHeader>
                                     <TableHeader>Persetujuan & Status</TableHeader>
                                     <TableHeader>Surat Jalan & Faktur</TableHeader>
                                     <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
@@ -618,7 +618,7 @@ const PenjualanSapiHOPage = () => {
                                                                 {row.jumlah || 0}
                                                                 <span className="text-[10px] font-normal text-indigo-500">ekor</span>
                                                             </span>
-                                                            <span className="font-medium text-gray-900 text-xs">{formatCurrency(row.biaya_total)}</span>
+                                                            <span className="font-medium text-gray-900 text-xs">{formatCurrency(row.harga)}</span>
                                                         </div>
                                                     </td>
                                                     <td className="px-3 py-2.5">

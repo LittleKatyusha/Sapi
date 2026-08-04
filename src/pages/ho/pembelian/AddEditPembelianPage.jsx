@@ -288,7 +288,7 @@ const AddEditPembelianPage = () => {
 
     // Helper functions for number formatting
     const formatNumber = (value) => {
-        if (!value) return '';
+        if (value === '' || value === null || value === undefined) return '';
         return parseInt(value).toLocaleString('id-ID');
     };
 
@@ -1449,8 +1449,7 @@ const AddEditPembelianPage = () => {
         if (!headerData.tglMasuk) errors.push('Tanggal masuk harus diisi');
         if (!headerData.namaSupir) errors.push('Nama supir harus diisi');
         if (!headerData.platNomor) errors.push('Plat nomor harus diisi');
-        if (!headerData.biayaTruck || parseInt(headerData.biayaTruck) <= 0) errors.push('Biaya truck harus diisi dan > 0');
-        // biayaLain is optional, no validation needed
+        // biayaTruck and biayaLain are optional, no validation needed
         
         // Tipe Pembayaran dan Jatuh Tempo validation
         if (!headerData.purchase_type) {

@@ -319,10 +319,6 @@ const usePembelianHO = () => {
             };
 
             // Additional validation
-            if (!headerData.biaya_truk || headerData.biaya_truk <= 0) {
-                throw new Error(`Biaya truck harus diisi dengan nilai numerik > 0. Nilai saat ini: ${headerData.biaya_truk}`);
-            }
-            
             if (!headerData.id_syarat_pembelian || headerData.id_syarat_pembelian <= 0) {
                 throw new Error('Syarat pembelian harus dipilih');
             }
@@ -432,7 +428,7 @@ const usePembelianHO = () => {
                     { field: 'tgl_masuk', message: 'Tanggal masuk harus diisi', condition: !requestData.tgl_masuk.trim() },
                     { field: 'nama_supir', message: 'Nama supir harus diisi', condition: !requestData.nama_supir.trim() },
                     { field: 'plat_nomor', message: 'Plat nomor harus diisi', condition: !requestData.plat_nomor.trim() },
-                    { field: 'biaya_truk', message: 'Biaya truk harus lebih dari 0', condition: requestData.biaya_truk <= 0 },
+                    { field: 'biaya_truk', message: 'Biaya truk tidak boleh negatif', condition: requestData.biaya_truk < 0 },
                     { field: 'biaya_lain', message: 'Biaya lain tidak boleh negatif', condition: requestData.biaya_lain < 0 },
                     { field: 'id_syarat_pembelian', message: 'Syarat pembelian harus dipilih', condition: !requestData.id_syarat_pembelian || requestData.id_syarat_pembelian <= 0 }
                 ];
