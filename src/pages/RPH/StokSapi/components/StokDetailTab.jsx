@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import { Filter, Search, RotateCcw, RefreshCw, AlertCircle, Home } from 'lucide-react';
+import { Filter, Search, RotateCcw, RefreshCw, AlertCircle, Home, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import ActionButton from './ActionButton';
 import StokDetailModal from './StokDetailModal';
 import BulkAssignKandangModal from '../modals/BulkAssignKandangModal';
@@ -13,16 +13,36 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, re
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [kandangFilter, setKandangFilter] = useState('');
+  const [showAdvancedFilter, setShowAdvancedFilter] = useState(false);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [notification, setNotification] = useState(null);
   const startDateRef = useRef('');
   const endDateRef = useRef('');
+  const searchQueryRef = useRef('');
+  const statusFilterRef = useRef('');
+  const kandangFilterRef = useRef('');
+  const currentPageRef = useRef(1);
+  const perPageRef = useRef(10);
   const [selectedPids, setSelectedPids] = useState([]);
   const [bulkKandangModalOpen, setBulkKandangModalOpen] = useState(false);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
+  const [recordsTotal, setRecordsTotal] = useState(0);
+  const [recordsFiltered, setRecordsFiltered] = useState(0);
+
+  // Filter options from backend
+  const [kandangOptions, setKandangOptions] = useState([]);
+  const [statusOptions, setStatusOptions] = useState([]);
+
   const rows = useMemo(() => data?.rows || [], [data]);
+  const totalPages = Math.max(1, Math.ceil(recordsFiltered / perPage));
 
   const showNotification = useCallback((type, message) => {
     setNotification({ type, message });
@@ -53,14 +73,33 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, re
     setDetailRow(null);
   };
 
-  const fetchData = useCallback(async (start = null, end = null) => {
+  const fetchData = useCallback(async (opts = {}) => {
+    const {
+      start = (currentPageRef.current - 1) * perPageRef.current,
+      length = perPageRef.current,
+      search = searchQueryRef.current,
+      statusFilter: sf = statusFilterRef.current,
+      kandangFilter: kf = kandangFilterRef.current,
+      startDate: sd = startDateRef.current,
+      endDate: ed = endDateRef.current,
+    } = opts;
+
     setLoading(true);
     setError(null);
 
     try {
-      const response = await StokSapiService.getStokDetail(start, end);
+      const response = await StokSapiService.getStokDetail(sd || null, ed || null, {
+        start,
+        length,
+        search,
+        statusFilter: sf,
+        kandangFilter: kf,
+        draw: 1,
+      });
       if (response.success) {
         setData(response.data);
+        setRecordsTotal(response.data?.recordsTotal ?? 0);
+        setRecordsFiltered(response.data?.recordsFiltered ?? 0);
       } else {
         setError(response.message || 'Gagal memuat data');
         showNotification('error', response.message || 'Gagal memuat data stok detail');
@@ -75,32 +114,72 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, re
     }
   }, [showNotification]);
 
+  // Fetch filter options once on mount
+  useEffect(() => {
+    (async () => {
+      const res = await StokSapiService.getFilterOptions();
+      if (res.success) {
+        setKandangOptions(res.data?.kandang || []);
+        setStatusOptions(res.data?.status || []);
+      }
+    })();
+  }, []);
+
   const handleBulkKandangSuccess = useCallback((res) => {
     setBulkKandangModalOpen(false);
     setSelectedPids([]);
     showNotification('success', res?.message || 'Berhasil assign kandang');
-    fetchData(startDateRef.current || null, endDateRef.current || null);
+    fetchData();
   }, [fetchData, showNotification]);
 
+  // Initial load + refresh trigger only (not on filter typing)
   useEffect(() => {
-    fetchData(startDateRef.current || null, endDateRef.current || null);
+    fetchData();
   }, [refreshTrigger, fetchData]);
 
   const handleSearch = () => {
-    if (startDate && endDate) {
-      startDateRef.current = startDate;
-      endDateRef.current = endDate;
-      fetchData(startDate, endDate);
-    }
+    startDateRef.current = startDate;
+    endDateRef.current = endDate;
+    searchQueryRef.current = searchQuery;
+    statusFilterRef.current = statusFilter;
+    kandangFilterRef.current = kandangFilter;
+    currentPageRef.current = 1;
+    setCurrentPage(1);
+    fetchData({ start: 0 });
   };
 
   const handleReset = () => {
     setStartDate('');
     setEndDate('');
+    setSearchQuery('');
+    setStatusFilter('');
+    setKandangFilter('');
     startDateRef.current = '';
     endDateRef.current = '';
-    fetchData();
+    searchQueryRef.current = '';
+    statusFilterRef.current = '';
+    kandangFilterRef.current = '';
+    currentPageRef.current = 1;
+    setCurrentPage(1);
+    fetchData({ start: 0, search: '', statusFilter: '', kandangFilter: '', startDate: '', endDate: '' });
   };
+
+  const handlePageChange = (newPage) => {
+    if (newPage < 1 || newPage > totalPages || loading) return;
+    currentPageRef.current = newPage;
+    setCurrentPage(newPage);
+    fetchData({ start: (newPage - 1) * perPageRef.current });
+  };
+
+  const handlePerPageChange = (newPerPage) => {
+    perPageRef.current = newPerPage;
+    setPerPage(newPerPage);
+    currentPageRef.current = 1;
+    setCurrentPage(1);
+    fetchData({ start: 0, length: newPerPage });
+  };
+
+  const hasActiveFilter = searchQuery || statusFilter || kandangFilter || startDate || endDate;
 
   /** Render status badge based on status_sapi value */
   const renderStatusBadge = (status) => {
@@ -161,68 +240,151 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, re
       `}</style>
 
       {/* Filter Card */}
-      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-          <div className="flex items-center gap-1.5 text-sm font-medium text-gray-700">
+      <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
+        {/* Header bar */}
+        <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2.5">
+          <div className="flex items-center gap-1.5 text-sm font-semibold text-gray-700">
             <Filter className="h-4 w-4 text-emerald-600" />
-            Filter Tanggal
+            Filter Pencarian
           </div>
-          <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-end">
-            <div className="flex flex-1 flex-col gap-1.5">
+          <div className="flex items-center gap-2">
+            {hasActiveFilter && (
+              <span className="text-xs text-emerald-600 font-medium">
+                {recordsFiltered} dari {recordsTotal} sapi
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => setShowAdvancedFilter((v) => !v)}
+              className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+            >
+              <Filter className="h-3.5 w-3.5" />
+              Filter Lanjutan
+              {showAdvancedFilter ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Main filter row */}
+        <div className="flex flex-col gap-3 p-4 lg:flex-row lg:items-end lg:gap-2">
+          {/* Search */}
+          <div className="flex flex-1 flex-col gap-1.5">
+            <label className="text-xs font-medium text-gray-500">Cari</label>
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Eartag, jenis sapi, pemasok, nota..."
+                className="w-full rounded-md border border-gray-300 bg-white pl-8 pr-3 py-2 text-sm text-gray-700 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/30"
+              />
+            </div>
+          </div>
+          {/* Date range */}
+          <div className="flex items-end gap-2">
+            <div className="flex flex-1 flex-col gap-1.5 lg:w-40">
               <label className="text-xs font-medium text-gray-500">Dari</label>
               <input
                 type="date"
                 value={startDate}
-                onChange={(e) => {
-                  startDateRef.current = e.target.value;
-                  setStartDate(e.target.value);
-                }}
+                onChange={(e) => { startDateRef.current = e.target.value; setStartDate(e.target.value); }}
                 className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/30"
               />
             </div>
-            <div className="flex flex-1 flex-col gap-1.5">
+            <div className="flex flex-1 flex-col gap-1.5 lg:w-40">
               <label className="text-xs font-medium text-gray-500">Sampai</label>
               <input
                 type="date"
                 value={endDate}
-                onChange={(e) => {
-                  endDateRef.current = e.target.value;
-                  setEndDate(e.target.value);
-                }}
+                onChange={(e) => { endDateRef.current = e.target.value; setEndDate(e.target.value); }}
                 className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/30"
               />
             </div>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={handleSearch}
-                disabled={!startDate || !endDate || loading}
-                className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-gray-300"
-              >
-                <Search className="h-4 w-4" />
-                Cari
-              </button>
-              <button
-                type="button"
-                onClick={handleReset}
-                disabled={loading}
-                className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <RotateCcw className="h-4 w-4" />
-                Reset
-              </button>
-              <button
-                type="button"
-                onClick={() => fetchData(startDate || null, endDate || null)}
-                disabled={loading}
-                className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-                Refresh
-              </button>
-            </div>
+          </div>
+          {/* Action buttons */}
+          <div className="flex items-end gap-2">
+            <button
+              type="button"
+              onClick={handleSearch}
+              disabled={loading}
+              className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+            >
+              <Search className="h-4 w-4" />
+              Cari
+            </button>
+            <button
+              type="button"
+              onClick={handleReset}
+              disabled={loading}
+              className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <RotateCcw className="h-4 w-4" />
+              Reset
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                startDateRef.current = startDate;
+                endDateRef.current = endDate;
+                searchQueryRef.current = searchQuery;
+                statusFilterRef.current = statusFilter;
+                kandangFilterRef.current = kandangFilter;
+                fetchData();
+              }}
+              disabled={loading}
+              title="Refresh"
+              className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            </button>
           </div>
         </div>
+
+        {/* Advanced filters (collapsible) */}
+        {showAdvancedFilter && (
+          <div className="grid grid-cols-1 gap-3 border-t border-gray-100 bg-gray-50/50 p-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium text-gray-500">Status Sapi</label>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/30"
+              >
+                <option value="">Semua status</option>
+                {statusOptions.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium text-gray-500">Kandang</label>
+              <select
+                value={kandangFilter}
+                onChange={(e) => setKandangFilter(e.target.value)}
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/30"
+              >
+                <option value="">Semua kandang</option>
+                {kandangOptions.map((k) => (
+                  <option key={k.kode} value={k.kode}>{k.kode} — {k.nama}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-end">
+              {hasActiveFilter ? (
+                <button
+                  type="button"
+                  onClick={handleReset}
+                  className="text-xs text-emerald-600 font-medium hover:underline"
+                >
+                  {recordsFiltered} dari {recordsTotal} sapi · Reset filter
+                </button>
+              ) : (
+                <span className="text-xs text-gray-400">Tidak ada filter aktif</span>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {error && (
@@ -318,6 +480,7 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, re
               </th>
               {/* Scrollable columns */}
               <th className="py-2 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap">Kandang</th>
+              <th className="py-2 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap">No Nota</th>
               <th className="py-2 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap">Pemeliharaan</th>
               <th className="py-2 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap">OVK</th>
               <th className="py-2 px-3 text-right font-semibold border border-emerald-500 whitespace-nowrap">Nilai</th>
@@ -442,6 +605,9 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, re
                       <span className="text-gray-400">Eartag:</span> {row.eartag || '-'}
                     </div>
                     <div className="text-xs text-gray-500">
+                      <span className="text-gray-400">Eartag Supplier:</span> {row.eartag_supplier || '-'}
+                    </div>
+                    <div className="text-xs text-gray-500">
                       <span className="text-gray-400">Bobot:</span> {row.bobot ? `${Number(row.bobot)} KG` : '-'}
                     </div>
                     <div className="text-xs text-gray-500">
@@ -458,6 +624,10 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, re
                   ) : (
                     <span className="text-xs text-gray-400">—</span>
                   )}
+                </td>
+                {/* No Nota */}
+                <td className="py-2 px-3 border border-gray-100 whitespace-nowrap">
+                  <span className="text-xs text-gray-700 font-medium" title={row.nomor_nota}>{row.nomor_nota || '-'}</span>
                 </td>
                 {/* Pemeliharaan */}
                 <td className="py-2 px-3 border border-gray-100 whitespace-nowrap">
@@ -504,9 +674,6 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, re
                   <div className="space-y-0.5">
                     <div className="text-xs text-gray-600 max-w-[140px] truncate" title={row.pemasok}>{row.pemasok || '-'}</div>
                     <div className="text-xs text-gray-500">
-                      <span className="text-gray-400">Nota:</span> {row.nomor_nota || '-'}
-                    </div>
-                    <div className="text-xs text-gray-500">
                       <span className="text-gray-400">Pengirim:</span> {row.pengirim || '-'}
                     </div>
                     <div className="text-xs text-gray-500">
@@ -528,13 +695,47 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, re
       </div>
       )}
 
-      {/* Summary footer */}
+      {/* Summary footer + pagination */}
       {rows.length > 0 && !loading && (
-        <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-500 font-medium">
-              Total {formatNumber(rows.length)} data sapi
-            </p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-emerald-50 rounded-lg p-4 border border-emerald-200">
+          <p className="text-sm text-gray-500 font-medium">
+            Total {formatNumber(recordsFiltered)} data sapi{hasActiveFilter && recordsFiltered !== recordsTotal ? ` (dari ${formatNumber(recordsTotal)})` : ''}
+          </p>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-500">Tampilkan</span>
+              <select
+                value={perPage}
+                onChange={(e) => handlePerPageChange(Number(e.target.value))}
+                className="rounded-md border border-gray-300 bg-white px-2 py-1 text-sm text-gray-700 focus:border-emerald-500 focus:outline-none"
+              >
+                {[10, 25, 50, 100].map((n) => (
+                  <option key={n} value={n}>{n}</option>
+                ))}
+              </select>
+              <span className="text-xs text-gray-500">/ halaman</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage <= 1 || loading}
+                className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white p-1.5 text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <span className="text-sm text-gray-600 font-medium">
+                Hal {currentPage} / {totalPages}
+              </span>
+              <button
+                type="button"
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage >= totalPages || loading}
+                className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white p-1.5 text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -25,10 +25,19 @@ class StokSapiService {
     }
   }
 
-  static async getStokDetail(startDate, endDate) {
+  static async getStokDetail(startDate, endDate, params = {}) {
     try {
       const response = await HttpClient.get(`${this.API_PREFIX}/stoksapi`, {
-        params: { start_date: startDate, end_date: endDate },
+        params: {
+          start_date: startDate,
+          end_date: endDate,
+          start: params.start ?? 0,
+          length: params.length ?? 10,
+          search: params.search ?? '',
+          status_filter: params.statusFilter ?? '',
+          kandang_filter: params.kandangFilter ?? '',
+          draw: params.draw ?? 1,
+        },
         cache: false,
       });
       return { success: true, data: response.data, message: 'Data retrieved successfully' };
@@ -47,6 +56,22 @@ class StokSapiService {
         success: false,
         data: null,
         message,
+      };
+    }
+  }
+
+  static async getFilterOptions() {
+    try {
+      const response = await HttpClient.get(`${this.API_PREFIX}/stokfilteroptions`, {
+        cache: false,
+      });
+      return { success: true, data: response.data, message: 'Data retrieved successfully' };
+    } catch (error) {
+      console.error('StokSapiService.getFilterOptions error:', error);
+      return {
+        success: false,
+        data: null,
+        message: error?.data?.message || error?.message || 'Failed to fetch filter options',
       };
     }
   }
