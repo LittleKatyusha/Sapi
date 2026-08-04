@@ -45,6 +45,7 @@ const detailToSapiOption = (detail) => {
 const PAYMENT_OPTIONS = [{ value: '1', label: 'Tunai' }, { value: '2', label: 'Kredit' }];
 const SKIN_TREATMENT_OPTIONS = [{ value: 'DITABUNG', label: 'Ditabung' }, { value: 'DIAMBIL', label: 'Diambil' }];
 const SHIPPING_OPTIONS = [{ value: 'DIAMBIL', label: 'Diambil' }, { value: 'DIANTAR', label: 'Diantar' }];
+const isPedagangAtCreditLimit = (item) => Number(item?.is_dispensasi || 0) !== 1 && Number(item?.limit_kredit || 0) > 0 && Number(item?.saldo_beku || 0) >= Number(item.limit_kredit);
 const paymentStatusLabel = (row) => {
   if (row.status_transaksi === 'BATAL') return 'Batal';
   if (row.payment_status_label) return row.payment_status_label;
@@ -211,7 +212,12 @@ const KarkasFormModal = ({
           <div className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
               <Field label="Pedagang">
-                <SearchableSelect required value={String(form.id_pedagang || '')} onChange={v => selectPedagang(v || '')} options={toSelectOptions(pedagang)} placeholder="Pilih pedagang" accentColor="red" />
+                <SearchableSelect required value={String(form.id_pedagang || '')} onChange={v => selectPedagang(v || '')} options={toSelectOptions(form.pid ? pedagang : pedagang.filter(item => !isPedagangAtCreditLimit(item)))} placeholder="Pilih pedagang" accentColor="red" />
+                {Number(pedagang.find(item => String(item.id) === String(form.id_pedagang))?.is_dispensasi) === 1 && (
+                  <div className="mt-2 p-2 bg-amber-50 border border-amber-200 text-amber-800 rounded-md font-semibold text-xs">
+                    Pedagang memiliki dispensasi aktif.
+                  </div>
+                )}
               </Field>
               <Field label="Tanggal Penjualan">
                 <Input required type="date" value={String(form.tanggal_penjualan || '').slice(0, 10)} onChange={e => setHeader('tanggal_penjualan', e.target.value)} />

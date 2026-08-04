@@ -39,11 +39,11 @@ const initialFormData = {
   jenis_kelamin: '', agama: '', pekerjaan: '', status_kawin: '', tipe_pedagang: '',
   id_provinsi: '', id_kabupaten: '', id_kecamatan: '', id_kelurahan: '',
   status_rumah: '', no_hp: '', alamat: '', pasar: '',
-  saldo_awal: '', tabungan: '', kulit: '', saldo_beku: '', id_office: '',
+  saldo_awal: '', tabungan: '', kulit: '', saldo_beku: '', limit_kredit: '', id_office: '',
 };
 
 const HARGA_PARAMETER_GROUPS = 'itemboning,itempotong';
-const CURRENCY_FIELDS = ['saldo_awal', 'tabungan', 'kulit', 'saldo_beku'];
+const CURRENCY_FIELDS = ['saldo_awal', 'tabungan', 'kulit', 'saldo_beku', 'limit_kredit'];
 
 const STATIC_OPTIONS = {
   jenis_kelamin: [
@@ -173,7 +173,7 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
                 status_rumah: d.status_rumah || '', no_hp: d.no_hp != null ? String(d.no_hp) : '',
                 alamat: d.alamat || '', pasar: d.pasar || '',
                 saldo_awal: d.saldo_awal || '', tabungan: d.tabungan || '',
-                kulit: d.kulit || '', saldo_beku: d.saldo_beku || '',
+                kulit: d.kulit || '', saldo_beku: d.saldo_beku || '', limit_kredit: d.limit_kredit || '',
                 id_office: d.id_office != null ? Number(d.id_office) : '',
                 tipe_pedagang: d.tipe_pedagang != null ? Number(d.tipe_pedagang) : '',
               });
@@ -272,7 +272,7 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
     setIsSubmitting(true);
     try {
       const payload = { ...formData };
-      ['saldo_awal', 'tabungan', 'kulit', 'saldo_beku', 'id_office', 'jenis_kelamin', 'agama', 'pekerjaan', 'status_kawin', 'status_rumah', 'tipe_pedagang'].forEach((f) => {
+      ['saldo_awal', 'tabungan', 'kulit', 'saldo_beku', 'limit_kredit', 'id_office', 'jenis_kelamin', 'agama', 'pekerjaan', 'status_kawin', 'status_rumah', 'tipe_pedagang'].forEach((f) => {
         if (payload[f] !== '') payload[f] = Number(payload[f]);
       });
       if (editData?.pid) payload.pid = editData.pid;
@@ -562,6 +562,7 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
                       {renderCurrencyInput('tabungan', 'Tabungan')}
                       {renderCurrencyInput('kulit', 'Kulit')}
                       {renderCurrencyInput('saldo_beku', 'Saldo Beku')}
+                      {renderCurrencyInput('limit_kredit', 'Nominal Limit Hutang')}
                     </div>
                   </div>
                 </div>

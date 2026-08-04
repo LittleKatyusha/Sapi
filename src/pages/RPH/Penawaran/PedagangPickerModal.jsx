@@ -199,8 +199,8 @@ const PedagangPickerModal = ({ open, onClose, onConfirm, excludeIds = [] }) => {
                   </th>
                   <th className="text-left text-[10px] font-bold text-gray-500 uppercase py-3 px-2">Pedagang</th>
                   <th className="text-left text-[10px] font-bold text-gray-500 uppercase py-3 px-2">Pasar / Status</th>
+                  <th className="text-right text-[10px] font-bold text-gray-500 uppercase py-3 px-2">Limit / Hutang</th>
                   <th className="text-right text-[10px] font-bold text-gray-500 uppercase py-3 px-2">Saldo Akhir</th>
-                  <th className="text-right text-[10px] font-bold text-gray-500 uppercase py-3 px-2">Tabungan + Deposit</th>
                   <th className="text-center text-[10px] font-bold text-gray-500 uppercase py-3 px-2">Dispensasi</th>
                 </tr>
               </thead>
@@ -253,10 +253,13 @@ const PedagangPickerModal = ({ open, onClose, onConfirm, excludeIds = [] }) => {
                         </div>
                       </td>
                       <td className="py-3 px-2 text-right">
-                        <span className="text-sm font-bold text-gray-800 tabular-nums">{formatRupiah(item.saldo_akhir)}</span>
+                        <div className="flex flex-col">
+                          <span className="text-[10px] text-gray-400">Limit: {formatRupiah(item.limit_kredit)}</span>
+                          <span className="text-sm font-bold text-red-600 tabular-nums">{formatRupiah(item.saldo_beku)}</span>
+                        </div>
                       </td>
                       <td className="py-3 px-2 text-right">
-                        <span className="text-sm text-gray-600 tabular-nums">{formatRupiah(Number(item.tabungan) + Number(item.deposit_pedagang))}</span>
+                        <span className="text-sm font-bold text-gray-800 tabular-nums">{formatRupiah(item.saldo_akhir)}</span>
                       </td>
                       <td className="py-3 px-2 text-center">
                         {hasActive ? (

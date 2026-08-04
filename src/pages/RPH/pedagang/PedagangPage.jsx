@@ -19,6 +19,12 @@ import RekeningPedagangModal from './modals/RekeningPedagangModal';
 import TambahTabunganModal from './modals/TambahTabunganModal';
 
 const TIPE_LABELS = { 1: 'Langganan', 2: 'Umum' };
+const isLimitHutangReached = (row) => {
+  const limit = Number(row?.limit_kredit || 0);
+  return limit > 0 && Number(row?.saldo_beku || 0) >= limit;
+};
+const getDisplayedStatusLabel = (row) => (isLimitHutangReached(row) ? 'Macet' : (row?.status_label || getStatusLabel(row?.status_pedagang)));
+const getDisplayedStatusClasses = (row) => (isLimitHutangReached(row) ? 'bg-red-100 text-red-800' : getStatusBadgeClasses(row?.status_pedagang));
 const TIPE_OPTIONS = [
   { value: 1, label: 'Terdaftar (Tipe 1)' },
   { value: 2, label: 'Non-Terdaftar/Umum (Tipe 2)' },
@@ -747,6 +753,7 @@ const PedagangPage = () => {
                     </button>
                   </th>
                   <th className="text-right text-[10px] font-bold text-gray-500 uppercase px-3 py-3">Hutang</th>
+                  <th className="text-right text-[10px] font-bold text-gray-500 uppercase px-3 py-3">Limit Hutang</th>
                   <th className="text-center text-[10px] font-bold text-gray-500 uppercase px-3 py-3">Dispensasi</th>
                   <th className="text-center text-[10px] font-bold text-gray-500 uppercase px-3 py-3 w-10">Aksi</th>
                 </tr>
@@ -754,14 +761,14 @@ const PedagangPage = () => {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={7} className="py-16 text-center">
+                    <td colSpan={8} className="py-16 text-center">
                       <Loader2 className="w-6 h-6 text-emerald-500 animate-spin mx-auto mb-2" />
                       <p className="text-sm text-gray-500">Memuat data...</p>
                     </td>
                   </tr>
                 ) : sortedData.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-16 text-center">
+                    <td colSpan={8} className="py-16 text-center">
                       <Users className="w-10 h-10 text-gray-300 mx-auto mb-3" />
                       <p className="text-sm text-gray-500">Tidak ada data pedagang ditemukan</p>
                     </td>
@@ -796,8 +803,8 @@ const PedagangPage = () => {
                             <MapPin className="w-3 h-3 text-gray-400" /> {row.pasar || '-'}
                           </span>
                           <div className="flex items-center gap-1.5">
-                            <span className={`px-2 py-0.5 text-[10px] font-semibold rounded-full ${getStatusBadgeClasses(row.status_pedagang)}`}>
-                              {row.status_label || getStatusLabel(row.status_pedagang)}
+                            <span className={`px-2 py-0.5 text-[10px] font-semibold rounded-full ${getDisplayedStatusClasses(row)}`}>
+                              {getDisplayedStatusLabel(row)}
                             </span>
                             <span className="text-[10px] text-gray-400">{TIPE_LABELS[row.tipe_pedagang] || '-'}</span>
                           </div>
@@ -817,7 +824,14 @@ const PedagangPage = () => {
                       </td>
                       <td className="px-3 py-3 text-right">
                         <span className="text-sm font-semibold text-rose-600 tabular-nums">
-                          {formatCurrency(row.saldo_beku)}
+                          <span className={isLimitHutangReached(row) ? 'text-sm font-semibold text-red-600 tabular-nums' : undefined}>
+                            {formatCurrency(row.saldo_beku)}
+                          </span>
+                        </span>
+                      </td>
+                      <td className="px-3 py-3 text-right">
+                        <span className={`text-sm font-semibold tabular-nums ${isLimitHutangReached(row) ? 'text-red-600' : 'text-amber-600'}`}>
+                          {formatCurrency(row.limit_kredit)}
                         </span>
                       </td>
                       <td className="px-3 py-3 text-center">
@@ -886,8 +900,8 @@ const PedagangPage = () => {
                   </div>
                   <div>
                     <p className="text-gray-400">Status</p>
-                    <span className={`inline-block px-2 py-0.5 text-[10px] font-semibold rounded-full ${getStatusBadgeClasses(row.status_pedagang)}`}>
-                      {row.status_label || getStatusLabel(row.status_pedagang)}
+                    <span className={`inline-block px-2 py-0.5 text-[10px] font-semibold rounded-full ${getDisplayedStatusClasses(row)}`}>
+                      {getDisplayedStatusLabel(row)}
                     </span>
                   </div>
                   <div>
@@ -897,7 +911,9 @@ const PedagangPage = () => {
                   </div>
                   <div>
                     <p className="text-gray-400">Hutang</p>
-                    <p className="text-rose-600 font-bold">{formatCurrency(row.saldo_beku)}</p>
+                    <p className={`${isLimitHutangReached(row) ? 'text-red-600' : 'text-rose-600'} font-bold`}>{formatCurrency(row.saldo_beku)}</p>
+                    <p className="text-gray-400 mt-2">Limit Hutang</p>
+                    <p className={`${isLimitHutangReached(row) ? 'text-red-600' : 'text-amber-600'} font-bold`}>{formatCurrency(row.limit_kredit)}</p>
                   </div>
                   <div>
                     <p className="text-gray-400">Dispensasi</p>
