@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Package, ClipboardList, Wheat, Scale, AlertTriangle } from 'lucide-react';
+import { Package, ClipboardList, Scale, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import useDocumentTitle from '../../../hooks/useDocumentTitle';
 import StokRingkasTab from './components/StokRingkasTab';
@@ -89,14 +89,6 @@ const StokSapiPage = () => {
               >
                 <Package className="h-4 w-4" />
                 OVK
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate('/rph/pemberian-pakan-sapi')}
-                className="inline-flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-100"
-              >
-                <Wheat className="h-4 w-4" />
-                Pakan
               </button>
             </div>
           </div>

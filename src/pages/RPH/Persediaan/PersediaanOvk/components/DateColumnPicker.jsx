@@ -32,7 +32,7 @@ const DateColumnPicker = ({
     const to = endDate || maxDate;
     const dates = generateDateRange(from, to);
     if (dates.length > 0) {
-      onDateRangeChange(dates.slice(0, 7));
+      onDateRangeChange(dates.slice(0, 31));
     }
   };
 
@@ -43,11 +43,11 @@ const DateColumnPicker = ({
     const from = startDate || minDate;
     const dates = generateDateRange(from, to);
     if (dates.length > 0) {
-      onDateRangeChange(dates.slice(0, 7));
+      onDateRangeChange(dates.slice(0, 31));
     }
   };
 
-  const handleLast7Days = () => {
+  const handleLast31Days = () => {
     onDateRangeChange([...availableDates]);
   };
 
@@ -144,12 +144,12 @@ const DateColumnPicker = ({
       {/* Action Buttons */}
       <div className="flex items-center gap-2">
         <button
-          onClick={handleLast7Days}
+          onClick={handleLast31Days}
           className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700
                      transition-all hover:bg-emerald-100 active:scale-95"
         >
           <CalendarDays className="h-3.5 w-3.5" />
-          7 Hari Terakhir
+          31 Hari Terakhir
         </button>
         <button
           onClick={handleReset}

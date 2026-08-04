@@ -79,10 +79,10 @@ const usePersediaanPakan = () => {
     }));
   }, []);
 
-  // Refresh data
+  // Refresh data — bump draw to trigger useEffect refetch (avoids stale closure)
   const refresh = useCallback(() => {
-    fetchPersediaanData();
-  }, [fetchPersediaanData]);
+    setParams(prev => ({ ...prev, draw: prev.draw + 1 }));
+  }, []);
 
   // Handle search with debounce
   const handleSearch = useCallback((value) => {
@@ -194,6 +194,7 @@ const usePersediaanPakan = () => {
     isSearching,
     searchError,
     serverPagination,
+    setServerPagination,
     stats,
     fetchPersediaanData,
     refresh,

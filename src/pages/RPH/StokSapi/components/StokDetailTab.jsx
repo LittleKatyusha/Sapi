@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import { Filter, Search, RotateCcw, RefreshCw, AlertCircle } from 'lucide-react';
+import { Filter, Search, RotateCcw, RefreshCw, AlertCircle, Home } from 'lucide-react';
 import ActionButton from './ActionButton';
 import StokDetailModal from './StokDetailModal';
+import BulkAssignKandangModal from '../modals/BulkAssignKandangModal';
 import StokSapiService from '../../../../services/stokSapiService';
 import { formatNumber } from '../constants/dummyData';
 import { Notification } from '../../../../components/shared/NotificationComponent';
@@ -18,12 +19,29 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, re
   const [notification, setNotification] = useState(null);
   const startDateRef = useRef('');
   const endDateRef = useRef('');
+  const [selectedPids, setSelectedPids] = useState([]);
+  const [bulkKandangModalOpen, setBulkKandangModalOpen] = useState(false);
 
   const rows = useMemo(() => data?.rows || [], [data]);
 
   const showNotification = useCallback((type, message) => {
     setNotification({ type, message });
   }, []);
+
+  // Selection helpers
+  const allPids = useMemo(() => rows.map((r) => r.pid).filter(Boolean), [rows]);
+  const allSelected = allPids.length > 0 && selectedPids.length === allPids.length;
+  const someSelected = selectedPids.length > 0 && selectedPids.length < allPids.length;
+
+  const toggleSelectAll = useCallback(() => {
+    setSelectedPids(allSelected ? [] : allPids);
+  }, [allSelected, allPids]);
+
+  const toggleSelect = useCallback((pid) => {
+    setSelectedPids((prev) => (prev.includes(pid) ? prev.filter((p) => p !== pid) : [...prev, pid]));
+  }, []);
+
+  const clearSelection = useCallback(() => setSelectedPids([]), []);
 
   const handleDetail = (row) => {
     setDetailRow(row);
@@ -56,6 +74,13 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, re
       setLoading(false);
     }
   }, [showNotification]);
+
+  const handleBulkKandangSuccess = useCallback((res) => {
+    setBulkKandangModalOpen(false);
+    setSelectedPids([]);
+    showNotification('success', res?.message || 'Berhasil assign kandang');
+    fetchData(startDateRef.current || null, endDateRef.current || null);
+  }, [fetchData, showNotification]);
 
   useEffect(() => {
     fetchData(startDateRef.current || null, endDateRef.current || null);
@@ -220,6 +245,32 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, re
         </div>
       )}
 
+      {/* Bulk action bar */}
+      {selectedPids.length > 0 && (
+        <div className="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 p-3 shadow-sm">
+          <div className="text-sm text-emerald-800">
+            <span className="font-semibold">{selectedPids.length} sapi</span> dipilih
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setBulkKandangModalOpen(true)}
+              className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700"
+            >
+              <Home className="h-4 w-4" />
+              Assign Kandang
+            </button>
+            <button
+              type="button"
+              onClick={clearSelection}
+              className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              Batal
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Detail Table with horizontal scroll */}
       {(rows.length > 0 || loading) && !error && (
       <div className="relative stok-detail-table-wrapper overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
@@ -228,29 +279,45 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, re
             <div className="h-full w-1/3 animate-[shimmer_1.2s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-emerald-500 to-transparent" />
           </div>
         )}
-        <table className="w-full text-sm border-collapse" style={{ minWidth: '1300px' }}>
+        <table className="w-full text-sm border-collapse" style={{ minWidth: '1400px' }}>
           <thead>
             <tr className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white">
               {/* Sticky columns */}
               <th
                 className="py-2 px-3 text-center font-semibold border border-emerald-500 whitespace-nowrap sticky left-0 z-20 bg-gradient-to-r from-emerald-600 to-teal-600"
-                style={{ width: '50px', minWidth: '50px' }}
+                style={{ width: '40px', minWidth: '40px' }}
+              >
+                <input
+                  type="checkbox"
+                  checked={allSelected}
+                  ref={(el) => {
+                    if (el) el.indeterminate = someSelected;
+                  }}
+                  onChange={toggleSelectAll}
+                  className="h-4 w-4 cursor-pointer accent-emerald-600"
+                  disabled={loading || rows.length === 0}
+                />
+              </th>
+              <th
+                className="py-2 px-3 text-center font-semibold border border-emerald-500 whitespace-nowrap sticky z-20 bg-gradient-to-r from-emerald-600 to-teal-600"
+                style={{ left: '40px', width: '50px', minWidth: '50px' }}
               >
                 No
               </th>
               <th
                 className="py-2 px-3 text-center font-semibold border border-emerald-500 whitespace-nowrap sticky z-20 bg-gradient-to-r from-emerald-600 to-teal-600"
-                style={{ left: '50px', width: '70px', minWidth: '70px' }}
+                style={{ left: '90px', width: '70px', minWidth: '70px' }}
               >
                 Aksi
               </th>
               <th
                 className="py-2 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap sticky z-20 bg-gradient-to-r from-emerald-600 to-teal-600"
-                style={{ left: '120px', minWidth: '160px' }}
+                style={{ left: '160px', minWidth: '160px' }}
               >
                 Sapi
               </th>
               {/* Scrollable columns */}
+              <th className="py-2 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap">Kandang</th>
               <th className="py-2 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap">Pemeliharaan</th>
               <th className="py-2 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap">OVK</th>
               <th className="py-2 px-3 text-right font-semibold border border-emerald-500 whitespace-nowrap">Nilai</th>
@@ -263,18 +330,24 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, re
           <tbody className={loading && rows.length > 0 ? 'opacity-50 pointer-events-none' : ''}>
             {loading && rows.length === 0 && Array.from({ length: 8 }).map((_, i) => (
               <tr key={`skeleton-${i}`} className="border-b border-gray-100 bg-white">
-                <td className="py-3 px-3 border border-gray-100 sticky left-0 z-10 bg-white" style={{ width: '50px', minWidth: '50px' }}>
+                <td className="py-3 px-3 border border-gray-100 sticky left-0 z-10 bg-white" style={{ width: '40px', minWidth: '40px' }}>
+                  <div className="skeleton-cell h-4 w-4 rounded mx-auto" />
+                </td>
+                <td className="py-3 px-3 border border-gray-100 sticky z-20 bg-white" style={{ left: '40px', width: '50px', minWidth: '50px' }}>
                   <div className="skeleton-cell h-4 w-6 rounded mx-auto" />
                 </td>
-                <td className="py-3 px-3 border border-gray-100 sticky z-20 bg-white" style={{ left: '50px', width: '70px', minWidth: '70px' }}>
+                <td className="py-3 px-3 border border-gray-100 sticky z-20 bg-white" style={{ left: '90px', width: '70px', minWidth: '70px' }}>
                   <div className="skeleton-cell h-6 w-8 rounded mx-auto" />
                 </td>
-                <td className="py-3 px-3 border border-gray-100 sticky z-10 bg-white" style={{ left: '120px', minWidth: '160px' }}>
+                <td className="py-3 px-3 border border-gray-100 sticky z-10 bg-white" style={{ left: '160px', minWidth: '160px' }}>
                   <div className="space-y-1.5">
                     <div className="skeleton-cell h-4 w-32 rounded" />
                     <div className="skeleton-cell h-3 w-24 rounded" />
                     <div className="skeleton-cell h-3 w-20 rounded" />
                   </div>
+                </td>
+                <td className="py-3 px-3 border border-gray-100">
+                  <div className="skeleton-cell h-3 w-20 rounded" />
                 </td>
                 <td className="py-3 px-3 border border-gray-100">
                   <div className="space-y-1.5">
@@ -319,17 +392,29 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, re
                   index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'
                 }`}
               >
+                {/* Sticky: Checkbox */}
+                <td
+                  className={`py-2 px-3 text-center border border-gray-100 sticky left-0 z-10 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
+                  style={{ width: '40px', minWidth: '40px' }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={row.pid ? selectedPids.includes(row.pid) : false}
+                    onChange={() => row.pid && toggleSelect(row.pid)}
+                    className="h-4 w-4 cursor-pointer accent-emerald-600"
+                  />
+                </td>
                 {/* Sticky: No */}
                 <td
-                  className={`py-2 px-3 text-center font-medium text-gray-600 border border-gray-100 sticky left-0 z-10 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
-                  style={{ width: '50px', minWidth: '50px' }}
+                  className={`py-2 px-3 text-center font-medium text-gray-600 border border-gray-100 sticky z-20 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
+                  style={{ left: '40px', width: '50px', minWidth: '50px' }}
                 >
                   {row.no_urut || index + 1}
                 </td>
                 {/* Sticky: Aksi */}
                 <td
                   className={`py-2 px-3 text-center border border-gray-100 sticky z-20 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
-                  style={{ left: '50px', width: '70px', minWidth: '70px' }}
+                  style={{ left: '90px', width: '70px', minWidth: '70px' }}
                 >
                   <div className="flex items-center justify-center">
                     <ActionButton
@@ -349,7 +434,7 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, re
                 {/* Sticky: Sapi */}
                 <td
                   className={`py-2 px-3 border border-gray-100 whitespace-nowrap sticky z-10 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
-                  style={{ left: '120px', minWidth: '160px' }}
+                  style={{ left: '160px', minWidth: '160px' }}
                 >
                   <div className="space-y-0.5">
                     <div className="font-semibold text-gray-800">{row.jenis_sapi}</div>
@@ -363,6 +448,16 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, re
                       <span className="text-gray-400">Lokasi:</span> {row.lokasi_sapi || '-'}
                     </div>
                   </div>
+                </td>
+                {/* Kandang */}
+                <td className="py-2 px-3 border border-gray-100 whitespace-nowrap">
+                  {row.kandang_kode ? (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 border border-emerald-200" title={row.kandang_nama}>
+                      {row.kandang_kode}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-gray-400">—</span>
+                  )}
                 </td>
                 {/* Pemeliharaan */}
                 <td className="py-2 px-3 border border-gray-100 whitespace-nowrap">
@@ -450,6 +545,13 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, re
           onClose={handleCloseDetail}
         />
       )}
+
+      <BulkAssignKandangModal
+        isOpen={bulkKandangModalOpen}
+        onClose={() => setBulkKandangModalOpen(false)}
+        selectedPids={selectedPids}
+        onSuccess={handleBulkKandangSuccess}
+      />
 
       <Notification
         notification={notification}

@@ -1,8 +1,10 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import DataTable from 'react-data-table-component';
-import { Plus, Search, X, Loader2, AlertCircle, CheckCircle2, Wheat, FileText, Coins } from 'lucide-react';
+import { Plus, Search, X, Loader2, AlertCircle, CheckCircle2, Wheat, FileText, Coins, SlidersHorizontal, ChevronDown, ChevronUp, RotateCcw } from 'lucide-react';
 import usePersediaanPakan from '../hooks/usePersediaanPakan';
 import BuatResepPakanModal from '../modals/BuatResepPakanModal';
+import CopyResepPakanModal from '../modals/CopyResepPakanModal';
 import PersediaanPakanActionButton from './PersediaanPakanActionButton';
 import CustomPagination from './CustomPagination';
 import { enhancedTableStyles } from '../constants/tableStyles';
@@ -321,16 +323,30 @@ const PersediaanPakanTab = () => {
     const [detailItem, setDetailItem] = useState(null);
     const [detailData, setDetailData] = useState(null);
     const [isLoadingDetail, setIsLoadingDetail] = useState(false);
+    const [copyItem, setCopyItem] = useState(null);
+
+    // Advanced filter state
+    const [showAdvancedFilter, setShowAdvancedFilter] = useState(false);
+    const [filterInput, setFilterInput] = useState({
+        kode: '',
+        name: '',
+        bahan: '',
+        status: '',
+        tglAktifStart: '',
+        tglAktifEnd: '',
+    });
+    const [appliedFilters, setAppliedFilters] = useState(null);
+
+    const navigate = useNavigate();
 
     const {
         persediaanData,
         loading,
         searchTerm,
-        isSearching,
         searchError,
         serverPagination,
-        handleSearch,
-        clearSearch,
+        setServerPagination,
+        updateParams,
         handlePageChange,
         handlePerPageChange,
         refresh,
@@ -424,6 +440,76 @@ const PersediaanPakanTab = () => {
         }
     };
 
+    // Handle copy resep ke tanggal lain
+    const handleCopyClick = (item) => {
+        setCopyItem(item);
+        setOpenMenuId(null);
+    };
+
+    const handleCopySuccess = () => {
+        setCopyItem(null);
+        refresh();
+        setNotification({ type: 'success', message: 'Resep pakan berhasil disalin ke tanggal lain' });
+    };
+
+    // Handle beri makan sapi — navigate to dedicated page
+    const handleBeriMakanClick = useCallback((item) => {
+        navigate(`/rph/persediaan-ovk/beri-makan/${item.pid}`);
+        setOpenMenuId(null);
+    }, [navigate]);
+
+    // Handle riwayat pemberian — navigate to dedicated page
+    const handleRiwayatPemberianClick = useCallback((item) => {
+        navigate(`/rph/persediaan-ovk/riwayat-pemberian/${item.pid}`);
+        setOpenMenuId(null);
+    }, [navigate]);
+
+    // Advanced filter handlers
+    const hasActiveFilters = useMemo(() => {
+        if (!appliedFilters) return false;
+        return Object.values(appliedFilters).some(v => v !== '' && v !== null && v !== undefined);
+    }, [appliedFilters]);
+
+    const activeFilterCount = useMemo(() => {
+        if (!appliedFilters) return 0;
+        return Object.values(appliedFilters).filter(v => v !== '' && v !== null && v !== undefined).length;
+    }, [appliedFilters]);
+
+    const handleApplyFilter = useCallback(() => {
+        setAppliedFilters({ ...filterInput });
+        updateParams({
+            start: 0,
+            ...filterInput,
+        });
+        setServerPagination(prev => ({ ...prev, currentPage: 1 }));
+    }, [filterInput, updateParams, setServerPagination]);
+
+    const handleResetFilter = useCallback(() => {
+        setFilterInput({
+            kode: '',
+            name: '',
+            bahan: '',
+            status: '',
+            tglAktifStart: '',
+            tglAktifEnd: '',
+        });
+        setAppliedFilters(null);
+        updateParams({
+            start: 0,
+            kode: '',
+            name: '',
+            bahan: '',
+            status: '',
+            tglAktifStart: '',
+            tglAktifEnd: '',
+        });
+        setServerPagination(prev => ({ ...prev, currentPage: 1 }));
+    }, [updateParams, setServerPagination]);
+
+    const handleFilterInputChange = useCallback((field, value) => {
+        setFilterInput(prev => ({ ...prev, [field]: value }));
+    }, []);
+
     // Handle modal success
     const handleModalSuccess = () => {
         handleCloseModal();
@@ -461,7 +547,7 @@ const PersediaanPakanTab = () => {
     const columns = useMemo(() => [
         {
             name: 'No',
-            width: '56px',
+            width: '48px',
             sortable: false,
             center: true,
             cell: (row, index) => (
@@ -472,7 +558,7 @@ const PersediaanPakanTab = () => {
         },
         {
             name: '',
-            width: '60px',
+            width: '52px',
             ignoreRowClick: true,
             center: true,
             cell: row => (
@@ -484,8 +570,24 @@ const PersediaanPakanTab = () => {
                         onEdit={handleEdit}
                         onDelete={handleDeleteClick}
                         onDetail={handleDetailClick}
+                        onCopy={handleCopyClick}
+                        onBeriMakan={handleBeriMakanClick}
+                        onRiwayatPemberian={handleRiwayatPemberianClick}
                         isActive={openMenuId === (row.pid || row.id)}
                     />
+                </div>
+            ),
+        },
+        {
+            name: 'Kode Pakan',
+            selector: row => row.kode,
+            sortable: true,
+            width: '170px',
+            cell: row => (
+                <div className="text-left w-full py-1">
+                    <span className="inline-flex items-center rounded bg-indigo-50 px-2 py-0.5 text-[11px] font-mono font-semibold text-indigo-700 border border-indigo-100">
+                        {row.kode || '-'}
+                    </span>
                 </div>
             ),
         },
@@ -493,7 +595,7 @@ const PersediaanPakanTab = () => {
             name: 'Tanggal & Resep',
             selector: row => row.name,
             sortable: true,
-            minWidth: '260px',
+            minWidth: '180px',
             cell: row => (
                 <div className="text-left w-full py-1" title={row.keterangan || row.name}>
                     <div className="font-bold text-slate-900 text-sm leading-tight">{row.name || '-'}</div>
@@ -517,7 +619,7 @@ const PersediaanPakanTab = () => {
             name: 'Komposisi Bahan',
             selector: row => row.daftar_bahan,
             sortable: true,
-            minWidth: '240px',
+            minWidth: '180px',
             cell: row => (
                 <div className="text-left w-full py-1" title={row.daftar_bahan || ''}>
                     <div className="text-sm text-slate-700 leading-snug line-clamp-2">
@@ -535,17 +637,40 @@ const PersediaanPakanTab = () => {
             ),
         },
         {
-            name: 'Pemakaian',
+            name: 'Status',
             selector: row => row.jumlah_pemakaian,
             sortable: true,
             width: '140px',
             center: true,
-            cell: row => (
-                <div className="flex flex-col items-center justify-center w-full py-1">
-                    <span className={`inline-flex items-center justify-center min-w-[44px] px-2.5 py-1 rounded-md text-sm font-bold ${(row.jumlah_pemakaian || 0) > 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-slate-100 text-slate-500'}`}>
-                        {row.jumlah_pemakaian || 0}x
+            cell: row => {
+                const isUsed = (row.jumlah_pemakaian || 0) > 0;
+                return (
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${isUsed ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-500 border border-slate-200'}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${isUsed ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                        {isUsed ? 'Sudah Digunakan' : 'Belum Digunakan'}
                     </span>
-                    <span className="text-[10px] text-slate-400 font-medium mt-0.5">
+                );
+            },
+        },
+        {
+            name: 'Pemakaian',
+            selector: row => row.jumlah_pemakaian,
+            sortable: true,
+            width: '180px',
+            center: true,
+            cell: row => (
+                <div className="flex flex-col items-center justify-center w-full py-1 gap-0.5">
+                    <div className="flex items-center gap-1.5">
+                        <span className={`inline-flex items-center justify-center min-w-[44px] px-2.5 py-1 rounded-md text-sm font-bold ${(row.jumlah_pemakaian || 0) > 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-slate-100 text-slate-500'}`}>
+                            {row.jumlah_pemakaian || 0}x
+                        </span>
+                        {(row.jumlah_ekor_pakan || 0) > 0 && (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                                {row.jumlah_ekor_pakan} ekor
+                            </span>
+                        )}
+                    </div>
+                    <span className="text-[10px] text-slate-400 font-medium">
                         {row.tgl_pemakaian_terakhir ? `Terakhir ${formatDate(row.tgl_pemakaian_terakhir)}` : 'Belum pernah'}
                     </span>
                 </div>
@@ -555,7 +680,7 @@ const PersediaanPakanTab = () => {
             name: 'Harga Total',
             selector: row => row.harga_total,
             sortable: true,
-            width: '170px',
+            width: '180px',
             right: true,
             cell: row => (
                 <div className="text-right w-full whitespace-nowrap py-1">
@@ -563,7 +688,7 @@ const PersediaanPakanTab = () => {
                 </div>
             ),
         },
-    ], [openMenuId, serverPagination]);
+    ], [openMenuId, serverPagination, handleBeriMakanClick, handleRiwayatPemberianClick]);
 
     return (
         <div className="space-y-3">
@@ -572,57 +697,190 @@ const PersediaanPakanTab = () => {
             {!searchError && persediaanData && persediaanData.length > 0 && <ResepSummaryCard data={persediaanData} />}
 
             {/* Search & Action Bar */}
-            <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
-                <div className="relative flex-1 max-w-full sm:max-w-md">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    {isSearching && (
-                        <Loader2 className="absolute right-10 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500 animate-spin" />
-                    )}
-                    {searchTerm && !isSearching && (
-                        <button
-                            onClick={clearSearch}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                        >
-                            <X className="w-4 h-4" />
-                        </button>
-                    )}
-                    <input
-                        type="text"
-                        placeholder="Cari nama resep, keterangan..."
-                        value={searchTerm}
-                        onChange={(e) => handleSearch(e.target.value)}
-                        className={`w-full pl-9 ${searchTerm ? 'pr-10' : 'pr-3'} py-2.5 text-sm border-2 ${searchError ? 'border-red-300' : 'border-slate-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/15'} rounded-lg bg-slate-50 focus:bg-white transition-all outline-none placeholder:text-slate-400`}
-                    />
+            <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-end">
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => setShowAdvancedFilter(prev => !prev)}
+                        className={`inline-flex items-center justify-center gap-1.5 px-3 py-2.5 text-sm font-bold rounded-lg border-2 transition-all active:scale-95 whitespace-nowrap ${hasActiveFilters ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}
+                    >
+                        <SlidersHorizontal className="w-4 h-4" />
+                        Filter Lanjutan
+                        {activeFilterCount > 0 && (
+                            <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-emerald-600 text-white text-[10px] font-bold">
+                                {activeFilterCount}
+                            </span>
+                        )}
+                        {showAdvancedFilter ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </button>
+                    <button
+                        onClick={handleOpenModal}
+                        className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-lg shadow-sm transition-all active:scale-95 whitespace-nowrap"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Buat Resep
+                    </button>
                 </div>
-                <button
-                    onClick={handleOpenModal}
-                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-lg shadow-sm transition-all active:scale-95 whitespace-nowrap"
-                >
-                    <Plus className="w-4 h-4" />
-                    Buat Resep
-                </button>
             </div>
 
-            {/* Active search filter chip */}
-            {searchTerm && (
-                <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold text-slate-500">Filter aktif:</span>
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-xs font-bold text-emerald-700">
-                        <Search className="h-3 w-3" />
-                        "{searchTerm}"
+            {/* Advanced Filter Panel */}
+            {showAdvancedFilter && (
+                <div className="bg-white rounded-xl border-2 border-slate-200 shadow-sm p-4 space-y-3">
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                        <div className="flex items-center gap-2">
+                            <SlidersHorizontal className="w-4 h-4 text-emerald-600" />
+                            <h4 className="text-sm font-bold text-slate-700">Filter Lanjutan</h4>
+                        </div>
+                        {hasActiveFilters && (
+                            <button
+                                onClick={handleResetFilter}
+                                className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-red-600 transition-colors"
+                            >
+                                <X className="w-3.5 h-3.5" />
+                                Hapus semua filter
+                            </button>
+                        )}
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {/* Kode Pakan */}
+                        <div className="space-y-1">
+                            <label className="text-xs font-semibold text-slate-600">Kode Pakan</label>
+                            <input
+                                type="text"
+                                placeholder="Cari kode pakan..."
+                                value={filterInput.kode}
+                                onChange={(e) => handleFilterInputChange('kode', e.target.value)}
+                                onKeyDown={(e) => { if (e.key === 'Enter') handleApplyFilter(); }}
+                                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-slate-50 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15 outline-none transition-all"
+                            />
+                        </div>
+                        {/* Nama Resep */}
+                        <div className="space-y-1">
+                            <label className="text-xs font-semibold text-slate-600">Nama Resep</label>
+                            <input
+                                type="text"
+                                placeholder="Cari nama resep..."
+                                value={filterInput.name}
+                                onChange={(e) => handleFilterInputChange('name', e.target.value)}
+                                onKeyDown={(e) => { if (e.key === 'Enter') handleApplyFilter(); }}
+                                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-slate-50 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15 outline-none transition-all"
+                            />
+                        </div>
+                        {/* Bahan */}
+                        <div className="space-y-1">
+                            <label className="text-xs font-semibold text-slate-600">Bahan</label>
+                            <input
+                                type="text"
+                                placeholder="Cari bahan pakan..."
+                                value={filterInput.bahan}
+                                onChange={(e) => handleFilterInputChange('bahan', e.target.value)}
+                                onKeyDown={(e) => { if (e.key === 'Enter') handleApplyFilter(); }}
+                                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-slate-50 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15 outline-none transition-all"
+                            />
+                        </div>
+                        {/* Status */}
+                        <div className="space-y-1">
+                            <label className="text-xs font-semibold text-slate-600">Status</label>
+                            <select
+                                value={filterInput.status}
+                                onChange={(e) => handleFilterInputChange('status', e.target.value)}
+                                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-slate-50 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15 outline-none transition-all"
+                            >
+                                <option value="">Semua status</option>
+                                <option value="1">Aktif</option>
+                                <option value="0">Tidak Aktif</option>
+                            </select>
+                        </div>
+                        {/* Tgl Aktif Start */}
+                        <div className="space-y-1">
+                            <label className="text-xs font-semibold text-slate-600">Tgl Aktif Dari</label>
+                            <input
+                                type="date"
+                                value={filterInput.tglAktifStart}
+                                onChange={(e) => handleFilterInputChange('tglAktifStart', e.target.value)}
+                                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-slate-50 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15 outline-none transition-all"
+                            />
+                        </div>
+                        {/* Tgl Aktif End */}
+                        <div className="space-y-1">
+                            <label className="text-xs font-semibold text-slate-600">Tgl Aktif Sampai</label>
+                            <input
+                                type="date"
+                                value={filterInput.tglAktifEnd}
+                                onChange={(e) => handleFilterInputChange('tglAktifEnd', e.target.value)}
+                                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-slate-50 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15 outline-none transition-all"
+                            />
+                        </div>
+                    </div>
+                    <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
                         <button
-                            onClick={clearSearch}
-                            className="ml-0.5 rounded-full hover:bg-emerald-100 p-0.5 transition-colors"
-                            aria-label="Hapus filter"
+                            onClick={handleResetFilter}
+                            className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-all active:scale-95"
                         >
-                            <X className="h-3 w-3" />
+                            <RotateCcw className="w-4 h-4" />
+                            Reset
                         </button>
-                    </span>
+                        <button
+                            onClick={handleApplyFilter}
+                            className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm transition-all active:scale-95"
+                        >
+                            <Search className="w-4 h-4" />
+                            Cari
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Active filter chips */}
+            {hasActiveFilters && (
+                <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-semibold text-slate-500">Filter aktif:</span>
+                    {appliedFilters.kode && (
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 text-xs font-bold text-indigo-700">
+                            Kode: "{appliedFilters.kode}"
+                            <button onClick={() => { setFilterInput(prev => ({...prev, kode: ''})); setAppliedFilters(prev => ({...prev, kode: ''})); updateParams({ start: 0, kode: '' }); }} className="ml-0.5 rounded-full hover:bg-indigo-100 p-0.5"><X className="h-3 w-3" /></button>
+                        </span>
+                    )}
+                    {appliedFilters.name && (
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 border border-sky-200 px-2.5 py-0.5 text-xs font-bold text-sky-700">
+                            Nama: "{appliedFilters.name}"
+                            <button onClick={() => { setFilterInput(prev => ({...prev, name: ''})); setAppliedFilters(prev => ({...prev, name: ''})); updateParams({ start: 0, name: '' }); }} className="ml-0.5 rounded-full hover:bg-sky-100 p-0.5"><X className="h-3 w-3" /></button>
+                        </span>
+                    )}
+                    {appliedFilters.bahan && (
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-200 px-2.5 py-0.5 text-xs font-bold text-amber-700">
+                            Bahan: "{appliedFilters.bahan}"
+                            <button onClick={() => { setFilterInput(prev => ({...prev, bahan: ''})); setAppliedFilters(prev => ({...prev, bahan: ''})); updateParams({ start: 0, bahan: '' }); }} className="ml-0.5 rounded-full hover:bg-amber-100 p-0.5"><X className="h-3 w-3" /></button>
+                        </span>
+                    )}
+                    {appliedFilters.status !== '' && appliedFilters.status !== null && appliedFilters.status !== undefined && (
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-xs font-bold text-emerald-700">
+                            Status: {appliedFilters.status === '1' ? 'Aktif' : 'Tidak Aktif'}
+                            <button onClick={() => { setFilterInput(prev => ({...prev, status: ''})); setAppliedFilters(prev => ({...prev, status: ''})); updateParams({ start: 0, status: '' }); }} className="ml-0.5 rounded-full hover:bg-emerald-100 p-0.5"><X className="h-3 w-3" /></button>
+                        </span>
+                    )}
+                    {appliedFilters.tglAktifStart && (
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 border border-slate-200 px-2.5 py-0.5 text-xs font-bold text-slate-700">
+                            Dari: {appliedFilters.tglAktifStart}
+                            <button onClick={() => { setFilterInput(prev => ({...prev, tglAktifStart: ''})); setAppliedFilters(prev => ({...prev, tglAktifStart: ''})); updateParams({ start: 0, tglAktifStart: '' }); }} className="ml-0.5 rounded-full hover:bg-slate-200 p-0.5"><X className="h-3 w-3" /></button>
+                        </span>
+                    )}
+                    {appliedFilters.tglAktifEnd && (
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 border border-slate-200 px-2.5 py-0.5 text-xs font-bold text-slate-700">
+                            Sampai: {appliedFilters.tglAktifEnd}
+                            <button onClick={() => { setFilterInput(prev => ({...prev, tglAktifEnd: ''})); setAppliedFilters(prev => ({...prev, tglAktifEnd: ''})); updateParams({ start: 0, tglAktifEnd: '' }); }} className="ml-0.5 rounded-full hover:bg-slate-200 p-0.5"><X className="h-3 w-3" /></button>
+                        </span>
+                    )}
                 </div>
             )}
 
             {/* Data Table — desktop */}
             <div className="hidden lg:block bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="px-4 py-3 border-b border-slate-200 bg-slate-50/50">
+                    <h3 className="text-sm font-bold text-slate-700">Daftar Resep Pakan</h3>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                        Resep pakan harian RPH — stok bahan baku dikonsumsi via FIFO saat produksi. Klik aksi untuk beri makan sapi, copy ke tanggal lain, edit, atau hapus.
+                    </p>
+                </div>
                 <DataTable
                     columns={columns}
                     data={persediaanData || []}
@@ -733,6 +991,8 @@ const PersediaanPakanTab = () => {
                                     onEdit={handleEdit}
                                     onDelete={handleDeleteClick}
                                     onDetail={handleDetailClick}
+                                    onCopy={handleCopyClick}
+                                    onBeriMakan={handleBeriMakanClick}
                                     isActive={openMenuId === (row.pid || row.id)}
                                 />
                             </div>
@@ -744,6 +1004,22 @@ const PersediaanPakanTab = () => {
                                 <div className="rounded-lg bg-slate-50 px-2.5 py-2">
                                     <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Harga Total</div>
                                     <div className="text-sm font-bold text-emerald-700">{formatCurrency(row.harga_total)}</div>
+                                </div>
+                            </div>
+                            <div className="mt-2 flex items-center justify-between gap-2">
+                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${(row.jumlah_pemakaian || 0) > 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-500 border border-slate-200'}`}>
+                                    <span className={`w-1.5 h-1.5 rounded-full ${(row.jumlah_pemakaian || 0) > 0 ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                                    {(row.jumlah_pemakaian || 0) > 0 ? 'Sudah Digunakan' : 'Belum Digunakan'}
+                                </span>
+                                <div className="flex items-center gap-1.5">
+                                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold ${(row.jumlah_pemakaian || 0) > 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                                        {row.jumlah_pemakaian || 0}x
+                                    </span>
+                                    {(row.jumlah_ekor_pakan || 0) > 0 && (
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-indigo-50 text-indigo-700">
+                                            {row.jumlah_ekor_pakan} ekor
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -775,6 +1051,13 @@ const PersediaanPakanTab = () => {
                 loading={isLoadingDetail}
                 formatCurrency={formatCurrency}
                 formatDate={formatDate}
+            />
+
+            <CopyResepPakanModal
+                isOpen={!!copyItem}
+                onClose={() => setCopyItem(null)}
+                onSuccess={handleCopySuccess}
+                sourceItem={copyItem}
             />
         </div>
     );

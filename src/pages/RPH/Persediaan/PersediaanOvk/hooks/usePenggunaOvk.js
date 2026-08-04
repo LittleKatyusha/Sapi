@@ -11,9 +11,9 @@ const formatDisplayDate = (dateStr) => {
   return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }); // e.g., "3 Apr"
 };
 
-const getLast7Days = () => {
+const getLast31Days = () => {
   const days = [];
-  for (let i = 6; i >= 0; i--) {
+  for (let i = 30; i >= 0; i--) {
     const date = new Date();
     date.setDate(date.getDate() - i);
     days.push(formatDate(date));
@@ -23,7 +23,7 @@ const getLast7Days = () => {
 
 const usePenggunaOvk = () => {
   // State
-  const [selectedDates, setSelectedDates] = useState(getLast7Days);
+  const [selectedDates, setSelectedDates] = useState(getLast31Days);
   const [penggunaData, setPenggunaData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -62,8 +62,8 @@ const usePenggunaOvk = () => {
     fetchPenggunaData();
   }, [fetchPenggunaData]);
 
-  // Generate available dates (last 7 days) for the date picker
-  const availableDates = useMemo(() => getLast7Days(), []);
+  // Generate available dates (last 31 days) for the date picker
+  const availableDates = useMemo(() => getLast31Days(), []);
 
   // Handle date range change from the calendar picker
   const handleDateRangeChange = useCallback((dates) => {
@@ -83,7 +83,13 @@ const usePenggunaOvk = () => {
         key: 'satuan',
         label: 'Satuan',
         sortable: false,
-        width: '100px',
+        width: '90px',
+      },
+      {
+        key: 'pemasok',
+        label: 'Pemasok',
+        sortable: true,
+        width: '140px',
       },
     ];
 
@@ -92,12 +98,40 @@ const usePenggunaOvk = () => {
       cols.push({
         key: `tanggal_${dateStr}`,
         label: formatDisplayDate(dateStr),
-        dateKey: dateStr, // the key to look up in data.tanggal object
+        dateKey: dateStr,
         sortable: false,
-        width: '120px',
+        width: '110px',
         align: 'center',
       });
     });
+
+    // Summary columns (fixed at right)
+    cols.push(
+      {
+        key: 'totalMasuk',
+        label: 'Total Masuk',
+        sortable: true,
+        width: '110px',
+        align: 'center',
+        isSummary: true,
+      },
+      {
+        key: 'totalKeluar',
+        label: 'Total Keluar',
+        sortable: true,
+        width: '110px',
+        align: 'center',
+        isSummary: true,
+      },
+      {
+        key: 'saldoAkhir',
+        label: 'Saldo Akhir',
+        sortable: true,
+        width: '120px',
+        align: 'center',
+        isSummary: true,
+      },
+    );
 
     return cols;
   }, [selectedDates]);
@@ -109,6 +143,11 @@ const usePenggunaOvk = () => {
         id: item.id,
         namaOvk: item.nama_produk,
         satuan: item.satuan,
+        pemasok: item.pemasok || '-',
+        totalMasuk: item.total_masuk ?? 0,
+        totalKeluar: item.total_keluar ?? 0,
+        saldoAkhir: item.saldo_akhir ?? 0,
+        stokAwal: item.stok_awal ?? 0,
       };
 
       // Add dynamic date values with both stok_masuk and stok_keluar

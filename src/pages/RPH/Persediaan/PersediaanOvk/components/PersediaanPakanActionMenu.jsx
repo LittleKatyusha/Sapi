@@ -1,8 +1,8 @@
 import React, { useRef, useState, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
-import { Pencil, Ban, Eye } from "lucide-react";
+import { Pencil, Ban, Eye, Copy, Wheat, ClipboardList } from "lucide-react";
 
-const PersediaanPakanActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef }) => {
+const PersediaanPakanActionMenu = ({ row, onEdit, onDelete, onDetail, onCopy, onBeriMakan, onRiwayatPemberian, onClose, buttonRef }) => {
   const menuRef = useRef(null);
   const [menuStyle, setMenuStyle] = useState(null);
 
@@ -46,29 +46,41 @@ const PersediaanPakanActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, b
       label: "Lihat Detail",
       icon: Eye,
       onClick: () => onDetail(row),
-      description: "Lihat detail bahan baku resep pakan.",
       bg: "bg-sky-100",
       text: "text-sky-600",
     },
     {
-      divider: true,
+      label: "Riwayat Pemberian",
+      icon: ClipboardList,
+      onClick: () => onRiwayatPemberian && onRiwayatPemberian(row),
+      bg: "bg-indigo-100",
+      text: "text-indigo-600",
+    },
+    {
+      label: "Beri Makan Sapi",
+      icon: Wheat,
+      onClick: () => onBeriMakan && onBeriMakan(row),
+      bg: "bg-emerald-100",
+      text: "text-emerald-600",
+    },
+    {
+      label: "Copy ke Tanggal Lain",
+      icon: Copy,
+      onClick: () => onCopy && onCopy(row),
+      bg: "bg-violet-100",
+      text: "text-violet-600",
     },
     {
       label: "Edit",
       icon: Pencil,
       onClick: () => onEdit(row),
-      description: "Ubah data resep pakan.",
       bg: "bg-amber-100",
       text: "text-amber-600",
-    },
-    {
-      divider: true,
     },
     {
       label: "Cancel",
       icon: Ban,
       onClick: () => onDelete(row),
-      description: "Batalkan resep pakan, stok bahan baku dikembalikan.",
       bg: "bg-red-100",
       text: "text-red-600",
     },
@@ -86,40 +98,30 @@ const PersediaanPakanActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, b
         pointerEvents: "auto",
         zIndex: 99999,
       }}
-      className="w-48 bg-white/95 backdrop-blur-lg rounded-xl shadow-xl border border-gray-200/50 overflow-hidden transition-all duration-150 animate-in slide-in-from-top-2 fade-in-0"
+      className="w-44 bg-white/95 backdrop-blur-lg rounded-xl shadow-xl border border-gray-200/50 overflow-hidden transition-all duration-150 animate-in slide-in-from-top-2 fade-in-0"
       role="menu"
       aria-label="Menu Aksi"
     >
-      <div className="px-3 py-2 bg-gradient-to-r from-emerald-50 to-cyan-50 border-b border-gray-200/50">
-        <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Menu Aksi</p>
-      </div>
       <div className="p-1">
-        {actions.map((action, idx) =>
-          action.divider ? (
-            <div key={idx} className="border-t border-gray-200/50 my-1"></div>
-          ) : (
-            <button
-              key={action.label}
-              onClick={() => {
-                action.onClick();
-                onClose();
-              }}
-              className={`w-full text-left flex items-center px-3 py-2.5 text-sm hover:bg-gradient-to-r transition-all duration-150 rounded-lg group mt-1 text-gray-700`}
-              role="menuitem"
-              tabIndex={0}
+        {actions.map((action, idx) => (
+          <button
+            key={action.label}
+            onClick={() => {
+              action.onClick();
+              onClose();
+            }}
+            className="w-full text-left flex items-center px-2.5 py-2 text-sm hover:bg-slate-50 transition-all duration-150 rounded-lg group text-gray-700"
+            role="menuitem"
+            tabIndex={0}
+          >
+            <div
+              className={`w-6 h-6 ${action.bg} rounded-md flex items-center justify-center mr-2.5 group-hover:scale-105 transition-all duration-150 flex-shrink-0`}
             >
-              <div
-                className={`w-7 h-7 ${action.bg} rounded-lg flex items-center justify-center mr-3 group-hover:scale-105 transition-all duration-150`}
-              >
-                <action.icon size={14} className={action.text} />
-              </div>
-              <div className="flex-1">
-                <span className="font-semibold block text-xs">{action.label}</span>
-                <p className="text-xs text-gray-500 mt-0.5">{action.description}</p>
-              </div>
-            </button>
-          )
-        )}
+              <action.icon size={12} className={action.text} />
+            </div>
+            <span className="font-medium block text-xs">{action.label}</span>
+          </button>
+        ))}
       </div>
     </div>
   );

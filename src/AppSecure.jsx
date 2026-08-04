@@ -104,9 +104,14 @@ const BahanPembantuRphDetailPage = lazy(() => import('./pages/RPH/BahanPembantuR
 
 // RPH Persediaan OVK Page - Lazy loaded
 const PersediaanOvkPage = lazy(() => import('./pages/RPH/Persediaan/PersediaanOvk/PersediaanOvkPage'));
+const BeriMakanSapiPage = lazy(() => import('./pages/RPH/Persediaan/PersediaanOvk/BeriMakanSapiPage'));
+const RiwayatPemberianPakanPage = lazy(() => import('./pages/RPH/Persediaan/PersediaanOvk/RiwayatPemberianPakanPage'));
 
 // RPH Persediaan Pakan Page - Lazy loaded
 const PersediaanPakanPage = lazy(() => import('./pages/RPH/Persediaan/PersediaanPakan/PersediaanPakanPage'));
+
+// RPH Master Kandang Page - Lazy loaded
+const KandangPage = lazy(() => import('./pages/RPH/Master/Kandang/KandangPage'));
 
 // RPH Persediaan Hasil Potong Page - Lazy loaded
 const PersediaanHasilPotongRphPage = lazy(() => import('./pages/RPH/Persediaan/PersediaanHasilPotongRph/PersediaanHasilPotongRphPage'));
@@ -147,8 +152,6 @@ const AddEditPerpindahanTernakPage = lazy(() => import('./pages/RPH/Perpindahan/
 
 // RPH Stok Sapi Page - Lazy loaded
 const StokSapi = lazy(() => import('./pages/RPH/StokSapi/StokSapiPage'));
-const PemberianPakanSapiPage = lazy(() => import('./pages/RPH/StokSapi/PemberianPakanSapiPage'));
-const AddEditPemberianPakanSapiPage = lazy(() => import('./pages/RPH/StokSapi/AddEditPemberianPakanSapiPage'));
 const PemberianOvkSapiPage = lazy(() => import('./pages/RPH/StokSapi/PemberianOvkSapiPage'));
 const AddEditPemberianOvkSapiPage = lazy(() => import('./pages/RPH/StokSapi/AddEditPemberianOvkSapiPage'));
 
@@ -409,9 +412,6 @@ function AppSecure() {
 
               {/* RPH Stok Sapi Route */}
               <Route path="/rph/stok-sapi" element={<StokSapi />} />
-              <Route path="/rph/pemberian-pakan-sapi" element={<PemberianPakanSapiPage />} />
-              <Route path="/rph/pemberian-pakan-sapi/add" element={<AddEditPemberianPakanSapiPage />} />
-              <Route path="/rph/pemberian-pakan-sapi/edit/:pid" element={<AddEditPemberianPakanSapiPage />} />
               <Route path="/rph/pemberian-ovk-sapi" element={<PemberianOvkSapiPage />} />
               <Route path="/rph/pemberian-ovk-sapi/add" element={<AddEditPemberianOvkSapiPage />} />
               <Route path="/rph/pemberian-ovk-sapi/edit/:pid" element={<AddEditPemberianOvkSapiPage />} />
@@ -422,9 +422,26 @@ function AppSecure() {
                   <PersediaanOvkPage />
                 </Suspense>
               } />
+              <Route path="/rph/persediaan-ovk/beri-makan/:pid" element={
+                <Suspense fallback={<LoadingSpinner />}>
+                  <BeriMakanSapiPage />
+                </Suspense>
+              } />
+              <Route path="/rph/persediaan-ovk/riwayat-pemberian/:pid" element={
+                <Suspense fallback={<LoadingSpinner />}>
+                  <RiwayatPemberianPakanPage />
+                </Suspense>
+              } />
 
               {/* RPH Persediaan Pakan Route */}
               <Route path="/rph/persediaan-pakan" element={<PersediaanPakanPage />} />
+
+              {/* RPH Master Kandang Route */}
+              <Route path="/rph/kandang" element={
+                <Suspense fallback={<LoadingSpinner />}>
+                  <KandangPage />
+                </Suspense>
+              } />
 
               {/* RPH Persediaan Hasil Potong Route */}
               <Route path="/rph/persediaan-boning" element={<PersediaanHasilPotongRphPage />} />

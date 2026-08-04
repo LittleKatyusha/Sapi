@@ -108,6 +108,7 @@ export const pageTitleMap = {
   '/rph/persediaan-hasil-potong': 'Persediaan Hasil Potong - RPH',
   '/rph/persediaan-ovk': 'Persediaan Pakan dan OVK - RPH',
   '/rph/persediaan-pakan': 'Persediaan Pakan - RPH',
+  '/rph/kandang': 'Master Kandang - RPH',
   '/rph/pedagang': 'Pedagang - RPH',
   '/rph/stok-sapi': 'Stok Sapi RPH',
   '/reports/rph': 'Laporan RPH',

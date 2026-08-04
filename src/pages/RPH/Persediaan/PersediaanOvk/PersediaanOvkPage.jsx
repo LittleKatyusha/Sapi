@@ -4,11 +4,11 @@ import PenggunaOvkTab from './components/PenggunaOvkTab';
 import PersediaanOvkTab from './components/PersediaanOvkTab';
 import PersediaanPakanTab from './components/PersediaanPakanTab';
 
-// IA restructure: Resep Pakan first (most used), Stok OVK, Riwayat Pemakaian
+// IA restructure: Resep Pakan first (most used), Stok OVK, Kartu Stok OVK
 const TABS = [
   { id: 'persediaan-pakan', label: 'Resep Pakan', icon: Wheat },
   { id: 'persediaan', label: 'Stok OVK', icon: Package },
-  { id: 'pengguna', label: 'Riwayat Pemakaian', icon: ClipboardList },
+  { id: 'pengguna', label: 'Kartu Stok OVK', icon: ClipboardList },
 ];
 
 const PersediaanOvkPage = () => {

@@ -65,6 +65,34 @@ class StokSapiService {
     }
   }
 
+  static async bulkAssignKandang(pids, kandangPid) {
+    try {
+      const response = await HttpClient.post(`${this.API_PREFIX}/bulk-assign-kandang`, {
+        pids,
+        kandang_pid: kandangPid,
+      });
+      HttpClient.clearCache('pemeliharaansapi');
+      return {
+        success: true,
+        data: response.data,
+        message: response.message || 'Berhasil assign kandang',
+      };
+    } catch (error) {
+      console.error('StokSapiService.bulkAssignKandang error:', error);
+      let message = 'Gagal assign kandang';
+      if (error?.data?.data) {
+        const validationErrors = error.data.data;
+        const messages = Object.values(validationErrors).flat();
+        message = messages.join(', ');
+      } else if (error?.data?.message) {
+        message = error.data.message;
+      } else if (error?.message) {
+        message = error.message;
+      }
+      return { success: false, data: null, message };
+    }
+  }
+
   static async potongPaksa(data) {
     try {
       const response = await HttpClient.post('/api/rph/persediaan/potongpaksa/store', data);
@@ -382,6 +410,33 @@ class StokSapiService {
         success: false,
         data: null,
         message: error?.data?.message || error?.message || 'Failed to delete potong sapi biasa',
+      };
+    }
+  }
+
+  /**
+   * Daftar sapi aktif RPH untuk dipilih pada form pemberian pakan.
+   * Menandai sapi yang sudah tercatat menerima pakan lain pada tanggal yang sama.
+   * Endpoint: GET /api/rph/pemeliharaansapi/stok-sapi-options?tgl_pemberian_pakan=YYYY-MM-DD
+   */
+  static async getStokSapiOptions(tglPemberianPakan) {
+    try {
+      const queryParams = new URLSearchParams({
+        tgl_pemberian_pakan: tglPemberianPakan,
+        _t: Date.now(),
+      });
+      const response = await HttpClient.get(`${this.API_PREFIX}/stok-sapi-options?${queryParams.toString()}`);
+      return {
+        success: true,
+        data: response?.data || { total: 0, total_tersedia: 0, rows: [] },
+        message: response?.message || 'Data berhasil dimuat',
+      };
+    } catch (error) {
+      console.error('StokSapiService.getStokSapiOptions error:', error);
+      return {
+        success: false,
+        data: { total: 0, total_tersedia: 0, rows: [] },
+        message: error?.message || 'Gagal memuat data',
       };
     }
   }

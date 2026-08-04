@@ -33,7 +33,7 @@ const PenggunaOvkTable = ({ columns, data, loading }) => {
                 {columns.map((col) => (
                   <th
                     key={col.key}
-                    className="px-3 py-2.5 text-center text-xs font-bold text-slate-600 tracking-wide uppercase border-r border-slate-200 last:border-r-0"
+                    className={`px-3 py-2.5 text-center text-xs font-bold text-slate-600 tracking-wide uppercase border-r border-slate-200 last:border-r-0 ${col.isSummary ? ' bg-slate-100' : ''}`}
                     style={col.width ? { width: col.width } : undefined}
                   >
                     {col.label}
@@ -57,9 +57,9 @@ const PenggunaOvkTable = ({ columns, data, loading }) => {
           <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-3">
             <ClipboardList className="h-8 w-8 text-slate-400" />
           </div>
-          <p className="text-slate-700 text-base font-bold">Belum ada riwayat pemakaian</p>
+          <p className="text-slate-700 text-base font-bold">Belum ada riwayat stok</p>
           <p className="text-slate-500 text-sm mt-1 text-center max-w-xs">
-            Pilih rentang tanggal di atas untuk melihat data pemakaian OVK pada periode tersebut.
+            Pilih rentang tanggal di atas untuk melihat pergerakan stok OVK (masuk/keluar) pada periode tersebut.
           </p>
           <p className="text-xs text-slate-400 mt-3 flex items-center gap-1.5">
             <CalendarDays className="h-3.5 w-3.5" />
@@ -131,6 +131,28 @@ const PenggunaOvkTable = ({ columns, data, loading }) => {
                     );
                   }
 
+                  if (col.isSummary) {
+                    const isSaldo = col.key === 'saldoAkhir';
+                    const isMasuk = col.key === 'totalMasuk';
+                    const isKeluar = col.key === 'totalKeluar';
+                    const saldoNegatif = isSaldo && (value || 0) < 0;
+                    return (
+                      <td key={col.key} className={`px-3 py-2.5 text-center${colIndex < totalColumns - 1 ? ' border-r border-slate-100' : ''} ${isSaldo ? ' bg-slate-50' : ''}`}>
+                        <span className={`inline-flex items-center justify-center min-w-[40px] px-2 py-1 rounded-md text-xs font-bold ${
+                          saldoNegatif
+                            ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                            : isMasuk
+                            ? 'bg-sky-50 text-sky-700 border border-sky-200'
+                            : isKeluar
+                            ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                            : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        }`}>
+                          {value || 0}
+                        </span>
+                      </td>
+                    );
+                  }
+
                   return (
                     <td
                       key={col.key}
@@ -142,6 +164,8 @@ const PenggunaOvkTable = ({ columns, data, loading }) => {
                         <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold border border-slate-200 bg-slate-50 text-slate-600">
                           {value}
                         </span>
+                      ) : col.key === 'pemasok' ? (
+                        <span className="text-xs text-slate-600 font-medium">{value}</span>
                       ) : (
                         value
                       )}
