@@ -18,6 +18,7 @@ const normalizePedagangOptions = (items = []) => items.map((item) => ({
   saldo_keseluruhan: Number(item.saldo_keseluruhan ?? ((item.saldo_awal || 0) + (item.tabungan || 0) + (item.kulit || 0))),
   saldo_akhir: Number(item.saldo_akhir ?? ((item.saldo_awal || 0) + (item.tabungan || 0) + (item.kulit || 0) - (item.saldo_beku || 0))),
   limit_kredit: Number(item.limit_kredit || 0),
+  is_dispensasi: Number(item.is_dispensasi || 0),
   label: item.label || `${item.nama_alias || item.nama_identitas || '-'} - ${item.id_pedagang || '-'}`,
 }));
 
@@ -161,6 +162,7 @@ const usePenjualanBoning = () => {
               saldo_keseluruhan: item.saldo_keseluruhan,
               saldo_akhir: item.saldo_akhir,
               limit_kredit: item.limit_kredit,
+              is_dispensasi: item.is_dispensasi,
             }))
           );
         }

@@ -227,10 +227,20 @@ const AddEditKarkasModal = ({
                 ))}
               </select>
               {errors.pid_pedagang && <p className="text-xs text-red-500 mt-1">{errors.pid_pedagang}</p>}
+              {selectedPedagang && Number(selectedPedagang.is_dispensasi) === 1 && (
+                <div className="mt-2 p-2 bg-amber-50 border border-amber-200 text-amber-800 rounded-md font-semibold">
+                  Pedagang memiliki dispensasi aktif.
+                </div>
+              )}
 
               {/* R-06: Info limit kredit & sisa limit pedagang terpilih */}
               {selectedPedagang && Number(selectedPedagang.limit_kredit) > 0 && (
                 <div className="mt-2 bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs space-y-1">
+                  {Number(selectedPedagang.is_dispensasi) === 1 && (
+                    <div className="mb-2 p-2 bg-amber-50 border border-amber-200 text-amber-800 rounded-md font-semibold">
+                      Pedagang memiliki dispensasi aktif.
+                    </div>
+                  )}
                   <div className="flex justify-between text-gray-600">
                     <span>Limit Kredit:</span>
                     <span className="font-semibold text-gray-800">{formatCurrency(Number(selectedPedagang.limit_kredit))}</span>

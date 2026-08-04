@@ -32,6 +32,7 @@ const formatMoneyInput = (value) => {
 const parseMoneyInput = (value) => String(value ?? '').replace(/[^\d]/g, '');
 
 const inputClass = 'w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none transition focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20';
+const isPedagangAtCreditLimit = (item) => Number(item?.is_dispensasi || 0) !== 1 && Number(item?.limit_kredit || 0) > 0 && Number(item?.saldo_beku || 0) >= Number(item.limit_kredit);
 
 const AddEditBoningModal = ({
   isOpen,
@@ -78,7 +79,8 @@ const AddEditBoningModal = ({
   const pedagangSelectOptions = useMemo(() => pedagangList.map((item) => ({
     value: String(item.id),
     label: item.label || `${item.nama_alias || item.nama_identitas} - ${item.id_pedagang}`,
-  })), [pedagangList]);
+    disabled: !isEdit && isPedagangAtCreditLimit(item),
+  })), [pedagangList, isEdit]);
 
   const itemOptions = useMemo(() => {
     const selectedEditItems = (editData?.detail_items || []).map((item) => ({
@@ -381,14 +383,12 @@ const AddEditBoningModal = ({
       if (!form.id_syarat_pembelian) nextErrors.id_syarat_pembelian = 'Syarat pembayaran wajib dipilih untuk pembayaran bank.';
 
       // R-06: Hard-block cicilan bila melampaui limit kredit pedagang (mirror guard backend).
-      // Hanya ditegakkan bila limit_kredit > 0 (0 = tidak diset). Di Boning, tipe 'BANK' = cicilan.
-      if (selectedPedagang && Number(selectedPedagang.limit_kredit) > 0) {
+      // Hanya ditegakkan bila limit_kredit > 0 (0 = tidak diset) dan bukan dispensasi aktif.
+      if (selectedPedagang && Number(selectedPedagang.limit_kredit) > 0 && Number(selectedPedagang.is_dispensasi) !== 1) {
         const limit = Number(selectedPedagang.limit_kredit);
         const saldoAkhir = Number(selectedPedagang.saldo_akhir) || 0;
         // Piutang lama hanya dikurangi bila pedagang TIDAK berubah pada edit (same-trader via id_pedagang).
         const isSameTrader = isEdit && Number(editData?.penjualan?.id_pedagang) === Number(form.id_pedagang);
-        // P3: oldPiutang dihitung dari total_terbayar (kas riil), bukan total_bayar (kini = grand total tagihan).
-        // Sebelumnya: grand_total - grand_total = 0, melumpuhkan kalkulasi sisa limit R-06 di sisi klien.
         const oldPiutang = (isSameTrader && String(editData?.penjualan?.tipe_pembayaran) === '2')
           ? (Number(editData?.penjualan?.total_harga || 0) + Number(editData?.penjualan?.biaya_pengiriman || 0) - Number(editData?.penjualan?.total_terbayar || 0))
           : 0;
@@ -479,25 +479,34 @@ const AddEditBoningModal = ({
                 />
                 {errors.id_pedagang && <p className="mt-1 text-xs text-rose-600">{errors.id_pedagang}</p>}
 
-                {/* R-06: Info limit kredit & sisa limit pedagang terpilih */}
-                {selectedPedagang && Number(selectedPedagang.limit_kredit) > 0 && (
-                  <div className="mt-2.5 rounded-2xl border border-slate-200 bg-slate-50 p-3.5 text-xs space-y-1.5 shadow-sm">
-                    <div className="flex justify-between text-slate-600">
-                      <span>Limit Kredit:</span>
-                      <span className="font-semibold text-slate-800">{formatCurrency(Number(selectedPedagang.limit_kredit))}</span>
+              {selectedPedagang && (
+                <>
+                  {Number(selectedPedagang.is_dispensasi) === 1 && (
+                    <div className="mt-2 p-2 bg-amber-50 border border-amber-200 text-amber-800 rounded-md font-semibold text-xs">
+                      Pedagang memiliki dispensasi aktif.
                     </div>
-                    <div className="flex justify-between text-slate-600">
-                      <span>Total Piutang Berjalan:</span>
-                      <span className="font-semibold text-rose-600">{formatCurrency(Number(selectedPedagang.saldo_akhir) || 0)}</span>
+                  )}
+                  {Number(selectedPedagang.is_dispensasi) !== 1 && Number(selectedPedagang.limit_kredit) > 0 && (
+                    <div className="mt-2 bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs space-y-1">
+                      <div className="flex justify-between text-gray-600">
+                        <span>Limit Kredit:</span>
+                        <span className="font-semibold text-gray-800">{formatCurrency(Number(selectedPedagang.limit_kredit))}</span>
+                      </div>
+                      <div className="flex justify-between text-gray-600">
+                        <span>Total Piutang Berjalan:</span>
+                        <span className="font-semibold text-red-600">{formatCurrency(Number(selectedPedagang.saldo_akhir) || 0)}</span>
+                      </div>
+                      <div className="flex justify-between text-gray-600 border-t border-gray-200 pt-1">
+                        <span>Sisa Limit Kredit:</span>
+                        <span className={`font-bold ${Number(selectedPedagang.limit_kredit) - (Number(selectedPedagang.saldo_beku) || 0) <= 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                          {formatCurrency(Math.max(0, Number(selectedPedagang.limit_kredit) - (Number(selectedPedagang.saldo_beku) || 0)))}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex justify-between text-slate-600 border-t border-slate-200 pt-1.5">
-                      <span>Sisa Limit Kredit:</span>
-                      <span className={`font-bold ${Number(selectedPedagang.limit_kredit) - (Number(selectedPedagang.saldo_akhir) || 0) <= 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
-                        {formatCurrency(Math.max(0, Number(selectedPedagang.limit_kredit) - (Number(selectedPedagang.saldo_akhir) || 0)))}
-                      </span>
-                    </div>
-                  </div>
-                )}
+                  )}
+                </>
+              )}
+
               </div>
 
               <div>

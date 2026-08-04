@@ -50,6 +50,7 @@ function Field({ label, children, required }) {
 
 const inputClass = 'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100';
 const toOptions = (items = []) => items.map((item) => ({ value: String(item.id), label: item.label }));
+const isPedagangAtCreditLimit = (item) => Number(item?.is_dispensasi || 0) !== 1 && Number(item?.limit_kredit || 0) > 0 && Number(item?.saldo_beku || 0) >= Number(item.limit_kredit);
 const PAYMENT_OPTIONS = [{ value: '1', label: 'Tunai' }, { value: '2', label: 'Kredit' }];
 const SHIPPING_OPTIONS = [{ value: 'DIAMBIL', label: 'Diambil' }, { value: 'DIANTAR', label: 'Diantar' }];
 const PAYMENT_STYLE = {
@@ -311,7 +312,12 @@ function PenjualanKulitForm({ open, mode, initialData, master, saving, onClose, 
           {error ? <div className="mb-4 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</div> : null}
           <div className="grid gap-4 md:grid-cols-3">
             <Field label="Tanggal Penjualan" required><input className={inputClass} type="datetime-local" value={form.tanggal_penjualan} onChange={(e) => set('tanggal_penjualan', e.target.value)} /></Field>
-            <Field label="Pedagang" required><SearchableSelect value={form.id_pedagang} onChange={(value) => set('id_pedagang', value || '')} options={toOptions(master.pedagang || [])} placeholder="Pilih pedagang" accentColor="green" /></Field>
+            <Field label="Pedagang" required><SearchableSelect value={form.id_pedagang} onChange={(value) => set('id_pedagang', value || '')} options={toOptions(form.pid ? (master.pedagang || []) : (master.pedagang || []).filter(item => !isPedagangAtCreditLimit(item)))} placeholder="Pilih pedagang" accentColor="green" /></Field>
+            {selectedPedagang && Number(selectedPedagang.is_dispensasi) === 1 && (
+              <div className="md:col-span-3 p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg font-semibold text-xs">
+                Pedagang memiliki dispensasi aktif.
+              </div>
+            )}
             <Field label="Metode Pembayaran" required><SearchableSelect value={form.tipe_pembayaran} onChange={(value) => set('tipe_pembayaran', value || '1')} options={PAYMENT_OPTIONS} placeholder="Pilih pembayaran" accentColor="green" isClearable={false} /></Field>
             {form.tipe_pembayaran === '2' ? <Field label="Bank" required><SearchableSelect value={form.id_syarat_pembelian} onChange={(value) => set('id_syarat_pembelian', value || '')} options={toOptions(master.banks || [])} placeholder="Pilih bank" accentColor="green" /></Field> : null}
             <Field label="Pengiriman" required><SearchableSelect value={form.pengiriman} onChange={(value) => set('pengiriman', value || 'DIAMBIL')} options={SHIPPING_OPTIONS} placeholder="Pilih pengiriman" accentColor="green" isClearable={false} /></Field>
