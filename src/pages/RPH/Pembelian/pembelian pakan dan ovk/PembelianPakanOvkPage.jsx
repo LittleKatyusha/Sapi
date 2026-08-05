@@ -105,11 +105,11 @@ const ActionMenu = ({ row, onClose, buttonRef, onDetail, onEdit, onCancel, onBay
 
   const canCancel = row.payment_status_label !== 'Lunas' && row.payment_status_label !== 'Belum Lunas';
   const canBayar = row.payment_status_label !== 'Lunas' && !!row.payment_pid;
+  const canEdit = row.payment_status_label !== 'Lunas';
 
   const actions = [
     {
       label: 'Detail',
-      description: `Lihat detail ${row.nomor}`,
       icon: Eye,
       iconClass: 'text-sky-600',
       bgClass: 'bg-sky-100',
@@ -117,7 +117,6 @@ const ActionMenu = ({ row, onClose, buttonRef, onDetail, onEdit, onCancel, onBay
     },
     {
       label: 'Bayar',
-      description: canBayar ? `Bayar tagihan ${row.nomor}` : 'Tagihan sudah lunas',
       icon: CreditCard,
       iconClass: canBayar ? 'text-emerald-600' : 'text-gray-400',
       bgClass: canBayar ? 'bg-emerald-100' : 'bg-gray-100',
@@ -128,17 +127,16 @@ const ActionMenu = ({ row, onClose, buttonRef, onDetail, onEdit, onCancel, onBay
     },
     {
       label: 'Edit',
-      description: `Ubah data ${row.nomor}`,
       icon: Pencil,
-      iconClass: 'text-amber-600',
-      bgClass: 'bg-amber-100',
-      onClick: () => onEdit?.(row)
+      iconClass: canEdit ? 'text-amber-600' : 'text-gray-400',
+      bgClass: canEdit ? 'bg-amber-100' : 'bg-gray-100',
+      disabled: !canEdit,
+      onClick: () => {
+        if (canEdit) onEdit?.(row);
+      }
     },
     {
       label: canCancel ? 'Batalkan Transaksi' : 'Tidak Dapat Dibatalkan',
-      description: canCancel
-        ? `Kembalikan stok & hapus ${row.nomor}`
-        : 'Sudah dibayar / lunas',
       icon: Ban,
       iconClass: canCancel ? 'text-red-600' : 'text-gray-400',
       bgClass: canCancel ? 'bg-red-100' : 'bg-gray-100',
@@ -158,31 +156,25 @@ const ActionMenu = ({ row, onClose, buttonRef, onDetail, onEdit, onCancel, onBay
     <div
       ref={menuRef}
       style={menuStyle}
-      className="w-56 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-2xl"
+      className="w-60 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-2xl"
       role="menu"
       aria-label="Menu aksi"
     >
-      <div className="border-b border-gray-100 bg-gray-50 px-3 py-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Menu Aksi</p>
-      </div>
-      <div className="p-2">
+      <div className="p-1.5">
         {actions.map((action) => (
           <button
             key={action.label}
             type="button"
             disabled={action.disabled}
             onClick={() => handleActionClick(action)}
-            className={`flex w-full items-start gap-3 rounded-lg px-3 py-2 text-left transition-colors ${
+            className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors whitespace-nowrap ${
               action.disabled ? 'cursor-not-allowed opacity-50' : 'hover:bg-gray-50'
             }`}
           >
-            <div className={`mt-0.5 rounded-lg p-2 ${action.bgClass}`}>
+            <div className={`rounded-lg p-1.5 ${action.bgClass}`}>
               <action.icon className={`h-4 w-4 ${action.iconClass}`} />
             </div>
-            <div>
-              <p className="text-sm font-semibold text-gray-700">{action.label}</p>
-              <p className="text-xs text-gray-500">{action.description}</p>
-            </div>
+            <p className="text-sm font-semibold text-gray-700 whitespace-nowrap">{action.label}</p>
           </button>
         ))}
       </div>
@@ -338,6 +330,10 @@ const MobilePurchaseCard = ({
   const handleEdit = useCallback((row) => {
     const rowId = getRowId(row);
     if (!rowId) return;
+    if (row.payment_status_label === 'Lunas') {
+      setErrorMessage('Transaksi yang sudah lunas tidak dapat diedit.');
+      return;
+    }
     navigate(`/rph/pembelian-pakan-ovk/edit/${rowId}`, { state: { item: row, type: activeTab } });
     setOpenMenuIdDesktop(null);
     setOpenMenuIdMobile(null);
