@@ -698,7 +698,35 @@ const PembelianFeedmilDetailPage = () => {
                                 </StyleSheetManager>
                             </div>
                         </div>
-                        
+
+                        {/* Total Footer - aligned with table columns */}
+                        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-t-2 border-blue-200">
+                            <div className="flex items-stretch text-sm">
+                                <div className="flex-[0.5] min-w-[60px] max-w-[80px] flex items-center justify-center py-3 font-semibold text-gray-500 border-r border-blue-100">Total</div>
+                                <div className="flex-[1.8] min-w-[150px] flex items-center px-3 py-3 text-gray-500 text-xs border-r border-blue-100">{detailData.length} item</div>
+                                <div className="flex-[1.5] min-w-[120px] flex items-center justify-center px-3 py-3 border-r border-blue-100"></div>
+                                <div className="flex-[0.8] min-w-[80px] flex items-center justify-center px-3 py-3 border-r border-blue-100">
+                                    <span className="font-bold text-indigo-700 bg-white px-2.5 py-1 rounded-lg border border-indigo-200 text-xs">
+                                        {detailData.reduce((sum, item) => sum + (parseInt(item.jumlah) || 0), 0)}
+                                    </span>
+                                </div>
+                                <div className="flex-[1] min-w-[100px] flex items-center justify-center px-3 py-3 border-r border-blue-100"></div>
+                                <div className="flex-[1.2] min-w-[120px] flex items-center justify-center px-3 py-3 border-r border-blue-100"></div>
+                                <div className="flex-[1.2] min-w-[120px] flex items-center justify-center px-3 py-3 border-r border-blue-100"></div>
+                                <div className="flex-[1.2] min-w-[120px] flex items-center justify-center px-3 py-3 border-r border-blue-100">
+                                    <span className="font-bold text-purple-700 bg-white px-2.5 py-1 rounded-lg border border-purple-200 text-xs whitespace-nowrap">
+                                        {formatCurrency(detailData.reduce((sum, item) => sum + (parseFloat(item.hpp) || 0), 0))}
+                                    </span>
+                                </div>
+                                <div className="flex-[1.2] min-w-[120px] flex items-center justify-center px-3 py-3 border-r border-blue-100">
+                                    <span className="font-bold text-red-700 bg-white px-2.5 py-1.5 rounded-lg border-2 border-red-300 text-xs whitespace-nowrap shadow-sm">
+                                        {formatCurrency(detailData.reduce((sum, item) => sum + (parseFloat(item.total_harga) || 0), 0))}
+                                    </span>
+                                </div>
+                                <div className="flex-[1.1] min-w-[100px] flex items-center justify-center px-3 py-3"></div>
+                            </div>
+                        </div>
+
                         {/* Enhanced Scroll Status Footer */}
                         <div className="bg-gray-50 px-4 py-2 border-t border-gray-200">
                             <div className="flex items-center justify-between text-xs text-gray-500">
