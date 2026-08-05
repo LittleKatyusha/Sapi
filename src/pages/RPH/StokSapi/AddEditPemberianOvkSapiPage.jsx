@@ -86,13 +86,13 @@ const Toast = ({ notification, onClose }) => {
 };
 
 const Field = ({ label, required = false, helperText, children }) => (
-  <div className="space-y-2">
-    <label className="block text-sm font-semibold text-slate-700">
+  <div className="space-y-1.5">
+    <label className="block text-xs font-semibold text-slate-700">
       {label}
       {required ? <span className="ml-1 text-rose-500">*</span> : null}
     </label>
     {children}
-    {helperText ? <p className="text-xs text-slate-400">{helperText}</p> : null}
+    {helperText ? <p className="text-[11px] text-slate-400">{helperText}</p> : null}
   </div>
 );
 
@@ -360,215 +360,198 @@ const AddEditPemberianOvkSapiPage = () => {
 
   if (isLoadingDetail) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-emerald-50 via-white to-cyan-50">
+      <div className="flex h-screen items-center justify-center bg-slate-50">
         <div className="text-center">
-          <Loader2 className="mx-auto h-10 w-10 animate-spin text-emerald-500" />
-          <p className="mt-3 text-sm font-medium text-slate-500">Memuat data pemberian OVK...</p>
+          <Loader2 className="mx-auto h-8 w-8 animate-spin text-emerald-500" />
+          <p className="mt-2 text-sm font-medium text-slate-500">Memuat data...</p>
         </div>
       </div>
     );
   }
 
+  const estimasiTotal = selectedOvkDetail && jumlah > 0 && selectedOvkDetail.harga
+    ? Number(selectedOvkDetail.harga) * Number(jumlah)
+    : null;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-cyan-50 p-4 sm:p-6">
-      <div className="mx-auto max-w-4xl space-y-6">
-        <section className="overflow-hidden rounded-[30px] border border-white/70 bg-white shadow-[0_24px_80px_-32px_rgba(15,23,42,0.25)]">
-          <div className="h-1.5 w-full bg-gradient-to-r from-teal-500 via-emerald-500 to-cyan-500" />
-          <div className="flex flex-col gap-5 p-5 sm:p-6 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-start gap-4">
-              <button
-                type="button"
-                onClick={handleBack}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-600 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
-                aria-label="Kembali ke daftar pemberian OVK"
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </button>
-
-              <div className="flex items-start gap-4">
-                <div className="rounded-3xl bg-teal-100 p-4 text-teal-700">
-                  <Package className="h-7 w-7" />
-                </div>
-                <div>
-                  <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-teal-50 px-3 py-1 text-xs font-semibold text-teal-700">
-                    <Info className="h-3.5 w-3.5" />
-                    Pemberian OVK RPH
-                  </div>
-                  <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">{pageTitle}</h1>
-                  <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500 sm:text-base">
-                    {isEditMode
-                      ? 'Perbarui resep OVK, tanggal, jam, dan nama peternak pada catatan pemberian OVK sapi.'
-                      : 'Pemberian obat, vitamin, atau konsentrat (OVK) khusus untuk sapi tertentu di RPH.'}
-                  </p>
-                </div>
-              </div>
-            </div>
-
+    <div className="flex h-screen flex-col bg-slate-50 overflow-hidden">
+      {/* === Compact Header === */}
+      <header className="shrink-0 border-b border-slate-200 bg-white">
+        <div className="flex items-center justify-between gap-4 px-4 sm:px-6 py-3">
+          <div className="flex items-center gap-3 min-w-0">
             <button
-              type="submit"
-              form="pemberian-ovk-sapi-form"
-              disabled={isSubmitting}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 px-5 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:from-emerald-600 hover:to-teal-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+              type="button"
+              onClick={handleBack}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              aria-label="Kembali"
             >
-              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              {isSubmitting ? 'Menyimpan...' : submitText}
+              <ArrowLeft className="h-4 w-4" />
             </button>
-          </div>
-        </section>
-
-        <form id="pemberian-ovk-sapi-form" onSubmit={handleSubmit} className="space-y-6">
-          <section className="rounded-[30px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-            <div className="border-b border-slate-100 pb-5">
-              <h2 className="text-lg font-bold text-slate-900">Data Sapi & OVK</h2>
-              <p className="mt-1 text-sm text-slate-500">Pilih sapi dan OVK yang akan diberikan, serta lengkapi data pelaksana.</p>
-            </div>
-
-            {selectedCowDetail ? (
-              <div className="mt-5 grid gap-3 rounded-2xl border border-teal-100 bg-teal-50/60 p-4 text-sm text-slate-600 sm:grid-cols-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-teal-700">Eartag Sapi</p>
-                  <p className="mt-1 font-semibold text-slate-800 font-mono">{selectedCowDetail.eartag || selectedCowDetail.eartag_sapi || '-'}</p>
-                </div>
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-teal-700">Jenis Sapi</p>
-                  <p className="mt-1 font-semibold text-slate-800">{selectedCowDetail.jenis_sapi || '-'}</p>
-                </div>
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-teal-700">Bobot Sapi</p>
-                  <p className="mt-1 font-semibold text-slate-800">{selectedCowDetail.bobot ? `${selectedCowDetail.bobot} KG` : '-'}</p>
-                </div>
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 shrink-0">
+                <Package className="h-4 w-4" />
               </div>
-            ) : null}
+              <div className="min-w-0">
+                <h1 className="text-base font-bold tracking-tight text-slate-900 truncate">{pageTitle}</h1>
+                <p className="text-xs text-slate-500 truncate hidden sm:block">
+                  {isEditMode ? 'Perbarui catatan pemberian OVK sapi' : 'Catat pemberian obat/vitamin/konsentrat untuk sapi RPH'}
+                </p>
+              </div>
+            </div>
+          </div>
 
-            <div className="mt-6 grid gap-5 md:grid-cols-2">
-              {/* Select Cow Column (ReadOnly in edit mode or when cow state is pre-selected) */}
-              <div className="md:col-span-2">
+          <button
+            type="submit"
+            form="pemberian-ovk-sapi-form"
+            disabled={isSubmitting}
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 disabled:cursor-not-allowed disabled:opacity-60 shrink-0"
+          >
+            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            <span className="hidden sm:inline">{isSubmitting ? 'Menyimpan...' : submitText}</span>
+            <span className="sm:hidden">{isSubmitting ? '...' : 'Simpan'}</span>
+          </button>
+        </div>
+      </header>
+
+      {/* === Main Content — 2 column, fills viewport === */}
+      <form id="pemberian-ovk-sapi-form" onSubmit={handleSubmit} className="flex-1 overflow-hidden">
+        <div className="h-full w-full mx-auto px-4 sm:px-6 py-3">
+          <div className="grid h-full gap-4 lg:grid-cols-[1fr_420px]">
+
+            {/* === Left Column — Selections === */}
+            <div className="flex flex-col gap-3 min-h-0 overflow-y-auto lg:overflow-hidden">
+              {/* Cow info card */}
+              {selectedCowDetail ? (
+                <div className="grid grid-cols-3 gap-3 rounded-xl border border-emerald-100 bg-emerald-50/50 p-3 text-sm shrink-0">
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-700">Eartag</p>
+                    <p className="mt-0.5 font-semibold text-slate-800 font-mono text-xs truncate">{selectedCowDetail.eartag || selectedCowDetail.eartag_sapi || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-700">Jenis</p>
+                    <p className="mt-0.5 font-semibold text-slate-800 truncate">{selectedCowDetail.jenis_sapi || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-700">Bobot</p>
+                    <p className="mt-0.5 font-semibold text-slate-800">{selectedCowDetail.bobot ? `${selectedCowDetail.bobot} KG` : '-'}</p>
+                  </div>
+                </div>
+              ) : null}
+
+              {/* Selections card */}
+              <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3 flex-1 min-h-0 lg:overflow-hidden">
+                {/* Pilih Sapi */}
                 {isEditMode || stateCow ? (
-                  <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Sapi Terpilih</p>
-                    <p className="mt-1 text-sm font-semibold text-slate-800">
+                  <div className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2.5">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Sapi Terpilih</p>
+                    <p className="mt-0.5 text-sm font-semibold text-slate-800 truncate">
                       [{selectedCowDetail?.eartag || selectedCowDetail?.eartag_sapi || 'Tanpa Eartag'}] {selectedCowDetail?.jenis_sapi || '-'}
                     </p>
                   </div>
                 ) : (
-                  <Field label="Pilih Sapi" required helperText="Silakan pilih sapi aktif di RPH yang akan diberikan OVK.">
+                  <Field label="Pilih Sapi" required>
                     <SearchableSelect
                       value={selectedCow}
                       onChange={setSelectedCow}
                       options={cowOptions}
-                      placeholder={isLoadingCowOptions ? 'Memuat daftar sapi...' : 'Pilih Sapi RPH'}
+                      placeholder={isLoadingCowOptions ? 'Memuat sapi...' : 'Pilih Sapi RPH'}
                       isLoading={isLoadingCowOptions}
                       isDisabled={isLoadingCowOptions || isSubmitting}
                     />
                   </Field>
                 )}
-              </div>
 
-              {/* Select OVK Product */}
-              <div className="md:col-span-2">
+                {/* Pilih OVK */}
                 {isEditMode ? (
-                  <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Produk OVK Terpilih</p>
-                    <p className="mt-1 text-sm font-semibold text-slate-800">
+                  <div className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2.5">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Produk OVK</p>
+                    <p className="mt-0.5 text-sm font-semibold text-slate-800 truncate">
                       {selectedOvkDetail ? selectedOvkDetail.label : `OVK ID #${selectedOvk}`}
                     </p>
                   </div>
                 ) : (
-                  <Field label="Produk OVK" required helperText="OVK yang dipilih harus tersedia dalam stok RPH.">
+                  <Field label="Produk OVK" required>
                     <SearchableSelect
                       value={selectedOvk}
                       onChange={setSelectedOvk}
                       options={ovkOptions}
-                      placeholder={isLoadingOvkOptions ? 'Memuat daftar OVK...' : 'Pilih OVK'}
+                      placeholder={isLoadingOvkOptions ? 'Memuat OVK...' : 'Pilih OVK'}
                       isLoading={isLoadingOvkOptions}
                       isDisabled={isLoadingOvkOptions || isSubmitting}
                     />
                   </Field>
                 )}
-              </div>
 
-              {selectedOvkDetail && !isEditMode ? (
-                <div className="md:col-span-2 rounded-2xl border border-cyan-100 bg-cyan-50/70 p-4 text-sm text-cyan-900">
-                  <p className="font-semibold">{selectedOvkDetail.label}</p>
-                  <p className="mt-1 text-xs text-cyan-700">
-                    Stok tersedia: {selectedOvkDetail.stok ?? '-'} {selectedOvkDetail.satuan || ''} | Harga satuan: {selectedOvkDetail.harga ? `Rp ${Number(selectedOvkDetail.harga).toLocaleString('id-ID')}` : '-'}
-                    {jumlah > 0 && selectedOvkDetail.harga
-                      ? ` | Estimasi total: Rp ${(Number(selectedOvkDetail.harga) * Number(jumlah)).toLocaleString('id-ID')}`
-                      : ''}
-                  </p>
-                </div>
-              ) : null}
-
-              {!isEditMode ? (
-                <Field
-                  label="Jumlah (Qty)"
-                  required
-                  helperText={
-                    selectedOvkDetail
-                      ? `Maksimal ${maxStok || 0} ${selectedOvkDetail.satuan || ''} sesuai stok tersedia.`
-                      : 'Pilih produk OVK terlebih dahulu.'
-                  }
-                >
-                  <input
-                    type="number"
-                    min={1}
-                    max={maxStok > 0 ? maxStok : undefined}
-                    step={1}
-                    value={jumlah}
-                    onChange={(event) => {
-                      const next = event.target.value;
-                      if (next === '') {
-                        setJumlah('');
-                        return;
-                      }
-                      const num = Math.floor(Number(next));
-                      if (!Number.isFinite(num)) return;
-                      setJumlah(num < 1 ? 1 : num);
-                    }}
-                    disabled={isSubmitting || !selectedOvk}
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 px-4 text-sm text-slate-700 outline-none transition focus:border-emerald-300 focus:bg-white focus:ring-4 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
+                {/* Qty */}
+                {!isEditMode ? (
+                  <Field
+                    label="Jumlah (Qty)"
                     required
-                  />
-                </Field>
-              ) : (
-                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Jumlah (Qty)</p>
-                  <p className="mt-1 text-sm font-semibold text-slate-800">{jumlah || 1}</p>
-                </div>
-              )}
+                    helperText={
+                      selectedOvkDetail
+                        ? `Maks ${maxStok || 0} ${selectedOvkDetail.satuan || ''}`
+                        : 'Pilih OVK dulu'
+                    }
+                  >
+                    <input
+                      type="number"
+                      min={1}
+                      max={maxStok > 0 ? maxStok : undefined}
+                      step={1}
+                      value={jumlah}
+                      onChange={(event) => {
+                        const next = event.target.value;
+                        if (next === '') { setJumlah(''); return; }
+                        const num = Math.floor(Number(next));
+                        if (!Number.isFinite(num)) return;
+                        setJumlah(num < 1 ? 1 : num);
+                      }}
+                      disabled={isSubmitting || !selectedOvk}
+                      className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2.5 px-3 text-sm text-slate-700 outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
+                      required
+                    />
+                  </Field>
+                ) : (
+                  <div className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2.5">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Jumlah (Qty)</p>
+                    <p className="mt-0.5 text-sm font-semibold text-slate-800">{jumlah || 1}</p>
+                  </div>
+                )}
 
-              <Field label="Tanggal Pemberian" required>
-                <div className="relative">
-                  <Calendar className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type="date"
-                    value={tglPemberian}
-                    onChange={(event) => setTglPemberian(event.target.value)}
-                    disabled={isSubmitting}
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-sm text-slate-700 outline-none transition focus:border-emerald-300 focus:bg-white focus:ring-4 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
-                    required
-                  />
+                {/* Tanggal & Jam — inline 2 col */}
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Tanggal" required>
+                    <div className="relative">
+                      <Calendar className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="date"
+                        value={tglPemberian}
+                        onChange={(event) => setTglPemberian(event.target.value)}
+                        disabled={isSubmitting}
+                        className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2.5 pl-8 pr-3 text-sm text-slate-700 outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
+                        required
+                      />
+                    </div>
+                  </Field>
+                  <Field label="Jam" required>
+                    <div className="relative">
+                      <Clock className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="time"
+                        value={jamPemberian}
+                        onChange={(event) => setJamPemberian(event.target.value)}
+                        disabled={isSubmitting}
+                        className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2.5 pl-8 pr-3 text-sm text-slate-700 outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
+                        required
+                      />
+                    </div>
+                  </Field>
                 </div>
-              </Field>
 
-              <Field label="Jam Pemberian" required>
-                <div className="relative">
-                  <Clock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type="time"
-                    value={jamPemberian}
-                    onChange={(event) => setJamPemberian(event.target.value)}
-                    disabled={isSubmitting}
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-sm text-slate-700 outline-none transition focus:border-emerald-300 focus:bg-white focus:ring-4 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
-                    required
-                  />
-                </div>
-              </Field>
-
-              <div className="md:col-span-2">
-                <Field label="Nama Peternak" required helperText="Maksimal 150 karakter.">
+                {/* Nama Peternak */}
+                <Field label="Nama Peternak" required>
                   <div className="relative">
-                    <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <User className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
                     <input
                       type="text"
                       value={namaPeternak}
@@ -576,16 +559,97 @@ const AddEditPemberianOvkSapiPage = () => {
                       disabled={isSubmitting}
                       maxLength={150}
                       placeholder="Masukkan nama peternak"
-                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-sm text-slate-700 outline-none transition focus:border-emerald-300 focus:bg-white focus:ring-4 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2.5 pl-8 pr-3 text-sm text-slate-700 outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
                       required
                     />
                   </div>
                 </Field>
               </div>
             </div>
-          </section>
-        </form>
-      </div>
+
+            {/* === Right Column — Summary (desktop only) === */}
+            <aside className="hidden lg:flex flex-col rounded-xl border border-slate-200 bg-white p-4 min-h-0 overflow-hidden">
+              <div className="flex items-center gap-2 pb-3 border-b border-slate-100 shrink-0">
+                <Info className="h-4 w-4 text-emerald-600" />
+                <h2 className="text-sm font-bold text-slate-900">Ringkasan</h2>
+              </div>
+
+              <div className="mt-4 space-y-3 flex-1 min-h-0 overflow-y-auto">
+                {/* Sapi */}
+                <div className="rounded-lg bg-slate-50 p-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Sapi</p>
+                  <p className="mt-1 text-sm font-semibold text-slate-800 truncate">
+                    {selectedCowDetail
+                      ? `[${selectedCowDetail.eartag || selectedCowDetail.eartag_sapi || '-'}] ${selectedCowDetail.jenis_sapi || '-'}`
+                      : 'Belum dipilih'}
+                  </p>
+                  {selectedCowDetail?.bobot ? (
+                    <p className="text-xs text-slate-500 mt-0.5">Bobot: {selectedCowDetail.bobot} KG</p>
+                  ) : null}
+                </div>
+
+                {/* OVK */}
+                <div className="rounded-lg bg-slate-50 p-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Produk OVK</p>
+                  <p className="mt-1 text-sm font-semibold text-slate-800 truncate">
+                    {selectedOvkDetail ? selectedOvkDetail.label : (isEditMode ? `OVK ID #${selectedOvk}` : 'Belum dipilih')}
+                  </p>
+                  {selectedOvkDetail ? (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      <span className="inline-flex items-center rounded-md bg-white border border-slate-200 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+                        Stok: {selectedOvkDetail.stok ?? '-'} {selectedOvkDetail.satuan || ''}
+                      </span>
+                      {selectedOvkDetail.harga ? (
+                        <span className="inline-flex items-center rounded-md bg-white border border-slate-200 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+                          @ Rp {Number(selectedOvkDetail.harga).toLocaleString('id-ID')}
+                        </span>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+
+                {/* Qty + Estimasi */}
+                {!isEditMode ? (
+                  <div className="rounded-lg border border-emerald-100 bg-emerald-50/40 p-3">
+                    <div className="flex items-baseline justify-between">
+                      <span className="text-xs font-medium text-slate-500">Jumlah</span>
+                      <span className="text-sm font-bold text-slate-900">{jumlah || 0} {selectedOvkDetail?.satuan || ''}</span>
+                    </div>
+                    {estimasiTotal ? (
+                      <div className="mt-2 flex items-baseline justify-between border-t border-emerald-100 pt-2">
+                        <span className="text-xs font-medium text-slate-500">Estimasi Total</span>
+                        <span className="text-base font-bold text-emerald-700">Rp {estimasiTotal.toLocaleString('id-ID')}</span>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                {/* Pelaksana */}
+                <div className="rounded-lg bg-slate-50 p-3 space-y-1.5">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Pelaksanaan</p>
+                  <div className="flex items-center gap-2 text-xs text-slate-600">
+                    <Calendar className="h-3.5 w-3.5 text-slate-400" />
+                    <span>{tglPemberian || '-'}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-slate-600">
+                    <Clock className="h-3.5 w-3.5 text-slate-400" />
+                    <span>{jamPemberian || '-'}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-slate-600">
+                    <User className="h-3.5 w-3.5 text-slate-400" />
+                    <span className="truncate">{namaPeternak || 'Belum diisi'}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer hint */}
+              <p className="pt-3 mt-3 border-t border-slate-100 text-[11px] text-slate-400 leading-relaxed shrink-0">
+                Pastikan data sudah benar sebelum menyimpan. Stok OVK akan terpotong otomatis setelah disimpan.
+              </p>
+            </aside>
+          </div>
+        </div>
+      </form>
 
       <Toast notification={notification} onClose={() => setNotification(null)} />
     </div>
