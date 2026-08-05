@@ -655,11 +655,14 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, re
                 {/* Nilai */}
                 <td className="py-2 px-3 border border-gray-100 whitespace-nowrap text-right">
                   <div className="space-y-0.5">
-                    <div className="text-xs text-gray-500">
-                      <span className="text-gray-400">Beli:</span> {row.harga_beli || 'Rp 0'}
+                    <div className="text-xs text-gray-500" title="Harga Pokok Pembelian per kg (harga + markup)">
+                      <span className="text-gray-400">Beli/kg:</span> {row.hpp ? `Rp ${row.hpp}` : 'Rp 0'}
                     </div>
-                    <div className="font-semibold text-teal-700">
+                    <div className="font-semibold text-teal-700" title="(bobot × hpp) + pakan + ovk">
                       {row.total || 'Rp 0'}
+                    </div>
+                    <div className="text-[10px] text-gray-400 leading-tight">
+                      ({row.bobot || 0} × {row.hpp || 0}) + {row.nilai_pakan || 0} + {row.nilai_ovk || 0}
                     </div>
                   </div>
                 </td>
