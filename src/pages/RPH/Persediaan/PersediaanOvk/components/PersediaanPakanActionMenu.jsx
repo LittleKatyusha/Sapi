@@ -6,6 +6,8 @@ const PersediaanPakanActionMenu = ({ row, onEdit, onDelete, onDetail, onCopy, on
   const menuRef = useRef(null);
   const [menuStyle, setMenuStyle] = useState(null);
 
+  const isUsed = (row?.jumlah_pemakaian || 0) > 0;
+
   useLayoutEffect(() => {
     function updatePosition() {
       if (buttonRef?.current) {
@@ -71,18 +73,20 @@ const PersediaanPakanActionMenu = ({ row, onEdit, onDelete, onDetail, onCopy, on
       text: "text-violet-600",
     },
     {
-      label: "Edit",
+      label: isUsed ? "Edit (Sudah Digunakan)" : "Edit",
       icon: Pencil,
-      onClick: () => onEdit(row),
-      bg: "bg-amber-100",
-      text: "text-amber-600",
+      onClick: () => !isUsed && onEdit(row),
+      disabled: isUsed,
+      bg: isUsed ? "bg-slate-100" : "bg-amber-100",
+      text: isUsed ? "text-slate-400" : "text-amber-600",
     },
     {
-      label: "Cancel",
+      label: isUsed ? "Cancel (Sudah Digunakan)" : "Cancel",
       icon: Ban,
-      onClick: () => onDelete(row),
-      bg: "bg-red-100",
-      text: "text-red-600",
+      onClick: () => !isUsed && onDelete(row),
+      disabled: isUsed,
+      bg: isUsed ? "bg-slate-100" : "bg-red-100",
+      text: isUsed ? "text-slate-400" : "text-red-600",
     },
   ];
 
@@ -106,11 +110,13 @@ const PersediaanPakanActionMenu = ({ row, onEdit, onDelete, onDetail, onCopy, on
         {actions.map((action, idx) => (
           <button
             key={action.label}
+            disabled={action.disabled}
             onClick={() => {
+              if (action.disabled) return;
               action.onClick();
               onClose();
             }}
-            className="w-full text-left flex items-center px-2.5 py-2 text-sm hover:bg-slate-50 transition-all duration-150 rounded-lg group text-gray-700"
+            className={`w-full text-left flex items-center px-2.5 py-2 text-sm hover:bg-slate-50 transition-all duration-150 rounded-lg group text-gray-700 ${action.disabled ? 'cursor-not-allowed opacity-50 hover:bg-transparent' : ''}`}
             role="menuitem"
             tabIndex={0}
           >

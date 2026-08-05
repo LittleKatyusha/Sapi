@@ -70,6 +70,10 @@ const CopyResepPakanModal = ({ isOpen, onClose, onSuccess, sourceItem }) => {
       setSubmitError('Tanggal aktif tujuan wajib diisi.');
       return;
     }
+    if (sourceItem?.tgl_aktif && tglAktif === sourceItem.tgl_aktif.slice(0, 10)) {
+      setSubmitError('Tanggal aktif tujuan tidak boleh sama dengan tanggal sumber.');
+      return;
+    }
 
     setIsSubmitting(true);
     try {
