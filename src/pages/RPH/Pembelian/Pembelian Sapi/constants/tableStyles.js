@@ -110,16 +110,16 @@ const customTableStyles = {
     }
 };
 
-// Enhanced table styles optimized for detail page with perfect UX
+// Minimalist table styles for detail page
 const detailPageTableStyles = {
     table: {
         style: {
             backgroundColor: '#ffffff',
             borderRadius: '0px',
             width: '100%',
-            minWidth: '1220px', // Optimized for detail table columns (reduced after removing biaya truk)
+            minWidth: '1000px',
             maxWidth: '100%',
-            tableLayout: 'fixed', // Critical for consistent column widths
+            tableLayout: 'fixed',
             borderCollapse: 'separate',
             borderSpacing: 0,
             margin: 0,
@@ -131,27 +131,18 @@ const detailPageTableStyles = {
             overflowY: 'visible',
             width: '100%',
             maxWidth: '100%',
-            border: 'none', // Remove border, handled by parent
+            border: 'none',
             borderRadius: '0',
             WebkitOverflowScrolling: 'touch',
             position: 'relative',
-            scrollBehavior: 'smooth',
-            // Enhanced scrollbar styling
             scrollbarWidth: 'thin',
-            scrollbarColor: '#cbd5e1 #f1f5f9',
-            '&::-webkit-scrollbar': {
-                height: '8px',
-            },
-            '&::-webkit-scrollbar-track': {
-                backgroundColor: '#f1f5f9',
-                borderRadius: '4px',
-            },
+            scrollbarColor: '#cbd5e1 transparent',
+            '&::-webkit-scrollbar': { height: '6px' },
+            '&::-webkit-scrollbar-track': { backgroundColor: 'transparent' },
             '&::-webkit-scrollbar-thumb': {
                 backgroundColor: '#cbd5e1',
-                borderRadius: '4px',
-                '&:hover': {
-                    backgroundColor: '#94a3b8',
-                },
+                borderRadius: '3px',
+                '&:hover': { backgroundColor: '#94a3b8' },
             },
         }
     },
@@ -160,85 +151,67 @@ const detailPageTableStyles = {
             position: 'sticky',
             top: 0,
             zIndex: 1000,
-            backgroundColor: '#f8fafc',
-            borderBottom: '2px solid #e2e8f0',
-            minHeight: '60px', // Increased for better text wrapping
-            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+            backgroundColor: '#fafafa',
+            borderBottom: '1px solid #e5e7eb',
+            minHeight: '40px',
         }
     },
     headCells: {
         style: {
-            fontSize: '14px',
+            fontSize: '11px',
             fontWeight: '600',
-            color: '#374151',
-            padding: '16px 12px', // py-4 px-3 - optimal padding
-            textAlign: 'center',
-            whiteSpace: 'pre-line', // Allow line breaks in headers
-            wordWrap: 'break-word',
-            wordBreak: 'break-word',
-            lineHeight: '1.3',
-            letterSpacing: '0.025em',
-            borderRight: '1px solid #e5e7eb',
+            color: '#64748b',
+            padding: '10px 12px',
+            textAlign: 'left',
+            whiteSpace: 'nowrap',
+            textTransform: 'uppercase',
+            letterSpacing: '0.04em',
+            borderRight: 'none',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            '&:last-child': {
-                borderRight: 'none',
-            },
+            justifyContent: 'flex-start',
+            '&:first-of-type': { justifyContent: 'center' },
         }
     },
     rows: {
         style: {
-            minHeight: '52px', // Increased for better content spacing
-            borderBottom: '1px solid #f3f4f6',
-            transition: 'background-color 0.2s ease',
-            '&:hover': {
-                backgroundColor: '#f9fafb',
-                transform: 'none', // Disable transform for better performance
-            },
-            '&:last-child': {
-                borderBottom: 'none',
-            },
-            '&:nth-of-type(even)': {
-                backgroundColor: '#fafbfc', // Very subtle striping
-            }
+            minHeight: '44px',
+            borderBottom: '1px solid #f1f5f9',
+            transition: 'background-color 0.15s ease',
+            '&:hover': { backgroundColor: '#f8fafc' },
+            '&:last-child': { borderBottom: 'none' },
         }
     },
     cells: {
         style: {
-            padding: '14px 16px', // Increased padding for better breathing room
+            padding: '10px 12px',
             fontSize: '13px',
-            color: '#374151',
-            lineHeight: '1.5',
-            textAlign: 'center',
-            whiteSpace: 'normal', // Enable word wrapping
-            wordWrap: 'break-word',
-            wordBreak: 'break-words', // Handle very long text
-            overflow: 'visible', // Prevent data truncation
+            color: '#0f172a',
+            lineHeight: '1.4',
+            textAlign: 'left',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
             verticalAlign: 'middle',
-            borderRight: '1px solid #f3f4f6',
+            borderRight: 'none',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            '&:last-child': {
-                borderRight: 'none',
-            },
-            // Enhance hover effect for individual cells
-            '&:hover': {
-                backgroundColor: 'rgba(59, 130, 246, 0.05)',
-            }
+            justifyContent: 'flex-start',
+            '&:first-of-type': { justifyContent: 'center' },
         }
     },
     pagination: {
         style: {
-            borderTop: '1px solid #e2e8f0',
-            borderRadius: '0 0 12px 12px',
-            padding: '16px 20px',
-            backgroundColor: '#f8fafc',
+            borderTop: '1px solid #e5e7eb',
+            borderRadius: '0',
+            padding: '10px 16px',
+            backgroundColor: '#fafafa',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'flex-end', // Align pagination to the right
-            gap: '8px', // Add spacing between pagination elements
+            justifyContent: 'flex-end',
+            gap: '8px',
+            fontSize: '12px',
+            color: '#64748b',
         }
     }
 };
