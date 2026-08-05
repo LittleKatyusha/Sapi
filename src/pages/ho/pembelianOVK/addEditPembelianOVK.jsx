@@ -312,7 +312,14 @@ const AddEditPembelianOVKPage = () => {
                     const headerData = showResponse.data[0];
                     const showResponseData = showResponse.data;
                     pembelianIdRef.current = headerData.id_pembelian || null;
-                    
+
+                    // Block edit if already paid off (lunas)
+                    if (headerData.payment_status === 1) {
+                        alert('Pembelian yang sudah lunas tidak dapat diedit.');
+                        navigate('/ho/pembelian-ovk');
+                        return;
+                    }
+
                     console.log('✁EHeader and detail data found from /show endpoint:', {
                         nota: headerData.nota,
                         pid: headerData.pid,
