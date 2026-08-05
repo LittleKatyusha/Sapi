@@ -226,25 +226,12 @@ const PembelianDetailPage = () => {
         },
         {
             name: 'Harga\nSatuan',
-            selector: row => row.harga,
-            sortable: true,
-            width: '200px',
-            cell: row => (
-                <div className="text-center">
-                    <span className="text-gray-900 font-medium text-sm">
-                        {row.harga ? `Rp ${Number(row.harga).toLocaleString('id-ID')}` : '-'}
-                    </span>
-                </div>
-            )
-        },
-        {
-            name: 'HPP\nper Unit',
             selector: row => row.hpp,
             sortable: true,
             width: '200px',
             cell: row => (
                 <div className="text-center">
-                    <span className="text-purple-600 font-medium text-sm">
+                    <span className="text-gray-900 font-medium text-sm">
                         {row.hpp ? `Rp ${Number(row.hpp).toLocaleString('id-ID')}` : '-'}
                     </span>
                 </div>
@@ -259,19 +246,6 @@ const PembelianDetailPage = () => {
                 <div className="text-center">
                     <span className="text-red-600 font-semibold text-sm">
                         {row.total_harga ? `Rp ${Number(row.total_harga).toLocaleString('id-ID')}` : '-'}
-                    </span>
-                </div>
-            )
-        },
-        {
-            name: 'Persentase',
-            selector: row => row.persentase,
-            sortable: true,
-            width: '140px',
-            cell: row => (
-                <div className="text-center">
-                    <span className="inline-block bg-green-50 px-3 py-1 rounded-md text-green-700 font-medium text-sm border border-green-200">
-                        {row.persentase ? `${row.persentase}%` : '-'}
                     </span>
                 </div>
             )
@@ -475,7 +449,7 @@ const PembelianDetailPage = () => {
 
                             <div className="text-center">
                                 <p className="text-3xl font-bold text-purple-600">
-                                    Rp {(pembelianData?.biaya_total || 0).toLocaleString('id-ID')}
+                                    Rp {(detailData.reduce((sum, r) => sum + ((Number(r.berat) || 0) * (Number(r.hpp) || 0)), 0)).toLocaleString('id-ID')}
                                 </p>
                                 <p className="text-sm text-gray-600">Biaya Total</p>
                             </div>

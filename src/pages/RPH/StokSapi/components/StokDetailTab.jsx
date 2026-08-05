@@ -636,7 +636,7 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, re
                       <span className="text-gray-400">DOF:</span> {row.dof_hari || '-'}
                     </div>
                     <div className="text-xs text-gray-500">
-                      <span className="text-gray-400">Pakan:</span> {row.kg || '-'} kg · {row.nilai_pakan || 'Rp 0'}
+                      <span className="text-gray-400">Pakan:</span> {row.jumlah_pakan_sesi || 0}x · {row.kg_pakan ? `${row.kg_pakan} kg` : '0 kg'} · Rp {row.nilai_pakan || '0'}
                     </div>
                   </div>
                 </td>
