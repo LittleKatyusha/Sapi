@@ -1,14 +1,13 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import DataTable from 'react-data-table-component';
-import { PlusCircle, Search, Filter, FileText, X, Loader2 } from 'lucide-react';
+import { PlusCircle, Search, FileText, X, Loader2, Clock, Calendar } from 'lucide-react';
 
 import usePengajuan from './hooks/usePengajuan';
 import usePengajuanDisetujui from './hooks/usePengajuanDisetujui';
 import ActionButton from './components/ActionButton';
 import ActionButtonDisetujui from './components/ActionButtonDisetujui';
 import PengajuanCard from './components/PengajuanCard';
-import CustomPagination from '../pembelianFeedmil/components/CustomPagination';
 import { enhancedTableStyles } from './constants/tableStyles';
 
  // Import modals
@@ -18,23 +17,22 @@ import PengajuanDetailModal from './modals/PengajuanDetailModal';
 import PengajuanBiayaService from '../../../services/pengajuanBiayaService';
 
 const PengajuanPage = () => {
-    const navigate = useNavigate();
     const location = useLocation();
     const [openMenuId, setOpenMenuId] = useState(null);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isAddEditModalOpen, setIsAddEditModalOpen] = useState(false);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-    const [isPrinting, setIsPrinting] = useState(false);
+    const [, setIsPrinting] = useState(false);
     const [selectedPengajuan, setSelectedPengajuan] = useState(null);
     const [notification, setNotification] = useState(null);
     const [lastRefreshTime, setLastRefreshTime] = useState(Date.now());
+    const [activeTab, setActiveTab] = useState('menunggu'); // 'menunggu' | 'disetujui'
     
     const {
         pengajuan: filteredData,
         loading,
         error,
         searchTerm,
-        setSearchTerm,
         isSearching,
         searchError,
         stats,
@@ -55,7 +53,6 @@ const PengajuanPage = () => {
         loading: loadingDisetujui,
         error: errorDisetujui,
         searchTerm: searchTermDisetujui,
-        setSearchTerm: setSearchTermDisetujui,
         isSearching: isSearchingDisetujui,
         searchError: searchErrorDisetujui,
         serverPagination: serverPaginationDisetujui,
@@ -69,6 +66,7 @@ const PengajuanPage = () => {
     useEffect(() => {
         fetchPengajuan();
         fetchPengajuanDisetujui();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // Auto-refresh when user returns to the page
@@ -297,15 +295,6 @@ const PengajuanPage = () => {
         }
     }, [selectedPengajuan, updatePengajuan, createPengajuan, fetchPengajuan, serverPagination, searchTerm]);
 
-    // Pagination handlers for mobile cards
-    const handlePageChange = (page) => {
-        handleServerPageChange(page);
-    };
-
-    const handleItemsPerPageChange = (newItemsPerPage) => {
-        handleServerPerPageChange(newItemsPerPage);
-    };
-
     // Auto-hide notification
     useEffect(() => {
         if (notification) {
@@ -465,7 +454,7 @@ const PengajuanPage = () => {
                 );
             }
         },
-    ], [openMenuId, filteredData, serverPagination]);
+    ], [openMenuId, serverPagination]);
 
     // Columns untuk tabel Pengajuan Disetujui
     const columnsDisetujui = useMemo(() => [
@@ -615,597 +604,349 @@ const PengajuanPage = () => {
                 );
             }
         },
-    ], [openMenuId, filteredDataDisetujui, serverPaginationDisetujui]);
+    ], [openMenuId, serverPaginationDisetujui]);
+
+    const formatCompact = (val) => {
+        const num = Number(val || 0);
+        if (num >= 1000000000) return `Rp ${(num / 1000000000).toFixed(1)}M`;
+        if (num >= 1000000) return `Rp ${(num / 1000000).toFixed(1)}jt`;
+        if (num >= 1000) return `Rp ${(num / 1000).toFixed(0)}rb`;
+        return `Rp ${num}`;
+    };
+
+    const isMenunggu = activeTab === 'menunggu';
+    const activeData = isMenunggu ? filteredData : filteredDataDisetujui;
+    const activeLoading = isMenunggu ? loading : loadingDisetujui;
+    const activeError = isMenunggu ? error : errorDisetujui;
+    const activeSearchTerm = isMenunggu ? searchTerm : searchTermDisetujui;
+    const activeIsSearching = isMenunggu ? isSearching : isSearchingDisetujui;
+    const activeSearchError = isMenunggu ? searchError : searchErrorDisetujui;
+    const activePagination = isMenunggu ? serverPagination : serverPaginationDisetujui;
+    const activeColumns = isMenunggu ? columns : columnsDisetujui;
+    const activeHandleSearch = isMenunggu ? handleSearch : handleSearchDisetujui;
+    const activeClearSearch = isMenunggu ? clearSearch : clearSearchDisetujui;
+    const activeHandlePageChange = isMenunggu ? handleServerPageChange : handleServerPageChangeDisetujui;
+    const activeHandlePerPageChange = isMenunggu ? handleServerPerPageChange : handleServerPerPageChangeDisetujui;
+
+    const statCards = [
+        { key: 'pending', label: 'Menunggu', count: stats.pending.count, nominal: stats.pending.nominal, color: 'amber', icon: Clock },
+        { key: 'today', label: 'Hari Ini', count: stats.today.count, nominal: stats.today.nominal, color: 'sky', icon: Calendar },
+        { key: 'week', label: 'Minggu Ini', count: stats.thisWeek.count, nominal: stats.thisWeek.nominal, color: 'slate', icon: Calendar },
+        { key: 'month', label: 'Bulan Ini', count: stats.thisMonth.count, nominal: stats.thisMonth.nominal, color: 'indigo', icon: Calendar },
+        { key: 'year', label: 'Tahun Ini', count: stats.thisYear.count, nominal: stats.thisYear.nominal, color: 'emerald', icon: Calendar },
+    ];
 
     return (
         <>
             <style>{`
-                .word-break-all {
-                    word-break: break-all;
-                    overflow-wrap: break-word;
-                    hyphens: auto;
-                }
-                
-                .no-wrap {
-                    white-space: nowrap;
-                    overflow: visible;
-                    text-overflow: clip;
-                }
-                
-                .force-wrap {
-                    white-space: normal;
-                    word-wrap: break-word;
-                    overflow-wrap: break-word;
-                }
-                
-                /* Custom scrollbar styling */
-                .table-scroll-container::-webkit-scrollbar {
-                    height: 8px;
-                }
-                
-                .table-scroll-container::-webkit-scrollbar-track {
-                    background: #f1f5f9;
-                    border-radius: 4px;
-                }
-                
-                .table-scroll-container::-webkit-scrollbar-thumb {
-                    background: #cbd5e1;
-                    border-radius: 4px;
-                    transition: background 0.2s ease;
-                }
-                
-                .table-scroll-container::-webkit-scrollbar-thumb:hover {
-                    background: #94a3b8;
-                }
-                
-                .table-scroll-container {
-                    scrollbar-width: thin;
-                    scrollbar-color: #cbd5e1 #f1f5f9;
-                }
-                
-                /* Force header center alignment override */
-                .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol {
-                    text-align: center !important;
-                    display: flex !important;
-                    align-items: center !important;
-                    justify-content: center !important;
-                }
-                
-                .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol > div {
-                    text-align: center !important;
-                    width: 100% !important;
-                    display: flex !important;
-                    align-items: center !important;
-                    justify-content: center !important;
-                }
-                
-                .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol .rdt_TableCol_Sortable {
-                    text-align: center !important;
-                    display: flex !important;
-                    align-items: center !important;
-                    justify-content: center !important;
-                    width: 100% !important;
-                }
-                
-                .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol span {
-                    text-align: center !important;
-                }
+                .force-wrap { white-space: normal; word-wrap: break-word; overflow-wrap: break-word; }
+                .table-scroll-container::-webkit-scrollbar { height: 6px; width: 6px; }
+                .table-scroll-container::-webkit-scrollbar-track { background: transparent; }
+                .table-scroll-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+                .table-scroll-container::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+                .table-scroll-container { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+                .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol { text-align: center !important; display: flex !important; align-items: center !important; justify-content: center !important; }
+                .rdt_TableHead .rdt_TableHeadRow .rdt_TableCol > div { text-align: center !important; width: 100% !important; display: flex !important; align-items: center !important; justify-content: center !important; }
             `}</style>
-            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-2 sm:p-4 md:p-6">
-            <div className="w-full max-w-none mx-0 space-y-6 md:space-y-8">
-                <div className="bg-white rounded-none sm:rounded-none p-4 sm:p-6 shadow-xl border border-gray-100">
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                            <h1 className="text-2xl sm:text-4xl font-bold text-gray-800 mb-1 sm:mb-2 flex items-center gap-3">
-                                <FileText size={32} className="text-blue-500" />
-                                Pengajuan Pembelian
-                            </h1>
-                            <p className="text-gray-600 text-sm sm:text-base">
-                                Kelola data Pengajuan Biaya
-                            </p>
-                        </div>
-                        <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 md:gap-6">
-                            <button
-                                onClick={handleAdd}
-                                className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white px-4 py-2 sm:px-6 sm:py-3 md:px-7 md:py-4 lg:px-8 lg:py-4 rounded-xl sm:rounded-2xl hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 flex items-center gap-3 font-medium shadow-lg hover:shadow-xl text-sm sm:text-base"
-                            >
-                                <PlusCircle className="w-5 h-5 sm:w-6 sm:h-6" />
-                                Tambah Pengajuan
-                            </button>
-                        </div>
-                    </div>
-                </div>
 
-                <div className="grid grid-cols-1 gap-3 sm:gap-4 md:gap-6 sm:grid-cols-2 md:grid-cols-5">
-                    <div className="bg-gradient-to-br from-orange-400 to-orange-500 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
-                        <h3 className="text-sm sm:text-base font-medium opacity-90 mb-2">Menunggu Persetujuan</h3>
-                        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold">{stats.pending.count}</p>
-                        <p className="text-xs sm:text-sm opacity-80 mt-1">
-                            {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(stats.pending.nominal)}
-                        </p>
+            <div className="flex h-screen flex-col bg-slate-50 overflow-hidden">
+                {/* === Sticky Header === */}
+                <header className="shrink-0 border-b border-slate-200 bg-white">
+                    <div className="flex items-center justify-between gap-4 px-4 sm:px-6 py-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 shrink-0">
+                                <FileText className="h-4 w-4" />
+                            </div>
+                            <div className="min-w-0">
+                                <h1 className="text-base font-bold tracking-tight text-slate-900 truncate">Pengajuan Pembelian</h1>
+                                <p className="text-xs text-slate-500 truncate hidden sm:block">Kelola data pengajuan biaya</p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={handleAdd}
+                            className="inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 shrink-0"
+                        >
+                            <PlusCircle className="h-4 w-4" />
+                            <span className="hidden sm:inline">Tambah Pengajuan</span>
+                            <span className="sm:hidden">Tambah</span>
+                        </button>
                     </div>
-                    <div className="bg-gradient-to-br from-yellow-400 to-yellow-500 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
-                        <h3 className="text-sm sm:text-base font-medium opacity-90 mb-2">Hari Ini</h3>
-                        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold">{stats.today.count}</p>
-                        <p className="text-xs sm:text-sm opacity-80 mt-1">
-                            {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(stats.today.nominal)}
-                        </p>
-                    </div>
-                    <div className="bg-gradient-to-br from-gray-400 to-gray-500 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
-                        <h3 className="text-sm sm:text-base font-medium opacity-90 mb-2">Minggu Ini</h3>
-                        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold">{stats.thisWeek.count}</p>
-                        <p className="text-xs sm:text-sm opacity-80 mt-1">
-                            {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(stats.thisWeek.nominal)}
-                        </p>
-                    </div>
-                    <div className="bg-gradient-to-br from-blue-400 to-blue-500 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
-                        <h3 className="text-sm sm:text-base font-medium opacity-90 mb-2">Bulan Ini</h3>
-                        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold">{stats.thisMonth.count}</p>
-                        <p className="text-xs sm:text-sm opacity-80 mt-1">
-                            {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(stats.thisMonth.nominal)}
-                        </p>
-                    </div>
-                    <div className="bg-gradient-to-br from-green-400 to-green-500 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
-                        <h3 className="text-sm sm:text-base font-medium opacity-90 mb-2">Tahun Ini</h3>
-                        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold">{stats.thisYear.count}</p>
-                        <p className="text-xs sm:text-sm opacity-80 mt-1">
-                            {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(stats.thisYear.nominal)}
-                        </p>
-                    </div>
-                </div>
+                </header>
 
-                <div className="bg-white rounded-none sm:rounded-none p-4 sm:p-6 shadow-lg border border-gray-100">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 md:gap-6 sm:items-center sm:justify-between">
-                        <div className="relative flex-1 max-w-full sm:max-w-md lg:max-w-lg">
-                            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                            
-                            {isSearching && (
-                                <Loader2 className="absolute right-12 top-1/2 transform -translate-y-1/2 w-4 h-4 text-blue-500 animate-spin" />
-                            )}
-                            
-                            {searchTerm && !isSearching && (
-                                <button
-                                    onClick={clearSearch}
-                                    className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 hover:text-gray-600 transition-colors duration-200"
-                                    title="Clear search"
-                                >
-                                    <X className="w-4 h-4" />
-                                </button>
-                            )}
-                            
-                            <input
-                                type="text"
-                                placeholder="Cari berdasarkan barang, divisi, jenis pengajuan, atau yang mengajukan..."
-                                value={searchTerm}
-                                onChange={(e) => handleSearch(e.target.value)}
-                                className={`w-full pl-12 ${searchTerm || isSearching ? 'pr-12' : 'pr-4'} py-2.5 sm:py-3 md:py-4 border ${searchError ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'} rounded-full transition-all duration-200 text-sm sm:text-base shadow-sm hover:shadow-md`}
-                            />
-                            
-                            {searchError && (
-                                <div className="absolute top-full left-0 right-0 mt-1 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-                                    {searchError}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Desktop Table View - Hidden on mobile */}
-                <div className="bg-white rounded-xl shadow-lg border border-gray-100 relative hidden md:block">
-                    {/* Table Header with Title */}
-                    <div className="px-6 py-4 bg-gradient-to-r from-blue-50 to-cyan-50 border-b border-gray-200">
-                        <div className="flex items-center justify-between flex-wrap gap-2">
-                            <h3 className="text-lg font-bold text-gray-800 whitespace-nowrap">
-                                Pengajuan Menunggu Persetujuan
-                            </h3>
-                            <div className="text-sm text-gray-600">
-                                Total: <span className="font-semibold">{filteredData.length}</span> item{filteredData.length !== 1 ? 's' : ''}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    {/* Table Container with proper scroll */}
-                    <div className="w-full overflow-x-auto max-w-full table-scroll-container overflow-hidden" style={{maxHeight: '60vh'}}>
-                        <div className="min-w-full">
-                        <DataTable
-                            key={`datatable-${serverPagination.currentPage}-${filteredData.length}`}
-                            columns={columns}
-                            data={filteredData}
-                            pagination={false}
-                            customStyles={enhancedTableStyles}
-                            progressPending={loading}
-                            progressComponent={
-                                <div className="text-center py-12">
-                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                                    <p className="text-gray-500 text-sm mt-2">Memuat data...</p>
-                                </div>
-                            }
-                            noDataComponent={
-                                <div className="text-center py-12">
-                                    {error ? (
-                                        <div className="text-red-600">
-                                            <p className="text-lg font-semibold">Error</p>
-                                            <p className="text-sm">{error}</p>
-                                        </div>
-                                    ) : searchTerm ? (
-                                        <div className="text-gray-500">
-                                            <p className="text-lg font-semibold">Tidak ada hasil untuk "{searchTerm}"</p>
-                                            <p className="text-sm mt-2">Coba gunakan kata kunci yang berbeda</p>
-                                            <button
-                                                onClick={clearSearch}
-                                                className="mt-3 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200 text-sm"
-                                            >
-                                                Clear Search
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <p className="text-gray-500 text-lg">Tidak ada data pengajuan ditemukan</p>
-                                    )}
-                                </div>
-                            }
-                            responsive={false}
-                            highlightOnHover
-                            pointerOnHover
-                        />
-                        </div>
-                    </div>
-                    
-                    {/* Custom Pagination - Fixed outside scroll area */}
-                    <div className="border-t border-gray-200 bg-gray-50 px-6 py-4 flex items-center justify-between">
-                        <div className="flex items-center text-sm text-gray-700">
-                            <span>
-                                Menampilkan{' '}
-                                <span className="font-semibold">
-                                    {((serverPagination.currentPage - 1) * serverPagination.perPage) + 1}
-                                </span>
-                                {' '}sampai{' '}
-                                <span className="font-semibold">
-                                    {Math.min(serverPagination.currentPage * serverPagination.perPage, serverPagination.totalItems)}
-                                </span>
-                                {' '}dari{' '}
-                                <span className="font-semibold">{serverPagination.totalItems}</span>
-                                {' '}hasil
-                            </span>
-                        </div>
-                        
-                        <div className="flex items-center space-x-2">
-                            {/* Rows per page selector */}
-                            <div className="flex items-center space-x-2">
-                                <span className="text-sm text-gray-700">Rows per page:</span>
-                                <select
-                                    value={serverPagination.perPage}
-                                    onChange={(e) => handleServerPerPageChange(parseInt(e.target.value))}
-                                    className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value={10}>10</option>
-                                    <option value={25}>25</option>
-                                    <option value={50}>50</option>
-                                    <option value={100}>100</option>
-                                </select>
-                            </div>
-                            
-                            {/* Pagination buttons */}
-                            <div className="flex items-center space-x-1">
-                                <button
-                                    onClick={() => handleServerPageChange(1)}
-                                    disabled={serverPagination.currentPage === 1}
-                                    className="p-2 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    title="First page"
-                                >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-                                    </svg>
-                                </button>
-                                <button
-                                    onClick={() => handleServerPageChange(serverPagination.currentPage - 1)}
-                                    disabled={serverPagination.currentPage === 1}
-                                    className="p-2 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    title="Previous page"
-                                >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-                                    </svg>
-                                </button>
-                                
-                                <span className="px-3 py-1 text-sm font-medium">
-                                    {serverPagination.currentPage} of {serverPagination.totalPages}
-                                </span>
-                                
-                                <button
-                                    onClick={() => handleServerPageChange(serverPagination.currentPage + 1)}
-                                    disabled={serverPagination.currentPage === serverPagination.totalPages}
-                                    className="p-2 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    title="Next page"
-                                >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                                    </svg>
-                                </button>
-                                <button
-                                    onClick={() => handleServerPageChange(serverPagination.totalPages)}
-                                    disabled={serverPagination.currentPage === serverPagination.totalPages}
-                                    className="p-2 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    title="Last page"
-                                >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Tabel Pengajuan Disetujui - Desktop View */}
-                <div className="bg-white rounded-xl shadow-lg border border-gray-100 relative hidden md:block">
-                    {/* Table Header with Title */}
-                    <div className="px-6 py-4 bg-gradient-to-r from-green-50 to-emerald-50 border-b border-gray-200">
-                        <div className="flex items-center justify-between flex-wrap gap-2">
-                            <h3 className="text-lg font-bold text-gray-800 whitespace-nowrap">
-                                Pengajuan Disetujui
-                            </h3>
-                            <div className="text-sm text-gray-600">
-                                Total: <span className="font-semibold">{filteredDataDisetujui.length}</span> item{filteredDataDisetujui.length !== 1 ? 's' : ''}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    
-                    {/* Table Container with proper scroll */}
-                    <div className="w-full overflow-x-auto max-w-full table-scroll-container overflow-hidden" style={{maxHeight: '60vh'}}>
-                        <div className="min-w-full">
-                        <DataTable
-                            key={`datatable-disetujui-${serverPaginationDisetujui.currentPage}-${filteredDataDisetujui.length}`}
-                            columns={columnsDisetujui}
-                            data={filteredDataDisetujui}
-                            pagination={false}
-                            customStyles={enhancedTableStyles}
-                            progressPending={loadingDisetujui}
-                            progressComponent={
-                                <div className="text-center py-12">
-                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                                    <p className="text-gray-500 text-sm mt-2">Memuat data...</p>
-                                </div>
-                            }
-                            noDataComponent={
-                                <div className="text-center py-12">
-                                    {errorDisetujui ? (
-                                        <div className="text-red-600">
-                                            <p className="text-lg font-semibold">Error</p>
-                                            <p className="text-sm">{errorDisetujui}</p>
-                                        </div>
-                                    ) : searchTermDisetujui ? (
-                                        <div className="text-gray-500">
-                                            <p className="text-lg font-semibold">Tidak ada hasil untuk "{searchTermDisetujui}"</p>
-                                            <p className="text-sm mt-2">Coba gunakan kata kunci yang berbeda</p>
-                                            <button
-                                                onClick={clearSearchDisetujui}
-                                                className="mt-3 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200 text-sm"
-                                            >
-                                                Clear Search
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <p className="text-gray-500 text-lg">Tidak ada data pengajuan disetujui ditemukan</p>
-                                    )}
-                                </div>
-                            }
-                            responsive={false}
-                            highlightOnHover
-                            pointerOnHover
-                        />
-                        </div>
-                    </div>
-                    
-                    {/* Custom Pagination - Fixed outside scroll area */}
-                    <div className="border-t border-gray-200 bg-gray-50 px-6 py-4 flex items-center justify-between">
-                        <div className="flex items-center text-sm text-gray-700">
-                            <span>
-                                Menampilkan{' '}
-                                <span className="font-semibold">
-                                    {((serverPaginationDisetujui.currentPage - 1) * serverPaginationDisetujui.perPage) + 1}
-                                </span>
-                                {' '}sampai{' '}
-                                <span className="font-semibold">
-                                    {Math.min(serverPaginationDisetujui.currentPage * serverPaginationDisetujui.perPage, serverPaginationDisetujui.totalItems)}
-                                </span>
-                                {' '}dari{' '}
-                                <span className="font-semibold">{serverPaginationDisetujui.totalItems}</span>
-                                {' '}hasil
-                            </span>
-                        </div>
-                        
-                        <div className="flex items-center space-x-2">
-                            {/* Rows per page selector */}
-                            <div className="flex items-center space-x-2">
-                                <span className="text-sm text-gray-700">Rows per page:</span>
-                                <select
-                                    value={serverPaginationDisetujui.perPage}
-                                    onChange={(e) => handleServerPerPageChangeDisetujui(parseInt(e.target.value))}
-                                    className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value={10}>10</option>
-                                    <option value={25}>25</option>
-                                    <option value={50}>50</option>
-                                    <option value={100}>100</option>
-                                </select>
-                            </div>
-                            
-                            {/* Pagination buttons */}
-                            <div className="flex items-center space-x-1">
-                                <button
-                                    onClick={() => handleServerPageChangeDisetujui(1)}
-                                    disabled={serverPaginationDisetujui.currentPage === 1}
-                                    className="p-2 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    title="First page"
-                                >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-                                    </svg>
-                                </button>
-                                <button
-                                    onClick={() => handleServerPageChangeDisetujui(serverPaginationDisetujui.currentPage - 1)}
-                                    disabled={serverPaginationDisetujui.currentPage === 1}
-                                    className="p-2 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    title="Previous page"
-                                >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-                                    </svg>
-                                </button>
-                                
-                                <span className="px-3 py-1 text-sm font-medium">
-                                    {serverPaginationDisetujui.currentPage} of {serverPaginationDisetujui.totalPages}
-                                </span>
-                                
-                                <button
-                                    onClick={() => handleServerPageChangeDisetujui(serverPaginationDisetujui.currentPage + 1)}
-                                    disabled={serverPaginationDisetujui.currentPage === serverPaginationDisetujui.totalPages}
-                                    className="p-2 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    title="Next page"
-                                >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                                    </svg>
-                                </button>
-                                <button
-                                    onClick={() => handleServerPageChangeDisetujui(serverPaginationDisetujui.totalPages)}
-                                    disabled={serverPaginationDisetujui.currentPage === serverPaginationDisetujui.totalPages}
-                                    className="p-2 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    title="Last page"
-                                >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Mobile Card View - Visible on mobile only */}
-                <div className="md:hidden">
-                    {loading ? (
-                        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
-                            <div className="text-center">
-                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                                <p className="text-gray-500 text-sm mt-2">Memuat data...</p>
-                            </div>
-                        </div>
-                    ) : error ? (
-                        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
-                            <div className="text-center text-red-600">
-                                <p className="text-lg font-semibold">Error</p>
-                                <p className="text-sm">{error}</p>
-                            </div>
-                        </div>
-                    ) : filteredData.length === 0 ? (
-                        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
-                            <div className="text-center">
-                                {searchTerm ? (
-                                    <div className="text-gray-500">
-                                        <p className="text-lg font-semibold">Tidak ada hasil untuk "{searchTerm}"</p>
-                                        <p className="text-sm mt-2">Coba gunakan kata kunci yang berbeda</p>
-                                        <button
-                                            onClick={clearSearch}
-                                            className="mt-3 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200 text-sm"
-                                        >
-                                            Clear Search
-                                        </button>
+                {/* === Stat Cards === */}
+                <div className="shrink-0 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 px-4 sm:px-6 py-3 bg-white border-b border-slate-200">
+                    {statCards.map((s) => {
+                        const colorMap = {
+                            amber: 'bg-amber-50 text-amber-600',
+                            sky: 'bg-sky-50 text-sky-600',
+                            slate: 'bg-slate-100 text-slate-600',
+                            indigo: 'bg-indigo-50 text-indigo-600',
+                            emerald: 'bg-emerald-50 text-emerald-600',
+                        };
+                        const Icon = s.icon;
+                        return (
+                            <div key={s.key} className="rounded-lg border border-slate-200 bg-white p-3">
+                                <div className="flex items-center gap-2">
+                                    <div className={`flex h-7 w-7 items-center justify-center rounded-md ${colorMap[s.color]} shrink-0`}>
+                                        <Icon className="h-3.5 w-3.5" />
                                     </div>
-                                ) : (
-                                    <p className="text-gray-500 text-lg">Tidak ada data pengajuan ditemukan</p>
-                                )}
+                                    <span className="text-[11px] font-medium text-slate-500 truncate">{s.label}</span>
+                                </div>
+                                <div className="mt-2 flex items-baseline gap-2">
+                                    <span className="text-xl font-bold text-slate-900 tabular-nums">{s.count}</span>
+                                    <span className="text-[11px] text-slate-400 truncate">{formatCompact(s.nominal)}</span>
+                                </div>
                             </div>
-                        </div>
-                    ) : (
-                        <div className="space-y-4">
-                            {/* Cards Container */}
-                            <div className="space-y-3">
-                                {filteredData.map((item, index) => (
-                                    <PengajuanCard
-                                        key={item.id || item.pid}
-                                        data={item}
-                                        index={(serverPagination.currentPage - 1) * serverPagination.perPage + index}
-                                        onEdit={handleEdit}
-                                        onDelete={handleDelete}
-                                        onDetail={handleDetail}
-                                    />
-                                ))}
-                            </div>
-
-                            {/* Custom Pagination for Mobile - Server-side */}
-                            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                                <CustomPagination
-                                    currentPage={serverPagination.currentPage}
-                                    totalPages={serverPagination.totalPages}
-                                    totalItems={serverPagination.totalItems}
-                                    itemsPerPage={serverPagination.perPage}
-                                    onPageChange={handlePageChange}
-                                    onItemsPerPageChange={handleItemsPerPageChange}
-                                    itemsPerPageOptions={[10, 25, 50, 100]}
-                                    loading={loading}
-                                />
-                            </div>
-                        </div>
-                    )}
+                        );
+                    })}
                 </div>
-            </div>
 
-            {/* Notification */}
-            {notification && (
-                <div className="fixed top-4 right-4 z-50">
-                    <div className={`max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden ${
-                        notification.type === 'success' ? 'border-l-4 border-green-400' :
-                        notification.type === 'info' ? 'border-l-4 border-blue-400' :
-                        'border-l-4 border-red-400'
-                    }`}>
-                        <div className="p-4">
-                            <div className="flex items-start">
-                                <div className="flex-shrink-0">
-                                    {notification.type === 'success' ? (
-                                        <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
-                                            <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                            </svg>
-                                        </div>
-                                    ) : notification.type === 'info' ? (
-                                        <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
-                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                                        </div>
-                                    ) : (
-                                        <div className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center">
-                                            <svg className="w-4 h-4 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                                            </svg>
-                                        </div>
-                                    )}
+                {/* === Tabs + Search === */}
+                <div className="shrink-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-6 py-3 bg-white border-b border-slate-200">
+                    {/* Tabs */}
+                    <div className="inline-flex items-center gap-1 rounded-lg bg-slate-100 p-1">
+                        <button
+                            onClick={() => setActiveTab('menunggu')}
+                            className={`inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-semibold transition-all ${
+                                isMenunggu ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                            }`}
+                        >
+                            Menunggu
+                            <span className={`inline-flex items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+                                isMenunggu ? 'bg-amber-100 text-amber-700' : 'bg-slate-200 text-slate-500'
+                            }`}>
+                                {serverPagination.totalItems}
+                            </span>
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('disetujui')}
+                            className={`inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-semibold transition-all ${
+                                !isMenunggu ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                            }`}
+                        >
+                            Disetujui
+                            <span className={`inline-flex items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+                                !isMenunggu ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-500'
+                            }`}>
+                                {serverPaginationDisetujui.totalItems}
+                            </span>
+                        </button>
+                    </div>
+
+                    {/* Search */}
+                    <div className="relative flex-1 max-w-md">
+                        <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                        {activeIsSearching && (
+                            <Loader2 className="absolute right-9 top-1/2 -translate-y-1/2 h-4 w-4 text-indigo-500 animate-spin" />
+                        )}
+                        {activeSearchTerm && !activeIsSearching && (
+                            <button
+                                onClick={activeClearSearch}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                                title="Clear"
+                            >
+                                <X className="h-4 w-4" />
+                            </button>
+                        )}
+                        <input
+                            type="text"
+                            placeholder="Cari nomor, keperluan, pengaju..."
+                            value={activeSearchTerm}
+                            onChange={(e) => activeHandleSearch(e.target.value)}
+                            className={`w-full rounded-lg border bg-white py-2 pl-9 ${activeSearchTerm || activeIsSearching ? 'pr-9' : 'pr-3'} text-sm text-slate-700 outline-none transition focus:ring-2 ${
+                                activeSearchError ? 'border-red-300 focus:ring-red-100' : 'border-slate-200 focus:border-indigo-400 focus:ring-indigo-100'
+                            }`}
+                        />
+                        {activeSearchError && (
+                            <div className="absolute top-full left-0 right-0 mt-1 text-xs text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2 z-10">
+                                {activeSearchError}
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* === Table — natural height, scrolls only when overflow === */}
+                <div className="flex-1 min-h-0 p-4 sm:px-6">
+                    <div className="flex flex-col rounded-xl border border-slate-200 bg-white overflow-hidden">
+                        {/* Table header bar */}
+                        <div className="shrink-0 flex items-center justify-between gap-2 px-4 py-2.5 border-b border-slate-100 bg-slate-50/50">
+                            <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wide">
+                                {isMenunggu ? 'Pengajuan Menunggu Persetujuan' : 'Pengajuan Disetujui'}
+                            </h3>
+                            <span className="text-xs text-slate-500">
+                                <span className="font-semibold text-slate-700">{activePagination.totalItems}</span> total
+                            </span>
+                        </div>
+
+                        {/* Desktop Table — natural height, scrolls only when overflow */}
+                        <div className="min-h-0 overflow-auto table-scroll-container hidden md:block max-h-[calc(100vh-320px)]">
+                            <DataTable
+                                key={`datatable-${activeTab}-${activePagination.currentPage}-${activeData.length}`}
+                                columns={activeColumns}
+                                data={activeData}
+                                pagination={false}
+                                customStyles={enhancedTableStyles}
+                                progressPending={activeLoading}
+                                progressComponent={
+                                    <div className="text-center py-10">
+                                        <div className="animate-spin rounded-full h-6 w-6 border-2 border-indigo-600 border-t-transparent mx-auto"></div>
+                                        <p className="text-slate-500 text-xs mt-2">Memuat data...</p>
+                                    </div>
+                                }
+                                noDataComponent={
+                                    <div className="text-center py-12 px-4">
+                                        {activeError ? (
+                                            <div className="text-red-600">
+                                                <p className="text-sm font-semibold">Gagal memuat data</p>
+                                                <p className="text-xs mt-1">{activeError}</p>
+                                            </div>
+                                        ) : activeSearchTerm ? (
+                                            <div className="text-slate-500">
+                                                <p className="text-sm font-semibold">Tidak ada hasil untuk "{activeSearchTerm}"</p>
+                                                <p className="text-xs mt-1">Coba kata kunci lain atau</p>
+                                                <button onClick={activeClearSearch} className="mt-2 text-xs font-semibold text-indigo-600 hover:text-indigo-700">Clear search</button>
+                                            </div>
+                                        ) : (
+                                            <div className="text-slate-400">
+                                                <FileText className="h-8 w-8 mx-auto opacity-40" />
+                                                <p className="text-sm mt-2">Belum ada data pengajuan</p>
+                                                <p className="text-xs mt-1">Klik "Tambah Pengajuan" untuk membuat baru</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                }
+                                responsive={false}
+                                highlightOnHover
+                                pointerOnHover
+                            />
+                        </div>
+
+                        {/* Mobile Card View */}
+                        <div className="min-h-0 overflow-auto md:hidden max-h-[calc(100vh-320px)]">
+                            {activeLoading ? (
+                                <div className="text-center py-10">
+                                    <div className="animate-spin rounded-full h-6 w-6 border-2 border-indigo-600 border-t-transparent mx-auto"></div>
+                                    <p className="text-slate-500 text-xs mt-2">Memuat...</p>
                                 </div>
-                                <div className="ml-3 w-0 flex-1 pt-0.5">
-                                    <p className="text-sm font-medium text-gray-900">
-                                        {notification.type === 'success' ? 'Berhasil!' :
-                                         notification.type === 'info' ? 'Memproses...' : 'Error!'}
-                                    </p>
-                                    <p className="mt-1 text-sm text-gray-500">{notification.message}</p>
+                            ) : activeError ? (
+                                <div className="text-center py-10 text-red-600">
+                                    <p className="text-sm font-semibold">Error</p>
+                                    <p className="text-xs mt-1">{activeError}</p>
                                 </div>
-                                <div className="ml-4 flex-shrink-0 flex">
-                                    <button
-                                        onClick={() => setNotification(null)}
-                                        className="bg-white rounded-md inline-flex text-gray-400 hover:text-gray-500"
-                                    >
-                                        <span className="sr-only">Close</span>
-                                        <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                                        </svg>
+                            ) : activeData.length === 0 ? (
+                                <div className="text-center py-10 text-slate-400">
+                                    <FileText className="h-8 w-8 mx-auto opacity-40" />
+                                    <p className="text-sm mt-2">{activeSearchTerm ? 'Tidak ada hasil' : 'Belum ada data'}</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-2 p-3">
+                                    {activeData.map((item, index) => (
+                                        <PengajuanCard
+                                            key={item.id || item.pid}
+                                            data={item}
+                                            index={(activePagination.currentPage - 1) * activePagination.perPage + index}
+                                            onEdit={handleEdit}
+                                            onDelete={handleDelete}
+                                            onDetail={handleDetail}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Pagination footer */}
+                        <div className="shrink-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-4 py-2.5 border-t border-slate-100 bg-slate-50/50">
+                            <div className="text-xs text-slate-600">
+                                {activePagination.totalItems > 0 ? (
+                                    <>
+                                        Menampilkan{' '}
+                                        <span className="font-semibold text-slate-800">
+                                            {(activePagination.currentPage - 1) * activePagination.perPage + 1}
+                                        </span>
+                                        {'–'}
+                                        <span className="font-semibold text-slate-800">
+                                            {Math.min(activePagination.currentPage * activePagination.perPage, activePagination.totalItems)}
+                                        </span>
+                                        {' dari '}
+                                        <span className="font-semibold text-slate-800">{activePagination.totalItems}</span>
+                                    </>
+                                ) : 'Tidak ada data'}
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <select
+                                    value={activePagination.perPage}
+                                    onChange={(e) => activeHandlePerPageChange(parseInt(e.target.value))}
+                                    className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                                >
+                                    <option value={10}>10 / hal</option>
+                                    <option value={25}>25 / hal</option>
+                                    <option value={50}>50 / hal</option>
+                                    <option value={100}>100 / hal</option>
+                                </select>
+                                <div className="flex items-center gap-0.5">
+                                    <button onClick={() => activeHandlePageChange(1)} disabled={activePagination.currentPage === 1} className="p-1.5 rounded-md hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed text-slate-600" title="First">
+                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" /></svg>
+                                    </button>
+                                    <button onClick={() => activeHandlePageChange(activePagination.currentPage - 1)} disabled={activePagination.currentPage === 1} className="p-1.5 rounded-md hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed text-slate-600" title="Prev">
+                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
+                                    </button>
+                                    <span className="px-2 py-1 text-xs font-semibold text-slate-700 tabular-nums">
+                                        {activePagination.currentPage} / {activePagination.totalPages || 1}
+                                    </span>
+                                    <button onClick={() => activeHandlePageChange(activePagination.currentPage + 1)} disabled={activePagination.currentPage === activePagination.totalPages} className="p-1.5 rounded-md hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed text-slate-600" title="Next">
+                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+                                    </button>
+                                    <button onClick={() => activeHandlePageChange(activePagination.totalPages)} disabled={activePagination.currentPage === activePagination.totalPages} className="p-1.5 rounded-md hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed text-slate-600" title="Last">
+                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" /></svg>
                                     </button>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
+            </div>
+
+            {/* === Notification Toast === */}
+            {notification && (
+                <div className="fixed top-4 right-4 z-50">
+                    <div className={`max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden ${
+                        notification.type === 'success' ? 'border-l-4 border-emerald-400' :
+                        notification.type === 'info' ? 'border-l-4 border-indigo-400' :
+                        'border-l-4 border-red-400'
+                    }`}>
+                        <div className="p-3.5">
+                            <div className="flex items-start">
+                                <div className="flex-shrink-0">
+                                    {notification.type === 'success' ? (
+                                        <div className="w-6 h-6 bg-emerald-100 rounded-full flex items-center justify-center">
+                                            <svg className="w-3.5 h-3.5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                                        </div>
+                                    ) : notification.type === 'info' ? (
+                                        <div className="w-6 h-6 bg-indigo-100 rounded-full flex items-center justify-center">
+                                            <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-indigo-600 border-t-transparent"></div>
+                                        </div>
+                                    ) : (
+                                        <div className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center">
+                                            <svg className="w-3.5 h-3.5 text-red-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="ml-3 w-0 flex-1 pt-0.5">
+                                    <p className="text-sm font-medium text-slate-900">
+                                        {notification.type === 'success' ? 'Berhasil' : notification.type === 'info' ? 'Memproses' : 'Gagal'}
+                                    </p>
+                                    <p className="mt-0.5 text-xs text-slate-500">{notification.message}</p>
+                                </div>
+                                <button onClick={() => setNotification(null)} className="ml-3 text-slate-400 hover:text-slate-600">
+                                    <X className="h-4 w-4" />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             )}
 
-            {/* Modals */}
+            {/* === Modals === */}
             <DeleteConfirmationModal
                 isOpen={isDeleteModalOpen}
                 onClose={handleCloseDeleteModal}
@@ -1214,20 +955,17 @@ const PengajuanPage = () => {
                 loading={loading}
                 type="pengajuan"
             />
-
             <AddEditPengajuanModal
                 isOpen={isAddEditModalOpen}
                 onClose={handleCloseAddEditModal}
                 onSave={handleSavePengajuan}
                 editingItem={selectedPengajuan}
             />
-
             <PengajuanDetailModal
                 isOpen={isDetailModalOpen}
                 onClose={handleCloseDetailModal}
                 data={selectedPengajuan}
             />
-        </div>
         </>
     );
 };
