@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthSecure } from '../hooks/useAuthSecure';
-import { Eye, EyeOff, Shield, AlertTriangle } from 'lucide-react';
+import { Eye, EyeOff, Shield, AlertTriangle, Loader2, ArrowRight, User, Lock, X, Mail, ArrowBigUp } from 'lucide-react';
 
 import SecurityNotification from '../components/security/SecurityNotification';
 
@@ -27,14 +27,28 @@ const LoginPageSecure = () => {
   const [inputErrors, setInputErrors] = useState({});
   const [captchaLoaded, setCaptchaLoaded] = useState(false);
   const [captchaRetryCount, setCaptchaRetryCount] = useState(0);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [capsLockOn, setCapsLockOn] = useState(false);
+  const [showForgotModal, setShowForgotModal] = useState(false);
 
+  const emailRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { login } = useAuthSecure();
 
-  // Set security headers saat komponen mount
+  // Restore remembered email & autofocus email input on mount
   useEffect(() => {
-    // Check if there's a message from redirect
+    const savedEmail = localStorage.getItem('remembered_email');
+    if (savedEmail) {
+      setFormData(prev => ({ ...prev, email: savedEmail }));
+      setRememberMe(true);
+    }
+    const focusTimer = setTimeout(() => emailRef.current?.focus(), 120);
+    return () => clearTimeout(focusTimer);
+  }, []);
+
+  // Redirect message notification (e.g. session expired)
+  useEffect(() => {
     if (location.state?.message) {
       setNotification({
         message: location.state.message,
@@ -231,20 +245,18 @@ const LoginPageSecure = () => {
 
   // Rate limiting disabled for development
   useEffect(() => {
-    // Always ensure rate limiting is disabled
     setIsBlocked(false);
   }, [formData.email]);
 
   const validateInput = (name, value) => {
     const errors = {};
-    
+
     switch (name) {
       case 'email':
         const sanitizedEmail = value.trim();
         if (!sanitizedEmail) {
           errors.email = 'Masukkan email atau username Anda';
         } else {
-          // Check if it's an email format
           const isEmail = sanitizedEmail.includes('@');
           if (isEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(sanitizedEmail)) {
             errors.email = 'Format email tidak valid';
@@ -253,7 +265,7 @@ const LoginPageSecure = () => {
           }
         }
         break;
-        
+
       case 'password':
         if (!value) {
           errors.password = 'Masukkan password Anda';
@@ -261,44 +273,64 @@ const LoginPageSecure = () => {
           errors.password = 'Password terlalu pendek';
         }
         break;
-        
+
       default:
         break;
     }
-    
+
     return errors;
   };
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     const newValue = type === 'checkbox' ? checked : value;
-    
+
     setFormData(prev => ({
       ...prev,
       [name]: newValue
     }));
-    
-    // Clear errors
+
     setError('');
     if (inputErrors[name]) {
       setInputErrors(prev => ({ ...prev, [name]: '' }));
     }
-    
-    // Real-time validation
+
     if (name === 'email' || name === 'password') {
       const validationErrors = validateInput(name, newValue);
       setInputErrors(prev => ({ ...prev, ...validationErrors }));
     }
   };
 
+  // Caps Lock detection via modifier state
+  const detectCapsLock = (e) => {
+    if (e.getModifierState) {
+      setCapsLockOn(e.getModifierState('CapsLock'));
+    }
+  };
+
+  const resetCaptcha = () => {
+    setCaptchaToken('');
+    setTimeout(() => {
+      if (window.turnstile) {
+        try {
+          const container = document.getElementById('turnstile-widget-container');
+          if (container && container.children.length > 0) {
+            window.turnstile.reset();
+          }
+        } catch (err) {
+          setCaptchaRetryCount(prev => prev + 1);
+        }
+      }
+    }, 500);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Validate semua input
+
     const emailErrors = validateInput('email', formData.email);
     const passwordErrors = validateInput('password', formData.password);
     const allErrors = { ...emailErrors, ...passwordErrors };
-    
+
     if (Object.keys(allErrors).length > 0) {
       setInputErrors(allErrors);
       setError('Lengkapi email/username dan password');
@@ -310,219 +342,268 @@ const LoginPageSecure = () => {
       return;
     }
 
-    // Rate limiting disabled - allow login attempts
-
     setIsLoading(true);
     setError('');
 
     try {
       const result = await login({
         login: formData.email.trim(),
-        password: formData.password, 
+        password: formData.password,
         captcha: captchaToken
       });
 
       if (result.success) {
-        // Redirect ke halaman tujuan atau dashboard
+        // Remember me: persist or clear email
+        if (rememberMe) {
+          localStorage.setItem('remembered_email', formData.email.trim());
+        } else {
+          localStorage.removeItem('remembered_email');
+        }
+
         const redirectTo = location.state?.from?.pathname || '/dashboard';
         navigate(redirectTo, { replace: true });
-        
+
         setNotification({
           message: 'Login berhasil! Selamat datang kembali.',
           type: 'success'
         });
       } else {
+        // Mask error: generic message to prevent user enumeration
         setError('Email/username atau password salah');
-        
+
         if (result.attempts) {
           const remaining = result.maxAttempts - result.attempts;
-          
           if (remaining <= 2 && remaining > 0) {
             setNotification({
-              message: `Pastikan email/username dan password benar`,
+              message: 'Pastikan email/username dan password benar',
               type: 'warning'
             });
           }
         }
-        
+
         if (result.blocked) {
           setIsBlocked(true);
         }
-        
-        // Reset captcha on error with enhanced handling
-        setCaptchaToken('');
-        setTimeout(() => {
-          if (window.turnstile) {
-            try {
-              // Reset the specific widget instance
-              const container = document.getElementById('turnstile-widget-container');
-              if (container && container.children.length > 0) {
-                window.turnstile.reset();
-              }
-            } catch (err) {
-              // Force reload widget if reset fails
-              setCaptchaRetryCount(prev => prev + 1);
-            }
-          }
-        }, 500);
+
+        resetCaptcha();
       }
     } catch (err) {
       setError('Koneksi bermasalah, coba lagi');
-      
-      // Reset captcha on error with enhanced handling
-      setCaptchaToken('');
-      setTimeout(() => {
-        if (window.turnstile) {
-          try {
-            // Reset the specific widget instance
-            const container = document.getElementById('turnstile-widget-container');
-            if (container && container.children.length > 0) {
-              window.turnstile.reset();
-            }
-          } catch (err) {
-            // Force reload widget if reset fails
-            setCaptchaRetryCount(prev => prev + 1);
-          }
-        }
-      }, 500);
+      resetCaptcha();
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
-      {/* Animated Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-emerald-900 via-emerald-800 to-emerald-700">
-        <div className="absolute inset-0 bg-black opacity-20"></div>
-        
-        {/* Floating Elements */}
-        <div className="absolute top-20 left-20 w-32 h-32 bg-emerald-500 rounded-full opacity-20 animate-pulse"></div>
-        <div className="absolute top-60 right-32 w-24 h-24 bg-emerald-400 rounded-full opacity-30 animate-bounce"></div>
-        <div className="absolute bottom-40 left-40 w-20 h-20 bg-emerald-300 rounded-full opacity-25 animate-pulse"></div>
-        <div className="absolute bottom-20 right-20 w-16 h-16 bg-emerald-500 rounded-full opacity-20 animate-bounce"></div>
-        
-        {/* Geometric Patterns */}
-        <div className="absolute top-0 left-0 w-full h-full opacity-10">
-          <div className="absolute top-32 left-16 w-64 h-64 border-2 border-white rotate-45 rounded-3xl"></div>
-          <div className="absolute bottom-32 right-16 w-48 h-48 border-2 border-white rotate-12 rounded-2xl"></div>
-          <div className="absolute top-1/2 left-1/4 w-32 h-32 border border-white rotate-90 rounded-xl"></div>
+    <div className="min-h-screen flex bg-slate-50">
+      {/* === Left Brand Panel (desktop only) === */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900">
+        {/* Subtle dot pattern */}
+        <div
+          className="absolute inset-0 opacity-10"
+          style={{
+            backgroundImage:
+              'radial-gradient(circle at 25% 25%, white 1px, transparent 1px), radial-gradient(circle at 75% 75%, white 1px, transparent 1px)',
+            backgroundSize: '60px 60px'
+          }}
+        />
+        {/* Glow blobs */}
+        <div className="absolute -top-24 -right-24 w-96 h-96 bg-emerald-500/20 rounded-full blur-3xl" />
+        <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-teal-400/20 rounded-full blur-3xl" />
+
+        {/* Content */}
+        <div className="relative z-10 flex flex-col justify-between p-12 xl:p-16 text-white w-full">
+          {/* Logo */}
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 bg-white/15 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/20">
+              <Shield className="w-6 h-6 text-emerald-300" />
+            </div>
+            <span className="text-xl font-bold tracking-tight">TernaSys</span>
+          </div>
+
+          {/* Hero text */}
+          <div className="space-y-6 max-w-md">
+            <h1 className="text-4xl xl:text-5xl font-bold tracking-tight leading-tight">
+              Sistem Manajemen
+              <br />
+              <span className="text-emerald-300">CV Puput Bersaudara</span>
+            </h1>
+            <p className="text-emerald-100/80 text-lg leading-relaxed">
+              Platform terintegrasi untuk pengelolaan ternak, persediaan, dan distribusi sapi yang efisien dan aman.
+            </p>
+            <div className="flex flex-wrap gap-2 pt-2">
+              {['Real-time Stock', 'Multi-RPH', 'Secure Auth', 'Audit Trail'].map((f) => (
+                <span
+                  key={f}
+                  className="px-3 py-1.5 bg-white/10 backdrop-blur-sm border border-white/15 rounded-full text-xs font-medium text-emerald-100"
+                >
+                  {f}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="text-xs text-emerald-200/60">
+            © {new Date().getFullYear()} CV Puput Bersaudara. All rights reserved.
+          </div>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="relative z-10 flex items-center justify-center min-h-screen p-4">
-        <div className="w-full max-w-lg">
-          {/* Glass Card */}
-          <div className="backdrop-blur-lg bg-white/10 border border-white/20 rounded-3xl shadow-2xl p-8 md:p-10">
-            {/* Logo/Brand Section */}
-            <div className="text-center mb-8">
-              <div className="mx-auto w-20 h-20 bg-gradient-to-r from-white to-emerald-100 rounded-3xl flex items-center justify-center mb-6 shadow-xl">
-                <Shield className="w-10 h-10 text-emerald-600" />
-              </div>
-              <h1 className="text-4xl font-bold text-white mb-3 tracking-tight">TernaSys</h1>
-              <p className="text-emerald-100 text-lg">Sistem Manajemen CV Puput Bersaudara</p>
-              <div className="w-24 h-1 bg-gradient-to-r from-emerald-400 to-emerald-300 mx-auto mt-4 rounded-full"></div>
+      {/* === Right Form Panel === */}
+      <div className="flex-1 flex flex-col lg:w-1/2">
+        {/* Mobile header */}
+        <div className="lg:hidden flex items-center justify-center gap-2.5 pt-10 pb-6">
+          <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
+            <Shield className="w-5 h-5 text-white" />
+          </div>
+          <span className="text-xl font-bold tracking-tight text-slate-800">TernaSys</span>
+        </div>
+
+        {/* Form container */}
+        <div className="flex-1 flex items-center justify-center px-5 sm:px-8 pb-10">
+          <div className="w-full max-w-sm">
+            {/* Heading */}
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Selamat datang</h2>
+              <p className="text-sm text-slate-500 mt-1.5">Masuk ke akun Anda untuk melanjutkan</p>
             </div>
 
-            {/* Security Status - Rate limiting disabled */}
-
+            {/* Error alert */}
             {error && (
-              <div className="mb-6 p-4 bg-red-500/20 border border-red-400/30 text-red-100 rounded-xl text-sm backdrop-blur-sm">
-                <div className="flex items-center">
-                  <AlertTriangle className="w-4 h-4 mr-2 flex-shrink-0" />
-                  {error}
-                </div>
+              <div
+                role="alert"
+                className="mb-5 flex items-start gap-2.5 p-3.5 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 transition-all duration-200"
+              >
+                <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <span>{error}</span>
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Email Field */}
-              <div className="space-y-2">
-                <label htmlFor="email" className="block text-sm font-semibold text-white">
+            <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+              {/* Email / Username */}
+              <div className="space-y-1.5">
+                <label htmlFor="email" className="block text-sm font-medium text-slate-700">
                   Email atau Username
                 </label>
                 <div className="relative group">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <svg className="h-5 w-5 text-emerald-300 group-focus-within:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
-                    </svg>
-                  </div>
+                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-slate-400 group-focus-within:text-emerald-600 transition-colors" />
                   <input
+                    ref={emailRef}
                     id="email"
                     name="email"
                     type="text"
+                    autoComplete="username"
                     required
                     value={formData.email}
                     onChange={handleInputChange}
-                    className={`block w-full pl-12 pr-4 py-4 bg-white/10 border rounded-xl focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-white/40 transition-all duration-200 text-white placeholder-emerald-200 backdrop-blur-sm ${
-                      inputErrors.email ? 'border-red-400' : 'border-white/20'
+                    aria-invalid={!!inputErrors.email}
+                    aria-describedby={inputErrors.email ? 'email-error' : undefined}
+                    className={`block w-full pl-11 pr-4 py-3 text-sm bg-slate-50 border rounded-xl text-slate-900 placeholder-slate-400 transition-all duration-150 outline-none focus:ring-4 focus:ring-emerald-500/10 ${
+                      inputErrors.email
+                        ? 'border-red-400 focus:border-red-500 focus:ring-red-500/10'
+                        : 'border-slate-200 focus:border-emerald-500'
                     }`}
                     placeholder="email@example.com atau username"
-                    disabled={isBlocked}
+                    disabled={isBlocked || isLoading}
                   />
                 </div>
                 {inputErrors.email && (
-                  <p className="text-emerald-200 text-xs flex items-center">
-                    <AlertTriangle className="w-3 h-3 mr-1" />
+                  <p id="email-error" className="text-xs text-red-600 flex items-center gap-1">
+                    <AlertTriangle className="w-3 h-3" />
                     {inputErrors.email}
                   </p>
                 )}
               </div>
 
-              {/* Password Field */}
-              <div className="space-y-2">
-                <label htmlFor="password" className="block text-sm font-semibold text-white">
-                  Password
-                </label>
+              {/* Password */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label htmlFor="password" className="block text-sm font-medium text-slate-700">
+                    Password
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotModal(true)}
+                    className="text-xs font-medium text-emerald-600 hover:text-emerald-700 transition-colors"
+                  >
+                    Lupa password?
+                  </button>
+                </div>
                 <div className="relative group">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <svg className="h-5 w-5 text-emerald-300 group-focus-within:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                    </svg>
-                  </div>
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-slate-400 group-focus-within:text-emerald-600 transition-colors" />
                   <input
                     id="password"
                     name="password"
-                    type={showPassword ? "text" : "password"}
+                    type={showPassword ? 'text' : 'password'}
+                    autoComplete="current-password"
                     required
                     value={formData.password}
                     onChange={handleInputChange}
-                    className={`block w-full pl-12 pr-12 py-4 bg-white/10 border rounded-xl focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-white/40 transition-all duration-200 text-white placeholder-emerald-200 backdrop-blur-sm ${
-                      inputErrors.password ? 'border-red-400' : 'border-white/20'
+                    onKeyDown={detectCapsLock}
+                    onKeyUp={detectCapsLock}
+                    aria-invalid={!!inputErrors.password}
+                    aria-describedby={
+                      inputErrors.password ? 'password-error' : capsLockOn ? 'capslock-warning' : undefined
+                    }
+                    className={`block w-full pl-11 pr-11 py-3 text-sm bg-slate-50 border rounded-xl text-slate-900 placeholder-slate-400 transition-all duration-150 outline-none focus:ring-4 focus:ring-emerald-500/10 ${
+                      inputErrors.password
+                        ? 'border-red-400 focus:border-red-500 focus:ring-red-500/10'
+                        : 'border-slate-200 focus:border-emerald-500'
                     }`}
                     placeholder="••••••••"
-                    disabled={false}
+                    disabled={isLoading}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-emerald-300 hover:text-white transition-colors"
-                    disabled={false}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-0.5"
+                    aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
+                    tabIndex={-1}
                   >
-                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    {showPassword ? <EyeOff className="w-[18px] h-[18px]" /> : <Eye className="w-[18px] h-[18px]" />}
                   </button>
                 </div>
+                {/* Caps lock warning */}
+                {capsLockOn && !inputErrors.password && (
+                  <p id="capslock-warning" className="text-xs text-amber-600 flex items-center gap-1">
+                    <ArrowBigUp className="w-3 h-3" />
+                    Caps Lock sedang aktif
+                  </p>
+                )}
                 {inputErrors.password && (
-                  <p className="text-emerald-200 text-xs flex items-center">
-                    <AlertTriangle className="w-3 h-3 mr-1" />
+                  <p id="password-error" className="text-xs text-red-600 flex items-center gap-1">
+                    <AlertTriangle className="w-3 h-3" />
                     {inputErrors.password}
                   </p>
                 )}
               </div>
 
-              {/* Cloudflare Turnstile Captcha with Loading State */}
-              <div className="flex justify-center py-2">
+              {/* Remember me */}
+              <div className="flex items-center">
+                <label className="flex items-center gap-2 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-2 focus:ring-emerald-500/20 cursor-pointer transition-colors"
+                  />
+                  <span className="text-sm text-slate-600 group-hover:text-slate-700 transition-colors">
+                    Ingat saya
+                  </span>
+                </label>
+              </div>
+
+              {/* Cloudflare Turnstile Captcha */}
+              <div className="flex justify-center py-1">
                 <div className="relative">
                   <div id="turnstile-widget-container"></div>
                   {!captchaLoaded && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-white/10 rounded-lg min-h-[65px]">
-                      <div className="flex items-center space-x-2 text-white/70">
-                        <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        <span className="text-sm">Memuat verifikasi keamanan...</span>
+                    <div className="flex items-center justify-center bg-slate-50 border border-slate-200 rounded-lg min-h-[65px] min-w-[300px] px-4">
+                      <div className="flex items-center gap-2 text-slate-400">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span className="text-xs">Memuat verifikasi keamanan...</span>
                       </div>
                     </div>
                   )}
@@ -533,37 +614,83 @@ const LoginPageSecure = () => {
               <button
                 type="submit"
                 disabled={isLoading || !captchaToken}
-                className="w-full flex justify-center py-4 px-6 border border-transparent rounded-xl shadow-lg text-lg font-semibold text-emerald-700 bg-gradient-to-r from-white to-emerald-50 hover:from-emerald-50 hover:to-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105 hover:shadow-xl"
+                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 focus:outline-none focus:ring-4 focus:ring-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 active:scale-[0.98]"
               >
                 {isLoading ? (
                   <>
-                    <svg className="animate-spin -ml-1 mr-3 h-6 w-6 text-emerald-600" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Memverifikasi...
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Memverifikasi...</span>
                   </>
                 ) : (
                   <>
-                    <span>Masuk ke Dashboard</span>
-                    <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                    </svg>
+                    <span>Masuk</span>
+                    <ArrowRight className="w-4 h-4" />
                   </>
                 )}
               </button>
             </form>
 
-            {/* Security Info */}
-            <div className="mt-6 text-center">
-              <p className="text-xs text-emerald-200 flex items-center justify-center">
-                <Shield className="w-3 h-3 mr-1" />
-                Login Anda dilindungi dengan enkripsi end-to-end
-              </p>
+            {/* Security footer */}
+            <div className="mt-8 flex items-center justify-center gap-1.5 text-xs text-slate-400">
+              <Shield className="w-3.5 h-3.5" />
+              <span>Dilindungi enkripsi end-to-end & verifikasi keamanan</span>
             </div>
           </div>
         </div>
       </div>
+
+      {/* === Forgot Password Modal === */}
+      {showForgotModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+          onClick={() => setShowForgotModal(false)}
+        >
+          <div
+            className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200 p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center">
+                  <Mail className="w-5 h-5 text-emerald-600" />
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold text-slate-900">Lupa Password</h3>
+                  <p className="text-xs text-slate-500">Hubungi administrator</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowForgotModal(false)}
+                className="text-slate-400 hover:text-slate-600 transition-colors p-1"
+                aria-label="Tutup"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-3 text-sm text-slate-600">
+              <p>Untuk reset password, silakan hubungi administrator sistem melalui:</p>
+              <div className="bg-slate-50 rounded-xl p-4 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-slate-400" />
+                  <span className="font-medium text-slate-700">admin@puputbersaudara.com</span>
+                </div>
+                <div className="text-xs text-slate-500">Atau hubungi IT Support di ext. 123</div>
+              </div>
+              <p className="text-xs text-slate-400">
+                Demi keamanan, proses reset password memerlukan verifikasi identitas.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowForgotModal(false)}
+              className="mt-5 w-full py-2.5 px-4 rounded-xl text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors"
+            >
+              Tutup
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Security Notification */}
       {notification && (
