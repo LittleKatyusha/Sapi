@@ -118,10 +118,11 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef }) => 
             icon: Edit,
             onClick: () => onEdit(row),
             className: 'text-gray-700',
-            description: 'Ubah informasi',
+            description: row.payment_status === 1 ? 'Tidak dapat diedit (sudah lunas)' : 'Ubah informasi',
             bg: 'bg-amber-100',
             hoverBg: 'group-hover:bg-amber-200',
             text: 'text-amber-600',
+            disabled: row.payment_status === 1,
         },
         // Only show "Unduh File" if file exists
         ...(row.file ? [{

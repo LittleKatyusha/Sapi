@@ -320,7 +320,14 @@ const AddEditPembelianFeedmilPage = () => {
                     if (!headerData) {
                         throw new Error('Data tidak ditemukan untuk pubid yang dipilih');
                     }
-                    
+
+                    // Block edit if already paid off (lunas)
+                    if (headerData.payment_status === 1) {
+                        alert('Pembelian yang sudah lunas tidak dapat diedit.');
+                        navigate('/ho/pembelian-feedmil');
+                        return;
+                    }
+
                     // Mark this as coming from show endpoint
                     headerData.source = 'show';
                     
@@ -535,7 +542,7 @@ const AddEditPembelianFeedmilPage = () => {
             
             loadEditData();
         }
-    }, [isEdit, id, supplierOptions, officeOptions, farmOptions, jenisPembelianOptions, tipePembayaranOptions, bankOptions, itemFeedmilOptions]);
+    }, [isEdit, id, supplierOptions, officeOptions, farmOptions, jenisPembelianOptions, tipePembayaranOptions, bankOptions, itemFeedmilOptions, navigate]);
 
     // Reset edit data loaded flag when id changes
     useEffect(() => {

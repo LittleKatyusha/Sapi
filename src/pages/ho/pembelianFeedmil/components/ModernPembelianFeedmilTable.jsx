@@ -259,9 +259,11 @@ const RowActionMenu = ({
       </button>
       <button
         type="button"
-        onClick={() => { onEdit(row); onClose(); }}
-        className={`${itemClass} text-gray-700`}
+        onClick={() => { if (row.payment_status !== 1) { onEdit(row); onClose(); } }}
+        disabled={row.payment_status === 1}
+        className={`${itemClass} ${row.payment_status === 1 ? 'text-gray-400 cursor-not-allowed opacity-60' : 'text-gray-700'}`}
         role="menuitem"
+        title={row.payment_status === 1 ? 'Pembelian sudah lunas, tidak dapat diedit' : 'Edit Data'}
       >
         <Pencil className="w-4 h-4" /> Edit Data
       </button>
