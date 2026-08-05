@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, Plus, Trash2, Building2, Calendar, Hash, Package, X, Settings, AlertCircle, Weight, DollarSign, Upload, FileText } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Trash2, Building2, Calendar, Hash, Package, X, Settings, AlertCircle, Weight, DollarSign, Upload } from 'lucide-react';
 import usePembelianKulit from './hooks/usePembelianKulit';
 import useParameterSelect from '../pembelian/hooks/useParameterSelect';
 import useBanksAPI from './hooks/useBanksAPI';
@@ -1051,61 +1051,72 @@ const AddEditPembelianKulitPage = () => {
     // Detail section now starts empty - users must manually add items
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-2 sm:p-4 md:p-6">
-            <div className="w-full max-w-none mx-0 space-y-6 md:space-y-8">
-                {/* Header */}
-                <div className="bg-white rounded-none sm:rounded-none p-4 sm:p-6 shadow-xl border border-gray-100">
-                    <div className="flex items-center justify-between mb-6">
-                        <div className="flex items-center gap-4">
+        <>
+            <style>{`
+                .table-scroll::-webkit-scrollbar { height: 6px; width: 6px; }
+                .table-scroll::-webkit-scrollbar-track { background: transparent; }
+                .table-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+                .table-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+                .table-scroll { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+                @keyframes progress { from { width: 100%; } to { width: 0%; } }
+            `}</style>
+
+            <div className="flex h-screen flex-col bg-slate-50 overflow-hidden">
+                {/* === Sticky Header === */}
+                <header className="shrink-0 border-b border-slate-200 bg-white">
+                    <div className="flex items-center justify-between gap-4 px-4 sm:px-6 py-3">
+                        <div className="flex items-center gap-3 min-w-0">
                             <button
                                 onClick={handleBack}
-                                className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors duration-200"
+                                className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors shrink-0"
                             >
-                                <ArrowLeft className="w-6 h-6 text-gray-600" />
+                                <ArrowLeft className="h-4 w-4" />
                             </button>
-                            <div>
-                                <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 flex items-center gap-3">
-                                    <Package className="w-8 h-8 text-blue-500" />
-                                    {isEdit ? 'Edit Pembelian Kulit' : 'Tambah Pembelian Kulit'}
-                                </h1>
-                                <p className="text-gray-600 mt-1">
-                                    {isEdit ? 'Perbarui data pembelian kulit' : 'Tambahkan data pembelian kulit baru'}
-                                </p>
+                            <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 shrink-0">
+                                    <Package className="h-4 w-4" />
+                                </div>
+                                <div className="min-w-0">
+                                    <h1 className="text-base font-bold tracking-tight text-slate-900 truncate">
+                                        {isEdit ? 'Edit Pembelian Kulit' : 'Tambah Pembelian Kulit'}
+                                    </h1>
+                                    <p className="text-xs text-slate-500 truncate hidden sm:block">
+                                        {isEdit ? 'Perbarui data pembelian kulit' : 'Tambahkan data pembelian kulit baru'}
+                                    </p>
+                                </div>
                             </div>
                         </div>
-                        
-                        {/* Action buttons for edit mode only */}
-                        {isEdit && (
-                            <div className="flex gap-3">
-                                <button
-                                    type="button"
-                                    onClick={handleBack}
-                                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors duration-200"
-                                >
-                                    Batal
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={handleSubmit}
-                                    disabled={isSubmitting}
-                                    className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-xl hover:from-blue-600 hover:to-cyan-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    <Save className="w-5 h-5" />
-                                    {isSubmitting ? 'Menyimpan...' : 'Perbarui Data'}
-                                </button>
-                            </div>
-                        )}
+                        <div className="flex items-center gap-2 shrink-0">
+                            <button
+                                onClick={handleBack}
+                                className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                            >
+                                Batal
+                            </button>
+                            <button
+                                onClick={handleSubmit}
+                                disabled={isSubmitting}
+                                className="inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <Save className="h-4 w-4" />
+                                {isSubmitting ? 'Menyimpan...' : isEdit ? 'Perbarui' : 'Simpan'}
+                            </button>
+                        </div>
                     </div>
-                </div>
+                </header>
 
-                {/* Header Form */}
-                <div className="bg-white rounded-none sm:rounded-none p-4 sm:p-6 shadow-xl border border-gray-100">
-                    <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                        <Hash className="w-6 h-6 text-blue-600" />
-                        Data Header Pembelian
-                    </h2>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+                {/* === Main Content === */}
+                <div className="flex-1 min-h-0 overflow-auto p-4 sm:px-6">
+                    <div className="flex flex-col gap-4">
+                        {/* Header Form */}
+                        <section className="rounded-xl border border-slate-200 bg-white">
+                            <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-slate-100">
+                                <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-2">
+                                    <Hash className="h-3.5 w-3.5 text-indigo-600" />
+                                    Data Header Pembelian
+                                </h3>
+                            </div>
+                            <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
 
                         {/* Nomor Nota CV. Puput Bersaudara */}
                         <div>
@@ -1364,344 +1375,260 @@ const AddEditPembelianKulitPage = () => {
                             )}
                         </div>
 
-                        {/* Note Field - Required by Backend */}
-                        <div className="col-span-full">
-                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <FileText className="w-4 h-4" />
+                        {/* Note Field - 1 line */}
+                        <div className="col-span-full md:col-span-2 xl:col-span-2 xl:row-span-2">
+                            <label className="block text-xs font-semibold text-slate-600 mb-1">
                                 Catatan *
                             </label>
                             <textarea
                                 value={headerData.note}
                                 onChange={(e) => handleHeaderChange('note', e.target.value)}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                rows="3"
-                                placeholder="Masukkan catatan pembelian kulit..."
+                                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-indigo-400 focus:ring-1 focus:ring-indigo-100 outline-none resize-none"
+                                rows="4"
+                                placeholder="Masukkan catatan..."
                             />
-                            <p className="text-xs text-blue-600 mt-1">
-                                Catatan terkait pembelian kulit (wajib diisi)
-                            </p>
                         </div>
 
-                        {/* File Upload */}
-                        <div className="col-span-full">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                        {/* File Upload - 1 line */}
+                        <div className="col-span-full md:col-span-2 xl:col-span-2">
+                            <label className="block text-xs font-semibold text-slate-600 mb-1">
                                 File Dokumen (Opsional)
                             </label>
-                            
-                            <div className="space-y-3">
-                                <div className="flex items-center gap-3">
-                                    <button
-                                        type="button"
-                                        onClick={openFileModal}
-                                        className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg"
-                                    >
-                                        <Upload className="w-5 h-5" />
-                                        Upload File Dokumen
-                                    </button>
-                                    
-                                    {(selectedFile || existingFileName) && (
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={openFileModal}
+                                    className="inline-flex items-center gap-1.5 px-3 py-2 bg-indigo-50 text-indigo-700 rounded-lg text-sm font-medium hover:bg-indigo-100 transition-colors"
+                                >
+                                    <Upload className="h-4 w-4" />
+                                    Upload
+                                </button>
+                                {(selectedFile || existingFileName) && (
+                                    <>
+                                        <span className="flex-1 min-w-0 truncate text-xs text-slate-600">
+                                            {selectedFile ? selectedFile.name : existingFileName}
+                                        </span>
                                         <button
                                             onClick={removeFile}
-                                            className="px-3 py-3 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors border border-red-200 hover:border-red-300"
+                                            className="p-1.5 text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
                                             title="Hapus file"
                                         >
-                                            <X size={20} />
+                                            <X className="h-4 w-4" />
                                         </button>
-                                    )}
-                                </div>
-
-                                {(selectedFile || existingFileName) && (
-                                    <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 shadow-lg">
-                                        <div className="flex items-center gap-4">
-                                            <div className="flex-shrink-0">
-                                                {filePreview ? (
-                                                    <img src={filePreview} alt="Preview" className="w-16 h-16 object-cover rounded-xl border-2 border-green-200 shadow-md" />
-                                                ) : (
-                                                    <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-emerald-500 rounded-xl flex items-center justify-center border-2 border-green-200 shadow-md">
-                                                        <FileText className="w-8 h-8 text-white" />
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <h4 className="text-lg font-bold text-green-800 truncate">
-                                                    {selectedFile ? selectedFile.name : existingFileName}
-                                                </h4>
-                                                <div className="flex items-center gap-4 mt-1">
-                                                    {selectedFile ? (
-                                                        <>
-                                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                                ・{(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                                                            </span>
-                                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                                {selectedFile.type.split('/')[1]?.toUpperCase() || 'FILE'}
-                                                            </span>
-                                                        </>
-                                                    ) : (
-                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                            ・File Existing
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    </>
                                 )}
                             </div>
                         </div>
-                    </div>
-                </div>
+                            </div>
+                    </section>
 
                 {/* Default Data & Batch Add */}
-                <div className="bg-white rounded-none sm:rounded-none p-4 sm:p-6 shadow-xl border border-gray-100">
-                    <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                        <Settings className="w-6 h-6 text-orange-600" />
-                        Data Default & Batch Add
-                    </h2>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6 mb-6">
+                <section className="rounded-xl border border-slate-200 bg-white">
+                    <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-slate-100">
+                        <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-2">
+                            <Settings className="h-3.5 w-3.5 text-orange-600" />
+                            Data Default & Batch Add
+                        </h3>
+                    </div>
+                    <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 items-end">
                         {/* Nama Item Default */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Nama Item Default
+                            <label className="block text-xs font-semibold text-slate-600 mb-1">
+                                Nama Item
                             </label>
                             <SearchableSelect
                                 value={defaultData.item_name}
                                 onChange={(value) => handleDefaultDataChange('item_name', value)}
                                 options={itemKulitOptions}
-                                placeholder={parameterLoading ? 'Loading items...' : parameterError ? 'Error loading items' : 'Pilih Item Kulit'}
+                                placeholder={parameterLoading ? '...' : parameterError ? 'Error' : 'Pilih Item'}
                                 isLoading={parameterLoading}
                                 isDisabled={parameterLoading || parameterError}
-                                className="w-full"
+                                className="w-full text-xs"
                             />
-                            {parameterError && (
-                                <p className="text-xs text-red-500 mt-1">
-                                    ・Error loading items: {parameterError}
-                                </p>
-                            )}
                         </div>
-
 
                         {/* Berat Default */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Berat Default (kg)
+                            <label className="block text-xs font-semibold text-slate-600 mb-1">
+                                Berat (kg)
                             </label>
                             <input
                                 type="text"
                                 value={defaultData.berat === 0 ? '0' : formatNumber(defaultData.berat)}
-                                onChange={(e) => {
-                                    const rawValue = parseNumber(e.target.value);
-                                    handleDefaultDataChange('berat', rawValue);
-                                }}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                                placeholder="Masukkan berat dalam kg"
+                                onChange={(e) => handleDefaultDataChange('berat', parseNumber(e.target.value))}
+                                className="w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs focus:border-orange-400 focus:ring-1 focus:ring-orange-100 outline-none"
+                                placeholder="0"
                             />
                         </div>
 
                         {/* Harga Default */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Harga Default (Rp)
+                            <label className="block text-xs font-semibold text-slate-600 mb-1">
+                                Harga (Rp)
                             </label>
                             <input
                                 type="text"
                                 value={formatNumber(defaultData.harga)}
                                 onChange={(e) => handleDefaultDataChange('harga', parseNumber(e.target.value))}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                className="w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs focus:border-orange-400 focus:ring-1 focus:ring-orange-100 outline-none"
                                 placeholder="300000"
                             />
                         </div>
 
                         {/* Persentase Default */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Persentase Default (%)
+                            <label className="block text-xs font-semibold text-slate-600 mb-1">
+                                Persen (%)
                             </label>
                             <input
                                 type="text"
                                 value={defaultData.persentase || ''}
                                 onChange={(e) => handleDefaultDataChange('persentase', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                className="w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs focus:border-orange-400 focus:ring-1 focus:ring-orange-100 outline-none"
                                 placeholder="15,5"
                             />
                         </div>
-                    </div>
 
-                    {/* Batch Add Section */}
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-lg border border-orange-200">
-                        <div className="flex items-center gap-2">
-                            <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
-                                Jumlah Batch:
-                            </label>
-                            <input
-                                type="text"
-                                value={formatNumber(batchCount)}
-                                onChange={(e) => {
-                                    const rawValue = parseNumber(e.target.value);
-                                    setBatchCount(rawValue);
-                                }}
-                                className="w-20 px-2 py-1 border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                                placeholder="0"
-                            />
-                        </div>
-                        
-                        <button
-                            onClick={addBatchDetailItems}
-                            className="bg-gradient-to-r from-orange-500 to-amber-600 text-white px-4 py-2 rounded-lg hover:from-orange-600 hover:to-amber-700 transition-all duration-300 flex items-center gap-2 text-sm font-medium shadow-md hover:shadow-lg"
-                        >
-                            <Plus className="w-4 h-4" />
-                            Tambah {formatNumber(batchCount)} Item Batch
-                        </button>
-
-                        {/* Info Text */}
-                        <div className="text-xs text-gray-600 ml-auto">
-                            <p> Isi data default untuk mempercepat input batch</p>
-                            <p>・Item baru akan menggunakan data default ini</p>
+                        {/* Batch Add */}
+                        <div className="flex items-end gap-2">
+                            <div className="flex-1">
+                                <label className="block text-xs font-semibold text-slate-600 mb-1">
+                                    Jumlah Batch
+                                </label>
+                                <input
+                                    type="text"
+                                    value={formatNumber(batchCount)}
+                                    onChange={(e) => setBatchCount(parseNumber(e.target.value))}
+                                    className="w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs focus:border-orange-400 focus:ring-1 focus:ring-orange-100 outline-none"
+                                    placeholder="0"
+                                />
+                            </div>
+                            <button
+                                onClick={addBatchDetailItems}
+                                className="inline-flex items-center gap-1.5 rounded-lg bg-orange-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-orange-700 transition-colors whitespace-nowrap"
+                            >
+                                <Plus className="h-3.5 w-3.5" />
+                                Tambah Batch
+                            </button>
                         </div>
                     </div>
-                </div>
+                </section>
 
                 {/* Detail Items Table */}
-                <div className="bg-white rounded-none sm:rounded-none p-4 sm:p-6 shadow-xl border border-gray-100">
-                    <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                            <Package className="w-6 h-6 text-green-600" />
-                            Detail Item Kulit ({detailItems.length} items)
-                        </h2>
+                <section className="rounded-xl border border-slate-200 bg-white flex flex-col">
+                    <div className="shrink-0 flex items-center justify-between gap-2 px-4 py-3 border-b border-slate-100">
+                        <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-2">
+                            <Package className="h-3.5 w-3.5 text-emerald-600" />
+                            Detail Item Kulit
+                            <span className="inline-flex items-center justify-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">
+                                {detailItems.length}
+                            </span>
+                        </h3>
                         <button
                             onClick={addDetailItem}
-                            className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-300 flex items-center gap-2 text-sm font-medium shadow-md hover:shadow-lg"
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors"
                         >
-                            <Plus className="w-4 h-4" />
-                            Tambah Detail
+                            <Plus className="h-3.5 w-3.5" />
+                            Tambah
                         </button>
                     </div>
 
                     {detailItems.length === 0 ? (
-                        <div className="text-center py-12 bg-gray-50 rounded-xl">
-                            <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                            <p className="text-gray-500 text-lg">Belum ada item kulit</p>
-                            <p className="text-gray-400 text-sm mt-1">Klik "Tambah Item" untuk menambahkan detail</p>
+                        <div className="text-center py-12 px-4">
+                            <Package className="h-10 w-10 text-slate-300 mx-auto mb-3" />
+                            <p className="text-sm font-semibold text-slate-600">Belum ada item kulit</p>
+                            <p className="text-xs text-slate-400 mt-1">Klik "Tambah" untuk menambahkan detail</p>
                         </div>
                     ) : (
-                        <div className="overflow-x-auto -mx-4 sm:-mx-6">
-                            <div className="inline-block min-w-full align-middle">
-                                <table className="min-w-full border-collapse">
+                        <div className="flex-1 min-h-0 overflow-x-auto table-scroll">
+                            <table className="min-w-full border-collapse text-xs">
                                 <thead>
-                                    <tr className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b-2 border-blue-200">
-                                        <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 w-12">No</th>
-                                        <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[180px]">Nama Item</th>
-                                        <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 w-24">Berat (kg)</th>
-                                        <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[120px]">Harga (Rp)</th>
-                                        <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 w-20">Persentase (%)</th>
-                                        <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[120px]">HPP (Rp)</th>
-                                        <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-semibold text-blue-800 min-w-[120px]">Tgl Masuk RPH</th>
-                                        <th className="p-2 sm:p-3 text-center text-xs sm:text-sm font-semibold text-blue-800 w-16">Pilih</th>
+                                    <tr className="bg-slate-50 border-b border-slate-200">
+                                        <th className="px-2 py-2 text-left font-semibold text-slate-600 w-10">No</th>
+                                        <th className="px-2 py-2 text-left font-semibold text-slate-600 min-w-[160px]">Nama Item</th>
+                                        <th className="px-2 py-2 text-left font-semibold text-slate-600 w-20">Berat (kg)</th>
+                                        <th className="px-2 py-2 text-left font-semibold text-slate-600 min-w-[100px]">Harga</th>
+                                        <th className="px-2 py-2 text-left font-semibold text-slate-600 w-20">Persen</th>
+                                        <th className="px-2 py-2 text-left font-semibold text-slate-600 min-w-[100px]">HPP</th>
+                                        <th className="px-2 py-2 text-left font-semibold text-slate-600 min-w-[120px]">Tgl Masuk RPH</th>
+                                        <th className="px-2 py-2 text-center font-semibold text-slate-600 w-16">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {detailItems.map((item, index) => {
-                                        // Calculate HPP with new formula
                                         const harga = parseFloat(item.harga) || 0;
                                         const berat = parseInt(item.berat) || 0;
-                                        const persentase = getParsedPersentase(item.persentase); // Use comma-aware parsing
-                                        const biaya_lain = parseFloat(headerData.harga_total) || 0; // Using harga_total as biaya_lain
-                                        const berat_total = parseFloat(headerData.berat_total) || berat; // Use header berat_total or item berat
-                                        
-                                        // HPP = ((biaya_lain + (harga * berat_total)) / berat_total) + (((biaya_lain + (harga * berat_total)) / berat_total) * persentase / 100) - NO ROUNDING
+                                        const persentase = getParsedPersentase(item.persentase);
+                                        const biaya_lain = parseFloat(headerData.harga_total) || 0;
+                                        const berat_total = parseFloat(headerData.berat_total) || berat;
                                         let hpp = 0;
                                         if (berat_total > 0) {
                                             const baseCost = (biaya_lain + (harga * berat_total)) / berat_total;
                                             const markupAmount = baseCost * persentase / 100;
-                                            hpp = baseCost + markupAmount; // NO ROUNDING
+                                            hpp = baseCost + markupAmount;
                                         }
-                                        
-                                        // Update item dengan calculated HPP value
                                         if (item.hpp !== hpp) {
                                             handleDetailChange(item.id, 'hpp', hpp);
                                         }
-                                        
                                         return (
-                                            <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50">
-                                                <td className="p-2 sm:p-3 text-xs sm:text-sm text-gray-700">{index + 1}</td>
-                                                
-                                                {/* Nama Item */}
-                                                <td className="p-2 sm:p-3">
+                                            <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50">
+                                                <td className="px-2 py-1.5 text-slate-600">{index + 1}</td>
+                                                <td className="px-2 py-1.5">
                                                     <SearchableSelect
                                                         value={item.item_name_id || item.item_name}
                                                         onChange={(value) => handleDetailChange(item.id, 'item_name', value)}
                                                         options={itemKulitOptions}
-                                                        placeholder={parameterLoading ? 'Loading...' : 'Pilih Item'}
+                                                        placeholder={parameterLoading ? '...' : 'Pilih Item'}
                                                         isLoading={parameterLoading}
                                                         isDisabled={parameterLoading || parameterError}
-                                                        className="w-full text-xs sm:text-sm"
+                                                        className="w-full text-xs"
                                                     />
                                                 </td>
-                                                
-                                                
-                                                {/* Berat */}
-                                                <td className="p-2 sm:p-3">
+                                                <td className="px-2 py-1.5">
                                                     <input
                                                         type="text"
                                                         value={formatNumber(item.berat)}
-                                                        onChange={(e) => {
-                                                            const rawValue = parseNumber(e.target.value);
-                                                            handleDetailChange(item.id, 'berat', rawValue);
-                                                        }}
-                                                        className="w-full px-1 sm:px-2 py-1 border border-gray-300 rounded text-xs sm:text-sm"
+                                                        onChange={(e) => handleDetailChange(item.id, 'berat', parseNumber(e.target.value))}
+                                                        className="w-full px-1.5 py-1 border border-slate-200 rounded text-xs focus:border-indigo-400 focus:ring-1 focus:ring-indigo-100 outline-none"
                                                         placeholder="0"
                                                     />
                                                 </td>
-                                                
-                                                {/* Harga */}
-                                                <td className="p-2 sm:p-3">
+                                                <td className="px-2 py-1.5">
                                                     <input
                                                         type="text"
                                                         value={formatNumber(item.harga)}
                                                         onChange={(e) => handleDetailChange(item.id, 'harga', parseNumber(e.target.value))}
-                                                        className="w-full px-1 sm:px-2 py-1 border border-gray-300 rounded text-xs sm:text-sm"
+                                                        className="w-full px-1.5 py-1 border border-slate-200 rounded text-xs focus:border-indigo-400 focus:ring-1 focus:ring-indigo-100 outline-none"
                                                     />
                                                 </td>
-                                                
-                                                {/* Persentase */}
-                                                <td className="p-2 sm:p-3">
+                                                <td className="px-2 py-1.5">
                                                     <input
                                                         type="text"
                                                         value={item.persentase || ''}
                                                         onChange={(e) => handlePersentaseChange(item.id, e.target.value)}
-                                                        className="w-full px-1 sm:px-2 py-1 border border-gray-300 rounded text-xs sm:text-sm"
-                                                        placeholder="15,5%"
+                                                        placeholder="15,5"
+                                                        className="w-full px-1.5 py-1 border border-slate-200 rounded text-xs focus:border-indigo-400 focus:ring-1 focus:ring-indigo-100 outline-none"
                                                     />
                                                 </td>
-                                                
-                                                {/* HPP (calculated) */}
-                                                <td className="p-2 sm:p-3">
-                                                    <div className="w-full px-1 sm:px-2 py-1 border border-gray-300 rounded text-xs sm:text-sm bg-white text-gray-900">
-                                                        {formatNumber(hpp)}
-                                                    </div>
-                                                </td>
-                                                
-                                                {/* Tanggal Masuk RPH */}
-                                                <td className="p-2 sm:p-3">
+                                                <td className="px-2 py-1.5 text-slate-700 tabular-nums">{formatNumber(hpp)}</td>
+                                                <td className="px-2 py-1.5">
                                                     <input
                                                         type="date"
                                                         value={item.tgl_masuk_rph}
                                                         onChange={(e) => handleDetailChange(item.id, 'tgl_masuk_rph', e.target.value)}
-                                                        className="w-full px-1 sm:px-2 py-1 border border-gray-300 rounded text-xs sm:text-sm"
+                                                        className="w-full px-1.5 py-1 border border-slate-200 rounded text-xs focus:border-indigo-400 focus:ring-1 focus:ring-indigo-100 outline-none"
                                                     />
                                                 </td>
-                                                
-                                                {/* Pilih */}
-                                                <td className="p-2 sm:p-3 text-center">
-                                                    <div className="flex items-center justify-center gap-1">
+                                                <td className="px-2 py-1.5 text-center">
+                                                    <div className="flex items-center justify-center gap-0.5">
                                                         {isEdit && (
                                                             <button
                                                                 type="button"
                                                                 onClick={() => handleSaveDetailItem(item.id)}
-                                                                className="p-1 text-green-600 hover:text-green-700 hover:bg-green-50 rounded"
+                                                                className="p-1 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded transition-colors"
                                                                 title="Simpan item"
                                                             >
-                                                                <Save className="w-4 h-4" />
+                                                                <Save className="h-3.5 w-3.5" />
                                                             </button>
                                                         )}
                                                         <button
@@ -1709,16 +1636,16 @@ const AddEditPembelianKulitPage = () => {
                                                             onClick={() => removeDetailItem(item.id)}
                                                             disabled={deletingItemId === item.id}
                                                             className={`p-1 rounded transition-colors ${
-                                                                deletingItemId === item.id 
-                                                                    ? 'text-gray-400 cursor-not-allowed' 
+                                                                deletingItemId === item.id
+                                                                    ? 'text-slate-400 cursor-not-allowed'
                                                                     : 'text-red-600 hover:text-red-700 hover:bg-red-50'
                                                             }`}
-                                                            title={deletingItemId === item.id ? "Menghapus..." : "Hapus item"}
+                                                            title={deletingItemId === item.id ? 'Menghapus...' : 'Hapus item'}
                                                         >
                                                             {deletingItemId === item.id ? (
-                                                                <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                                                                <div className="h-3.5 w-3.5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
                                                             ) : (
-                                                                <Trash2 className="w-4 h-4" />
+                                                                <Trash2 className="h-3.5 w-3.5" />
                                                             )}
                                                         </button>
                                                     </div>
@@ -1727,56 +1654,30 @@ const AddEditPembelianKulitPage = () => {
                                         );
                                     })}
                                 </tbody>
-                                </table>
-                            </div>
+                            </table>
                         </div>
                     )}
 
                     {/* Totals */}
                     {detailItems.length > 0 && (
-                        <div className="mt-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-200">
-                            <h3 className="text-lg font-semibold text-blue-800 mb-3">Total Keseluruhan</h3>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 sm:gap-6">
-                                <div className="text-center">
-                                    <p className="text-sm text-blue-600">Total Items</p>
-                                    <p className="text-xl font-bold text-blue-800">{totals.totalJumlah} items</p>
-                                </div>
-                                <div className="text-center">
-                                    <p className="text-sm text-blue-600">Total Berat</p>
-                                    <p className="text-xl font-bold text-blue-800">{totals.totalBerat} kg</p>
-                                </div>
-                                <div className="text-center">
-                                    <p className="text-sm text-blue-600">Total HPP</p>
-                                    <p className="text-xl font-bold text-blue-800">Rp {formatNumber(totals.totalHPP)}</p>
-                                </div>
+                        <div className="shrink-0 grid grid-cols-3 gap-3 px-4 py-3 border-t border-slate-100 bg-slate-50/50">
+                            <div>
+                                <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">Total Items</p>
+                                <p className="text-sm font-bold text-slate-900 tabular-nums">{totals.totalJumlah}</p>
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">Total Berat</p>
+                                <p className="text-sm font-bold text-slate-900 tabular-nums">{totals.totalBerat} kg</p>
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">Total HPP</p>
+                                <p className="text-sm font-bold text-amber-700 tabular-nums">Rp {formatNumber(totals.totalHPP)}</p>
                             </div>
                         </div>
                     )}
-                </div>
-
-                {/* Submit Buttons - Only show for add mode */}
-                {!isEdit && (
-                    <div className="bg-white rounded-none sm:rounded-none p-4 sm:p-6 shadow-xl border border-gray-100">
-                        <div className="flex flex-col sm:flex-row gap-4 justify-end">
-                            <button
-                                type="button"
-                                onClick={handleBack}
-                                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors duration-200"
-                            >
-                                Batal
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleSubmit}
-                                disabled={isSubmitting}
-                                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-xl hover:from-blue-600 hover:to-cyan-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                <Save className="w-5 h-5" />
-                                {isSubmitting ? 'Menyimpan...' : 'Simpan Data'}
-                            </button>
-                        </div>
+                </section>
                     </div>
-                )}
+                </div>
             </div>
 
             {/* File Upload Modal */}
@@ -2127,7 +2028,7 @@ const AddEditPembelianKulitPage = () => {
                     `}</style>
                 </div>
             )}
-        </div>
+        </>
     );
 };
 
