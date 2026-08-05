@@ -34,6 +34,15 @@ class BahanPembantuRphService {
         _ts: Date.now(),
       });
 
+      // Column-specific filters
+      if (params.filters && typeof params.filters === 'object') {
+        Object.entries(params.filters).forEach(([key, value]) => {
+          if (value !== undefined && value !== null && String(value).trim() !== '') {
+            queryParams.append(`filters[${key}]`, String(value).trim());
+          }
+        });
+      }
+
       const response = await HttpClient.get(`${this.API_DATA}?${queryParams.toString()}`);
       return {
         success: true,
@@ -44,7 +53,7 @@ class BahanPembantuRphService {
       };
     } catch (error) {
       console.error('Error fetching Bahan Pembantu RPH data:', error);
-      return { success: false, data: [], message: error.message };
+      return { success: false, data: [], recordsTotal: 0, recordsFiltered: 0, message: error.message };
     }
   }
 

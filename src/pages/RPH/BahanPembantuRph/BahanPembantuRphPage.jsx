@@ -1,19 +1,19 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import DataTable from 'react-data-table-component';
 import {
-Package,
-Plus,
-Search,
-Loader2,
-MoreVertical,
-Eye,
-Pencil,
-Trash2,
-X,
-CalendarDays,
-TrendingUp,
-AlertCircle,
-Filter
+  Package,
+  Plus,
+  Search,
+  Loader2,
+  MoreVertical,
+  Eye,
+  Pencil,
+  Trash2,
+  CalendarDays,
+  TrendingUp,
+  AlertCircle,
+  Filter,
+  RotateCcw
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
@@ -40,17 +40,15 @@ const formatDate = (value) =>
       })
     : '-';
 
-const SummaryCard = ({ title, value, subtext, icon: Icon, gradientClass }) => (
-  <div className={`${gradientClass} text-white p-4 sm:p-6 rounded-2xl shadow-lg`}>
-    <div className="flex items-start justify-between gap-3">
-      <div>
-        <p className="text-sm font-medium opacity-90">{title}</p>
-        <p className="mt-2 text-3xl font-bold">{value}</p>
-        <p className="mt-2 text-xs sm:text-sm opacity-85">{subtext}</p>
-      </div>
-      <div className="rounded-xl bg-white/15 p-3">
-        <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
-      </div>
+const SummaryCard = ({ title, value, subtext, icon: Icon, accentClass }) => (
+  <div className="rounded-xl border border-slate-200 bg-white p-4 flex items-center gap-3">
+    <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${accentClass}`}>
+      <Icon className="h-5 w-5" />
+    </div>
+    <div className="min-w-0 flex-1">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{title}</p>
+      <p className="mt-0.5 text-xl font-bold text-slate-900 tabular-nums">{value}</p>
+      <p className="mt-0.5 text-xs text-slate-500 truncate">{subtext}</p>
     </div>
   </div>
 );
@@ -212,103 +210,76 @@ const MobileBahanPembantuCard = ({
   onEdit,
   onDelete
 }) => (
-  <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-    <div className="h-1.5 bg-gradient-to-r from-emerald-500 to-cyan-500" />
-    <div className="space-y-4 p-4">
-      <div className="flex items-start justify-between gap-3">
+  <div className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-sm">
+    <div className="flex items-start justify-between gap-3">
+      <div className="min-w-0 flex-1">
+        <p className="text-[10px] font-medium text-slate-400">#{index}</p>
+        {showNotaSistem && (
+          <p className="mt-0.5 inline-flex rounded bg-emerald-50 px-1.5 py-0.5 text-xs font-semibold text-emerald-700">{row.notaSistem}</p>
+        )}
+        <p className={`text-sm font-semibold text-slate-800 ${showNotaSistem ? 'mt-1.5' : 'mt-1'}`}>{row.namaProduk}</p>
+      </div>
+      <span
+        className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+          row.jenisPembelian === 'Bank'
+            ? 'bg-blue-100 text-blue-700 border border-blue-200'
+            : 'bg-amber-100 text-amber-700 border border-amber-200'
+        }`}
+      >
+        {row.jenisPembelian}
+      </span>
+    </div>
+
+    {isBiayaTab ? (
+      <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
         <div>
-          <p className="text-xs font-medium text-gray-400">#{index}</p>
-          {showNotaSistem && (
-            <p className="mt-1 text-sm font-semibold text-emerald-700">{row.notaSistem}</p>
-          )}
-          <p className={`text-sm font-medium text-gray-800 ${showNotaSistem ? 'mt-1' : 'mt-2'}`}>
-            {row.namaProduk}
-          </p>
+          <p className="text-[10px] text-slate-400">Tgl Bayar</p>
+          <p className="font-medium text-slate-700">{formatDate(row.tanggalPembayaran)}</p>
         </div>
-        <span
-          className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
-            row.jenisPembelian === 'Bank'
-              ? 'bg-blue-100 text-blue-700 border border-blue-200'
-              : 'bg-amber-100 text-amber-700 border border-amber-200'
-          }`}
-        >
-          {row.jenisPembelian}
-        </span>
+        <div>
+          <p className="text-[10px] text-slate-400">Payor</p>
+          <p className="font-medium text-slate-700">{row.payor || '-'}</p>
+        </div>
+        <div className="col-span-2">
+          <p className="text-[10px] text-slate-400">Keterangan</p>
+          <p className="font-medium text-slate-700">{row.keterangan || '-'}</p>
+        </div>
+        <div className="col-span-2 border-t border-slate-100 pt-2">
+          <p className="text-[10px] text-slate-400">Harga</p>
+          <p className="font-semibold text-emerald-700">{formatCurrency(row.hargaSatuan)}</p>
+        </div>
       </div>
-
-      {isBiayaTab ? (
-        <div className="grid grid-cols-2 gap-3 text-sm">
-          <div>
-            <p className="text-xs text-gray-400">Tanggal Pembayaran</p>
-            <p className="font-medium text-gray-700">{formatDate(row.tanggalPembayaran)}</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-400">Created At</p>
-            <p className="font-medium text-gray-700">{formatDate(row.createdAt)}</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-400">Nama Bayar</p>
-            <p className="font-medium text-gray-700">{row.namaBayar || '-'}</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-400">Payor</p>
-            <p className="font-medium text-gray-700">{row.payor || '-'}</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-400">Nama Bank</p>
-            <p className="font-medium text-gray-700">{row.namaBank || '-'}</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-400">Peruntukkan</p>
-            <p className="font-medium text-gray-700">{row.peruntukkan || '-'}</p>
-          </div>
-          <div className="col-span-2">
-            <p className="text-xs text-gray-400">Keterangan</p>
-            <p className="font-medium text-gray-700">{row.keterangan || '-'}</p>
-          </div>
-          <div className="col-span-2">
-            <p className="text-xs text-gray-400">Harga</p>
-            <p className="font-semibold text-emerald-700">{formatCurrency(row.hargaSatuan)}</p>
-          </div>
+    ) : (
+      <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+        <div>
+          <p className="text-[10px] text-slate-400">Tanggal</p>
+          <p className="font-medium text-slate-700">{formatDate(row.createdAt)}</p>
         </div>
-      ) : (
-        <div className="grid grid-cols-2 gap-3 text-sm">
-          <div>
-            <p className="text-xs text-gray-400">Tanggal</p>
-            <p className="font-medium text-gray-700">{formatDate(row.createdAt)}</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-400">Pemasok</p>
-            <p className="font-medium text-gray-700">{row.pemasok || '-'}</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-400">Peruntukkan</p>
-            <p className="font-medium text-gray-700">{row.peruntukkan || '-'}</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-400">Qty</p>
-            <p className="font-medium text-gray-700">
-              {row.qty} {row.satuan}
-            </p>
-          </div>
-          <div className="col-span-2">
-            <p className="text-xs text-gray-400">Biaya Total</p>
-            <p className="font-semibold text-emerald-700">{formatCurrency(row.biayaTotal)}</p>
-          </div>
+        <div>
+          <p className="text-[10px] text-slate-400">Pemasok</p>
+          <p className="font-medium text-slate-700">{row.pemasok || '-'}</p>
         </div>
-      )}
-
-      <div className="flex items-center justify-end border-t border-gray-100 pt-3">
-        <ActionButton
-          row={row}
-          isOpen={isMenuOpen}
-          onToggle={onToggleMenu}
-          onClose={onCloseMenu}
-          onDetail={onDetail}
-          onEdit={onEdit}
-          onDelete={onDelete}
-        />
+        <div>
+          <p className="text-[10px] text-slate-400">Qty</p>
+          <p className="font-medium text-slate-700">{row.qty} {row.satuan}</p>
+        </div>
+        <div className="border-t border-slate-100 pt-2 col-span-2">
+          <p className="text-[10px] text-slate-400">Biaya Total</p>
+          <p className="font-semibold text-emerald-700">{formatCurrency(row.biayaTotal)}</p>
+        </div>
       </div>
+    )}
+
+    <div className="flex items-center justify-end border-t border-slate-100 pt-2 mt-3">
+      <ActionButton
+        row={row}
+        isOpen={isMenuOpen}
+        onToggle={onToggleMenu}
+        onClose={onCloseMenu}
+        onDetail={onDetail}
+        onEdit={onEdit}
+        onDelete={onDelete}
+      />
     </div>
   </div>
 );
@@ -317,10 +288,7 @@ const BahanPembantuRphPage = () => {
 const navigate = useNavigate();
 const [data, setData] = useState([]);
 const [isLoading, setIsLoading] = useState(true);
-const [searchTerm, setSearchTerm] = useState('');
 const [activeTab, setActiveTab] = useState('bank');
-const [startDate, setStartDate] = useState('');
-const [endDate, setEndDate] = useState('');
 const [dailySummary, setDailySummary] = useState({ total_transaksi: 0, total_biaya: 0 });
 const [monthlySummary, setMonthlySummary] = useState({ total_transaksi: 0, total_biaya: 0 });
 const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -328,6 +296,17 @@ const [selectedItem, setSelectedItem] = useState(null);
 const [isDeleting, setIsDeleting] = useState(false);
 const [openMenuIdDesktop, setOpenMenuIdDesktop] = useState(null);
 const [openMenuIdMobile, setOpenMenuIdMobile] = useState(null);
+
+// Server-side pagination
+const [currentPage, setCurrentPage] = useState(1);
+const [perPage, setPerPage] = useState(10);
+const [totalRecords, setTotalRecords] = useState(0);
+const [filteredRecords, setFilteredRecords] = useState(0);
+
+// Advanced filter: draft (input) vs applied (sent to server)
+const emptyFilter = { nota: '', namaProduk: '', pemasok: '', peruntukkan: '', jenisPembelian: '', namaBank: '', keterangan: '', namaBayar: '', payor: '', startDate: '', endDate: '' };
+const [filterInput, setFilterInput] = useState(emptyFilter);
+const [appliedFilters, setAppliedFilters] = useState(emptyFilter);
 
   const isBiayaTab = activeTab === 'bank' || activeTab === 'kas';
 
@@ -346,13 +325,41 @@ const [openMenuIdMobile, setOpenMenuIdMobile] = useState(null);
     createdAt: item.createdAt ?? item.created_at ?? null
   });
 
-  const loadData = async () => {
+  // Build filter params for the active tab from a filter object
+  const buildFilterParams = (filters) => {
+    if (isBiayaTab) {
+      return {
+        nama_bayar: filters.namaBayar || '',
+        keterangan: filters.keterangan || '',
+        peruntukkan: filters.peruntukkan || '',
+        jenis_pembelian: activeTab === 'bank' ? 'Bank' : activeTab === 'kas' ? 'Kas' : (filters.jenisPembelian || ''),
+        nama_bank: filters.namaBank || '',
+        payor: filters.payor || '',
+        ...(filters.startDate && { startDate: filters.startDate }),
+        ...(filters.endDate && { endDate: filters.endDate }),
+      };
+    }
+    return {
+      nota_sistem: filters.nota || '',
+      nama_produk: filters.namaProduk || '',
+      pemasok: filters.pemasok || '',
+      peruntukkan: filters.peruntukkan || '',
+      jenis_pembelian: filters.jenisPembelian || '',
+      nama_bank: filters.namaBank || '',
+      keterangan: filters.keterangan || '',
+      ...(filters.startDate && { startDate: filters.startDate }),
+      ...(filters.endDate && { endDate: filters.endDate }),
+    };
+  };
+
+  const loadData = async (page = currentPage, size = perPage, filters = appliedFilters) => {
     setIsLoading(true);
     try {
+      const start = (page - 1) * size;
       const params = {
-        length: 1000,
-        ...(startDate && { startDate }),
-        ...(endDate && { endDate })
+        start,
+        length: size,
+        filters: buildFilterParams(filters),
       };
       const response = isBiayaTab
         ? await BiayaRphService.getData(params)
@@ -360,9 +367,18 @@ const [openMenuIdMobile, setOpenMenuIdMobile] = useState(null);
       if (response.success) {
         const items = response.data || [];
         setData(isBiayaTab ? items.map(normalizeBiayaRow) : items);
+        setTotalRecords(response.recordsTotal || 0);
+        setFilteredRecords(response.recordsFiltered || 0);
+      } else {
+        setData([]);
+        setTotalRecords(0);
+        setFilteredRecords(0);
       }
     } catch (error) {
       console.error('Error loading bahan pembantu data:', error);
+      setData([]);
+      setTotalRecords(0);
+      setFilteredRecords(0);
     } finally {
       setIsLoading(false);
     }
@@ -408,63 +424,57 @@ const [openMenuIdMobile, setOpenMenuIdMobile] = useState(null);
     }
   };
 
+  // Reload data when tab or page size changes; filters only via explicit Search
   useEffect(() => {
-    loadData();
-  }, [startDate, endDate, activeTab]);
+    setCurrentPage(1);
+    loadData(1, perPage, appliedFilters);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, perPage]);
 
   useEffect(() => {
     loadSummaries();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
-  const filteredData = useMemo(() => {
-      let filtered = data;
+  // Pagination info
+  const startIdx = filteredRecords === 0 ? 0 : (currentPage - 1) * perPage + 1;
+  const endIdx = Math.min(currentPage * perPage, filteredRecords);
+  const totalPages = Math.max(1, Math.ceil(filteredRecords / perPage));
 
-      // Tab filtering (client-side on jenisPembelian)
-      if (activeTab === 'bank') {
-          filtered = filtered.filter((item) => item.jenisPembelian === 'Bank');
-      } else if (activeTab === 'kas') {
-          filtered = filtered.filter((item) => item.jenisPembelian === 'Kas');
-      }
-      // 'pembelian_bahan_pembantu' tab shows all data (no filter needed)
-      // 'pembelian_bahan_pembantu' tab shows all data (no filter needed)
-      // 'pembelian_bahan_pembantu' tab shows all data (no filter needed)
-      // 'pembelian_bahan_pembantu' tab shows all data (no filter needed)
-      // 'pembelian_bahan_pembantu' tab shows all data (no filter needed)
-      // 'pembelian_bahan_pembantu' tab shows all data (no filter needed)
-      // 'pembelian_bahan_pembantu' tab shows all data (no filter needed)
-      // 'pembelian_bahan_pembantu' tab shows all data (no filter needed)
-      // 'pembelian_bahan_pembantu' tab shows all data (no filter needed)
-      // 'pembelian_bahan_pembantu' tab shows all data (no filter needed)
-      // 'pembelian_bahan_pembantu' tab shows all data (no filter needed)
-      // 'pembelian_bahan_pembantu' tab shows all data (no filter needed)
-      // 'pembelian_bahan_pembantu' tab shows all data (no filter needed)
-      // 'pembelian_bahan_pembantu' tab shows all data (no filter needed)
+  const handlePageChange = (page) => {
+    if (page < 1 || page > totalPages || page === currentPage) return;
+    setCurrentPage(page);
+    loadData(page, perPage, appliedFilters);
+  };
 
-    // Search filtering
-    const keyword = searchTerm.trim().toLowerCase();
-    if (keyword) {
-      filtered = filtered.filter((item) =>
-        [
-          item.notaSistem,
-          item.namaProduk,
-          item.peruntukkan,
-          item.pemasok,
-          item.keterangan,
-          item.jenisPembelian,
-          item.namaBank,
-          item.namaBayar,
-          item.payor
-        ]
-          .filter(Boolean)
-          .some((value) => String(value).toLowerCase().includes(keyword))
-      );
-    }
+  const handlePerPageChange = (size) => {
+    setPerPage(size);
+    setCurrentPage(1);
+    loadData(1, size, appliedFilters);
+  };
 
-    return filtered;
-  }, [data, activeTab, searchTerm]);
+  const handleFilterChange = (field, value) => {
+    setFilterInput(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSearch = () => {
+    setAppliedFilters(filterInput);
+    setCurrentPage(1);
+    loadData(1, perPage, filterInput);
+  };
+
+  const handleResetFilter = () => {
+    setFilterInput(emptyFilter);
+    setAppliedFilters(emptyFilter);
+    setCurrentPage(1);
+    loadData(1, perPage, emptyFilter);
+  };
+
+  const hasAppliedFilters = Object.values(appliedFilters).some(v => v && String(v).trim() !== '');
 
   const handleTabChange = (tabKey) => {
-    setSearchTerm('');
+    setFilterInput(emptyFilter);
+    setAppliedFilters(emptyFilter);
     setActiveTab(tabKey);
     setOpenMenuIdDesktop(null);
     setOpenMenuIdMobile(null);
@@ -532,18 +542,20 @@ const [openMenuIdMobile, setOpenMenuIdMobile] = useState(null);
       ...config
     });
 
+    const startIdx = (currentPage - 1) * perPage;
+
     const baseColumns = [
       fixedWidthColumn({
         name: 'No',
-        width: '50px',
+        width: '48px',
         center: true,
         cell: (row, index) => (
-          <div className="w-full text-center font-semibold text-gray-500">{index + 1}</div>
+          <div className="w-full text-center text-xs font-medium text-slate-400">{startIdx + index + 1}</div>
         )
       }),
       fixedWidthColumn({
         name: 'Aksi',
-        width: '70px',
+        width: '60px',
         center: true,
         ignoreRowClick: true,
         cell: (row) => (
@@ -568,13 +580,13 @@ const [openMenuIdMobile, setOpenMenuIdMobile] = useState(null);
     if (!isBiayaTab) {
       baseColumns.push(
         fixedWidthColumn({
-          name: 'Nota Sistem',
+          name: 'Nota',
           selector: (row) => row.notaSistem,
           sortable: true,
-          width: '160px',
+          width: '130px',
           cell: (row) => (
             <div className="w-full">
-              <div className="inline-flex rounded-lg bg-emerald-50 px-3 py-1.5 font-semibold text-emerald-700">
+              <div className="inline-flex rounded-md bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700">
                 {row.notaSistem}
               </div>
             </div>
@@ -587,55 +599,67 @@ const [openMenuIdMobile, setOpenMenuIdMobile] = useState(null);
       return [
         ...baseColumns,
         flexibleColumn({
-          name: 'Item Lain Lain',
+          name: 'Item / Keterangan',
           selector: (row) => row.namaProduk,
           sortable: true,
-          minWidth: '200px',
-          grow: 1.35,
-          cell: (row) => <div className="py-2 font-semibold text-gray-800">{row.namaProduk || '-'}</div>
-        }),
-        flexibleColumn({
-          name: rightAlignedColumnName('Harga'),
-          selector: (row) => row.hargaSatuan,
-          sortable: true,
-          minWidth: '170px',
-          grow: 1.15,
-          right: true,
+          minWidth: '220px',
+          grow: 1.6,
           cell: (row) => (
-            <div className="w-full text-right font-semibold text-emerald-700">
-              {formatCurrency(row.hargaSatuan)}
+            <div className="py-1.5">
+              <div className="text-sm font-semibold text-slate-800">{row.namaProduk || '-'}</div>
+              {row.keterangan && (
+                <div className="text-xs text-slate-500 truncate max-w-[220px]">{row.keterangan}</div>
+              )}
             </div>
           )
         }),
         flexibleColumn({
-          name: 'Keterangan',
-          selector: (row) => row.keterangan,
+          name: 'Pembayaran',
+          selector: (row) => row.namaBayar,
           sortable: true,
-          minWidth: '220px',
-          grow: 1.35,
-          cell: (row) => <div className="text-sm font-medium text-gray-700">{row.keterangan || '-'}</div>
+          minWidth: '160px',
+          grow: 1.1,
+          cell: (row) => (
+            <div className="py-1.5">
+              <div className="text-sm font-medium text-slate-700">{row.namaBayar || '-'}</div>
+              <div className="text-xs text-slate-400">{formatDate(row.tanggalPembayaran)}</div>
+            </div>
+          )
         }),
         flexibleColumn({
-          name: 'Nama Bank',
+          name: 'Bank / Payor',
           selector: (row) => row.namaBank,
           sortable: true,
-          minWidth: '165px',
-          grow: 1.1,
-          cell: (row) => <div className="text-sm font-medium text-gray-700">{row.namaBank || '-'}</div>
+          minWidth: '150px',
+          grow: 1.05,
+          cell: (row) => (
+            <div className="py-1.5">
+              <div className="text-sm font-medium text-slate-700">{row.namaBank || '-'}</div>
+              {row.payor && <div className="text-xs text-slate-400 truncate max-w-[150px]">{row.payor}</div>}
+            </div>
+          )
         }),
         flexibleColumn({
-          name: 'Jenis Pembelian',
+          name: 'Peruntukkan',
+          selector: (row) => row.peruntukkan,
+          sortable: true,
+          minWidth: '130px',
+          grow: 0.9,
+          cell: (row) => <div className="text-sm text-slate-600">{row.peruntukkan || '-'}</div>
+        }),
+        flexibleColumn({
+          name: 'Jenis',
           selector: (row) => row.jenisPembelian,
           sortable: true,
-          minWidth: '150px',
-          grow: 1,
+          minWidth: '90px',
+          grow: 0.7,
           center: true,
           cell: (row) => (
             <span
-              className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+              className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${
                 row.jenisPembelian === 'Bank'
-                  ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                  : 'bg-amber-100 text-amber-700 border border-amber-200'
+                  ? 'bg-blue-50 text-blue-700'
+                  : 'bg-amber-50 text-amber-700'
               }`}
             >
               {row.jenisPembelian}
@@ -643,44 +667,17 @@ const [openMenuIdMobile, setOpenMenuIdMobile] = useState(null);
           )
         }),
         flexibleColumn({
-          name: 'Nama Bayar',
-          selector: (row) => row.namaBayar,
+          name: rightAlignedColumnName('Harga'),
+          selector: (row) => row.hargaSatuan,
           sortable: true,
-          minWidth: '170px',
-          grow: 1.15,
-          cell: (row) => <div className="text-sm font-medium text-gray-700">{row.namaBayar || '-'}</div>
-        }),
-        flexibleColumn({
-          name: 'Tanggal Pembayaran',
-          selector: (row) => row.tanggalPembayaran,
-          sortable: true,
-          minWidth: '180px',
-          grow: 1.1,
-          cell: (row) => <div className="text-sm font-medium text-gray-700">{formatDate(row.tanggalPembayaran)}</div>
-        }),
-        flexibleColumn({
-          name: 'Peruntukkan',
-          selector: (row) => row.peruntukkan,
-          sortable: true,
-          minWidth: '180px',
-          grow: 1.2,
-          cell: (row) => <div className="text-sm font-medium text-gray-700">{row.peruntukkan || '-'}</div>
-        }),
-        flexibleColumn({
-          name: 'Payor',
-          selector: (row) => row.payor,
-          sortable: true,
-          minWidth: '165px',
-          grow: 1.1,
-          cell: (row) => <div className="text-sm font-medium text-gray-700">{row.payor || '-'}</div>
-        }),
-        flexibleColumn({
-          name: 'Created At',
-          selector: (row) => row.createdAt,
-          sortable: true,
-          minWidth: '170px',
-          grow: 1.1,
-          cell: (row) => <div className="text-sm font-medium text-gray-700">{formatDate(row.createdAt)}</div>
+          minWidth: '140px',
+          grow: 1,
+          right: true,
+          cell: (row) => (
+            <div className="w-full text-right text-sm font-semibold text-emerald-700">
+              {formatCurrency(row.hargaSatuan)}
+            </div>
+          )
         })
       ];
     }
@@ -688,93 +685,56 @@ const [openMenuIdMobile, setOpenMenuIdMobile] = useState(null);
     return [
       ...baseColumns,
       flexibleColumn({
-        name: 'Nama Produk',
+        name: 'Produk / Peruntukkan',
         selector: (row) => row.namaProduk,
         sortable: true,
-        minWidth: '180px',
-        grow: 1.25,
-        cell: (row) => <div className="py-2 font-semibold text-gray-800">{row.namaProduk || '-'}</div>
+        minWidth: '200px',
+        grow: 1.5,
+        cell: (row) => (
+          <div className="py-1.5">
+            <div className="text-sm font-semibold text-slate-800">{row.namaProduk || '-'}</div>
+            {row.peruntukkan && (
+              <div className="text-xs text-slate-500 truncate max-w-[200px]">{row.peruntukkan}</div>
+            )}
+          </div>
+        )
       }),
       flexibleColumn({
-        name: 'Peruntukkan',
-        selector: (row) => row.peruntukkan,
-        sortable: true,
-        minWidth: '150px',
-        grow: 1,
-        cell: (row) => <div className="text-sm font-medium text-gray-700">{row.peruntukkan || '-'}</div>
-      }),
-      flexibleColumn({
-        name: rightAlignedColumnName('Qty'),
+        name: 'Qty',
         selector: (row) => row.qty,
         sortable: true,
         minWidth: '80px',
-        grow: 0.75,
+        grow: 0.7,
         cell: (row) => (
-          <div className="w-full text-right text-sm font-medium text-gray-700">{row.qty ?? '-'}</div>
-        )
-      }),
-      flexibleColumn({
-        name: 'Satuan',
-        selector: (row) => row.satuan,
-        sortable: true,
-        minWidth: '100px',
-        grow: 0.8,
-        center: true,
-        cell: (row) => <div className="text-sm font-medium text-gray-700">{row.satuan || '-'}</div>
-      }),
-      flexibleColumn({
-        name: rightAlignedColumnName('Harga Satuan'),
-        selector: (row) => row.hargaSatuan,
-        sortable: true,
-        minWidth: '150px',
-        grow: 0.95,
-        cell: (row) => (
-          <div className="w-full text-right text-sm font-medium text-gray-700">
-            {formatCurrency(row.hargaSatuan)}
+          <div className="text-sm text-slate-700 tabular-nums">
+            {row.qty ?? '-'}<span className="ml-1 text-xs text-slate-400">{row.satuan || ''}</span>
           </div>
         )
       }),
       flexibleColumn({
-        name: 'Pemasok',
+        name: 'Pemasok / Bank',
         selector: (row) => row.pemasok,
         sortable: true,
         minWidth: '150px',
-        grow: 1,
-        cell: (row) => <div className="text-sm font-medium text-gray-700">{row.pemasok || '-'}</div>
-      }),
-      flexibleColumn({
-        name: rightAlignedColumnName('Biaya Kirim'),
-        selector: (row) => row.biayaKirim,
-        sortable: true,
-        minWidth: '130px',
-        grow: 0.9,
+        grow: 1.05,
         cell: (row) => (
-          <div className="w-full text-right text-sm font-medium text-gray-700">
-            {formatCurrency(row.biayaKirim)}
+          <div className="py-1.5">
+            <div className="text-sm font-medium text-slate-700">{row.pemasok || '-'}</div>
+            {row.namaBank && <div className="text-xs text-slate-400">{row.namaBank}</div>}
           </div>
         )
       }),
       flexibleColumn({
-        name: rightAlignedColumnName('Biaya Lain'),
-        selector: (row) => row.biayaLain,
-        sortable: true,
-        minWidth: '130px',
-        grow: 0.9,
-        cell: (row) => (
-          <div className="w-full text-right text-sm font-medium text-gray-700">
-            {formatCurrency(row.biayaLain)}
-          </div>
-        )
-      }),
-      flexibleColumn({
-        name: rightAlignedColumnName('Biaya Total'),
+        name: rightAlignedColumnName('Harga / Total'),
         selector: (row) => row.biayaTotal,
         sortable: true,
         minWidth: '150px',
         grow: 1,
+        right: true,
         cell: (row) => (
-          <div className="w-full text-right font-semibold text-emerald-700">
-            {formatCurrency(row.biayaTotal)}
+          <div className="w-full text-right py-1.5">
+            <div className="text-sm font-semibold text-emerald-700">{formatCurrency(row.biayaTotal)}</div>
+            <div className="text-xs text-slate-400">{formatCurrency(row.hargaSatuan)}/unit</div>
           </div>
         )
       }),
@@ -782,15 +742,15 @@ const [openMenuIdMobile, setOpenMenuIdMobile] = useState(null);
         name: 'Jenis',
         selector: (row) => row.jenisPembelian,
         sortable: true,
-        minWidth: '100px',
-        grow: 0.85,
+        minWidth: '90px',
+        grow: 0.7,
         center: true,
         cell: (row) => (
           <span
-            className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+            className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${
               row.jenisPembelian === 'Bank'
-                ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                : 'bg-amber-100 text-amber-700 border border-amber-200'
+                ? 'bg-blue-50 text-blue-700'
+                : 'bg-amber-50 text-amber-700'
             }`}
           >
             {row.jenisPembelian}
@@ -798,28 +758,19 @@ const [openMenuIdMobile, setOpenMenuIdMobile] = useState(null);
         )
       }),
       flexibleColumn({
-        name: 'Bank',
-        selector: (row) => row.namaBank,
-        sortable: true,
-        minWidth: '130px',
-        grow: 0.9,
-        cell: (row) => <div className="text-sm font-medium text-gray-700">{row.namaBank || '-'}</div>
-      }),
-      flexibleColumn({
-        name: 'Keterangan',
-        selector: (row) => row.keterangan,
-        sortable: true,
-        minWidth: '180px',
-        grow: 1.2,
-        cell: (row) => <div className="text-sm font-medium text-gray-700">{row.keterangan || '-'}</div>
-      }),
-      flexibleColumn({
         name: 'Tanggal',
         selector: (row) => row.createdAt,
         sortable: true,
-        minWidth: '160px',
-        grow: 0.95,
-        cell: (row) => <div className="text-sm font-medium text-gray-700">{formatDate(row.createdAt)}</div>
+        minWidth: '110px',
+        grow: 0.8,
+        cell: (row) => (
+          <div className="py-1.5">
+            <div className="text-sm text-slate-600">{formatDate(row.createdAt)}</div>
+            {row.keterangan && (
+              <div className="text-xs text-slate-400 truncate max-w-[110px]">{row.keterangan}</div>
+            )}
+          </div>
+        )
       })
     ];
   }, [isBiayaTab, openMenuIdDesktop]);
@@ -827,41 +778,25 @@ const [openMenuIdMobile, setOpenMenuIdMobile] = useState(null);
   return (
     <>
       <style>{`
-        .bahan-pembantu-rph-tabs::-webkit-scrollbar {
-          height: 6px;
-        }
-
-        .bahan-pembantu-rph-tabs::-webkit-scrollbar-thumb {
-          background: #cbd5e1;
-          border-radius: 9999px;
-        }
-
-        .bahan-pembantu-rph-tabs::-webkit-scrollbar-track {
-          background: transparent;
-        }
+        .bahan-pembantu-rph-tabs::-webkit-scrollbar { height: 4px; }
+        .bahan-pembantu-rph-tabs::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+        .bahan-pembantu-rph-tabs::-webkit-scrollbar-track { background: transparent; }
       `}</style>
 
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/40 to-cyan-50/60">
-        <div className="mx-auto max-w-full space-y-6">
-          {/* Page Header */}
-          <div className="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm sm:p-6">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex items-start gap-3">
-                <div className="rounded-2xl bg-emerald-100 p-3 text-emerald-700">
-                  <Package className="h-7 w-7" />
-                </div>
-                <div>
-                  <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
-                    Bahan Pembantu RPH
-                  </h1>
-                  <p className="mt-1 text-sm text-gray-500 sm:text-base">
-                    Kelola data pembelian bahan pembantu untuk operasional RPH.
-                  </p>
-                </div>
+      <div className="flex h-screen flex-col bg-slate-50 overflow-hidden">
+        {/* === Sticky Header === */}
+        <header className="shrink-0 border-b border-slate-200 bg-white">
+          <div className="flex items-center justify-between gap-4 px-4 sm:px-6 py-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 shrink-0">
+                <Package className="h-4 w-4" />
               </div>
-
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <button
+              <div className="min-w-0">
+                <h1 className="text-base font-bold tracking-tight text-slate-900 truncate">Bahan Pembantu RPH</h1>
+                <p className="text-xs text-slate-500 truncate hidden sm:block">Pembelian bahan pembantu & biaya operasional RPH</p>
+              </div>
+            </div>
+            <button
               type="button"
               onClick={() =>
                 navigate(
@@ -870,111 +805,184 @@ const [openMenuIdMobile, setOpenMenuIdMobile] = useState(null);
                     : '/rph/bahan-pembantu-rph/biaya/add'
                 )
               }
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-emerald-500 to-cyan-600 px-5 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:from-emerald-600 hover:to-cyan-700 sm:text-base"
-              >
-              <Plus className="h-5 w-5" />
+              className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 transition-colors shrink-0"
+            >
+              <Plus className="h-4 w-4" />
               Tambah
-              </button>
-              </div>
-            </div>
+            </button>
           </div>
+        </header>
 
-          {/* Summary Cards */}
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <SummaryCard
-              title="Transaksi Hari Ini"
-              value={dailySummary.total_transaksi || 0}
-              subtext={`Total biaya: ${formatCurrency(dailySummary.total_biaya)}`}
-              icon={CalendarDays}
-              gradientClass="bg-gradient-to-br from-blue-500 to-cyan-600"
-            />
-            <SummaryCard
-              title="Transaksi Bulan Ini"
-              value={monthlySummary.total_transaksi || 0}
-              subtext={`Total biaya: ${formatCurrency(monthlySummary.total_biaya)}`}
-              icon={TrendingUp}
-              gradientClass="bg-gradient-to-br from-emerald-500 to-emerald-600"
-            />
-          </div>
-
-          {/* Main Content Card */}
-          <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
-            {/* Tab Headers */}
-            <div className="bg-gradient-to-r from-slate-50 to-gray-50">
-              <div className="flex border-b-2 border-gray-200 bahan-pembantu-rph-tabs overflow-x-auto">
-                {tabs.map((tab) => (
-                  <button
-                    key={tab.key}
-                    onClick={() => handleTabChange(tab.key)}
-                    className={`relative flex-1 px-8 py-5 text-lg font-bold transition-all duration-300 whitespace-nowrap ${
-                      activeTab === tab.key
-                        ? 'text-white bg-gradient-to-r from-emerald-600 to-teal-600 shadow-lg'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-                    }`}
-                  >
-                    <span className="relative z-10">{tab.label}</span>
-                    {activeTab === tab.key && (
-                      <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-400 to-teal-400"></div>
-                    )}
-                  </button>
-                ))}
-              </div>
+        {/* === Main Content === */}
+        <div className="flex-1 min-h-0 overflow-auto p-4 sm:px-6">
+          <div className="flex flex-col gap-4">
+            {/* Summary Cards */}
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <SummaryCard
+                title="Transaksi Hari Ini"
+                value={dailySummary.total_transaksi || 0}
+                subtext={`Total: ${formatCurrency(dailySummary.total_biaya)}`}
+                icon={CalendarDays}
+                accentClass="bg-blue-50 text-blue-600"
+              />
+              <SummaryCard
+                title="Transaksi Bulan Ini"
+                value={monthlySummary.total_transaksi || 0}
+                subtext={`Total: ${formatCurrency(monthlySummary.total_biaya)}`}
+                icon={TrendingUp}
+                accentClass="bg-emerald-50 text-emerald-600"
+              />
             </div>
 
-            {/* Tab Content */}
-            <div className="p-6 bg-gradient-to-br from-slate-50/30 to-blue-50/30">
-              {/* Date Filter Row */}
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center mb-4">
-                <div className="flex items-center gap-2">
-                  <Filter className="h-4 w-4 text-gray-400" />
-                  <span className="text-sm font-medium text-gray-600">Filter Tanggal:</span>
-                </div>
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                  <input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm outline-none transition-all focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                    placeholder="Tanggal Mulai"
-                  />
-                  <span className="text-sm text-gray-400">s/d</span>
-                  <input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm outline-none transition-all focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                    placeholder="Tanggal Akhir"
-                  />
-                </div>
-              </div>
-
-              {/* Search Bar */}
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-4">
-                <div className="relative w-full max-w-full sm:max-w-md">
-                  <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-                  {isLoading && (
-                    <Loader2 className="absolute right-12 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-emerald-500" />
-                  )}
-                  {!!searchTerm && !isLoading && (
+            {/* Main Content Card */}
+            <div className="rounded-xl border border-slate-200 bg-white flex flex-col">
+              {/* Tab Headers */}
+              <div className="shrink-0 border-b border-slate-100 bahan-pembantu-rph-tabs overflow-x-auto">
+                <div className="flex">
+                  {tabs.map((tab) => (
                     <button
-                      type="button"
-                      onClick={() => setSearchTerm('')}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 transition-colors hover:text-gray-600"
+                      key={tab.key}
+                      onClick={() => handleTabChange(tab.key)}
+                      className={`relative px-4 py-2.5 text-xs font-semibold transition-colors whitespace-nowrap ${
+                        activeTab === tab.key
+                          ? 'text-emerald-700'
+                          : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+                      }`}
                     >
-                      <X className="h-4 w-4" />
+                      {tab.label}
+                      {activeTab === tab.key && (
+                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-600" />
+                      )}
                     </button>
-                  )}
-                  <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(event) => setSearchTerm(event.target.value)}
-                    placeholder="Cari bahan pembantu..."
-                    className="w-full rounded-full border border-gray-200 py-3 pl-12 pr-12 text-sm shadow-sm outline-none transition-all focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 sm:text-base"
-                  />
+                  ))}
                 </div>
+              </div>
 
-                <div className="text-sm text-gray-500">
-                  Total <span className="font-semibold text-gray-700">{filteredData.length}</span> data ditampilkan
+              {/* Advanced Filter Panel */}
+              <div className="shrink-0 border-b border-slate-100 bg-slate-50/50">
+                <div className="px-4 py-3 space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-600">
+                      <Filter className="h-3.5 w-3.5 text-slate-400" />
+                      Filter Lanjutan
+                      {hasAppliedFilters && (
+                        <span className="inline-flex items-center justify-center rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">
+                          Aktif
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={handleResetFilter}
+                        className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+                      >
+                        <RotateCcw className="h-3 w-3" />
+                        Reset
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSearch}
+                        disabled={isLoading}
+                        className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Search className="h-3 w-3" />}
+                        Cari
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                    {!isBiayaTab && (
+                      <input
+                        type="text"
+                        value={filterInput.nota}
+                        onChange={(e) => handleFilterChange('nota', e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
+                        placeholder="Nota Sistem"
+                        className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-100"
+                      />
+                    )}
+                    <input
+                      type="text"
+                      value={filterInput.namaProduk}
+                      onChange={(e) => handleFilterChange('namaProduk', e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
+                      placeholder={isBiayaTab ? 'Item Lain-Lain' : 'Nama Produk'}
+                      className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-100"
+                    />
+                    {!isBiayaTab && (
+                      <input
+                        type="text"
+                        value={filterInput.pemasok}
+                        onChange={(e) => handleFilterChange('pemasok', e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
+                        placeholder="Pemasok"
+                        className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-100"
+                      />
+                    )}
+                    <input
+                      type="text"
+                      value={filterInput.peruntukkan}
+                      onChange={(e) => handleFilterChange('peruntukkan', e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
+                      placeholder="Peruntukkan"
+                      className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-100"
+                    />
+                    {isBiayaTab && (
+                      <input
+                        type="text"
+                        value={filterInput.namaBayar}
+                        onChange={(e) => handleFilterChange('namaBayar', e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
+                        placeholder="Nama Bayar"
+                        className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-100"
+                      />
+                    )}
+                    {isBiayaTab && (
+                      <input
+                        type="text"
+                        value={filterInput.payor}
+                        onChange={(e) => handleFilterChange('payor', e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
+                        placeholder="Payor"
+                        className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-100"
+                      />
+                    )}
+                    <input
+                      type="text"
+                      value={filterInput.namaBank}
+                      onChange={(e) => handleFilterChange('namaBank', e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
+                      placeholder="Nama Bank"
+                      className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-100"
+                    />
+                    <input
+                      type="text"
+                      value={filterInput.keterangan}
+                      onChange={(e) => handleFilterChange('keterangan', e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
+                      placeholder="Keterangan"
+                      className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-100"
+                    />
+                    <div className="flex items-center gap-1 col-span-2 sm:col-span-1">
+                      <input
+                        type="date"
+                        value={filterInput.startDate}
+                        onChange={(e) => handleFilterChange('startDate', e.target.value)}
+                        title="Tanggal mulai"
+                        className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-100"
+                      />
+                      <span className="text-xs text-slate-400">s/d</span>
+                      <input
+                        type="date"
+                        value={filterInput.endDate}
+                        onChange={(e) => handleFilterChange('endDate', e.target.value)}
+                        title="Tanggal akhir"
+                        className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-100"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -982,68 +990,130 @@ const [openMenuIdMobile, setOpenMenuIdMobile] = useState(null);
               <div className="hidden md:block">
                 <DataTable
                   columns={columns}
-                  data={filteredData}
+                  data={data}
                   customStyles={enhancedTableStyles}
                   progressPending={isLoading}
                   progressComponent={
                     <div className="flex items-center justify-center py-12">
-                      <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
-                      <span className="ml-3 text-gray-500">Memuat data...</span>
+                      <Loader2 className="h-6 w-6 animate-spin text-emerald-500" />
+                      <span className="ml-2 text-sm text-slate-500">Memuat data...</span>
                     </div>
                   }
                   noDataComponent={
                     <div className="py-12 text-center">
-                      <AlertCircle className="mx-auto h-10 w-10 text-gray-300" />
-                      <p className="mt-3 text-base font-semibold text-gray-600">Tidak ada data ditemukan</p>
-                      <p className="mt-1 text-sm text-gray-400">
-                        Coba ubah kata kunci pencarian atau filter tanggal untuk menemukan data yang sesuai.
-                      </p>
+                      <AlertCircle className="mx-auto h-8 w-8 text-slate-300" />
+                      <p className="mt-2 text-sm font-semibold text-slate-600">Tidak ada data ditemukan</p>
+                      <p className="mt-1 text-xs text-slate-400">Coba ubah filter lalu klik Cari</p>
                     </div>
                   }
                   highlightOnHover
                   pointerOnHover
                   responsive
                   dense
-                  fixedHeader
-                  fixedHeaderScrollHeight="calc(100vh - 420px)"
                 />
               </div>
 
               {/* Mobile Card View */}
-              <div className="space-y-4 pt-4 md:hidden">
+              <div className="space-y-3 p-3 md:hidden">
                 {isLoading ? (
                   <div className="flex items-center justify-center py-10">
-                    <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
-                    <span className="ml-3 text-gray-500">Memuat data...</span>
+                    <Loader2 className="h-6 w-6 animate-spin text-emerald-500" />
+                    <span className="ml-2 text-sm text-slate-500">Memuat data...</span>
                   </div>
-                ) : filteredData.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-gray-200 px-4 py-10 text-center">
-                    <AlertCircle className="mx-auto h-10 w-10 text-gray-300" />
-                    <p className="mt-3 font-semibold text-gray-600">Tidak ada data ditemukan</p>
-                    <p className="mt-1 text-sm text-gray-400">
-                      Coba ubah kata kunci pencarian atau filter tanggal untuk menemukan data yang sesuai.
-                    </p>
+                ) : data.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-slate-200 px-4 py-10 text-center">
+                    <AlertCircle className="mx-auto h-8 w-8 text-slate-300" />
+                    <p className="mt-2 font-semibold text-slate-600">Tidak ada data ditemukan</p>
+                    <p className="mt-1 text-xs text-slate-400">Coba ubah filter lalu klik Cari</p>
                   </div>
                 ) : (
-                  filteredData.map((row, index) => (
-                    <MobileBahanPembantuCard
-                      key={row.pid}
-                      row={row}
-                      index={index + 1}
-                      showNotaSistem={!isBiayaTab}
-                      isBiayaTab={isBiayaTab}
-                      isMenuOpen={openMenuIdMobile === row.pid}
-                      onToggleMenu={() => {
-                        setOpenMenuIdDesktop(null);
-                        setOpenMenuIdMobile((currentId) => (currentId === row.pid ? null : row.pid));
-                      }}
-                      onCloseMenu={() => setOpenMenuIdMobile(null)}
-                      onDetail={handleDetail}
-                      onEdit={handleEdit}
-                      onDelete={handleDelete}
-                    />
-                  ))
+                  <>
+                    <p className="text-xs text-slate-500 px-1">
+                      Menampilkan <span className="font-semibold text-slate-700">{startIdx}-{endIdx}</span> dari <span className="font-semibold text-slate-700">{filteredRecords}</span> data
+                    </p>
+                    {data.map((row, index) => (
+                      <MobileBahanPembantuCard
+                        key={row.pid}
+                        row={row}
+                        index={startIdx + index}
+                        showNotaSistem={!isBiayaTab}
+                        isBiayaTab={isBiayaTab}
+                        isMenuOpen={openMenuIdMobile === row.pid}
+                        onToggleMenu={() => {
+                          setOpenMenuIdDesktop(null);
+                          setOpenMenuIdMobile((currentId) => (currentId === row.pid ? null : row.pid));
+                        }}
+                        onCloseMenu={() => setOpenMenuIdMobile(null)}
+                        onDetail={handleDetail}
+                        onEdit={handleEdit}
+                        onDelete={handleDelete}
+                      />
+                    ))}
+                  </>
                 )}
+              </div>
+
+              {/* Server-side Pagination */}
+              <div className="shrink-0 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-t border-slate-100 px-4 py-2.5 bg-white">
+                <div className="flex items-center gap-2 text-xs text-slate-600">
+                  <span>Baris:</span>
+                  <select
+                    value={perPage}
+                    onChange={(e) => handlePerPageChange(Number(e.target.value))}
+                    className="rounded-md border border-slate-200 bg-white px-1.5 py-1 text-xs outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-100"
+                  >
+                    {[10, 25, 50, 100].map((n) => (
+                      <option key={n} value={n}>{n}</option>
+                    ))}
+                  </select>
+                  <span className="text-slate-500">
+                    {filteredRecords === 0 ? '0-0' : `${startIdx}-${endIdx}`} dari <span className="font-semibold text-slate-700">{filteredRecords}</span>
+                    {hasAppliedFilters && filteredRecords !== totalRecords && (
+                      <span className="text-slate-400"> (filter dari {totalRecords})</span>
+                    )}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => handlePageChange(1)}
+                    disabled={currentPage <= 1 || isLoading}
+                    className="rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                    title="Halaman pertama"
+                  >
+                    «
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage <= 1 || isLoading}
+                    className="rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                    title="Sebelumnya"
+                  >
+                    ‹
+                  </button>
+                  <span className="px-2 text-xs font-medium text-slate-700 tabular-nums">
+                    Hal {currentPage} / {totalPages}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage >= totalPages || isLoading}
+                    className="rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                    title="Berikutnya"
+                  >
+                    ›
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handlePageChange(totalPages)}
+                    disabled={currentPage >= totalPages || isLoading}
+                    className="rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                    title="Halaman terakhir"
+                  >
+                    »
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -1062,7 +1132,7 @@ const [openMenuIdMobile, setOpenMenuIdMobile] = useState(null);
         title="Hapus Bahan Pembantu?"
         description={
           selectedItem
-            ? `Anda yakin ingin menghapus bahan pembantu ${selectedItem.notaSistem || ''}? Tindakan ini tidak dapat dibatalkan.`
+            ? `Anda yakin ingin menghapus ${selectedItem.notaSistem || selectedItem.namaProduk || 'data ini'}? Tindakan ini tidak dapat dibatalkan.`
             : 'Anda yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.'
         }
       />

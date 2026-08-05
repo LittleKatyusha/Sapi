@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, Plus, Trash2, Loader2, ShoppingCart, X, AlertCircle, CheckCircle2, Upload, FileText as FileTextIcon } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Trash2, Loader2, ShoppingCart, X, AlertCircle, CheckCircle2, Upload, Hash } from 'lucide-react';
 import SearchableSelect from '../../../../components/shared/SearchableSelect';
 import useParameterSelect from '../Pembelian Sapi/hooks/useParameterSelect';
 import usePersetujuanRphSelect from '../Pembelian Sapi/hooks/usePersetujuanRphSelect';
@@ -283,197 +283,234 @@ const AddEditPembelianQurbanPage = () => {
         );
     };
 
-    const renderSapiRow = (sapi, idx) => {
-        const subtotal = (Number(sapi.harga_beli || 0) * Number(sapi.berat || 0));
-        return (
-        <tr key={sapi.id_hewan} className="border-b border-gray-100">
-            <td className="px-4 py-3 text-sm text-gray-600">{idx + 1}</td>
-            <td className="px-4 py-3 text-sm text-gray-700">{sapi.code_eartag || '-'}</td>
-            <td className="px-4 py-3 text-sm text-gray-700">{sapi.eartag || '-'}</td>
-            <td className="px-4 py-3 text-sm text-gray-700 hidden sm:table-cell">{sapi.eartag_supplier || '-'}</td>
-            <td className="px-4 py-3 text-sm text-gray-700 text-right">{parseFloat(sapi.berat || 0).toLocaleString('id-ID')}</td>
-            <td className="px-4 py-3 text-right">
-                <input type="text" value={formatNumber(sapi.harga_beli)} onChange={e => { const raw = parseNumber(e.target.value); handleHargaChange(sapi.id_hewan, raw); }} className="w-32 sm:w-36 px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-right focus:ring-2 focus:ring-green-500 focus:border-green-500" />
-            </td>
-            <td className="px-4 py-3 text-sm text-right font-semibold text-green-700">{formatNumber(subtotal)}</td>
-            <td className="px-4 py-3 text-center">
-                <button onClick={() => handleRemoveSapi(sapi.id_hewan)} className="p-1.5 text-gray-400 hover:text-red-500" title="Hapus sapi">
-                    <Trash2 className="w-4 h-4" />
-                </button>
-            </td>
-        </tr>
-        );
-    };
-
     return (
-        <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 p-2 sm:p-4 md:p-6">
-            <div className="w-full max-w-none mx-0 space-y-6">
-                {/* Header */}
-                <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-100">
-                    <div className="flex items-center gap-4">
-                        <button onClick={handleBack} className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors"><ArrowLeft className="w-6 h-6 text-gray-600" /></button>
-                        <div>
-                            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 flex items-center gap-3">
-                                <ShoppingCart className="w-8 h-8 text-green-600" />
-                                {isEditMode ? 'Edit Pembelian Sapi Qurban' : 'Tambah Pembelian Sapi Qurban'}
-                            </h1>
-                            <p className="text-gray-500 mt-1">{isEditMode ? 'Perbarui data pembelian sapi qurban' : 'Tambahkan data pembelian sapi qurban baru'}</p>
-                        </div>
-                    </div>
-                </div>
+        <>
+            <style>{`
+                .table-scroll::-webkit-scrollbar { height: 6px; width: 6px; }
+                .table-scroll::-webkit-scrollbar-track { background: transparent; }
+                .table-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+                .table-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+                .table-scroll { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+            `}</style>
 
-                {/* Form Fields */}
-                <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-100">
-                    <h2 className="text-lg font-bold text-gray-900 mb-5">Data Pembelian</h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1.5">Pemasok <span className="text-red-500">*</span></label>
-                            <SearchableSelect value={formData.id_pemasok} onChange={v => handleChange('id_pemasok', v)} options={pemasokOptions} placeholder={paramLoading ? 'Loading...' : 'Pilih Pemasok'} isLoading={paramLoading} isDisabled={true} />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1.5">Pilih Nota <span className="text-red-500">*</span></label>
-                            {selectedNotaInfo ? (
-                                <div className="flex items-center justify-between gap-2 px-3 py-2.5 border border-green-200 bg-green-50 rounded-xl">
-                                    <div className="flex items-center gap-2 min-w-0">
-                                        <FileText className="w-4 h-4 text-green-600 flex-shrink-0" />
-                                        <div className="min-w-0">
-                                            <div className="text-sm font-medium text-gray-900 truncate">{selectedNotaInfo.nota}</div>
-                                            <div className="text-xs text-gray-500 truncate">
-                                                {selectedNotaInfo.nama_supplier}
-                                                {selectedNotaInfo.jenis_supplier && (
-                                                    <span className={`ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium border ${parseInt(selectedNotaInfo.jenis_supplier) === 1 ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-green-50 text-green-700 border-green-200'}`}>
-                                                        {parseInt(selectedNotaInfo.jenis_supplier) === 1 ? 'Import' : 'Lokal'}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <button type="button" onClick={() => setIsPilihNotaOpen(true)} className="text-xs text-green-700 hover:text-green-800 font-medium whitespace-nowrap">Ubah</button>
+            <div className="flex h-screen flex-col bg-slate-50 overflow-hidden">
+                {/* === Sticky Header === */}
+                <header className="shrink-0 border-b border-slate-200 bg-white">
+                    <div className="flex items-center justify-between gap-4 px-4 sm:px-6 py-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                            <button onClick={handleBack} className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors shrink-0">
+                                <ArrowLeft className="h-4 w-4" />
+                            </button>
+                            <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 shrink-0">
+                                    <ShoppingCart className="h-4 w-4" />
                                 </div>
-                            ) : (
-                                <button type="button" onClick={() => setIsPilihNotaOpen(true)} disabled={!formData.id_pemasok} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-gray-300 rounded-xl text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
-                                    <Search className="w-4 h-4" />
-                                    {!formData.id_pemasok ? 'Pilih pemasok dulu' : 'Cari & Pilih Nota'}
-                                </button>
-                            )}
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1.5">Nama Penerima <span className="text-red-500">*</span></label>
-                            <input type="text" value={formData.nama_penerima} onChange={e => handleChange('nama_penerima', e.target.value)} maxLength={50} className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm transition-all" placeholder="Masukkan nama penerima" />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1.5">Tanggal Pemesanan <span className="text-red-500">*</span></label>
-                            <input type="date" value={formData.tanggal_pemesanan} min={periodeQurban.start || undefined} max={periodeQurban.end || undefined} onChange={e => handleChange('tanggal_pemesanan', e.target.value)} className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm transition-all" />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1.5">Tanggal Kedatangan Sapi <span className="text-red-500">*</span></label>
-                            <input type="date" value={formData.tanggal_kedatangan_sapi} min={periodeQurban.start || undefined} max={periodeQurban.end || undefined} onChange={e => handleChange('tanggal_kedatangan_sapi', e.target.value)} className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm transition-all" />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1.5">Persetujuan RPH <span className="text-red-500">*</span></label>
-                            <SearchableSelect value={formData.id_persetujuan_rph} onChange={v => handleChange('id_persetujuan_rph', v)} options={persetujuanOptions.filter(o => o.value !== '')} placeholder={persetujuanLoading ? 'Loading...' : 'Pilih Persetujuan RPH'} isLoading={persetujuanLoading} isDisabled={persetujuanLoading} />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1.5">Tipe Pembayaran <span className="text-red-500">*</span></label>
-                            <SearchableSelect value={formData.tipe_pembayaran ? parseInt(formData.tipe_pembayaran) : ''} onChange={v => handleChange('tipe_pembayaran', String(v))} options={tipePembayaranOpts} placeholder="Pilih Tipe Pembayaran" />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1.5">Syarat Pembayaran {isBank && <span className="text-red-500">*</span>}</label>
-                            {renderSyaratPembayaran()}
-                        </div>
-                        <div className="sm:col-span-2 lg:col-span-4">
-                            <label className="block text-sm font-medium text-gray-700 mb-1.5">Catatan</label>
-                            <textarea value={formData.note} onChange={e => handleChange('note', e.target.value)} rows={3} maxLength={255} className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm resize-none transition-all" placeholder="Catatan tambahan (opsional, maks 255 karakter)" />
-                        </div>
-                        <div className="sm:col-span-2 lg:col-span-4">
-                            <label className="block text-sm font-medium text-gray-700 mb-1.5">Upload File</label>
-                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                                <label className="flex items-center gap-2 px-4 py-2.5 border border-gray-300 rounded-xl text-sm text-gray-600 hover:bg-gray-50 cursor-pointer transition-all">
-                                    <Upload className="w-4 h-4" />
-                                    Pilih File
-                                    <input type="file" accept=".jpg,.jpeg,.png,.pdf" onChange={handleFileChange} className="hidden" />
-                                </label>
-                                {selectedFile && (
-                                    <div className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-xl">
-                                        <FileTextIcon className="w-4 h-4 text-green-600" />
-                                        <span className="text-sm text-gray-700 truncate max-w-[200px]">{selectedFile.name}</span>
-                                        <button type="button" onClick={handleRemoveFile} className="text-gray-400 hover:text-red-500"><X className="w-4 h-4" /></button>
-                                    </div>
-                                )}
-                                {!selectedFile && filePreview && (
-                                    <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-xl">
-                                        <FileTextIcon className="w-4 h-4 text-blue-600" />
-                                        <a href={filePreview} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-700 hover:underline truncate max-w-[200px]">Lihat file existing</a>
-                                        <button type="button" onClick={handleRemoveFile} className="text-gray-400 hover:text-red-500" title="Hapus file"><X className="w-4 h-4" /></button>
-                                    </div>
-                                )}
-                                {!selectedFile && !filePreview && (
-                                    <span className="text-xs text-gray-400">JPG, JPEG, PNG, PDF (maks 2MB)</span>
-                                )}
+                                <div className="min-w-0">
+                                    <h1 className="text-base font-bold tracking-tight text-slate-900 truncate">
+                                        {isEditMode ? 'Edit Pembelian Sapi Qurban' : 'Tambah Pembelian Sapi Qurban'}
+                                    </h1>
+                                    <p className="text-xs text-slate-500 truncate hidden sm:block">
+                                        {isEditMode ? 'Perbarui data pembelian sapi qurban' : 'Tambahkan data pembelian sapi qurban baru'}
+                                    </p>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </div>
-
-                {/* Sapi Detail Table */}
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                    <div className="px-4 sm:px-6 pt-4 sm:pt-6 pb-4 border-b border-gray-100">
-                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                            <h2 className="text-lg font-bold text-gray-900">Daftar Sapi ({selectedSapi.length})</h2>
-                            <button onClick={() => setIsPilihSapiOpen(true)} disabled={!formData.id_nota} className="flex items-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-xl text-sm font-medium transition-all shadow-sm hover:shadow-md active:scale-[0.98]">
-                                <Plus className="w-4 h-4" /> Tambah Sapi
+                        <div className="flex items-center gap-2 shrink-0">
+                            <button onClick={handleBack} className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
+                                Batal
+                            </button>
+                            <button onClick={handleSubmit} disabled={isSubmitting} className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                                {isSubmitting ? 'Menyimpan...' : isEditMode ? 'Perbarui' : 'Simpan'}
                             </button>
                         </div>
                     </div>
-                    <div className="p-4 sm:p-6">
-                        {selectedSapi.length === 0 ? (
-                            <div className="text-center py-16 bg-gradient-to-b from-gray-50 to-white rounded-xl border-2 border-dashed border-gray-200">
-                                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4"><ShoppingCart className="w-8 h-8 text-gray-300" /></div>
-                                <p className="text-gray-500 font-semibold text-base">Belum ada sapi dipilih</p>
-                                <p className="text-gray-400 text-sm mt-1.5 max-w-xs mx-auto">{!formData.id_nota ? 'Pilih nota terlebih dahulu untuk menambahkan sapi' : 'Klik "Tambah Sapi" untuk memilih sapi dari nota'}</p>
-                            </div>
-                        ) : (
-                            <React.Fragment>
-                                <div className="overflow-x-auto rounded-lg border border-gray-200">
-                                    <table className="min-w-full">
-                                        <thead>
-                                            <tr className="bg-green-50">
-                                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600 w-14">No</th>
-                                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Code Eartag</th>
-                                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Eartag</th>
-                                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600 hidden sm:table-cell">Eartag Supplier</th>
-                                                <th className="px-4 py-3 text-right text-sm font-medium text-gray-600">Berat (Kg)</th>
-                                                <th className="px-4 py-3 text-right text-sm font-medium text-gray-600 min-w-[200px]">Harga Beli/Kg</th>
-                                                <th className="px-4 py-3 text-right text-sm font-medium text-gray-600 min-w-[160px]">Subtotal</th>
-                                                <th className="px-4 py-3 text-center text-sm font-medium text-gray-600 w-20">Aksi</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>{selectedSapi.map((sapi, idx) => renderSapiRow(sapi, idx))}</tbody>
-                                        {selectedSapi.length > 0 && (
-                                            <tfoot>
-                                                <tr className="bg-green-50 border-t-2 border-green-200">
-                                                    <td colSpan={6} className="px-4 py-3 text-right text-sm font-bold text-gray-700">Total Harga</td>
-                                                    <td className="px-4 py-3 text-right text-sm font-bold text-green-700">{formatNumber(selectedSapi.reduce((s, x) => s + (Number(x.harga_beli || 0) * Number(x.berat || 0)), 0))}</td>
-                                                    <td></td>
-                                                </tr>
-                                            </tfoot>
-                                        )}
-                                    </table>
-                                </div>
-                            </React.Fragment>
-                        )}
-                    </div>
-                </div>
+                </header>
 
-                {/* Footer Buttons */}
-                <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-100">
-                    <div className="flex flex-col sm:flex-row gap-3 justify-end">
-                        <button onClick={handleBack} className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors text-sm font-medium">Batal</button>
-                        <button onClick={handleSubmit} disabled={isSubmitting}
- className="flex items-center justify-center gap-2 px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">
-                            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                            {isSubmitting ? 'Menyimpan...' : (isEditMode ? 'Perbarui Data' : 'Simpan Data')}
+                {/* === Main Content === */}
+                <div className="flex-1 min-h-0 overflow-auto p-4 sm:px-6">
+                    <div className="flex flex-col gap-4">
+                        {/* Header Form */}
+                        <section className="rounded-xl border border-slate-200 bg-white">
+                            <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-slate-100">
+                                <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-2">
+                                    <Hash className="h-3.5 w-3.5 text-emerald-600" />
+                                    Data Pembelian
+                                </h3>
+                            </div>
+                            <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-600 mb-1">Pemasok *</label>
+                                    <SearchableSelect value={formData.id_pemasok} onChange={v => handleChange('id_pemasok', v)} options={pemasokOptions} placeholder={paramLoading ? '...' : 'Pilih Pemasok'} isLoading={paramLoading} isDisabled={true} />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-600 mb-1">Pilih Nota *</label>
+                                    {selectedNotaInfo ? (
+                                        <div className="flex items-center justify-between gap-2 px-2.5 py-2 border border-emerald-200 bg-emerald-50 rounded-lg">
+                                            <div className="flex items-center gap-2 min-w-0">
+                                                <FileText className="h-3.5 w-3.5 text-emerald-600 flex-shrink-0" />
+                                                <div className="min-w-0">
+                                                    <div className="text-xs font-medium text-slate-900 truncate">{selectedNotaInfo.nota}</div>
+                                                    <div className="text-[10px] text-slate-500 truncate">
+                                                        {selectedNotaInfo.nama_supplier}
+                                                        {selectedNotaInfo.jenis_supplier && (
+                                                            <span className={`ml-1 inline-flex items-center px-1 py-0.5 rounded text-[9px] font-medium border ${parseInt(selectedNotaInfo.jenis_supplier) === 1 ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>
+                                                                {parseInt(selectedNotaInfo.jenis_supplier) === 1 ? 'Import' : 'Lokal'}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <button type="button" onClick={() => setIsPilihNotaOpen(true)} className="text-[10px] text-emerald-700 hover:text-emerald-800 font-medium whitespace-nowrap">Ubah</button>
+                                        </div>
+                                    ) : (
+                                        <button type="button" onClick={() => setIsPilihNotaOpen(true)} disabled={!formData.id_pemasok} className="w-full flex items-center justify-center gap-1.5 px-3 py-2 border border-slate-200 rounded-lg text-xs text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                                            <Search className="h-3.5 w-3.5" />
+                                            {!formData.id_pemasok ? 'Pilih pemasok dulu' : 'Cari & Pilih Nota'}
+                                        </button>
+                                    )}
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-600 mb-1">Nama Penerima *</label>
+                                    <input type="text" value={formData.nama_penerima} onChange={e => handleChange('nama_penerima', e.target.value)} maxLength={50} className="w-full px-2.5 py-2 border border-slate-200 rounded-lg text-xs focus:border-emerald-400 focus:ring-1 focus:ring-emerald-100 outline-none" placeholder="Masukkan nama penerima" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-600 mb-1">Tgl Pemesanan *</label>
+                                    <input type="date" value={formData.tanggal_pemesanan} min={periodeQurban.start || undefined} max={periodeQurban.end || undefined} onChange={e => handleChange('tanggal_pemesanan', e.target.value)} className="w-full px-2.5 py-2 border border-slate-200 rounded-lg text-xs focus:border-emerald-400 focus:ring-1 focus:ring-emerald-100 outline-none" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-600 mb-1">Tgl Kedatangan *</label>
+                                    <input type="date" value={formData.tanggal_kedatangan_sapi} min={periodeQurban.start || undefined} max={periodeQurban.end || undefined} onChange={e => handleChange('tanggal_kedatangan_sapi', e.target.value)} className="w-full px-2.5 py-2 border border-slate-200 rounded-lg text-xs focus:border-emerald-400 focus:ring-1 focus:ring-emerald-100 outline-none" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-600 mb-1">Persetujuan RPH *</label>
+                                    <SearchableSelect value={formData.id_persetujuan_rph} onChange={v => handleChange('id_persetujuan_rph', v)} options={persetujuanOptions.filter(o => o.value !== '')} placeholder={persetujuanLoading ? '...' : 'Pilih Persetujuan'} isLoading={persetujuanLoading} isDisabled={persetujuanLoading} />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-600 mb-1">Tipe Pembayaran *</label>
+                                    <SearchableSelect value={formData.tipe_pembayaran ? parseInt(formData.tipe_pembayaran) : ''} onChange={v => handleChange('tipe_pembayaran', String(v))} options={tipePembayaranOpts} placeholder="Pilih Tipe" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-600 mb-1">Syarat Pembayaran {isBank && '*'}</label>
+                                    {renderSyaratPembayaran()}
+                                </div>
+                                {/* Catatan */}
+                                <div className="col-span-full md:col-span-2 xl:col-span-2 xl:row-span-2">
+                                    <label className="block text-xs font-semibold text-slate-600 mb-1">Catatan</label>
+                                    <textarea value={formData.note} onChange={e => handleChange('note', e.target.value)} rows="4" maxLength={255} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-emerald-400 focus:ring-1 focus:ring-emerald-100 outline-none resize-none" placeholder="Catatan tambahan (opsional, maks 255 karakter)" />
+                                </div>
+                                {/* File Upload */}
+                                <div className="col-span-full md:col-span-2 xl:col-span-2">
+                                    <label className="block text-xs font-semibold text-slate-600 mb-1">Upload File</label>
+                                    <div className="flex items-center gap-2">
+                                        <label className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-medium hover:bg-emerald-100 transition-colors cursor-pointer">
+                                            <Upload className="h-4 w-4" />
+                                            Upload
+                                            <input type="file" accept=".jpg,.jpeg,.png,.pdf" onChange={handleFileChange} className="hidden" />
+                                        </label>
+                                        {selectedFile && (
+                                            <>
+                                                <span className="flex-1 min-w-0 truncate text-xs text-slate-600">{selectedFile.name}</span>
+                                                <button type="button" onClick={handleRemoveFile} className="p-1.5 text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-colors" title="Hapus file">
+                                                    <X className="h-4 w-4" />
+                                                </button>
+                                            </>
+                                        )}
+                                        {!selectedFile && filePreview && (
+                                            <>
+                                                <a href={filePreview} target="_blank" rel="noopener noreferrer" className="flex-1 min-w-0 truncate text-xs text-blue-700 hover:underline">Lihat file existing</a>
+                                                <button type="button" onClick={handleRemoveFile} className="p-1.5 text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-colors" title="Hapus file">
+                                                    <X className="h-4 w-4" />
+                                                </button>
+                                            </>
+                                        )}
+                                        {!selectedFile && !filePreview && (
+                                            <span className="text-[10px] text-slate-400">JPG/PNG/PDF (maks 2MB)</span>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                {/* Sapi Detail Table */}
+                <section className="rounded-xl border border-slate-200 bg-white flex flex-col">
+                    <div className="shrink-0 flex items-center justify-between gap-2 px-4 py-3 border-b border-slate-100">
+                        <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-2">
+                            <ShoppingCart className="h-3.5 w-3.5 text-emerald-600" />
+                            Daftar Sapi
+                            <span className="inline-flex items-center justify-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">
+                                {selectedSapi.length}
+                            </span>
+                        </h3>
+                        <button onClick={() => setIsPilihSapiOpen(true)} disabled={!formData.id_nota} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed">
+                            <Plus className="h-3.5 w-3.5" />
+                            Tambah Sapi
                         </button>
+                    </div>
+                    {selectedSapi.length === 0 ? (
+                        <div className="text-center py-12 px-4">
+                            <ShoppingCart className="h-10 w-10 text-slate-300 mx-auto mb-3" />
+                            <p className="text-sm font-semibold text-slate-600">Belum ada sapi dipilih</p>
+                            <p className="text-xs text-slate-400 mt-1">{!formData.id_nota ? 'Pilih nota terlebih dahulu' : 'Klik "Tambah Sapi" untuk memilih'}</p>
+                        </div>
+                    ) : (
+                        <div className="flex-1 min-h-0 overflow-x-auto table-scroll">
+                            <table className="min-w-full border-collapse text-xs">
+                                <thead>
+                                    <tr className="bg-slate-50 border-b border-slate-200">
+                                        <th className="px-2 py-2 text-left font-semibold text-slate-600 w-10">No</th>
+                                        <th className="px-2 py-2 text-left font-semibold text-slate-600 min-w-[120px]">Code Eartag</th>
+                                        <th className="px-2 py-2 text-left font-semibold text-slate-600 min-w-[120px]">Eartag</th>
+                                        <th className="px-2 py-2 text-left font-semibold text-slate-600 hidden sm:table-cell min-w-[120px]">Eartag Supplier</th>
+                                        <th className="px-2 py-2 text-right font-semibold text-slate-600 w-20">Berat (Kg)</th>
+                                        <th className="px-2 py-2 text-right font-semibold text-slate-600 min-w-[140px]">Harga/Kg</th>
+                                        <th className="px-2 py-2 text-right font-semibold text-slate-600 min-w-[120px]">Subtotal</th>
+                                        <th className="px-2 py-2 text-center font-semibold text-slate-600 w-14">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {selectedSapi.map((sapi, idx) => {
+                                        const subtotal = (Number(sapi.harga_beli || 0) * Number(sapi.berat || 0));
+                                        return (
+                                            <tr key={sapi.id_hewan} className="border-b border-slate-100 hover:bg-slate-50">
+                                                <td className="px-2 py-1.5 text-slate-600">{idx + 1}</td>
+                                                <td className="px-2 py-1.5 text-slate-700">{sapi.code_eartag || '-'}</td>
+                                                <td className="px-2 py-1.5 text-slate-700">{sapi.eartag || '-'}</td>
+                                                <td className="px-2 py-1.5 text-slate-700 hidden sm:table-cell">{sapi.eartag_supplier || '-'}</td>
+                                                <td className="px-2 py-1.5 text-slate-700 text-right tabular-nums">{parseFloat(sapi.berat || 0).toLocaleString('id-ID')}</td>
+                                                <td className="px-2 py-1.5 text-right">
+                                                    <input type="text" value={formatNumber(sapi.harga_beli)} onChange={e => { const raw = parseNumber(e.target.value); handleHargaChange(sapi.id_hewan, raw); }} className="w-full px-2 py-1 border border-slate-200 rounded text-xs text-right focus:border-emerald-400 focus:ring-1 focus:ring-emerald-100 outline-none" />
+                                                </td>
+                                                <td className="px-2 py-1.5 text-right font-semibold text-emerald-700 tabular-nums">{formatNumber(subtotal)}</td>
+                                                <td className="px-2 py-1.5 text-center">
+                                                    <button onClick={() => handleRemoveSapi(sapi.id_hewan)} className="p-1 text-slate-400 hover:text-red-500 rounded transition-colors" title="Hapus sapi">
+                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                    {selectedSapi.length > 0 && (
+                        <div className="shrink-0 grid grid-cols-3 gap-3 px-4 py-3 border-t border-slate-100 bg-slate-50/50">
+                            <div>
+                                <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">Total Sapi</p>
+                                <p className="text-sm font-bold text-slate-900 tabular-nums">{selectedSapi.length}</p>
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">Total Berat</p>
+                                <p className="text-sm font-bold text-slate-900 tabular-nums">{formatNumber(selectedSapi.reduce((s, x) => s + Number(x.berat || 0), 0))} kg</p>
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">Total Harga</p>
+                                <p className="text-sm font-bold text-emerald-700 tabular-nums">Rp {formatNumber(selectedSapi.reduce((s, x) => s + (Number(x.harga_beli || 0) * Number(x.berat || 0)), 0))}</p>
+                            </div>
+                        </div>
+                    )}
+                </section>
                     </div>
                 </div>
             </div>
@@ -509,7 +546,7 @@ const AddEditPembelianQurbanPage = () => {
 
             {/* Pilih Nota Modal */}
             <PilihNotaModal isOpen={isPilihNotaOpen} onClose={() => setIsPilihNotaOpen(false)} onSelect={handleSelectNota} idPemasok={formData.id_pemasok} selectedNotaId={formData.id_nota} />
-        </div>
+        </>
     );
 };
 

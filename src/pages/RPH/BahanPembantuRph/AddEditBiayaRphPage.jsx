@@ -7,12 +7,7 @@ import {
   Loader2,
   X,
   AlertCircle,
-  Wallet,
-  CalendarDays,
-  FileText,
-  CreditCard,
-  UserCircle,
-  Package
+  Hash
 } from 'lucide-react';
 import SearchableSelect from '../../../components/shared/SearchableSelect';
 import { useBanksAPILazy } from '../../../hooks/useBanksAPILazy';
@@ -221,194 +216,184 @@ const AddEditBiayaRphPage = () => {
 
   if (loadingData) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/40 to-cyan-50/60 flex items-center justify-center">
+      <div className="flex h-screen flex-col bg-slate-50 overflow-hidden items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-10 h-10 text-emerald-600 animate-spin mx-auto mb-3" />
-          <p className="text-gray-500 font-medium">Memuat data...</p>
+          <p className="text-sm text-slate-500 font-medium">Memuat data...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/40 to-cyan-50/60 p-2 sm:p-4 md:p-6">
-      <div className="w-full max-w-none mx-0 space-y-6">
-        <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-100">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
+    <>
+      <div className="flex h-screen flex-col bg-slate-50 overflow-hidden">
+        {/* === Sticky Header === */}
+        <header className="shrink-0 border-b border-slate-200 bg-white">
+          <div className="flex items-center justify-between gap-4 px-4 sm:px-6 py-3">
+            <div className="flex items-center gap-3 min-w-0">
               <button
                 onClick={handleBack}
-                className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors"
+                className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors shrink-0"
               >
-                <ArrowLeft className="w-6 h-6 text-gray-600" />
+                <ArrowLeft className="h-4 w-4" />
               </button>
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 flex items-center gap-3">
-                  <ReceiptText className="w-8 h-8 text-emerald-600" />
-                  {isEditMode ? 'Edit Biaya RPH Bank/Kas' : 'Tambah Biaya RPH Bank/Kas'}
-                </h1>
-                <p className="text-gray-500 mt-1">
-                  {isEditMode ? 'Perbarui data biaya bank/kas RPH' : 'Tambahkan data biaya bank/kas RPH baru'}
-                </p>
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 shrink-0">
+                  <ReceiptText className="h-4 w-4" />
+                </div>
+                <div className="min-w-0">
+                  <h1 className="text-base font-bold tracking-tight text-slate-900 truncate">
+                    {isEditMode ? 'Edit Biaya RPH' : 'Tambah Biaya RPH'}
+                  </h1>
+                  <p className="text-xs text-slate-500 truncate hidden sm:block">
+                    {isEditMode ? 'Perbarui data biaya operasional RPH' : 'Tambahkan data biaya operasional RPH baru'}
+                  </p>
+                </div>
               </div>
             </div>
-            <button
-              onClick={handleSubmit}
-              disabled={loading}
-              className="hidden sm:flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-cyan-600 text-white rounded-2xl px-6 py-2.5 shadow-lg hover:shadow-xl transition-all duration-200 font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              {loading ? 'Menyimpan...' : 'Simpan'}
-            </button>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={handleBack}
+                className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={loading}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                {loading ? 'Menyimpan...' : isEditMode ? 'Perbarui' : 'Simpan'}
+              </button>
+            </div>
           </div>
-        </div>
+        </header>
 
-        <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-100">
-          <div className="flex flex-col gap-1 mb-5">
-            <h2 className="text-lg font-bold text-gray-900">Data Biaya RPH</h2>
-            <p className="text-sm text-gray-500">Lengkapi informasi pembayaran bank/kas untuk kebutuhan operasional.</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-            <div>
-              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
-                <Package className="w-4 h-4" />
-                Item Biaya <span className="text-red-500 ml-1">*</span>
-              </label>
-              <SearchableSelect
-                value={formData.id_item_lain}
-                onChange={(v) => handleChange('id_item_lain', String(v))}
-                options={biayaItemOptions}
-                placeholder={itemLoading ? 'Memuat item...' : 'Pilih item biaya'}
-                isLoading={itemLoading}
-                isDisabled={itemLoading}
-                maxMenuHeight={210}
-              />
-              {itemError && <p className="text-xs text-orange-500 mt-1">⚠️ {itemError}</p>}
-            </div>
-
-            <div>
-              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
-                <UserCircle className="w-4 h-4" />
-                Nama Bayar <span className="text-red-500 ml-1">*</span>
-              </label>
-              <input
-                type="text"
-                value={formData.nama_bayar}
-                onChange={(e) => handleChange('nama_bayar', e.target.value)}
-                maxLength={100}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm transition-all duration-200"
-                placeholder="Masukkan nama pembayaran"
-              />
-            </div>
-
-            <div>
-              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
-                <CalendarDays className="w-4 h-4" />
-                Tanggal Pembayaran <span className="text-red-500 ml-1">*</span>
-              </label>
-              <input
-                type="date"
-                value={formData.tanggal_pembayaran}
-                onChange={(e) => handleChange('tanggal_pembayaran', e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm transition-all duration-200"
-              />
-            </div>
-
-            <div>
-              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
-                <Wallet className="w-4 h-4" />
-                Harga <span className="text-red-500 ml-1">*</span>
-              </label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-gray-500">Rp</span>
-                <input
-                  type="text"
-                  value={formData.harga ? formatNumber(parseNumber(formData.harga)) : ''}
-                  onChange={(e) => handleCurrencyChange('harga', e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm transition-all duration-200 text-right"
-                  placeholder="0"
-                />
+        {/* === Main Content === */}
+        <div className="flex-1 min-h-0 overflow-auto p-4 sm:px-6">
+          <div className="flex flex-col gap-4">
+            {/* Data Biaya Section */}
+            <section className="rounded-xl border border-slate-200 bg-white">
+              <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-slate-100">
+                <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-2">
+                  <Hash className="h-3.5 w-3.5 text-emerald-600" />
+                  Data Biaya
+                </h3>
               </div>
-            </div>
+              <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Item Biaya *</label>
+                  <SearchableSelect
+                    value={formData.id_item_lain}
+                    onChange={(v) => handleChange('id_item_lain', String(v))}
+                    options={biayaItemOptions}
+                    placeholder={itemLoading ? 'Memuat...' : 'Pilih item biaya'}
+                    isLoading={itemLoading}
+                    isDisabled={itemLoading}
+                    maxMenuHeight={210}
+                  />
+                  {itemError && <p className="text-[10px] text-orange-500 mt-1">{itemError}</p>}
+                </div>
 
-            <div>
-              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
-                <CreditCard className="w-4 h-4" />
-                Jenis Pembelian <span className="text-red-500 ml-1">*</span>
-              </label>
-              <SearchableSelect
-                value={formData.jenis_pembelian}
-                onChange={(v) => handleChange('jenis_pembelian', String(v))}
-                options={jenisPembelianOptions}
-                placeholder="Pilih jenis pembayaran"
-              />
-            </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Nama Bayar *</label>
+                  <input
+                    type="text"
+                    value={formData.nama_bayar}
+                    onChange={(e) => handleChange('nama_bayar', e.target.value)}
+                    maxLength={100}
+                    className="w-full px-2.5 py-2 border border-slate-200 rounded-lg text-xs focus:border-emerald-400 focus:ring-1 focus:ring-emerald-100 outline-none"
+                    placeholder="Masukkan nama pembayaran"
+                  />
+                </div>
 
-            {String(formData.jenis_pembelian) === '1' && (
-              <div>
-                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
-                  <CreditCard className="w-4 h-4" />
-                  Bank Pengirim <span className="text-red-500 ml-1">*</span>
-                </label>
-                <SearchableSelect
-                  value={formData.bank_pengirim}
-                  onChange={(v) => handleChange('bank_pengirim', String(v))}
-                  options={filteredBankOptions}
-                  placeholder={banksLoading ? 'Memuat...' : 'Pilih Bank Pengirim'}
-                  isLoading={banksLoading}
-                  isDisabled={banksLoading}
-                />
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Tgl Pembayaran *</label>
+                  <input
+                    type="date"
+                    value={formData.tanggal_pembayaran}
+                    onChange={(e) => handleChange('tanggal_pembayaran', e.target.value)}
+                    className="w-full px-2.5 py-2 border border-slate-200 rounded-lg text-xs focus:border-emerald-400 focus:ring-1 focus:ring-emerald-100 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Harga *</label>
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-400">Rp</span>
+                    <input
+                      type="text"
+                      value={formData.harga ? formatNumber(parseNumber(formData.harga)) : ''}
+                      onChange={(e) => handleCurrencyChange('harga', e.target.value)}
+                      className="w-full pl-8 pr-2.5 py-2 border border-slate-200 rounded-lg text-xs focus:border-emerald-400 focus:ring-1 focus:ring-emerald-100 outline-none text-right tabular-nums"
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Jenis Pembelian *</label>
+                  <SearchableSelect
+                    value={formData.jenis_pembelian}
+                    onChange={(v) => handleChange('jenis_pembelian', String(v))}
+                    options={jenisPembelianOptions}
+                    placeholder="Pilih jenis"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">
+                    Bank Pengirim {String(formData.jenis_pembelian) === '1' && '*'}
+                  </label>
+                  {String(formData.jenis_pembelian) === '1' ? (
+                    <SearchableSelect
+                      value={formData.bank_pengirim}
+                      onChange={(v) => handleChange('bank_pengirim', String(v))}
+                      options={filteredBankOptions}
+                      placeholder={banksLoading ? 'Memuat...' : 'Pilih Bank'}
+                      isLoading={banksLoading}
+                      isDisabled={banksLoading}
+                    />
+                  ) : (
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value="[001] KAS"
+                        readOnly
+                        disabled
+                        className="w-full px-2.5 py-2 border border-slate-200 rounded-lg bg-slate-50 text-xs text-slate-400 cursor-not-allowed"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Peruntukkan</label>
+                  <input
+                    type="text"
+                    value={formData.peruntukkan}
+                    onChange={(e) => handleChange('peruntukkan', e.target.value)}
+                    maxLength={100}
+                    className="w-full px-2.5 py-2 border border-slate-200 rounded-lg text-xs focus:border-emerald-400 focus:ring-1 focus:ring-emerald-100 outline-none"
+                    placeholder="Masukkan peruntukkan (opsional)"
+                  />
+                </div>
+
+                <div className="md:col-span-2 lg:col-span-3 xl:col-span-4">
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Keterangan</label>
+                  <textarea
+                    value={formData.keterangan}
+                    onChange={(e) => handleChange('keterangan', e.target.value)}
+                    rows={3}
+                    maxLength={255}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:border-emerald-400 focus:ring-1 focus:ring-emerald-100 outline-none resize-none"
+                    placeholder="Catatan tambahan (opsional, maks 255 karakter)"
+                  />
+                </div>
               </div>
-            )}
-
-            <div>
-              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
-                <FileText className="w-4 h-4" />
-                Peruntukkan
-              </label>
-              <input
-                type="text"
-                value={formData.peruntukkan}
-                onChange={(e) => handleChange('peruntukkan', e.target.value)}
-                maxLength={100}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm transition-all duration-200"
-                placeholder="Masukkan peruntukkan (opsional)"
-              />
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
-                <FileText className="w-4 h-4" />
-                Keterangan
-              </label>
-              <textarea
-                value={formData.keterangan}
-                onChange={(e) => handleChange('keterangan', e.target.value)}
-                rows={3}
-                maxLength={255}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm resize-none transition-all duration-200"
-                placeholder="Catatan tambahan (opsional, maks 255 karakter)"
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-100">
-          <div className="flex flex-col sm:flex-row gap-3 justify-end">
-            <button
-              onClick={handleBack}
-              className="bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-2xl px-6 py-2.5 transition-all duration-200 font-semibold text-sm"
-            >
-              Batal
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={loading}
-              className="flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-500 to-cyan-600 text-white rounded-2xl px-6 py-2.5 shadow-lg hover:shadow-xl transition-all duration-200 font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              {loading ? 'Menyimpan...' : (isEditMode ? 'Perbarui Data' : 'Simpan Data')}
-            </button>
+            </section>
           </div>
         </div>
       </div>
@@ -452,7 +437,7 @@ const AddEditBiayaRphPage = () => {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 
