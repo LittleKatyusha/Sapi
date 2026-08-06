@@ -1,424 +1,715 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import DataTable from 'react-data-table-component';
-import { PlusCircle, Search, Filter, LayoutGrid, List } from 'lucide-react';
+import {
+  Plus, Filter, RotateCcw, Search, ArrowUpDown, ArrowUp, ArrowDown,
+  MoreVertical, Eye, Pencil, Trash2, Tag, AlertCircle,
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, X,
+} from 'lucide-react';
 
-// Import komponen UI yang sudah dipisahkan
-import StatusBadgeNew from './eartag/components/StatusBadgeNew';
-import ActionButton from './eartag/components/ActionButton';
-import CardView from './eartag/components/CardView';
-
-// Import modal yang sudah dipisahkan
-import AddEditEartagModalNew from './eartag/modals/AddEditEartagModalNew';
-import EartagDetailModalNew from './eartag/modals/EartagDetailModalNew';
-import DeleteConfirmationModal from './eartag/modals/DeleteConfirmationModal';
-
-// Import custom hook yang sudah dipisahkan
 import useEartagsAPI from './eartag/hooks/useEartagsAPI';
+import AddEditEartagModalNew from './eartag/modals/AddEditEartagModalNew';
+import DeleteConfirmationModal from './eartag/modals/DeleteConfirmationModal';
+import Notification from './pembeliHo/components/Notification';
 
-// Import constants yang sudah dipisahkan
-import customTableStyles from './eartag/constants/tableStyles';
+const STORAGE_KEY = 'eartag_state_v1';
 
 const EartagPage = () => {
-    // State management
-    const [showAddModal, setShowAddModal] = useState(false);
-    const [showEditModal, setShowEditModal] = useState(false);
-    const [showDetailModal, setShowDetailModal] = useState(false);
-    const [editData, setEditData] = useState(null);
-    const [detailData, setDetailData] = useState(null);
-    const [deleteData, setDeleteData] = useState(null);
-    const [isDeleting, setIsDeleting] = useState(false);
-    const [openMenuId, setOpenMenuId] = useState(null);
-    const [viewMode, setViewMode] = useState('table'); // 'table' atau 'card'
-    
-    // State untuk pagination card view
-    const [cardCurrentPage, setCardCurrentPage] = useState(1);
-    const [cardItemsPerPage, setCardItemsPerPage] = useState(12);
-    
-    // Custom hook untuk data management
-    const {
-        eartags: filteredData,
-        loading,
-        error,
-        searchTerm,
-        setSearchTerm,
-        filterStatus,
-        setFilterStatus,
-        filterUsedStatus,
-        setFilterUsedStatus,
-        stats,
-        fetchEartags,
-        createEartag,
-        updateEartag,
-        deleteEartag
-    } = useEartagsAPI();
+  const {
+    loading, error, fetchEartags,
+    createEartag, updateEartag, deleteEartag,
+    mapUsedStatusToText,
+  } = useEartagsAPI();
 
-    // Fetch data saat komponen dimuat - fetch semua data dengan pagination yang besar
-    useEffect(() => {
-        fetchEartags(1, 100); // Fetch page 1 dengan 100 items per page
-    }, [fetchEartags]);
+  const [data, setData] = useState([]);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const [filteredRecords, setFilteredRecords] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
+  const [sortCol, setSortCol] = useState(1);
+  const [sortDir, setSortDir] = useState('asc');
 
-    // Event handlers
-    const handleAdd = useCallback(() => {
-        setEditData(null);
-        setShowAddModal(true);
-    }, []);
+  const [filterInput, setFilterInput] = useState({ kode: '', used_status: '' });
+  const [appliedFilters, setAppliedFilters] = useState({ kode: '', used_status: '' });
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
 
-    const handleEdit = useCallback((item) => {
-        setEditData(item);
-        setShowEditModal(true);
-    }, []);
+  const [showModal, setShowModal] = useState(false);
+  const [editData, setEditData] = useState(null);
+  const [deleteData, setDeleteData] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [notification, setNotification] = useState({ isVisible: false, type: 'info', message: '' });
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const [detailRow, setDetailRow] = useState(null);
 
-    const handleDelete = useCallback((item) => {
-        setDeleteData(item);
-    }, []);
+  const stateRef = useRef({});
+  stateRef.current = { currentPage, perPage, sortCol, sortDir, appliedFilters };
 
-    const handleConfirmDelete = useCallback(async () => {
-        if (!deleteData) return;
-        setIsDeleting(true);
-        
-        const result = await deleteEartag(deleteData.pid);
-        
+  const showNotif = useCallback((type, message) => {
+    setNotification({ isVisible: true, type, message });
+  }, []);
+
+  const hasAppliedFilters = useMemo(
+    () => Object.values(appliedFilters).some((v) => v !== '' && v !== null && v !== undefined),
+    [appliedFilters]
+  );
+
+  const startIdx = totalRecords === 0 ? 0 : (currentPage - 1) * perPage + 1;
+  const endIdx = Math.min(currentPage * perPage, filteredRecords);
+  const totalPages = Math.max(1, Math.ceil(filteredRecords / perPage));
+
+  const loadData = useCallback(async () => {
+    const { currentPage: cp, perPage: pp, sortCol: sc, sortDir: sd, appliedFilters: af } = stateRef.current;
+    const result = await fetchEartags({
+      start: (cp - 1) * pp,
+      length: pp,
+      orderColumn: sc,
+      orderDir: sd,
+      filters: af,
+    });
+    if (result.success) {
+      setData(result.data || []);
+      setTotalRecords(result.recordsTotal || 0);
+      setFilteredRecords(result.recordsFiltered || 0);
+    }
+  }, [fetchEartags]);
+
+  const [fetchTrigger, setFetchTrigger] = useState(0);
+  useEffect(() => {
+    if (fetchTrigger > 0) loadData();
+  }, [fetchTrigger, loadData]);
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(STORAGE_KEY) || '{}');
+      if (saved.filterInput) setFilterInput(saved.filterInput);
+      if (saved.appliedFilters) setAppliedFilters(saved.appliedFilters);
+      if (saved.perPage) setPerPage(saved.perPage);
+      if (saved.sortCol !== undefined) setSortCol(saved.sortCol);
+      if (saved.sortDir) setSortDir(saved.sortDir);
+      if (saved.currentPage) setCurrentPage(saved.currentPage);
+    } catch {}
+    setFetchTrigger((t) => t + 1);
+  }, []);
+
+  useEffect(() => {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
+      filterInput, appliedFilters, perPage, sortCol, sortDir, currentPage,
+    }));
+  }, [filterInput, appliedFilters, perPage, sortCol, sortDir, currentPage]);
+
+  const handleFilterChange = useCallback((field, value) => {
+    setFilterInput((prev) => ({ ...prev, [field]: value }));
+  }, []);
+
+  const handleApplyFilter = useCallback(() => {
+    setAppliedFilters(filterInput);
+    setCurrentPage(1);
+    setFetchTrigger((t) => t + 1);
+  }, [filterInput]);
+
+  const handleResetFilter = useCallback(() => {
+    const empty = { kode: '', used_status: '' };
+    setFilterInput(empty);
+    setAppliedFilters(empty);
+    setCurrentPage(1);
+    setFetchTrigger((t) => t + 1);
+  }, []);
+
+  const handleSort = useCallback((colIdx) => {
+    if (sortCol === colIdx) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortCol(colIdx);
+      setSortDir('asc');
+    }
+    setFetchTrigger((t) => t + 1);
+  }, [sortCol]);
+
+  const handlePerPageChange = useCallback((n) => {
+    setPerPage(n);
+    setCurrentPage(1);
+    setFetchTrigger((t) => t + 1);
+  }, []);
+
+  const handlePageChange = useCallback((p) => {
+    if (p < 1 || p > totalPages) return;
+    setCurrentPage(p);
+    setFetchTrigger((t) => t + 1);
+  }, [totalPages]);
+
+  const handleSave = useCallback(async (payload) => {
+    try {
+      if (editData) {
+        const result = await updateEartag(editData.pid || editData.pubid, payload);
         if (result.success) {
-            setDeleteData(null);
+          showNotif('success', 'Eartag berhasil diperbarui');
+          setShowModal(false);
+          setEditData(null);
+          setFetchTrigger((t) => t + 1);
         } else {
-            console.error('Error deleting eartag:', result.message);
+          showNotif('error', result.message || 'Gagal memperbarui data');
         }
-        
-        setIsDeleting(false);
-    }, [deleteData, deleteEartag]);
-
-    const handleDetail = useCallback((item) => {
-        setDetailData(item);
-        setShowDetailModal(true);
-    }, []);
-
-    const handleSave = useCallback(async (formData) => {
-        let result;
-        
-        if (editData) {
-            // Update mode
-            result = await updateEartag(editData.pid, formData);
-        } else {
-            // Create mode
-            result = await createEartag(formData);
-        }
-        
+      } else {
+        const result = await createEartag(payload);
         if (result.success) {
-            setShowAddModal(false);
-            setShowEditModal(false);
-            setEditData(null);
+          showNotif('success', 'Eartag berhasil ditambahkan');
+          setShowModal(false);
+          setFetchTrigger((t) => t + 1);
         } else {
-            console.error('Error saving eartag:', result.message);
+          showNotif('error', result.message || 'Gagal menambahkan data');
         }
-    }, [editData, updateEartag, createEartag]);
+      }
+    } catch (err) {
+      showNotif('error', err.message || 'Gagal menyimpan data');
+    }
+  }, [editData, updateEartag, createEartag, showNotif]);
 
-    // Handler untuk pagination card view
-    const handleCardPageChange = useCallback((page) => {
-        setCardCurrentPage(page);
-    }, []);
+  const handleConfirmDelete = useCallback(async () => {
+    if (!deleteData) return;
+    setIsDeleting(true);
+    try {
+      const result = await deleteEartag(deleteData.pid || deleteData.pubid);
+      if (result.success) {
+        setDeleteData(null);
+        showNotif('success', 'Eartag berhasil dihapus');
+        setFetchTrigger((t) => t + 1);
+      } else {
+        showNotif('error', result.message || 'Gagal menghapus data');
+      }
+    } catch (err) {
+      showNotif('error', err.message || 'Gagal menghapus data');
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [deleteData, deleteEartag, showNotif]);
 
-    const handleCardItemsPerPageChange = useCallback((itemsPerPage) => {
-        setCardItemsPerPage(itemsPerPage);
-        setCardCurrentPage(1); // Reset ke halaman pertama saat mengubah items per page
-    }, []);
+  const handleEditItem = useCallback((item) => {
+    setEditData(item);
+    setShowModal(true);
+  }, []);
 
-    // Reset pagination card view saat viewMode berubah
-    const handleViewModeChange = useCallback((mode) => {
-        setViewMode(mode);
-        if (mode === 'card') {
-            setCardCurrentPage(1); // Reset ke halaman pertama saat switch ke card view
-        }
-    }, []);
+  const handleDeleteItem = useCallback((item) => {
+    setDeleteData(item);
+  }, []);
 
-    // Table columns configuration
-    const columns = useMemo(() => [
-        {
-            name: 'Kode Eartag',
-            selector: row => row.kode,
-            sortable: true,
-            minWidth: '140px',
-            width: '22%', // Increased width karena kolom status dihapus
-            cell: row => (
-                <div className="flex items-center justify-center w-full">
-                    <div className="font-mono font-semibold text-gray-800 text-sm break-words text-center">
-                        {row.kode || row.id}
-                    </div>
-                </div>
-            )
-        },
-        // Status Aktif column removed - field tidak ada di backend database
-        {
-            name: 'Status Pemasangan',
-            selector: row => row.used_status,
-            sortable: true,
-            minWidth: '150px',
-            width: '25%', // Increased width karena kolom status dihapus
-            cell: row => (
-                <div className="flex items-center justify-center w-full">
-                    <StatusBadgeNew status={row.used_status} type="used" />
-                </div>
-            )
-        },
-        {
-            name: 'Tanggal Pemasangan',
-            selector: row => row.tanggalPemasangan,
-            sortable: true,
-            minWidth: '180px',
-            width: '35%', // Increased width karena kolom status dihapus
-            cell: row => (
-                <div className="flex items-center justify-center w-full">
-                    <div className="text-sm text-gray-600 text-center break-words">
-                        {row.tanggalPemasangan || (
-                            <span className="text-amber-600 bg-amber-50 px-3 py-1.5 rounded-full text-xs font-medium">
-                                Belum Terpasang
-                            </span>
-                        )}
-                    </div>
-                </div>
-            )
-        },
-        {
-            name: 'Aksi',
-            minWidth: '80px',
-            width: '18%', // Increased width karena kolom status dihapus
-            cell: row => (
-                <div className="flex items-center justify-center w-full">
-                    <ActionButton
-                        row={row}
-                        openMenuId={openMenuId}
-                        setOpenMenuId={setOpenMenuId}
-                        onEdit={handleEdit}
-                        onDelete={handleDelete}
-                        onDetail={handleDetail}
-                        isActive={openMenuId === row.kode || openMenuId === row.id}
-                        usePortal={true}
-                    />
-                </div>
-            ),
-            ignoreRowClick: true
-        }
-    ], [openMenuId, handleEdit, handleDelete, handleDetail]);
+  const columns = useMemo(() => {
+    const startIdxBase = (currentPage - 1) * perPage;
+    const renderSortIcon = (colIdx) => {
+      if (sortCol !== colIdx) return <ArrowUpDown className="h-3 w-3 text-slate-300" />;
+      return sortDir === 'asc'
+        ? <ArrowUp className="h-3 w-3 text-emerald-600" />
+        : <ArrowDown className="h-3 w-3 text-emerald-600" />;
+    };
 
-    return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-2 sm:p-4 md:p-6">
-            <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
-                {/* Header Section */}
-                <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-xl border border-gray-100">
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-1 sm:mb-2">
-                                Manajemen Eartag
-                            </h1>
-                            <p className="text-gray-600 text-sm sm:text-base">
-                                Kelola dan pantau eartag ternak dengan mudah
-                            </p>
-                        </div>
-                        <div className="flex flex-col gap-2 sm:flex-row sm:gap-4">
-                            <button
-                                onClick={handleAdd}
-                                className="bg-gradient-to-r from-red-500 to-rose-600 text-white px-4 py-2 sm:px-6 sm:py-3 rounded-xl sm:rounded-2xl hover:from-red-600 hover:to-rose-700 transition-all duration-300 flex items-center gap-2 font-medium shadow-lg hover:shadow-xl text-sm sm:text-base"
-                            >
-                                <PlusCircle className="w-5 h-5" />
-                                Tambah Eartag
-                            </button>
-                        </div>
-                    </div>
-                </div>
+    return [
+      {
+        name: <div className="flex items-center gap-1"><span>No</span></div>,
+        width: '52px',
+        center: true,
+        cell: (row, index) => (
+          <div className="w-full text-center text-xs font-medium text-slate-400">{startIdxBase + index + 1}</div>
+        ),
+      },
+      {
+        name: (
+          <button
+            type="button"
+            onClick={() => handleSort(1)}
+            className="flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900"
+          >
+            <span>Kode Eartag</span>
+            {renderSortIcon(1)}
+          </button>
+        ),
+        grow: 1.6,
+        minWidth: '200px',
+        cell: (row) => (
+          <div className="py-1.5 min-w-0 flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-rose-50 text-rose-600 shrink-0">
+              <Tag className="h-3.5 w-3.5" />
+            </div>
+            <div className="text-sm font-semibold text-slate-800 truncate font-mono">{row.kode}</div>
+          </div>
+        ),
+      },
+      {
+        name: (
+          <button
+            type="button"
+            onClick={() => handleSort(2)}
+            className="flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900"
+          >
+            <span>Status Pemasangan</span>
+            {renderSortIcon(2)}
+          </button>
+        ),
+        width: '180px',
+        cell: (row) => (
+          <span
+            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+              row.used_status === 1
+                ? 'bg-emerald-50 text-emerald-700'
+                : 'bg-slate-100 text-slate-600'
+            }`}
+          >
+            {mapUsedStatusToText(row.used_status)}
+          </span>
+        ),
+      },
+      {
+        name: (
+          <button
+            type="button"
+            onClick={() => handleSort(3)}
+            className="flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900"
+          >
+            <span>Dibuat</span>
+            {renderSortIcon(3)}
+          </button>
+        ),
+        width: '140px',
+        cell: (row) => (
+          <span className="text-xs text-slate-500">{row.created_at || '-'}</span>
+        ),
+      },
+      {
+        name: 'Aksi',
+        width: '64px',
+        center: true,
+        ignoreRowClick: true,
+        cell: (row) => (
+          <ActionMenu
+            row={row}
+            isOpen={openMenuId === (row.pid || row.pubid)}
+            onToggle={() => setOpenMenuId((cur) => (cur === (row.pid || row.pubid) ? null : (row.pid || row.pubid)))}
+            onClose={() => setOpenMenuId(null)}
+            onDetail={(r) => { setDetailRow(r); setOpenMenuId(null); }}
+            onEdit={(r) => { handleEditItem(r); setOpenMenuId(null); }}
+            onDelete={(r) => { handleDeleteItem(r); setOpenMenuId(null); }}
+          />
+        ),
+      },
+    ];
+  }, [currentPage, perPage, sortCol, sortDir, handleSort, openMenuId, handleEditItem, handleDeleteItem, mapUsedStatusToText]);
 
-                {/* Stats Cards */}
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4 md:gap-6">
-                    <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg">
-                        <h3 className="text-xs sm:text-sm font-medium opacity-90">Total Eartag</h3>
-                        <p className="text-xl sm:text-3xl font-bold">{stats.total}</p>
-                    </div>
-                    <div className="bg-gradient-to-br from-green-500 to-emerald-600 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg">
-                        <h3 className="text-xs sm:text-sm font-medium opacity-90">Aktif</h3>
-                        <p className="text-xl sm:text-3xl font-bold">{stats.active}</p>
-                    </div>
-                    <div className="bg-gradient-to-br from-orange-500 to-amber-600 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg">
-                        <h3 className="text-xs sm:text-sm font-medium opacity-90">Digunakan</h3>
-                        <p className="text-xl sm:text-3xl font-bold">{stats.inUse}</p>
-                    </div>
-                    <div className="bg-gradient-to-br from-red-500 to-rose-600 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg">
-                        <h3 className="text-xs sm:text-sm font-medium opacity-90">Nonaktif</h3>
-                        <p className="text-xl sm:text-3xl font-bold">{stats.inactive}</p>
-                    </div>
-                </div>
+  const customTableStyles = {
+    headRow: {
+      style: {
+        backgroundColor: '#F8FAFC',
+        borderBottom: '1px solid #E2E8F0',
+        fontSize: '12px',
+        fontWeight: '600',
+        color: '#475569',
+        minHeight: '38px',
+      },
+    },
+    headCells: { style: { paddingLeft: '12px', paddingRight: '12px' } },
+    rows: {
+      style: {
+        fontSize: '13px',
+        color: '#1E293B',
+        minHeight: '44px',
+        '&:hover': { backgroundColor: '#F8FAFC', cursor: 'pointer' },
+      },
+    },
+    cells: { style: { paddingLeft: '12px', paddingRight: '12px' } },
+  };
 
-                {/* Filters and Search */}
-                <div className="bg-white rounded-2xl p-3 sm:p-6 shadow-lg border border-gray-100">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 sm:items-center sm:justify-between">
-                        {/* Search */}
-                        <div className="relative flex-1 max-w-full sm:max-w-md">
-                            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                            <input
-                                type="text"
-                                placeholder="Cari eartag..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-12 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors duration-200 text-sm sm:text-base"
-                            />
-                        </div>
+  return (
+    <div className="flex h-screen flex-col bg-slate-50 overflow-hidden">
+      <header className="shrink-0 border-b border-slate-200 bg-white">
+        <div className="flex items-center justify-between gap-4 px-4 sm:px-6 py-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-rose-50 text-rose-600 shrink-0">
+              <Tag className="h-4 w-4" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-base font-bold tracking-tight text-slate-900 truncate">Master Eartag</h1>
+              <p className="text-xs text-slate-500 truncate hidden sm:block">Kelola data master eartag ternak</p>
+            </div>
+          </div>
+          <button
+            onClick={() => { setEditData(null); setShowModal(true); }}
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-rose-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-rose-700 transition-colors shrink-0"
+          >
+            <Plus className="h-4 w-4" />
+            Tambah
+          </button>
+        </div>
+      </header>
 
-                        {/* Filters */}
-                        <div className="flex flex-wrap gap-2 sm:gap-3">
-                            {/* Filter status aktif removed - field tidak ada di backend database */}
-                            <div className="flex items-center gap-2">
-                                <Filter className="w-4 h-4 text-gray-500" />
-                                <select
-                                value={filterUsedStatus}
-                                onChange={(e) => setFilterUsedStatus(e.target.value)}
-                                className="px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 text-xs sm:text-sm"
-                            >
-                                <option value="all">Semua Status Pemasangan</option>
-                                <option value="used">Sudah Terpasang</option>
-                                <option value="unused">Belum Terpasang</option>
-                            </select>
-                            </div>
-
-                            {/* View Mode Toggle */}
-                            <div className="flex bg-gray-100 rounded-xl p-1">
-                                <button
-                                    onClick={() => handleViewModeChange('table')}
-                                    className={`px-2.5 py-2 rounded-lg transition-colors duration-200 text-xs sm:text-base ${
-                                        viewMode === 'table'
-                                            ? 'bg-white text-red-600 shadow-sm'
-                                            : 'text-gray-600 hover:text-red-600'
-                                    }`}
-                                >
-                                    <List className="w-4 h-4" />
-                                </button>
-                                <button
-                                    onClick={() => handleViewModeChange('card')}
-                                    className={`px-2.5 py-2 rounded-lg transition-colors duration-200 text-xs sm:text-base ${
-                                        viewMode === 'card'
-                                            ? 'bg-white text-red-600 shadow-sm'
-                                            : 'text-gray-600 hover:text-red-600'
-                                    }`}
-                                >
-                                    <LayoutGrid className="w-4 h-4" />
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Data Display */}
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 relative overflow-hidden flex flex-col min-h-[500px]">
-                    {/* Overlay anti-hover row, hanya muncul saat menu aktif */}
-                    {openMenuId && viewMode === 'table' && (
-                        <div
-                            className="absolute inset-0 z-[99998] bg-transparent pointer-events-auto"
-                            style={{cursor: 'default'}}
-                        />
-                    )}
-                    <div className="flex-1 flex flex-col">
-                        {viewMode === 'table' ? (
-                            <div className={`w-full h-full overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 ${openMenuId ? 'pointer-events-none' : ''} flex-1 flex flex-col`}>
-                                <div className="h-full flex-1 flex flex-col">
-                                    <div className="w-full flex-1" style={{display: 'flex', flexDirection: 'column', height: '100%'}}>
-                                        <DataTable
-                                            columns={columns}
-                                            data={filteredData}
-                                            pagination
-                                            paginationPerPage={10}
-                                            paginationRowsPerPageOptions={[5, 10, 15, 20]}
-                                            style={{ width: '100%' }}
-                                            customStyles={{
-                                                ...customTableStyles,
-                                                table: {
-                                                    ...customTableStyles.table,
-                                                    style: {
-                                                        ...customTableStyles.table.style,
-                                                        width: '100%',
-                                                        maxWidth: '100%',
-                                                    }
-                                                }
-                                            }}
-                                            progressPending={loading}
-                                            progressComponent={
-                                                <div className="flex items-center justify-center py-12">
-                                                    <div className="text-center">
-                                                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto"></div>
-                                                        <p className="text-gray-500 text-sm mt-2">Memuat data...</p>
-                                                    </div>
-                                                </div>
-                                            }
-                                            noDataComponent={
-                                                <div className="flex items-center justify-center py-12">
-                                                    <div className="text-center">
-                                                        {error ? (
-                                                            <div className="text-red-600">
-                                                                <p className="text-lg font-semibold">Error</p>
-                                                                <p className="text-sm">{error}</p>
-                                                            </div>
-                                                        ) : (
-                                                            <p className="text-gray-500 text-lg">Tidak ada data eartag ditemukan</p>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            }
-                                            responsive={false}
-                                            highlightOnHover={false}
-                                            pointerOnHover={false}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="p-2 sm:p-6 flex-1 flex flex-col">
-                                <CardView
-                                    data={filteredData}
-                                    onEdit={handleEdit}
-                                    onDelete={handleDelete}
-                                    onDetail={handleDetail}
-                                    openMenuId={openMenuId}
-                                    setOpenMenuId={setOpenMenuId}
-                                    loading={loading}
-                                    error={error}
-                                    currentPage={cardCurrentPage}
-                                    itemsPerPage={cardItemsPerPage}
-                                    onPageChange={handleCardPageChange}
-                                    onItemsPerPageChange={handleCardItemsPerPageChange}
-                                    itemsPerPageOptions={[6, 12, 18, 24]}
-                                />
-                            </div>
-                        )}
-                    </div>
-                </div>
+      <div className="flex-1 min-h-0 overflow-auto p-4 sm:px-6">
+        <div className="rounded-xl border border-slate-200 bg-white flex flex-col">
+          <div className="shrink-0 flex flex-col gap-3 border-b border-slate-100 px-4 py-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setShowFilterPanel((v) => !v)}
+                className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${
+                  showFilterPanel || hasAppliedFilters
+                    ? 'border-rose-200 bg-rose-50 text-rose-700'
+                    : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                <Filter className="h-3.5 w-3.5" />
+                Filter
+                {hasAppliedFilters && (
+                  <span className="inline-flex items-center justify-center rounded-full bg-rose-600 px-1.5 text-[10px] font-bold text-white">
+                    {Object.values(appliedFilters).filter((v) => v !== '' && v !== null && v !== undefined).length}
+                  </span>
+                )}
+              </button>
+              {hasAppliedFilters && (
+                <button
+                  type="button"
+                  onClick={handleResetFilter}
+                  className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+                >
+                  <RotateCcw className="h-3 w-3" />
+                  Reset
+                </button>
+              )}
+              <div className="ml-auto text-xs text-slate-500 hidden sm:block">
+                <span className="font-semibold text-slate-700">{filteredRecords.toLocaleString('id-ID')}</span>
+                {hasAppliedFilters && filteredRecords !== totalRecords && (
+                  <span className="text-slate-400"> dari {totalRecords.toLocaleString('id-ID')}</span>
+                )} data
+              </div>
             </div>
 
-            {/* Modals */}
-            <AddEditEartagModalNew
-                isOpen={showAddModal || showEditModal}
-                onClose={() => {
-                    setShowAddModal(false);
-                    setShowEditModal(false);
-                    setEditData(null);
-                }}
-                onSave={handleSave}
-                editData={editData}
-            />
+            {showFilterPanel && (
+              <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                  <input
+                    type="text"
+                    value={filterInput.kode}
+                    onChange={(e) => handleFilterChange('kode', e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleApplyFilter(); }}
+                    placeholder="Kode eartag"
+                    className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-rose-400 focus:ring-1 focus:ring-rose-100"
+                  />
+                  <select
+                    value={filterInput.used_status}
+                    onChange={(e) => handleFilterChange('used_status', e.target.value)}
+                    className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-rose-400 focus:ring-1 focus:ring-rose-100"
+                  >
+                    <option value="">Semua Status Pemasangan</option>
+                    <option value="0">Belum Terpasang</option>
+                    <option value="1">Sudah Terpasang</option>
+                  </select>
+                </div>
+                <div className="flex justify-end gap-1.5 mt-2.5">
+                  <button
+                    type="button"
+                    onClick={handleResetFilter}
+                    className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+                  >
+                    <RotateCcw className="h-3 w-3" />
+                    Reset
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleApplyFilter}
+                    className="inline-flex items-center gap-1 rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-rose-700 transition-colors"
+                  >
+                    <Search className="h-3 w-3" />
+                    Terapkan
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
 
-            <EartagDetailModalNew
-                isOpen={showDetailModal}
-                onClose={() => {
-                    setShowDetailModal(false);
-                    setDetailData(null);
-                }}
-                data={detailData}
-            />
+          {error && (
+            <div className="mx-4 mt-3 bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-xs">
+              {error}
+            </div>
+          )}
 
-            <DeleteConfirmationModal
-                isOpen={!!deleteData}
-                onClose={() => { setDeleteData(null); setIsDeleting(false); }}
-                onConfirm={handleConfirmDelete}
-                title={`Hapus Eartag "${deleteData?.kode || deleteData?.id || ''}"?`}
-                description="Tindakan ini akan menghapus kode eartag secara permanen dan tidak dapat dibatalkan."
-                loading={isDeleting}
+          <div className="flex-1 min-h-0 overflow-auto">
+            <DataTable
+              columns={columns}
+              data={data}
+              customStyles={customTableStyles}
+              progressPending={loading}
+              progressComponent={<SkeletonRows />}
+              noDataComponent={
+                <div className="py-12 text-center">
+                  <AlertCircle className="mx-auto h-8 w-8 text-slate-300" />
+                  <p className="mt-2 text-sm font-semibold text-slate-600">Tidak ada data ditemukan</p>
+                  <p className="mt-1 text-xs text-slate-400">
+                    {hasAppliedFilters ? 'Coba ubah filter atau reset' : 'Belum ada eartag terdaftar'}
+                  </p>
+                </div>
+              }
+              highlightOnHover
+              pointerOnHover
+              responsive
+              dense
+              onRowClicked={(row) => setDetailRow(row)}
+              pagination={false}
+              fixedHeader={false}
             />
+          </div>
+
+          <div className="shrink-0 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-t border-slate-100 px-4 py-2.5 bg-white">
+            <div className="flex items-center gap-2 text-xs text-slate-600">
+              <span>Baris:</span>
+              <select
+                value={perPage}
+                onChange={(e) => handlePerPageChange(Number(e.target.value))}
+                className="rounded-md border border-slate-200 bg-white px-1.5 py-1 text-xs outline-none focus:border-rose-400 focus:ring-1 focus:ring-rose-100"
+              >
+                {[10, 25, 50, 100].map((n) => (
+                  <option key={n} value={n}>{n}</option>
+                ))}
+              </select>
+              <span className="text-slate-500">
+                {filteredRecords === 0 ? '0-0' : `${startIdx}-${endIdx}`} dari{' '}
+                <span className="font-semibold text-slate-700">{filteredRecords.toLocaleString('id-ID')}</span>
+                {hasAppliedFilters && filteredRecords !== totalRecords && (
+                  <span className="text-slate-400"> (filter dari {totalRecords.toLocaleString('id-ID')})</span>
+                )}
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => handlePageChange(1)}
+                disabled={currentPage <= 1 || loading}
+                className="rounded-md border border-slate-200 p-1.5 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                title="Halaman pertama"
+              >
+                <ChevronsLeft className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage <= 1 || loading}
+                className="rounded-md border border-slate-200 p-1.5 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                title="Prev"
+              >
+                <ChevronLeft className="h-3.5 w-3.5" />
+              </button>
+              <div className="flex items-center gap-1 px-2 text-xs text-slate-600">
+                <span>Hal</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={totalPages}
+                  value={currentPage}
+                  onChange={(e) => {
+                    const p = Number(e.target.value);
+                    if (p >= 1 && p <= totalPages) handlePageChange(p);
+                  }}
+                  className="w-12 rounded-md border border-slate-200 px-1.5 py-1 text-xs text-center outline-none focus:border-rose-400 focus:ring-1 focus:ring-rose-100"
+                />
+                <span>/ {totalPages.toLocaleString('id-ID')}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage >= totalPages || loading}
+                className="rounded-md border border-slate-200 p-1.5 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                title="Next"
+              >
+                <ChevronRight className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => handlePageChange(totalPages)}
+                disabled={currentPage >= totalPages || loading}
+                className="rounded-md border border-slate-200 p-1.5 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                title="Halaman terakhir"
+              >
+                <ChevronsRight className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
         </div>
-    );
+      </div>
+
+      {showModal && (
+        <AddEditEartagModalNew
+          isOpen={showModal}
+          editData={editData}
+          onClose={() => { setShowModal(false); setEditData(null); }}
+          onSave={handleSave}
+        />
+      )}
+
+      {detailRow && (
+        <DetailDrawer
+          row={detailRow}
+          onClose={() => setDetailRow(null)}
+          onEdit={(r) => { setDetailRow(null); handleEditItem(r); }}
+          onDelete={(r) => { setDetailRow(null); handleDeleteItem(r); }}
+        />
+      )}
+
+      <DeleteConfirmationModal
+        isOpen={!!deleteData}
+        title="Hapus Eartag"
+        description={`Apakah Anda yakin ingin menghapus eartag "${deleteData?.kode}"? Tindakan ini tidak dapat dibatalkan.`}
+        loading={isDeleting}
+        onConfirm={handleConfirmDelete}
+        onClose={() => setDeleteData(null)}
+      />
+
+      <Notification
+        isVisible={notification.isVisible}
+        type={notification.type}
+        message={notification.message}
+        onClose={() => setNotification((n) => ({ ...n, isVisible: false }))}
+      />
+    </div>
+  );
 };
+
+const SkeletonRows = () => (
+  <div className="py-2">
+    {[...Array(8)].map((_, i) => (
+      <div key={i} className="flex items-center gap-3 px-3 py-2.5 border-b border-slate-50">
+        <div className="h-3 w-8 rounded bg-slate-100 animate-pulse" />
+        <div className="flex-1 h-3 rounded bg-slate-100 animate-pulse" />
+        <div className="h-3 w-24 rounded bg-slate-100 animate-pulse" />
+        <div className="h-3 w-20 rounded bg-slate-100 animate-pulse" />
+        <div className="h-3 w-8 rounded bg-slate-100 animate-pulse" />
+      </div>
+    ))}
+  </div>
+);
+
+const ActionMenu = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onDelete }) => {
+  const buttonRef = useRef(null);
+  const menuRef = useRef(null);
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
+
+  const toggle = (e) => {
+    e.stopPropagation();
+    if (!isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setMenuPos({ top: rect.bottom + 4, left: rect.right - 160 });
+    }
+    onToggle();
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleClick = (e) => {
+      const inBtn = buttonRef.current && buttonRef.current.contains(e.target);
+      const inMenu = menuRef.current && menuRef.current.contains(e.target);
+      if (!inBtn && !inMenu) onClose();
+    };
+    document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
+  }, [isOpen, onClose]);
+
+  return (
+    <div className="relative flex justify-center">
+      <button
+        ref={buttonRef}
+        onClick={toggle}
+        className={`p-1.5 rounded-md transition-colors ${isOpen ? 'bg-slate-100 text-slate-800' : 'text-slate-500 hover:bg-slate-100'}`}
+        title="Aksi"
+      >
+        <MoreVertical className="h-4 w-4" />
+      </button>
+      {isOpen && createPortal(
+        <div
+          ref={menuRef}
+          className="fixed bg-white rounded-lg shadow-xl border border-slate-200 py-1 w-40 z-[99999]"
+          style={{ top: menuPos.top, left: menuPos.left }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            onClick={() => onDetail(row)}
+            className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors"
+          >
+            <Eye className="h-3.5 w-3.5 text-slate-500" /> Lihat Detail
+          </button>
+          <button
+            onClick={() => onEdit(row)}
+            className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors"
+          >
+            <Pencil className="h-3.5 w-3.5 text-rose-500" /> Edit
+          </button>
+          <button
+            onClick={() => onDelete(row)}
+            className="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
+          >
+            <Trash2 className="h-3.5 w-3.5 text-red-500" /> Hapus
+          </button>
+        </div>,
+        document.body
+      )}
+    </div>
+  );
+};
+
+const DetailDrawer = ({ row, onClose, onEdit, onDelete }) => {
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex justify-end">
+      <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-md bg-white shadow-2xl flex flex-col animate-in slide-in-from-right">
+        <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-slate-100">
+          <div>
+            <h3 className="text-sm font-bold text-slate-900">Detail Eartag</h3>
+            <p className="text-xs text-slate-500">Informasi lengkap eartag</p>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="flex-1 overflow-auto p-4 space-y-3">
+          <div className="rounded-lg border border-slate-200 p-3 flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-rose-50 text-rose-600">
+              <Tag className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-slate-800 font-mono">{row.kode}</h2>
+              <span
+                className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                  row.used_status === 1
+                    ? 'bg-emerald-50 text-emerald-700'
+                    : 'bg-slate-100 text-slate-600'
+                }`}
+              >
+                {row.usedStatusText || (row.used_status === 1 ? 'Sudah Terpasang' : 'Belum Terpasang')}
+              </span>
+            </div>
+          </div>
+          <DetailField label="Tanggal Pemasangan" value={row.tanggalPemasangan} />
+          <DetailField label="Dibuat" value={row.created_at} />
+          <DetailField label="Diperbarui" value={row.updated_at} />
+        </div>
+        <div className="shrink-0 flex gap-2 px-4 py-3 border-t border-slate-100 bg-slate-50/50">
+          <button
+            onClick={() => onDelete(row)}
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors"
+          >
+            <Trash2 className="h-3.5 w-3.5" /> Hapus
+          </button>
+          <button
+            onClick={() => onEdit(row)}
+            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-rose-600 px-3 py-2 text-xs font-semibold text-white hover:bg-rose-700 transition-colors"
+          >
+            <Pencil className="h-3.5 w-3.5" /> Edit Eartag
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+};
+
+const DetailField = ({ label, value }) => (
+  <div className="rounded-lg border border-slate-200 px-3 py-2">
+    <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{label}</p>
+    <p className="mt-0.5 text-sm text-slate-700 truncate">
+      {value || <span className="text-slate-300">-</span>}
+    </p>
+  </div>
+);
 
 export default EartagPage;

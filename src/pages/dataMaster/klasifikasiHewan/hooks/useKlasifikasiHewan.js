@@ -1,363 +1,169 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback } from "react";
 import HttpClient from "../../../../services/httpClient";
 import { API_ENDPOINTS } from "../../../../config/api";
 
-// Custom hook untuk manajemen data, filter, dan statistik Klasifikasi Hewan
+// Custom hook untuk manajemen data server-side pagination Klasifikasi Hewan
 const useKlasifikasiHewan = () => {
-  const [klasifikasiHewan, setKlasifikasiHewan] = useState([]);
+  const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterJenis, setFilterJenis] = useState("all");
+  const [totalRecords, setTotalRecords] = useState(0);
+  const [filteredRecords, setFilteredRecords] = useState(0);
   const [jenisHewanOptions, setJenisHewanOptions] = useState([]);
-
-  // Helper function untuk mengkonversi ID jenis hewan ke nama menggunakan data dinamis
-  const getJenisHewanName = useCallback((id) => {
-    // Jika jenisHewanOptions belum tersedia, gunakan fallback mapping
-    if (!jenisHewanOptions || jenisHewanOptions.length === 0) {
-      const fallbackMap = {
-        1: 'Sapi',
-        2: 'Domba',
-        3: 'Kambing'
-      };
-      return fallbackMap[id] || 'Tidak diketahui';
-    }
-    
-    const jenisHewan = jenisHewanOptions.find(j => j.id === parseInt(id));
-    return jenisHewan ? jenisHewan.name : 'Tidak diketahui';
-  }, [jenisHewanOptions]);
-
-  // Helper function untuk mengkonversi nama jenis hewan ke ID menggunakan data dinamis
-  const getJenisHewanId = useCallback((nama) => {
-    const jenisHewan = jenisHewanOptions.find(j => j.name.toLowerCase() === nama.toLowerCase());
-    return jenisHewan ? jenisHewan.id : (jenisHewanOptions[0]?.id || 1);
-  }, [jenisHewanOptions]);
 
   // Fetch jenis hewan options dari API
   const fetchJenisHewanOptions = useCallback(async () => {
     try {
       const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.JENIS_HEWAN}/data`);
-      
       if (result.status === 'ok' && result.data && Array.isArray(result.data)) {
-        const validatedOptions = result.data.map((item, index) => ({
-          id: index + 1, // Menggunakan index sebagai ID
+        const validatedOptions = result.data.map((item) => ({
+          id: item.id,
           pubid: item.pubid,
-          name: item.name || 'Nama tidak tersedia'
+          name: item.name || 'Nama tidak tersedia',
         }));
         setJenisHewanOptions(validatedOptions);
       }
     } catch (err) {
       console.warn('Failed to fetch jenis hewan options:', err.message);
-      // Fallback ke data default jika API gagal
-      setJenisHewanOptions([
-        { id: 1, pubid: 'default-1', name: 'Sapi' },
-        { id: 2, pubid: 'default-2', name: 'Domba' },
-        { id: 3, pubid: 'default-3', name: 'Kambing' }
-      ]);
+      setJenisHewanOptions([]);
     }
   }, []);
 
-  // Function untuk test koneksi API
-  const testApiConnection = useCallback(async () => {
-    try {
-      await HttpClient.head(`${API_ENDPOINTS.MASTER.KLASIFIKASI_HEWAN}/data`);
-      return { success: true, message: 'Koneksi API berhasil' };
-    } catch (error) {
-      return { success: false, message: `Network error: ${error.message}` };
-    }
-  }, []);
+  // Helper: get jenis hewan name by id
+  const getJenisHewanName = useCallback((id) => {
+    const found = jenisHewanOptions.find((j) => j.id === parseInt(id, 10));
+    return found ? found.name : 'Tidak diketahui';
+  }, [jenisHewanOptions]);
 
-  // Fetch data dari API dengan encrypted PID dari backend
-  const fetchKlasifikasiHewan = useCallback(async () => {
+  // Fetch data server-side with params
+  const fetchData = useCallback(async (params = {}) => {
     setLoading(true);
     setError(null);
-    
     try {
-      const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.KLASIFIKASI_HEWAN}/data`);
-      
-      if (result.status === 'ok' && result.data && Array.isArray(result.data)) {
-        const validatedData = result.data.map((item, index) => {
-          const jenisName = getJenisHewanName(item.id_jenis_hewan);
-          
-          return {
-            pubid: item.pubid || `TEMP-${index + 1}`,
-            encryptedPid: item.pid || item.pubid,
-            name: item.name || 'Nama tidak tersedia',
-            id_jenis_hewan: item.id_jenis_hewan || 1,
-            jenis: jenisName,
-            description: item.description || '',
+      const queryParams = new URLSearchParams({
+        draw: params.draw || 1,
+        start: params.start ?? 0,
+        length: params.length ?? 10,
+        'search[value]': params.search || '',
+        'order[0][column]': params.orderColumn ?? 1,
+        'order[0][dir]': params.orderDir || 'asc',
+        _ts: Date.now(),
+      });
 
-            status: item.status !== undefined ? item.status : 1
-          };
-        });
-        
-        setKlasifikasiHewan(validatedData);
-      } else {
-        setKlasifikasiHewan([]);
-      }
-    } catch (err) {
-      setError(`API Error: ${err.message}`);
-      
-      // Fallback data
-      setKlasifikasiHewan([
-        {
-          pubid: "kh-001-fallback",
-          encryptedPid: "kh-001-fallback",
-          name: "Sapi Brahman",
-          id_jenis_hewan: 1,
-          jenis: getJenisHewanName(1),
-          description: "Jenis sapi potong hasil persilangan",
-
-          status: 1
-        },
-        {
-          pubid: "kh-002-fallback",
-          encryptedPid: "kh-002-fallback",
-          name: "Domba Garut",
-          id_jenis_hewan: 2,
-          jenis: getJenisHewanName(2),
-          description: "Domba aduan dan pedaging asli Garut",
-
-          status: 1
+      const filters = params.filters || {};
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== '' && value !== null && value !== undefined) {
+          queryParams.append(`filters[${key}]`, value);
         }
-      ]);
+      });
+
+      const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.KLASIFIKASI_HEWAN}/data?${queryParams.toString()}`);
+
+      const dataArray = result?.data || [];
+      const mapped = dataArray.map((item) => ({
+        id: item.id || null,
+        pubid: item.pubid || '',
+        pid: item.pid || item.pubid,
+        name: item.name || '',
+        id_jenis_hewan: item.id_jenis_hewan || null,
+        jenis: item.jenis || getJenisHewanName(item.id_jenis_hewan),
+        description: item.description || '',
+        created_at: item.created_at || null,
+        updated_at: item.updated_at || null,
+      }));
+
+      setData(mapped);
+      setTotalRecords(result?.recordsTotal || 0);
+      setFilteredRecords(result?.recordsFiltered || 0);
+      return { success: true, data: mapped, recordsTotal: result?.recordsTotal || 0, recordsFiltered: result?.recordsFiltered || 0 };
+    } catch (err) {
+      const msg = err?.message || 'Gagal memuat data';
+      setError(msg);
+      setData([]);
+      return { success: false, message: msg, data: [] };
     } finally {
       setLoading(false);
     }
   }, [getJenisHewanName]);
 
-  // Create klasifikasi hewan
-  const createKlasifikasiHewan = useCallback(async (klasifikasiData) => {
+  // Create
+  const createKlasifikasiHewan = useCallback(async (payload) => {
     setLoading(true);
     setError(null);
-    
-    const requiredParams = ['name', 'id_jenis_hewan', 'description', 'status'];
-    const missingParams = requiredParams.filter(param =>
-      klasifikasiData[param] === undefined || klasifikasiData[param] === null || klasifikasiData[param] === ''
-    );
-    
-    if (missingParams.length > 0) {
-      const errorMsg = `Parameter wajib tidak lengkap: ${missingParams.join(', ')}`;
-      setError(errorMsg);
-      return { success: false, message: errorMsg };
-    }
-    
     try {
-      const cleanKlasifikasiData = {
-        name: String(klasifikasiData.name).trim(),
-        id_jenis_hewan: parseInt(klasifikasiData.id_jenis_hewan, 10),
-        description: String(klasifikasiData.description).trim(),
-
-        status: parseInt(klasifikasiData.status, 10)
-      };
-      
-      const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.KLASIFIKASI_HEWAN}/store`, cleanKlasifikasiData);
-      await fetchKlasifikasiHewan();
-      
-      return { 
-        success: true, 
-        message: result.message || 'Data berhasil ditambahkan' 
-      };
-      
-    } catch (err) {
-      const errorMsg = err.message || 'Terjadi kesalahan saat menyimpan data';
-      setError(errorMsg);
-      return { success: false, message: errorMsg };
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchKlasifikasiHewan]);
-
-  // Update klasifikasi hewan - menggunakan encrypted PID dari backend
-  const updateKlasifikasiHewan = useCallback(async (pubid, klasifikasiData) => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const klasifikasiItem = klasifikasiHewan.find(k => k.pubid === pubid);
-      if (!klasifikasiItem) {
-        throw new Error('Klasifikasi hewan tidak ditemukan');
-      }
-      
-      if (!klasifikasiItem.encryptedPid) {
-        klasifikasiItem.encryptedPid = pubid;
-      }
-      
-      const requiredParams = ['name', 'id_jenis_hewan', 'description', 'status'];
-      const missingParams = requiredParams.filter(param =>
-        klasifikasiData[param] === undefined || klasifikasiData[param] === null || klasifikasiData[param] === ''
-      );
-      
-      if (missingParams.length > 0) {
-        const errorMsg = `Parameter wajib tidak lengkap: ${missingParams.join(', ')}`;
-        setError(errorMsg);
-        return { success: false, message: errorMsg };
-      }
-      
       const cleanData = {
-        name: String(klasifikasiData.name).trim(),
-        id_jenis_hewan: parseInt(klasifikasiData.id_jenis_hewan, 10),
-        description: String(klasifikasiData.description).trim(),
-
-        status: parseInt(klasifikasiData.status, 10)
+        name: String(payload.name).trim(),
+        id_jenis_hewan: parseInt(payload.id_jenis_hewan, 10),
+        description: String(payload.description).trim(),
       };
-      
-      const payload = {
-        pid: klasifikasiItem.encryptedPid,
-        ...cleanData
-      };
-      
-      const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.KLASIFIKASI_HEWAN}/update`, payload);
-      await fetchKlasifikasiHewan();
-      
-      return {
-        success: true,
-        message: result.message || 'Data berhasil diperbarui'
-      };
-      
+      const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.KLASIFIKASI_HEWAN}/store`, cleanData);
+      return { success: true, data: result.data, message: result.message || 'Data berhasil ditambahkan' };
     } catch (err) {
-      const errorMsg = err.message || 'Terjadi kesalahan saat memperbarui data';
-      setError(errorMsg);
-      return { success: false, message: errorMsg };
+      const msg = err.response?.data?.message || err.message || 'Gagal membuat data';
+      setError(msg);
+      return { success: false, message: msg };
     } finally {
       setLoading(false);
     }
-  }, [fetchKlasifikasiHewan, klasifikasiHewan]);
+  }, []);
 
-  // Delete klasifikasi hewan - menggunakan encrypted PID dari backend
-  const deleteKlasifikasiHewan = useCallback(async (pubid) => {
+  // Update
+  const updateKlasifikasiHewan = useCallback(async (pid, payload) => {
     setLoading(true);
     setError(null);
-    
     try {
-      const klasifikasiItem = klasifikasiHewan.find(k => k.pubid === pubid);
-      if (!klasifikasiItem) {
-        throw new Error('Klasifikasi hewan tidak ditemukan');
-      }
-      
-      if (!klasifikasiItem.encryptedPid) {
-        klasifikasiItem.encryptedPid = pubid;
-      }
-      
-      const payload = {
-        pid: klasifikasiItem.encryptedPid
+      const cleanData = {
+        pid,
+        name: String(payload.name).trim(),
+        id_jenis_hewan: parseInt(payload.id_jenis_hewan, 10),
+        description: String(payload.description).trim(),
       };
-      
-      const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.KLASIFIKASI_HEWAN}/hapus`, payload);
-      await fetchKlasifikasiHewan();
-      
-      return {
-        success: true,
-        message: result.message || 'Data berhasil dihapus'
-      };
-      
+      const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.KLASIFIKASI_HEWAN}/update`, cleanData);
+      return { success: true, data: result.data, message: result.message || 'Data berhasil diperbarui' };
     } catch (err) {
-      const errorMsg = err.message || 'Terjadi kesalahan saat menghapus data';
-      setError(errorMsg);
-      return { success: false, message: errorMsg };
+      const msg = err.response?.data?.message || err.message || 'Gagal memperbarui data';
+      setError(msg);
+      return { success: false, message: msg };
     } finally {
       setLoading(false);
     }
-  }, [fetchKlasifikasiHewan, klasifikasiHewan]);
+  }, []);
 
-  // Filter dan search data
-  const filteredData = useMemo(() => {
-    if (!klasifikasiHewan || !Array.isArray(klasifikasiHewan)) {
-      return [];
-    }
-    
-    return klasifikasiHewan.filter(item => {
-      if (!item) return false;
-      
-      try {
-        const matchesSearch =
-          (item.name && item.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-          (item.pubid && item.pubid.toLowerCase().includes(searchTerm.toLowerCase())) ||
-          (item.description && item.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
-          (item.jenis && item.jenis.toLowerCase().includes(searchTerm.toLowerCase()));
-          
-        const matchesFilter = filterJenis === 'all' ||
-          (item.jenis && item.jenis.toLowerCase() === filterJenis.toLowerCase());
-          
-        return matchesSearch && matchesFilter;
-      } catch (error) {
-        console.warn('Error filtering item:', item, error);
-        return false;
-      }
-    });
-  }, [klasifikasiHewan, searchTerm, filterJenis]);
-
-  // Statistik jumlah klasifikasi hewan - dinamis berdasarkan jenis yang tersedia
-  const stats = useMemo(() => {
-    if (!klasifikasiHewan || !Array.isArray(klasifikasiHewan)) {
-      const emptyStats = {
-        total: 0,
-        active: 0,
-        inactive: 0
-      };
-      
-      // Tambahkan stat untuk setiap jenis hewan yang tersedia
-      jenisHewanOptions.forEach(jenis => {
-        emptyStats[jenis.name.toLowerCase()] = 0;
-      });
-      
-      return emptyStats;
-    }
-    
+  // Delete
+  const deleteKlasifikasiHewan = useCallback(async (pid) => {
+    setLoading(true);
+    setError(null);
     try {
-      const total = klasifikasiHewan.length;
-      const active = klasifikasiHewan.filter(item => item && item.status === 1).length;
-      const inactive = klasifikasiHewan.filter(item => item && item.status === 0).length;
-      
-      const stats = {
-        total,
-        active,
-        inactive
-      };
-      
-      // Hitung stat untuk setiap jenis hewan yang tersedia secara dinamis
-      jenisHewanOptions.forEach(jenisOption => {
-        const jenisName = jenisOption.name.toLowerCase();
-        stats[jenisName] = klasifikasiHewan.filter(k =>
-          k && k.jenis && k.jenis.toLowerCase() === jenisName
-        ).length;
-      });
-      
-      return stats;
-    } catch (error) {
-      console.warn('Error calculating stats:', error);
-      const errorStats = {
-        total: 0,
-        active: 0,
-        inactive: 0
-      };
-      
-      jenisHewanOptions.forEach(jenis => {
-        errorStats[jenis.name.toLowerCase()] = 0;
-      });
-      
-      return errorStats;
+      const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.KLASIFIKASI_HEWAN}/hapus`, { pid });
+      return { success: true, message: result.message || 'Data berhasil dihapus' };
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message || 'Gagal menghapus data';
+      setError(msg);
+      return { success: false, message: msg };
+    } finally {
+      setLoading(false);
     }
-  }, [klasifikasiHewan, jenisHewanOptions]);
+  }, []);
+
+  const stats = useMemo(() => ({
+    total: totalRecords,
+    displayed: data.length,
+  }), [totalRecords, data.length]);
 
   return {
-    klasifikasiHewan: filteredData,
+    data,
     loading,
     error,
-    searchTerm,
-    setSearchTerm,
-    filterJenis,
-    setFilterJenis,
-    stats,
-    fetchKlasifikasiHewan,
+    fetchData,
     createKlasifikasiHewan,
     updateKlasifikasiHewan,
     deleteKlasifikasiHewan,
-    testApiConnection,
-    getJenisHewanName,
-    getJenisHewanId,
+    totalRecords,
+    filteredRecords,
+    stats,
     jenisHewanOptions,
-    fetchJenisHewanOptions
+    fetchJenisHewanOptions,
+    getJenisHewanName,
   };
 };
 
