@@ -184,7 +184,7 @@ const KandangOfficePage = () => {
     ]), []);
 
     return (
-        <div className="min-h-screen bg-slate-50/60">
+        <div className="min-h-dvh bg-slate-50">
             <div className="mx-auto max-w-[1600px] px-4 py-5 sm:px-6 lg:px-8">
                 {/* Header — compact, inline */}
                 <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

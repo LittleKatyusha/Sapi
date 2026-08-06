@@ -138,7 +138,7 @@ const OutletPage = () => {
     }, [page, meta.last_page]);
 
     return (
-        <div className="min-h-screen bg-gray-50/50 p-4 md:p-6">
+        <div className="min-h-dvh bg-slate-50 p-4 md:p-6">
             <div className="max-w-[1600px] mx-auto space-y-4">
                 {/* Header */}
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

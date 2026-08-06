@@ -122,10 +122,10 @@ const DagingMasterPage = () => {
   ], [openMenuId]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50 to-purple-100 p-4 md:p-6">
-      <div className="max-w-5xl mx-auto space-y-6">
+    <div className="min-h-dvh bg-slate-50 p-4 md:p-6">
+      <div className="max-w-5xl mx-auto space-y-4">
         {/* Header */}
-        <div className="bg-white rounded-2xl p-6 shadow-xl border border-gray-100">
+        <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-200">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-orange-100 rounded-xl">
@@ -138,7 +138,7 @@ const DagingMasterPage = () => {
             </div>
             <button
               onClick={() => { setEditData(null); setShowModal(true); }}
-              className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-red-500 text-white px-5 py-2.5 rounded-xl font-medium hover:from-orange-600 hover:to-red-600 shadow-lg"
+              className="flex items-center gap-2 bg-orange-600 text-white px-4 py-2.5 rounded-lg font-medium hover:bg-orange-700 shadow-sm transition-colors"
             >
               <PlusCircle className="w-5 h-5" />
               Tambah Jenis Daging
@@ -148,18 +148,18 @@ const DagingMasterPage = () => {
 
         {/* Stats */}
         <div className="grid grid-cols-2 gap-4">
-          <div className="bg-gradient-to-br from-orange-500 to-red-500 text-white p-5 rounded-2xl shadow-lg">
+          <div className="bg-orange-600 text-white p-5 rounded-xl shadow-sm">
             <p className="text-sm opacity-80">Total Jenis Daging</p>
             <p className="text-3xl font-bold mt-1">{stats.total}</p>
           </div>
-          <div className="bg-white p-5 rounded-2xl shadow border border-gray-100">
+          <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
             <p className="text-sm text-gray-500">Hasil Pencarian</p>
             <p className="text-3xl font-bold text-gray-800 mt-1">{filteredData.length}</p>
           </div>
         </div>
 
         {/* Table */}
-        <div className="bg-white rounded-2xl shadow border border-gray-100">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200">
           <div className="p-4 border-b border-gray-100">
             <div className="relative max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />

@@ -72,7 +72,7 @@ const TarifDofPage = () => {
   ], []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50 to-purple-100 p-4 md:p-6">
+    <div className="min-h-dvh bg-slate-50 p-4 md:p-6">
       <div className="max-w-5xl mx-auto space-y-6">
         {/* Header */}
         <div className="bg-white rounded-2xl p-6 shadow-xl border border-gray-100">

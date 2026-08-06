@@ -239,7 +239,7 @@ const PersetujuanFeedmilPage = () => {
   }, [persetujuanFeedmil, searchTerm]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50 to-purple-100 p-2 sm:p-4 md:p-6">
+    <div className="min-h-dvh bg-slate-50 p-2 sm:p-4 md:p-6">
       <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
         {/* Header Section */}
         <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-xl border border-gray-100">

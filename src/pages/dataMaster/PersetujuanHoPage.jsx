@@ -235,10 +235,10 @@ const PersetujuanHoPage = () => {
   }, [persetujuanHo]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50 to-purple-100 p-2 sm:p-4 md:p-6">
-      <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
+    <div className="min-h-dvh bg-slate-50 p-2 sm:p-4 md:p-6">
+      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
         {/* Header Section */}
-        <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-xl border border-gray-100">
+        <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-slate-200">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-1 sm:mb-2">
@@ -251,7 +251,7 @@ const PersetujuanHoPage = () => {
             <div className="flex flex-col gap-2 sm:flex-row sm:gap-4">
               <button
                 onClick={handleAdd}
-                className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-4 py-2 sm:px-6 sm:py-3 rounded-xl sm:rounded-2xl hover:from-indigo-600 hover:to-purple-700 transition-all duration-300 flex items-center gap-2 font-medium shadow-lg hover:shadow-xl text-sm sm:text-base"
+                className="bg-indigo-600 text-white px-4 py-2 sm:px-5 sm:py-2.5 rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2 font-medium shadow-sm text-sm sm:text-base"
               >
                 <PlusCircle className="w-5 h-5" />
                 Tambah Persetujuan HO
@@ -262,7 +262,7 @@ const PersetujuanHoPage = () => {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4 md:gap-6">
-          <div className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg">
+          <div className="bg-indigo-600 text-white p-4 sm:p-5 rounded-xl shadow-sm">
             <h3 className="text-xs sm:text-sm font-medium opacity-90">Total Persetujuan HO</h3>
             <p className="text-xl sm:text-3xl font-bold">{stats.total}</p>
             {stats.displayed < stats.total && (
@@ -272,7 +272,7 @@ const PersetujuanHoPage = () => {
         </div>
 
         {/* Filters and Search */}
-        <div className="bg-white rounded-2xl p-3 sm:p-6 shadow-lg border border-gray-100">
+        <div className="bg-white rounded-xl p-3 sm:p-5 shadow-sm border border-slate-200">
           <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 sm:items-center sm:justify-between">
             <div className="relative flex-1 max-w-full sm:max-w-md">
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -312,7 +312,7 @@ const PersetujuanHoPage = () => {
         </div>
         
         {/* Data Display */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-x-auto">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto">
           <div>
             {viewMode === "table" ? (
               <div className="w-full min-w-[600px]">

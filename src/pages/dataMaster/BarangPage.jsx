@@ -1,6 +1,5 @@
 import React from 'react';
 import { Package } from 'lucide-react';
-
 import MasterDataTablePage from './pembeliHo/components/MasterDataTablePage';
 import useBarang from './barang/hooks/useBarang';
 import AddEditBarangModal from './barang/modals/AddEditBarangModal';

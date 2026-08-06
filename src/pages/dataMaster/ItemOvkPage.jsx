@@ -311,7 +311,7 @@ const ItemOvkPage = () => {
   };
 
   return (
-    <div className="flex h-screen flex-col bg-slate-50 overflow-hidden">
+    <div className="flex min-h-dvh flex-col bg-slate-50 overflow-hidden">
       <header className="shrink-0 border-b border-slate-200 bg-white">
         <div className="flex items-center justify-between gap-4 px-4 sm:px-6 py-3">
           <div className="flex items-center gap-3 min-w-0">

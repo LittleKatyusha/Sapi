@@ -11,63 +11,69 @@ import Notification from './Notification';
 const ACCENTS = {
   emerald: {
     bg: 'bg-emerald-50',
-    text: 'text-emerald-600',
-    btn: 'bg-emerald-600 hover:bg-emerald-700',
-    border: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-    focus: 'focus:border-emerald-400 focus:ring-emerald-100',
+    text: 'text-emerald-700',
+    btn: 'bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800',
+    border: 'border-emerald-200/80 bg-emerald-50 text-emerald-800',
+    focus: 'focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/15',
     sort: 'text-emerald-600',
     badge: 'bg-emerald-600',
-    editText: 'text-emerald-500',
+    editText: 'text-emerald-600',
+    ring: 'ring-emerald-500/20',
   },
   indigo: {
     bg: 'bg-indigo-50',
-    text: 'text-indigo-600',
-    btn: 'bg-indigo-600 hover:bg-indigo-700',
-    border: 'border-indigo-200 bg-indigo-50 text-indigo-700',
-    focus: 'focus:border-indigo-400 focus:ring-indigo-100',
+    text: 'text-indigo-700',
+    btn: 'bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800',
+    border: 'border-indigo-200/80 bg-indigo-50 text-indigo-800',
+    focus: 'focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/15',
     sort: 'text-indigo-600',
     badge: 'bg-indigo-600',
-    editText: 'text-indigo-500',
+    editText: 'text-indigo-600',
+    ring: 'ring-indigo-500/20',
   },
   amber: {
     bg: 'bg-amber-50',
-    text: 'text-amber-600',
-    btn: 'bg-amber-600 hover:bg-amber-700',
-    border: 'border-amber-200 bg-amber-50 text-amber-700',
-    focus: 'focus:border-amber-400 focus:ring-amber-100',
+    text: 'text-amber-700',
+    btn: 'bg-amber-600 hover:bg-amber-700 active:bg-amber-800',
+    border: 'border-amber-200/80 bg-amber-50 text-amber-800',
+    focus: 'focus:border-amber-400 focus:ring-2 focus:ring-amber-500/15',
     sort: 'text-amber-600',
     badge: 'bg-amber-600',
-    editText: 'text-amber-500',
+    editText: 'text-amber-600',
+    ring: 'ring-amber-500/20',
   },
   rose: {
     bg: 'bg-rose-50',
-    text: 'text-rose-600',
-    btn: 'bg-rose-600 hover:bg-rose-700',
-    border: 'border-rose-200 bg-rose-50 text-rose-700',
-    focus: 'focus:border-rose-400 focus:ring-rose-100',
+    text: 'text-rose-700',
+    btn: 'bg-rose-600 hover:bg-rose-700 active:bg-rose-800',
+    border: 'border-rose-200/80 bg-rose-50 text-rose-800',
+    focus: 'focus:border-rose-400 focus:ring-2 focus:ring-rose-500/15',
     sort: 'text-rose-600',
     badge: 'bg-rose-600',
-    editText: 'text-rose-500',
+    editText: 'text-rose-600',
+    ring: 'ring-rose-500/20',
   },
   sky: {
     bg: 'bg-sky-50',
-    text: 'text-sky-600',
-    btn: 'bg-sky-600 hover:bg-sky-700',
-    border: 'border-sky-200 bg-sky-50 text-sky-700',
-    focus: 'focus:border-sky-400 focus:ring-sky-100',
+    text: 'text-sky-700',
+    btn: 'bg-sky-600 hover:bg-sky-700 active:bg-sky-800',
+    border: 'border-sky-200/80 bg-sky-50 text-sky-800',
+    focus: 'focus:border-sky-400 focus:ring-2 focus:ring-sky-500/15',
     sort: 'text-sky-600',
     badge: 'bg-sky-600',
-    editText: 'text-sky-500',
+    editText: 'text-sky-600',
+    ring: 'ring-sky-500/20',
   },
   violet: {
     bg: 'bg-violet-50',
-    text: 'text-violet-600',
-    btn: 'bg-violet-600 hover:bg-violet-700',
-    border: 'border-violet-200 bg-violet-50 text-violet-700',
-    focus: 'focus:border-violet-400 focus:ring-violet-100',
+    text: 'text-violet-700',
+    btn: 'bg-violet-600 hover:bg-violet-700 active:bg-violet-800',
+    border: 'border-violet-200/80 bg-violet-50 text-violet-800',
+    focus: 'focus:border-violet-400 focus:ring-2 focus:ring-violet-500/15',
     sort: 'text-violet-600',
     badge: 'bg-violet-600',
-    editText: 'text-violet-500',
+    editText: 'text-violet-600',
+    ring: 'ring-violet-500/20',
   },
 };
 
@@ -304,7 +310,7 @@ const MasterDataTablePage = ({
   const columns = useMemo(() => {
     const startIdxBase = (currentPage - 1) * perPage;
     const renderSortIcon = (colIdx) => {
-      if (sortCol !== colIdx) return <ArrowUpDown className="h-3 w-3 text-slate-300" />;
+      if (sortCol !== colIdx) return <ArrowUpDown className="h-3 w-3 text-zinc-300" />;
       return sortDir === 'asc'
         ? <ArrowUp className={`h-3 w-3 ${accentSort}`} />
         : <ArrowDown className={`h-3 w-3 ${accentSort}`} />;
@@ -316,7 +322,9 @@ const MasterDataTablePage = ({
         width: '52px',
         center: true,
         cell: (row, index) => (
-          <div className="w-full text-center text-xs font-medium text-slate-400">{startIdxBase + index + 1}</div>
+          <div className="w-full text-center text-[11px] font-medium tabular-nums text-zinc-400">
+            {startIdxBase + index + 1}
+          </div>
         ),
       },
     ];
@@ -331,7 +339,7 @@ const MasterDataTablePage = ({
             <button
               type="button"
               onClick={() => handleSort(colIdx)}
-              className="flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900"
+              className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-500 hover:text-zinc-800 transition-colors duration-150"
             >
               {origName}
               {renderSortIcon(colIdx)}
@@ -363,69 +371,97 @@ const MasterDataTablePage = ({
     });
     return cols;
   }, [currentPage, perPage, sortCol, sortDir, handleSort, openMenuId, handleEditItem, handleDeleteItem, extraColumns, accentSort, A]);
+
   const customTableStyles = {
-    headRow: {
+    table: {
       style: {
-        backgroundColor: '#F8FAFC',
-        borderBottom: '1px solid #E2E8F0',
-        fontSize: '12px',
-        fontWeight: '600',
-        color: '#475569',
-        minHeight: '38px',
+        backgroundColor: 'transparent',
       },
     },
-    headCells: { style: { paddingLeft: '12px', paddingRight: '12px' } },
+    headRow: {
+      style: {
+        backgroundColor: '#FAFAFA',
+        borderBottom: '1px solid #F4F4F5',
+        fontSize: '11px',
+        fontWeight: '600',
+        color: '#71717A',
+        minHeight: '40px',
+        letterSpacing: '0.02em',
+        textTransform: 'uppercase',
+      },
+    },
+    headCells: {
+      style: {
+        paddingLeft: '16px',
+        paddingRight: '16px',
+      },
+    },
     rows: {
       style: {
         fontSize: '13px',
-        color: '#1E293B',
-        minHeight: '44px',
-        '&:hover': { backgroundColor: '#F8FAFC', cursor: 'pointer' },
+        color: '#18181B',
+        minHeight: '48px',
+        borderBottom: '1px solid #F4F4F5',
+        backgroundColor: '#FFFFFF',
+        transition: 'background-color 150ms ease',
+        '&:hover': {
+          backgroundColor: '#FAFAFA',
+          cursor: 'pointer',
+        },
       },
     },
-    cells: { style: { paddingLeft: '12px', paddingRight: '12px' } },
+    cells: {
+      style: {
+        paddingLeft: '16px',
+        paddingRight: '16px',
+      },
+    },
   };
 
+  const pageBtnClass =
+    'inline-flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-600 transition-colors duration-150 hover:bg-zinc-50 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-35';
+
   return (
-    <div className="flex h-screen flex-col bg-slate-50 overflow-hidden">
-      <header className="shrink-0 border-b border-slate-200 bg-white">
-        <div className="flex items-center justify-between gap-4 px-4 sm:px-6 py-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${accentBg} ${accentText} shrink-0`}>
-              <Icon className="h-4 w-4" />
+    <div className="flex min-h-dvh flex-col overflow-hidden bg-slate-50">
+      <header className="shrink-0 border-b border-zinc-200/80 bg-white/90 backdrop-blur-sm">
+        <div className="flex items-center justify-between gap-4 px-5 sm:px-8 py-3.5">
+          <div className="flex items-center gap-3.5 min-w-0">
+            <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${accentBg} ${accentText} ring-1 ring-inset ring-black/[0.03] shrink-0`}>
+              <Icon className="h-4.5 w-4.5 h-[18px] w-[18px]" strokeWidth={1.75} />
             </div>
             <div className="min-w-0">
-              <h1 className="text-base font-bold tracking-tight text-slate-900 truncate">{title}</h1>
-              <p className="text-xs text-slate-500 truncate hidden sm:block">{subtitle}</p>
+              <h1 className="text-[15px] font-semibold tracking-tight text-zinc-900 truncate">{title}</h1>
+              <p className="text-[12px] text-zinc-500 truncate hidden sm:block mt-0.5">{subtitle}</p>
             </div>
           </div>
           <button
+            type="button"
             onClick={() => { setEditData(null); setShowModal(true); }}
-            className={`inline-flex items-center justify-center gap-1.5 rounded-lg ${accentBtn} px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition-colors shrink-0`}
+            className={`inline-flex items-center justify-center gap-1.5 rounded-xl ${accentBtn} px-3.5 py-2 text-[13px] font-medium text-white shadow-sm transition-colors duration-150 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${A.ring}`}
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-4 w-4" strokeWidth={2} />
             {addLabel}
           </button>
         </div>
       </header>
 
-      <div className="flex-1 min-h-0 overflow-auto p-4 sm:px-6">
-        <div className="rounded-xl border border-slate-200 bg-white flex flex-col">
-          <div className="shrink-0 flex flex-col gap-3 border-b border-slate-100 px-4 py-3">
+      <div className="flex-1 min-h-0 overflow-auto p-4 sm:p-6 sm:px-8">
+        <div className="rounded-xl border border-zinc-200/80 bg-white shadow-sm flex flex-col overflow-hidden">
+          <div className="shrink-0 flex flex-col gap-3 border-b border-zinc-100 px-4 sm:px-5 py-3.5">
             <div className="flex items-center gap-2 flex-wrap">
               <button
                 type="button"
                 onClick={() => setShowFilterPanel((v) => !v)}
-                className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${
+                className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-[12px] font-medium transition-colors duration-150 ${
                   showFilterPanel || hasAppliedFilters
                     ? accentBorder
-                    : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                    : 'border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900'
                 }`}
               >
-                <Filter className="h-3.5 w-3.5" />
+                <Filter className="h-3.5 w-3.5" strokeWidth={1.75} />
                 Filter
                 {hasAppliedFilters && (
-                  <span className={`inline-flex items-center justify-center rounded-full ${accentBadge} px-1.5 text-[10px] font-bold text-white`}>
+                  <span className={`inline-flex h-4 min-w-[16px] items-center justify-center rounded-full ${accentBadge} px-1 text-[10px] font-semibold text-white`}>
                     {Object.values(appliedFilters).filter((v) => v !== '' && v !== null && v !== undefined).length}
                   </span>
                 )}
@@ -434,23 +470,24 @@ const MasterDataTablePage = ({
                 <button
                   type="button"
                   onClick={handleResetFilter}
-                  className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-2.5 py-2 text-[12px] font-medium text-zinc-600 hover:bg-zinc-50 transition-colors duration-150"
                 >
-                  <RotateCcw className="h-3 w-3" />
+                  <RotateCcw className="h-3 w-3" strokeWidth={1.75} />
                   Reset
                 </button>
               )}
-              <div className="ml-auto text-xs text-slate-500 hidden sm:block">
-                <span className="font-semibold text-slate-700">{filteredRecords.toLocaleString('id-ID')}</span>
+              <div className="ml-auto text-[12px] text-zinc-500 hidden sm:block">
+                <span className="font-semibold tabular-nums text-zinc-800">{filteredRecords.toLocaleString('id-ID')}</span>
                 {hasAppliedFilters && filteredRecords !== totalRecords && (
-                  <span className="text-slate-400"> dari {totalRecords.toLocaleString('id-ID')}</span>
-                )} data
+                  <span className="text-zinc-400"> dari {totalRecords.toLocaleString('id-ID')}</span>
+                )}
+                {' '}data
               </div>
             </div>
 
             {showFilterPanel && (
-              <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              <div className="rounded-xl border border-zinc-200/80 bg-zinc-50/70 p-3.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
                   {filterFields.map((f) => (
                     <input
                       key={f.key}
@@ -459,25 +496,25 @@ const MasterDataTablePage = ({
                       onChange={(e) => handleFilterChange(f.key, e.target.value)}
                       onKeyDown={(e) => { if (e.key === 'Enter') handleApplyFilter(); }}
                       placeholder={f.placeholder}
-                      className={`rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs outline-none ${accentFocus}`}
+                      className={`rounded-xl border border-zinc-200 bg-white px-3 py-2 text-[12px] text-zinc-800 placeholder:text-zinc-400 outline-none transition-shadow duration-150 ${accentFocus}`}
                     />
                   ))}
                 </div>
-                <div className="flex justify-end gap-1.5 mt-2.5">
+                <div className="flex justify-end gap-2 mt-3">
                   <button
                     type="button"
                     onClick={handleResetFilter}
-                    className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-1.5 text-[12px] font-medium text-zinc-600 hover:bg-zinc-50 transition-colors duration-150"
                   >
-                    <RotateCcw className="h-3 w-3" />
+                    <RotateCcw className="h-3 w-3" strokeWidth={1.75} />
                     Reset
                   </button>
                   <button
                     type="button"
                     onClick={handleApplyFilter}
-                    className={`inline-flex items-center gap-1 rounded-lg ${accentBtn} px-3 py-1.5 text-xs font-semibold text-white transition-colors`}
+                    className={`inline-flex items-center gap-1.5 rounded-xl ${accentBtn} px-3 py-1.5 text-[12px] font-medium text-white transition-colors duration-150`}
                   >
-                    <Search className="h-3 w-3" />
+                    <Search className="h-3 w-3" strokeWidth={1.75} />
                     Terapkan
                   </button>
                 </div>
@@ -486,7 +523,7 @@ const MasterDataTablePage = ({
           </div>
 
           {error && (
-            <div className="mx-4 mt-3 bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-xs">
+            <div className="mx-4 sm:mx-5 mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-[12px] text-rose-700">
               {error}
             </div>
           )}
@@ -499,10 +536,12 @@ const MasterDataTablePage = ({
               progressPending={loading}
               progressComponent={<SkeletonRows />}
               noDataComponent={
-                <div className="py-12 text-center">
-                  <AlertCircle className="mx-auto h-8 w-8 text-slate-300" />
-                  <p className="mt-2 text-sm font-semibold text-slate-600">Tidak ada data ditemukan</p>
-                  <p className="mt-1 text-xs text-slate-400">
+                <div className="py-16 text-center">
+                  <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-400">
+                    <AlertCircle className="h-5 w-5" strokeWidth={1.5} />
+                  </div>
+                  <p className="text-[13px] font-medium text-zinc-700">Tidak ada data ditemukan</p>
+                  <p className="mt-1 text-[12px] text-zinc-400">
                     {hasAppliedFilters ? 'Coba ubah filter atau reset' : `Belum ada ${entityLabel.toLowerCase()} terdaftar`}
                   </p>
                 </div>
@@ -517,23 +556,23 @@ const MasterDataTablePage = ({
             />
           </div>
 
-          <div className="shrink-0 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-t border-slate-100 px-4 py-2.5 bg-white">
-            <div className="flex items-center gap-2 text-xs text-slate-600">
-              <span>Baris:</span>
+          <div className="shrink-0 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between border-t border-zinc-100 px-4 sm:px-5 py-3 bg-zinc-50/40">
+            <div className="flex items-center gap-2 text-[12px] text-zinc-600">
+              <span className="text-zinc-500">Baris</span>
               <select
                 value={perPage}
                 onChange={(e) => handlePerPageChange(Number(e.target.value))}
-                className={`rounded-md border border-slate-200 bg-white px-1.5 py-1 text-xs outline-none ${accentFocus}`}
+                className={`h-8 rounded-lg border border-zinc-200 bg-white px-2 text-[12px] outline-none transition-shadow duration-150 ${accentFocus}`}
               >
                 {[10, 25, 50, 100].map((n) => (
                   <option key={n} value={n}>{n}</option>
                 ))}
               </select>
-              <span className="text-slate-500">
-                {filteredRecords === 0 ? '0-0' : `${startIdx}-${endIdx}`} dari{' '}
-                <span className="font-semibold text-slate-700">{filteredRecords.toLocaleString('id-ID')}</span>
+              <span className="text-zinc-500 tabular-nums">
+                {filteredRecords === 0 ? '0–0' : `${startIdx}–${endIdx}`} dari{' '}
+                <span className="font-semibold text-zinc-800">{filteredRecords.toLocaleString('id-ID')}</span>
                 {hasAppliedFilters && filteredRecords !== totalRecords && (
-                  <span className="text-slate-400"> (filter dari {totalRecords.toLocaleString('id-ID')})</span>
+                  <span className="text-zinc-400"> (filter dari {totalRecords.toLocaleString('id-ID')})</span>
                 )}
               </span>
             </div>
@@ -542,22 +581,22 @@ const MasterDataTablePage = ({
                 type="button"
                 onClick={() => handlePageChange(1)}
                 disabled={currentPage <= 1 || loading}
-                className="rounded-md border border-slate-200 p-1.5 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                className={pageBtnClass}
                 title="Halaman pertama"
               >
-                <ChevronsLeft className="h-3.5 w-3.5" />
+                <ChevronsLeft className="h-3.5 w-3.5" strokeWidth={1.75} />
               </button>
               <button
                 type="button"
                 onClick={() => handlePageChange(currentPage - 1)}
                 disabled={currentPage <= 1 || loading}
-                className="rounded-md border border-slate-200 p-1.5 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                className={pageBtnClass}
                 title="Prev"
               >
-                <ChevronLeft className="h-3.5 w-3.5" />
+                <ChevronLeft className="h-3.5 w-3.5" strokeWidth={1.75} />
               </button>
-              <div className="flex items-center gap-1 px-2 text-xs text-slate-600">
-                <span>Hal</span>
+              <div className="flex items-center gap-1.5 px-2 text-[12px] text-zinc-600">
+                <span className="text-zinc-500">Hal</span>
                 <input
                   type="number"
                   min={1}
@@ -567,27 +606,27 @@ const MasterDataTablePage = ({
                     const p = Number(e.target.value);
                     if (p >= 1 && p <= totalPages) handlePageChange(p);
                   }}
-                  className={`w-12 rounded-md border border-slate-200 px-1.5 py-1 text-xs text-center outline-none ${accentFocus}`}
+                  className={`h-8 w-11 rounded-lg border border-zinc-200 bg-white px-1 text-center text-[12px] tabular-nums outline-none transition-shadow duration-150 ${accentFocus}`}
                 />
-                <span>/ {totalPages.toLocaleString('id-ID')}</span>
+                <span className="tabular-nums text-zinc-400">/ {totalPages.toLocaleString('id-ID')}</span>
               </div>
               <button
                 type="button"
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage >= totalPages || loading}
-                className="rounded-md border border-slate-200 p-1.5 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                className={pageBtnClass}
                 title="Next"
               >
-                <ChevronRight className="h-3.5 w-3.5" />
+                <ChevronRight className="h-3.5 w-3.5" strokeWidth={1.75} />
               </button>
               <button
                 type="button"
                 onClick={() => handlePageChange(totalPages)}
                 disabled={currentPage >= totalPages || loading}
-                className="rounded-md border border-slate-200 p-1.5 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                className={pageBtnClass}
                 title="Halaman terakhir"
               >
-                <ChevronsRight className="h-3.5 w-3.5" />
+                <ChevronsRight className="h-3.5 w-3.5" strokeWidth={1.75} />
               </button>
             </div>
           </div>
@@ -642,20 +681,20 @@ const MasterDataTablePage = ({
 };
 
 const SkeletonRows = () => (
-  <div className="py-2">
+  <div className="py-1">
     {[...Array(8)].map((_, i) => (
-      <div key={i} className="flex items-center gap-3 px-3 py-2.5 border-b border-slate-50">
-        <div className="h-3 w-8 rounded bg-slate-100 animate-pulse" />
-        <div className="flex-1 h-3 rounded bg-slate-100 animate-pulse" />
-        <div className="h-3 w-24 rounded bg-slate-100 animate-pulse" />
-        <div className="h-3 w-20 rounded bg-slate-100 animate-pulse" />
-        <div className="h-3 w-8 rounded bg-slate-100 animate-pulse" />
+      <div key={i} className="flex items-center gap-3 px-4 py-3.5 border-b border-zinc-50">
+        <div className="h-2.5 w-7 rounded-full bg-zinc-100 animate-pulse" />
+        <div className="flex-1 h-2.5 rounded-full bg-zinc-100 animate-pulse" />
+        <div className="h-2.5 w-24 rounded-full bg-zinc-100 animate-pulse" />
+        <div className="h-2.5 w-16 rounded-full bg-zinc-100 animate-pulse" />
+        <div className="h-2.5 w-6 rounded-full bg-zinc-100 animate-pulse" />
       </div>
     ))}
   </div>
 );
 
-const ActionMenu = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onDelete, editColor = 'text-emerald-500' }) => {
+const ActionMenu = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onDelete, editColor = 'text-emerald-600' }) => {
   const buttonRef = useRef(null);
   const menuRef = useRef(null);
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
@@ -664,7 +703,7 @@ const ActionMenu = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onDelete
     e.stopPropagation();
     if (!isOpen && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
-      setMenuPos({ top: rect.bottom + 4, left: rect.right - 160 });
+      setMenuPos({ top: rect.bottom + 4, left: rect.right - 168 });
     }
     onToggle();
   };
@@ -683,37 +722,44 @@ const ActionMenu = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onDelete
   return (
     <div className="relative flex justify-center">
       <button
+        type="button"
         ref={buttonRef}
         onClick={toggle}
-        className={`p-1.5 rounded-md transition-colors ${isOpen ? 'bg-slate-100 text-slate-800' : 'text-slate-500 hover:bg-slate-100'}`}
+        className={`inline-flex h-8 w-8 items-center justify-center rounded-lg transition-colors duration-150 ${
+          isOpen ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700'
+        }`}
         title="Aksi"
       >
-        <MoreVertical className="h-4 w-4" />
+        <MoreVertical className="h-4 w-4" strokeWidth={1.75} />
       </button>
       {isOpen && createPortal(
         <div
           ref={menuRef}
-          className="fixed bg-white rounded-lg shadow-xl border border-slate-200 py-1 w-40 z-[99999]"
+          className="fixed z-50 w-42 w-[168px] rounded-xl border border-zinc-200/90 bg-white py-1 shadow-lg shadow-zinc-900/8"
           style={{ top: menuPos.top, left: menuPos.left }}
           onClick={(e) => e.stopPropagation()}
         >
           <button
+            type="button"
             onClick={() => onDetail(row)}
-            className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors"
+            className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[12px] text-zinc-700 transition-colors duration-150 hover:bg-zinc-50"
           >
-            <Eye className="h-3.5 w-3.5 text-slate-500" /> Lihat Detail
+            <Eye className="h-3.5 w-3.5 text-zinc-400" strokeWidth={1.75} /> Lihat Detail
           </button>
           <button
+            type="button"
             onClick={() => onEdit(row)}
-            className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors"
+            className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[12px] text-zinc-700 transition-colors duration-150 hover:bg-zinc-50"
           >
-            <Pencil className={`h-3.5 w-3.5 ${editColor}`} /> Edit
+            <Pencil className={`h-3.5 w-3.5 ${editColor}`} strokeWidth={1.75} /> Edit
           </button>
+          <div className="my-1 border-t border-zinc-100" />
           <button
+            type="button"
             onClick={() => onDelete(row)}
-            className="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
+            className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[12px] text-rose-600 transition-colors duration-150 hover:bg-rose-50"
           >
-            <Trash2 className="h-3.5 w-3.5 text-red-500" /> Hapus
+            <Trash2 className="h-3.5 w-3.5 text-rose-500" strokeWidth={1.75} /> Hapus
           </button>
         </div>,
         document.body
@@ -723,27 +769,30 @@ const ActionMenu = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onDelete
 };
 
 const DetailDrawer = ({ row, onClose, onEdit, onDelete, accentBg, accentText, accentBtn, Icon, title, subtitle }) => {
-
   return createPortal(
-    <div className="fixed inset-0 z-[9999] flex justify-end">
-      <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-md bg-white shadow-2xl flex flex-col animate-in slide-in-from-right">
-        <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-slate-100">
+    <div className="fixed inset-0 z-[60] flex justify-end">
+      <div className="absolute inset-0 bg-zinc-900/30 backdrop-blur-[2px]" onClick={onClose} />
+      <div className="relative flex w-full max-w-md flex-col bg-white shadow-2xl shadow-zinc-900/10">
+        <div className="shrink-0 flex items-center justify-between border-b border-zinc-100 px-5 py-4">
           <div>
-            <h3 className="text-sm font-bold text-slate-900">{title}</h3>
-            <p className="text-xs text-slate-500">{subtitle}</p>
+            <h3 className="text-[14px] font-semibold tracking-tight text-zinc-900">{title}</h3>
+            <p className="mt-0.5 text-[12px] text-zinc-500">{subtitle}</p>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700">
-            <X className="h-4 w-4" />
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-zinc-400 transition-colors duration-150 hover:bg-zinc-100 hover:text-zinc-700"
+          >
+            <X className="h-4 w-4" strokeWidth={1.75} />
           </button>
         </div>
-        <div className="flex-1 overflow-auto p-4 space-y-3">
-          <div className="rounded-lg border border-slate-200 p-3 flex items-center gap-3">
-            <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${accentBg} ${accentText}`}>
-              <Icon className="h-5 w-5" />
+        <div className="flex-1 overflow-auto p-5 space-y-3">
+          <div className="flex items-center gap-3.5 rounded-2xl border border-zinc-200/80 bg-zinc-50/50 p-3.5">
+            <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${accentBg} ${accentText}`}>
+              <Icon className="h-5 w-5" strokeWidth={1.75} />
             </div>
-            <div>
-              <h2 className="text-lg font-bold text-slate-800">{row.name}</h2>
+            <div className="min-w-0">
+              <h2 className="truncate text-[16px] font-semibold tracking-tight text-zinc-900">{row.name}</h2>
             </div>
           </div>
           {Object.entries(row)
@@ -752,18 +801,20 @@ const DetailDrawer = ({ row, onClose, onEdit, onDelete, accentBg, accentText, ac
               <DetailField key={key} label={key.replace(/_/g, ' ')} value={value} />
             ))}
         </div>
-        <div className="shrink-0 flex gap-2 px-4 py-3 border-t border-slate-100 bg-slate-50/50">
+        <div className="shrink-0 flex gap-2 border-t border-zinc-100 bg-zinc-50/50 px-5 py-3.5">
           <button
+            type="button"
             onClick={() => onDelete(row)}
-            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors"
+            className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-rose-200 bg-white px-3.5 py-2 text-[12px] font-medium text-rose-600 transition-colors duration-150 hover:bg-rose-50"
           >
-            <Trash2 className="h-3.5 w-3.5" /> Hapus
+            <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} /> Hapus
           </button>
           <button
+            type="button"
             onClick={() => onEdit(row)}
-            className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg ${accentBtn} px-3 py-2 text-xs font-semibold text-white transition-colors`}
+            className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl ${accentBtn} px-3.5 py-2 text-[12px] font-medium text-white transition-colors duration-150`}
           >
-            <Pencil className="h-3.5 w-3.5" /> Edit
+            <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} /> Edit
           </button>
         </div>
       </div>
@@ -775,10 +826,10 @@ const DetailDrawer = ({ row, onClose, onEdit, onDelete, accentBg, accentText, ac
 const DetailField = ({ label, value }) => {
   const display = Array.isArray(value) ? value.join(', ') : (value === null || value === undefined ? '' : String(value));
   return (
-    <div className="rounded-lg border border-slate-200 px-3 py-2">
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{label}</p>
-      <p className="mt-0.5 text-sm text-slate-700 break-words">
-        {display || <span className="text-slate-300">-</span>}
+    <div className="rounded-xl border border-zinc-200/80 px-3.5 py-2.5">
+      <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">{label}</p>
+      <p className="mt-1 text-[13px] text-zinc-800 break-words leading-snug">
+        {display || <span className="text-zinc-300">—</span>}
       </p>
     </div>
   );
