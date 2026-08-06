@@ -20,10 +20,19 @@ class ResellerService {
         start: params.start || 0,
         length: params.length || 10,
         'search[value]': params.search || '',
-        'order[0][column]': params.orderColumn || 0,
+        'order[0][column]': params.orderColumn ?? 1,
         'order[0][dir]': params.orderDir || 'asc',
         _ts: Date.now(),
       });
+
+      const filters = params.filters || {};
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== '' && value !== null && value !== undefined) {
+          queryParams.append(`filters[${key}]`, value);
+        }
+      });
+
+      console.log('🔍 Reseller getData URL:', `${RESELLER_BASE}/data?${queryParams.toString()}`, { params, filters });
 
       const response = await HttpClient.get(`${RESELLER_BASE}/data?${queryParams.toString()}`);
       return {
