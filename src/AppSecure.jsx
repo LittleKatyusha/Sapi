@@ -361,7 +361,7 @@ function AppSecure() {
               <Route path="/master-data/klasifikasi-hewan" element={<KlasifikasiHewanPage />} />
               <Route path="/master-data/klasifikasi-ovk" element={<KlasifikasiOvkPage />} />
               <Route path="/master-data/klasifikasi-feedmil" element={<KlasifikasiFeedmilPage />} />
-              <Route path="/data-master/klasifikasi-lain-lain" element={<KlasifikasiLainLainPage />} />
+              <Route path="/master-data/klasifikasi-lain-lain" element={<KlasifikasiLainLainPage />} />
               <Route path="/master-data/item-kulit" element={<ItemKulitPage />} />
               <Route path="/master-data/item-feedmil" element={<ItemFeedmilPage />} />
               <Route path="/master-data/item-ovk" element={<ItemOvkPage />} />
