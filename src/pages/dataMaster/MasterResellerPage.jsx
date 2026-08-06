@@ -60,6 +60,8 @@ const MasterResellerPage = () => {
   const [detailRow, setDetailRow] = useState(null);
 
   const searchTimer = useRef(null);
+  const stateRef = useRef({});
+  stateRef.current = { currentPage, perPage, appliedSearch, sortCol, sortDir, appliedFilters };
 
   const showNotif = useCallback((type, message) => {
     setNotification({ isVisible: true, type, message });
@@ -75,30 +77,33 @@ const MasterResellerPage = () => {
   const totalPages = Math.max(1, Math.ceil(filteredRecords / perPage));
 
   const loadData = useCallback(async () => {
+    const { currentPage: cp, perPage: pp, appliedSearch: as_, sortCol: sc, sortDir: sd, appliedFilters: af } = stateRef.current;
     const result = await fetchData({
-      start: (currentPage - 1) * perPage,
-      length: perPage,
-      search: appliedSearch,
-      orderColumn: sortCol,
-      orderDir: sortDir,
-      filters: appliedFilters,
+      start: (cp - 1) * pp,
+      length: pp,
+      search: as_,
+      orderColumn: sc,
+      orderDir: sd,
+      filters: af,
     });
     if (result.success) {
       setData(result.data || []);
       setTotalRecords(result.recordsTotal || 0);
       setFilteredRecords(result.recordsFiltered || 0);
     }
-  }, [fetchData, currentPage, perPage, appliedSearch, sortCol, sortDir, appliedFilters]);
+  }, [fetchData]);
 
+  const [fetchTrigger, setFetchTrigger] = useState(0);
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    if (fetchTrigger > 0) loadData();
+  }, [fetchTrigger, loadData]);
 
   useEffect(() => {
     if (searchTimer.current) clearTimeout(searchTimer.current);
     searchTimer.current = setTimeout(() => {
       setAppliedSearch(searchInput);
       setCurrentPage(1);
+      setFetchTrigger((t) => t + 1);
     }, 400);
     return () => { if (searchTimer.current) clearTimeout(searchTimer.current); };
   }, [searchInput]);
@@ -115,6 +120,7 @@ const MasterResellerPage = () => {
       if (saved.sortDir) setSortDir(saved.sortDir);
       if (saved.currentPage) setCurrentPage(saved.currentPage);
     } catch {}
+    setFetchTrigger((t) => t + 1);
   }, []);
 
   useEffect(() => {
@@ -130,6 +136,7 @@ const MasterResellerPage = () => {
   const handleApplyFilter = useCallback(() => {
     setAppliedFilters(filterInput);
     setCurrentPage(1);
+    setFetchTrigger((t) => t + 1);
   }, [filterInput]);
 
   const handleResetFilter = useCallback(() => {
@@ -139,6 +146,7 @@ const MasterResellerPage = () => {
     setSearchInput('');
     setAppliedSearch('');
     setCurrentPage(1);
+    setFetchTrigger((t) => t + 1);
   }, []);
 
   const handleSort = useCallback((colIdx) => {
@@ -148,16 +156,19 @@ const MasterResellerPage = () => {
       setSortCol(colIdx);
       setSortDir('asc');
     }
+    setFetchTrigger((t) => t + 1);
   }, [sortCol]);
 
   const handlePerPageChange = useCallback((n) => {
     setPerPage(n);
     setCurrentPage(1);
+    setFetchTrigger((t) => t + 1);
   }, []);
 
   const handlePageChange = useCallback((p) => {
     if (p < 1 || p > totalPages) return;
     setCurrentPage(p);
+    setFetchTrigger((t) => t + 1);
   }, [totalPages]);
 
   const handleSave = useCallback(async (payload) => {
@@ -168,7 +179,7 @@ const MasterResellerPage = () => {
           showNotif('success', 'Reseller berhasil diperbarui');
           setShowModal(false);
           setEditData(null);
-          loadData();
+          setFetchTrigger((t) => t + 1);
         } else {
           showNotif('error', result.message || 'Gagal memperbarui reseller');
         }
@@ -177,7 +188,7 @@ const MasterResellerPage = () => {
         if (result.success) {
           showNotif('success', 'Reseller berhasil ditambahkan');
           setShowModal(false);
-          loadData();
+          setFetchTrigger((t) => t + 1);
         } else {
           showNotif('error', result.message || 'Gagal menambahkan reseller');
         }
@@ -185,7 +196,7 @@ const MasterResellerPage = () => {
     } catch (err) {
       showNotif('error', err.message || 'Gagal menyimpan data');
     }
-  }, [editData, update, create, showNotif, loadData]);
+  }, [editData, update, create, showNotif]);
 
   const handleConfirmDelete = useCallback(async () => {
     if (!deleteData) return;
@@ -195,7 +206,7 @@ const MasterResellerPage = () => {
       if (result.success) {
         setDeleteData(null);
         showNotif('success', 'Reseller berhasil dihapus');
-        loadData();
+        setFetchTrigger((t) => t + 1);
       } else {
         showNotif('error', result.message || 'Gagal menghapus reseller');
       }
@@ -204,7 +215,7 @@ const MasterResellerPage = () => {
     } finally {
       setIsDeleting(false);
     }
-  }, [deleteData, remove, showNotif, loadData]);
+  }, [deleteData, remove, showNotif]);
 
   const handleEditItem = useCallback((item) => {
     setEditData(item);

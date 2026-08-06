@@ -32,8 +32,6 @@ class ResellerService {
         }
       });
 
-      console.log('🔍 Reseller getData URL:', `${RESELLER_BASE}/data?${queryParams.toString()}`, { params, filters });
-
       const response = await HttpClient.get(`${RESELLER_BASE}/data?${queryParams.toString()}`);
       return {
         success: true,

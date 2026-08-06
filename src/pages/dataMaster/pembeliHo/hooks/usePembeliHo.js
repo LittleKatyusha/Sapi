@@ -6,32 +6,36 @@ const usePembeliHo = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
   const [totalRecords, setTotalRecords] = useState(0);
+  const [filteredRecords, setFilteredRecords] = useState(0);
 
-  const fetchData = useCallback(async () => {
-    if (loading) return;
+  const fetchData = useCallback(async (params = {}) => {
     setLoading(true);
     setError(null);
     try {
-      const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.PEMBELI_HO}/data`, {
-        params: { draw: 1, start: 0, length: 1000 },
-        cache: true,
+      const queryParams = new URLSearchParams({
+        draw: params.draw || 1,
+        start: params.start ?? 0,
+        length: params.length ?? 10,
+        'search[value]': params.search || '',
+        'order[0][column]': params.orderColumn ?? 1,
+        'order[0][dir]': params.orderDir || 'asc',
+        _ts: Date.now(),
       });
 
-      let dataArray = [];
-      let total = 0;
-      if (result?.data) {
-        dataArray = result.data;
-        total = result.recordsTotal || dataArray.length;
-      } else if (Array.isArray(result)) {
-        dataArray = result;
-        total = dataArray.length;
-      }
+      const filters = params.filters || {};
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== '' && value !== null && value !== undefined) {
+          queryParams.append(`filters[${key}]`, value);
+        }
+      });
 
-      const mapped = dataArray.map((item, i) => ({
+      const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.PEMBELI_HO}/data?${queryParams.toString()}`);
+
+      const dataArray = result?.data || [];
+      const mapped = dataArray.map((item) => ({
         id: item.id || null,
-        pubid: item.pubid || `TEMP-${i}`,
+        pubid: item.pubid || '',
         pid: item.pid || item.pubid,
         name: item.name || '',
         description: item.description || '',
@@ -40,14 +44,18 @@ const usePembeliHo = () => {
       }));
 
       setData(mapped);
-      setTotalRecords(total);
+      setTotalRecords(result?.recordsTotal || 0);
+      setFilteredRecords(result?.recordsFiltered || 0);
+      return { success: true, data: mapped, recordsTotal: result?.recordsTotal || 0, recordsFiltered: result?.recordsFiltered || 0 };
     } catch (err) {
-      setError(`API Error: ${err.message}`);
+      const msg = err?.message || 'Gagal memuat data';
+      setError(msg);
       setData([]);
+      return { success: false, message: msg, data: [] };
     } finally {
       setLoading(false);
     }
-  }, [loading]);
+  }, []);
 
   const createItem = useCallback(async (payload) => {
     setLoading(true);
@@ -55,19 +63,17 @@ const usePembeliHo = () => {
     try {
       const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.PEMBELI_HO}/store`, payload);
       if (result?.status === 'ok' || result?.data) {
-        HttpClient.clearCache?.('pembeliho');
-        await fetchData();
-        return result;
+        return { success: true, data: result.data };
       }
       throw new Error(result?.message || 'Gagal membuat data');
     } catch (err) {
       const msg = err.response?.data?.message || err.message || 'Gagal membuat data';
       setError(msg);
-      throw new Error(msg);
+      return { success: false, message: msg };
     } finally {
       setLoading(false);
     }
-  }, [fetchData]);
+  }, []);
 
   const updateItem = useCallback(async (pid, payload) => {
     setLoading(true);
@@ -75,19 +81,17 @@ const usePembeliHo = () => {
     try {
       const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.PEMBELI_HO}/update`, { pid, ...payload });
       if (result?.status === 'ok' || result?.data) {
-        HttpClient.clearCache?.('pembeliho');
-        await fetchData();
-        return result;
+        return { success: true, data: result.data };
       }
       throw new Error(result?.message || 'Gagal mengubah data');
     } catch (err) {
       const msg = err.response?.data?.message || err.message || 'Gagal mengubah data';
       setError(msg);
-      throw new Error(msg);
+      return { success: false, message: msg };
     } finally {
       setLoading(false);
     }
-  }, [fetchData]);
+  }, []);
 
   const deleteItem = useCallback(async (pid) => {
     setLoading(true);
@@ -95,19 +99,17 @@ const usePembeliHo = () => {
     try {
       const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.PEMBELI_HO}/hapus`, { pid });
       if (result?.status === 'ok' || result?.data !== undefined) {
-        HttpClient.clearCache?.('pembeliho');
-        await fetchData();
-        return result;
+        return { success: true };
       }
       throw new Error(result?.message || 'Gagal menghapus data');
     } catch (err) {
       const msg = err.response?.data?.message || err.message || 'Gagal menghapus data';
       setError(msg);
-      throw new Error(msg);
+      return { success: false, message: msg };
     } finally {
       setLoading(false);
     }
-  }, [fetchData]);
+  }, []);
 
   const stats = useMemo(() => ({
     total: totalRecords,
@@ -122,8 +124,8 @@ const usePembeliHo = () => {
     createItem,
     updateItem,
     deleteItem,
-    searchTerm,
-    setSearchTerm,
+    totalRecords,
+    filteredRecords,
     stats,
   };
 };
