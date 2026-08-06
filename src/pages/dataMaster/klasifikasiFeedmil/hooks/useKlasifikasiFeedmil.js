@@ -1,230 +1,135 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback } from "react";
 import HttpClient from "../../../../services/httpClient";
 import { API_ENDPOINTS } from "../../../../config/api";
 
 const useKlasifikasiFeedmil = () => {
-  const [klasifikasiFeedmil, setKlasifikasiFeedmil] = useState([]);
+  const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [totalRecords, setTotalRecords] = useState(0);
+  const [filteredRecords, setFilteredRecords] = useState(0);
 
-  // Test API connection
-  const testApiConnection = useCallback(async () => {
-    try {
-      const response = await fetch(`${API_ENDPOINTS.MASTER.KLASIFIKASI_FEEDMIL}/data`);
-      return { success: response.ok, status: response.status };
-    } catch (error) {
-      return { success: false, error: error.message, message: `Network error: ${error.message}` };
-    }
-  }, []);
+  const API_BASE = API_ENDPOINTS.MASTER.KLASIFIKASI_FEEDMIL;
 
-  // Fetch data dari API dengan encrypted PID dari backend
-  const fetchKlasifikasiFeedmil = useCallback(async () => {
+  const fetchKlasifikasiFeedmil = useCallback(async (params = {}) => {
     setLoading(true);
     setError(null);
-    
     try {
-      const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.KLASIFIKASI_FEEDMIL}/data`);
-      
-      if (result.status === 'ok' && result.data && Array.isArray(result.data)) {
-        const validatedData = result.data.map((item, index) => {
-          return {
-            pubid: item.pubid || `TEMP-${index + 1}`,
-            pid: item.pid || item.pubid, // encrypted PID from backend
-            name: item.name || 'Nama tidak tersedia',
-            description: item.description || '',
+      const queryParams = new URLSearchParams({
+        draw: params.draw || 1,
+        start: params.start ?? 0,
+        length: params.length ?? 10,
+        'search[value]': params.search || '',
+        'order[0][column]': params.orderColumn ?? 1,
+        'order[0][dir]': params.orderDir || 'asc',
+        _ts: Date.now(),
+      });
 
-          };
-        });
-        
-        setKlasifikasiFeedmil(validatedData);
-      } else {
-        setKlasifikasiFeedmil([]);
-      }
-    } catch (err) {
-      setError(`API Error: ${err.message}`);
-      
-      // Fallback data untuk development
-      setKlasifikasiFeedmil([
-        {
-          pubid: "kf-001-fallback",
-          pid: "kf-001-fallback",
-          name: "Pakan Starter",
-          description: "Pakan untuk ternak muda umur 0-8 minggu",
+      const filters = params.filters || {};
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== '' && value !== null && value !== undefined) {
+          queryParams.append(`filters[${key}]`, value);
+        }
+      });
 
-        },
-        {
-          pubid: "kf-002-fallback",
-          pid: "kf-002-fallback",
-          name: "Pakan Grower",
-          description: "Pakan untuk ternak umur 9-20 minggu",
+      const result = await HttpClient.get(`${API_BASE}/data?${queryParams.toString()}`);
 
-        },
-        {
-          pubid: "kf-003-fallback",
-          pid: "kf-003-fallback",
-          name: "Pakan Finisher",
-          description: "Pakan untuk ternak siap potong umur 21+ minggu",
+      const dataArray = result?.data || [];
+      const mapped = dataArray.map((item, index) => ({
+        pid: item.pid || item.pubid || `TEMP-${index + 1}`,
+        rawPubid: item.pubid,
+        id: item.id,
+        name: item.name || 'Nama tidak tersedia',
+        description: item.description || '',
+        created_at: item.created_at || null,
+        updated_at: item.updated_at || null,
+      }));
 
-        },
-        {
-          pubid: "kf-004-fallback",
-          pid: "kf-004-fallback",
-          name: "Pakan Layer",
-          description: "Pakan untuk ternak petelur",
-
-        },
-        {
-          pubid: "kf-005-fallback",
-          pid: "kf-005-fallback",
-          name: "Pakan Breeder",
-          description: "Pakan untuk indukan ternak",
-
-        },
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  // Create klasifikasi feedmil
-  const createKlasifikasiFeedmil = useCallback(async (data) => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.KLASIFIKASI_FEEDMIL}/store`, data);
-      
-      if (result.status === 'ok' || result.data) {
-        // Refresh data setelah create
-        await fetchKlasifikasiFeedmil();
-        return result;
-      } else {
-        throw new Error(result.message || 'Failed to create data');
-      }
-    } catch (err) {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to create klasifikasi feedmil';
-      setError(errorMessage);
-      throw new Error(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchKlasifikasiFeedmil]);
-
-  // Update klasifikasi feedmil
-  const updateKlasifikasiFeedmil = useCallback(async (pid, data) => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const updateData = {
-        pid: pid, // Menggunakan encrypted PID
-        ...data
+      setData(mapped);
+      setTotalRecords(result?.recordsTotal || 0);
+      setFilteredRecords(result?.recordsFiltered || 0);
+      return {
+        success: true,
+        data: mapped,
+        recordsTotal: result?.recordsTotal || 0,
+        recordsFiltered: result?.recordsFiltered || 0,
       };
-      
-      const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.KLASIFIKASI_FEEDMIL}/update`, updateData);
-      
-      if (result.status === 'ok' || result.data) {
-        // Refresh data setelah update
-        await fetchKlasifikasiFeedmil();
-        return result;
-      } else {
-        throw new Error(result.message || 'Failed to update data');
-      }
     } catch (err) {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to update klasifikasi feedmil';
-      setError(errorMessage);
-      throw new Error(errorMessage);
+      const msg = err?.message || 'Gagal memuat data';
+      setError(msg);
+      setData([]);
+      return { success: false, message: msg, data: [] };
     } finally {
       setLoading(false);
     }
-  }, [fetchKlasifikasiFeedmil]);
+  }, [API_BASE]);
 
-  // Delete klasifikasi feedmil
+  const createKlasifikasiFeedmil = useCallback(async (payload) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await HttpClient.post(`${API_BASE}/store`, payload);
+      return { success: true, message: result?.message || 'Data berhasil ditambahkan' };
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message || 'Gagal membuat data';
+      setError(msg);
+      return { success: false, message: msg };
+    } finally {
+      setLoading(false);
+    }
+  }, [API_BASE]);
+
+  const updateKlasifikasiFeedmil = useCallback(async (pid, payload) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const item = data.find((d) => d.pid === pid);
+      const actualPid = item?.rawPubid || item?.pid || pid;
+      const result = await HttpClient.post(`${API_BASE}/update`, { pid: String(actualPid).trim(), ...payload });
+      return { success: true, message: result?.message || 'Data berhasil diperbarui' };
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message || 'Gagal memperbarui data';
+      setError(msg);
+      return { success: false, message: msg };
+    } finally {
+      setLoading(false);
+    }
+  }, [API_BASE, data]);
+
   const deleteKlasifikasiFeedmil = useCallback(async (pid) => {
     setLoading(true);
     setError(null);
-    
     try {
-      const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.KLASIFIKASI_FEEDMIL}/hapus`, {
-        pid: pid // Menggunakan encrypted PID
-      });
-      
-      if (result.status === 'ok') {
-        // Refresh data setelah delete
-        await fetchKlasifikasiFeedmil();
-        return result;
-      } else {
-        throw new Error(result.message || 'Failed to delete data');
-      }
+      const item = data.find((d) => d.pid === pid);
+      const actualPid = item?.rawPubid || item?.pid || pid;
+      const result = await HttpClient.post(`${API_BASE}/hapus`, { pid: String(actualPid).trim() });
+      return { success: true, message: result?.message || 'Data berhasil dihapus' };
     } catch (err) {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to delete klasifikasi feedmil';
-      setError(errorMessage);
-      throw new Error(errorMessage);
+      const msg = err.response?.data?.message || err.message || 'Gagal menghapus data';
+      setError(msg);
+      return { success: false, message: msg };
     } finally {
       setLoading(false);
     }
-  }, [fetchKlasifikasiFeedmil]);
+  }, [API_BASE, data]);
 
-  // Computed values
-  const stats = useMemo(() => {
-    return {
-      total: klasifikasiFeedmil.length,
-    };
-  }, [klasifikasiFeedmil]);
+  const stats = useMemo(() => ({
+    total: totalRecords,
+    displayed: data.length,
+  }), [totalRecords, data]);
 
-  // Filter data berdasarkan search term
-  const filteredData = useMemo(() => {
-    if (!searchTerm) return klasifikasiFeedmil;
-    
-    const searchLower = searchTerm.toLowerCase();
-    return klasifikasiFeedmil.filter(item =>
-      item.name?.toLowerCase().includes(searchLower) ||
-      item.description?.toLowerCase().includes(searchLower)
-    );
-  }, [klasifikasiFeedmil, searchTerm]);
-
-  // Validasi data sebelum submit
-  const validateKlasifikasiFeedmilData = useCallback((data) => {
-    const errors = [];
-    
-    if (!data.name || data.name.trim() === '') {
-      errors.push('Nama klasifikasi wajib diisi');
-    }
-    
-    if (!data.description || data.description.trim() === '') {
-      errors.push('Deskripsi wajib diisi');
-    }
-    
-
-    
-    return {
-      isValid: errors.length === 0,
-      errors
-    };
-  }, []);
-
-  // Return hook interface
   return {
-    // Data
-    klasifikasiFeedmil: filteredData,
+    klasifikasiFeedmil: data,
+    data,
     loading,
     error,
     stats,
-    
-    // Search
-    searchTerm,
-    setSearchTerm,
-    
-    // Actions
+    totalRecords,
+    filteredRecords,
     fetchKlasifikasiFeedmil,
     createKlasifikasiFeedmil,
     updateKlasifikasiFeedmil,
     deleteKlasifikasiFeedmil,
-    
-    // Utilities
-    testApiConnection,
-    validateKlasifikasiFeedmilData,
   };
 };
 

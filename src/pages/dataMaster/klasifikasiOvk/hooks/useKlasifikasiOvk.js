@@ -1,223 +1,135 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback } from "react";
 import HttpClient from "../../../../services/httpClient";
 import { API_ENDPOINTS } from "../../../../config/api";
 
 const useKlasifikasiOvk = () => {
-  const [klasifikasiOvk, setKlasifikasiOvk] = useState([]);
+  const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [totalRecords, setTotalRecords] = useState(0);
+  const [filteredRecords, setFilteredRecords] = useState(0);
 
-  // Test API connection
-  const testApiConnection = useCallback(async () => {
-    try {
-      const response = await fetch(`${API_ENDPOINTS.MASTER.KLASIFIKASI_OVK}/data`);
-      return { success: response.ok, status: response.status };
-    } catch (error) {
-      return { success: false, error: error.message, message: `Network error: ${error.message}` };
-    }
-  }, []);
+  const API_BASE = API_ENDPOINTS.MASTER.KLASIFIKASI_OVK;
 
-  // Fetch data dari API dengan encrypted PID dari backend
-  const fetchKlasifikasiOvk = useCallback(async () => {
+  const fetchKlasifikasiOvk = useCallback(async (params = {}) => {
     setLoading(true);
     setError(null);
-    
     try {
-      const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.KLASIFIKASI_OVK}/data`);
-      
-      if (result.status === 'ok' && result.data && Array.isArray(result.data)) {
-        const validatedData = result.data.map((item, index) => {
-          return {
-            pubid: item.pubid || `TEMP-${index + 1}`,
-            pid: item.pid || item.pubid, // encrypted PID from backend
-            name: item.name || 'Nama tidak tersedia',
-            description: item.description || '',
+      const queryParams = new URLSearchParams({
+        draw: params.draw || 1,
+        start: params.start ?? 0,
+        length: params.length ?? 10,
+        'search[value]': params.search || '',
+        'order[0][column]': params.orderColumn ?? 1,
+        'order[0][dir]': params.orderDir || 'asc',
+        _ts: Date.now(),
+      });
 
-          };
-        });
-        
-        setKlasifikasiOvk(validatedData);
-      } else {
-        setKlasifikasiOvk([]);
-      }
-    } catch (err) {
-      setError(`API Error: ${err.message}`);
-      
-      // Fallback data untuk development
-      setKlasifikasiOvk([
-        {
-          pubid: "ko-001-fallback",
-          pid: "ko-001-fallback",
-          name: "Antibiotik",
-          description: "Obat untuk pengobatan infeksi bakteri pada ternak",
+      const filters = params.filters || {};
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== '' && value !== null && value !== undefined) {
+          queryParams.append(`filters[${key}]`, value);
+        }
+      });
 
-        },
-        {
-          pubid: "ko-002-fallback",
-          pid: "ko-002-fallback",
-          name: "Vaksin",
-          description: "Vaksin untuk pencegahan penyakit pada ternak",
+      const result = await HttpClient.get(`${API_BASE}/data?${queryParams.toString()}`);
 
-        },
-        {
-          pubid: "ko-003-fallback",
-          pid: "ko-003-fallback",
-          name: "Vitamin",
-          description: "Suplemen vitamin untuk kesehatan ternak",
+      const dataArray = result?.data || [];
+      const mapped = dataArray.map((item, index) => ({
+        pid: item.pid || item.pubid || `TEMP-${index + 1}`,
+        rawPubid: item.pubid,
+        id: item.id,
+        name: item.name || 'Nama tidak tersedia',
+        description: item.description || '',
+        created_at: item.created_at || null,
+        updated_at: item.updated_at || null,
+      }));
 
-        },
-        {
-          pubid: "ko-004-fallback",
-          pid: "ko-004-fallback",
-          name: "Desinfektan",
-          description: "Bahan kimia untuk sanitasi kandang dan peralatan",
-
-        },
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  // Create klasifikasi OVK
-  const createKlasifikasiOvk = useCallback(async (data) => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.KLASIFIKASI_OVK}/store`, data);
-      
-      if (result.status === 'ok' || result.data) {
-        // Refresh data setelah create
-        await fetchKlasifikasiOvk();
-        return result;
-      } else {
-        throw new Error(result.message || 'Failed to create data');
-      }
-    } catch (err) {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to create klasifikasi OVK';
-      setError(errorMessage);
-      throw new Error(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchKlasifikasiOvk]);
-
-  // Update klasifikasi OVK
-  const updateKlasifikasiOvk = useCallback(async (pid, data) => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const updateData = {
-        pid: pid, // Menggunakan encrypted PID
-        ...data
+      setData(mapped);
+      setTotalRecords(result?.recordsTotal || 0);
+      setFilteredRecords(result?.recordsFiltered || 0);
+      return {
+        success: true,
+        data: mapped,
+        recordsTotal: result?.recordsTotal || 0,
+        recordsFiltered: result?.recordsFiltered || 0,
       };
-      
-      const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.KLASIFIKASI_OVK}/update`, updateData);
-      
-      if (result.status === 'ok' || result.data) {
-        // Refresh data setelah update
-        await fetchKlasifikasiOvk();
-        return result;
-      } else {
-        throw new Error(result.message || 'Failed to update data');
-      }
     } catch (err) {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to update klasifikasi OVK';
-      setError(errorMessage);
-      throw new Error(errorMessage);
+      const msg = err?.message || 'Gagal memuat data';
+      setError(msg);
+      setData([]);
+      return { success: false, message: msg, data: [] };
     } finally {
       setLoading(false);
     }
-  }, [fetchKlasifikasiOvk]);
+  }, [API_BASE]);
 
-  // Delete klasifikasi OVK
+  const createKlasifikasiOvk = useCallback(async (payload) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await HttpClient.post(`${API_BASE}/store`, payload);
+      return { success: true, message: result?.message || 'Data berhasil ditambahkan' };
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message || 'Gagal membuat data';
+      setError(msg);
+      return { success: false, message: msg };
+    } finally {
+      setLoading(false);
+    }
+  }, [API_BASE]);
+
+  const updateKlasifikasiOvk = useCallback(async (pid, payload) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const item = data.find((d) => d.pid === pid);
+      const actualPid = item?.rawPubid || item?.pid || pid;
+      const result = await HttpClient.post(`${API_BASE}/update`, { pid: String(actualPid).trim(), ...payload });
+      return { success: true, message: result?.message || 'Data berhasil diperbarui' };
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message || 'Gagal memperbarui data';
+      setError(msg);
+      return { success: false, message: msg };
+    } finally {
+      setLoading(false);
+    }
+  }, [API_BASE, data]);
+
   const deleteKlasifikasiOvk = useCallback(async (pid) => {
     setLoading(true);
     setError(null);
-    
     try {
-      const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.KLASIFIKASI_OVK}/hapus`, {
-        pid: pid // Menggunakan encrypted PID
-      });
-      
-      if (result.status === 'ok') {
-        // Refresh data setelah delete
-        await fetchKlasifikasiOvk();
-        return result;
-      } else {
-        throw new Error(result.message || 'Failed to delete data');
-      }
+      const item = data.find((d) => d.pid === pid);
+      const actualPid = item?.rawPubid || item?.pid || pid;
+      const result = await HttpClient.post(`${API_BASE}/hapus`, { pid: String(actualPid).trim() });
+      return { success: true, message: result?.message || 'Data berhasil dihapus' };
     } catch (err) {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to delete klasifikasi OVK';
-      setError(errorMessage);
-      throw new Error(errorMessage);
+      const msg = err.response?.data?.message || err.message || 'Gagal menghapus data';
+      setError(msg);
+      return { success: false, message: msg };
     } finally {
       setLoading(false);
     }
-  }, [fetchKlasifikasiOvk]);
+  }, [API_BASE, data]);
 
-  // Computed values
-  const stats = useMemo(() => {
-    return {
-      total: klasifikasiOvk.length,
-    };
-  }, [klasifikasiOvk]);
+  const stats = useMemo(() => ({
+    total: totalRecords,
+    displayed: data.length,
+  }), [totalRecords, data]);
 
-  // Filter data berdasarkan search term
-  const filteredData = useMemo(() => {
-    if (!searchTerm) return klasifikasiOvk;
-    
-    const searchLower = searchTerm.toLowerCase();
-    return klasifikasiOvk.filter(item =>
-      item.name?.toLowerCase().includes(searchLower) ||
-      item.description?.toLowerCase().includes(searchLower)
-    );
-  }, [klasifikasiOvk, searchTerm]);
-
-  // Validasi data sebelum submit
-  const validateKlasifikasiOvkData = useCallback((data) => {
-    const errors = [];
-    
-    if (!data.name || data.name.trim() === '') {
-      errors.push('Nama klasifikasi wajib diisi');
-    }
-    
-    if (!data.description || data.description.trim() === '') {
-      errors.push('Deskripsi wajib diisi');
-    }
-    
-
-    
-    return {
-      isValid: errors.length === 0,
-      errors
-    };
-  }, []);
-
-  // Return hook interface
   return {
-    // Data
-    klasifikasiOvk: filteredData,
+    klasifikasiOvk: data,
+    data,
     loading,
     error,
     stats,
-    
-    // Search
-    searchTerm,
-    setSearchTerm,
-    
-    // Actions
+    totalRecords,
+    filteredRecords,
     fetchKlasifikasiOvk,
     createKlasifikasiOvk,
     updateKlasifikasiOvk,
     deleteKlasifikasiOvk,
-    
-    // Utilities
-    testApiConnection,
-    validateKlasifikasiOvkData,
   };
 };
 
