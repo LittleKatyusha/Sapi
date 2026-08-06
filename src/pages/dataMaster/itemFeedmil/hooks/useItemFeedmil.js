@@ -3,153 +3,129 @@ import HttpClient from "../../../../services/httpClient";
 import { API_ENDPOINTS } from "../../../../config/api";
 
 const useItemFeedmil = () => {
-  const [itemFeedmil, setItemFeedmil] = useState([]);
+  const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
   const [totalRecords, setTotalRecords] = useState(0);
+  const [filteredRecords, setFilteredRecords] = useState(0);
 
-  // Fetch data dari API dengan DataTables format
-  const fetchItemFeedmil = useCallback(async (searchValue = '') => {
+  const API_BASE = API_ENDPOINTS.MASTER.ITEM_FEEDMIL;
+
+  const fetchItemFeedmil = useCallback(async (params = {}) => {
     setLoading(true);
     setError(null);
-    
     try {
-      // Use DataTables format to fetch all records
-      const params = {
-        draw: 1,
-        start: 0,
-        length: 10000, // Large number to get all records
-        'search[value]': searchValue || '',
-        'order[0][column]': 0,
-        'order[0][dir]': 'asc',
-        t: Date.now() // Cache busting
-      };
-      
-      const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.ITEM_FEEDMIL}/data`, { params });
+      const queryParams = new URLSearchParams({
+        draw: params.draw || 1,
+        start: params.start ?? 0,
+        length: params.length ?? 10,
+        'search[value]': params.search || '',
+        'order[0][column]': params.orderColumn ?? 1,
+        'order[0][dir]': params.orderDir || 'asc',
+        _ts: Date.now(),
+      });
 
-      // Handle DataTables response format
-      let dataArray = [];
-      let total = 0;
-      
-      if (result?.data) {
-        dataArray = result.data;
-        total = result.recordsTotal || result.recordsFiltered || dataArray.length;
-      } else if (Array.isArray(result)) {
-        dataArray = result;
-        total = dataArray.length;
-      }
+      const filters = params.filters || {};
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== '' && value !== null && value !== undefined) {
+          queryParams.append(`filters[${key}]`, value);
+        }
+      });
 
-      const validatedData = dataArray.map((item, index) => ({
-        pubid: item.pubid || `TEMP-${index + 1}`,
-        pid: item.pid || item.pubid, // encrypted PID from backend
+      const result = await HttpClient.get(`${API_BASE}/data?${queryParams.toString()}`);
+
+      const dataArray = result?.data || [];
+      const mapped = dataArray.map((item, index) => ({
+        pid: item.pid || item.pubid || `TEMP-${index + 1}`,
+        rawPubid: item.pubid,
+        id: item.id,
         name: item.name || 'Nama tidak tersedia',
         description: item.description || '',
-        id_satuan: item.id_satuan || null,
-        satuan_name: item.satuan_name || item.satuan?.name || null,
         created_at: item.created_at || null,
         updated_at: item.updated_at || null,
       }));
 
-      setItemFeedmil(validatedData);
-      setTotalRecords(total);
-      console.log(`✅ Fetched ${validatedData.length} of ${total} total item feedmil records`);
+      setData(mapped);
+      setTotalRecords(result?.recordsTotal || 0);
+      setFilteredRecords(result?.recordsFiltered || 0);
+      return {
+        success: true,
+        data: mapped,
+        recordsTotal: result?.recordsTotal || 0,
+        recordsFiltered: result?.recordsFiltered || 0,
+      };
     } catch (err) {
-      setError(`API Error: ${err.message}`);
-      setItemFeedmil([]);
-      setTotalRecords(0);
+      const msg = err?.message || 'Gagal memuat data';
+      setError(msg);
+      setData([]);
+      return { success: false, message: msg, data: [] };
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [API_BASE]);
 
-  // Create item feedmil
-  const createItemFeedmil = useCallback(async (data) => {
+  const createItemFeedmil = useCallback(async (payload) => {
     setLoading(true);
     setError(null);
-    
     try {
-      const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.ITEM_FEEDMIL}/store`, data);
-      if (result?.status === 'ok' || result?.data) {
-        // Refresh data after successful creation
-        await fetchItemFeedmil();
-        return result;
-      }
-      throw new Error(result?.message || 'Gagal membuat data');
+      const result = await HttpClient.post(`${API_BASE}/store`, payload);
+      return { success: true, message: result?.message || 'Data berhasil ditambahkan' };
     } catch (err) {
-      const errorMessage = err.response?.data?.message || err.message || 'Gagal membuat item feedmil';
-      setError(errorMessage);
-      throw new Error(errorMessage);
+      const msg = err.response?.data?.message || err.message || 'Gagal membuat data';
+      setError(msg);
+      return { success: false, message: msg };
     } finally {
       setLoading(false);
     }
-  }, [fetchItemFeedmil]);
+  }, [API_BASE]);
 
-  // Update item feedmil
-  const updateItemFeedmil = useCallback(async (pid, data) => {
+  const updateItemFeedmil = useCallback(async (pid, payload) => {
     setLoading(true);
     setError(null);
-    
     try {
-      const payload = { pid, ...data };
-      const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.ITEM_FEEDMIL}/update`, payload);
-      
-      if (result?.status === 'ok' || result?.data) {
-        // Refresh data after successful update
-        await fetchItemFeedmil();
-        return result;
-      }
-      throw new Error(result?.message || 'Gagal memperbarui data');
+      const item = data.find((d) => d.pid === pid);
+      const actualPid = item?.rawPubid || item?.pid || pid;
+      const result = await HttpClient.post(`${API_BASE}/update`, { pid: String(actualPid).trim(), ...payload });
+      return { success: true, message: result?.message || 'Data berhasil diperbarui' };
     } catch (err) {
-      const errorMessage = err.response?.data?.message || err.message || 'Gagal memperbarui item feedmil';
-      setError(errorMessage);
-      throw new Error(errorMessage);
+      const msg = err.response?.data?.message || err.message || 'Gagal memperbarui data';
+      setError(msg);
+      return { success: false, message: msg };
     } finally {
       setLoading(false);
     }
-  }, [fetchItemFeedmil]);
+  }, [API_BASE, data]);
 
-  // Delete item feedmil
   const deleteItemFeedmil = useCallback(async (pid) => {
     setLoading(true);
     setError(null);
-    
     try {
-      const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.ITEM_FEEDMIL}/hapus`, { pid });
-      if (result?.status === 'ok' || result?.data === null) {
-        // Refresh data after successful deletion
-        await fetchItemFeedmil();
-        return result;
-      }
-      throw new Error(result?.message || 'Gagal menghapus data');
+      const item = data.find((d) => d.pid === pid);
+      const actualPid = item?.rawPubid || item?.pid || pid;
+      const result = await HttpClient.post(`${API_BASE}/hapus`, { pid: String(actualPid).trim() });
+      return { success: true, message: result?.message || 'Data berhasil dihapus' };
     } catch (err) {
-      const errorMessage = err.response?.data?.message || err.message || 'Gagal menghapus item feedmil';
-      setError(errorMessage);
-      throw new Error(errorMessage);
+      const msg = err.response?.data?.message || err.message || 'Gagal menghapus data';
+      setError(msg);
+      return { success: false, message: msg };
     } finally {
       setLoading(false);
     }
-  }, [fetchItemFeedmil]);
+  }, [API_BASE, data]);
 
-  // Computed values
   const stats = useMemo(() => ({
-    total: totalRecords || itemFeedmil.length,
-    displayed: itemFeedmil.length,
-  }), [itemFeedmil, totalRecords]);
+    total: totalRecords,
+    displayed: data.length,
+  }), [totalRecords, data]);
 
   return {
-    // Data - return raw data, filtering will be done in component
-    itemFeedmil,
+    itemFeedmil: data,
+    data,
     loading,
     error,
     stats,
     totalRecords,
-
-    // Search
-    searchTerm,
-    setSearchTerm,
-
-    // Actions
+    filteredRecords,
     fetchItemFeedmil,
     createItemFeedmil,
     updateItemFeedmil,
@@ -158,4 +134,3 @@ const useItemFeedmil = () => {
 };
 
 export default useItemFeedmil;
-
