@@ -1,140 +1,136 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
-import ProdukGdsService from '../../../../services/produkGdsService';
+import { useState, useMemo, useCallback } from "react";
+import HttpClient from "../../../../services/httpClient";
+import { API_ENDPOINTS } from "../../../../config/api";
 
 const useProdukGDS = () => {
-    const [produkGDS, setProdukGDS] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const [filteredRecords, setFilteredRecords] = useState(0);
 
-    const [searchTerm, setSearchTerm] = useState('');
-    const [filterStatus, setFilterStatus] = useState('all');
-    const [filterCategory, setFilterCategory] = useState('all');
+  const API_BASE = API_ENDPOINTS.MASTER.BARANG;
 
-    const fetchProdukGDS = useCallback(async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const response = await ProdukGdsService.getData();
-            const rows = Array.isArray(response.data) ? response.data : [];
-            const mappedData = rows.map(item => ({
-                id: item.id || item.pubid || item.kode,
-                pubid: item.pid || item.pubid, // Use encrypted pid if available for update/delete
-                name: item.name || item.nama || '-',
-                category: item.category_name || item.category || item.id_category || 'GDS',
-                price: Number(item.price || item.harga || 0),
-                stock: Number(item.stock || item.stok || 0),
-                unit: item.unit_name || item.unit || item.satuan || 'Pcs',
-                status: item.status !== undefined ? Number(item.status) : (item.is_active !== undefined ? Number(item.is_active) : 1),
-                supplier: item.supplier_name || item.nama_supplier || 'Internal',
-                description: item.description || item.keterangan || '',
-                lastUpdated: item.updated_at || item.created_at,
-                minimumStock: Number(item.min_stock || item.minimum_stock || 10),
-                location: item.location || item.lokasi || 'Warehouse',
-                pid: item.pid || item.pubid // Ensure pid is available for update/delete calls
-            }));
-            setProdukGDS(mappedData);
-        } catch (err) {
-            setError(err.message || 'Terjadi kesalahan saat mengambil data');
-        } finally {
-            setLoading(false);
+  const fetchProdukGDS = useCallback(async (params = {}) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const queryParams = new URLSearchParams({
+        draw: params.draw || 1,
+        start: params.start ?? 0,
+        length: params.length ?? 10,
+        'search[value]': params.search || '',
+        'order[0][column]': params.orderColumn ?? 1,
+        'order[0][dir]': params.orderDir || 'asc',
+        _ts: Date.now(),
+      });
+
+      const filters = params.filters || {};
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== '' && value !== null && value !== undefined) {
+          queryParams.append(`filters[${key}]`, value);
         }
-    }, []);
+      });
 
-    // Filter dan search data
-    const filteredData = useMemo(() => {
-        return produkGDS.filter(item => {
-            const matchesSearch = 
-                item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                item.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                item.supplier.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                (item.description && item.description.toLowerCase().includes(searchTerm.toLowerCase()));
-            
-            const matchesStatus = filterStatus === 'all' || 
-                (filterStatus === 'available' && item.stock > 0) ||
-                (filterStatus === 'out_of_stock' && item.stock === 0);
-                
-            const matchesCategory = filterCategory === 'all' || item.category === filterCategory;
-            
-            return matchesSearch && matchesStatus && matchesCategory;
-        });
-    }, [produkGDS, searchTerm, filterStatus, filterCategory]);
+      const result = await HttpClient.get(`${API_BASE}/data?${queryParams.toString()}`);
 
-    // Statistics
-    const stats = useMemo(() => {
-        const total = produkGDS.length;
-        const available = produkGDS.filter(item => item.stock > 0).length;
-        const outOfStock = produkGDS.filter(item => item.stock === 0).length;
-        const lowStock = produkGDS.filter(item => item.stock <= item.minimumStock && item.stock > 0).length;
-        const totalValue = produkGDS.reduce((sum, item) => sum + (item.price * item.stock), 0);
-        
-        return {
-            total,
-            available,
-            outOfStock,
-            lowStock,
-            totalValue
-        };
-    }, [produkGDS]);
+      const dataArray = result?.data || [];
+      const mapped = dataArray.map((item, index) => ({
+        pid: item.pid || item.pubid || `TEMP-${index + 1}`,
+        rawPubid: item.pubid,
+        id: item.id,
+        name: item.name || 'Nama tidak tersedia',
+        description: item.description || '',
+        created_at: item.created_at || null,
+        updated_at: item.updated_at || null,
+      }));
 
-    // Categories list
-    const categories = useMemo(() => {
-        const uniqueCategories = [...new Set(produkGDS.map(item => item.category))];
-        return uniqueCategories.sort();
-    }, [produkGDS]);
+      setData(mapped);
+      setTotalRecords(result?.recordsTotal || 0);
+      setFilteredRecords(result?.recordsFiltered || 0);
+      return {
+        success: true,
+        data: mapped,
+        recordsTotal: result?.recordsTotal || 0,
+        recordsFiltered: result?.recordsFiltered || 0,
+      };
+    } catch (err) {
+      const msg = err?.message || 'Gagal memuat data';
+      setError(msg);
+      setData([]);
+      return { success: false, message: msg, data: [] };
+    } finally {
+      setLoading(false);
+    }
+  }, [API_BASE]);
 
-    const createProdukGDS = async (produkData) => {
-        try {
-            const result = await ProdukGdsService.store(produkData);
-            if (result.success) {
-                await fetchProdukGDS();
-            }
-            return result;
-        } catch (err) {
-            return { success: false, message: err.message };
-        }
-    };
+  const createProdukGDS = useCallback(async (payload) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await HttpClient.post(`${API_BASE}/store`, payload);
+      return { success: true, message: result?.message || 'Data berhasil ditambahkan' };
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message || 'Gagal membuat data';
+      setError(msg);
+      return { success: false, message: msg };
+    } finally {
+      setLoading(false);
+    }
+  }, [API_BASE]);
 
-    const updateProdukGDS = async (pubid, produkData) => {
-        try {
-            const result = await ProdukGdsService.update(pubid, produkData);
-            if (result.success) {
-                await fetchProdukGDS();
-            }
-            return result;
-        } catch (err) {
-            return { success: false, message: err.message };
-        }
-    };
+  const updateProdukGDS = useCallback(async (pid, payload) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const item = data.find((d) => d.pid === pid);
+      const actualPid = item?.rawPubid || item?.pid || pid;
+      const result = await HttpClient.post(`${API_BASE}/update`, { pid: String(actualPid).trim(), ...payload });
+      return { success: true, message: result?.message || 'Data berhasil diperbarui' };
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message || 'Gagal memperbarui data';
+      setError(msg);
+      return { success: false, message: msg };
+    } finally {
+      setLoading(false);
+    }
+  }, [API_BASE, data]);
 
-    const deleteProdukGDS = async (pubid) => {
-        try {
-            const result = await ProdukGdsService.delete(pubid);
-            if (result.success) {
-                await fetchProdukGDS();
-            }
-            return result;
-        } catch (err) {
-            return { success: false, message: err.message };
-        }
-    };
+  const deleteProdukGDS = useCallback(async (pid) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const item = data.find((d) => d.pid === pid);
+      const actualPid = item?.rawPubid || item?.pid || pid;
+      const result = await HttpClient.post(`${API_BASE}/hapus`, { pid: String(actualPid).trim() });
+      return { success: true, message: result?.message || 'Data berhasil dihapus' };
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message || 'Gagal menghapus data';
+      setError(msg);
+      return { success: false, message: msg };
+    } finally {
+      setLoading(false);
+    }
+  }, [API_BASE, data]);
 
-    return {
-        produkGDS: filteredData,
-        loading,
-        error,
-        searchTerm,
-        setSearchTerm,
-        filterStatus,
-        setFilterStatus,
-        filterCategory,
-        setFilterCategory,
-        stats,
-        categories,
-        fetchProdukGDS,
-        createProdukGDS,
-        updateProdukGDS,
-        deleteProdukGDS
-    };
+  const stats = useMemo(() => ({
+    total: totalRecords,
+    displayed: data.length,
+  }), [totalRecords, data]);
+
+  return {
+    produkGDS: data,
+    data,
+    loading,
+    error,
+    stats,
+    totalRecords,
+    filteredRecords,
+    fetchProdukGDS,
+    createProdukGDS,
+    updateProdukGDS,
+    deleteProdukGDS,
+  };
 };
 
 export default useProdukGDS;

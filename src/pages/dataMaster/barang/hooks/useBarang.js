@@ -3,151 +3,129 @@ import HttpClient from "../../../../services/httpClient";
 import { API_ENDPOINTS } from "../../../../config/api";
 
 const useBarang = () => {
-  const [barang, setBarang] = useState([]);
+  const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
   const [totalRecords, setTotalRecords] = useState(0);
+  const [filteredRecords, setFilteredRecords] = useState(0);
 
-  // Fetch data dari API dengan DataTables format
-  const fetchBarang = useCallback(async (searchValue = '') => {
+  const API_BASE = API_ENDPOINTS.MASTER.BARANG;
+
+  const fetchBarang = useCallback(async (params = {}) => {
     setLoading(true);
     setError(null);
-    
     try {
-      // Use DataTables format to fetch all records
-      const params = {
-        draw: 1,
-        start: 0,
-        length: 10000, // Large number to get all records
-        'search[value]': searchValue || '',
-        'order[0][column]': 0,
-        'order[0][dir]': 'asc',
-        t: Date.now() // Cache busting
-      };
-      
-      const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.BARANG}/data`, { params });
+      const queryParams = new URLSearchParams({
+        draw: params.draw || 1,
+        start: params.start ?? 0,
+        length: params.length ?? 10,
+        'search[value]': params.search || '',
+        'order[0][column]': params.orderColumn ?? 1,
+        'order[0][dir]': params.orderDir || 'asc',
+        _ts: Date.now(),
+      });
 
-      // Handle DataTables response format
-      let dataArray = [];
-      let total = 0;
-      
-      if (result?.data) {
-        dataArray = result.data;
-        total = result.recordsTotal || result.recordsFiltered || dataArray.length;
-      } else if (Array.isArray(result)) {
-        dataArray = result;
-        total = dataArray.length;
-      }
+      const filters = params.filters || {};
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== '' && value !== null && value !== undefined) {
+          queryParams.append(`filters[${key}]`, value);
+        }
+      });
 
-      const validatedData = dataArray.map((item, index) => ({
-        id: item.id || null,
-        pubid: item.pubid || `TEMP-${index + 1}`,
-        pid: item.pid || item.pubid, // encrypted PID from backend
+      const result = await HttpClient.get(`${API_BASE}/data?${queryParams.toString()}`);
+
+      const dataArray = result?.data || [];
+      const mapped = dataArray.map((item, index) => ({
+        pid: item.pid || item.pubid || `TEMP-${index + 1}`,
+        rawPubid: item.pubid,
+        id: item.id,
         name: item.name || 'Nama tidak tersedia',
         description: item.description || '',
         created_at: item.created_at || null,
         updated_at: item.updated_at || null,
       }));
 
-      setBarang(validatedData);
-      setTotalRecords(total);
-      console.log(`✅ Fetched ${validatedData.length} of ${total} total barang records`);
+      setData(mapped);
+      setTotalRecords(result?.recordsTotal || 0);
+      setFilteredRecords(result?.recordsFiltered || 0);
+      return {
+        success: true,
+        data: mapped,
+        recordsTotal: result?.recordsTotal || 0,
+        recordsFiltered: result?.recordsFiltered || 0,
+      };
     } catch (err) {
-      setError(`API Error: ${err.message}`);
-      setBarang([]);
-      setTotalRecords(0);
+      const msg = err?.message || 'Gagal memuat data';
+      setError(msg);
+      setData([]);
+      return { success: false, message: msg, data: [] };
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [API_BASE]);
 
-  // Create barang
-  const createBarang = useCallback(async (data) => {
+  const createBarang = useCallback(async (payload) => {
     setLoading(true);
     setError(null);
-    
     try {
-      const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.BARANG}/store`, data);
-      if (result?.status === 'ok' || result?.data) {
-        // Refresh data after successful creation
-        await fetchBarang();
-        return result;
-      }
-      throw new Error(result?.message || 'Gagal membuat data');
+      const result = await HttpClient.post(`${API_BASE}/store`, payload);
+      return { success: true, message: result?.message || 'Data berhasil ditambahkan' };
     } catch (err) {
-      const errorMessage = err.response?.data?.message || err.message || 'Gagal membuat barang';
-      setError(errorMessage);
-      throw new Error(errorMessage);
+      const msg = err.response?.data?.message || err.message || 'Gagal membuat data';
+      setError(msg);
+      return { success: false, message: msg };
     } finally {
       setLoading(false);
     }
-  }, [fetchBarang]);
+  }, [API_BASE]);
 
-  // Update barang
-  const updateBarang = useCallback(async (pid, data) => {
+  const updateBarang = useCallback(async (pid, payload) => {
     setLoading(true);
     setError(null);
-    
     try {
-      const payload = { pid, ...data };
-      const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.BARANG}/update`, payload);
-      if (result?.status === 'ok' || result?.data) {
-        // Refresh data untuk mendapatkan data yang telah diupdate dari server
-        await fetchBarang();
-        return result;
-      }
-      throw new Error(result?.message || 'Gagal memperbarui data');
+      const item = data.find((d) => d.pid === pid);
+      const actualPid = item?.rawPubid || item?.pid || pid;
+      const result = await HttpClient.post(`${API_BASE}/update`, { pid: String(actualPid).trim(), ...payload });
+      return { success: true, message: result?.message || 'Data berhasil diperbarui' };
     } catch (err) {
-      const errorMessage = err.response?.data?.message || err.message || 'Gagal memperbarui barang';
-      setError(errorMessage);
-      throw new Error(errorMessage);
+      const msg = err.response?.data?.message || err.message || 'Gagal memperbarui data';
+      setError(msg);
+      return { success: false, message: msg };
     } finally {
       setLoading(false);
     }
-  }, [fetchBarang]);
+  }, [API_BASE, data]);
 
-  // Delete barang
   const deleteBarang = useCallback(async (pid) => {
     setLoading(true);
     setError(null);
-    
     try {
-      const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.BARANG}/hapus`, { pid });
-      if (result?.status === 'ok' || result?.data === null) {
-        // Refresh data after successful deletion
-        await fetchBarang();
-        return result;
-      }
-      throw new Error(result?.message || 'Gagal menghapus data');
+      const item = data.find((d) => d.pid === pid);
+      const actualPid = item?.rawPubid || item?.pid || pid;
+      const result = await HttpClient.post(`${API_BASE}/hapus`, { pid: String(actualPid).trim() });
+      return { success: true, message: result?.message || 'Data berhasil dihapus' };
     } catch (err) {
-      const errorMessage = err.response?.data?.message || err.message || 'Gagal menghapus barang';
-      setError(errorMessage);
-      throw new Error(errorMessage);
+      const msg = err.response?.data?.message || err.message || 'Gagal menghapus data';
+      setError(msg);
+      return { success: false, message: msg };
     } finally {
       setLoading(false);
     }
-  }, [fetchBarang]);
+  }, [API_BASE, data]);
 
-  // Computed values
   const stats = useMemo(() => ({
-    total: totalRecords || barang.length,
-    displayed: barang.length,
-  }), [barang, totalRecords]);
+    total: totalRecords,
+    displayed: data.length,
+  }), [totalRecords, data]);
 
   return {
-    // Data - return raw data, filtering will be done in component
-    barang,
+    barang: data,
+    data,
     loading,
     error,
     stats,
     totalRecords,
-
-    // Search
-    searchTerm,
-    setSearchTerm,
-
-    // Actions
+    filteredRecords,
     fetchBarang,
     createBarang,
     updateBarang,

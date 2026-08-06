@@ -1,26 +1,24 @@
-import { useState, useMemo, useCallback } from 'react';
-import HttpClient from '../../../../services/httpClient';
-import { API_ENDPOINTS } from '../../../../config/api';
+import { useState, useMemo, useCallback } from "react";
+import HttpClient from "../../../../services/httpClient";
+import { API_ENDPOINTS } from "../../../../config/api";
 
 const useItemPotong = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
   const [totalRecords, setTotalRecords] = useState(0);
+  const [filteredRecords, setFilteredRecords] = useState(0);
   const [jenisPotongOptions, setJenisPotongOptions] = useState([]);
   const [jenisPotongLoading, setJenisPotongLoading] = useState(false);
   const [jenisPotongError, setJenisPotongError] = useState(null);
 
+  const API_BASE = API_ENDPOINTS.MASTER.ITEM_POTONG;
+
   const fetchJenisPotongOptions = useCallback(async () => {
     setJenisPotongLoading(true);
     setJenisPotongError(null);
-
     try {
-      const result = await HttpClient.post(`${API_ENDPOINTS.SYSTEM.PARAMETERS}/dataByGroup`, {
-        group: 'jenis_potong',
-      });
-
+      const result = await HttpClient.post(`${API_ENDPOINTS.SYSTEM.PARAMETERS}/dataByGroup`, { group: 'jenis_potong' });
       const rows = Array.isArray(result?.data) ? result.data : Array.isArray(result) ? result : [];
       setJenisPotongOptions(
         rows.map((item) => ({
@@ -29,147 +27,136 @@ const useItemPotong = () => {
         }))
       );
     } catch (err) {
-      const message = err.message || 'Gagal memuat opsi jenis potong';
-      setJenisPotongError(message);
-      setJenisPotongOptions([]);
+      setJenisPotongError(err?.message || 'Gagal memuat jenis potong');
     } finally {
       setJenisPotongLoading(false);
     }
   }, []);
 
-  const fetchData = useCallback(async (searchValue = '') => {
+  const fetchItemPotong = useCallback(async (params = {}) => {
     setLoading(true);
     setError(null);
-
     try {
-      const params = {
-        draw: 1,
-        start: 0,
-        length: 10000,
-        'search[value]': searchValue || '',
-        'order[0][column]': 0,
-        'order[0][dir]': 'asc',
-        t: Date.now(),
-      };
+      const queryParams = new URLSearchParams({
+        draw: params.draw || 1,
+        start: params.start ?? 0,
+        length: params.length ?? 10,
+        'search[value]': params.search || '',
+        'order[0][column]': params.orderColumn ?? 1,
+        'order[0][dir]': params.orderDir || 'asc',
+        _ts: Date.now(),
+      });
 
-      const result = await HttpClient.get(`${API_ENDPOINTS.MASTER.ITEM_POTONG}/data`, { params });
+      const filters = params.filters || {};
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== '' && value !== null && value !== undefined) {
+          queryParams.append(`filters[${key}]`, value);
+        }
+      });
 
-      let dataArray = [];
-      let total = 0;
+      const result = await HttpClient.get(`${API_BASE}/data?${queryParams.toString()}`);
 
-      if (result?.data) {
-        dataArray = result.data;
-        total = result.recordsTotal || result.recordsFiltered || dataArray.length;
-      } else if (Array.isArray(result)) {
-        dataArray = result;
-        total = dataArray.length;
-      }
-
-      const validatedData = dataArray.map((item, index) => ({
-        pubid: item.pubid || `TEMP-${index + 1}`,
-        pid: item.pid || item.pubid,
+      const dataArray = result?.data || [];
+      const mapped = dataArray.map((item, index) => ({
+        pid: item.pid || item.pubid || `TEMP-${index + 1}`,
+        rawPubid: item.pubid,
+        id: item.id,
         name: item.name || 'Nama tidak tersedia',
-        id_jenis_potong: item.id_jenis_potong || null,
+        id_jenis_potong: item.id_jenis_potong ?? null,
         jenis_potong: item.jenis_potong || '',
         created_at: item.created_at || null,
         updated_at: item.updated_at || null,
       }));
 
-      setData(validatedData);
-      setTotalRecords(total);
+      setData(mapped);
+      setTotalRecords(result?.recordsTotal || 0);
+      setFilteredRecords(result?.recordsFiltered || 0);
+      return {
+        success: true,
+        data: mapped,
+        recordsTotal: result?.recordsTotal || 0,
+        recordsFiltered: result?.recordsFiltered || 0,
+      };
     } catch (err) {
-      setError(`API Error: ${err.message}`);
+      const msg = err?.message || 'Gagal memuat data';
+      setError(msg);
       setData([]);
-      setTotalRecords(0);
+      return { success: false, message: msg, data: [] };
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [API_BASE]);
 
-  const createItem = useCallback(async (payload) => {
+  const createItemPotong = useCallback(async (payload) => {
     setLoading(true);
     setError(null);
-
     try {
-      const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.ITEM_POTONG}/store`, payload);
-      if (result?.status === 'ok' || result?.data) {
-        await fetchData();
-        await fetchJenisPotongOptions();
-        return result;
-      }
-      throw new Error(result?.message || 'Gagal membuat data');
+      const result = await HttpClient.post(`${API_BASE}/store`, payload);
+      return { success: true, message: result?.message || 'Data berhasil ditambahkan' };
     } catch (err) {
-      const message = err.message || 'Gagal membuat item potong';
-      setError(message);
-      throw new Error(message);
+      const msg = err.response?.data?.message || err.message || 'Gagal membuat data';
+      setError(msg);
+      return { success: false, message: msg };
     } finally {
       setLoading(false);
     }
-  }, [fetchData, fetchJenisPotongOptions]);
+  }, [API_BASE]);
 
-  const updateItem = useCallback(async (pid, payload) => {
+  const updateItemPotong = useCallback(async (pid, payload) => {
     setLoading(true);
     setError(null);
-
     try {
-      const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.ITEM_POTONG}/update`, { pid, ...payload });
-      if (result?.status === 'ok' || result?.data) {
-        await fetchData();
-        await fetchJenisPotongOptions();
-        return result;
-      }
-      throw new Error(result?.message || 'Gagal memperbarui data');
+      const item = data.find((d) => d.pid === pid);
+      const actualPid = item?.rawPubid || item?.pid || pid;
+      const result = await HttpClient.post(`${API_BASE}/update`, { pid: String(actualPid).trim(), ...payload });
+      return { success: true, message: result?.message || 'Data berhasil diperbarui' };
     } catch (err) {
-      const message = err.message || 'Gagal memperbarui item potong';
-      setError(message);
-      throw new Error(message);
+      const msg = err.response?.data?.message || err.message || 'Gagal memperbarui data';
+      setError(msg);
+      return { success: false, message: msg };
     } finally {
       setLoading(false);
     }
-  }, [fetchData, fetchJenisPotongOptions]);
+  }, [API_BASE, data]);
 
-  const deleteItem = useCallback(async (pid) => {
+  const deleteItemPotong = useCallback(async (pid) => {
     setLoading(true);
     setError(null);
-
     try {
-      const result = await HttpClient.post(`${API_ENDPOINTS.MASTER.ITEM_POTONG}/hapus`, { pid });
-      if (result?.status === 'ok' || result?.data === null) {
-        await fetchData();
-        await fetchJenisPotongOptions();
-        return result;
-      }
-      throw new Error(result?.message || 'Gagal menghapus data');
+      const item = data.find((d) => d.pid === pid);
+      const actualPid = item?.rawPubid || item?.pid || pid;
+      const result = await HttpClient.post(`${API_BASE}/hapus`, { pid: String(actualPid).trim() });
+      return { success: true, message: result?.message || 'Data berhasil dihapus' };
     } catch (err) {
-      const message = err.message || 'Gagal menghapus item potong';
-      setError(message);
-      throw new Error(message);
+      const msg = err.response?.data?.message || err.message || 'Gagal menghapus data';
+      setError(msg);
+      return { success: false, message: msg };
     } finally {
       setLoading(false);
     }
-  }, [fetchData, fetchJenisPotongOptions]);
+  }, [API_BASE, data]);
 
   const stats = useMemo(() => ({
-    total: totalRecords || data.length,
+    total: totalRecords,
     displayed: data.length,
-  }), [data.length, totalRecords]);
+  }), [totalRecords, data]);
 
   return {
+    itemPotong: data,
     data,
     loading,
     error,
-    fetchData,
-    createItem,
-    updateItem,
-    deleteItem,
-    searchTerm,
-    setSearchTerm,
     stats,
     totalRecords,
+    filteredRecords,
     jenisPotongOptions,
     jenisPotongLoading,
     jenisPotongError,
-    refreshJenisPotongOptions: fetchJenisPotongOptions,
+    fetchItemPotong,
+    fetchJenisPotongOptions,
+    createItemPotong,
+    updateItemPotong,
+    deleteItemPotong,
   };
 };
 

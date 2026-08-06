@@ -1,422 +1,73 @@
-import React, { useState, useMemo, useCallback, useEffect } from "react";
-import DataTable from "react-data-table-component";
-import { PlusCircle, Search, LayoutGrid, List, RefreshCw } from "lucide-react";
-import ActionButton from "./barang/components/ActionButton";
+import React from 'react';
+import { Package } from 'lucide-react';
 
-// Komponen dan hooks terpisah
-import CardView from "./barang/components/CardView";
-import AddEditBarangModal from "./barang/modals/AddEditBarangModal";
-import BarangDetailModal from "./barang/modals/BarangDetailModal";
-import DeleteConfirmationModal from "./barang/modals/DeleteConfirmationModal";
-import { ErrorState, EmptyState, TableSkeleton } from "../../components/shared";
-import Notification from "./barang/components/Notification";
-import useBarang from "../../hooks/useBarangQuery";
-import customTableStyles from "./barang/constants/tableStyles";
+import MasterDataTablePage from './pembeliHo/components/MasterDataTablePage';
+import useBarang from './barang/hooks/useBarang';
+import AddEditBarangModal from './barang/modals/AddEditBarangModal';
+import DeleteConfirmationModal from './barang/modals/DeleteConfirmationModal';
 
-// Main Page
 const BarangPage = () => {
-  // State
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [showDetailModal, setShowDetailModal] = useState(false);
-  const [editData, setEditData] = useState(null);
-  const [detailData, setDetailData] = useState(null);
-  const [deleteData, setDeleteData] = useState(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [openMenuId, setOpenMenuId] = useState(null);
-  const [viewMode, setViewMode] = useState("table");
-  const [lastRefreshTime, setLastRefreshTime] = useState(Date.now());
-  
-  // Notification state
-  const [notification, setNotification] = useState({
-    isVisible: false,
-    type: 'info',
-    message: ''
-  });
+  const hook = useBarang();
 
-  // Custom hook
-  const {
-    barang,
-    loading,
-    error,
-    createBarang,
-    updateBarang,
-    deleteBarang,
-    fetchBarang,
-    searchTerm,
-    setSearchTerm,
-    stats,
-  } = useBarang();
+  const mappedHook = {
+    loading: hook.loading,
+    error: hook.error,
+    fetch: hook.fetchBarang,
+    create: hook.createBarang,
+    update: hook.updateBarang,
+    remove: hook.deleteBarang,
+  };
 
-  // Load data on component mount
-  useEffect(() => {
-    fetchBarang();
-  }, [fetchBarang]);
-
-  // Handle search with debounce
-  useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      // Fetch data with search term from server
-      fetchBarang(searchTerm);
-    }, 500); // 500ms delay for debounce
-
-    return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm, fetchBarang]);
-
-  // Auto-refresh when user returns to the page
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        // Check if it's been more than 30 seconds since last refresh
-        const timeSinceLastRefresh = Date.now() - lastRefreshTime;
-        if (timeSinceLastRefresh > 30000) { // 30 seconds
-          fetchBarang();
-          setLastRefreshTime(Date.now());
-        }
-      }
-    };
-
-    const handleFocus = () => {
-      // Check if it's been more than 30 seconds since last refresh
-      const timeSinceLastRefresh = Date.now() - lastRefreshTime;
-      if (timeSinceLastRefresh > 30000) { // 30 seconds
-        fetchBarang();
-        setLastRefreshTime(Date.now());
-      }
-    };
-
-    // Listen for visibility changes
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    // Listen for window focus (backup method)
-    window.addEventListener('focus', handleFocus);
-
-    // Cleanup listeners
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
-    };
-  }, [fetchBarang, lastRefreshTime]);
-
-  // Event handlers
-  const handleAdd = useCallback(() => {
-    setEditData(null);
-    setShowAddModal(true);
-  }, []);
-
-  const handleEdit = useCallback((item) => {
-    setEditData(item);
-    setShowEditModal(true);
-  }, []);
-
-  const handleDelete = useCallback((item) => {
-    setDeleteData(item);
-  }, []);
-
-  const handleDetail = useCallback((item) => {
-    setDetailData(item);
-    setShowDetailModal(true);
-  }, []);
-
-  // Show notification helper
-  const showNotification = useCallback((type, message) => {
-    setNotification({
-      isVisible: true,
-      type,
-      message
-    });
-  }, []);
-
-  const handleSave = useCallback(async (data) => {
-    try {
-      if (editData) {
-        await updateBarang(editData.pid || editData.pubid, data);
-        showNotification('success', 'Barang berhasil diperbarui');
-        console.log('✅ Barang berhasil diupdate');
-      } else {
-        await createBarang(data);
-        showNotification('success', 'Barang berhasil ditambahkan');
-        console.log('✅ Barang berhasil dibuat');
-      }
-      
-      // Close modals
-      setShowAddModal(false);
-      setShowEditModal(false);
-      setEditData(null);
-      
-      // Data refresh is now handled in the hook
-      setLastRefreshTime(Date.now());
-    } catch (err) {
-      showNotification('error', err.message || 'Gagal menyimpan data');
-      console.error('❌ Error saving data:', err);
-    }
-  }, [editData, updateBarang, createBarang, showNotification]);
-
-  const handleConfirmDelete = useCallback(async () => {
-    if (!deleteData) return;
-    
-    setIsDeleting(true);
-    try {
-      await deleteBarang(deleteData.pid || deleteData.pubid);
-      setDeleteData(null);
-      showNotification('success', 'Barang berhasil dihapus');
-      
-      // Data refresh is now handled in the hook
-      setLastRefreshTime(Date.now());
-    } catch (err) {
-      showNotification('error', err.message || 'Gagal menghapus data');
-      console.error('❌ Error deleting data:', err);
-    } finally {
-      setIsDeleting(false);
-    }
-  }, [deleteData, deleteBarang, showNotification]);
-
-  // Toggle menu untuk mobile
-  const toggleMenu = useCallback((id) => {
-    setOpenMenuId(openMenuId === id ? null : id);
-  }, [openMenuId]);
-
-  // Table columns
-  const columns = useMemo(() => [
+  const extraColumns = [
     {
-      name: "No",
-      selector: row => row.order_no,
-      sortable: true,
-      cell: row => (
-        <span className="bg-indigo-100 text-indigo-800 px-2 py-1 rounded text-sm font-medium">
-          {row.order_no}
-        </span>
-      ),
-      width: "100px"
-    },
-    {
-      name: "Nama Barang",
-      selector: row => row.name,
-      sortable: true,
-      cell: row => (
-        <div className="flex flex-col">
-          <span className="font-semibold text-gray-800">{row.name}</span>
-          <span className="text-xs text-gray-500 truncate">{row.description}</span>
-        </div>
-      )
-    },
-    {
-      name: "Aksi",
-      cell: row => (
-        <div style={{ position: "relative", right: 0, background: "#fff", zIndex: 10, overflow: "hidden" }}>
-          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", width: "100%" }}>
-            <ActionButton
-              item={row}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              onDetail={handleDetail}
-              isOpen={openMenuId === (row.pid || row.pubid)}
-              onToggle={() => toggleMenu(row.pid || row.pubid)}
-            />
+      name: <span>Nama Barang</span>,
+      grow: 1.6,
+      minWidth: '220px',
+      cell: (row) => (
+        <div className="py-1.5 min-w-0 flex items-center gap-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-sky-50 text-sky-600 shrink-0">
+            <Package className="h-3.5 w-3.5" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-sm font-semibold text-slate-800 truncate">{row.name}</div>
           </div>
         </div>
       ),
-      ignoreRowClick: true,
-      allowOverflow: true,
-      center: true,
-      width: "80px"
-    }
-  ], [openMenuId, handleEdit, handleDelete, handleDetail, toggleMenu]);
-
-  // Add order_no to data (server-side search is already applied)
-  const filteredData = useMemo(() => {
-    // Server already handles the search, just add order_no
-    const result = barang.map((item, idx) => ({
-      order_no: idx + 1,
-      ...item
-    }));
-    
-    console.log('📊 Barang data:', result.length, 'items');
-    return result;
-  }, [barang]);
+    },
+    {
+      name: <span>Deskripsi</span>,
+      grow: 1.4,
+      minWidth: '200px',
+      cell: (row) => (
+        <span className="text-xs text-slate-600 line-clamp-2">{row.description || '-'}</span>
+      ),
+    },
+    {
+      name: <span>Dibuat</span>,
+      width: '130px',
+      cell: (row) => <span className="text-xs text-slate-500">{row.created_at || '-'}</span>,
+    },
+  ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50 to-purple-100 p-2 sm:p-4 md:p-6">
-      <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
-        {/* Header Section */}
-        <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-xl border border-gray-100">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-1 sm:mb-2">
-                Manajemen Barang
-              </h1>
-              <p className="text-gray-600 text-sm sm:text-base">
-                Kelola data master barang
-              </p>
-            </div>
-            <div className="flex flex-col gap-2 sm:flex-row sm:gap-4">
-              <button
-                onClick={handleAdd}
-                className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-4 py-2 sm:px-6 sm:py-3 rounded-xl sm:rounded-2xl hover:from-indigo-600 hover:to-purple-700 transition-all duration-300 flex items-center gap-2 font-medium shadow-lg hover:shadow-xl text-sm sm:text-base"
-              >
-                <PlusCircle className="w-5 h-5" />
-                Tambah Barang
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4 md:gap-6">
-          <div className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg">
-            <h3 className="text-xs sm:text-sm font-medium opacity-90">Total Barang</h3>
-            <p className="text-xl sm:text-3xl font-bold">{stats.total}</p>
-            {stats.displayed < stats.total && (
-              <p className="text-xs opacity-75 mt-1">Menampilkan {stats.displayed} data</p>
-            )}
-          </div>
-        </div>
-
-        {/* Filters and Search */}
-        <div className="bg-white rounded-2xl p-3 sm:p-6 shadow-lg border border-gray-100">
-          <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 sm:items-center sm:justify-between">
-            <div className="relative flex-1 max-w-full sm:max-w-md">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Cari barang..."
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200 text-sm sm:text-base"
-              />
-            </div>
-            <div className="flex flex-wrap gap-2 sm:gap-3">
-              <div className="flex bg-gray-100 rounded-xl p-1">
-                <button
-                  onClick={() => setViewMode("table")}
-                  className={`px-2.5 py-2 rounded-lg transition-colors duration-200 text-xs sm:text-base ${
-                    viewMode === "table"
-                      ? "bg-white text-indigo-600 shadow-sm"
-                      : "text-gray-600 hover:text-indigo-600"
-                  }`}
-                >
-                  <List className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => setViewMode("card")}
-                  className={`px-2.5 py-2 rounded-lg transition-colors duration-200 text-xs sm:text-base ${
-                    viewMode === "card"
-                      ? "bg-white text-indigo-600 shadow-sm"
-                      : "text-gray-600 hover:text-indigo-600"
-                  }`}
-                >
-                  <LayoutGrid className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        {/* Data Display */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-x-auto">
-          <div className="min-h-[400px]">
-            {error ? (
-              <ErrorState
-                error={error}
-                onRetry={() => fetchBarang(searchTerm)}
-                className="min-h-[400px]"
-              />
-            ) : loading ? (
-              viewMode === "table" ? (
-                <div className="p-6">
-                  <TableSkeleton rows={5} columns={3} />
-                </div>
-              ) : (
-                <div className="p-6">
-                  <TableSkeleton rows={5} columns={3} />
-                </div>
-              )
-            ) : filteredData.length === 0 ? (
-              <EmptyState
-                title="Tidak ada data barang"
-                message="Belum ada data barang yang tersedia. Klik tombol 'Tambah Barang' untuk menambah data baru."
-                actionLabel="Tambah Barang"
-                onAction={handleAdd}
-              />
-            ) : viewMode === "table" ? (
-              <div className="w-full min-w-[600px]">
-                <DataTable
-                  key={`datatable-barang-${filteredData.length}`}
-                  columns={columns}
-                  data={filteredData}
-                  pagination
-                  paginationPerPage={20}
-                  paginationRowsPerPageOptions={[10, 20, 30, 50, 100]}
-                  customStyles={customTableStyles}
-                  progressPending={false}
-                  responsive={true}
-                  highlightOnHover={true}
-                  pointerOnHover={true}
-                />
-              </div>
-            ) : (
-              <div className="p-2 sm:p-6">
-                <CardView
-                  key={`cardview-barang-${filteredData.length}`}
-                  data={filteredData}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                  onDetail={handleDetail}
-                  openMenuId={openMenuId}
-                  setOpenMenuId={setOpenMenuId}
-                />
-              </div>
-            )}
-          </div>
-        </div>
-        
-        {/* Modals */}
-        {(showAddModal || showEditModal) && (
-          <AddEditBarangModal
-            item={editData}
-            onClose={() => {
-              setShowAddModal(false);
-              setShowEditModal(false);
-              setEditData(null);
-            }}
-            onSave={handleSave}
-            loading={loading}
-          />
-        )}
-
-        {showDetailModal && (
-          <BarangDetailModal
-            item={detailData}
-            onClose={() => {
-              setShowDetailModal(false);
-              setDetailData(null);
-            }}
-            onEdit={handleEdit}
-          />
-        )}
-
-        {deleteData && (
-          <DeleteConfirmationModal
-            isOpen={!!deleteData}
-            item={deleteData}
-            onConfirm={handleConfirmDelete}
-            onCancel={() => setDeleteData(null)}
-            isDeleting={isDeleting}
-            itemName={deleteData?.name}
-            message={`Apakah Anda yakin ingin menghapus barang "${deleteData?.name}"?`}
-          />
-        )}
-
-        {/* Notification */}
-        <Notification
-          type={notification.type}
-          message={notification.message}
-          isVisible={notification.isVisible}
-          onClose={() => setNotification({ ...notification, isVisible: false })}
-        />
-
-      </div>
-    </div>
+    <MasterDataTablePage
+      storageKey="barang_state_v1"
+      title="Master Barang"
+      subtitle="Kelola data barang"
+      accent="sky"
+      icon={Package}
+      hook={mappedHook}
+      filterFields={[
+        { key: 'name', placeholder: 'Nama barang' },
+        { key: 'description', placeholder: 'Deskripsi' },
+      ]}
+      extraColumns={extraColumns}
+      AddEditModal={AddEditBarangModal}
+      DeleteModal={DeleteConfirmationModal}
+      addLabel="Tambah"
+      entityLabel="Barang"
+      rowNameKey="name"
+    />
   );
 };
 

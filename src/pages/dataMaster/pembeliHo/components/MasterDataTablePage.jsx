@@ -59,6 +59,16 @@ const ACCENTS = {
     badge: 'bg-sky-600',
     editText: 'text-sky-500',
   },
+  violet: {
+    bg: 'bg-violet-50',
+    text: 'text-violet-600',
+    btn: 'bg-violet-600 hover:bg-violet-700',
+    border: 'border-violet-200 bg-violet-50 text-violet-700',
+    focus: 'focus:border-violet-400 focus:ring-violet-100',
+    sort: 'text-violet-600',
+    badge: 'bg-violet-600',
+    editText: 'text-violet-500',
+  },
 };
 
 /**
@@ -79,6 +89,7 @@ const ACCENTS = {
  * - addLabel: text for add button
  * - entityLabel: label for notifications (e.g. "Klasifikasi Feedmil")
  * - rowNameKey: key to get display name from row (default 'name')
+ * - addEditModalExtraProps: extra props to pass to AddEditModal (e.g. jenisPotongOptions)
  */
 const MasterDataTablePage = ({
   storageKey,
@@ -94,6 +105,7 @@ const MasterDataTablePage = ({
   addLabel = 'Tambah',
   entityLabel = 'Data',
   rowNameKey = 'name',
+  addEditModalExtraProps = {},
 }) => {
   const {
     loading, error,
@@ -588,6 +600,7 @@ const MasterDataTablePage = ({
           onClose={() => { setShowModal(false); setEditData(null); }}
           onSave={handleSave}
           loading={loading}
+          {...addEditModalExtraProps}
         />
       )}
 
