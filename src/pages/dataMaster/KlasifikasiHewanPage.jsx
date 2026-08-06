@@ -90,6 +90,7 @@ const KlasifikasiHewanPage = () => {
       if (saved.currentPage) setCurrentPage(saved.currentPage);
     } catch {}
     setFetchTrigger((t) => t + 1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
