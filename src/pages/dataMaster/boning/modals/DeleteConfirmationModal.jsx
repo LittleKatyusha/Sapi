@@ -26,9 +26,9 @@ const DeleteConfirmationModal = ({ isOpen, item, onConfirm, onCancel, isDeleting
           <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
             <Trash2 className="h-8 w-8 text-red-600" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Hapus Boning</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Hapus {item.name ? item.name : 'Data'}</h3>
           <p className="text-gray-500 text-sm">
-            Apakah Anda yakin ingin menghapus <strong>{item.name}</strong> ({item.kode})? Tindakan ini tidak dapat dibatalkan.
+            Apakah Anda yakin ingin menghapus <strong>{item.name}</strong>{item.kode ? ` (${item.kode})` : ''}? Tindakan ini tidak dapat dibatalkan.
           </p>
         </div>
         <div className="flex gap-3 px-6 pb-6">
