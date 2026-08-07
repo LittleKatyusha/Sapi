@@ -42,7 +42,6 @@ const AddEditBoningModal = ({
   editData,
   pedagangList,
   boningItems,
-  itemPotongOptions,
   bankOptions,
   pengirimOptions,
   kendaraanOptions,
@@ -87,15 +86,16 @@ const AddEditBoningModal = ({
       id_item_potong: Number(item.id_item_potong || 0),
       nama_item: item.nama_item || '-',
       stok_tersedia: Number(item.stok_tersedia || 0),
-      label: item.nama_item || '-',
     }));
-    const merged = [...boningItems, ...(itemPotongOptions || []), ...selectedEditItems];
+    // Stok pada form wajib berasal dari stok Boning RPH, bukan master item global.
+    // selectedEditItems hanya mempertahankan item transaksi lama saat mode edit.
+    const merged = [...boningItems, ...selectedEditItems];
     const seen = new Set();
 
     return merged
       .filter((item) => {
         const key = String(item.id_item_potong);
-        if (seen.has(key)) return false;
+        if (!key || key === '0' || seen.has(key)) return false;
         seen.add(key);
         return true;
       })
@@ -103,7 +103,7 @@ const AddEditBoningModal = ({
         value: String(item.id_item_potong),
         label: `${item.nama_item || '-'} - Stok: ${Math.round(Number(item.stok_tersedia || 0))} Kg`,
       }));
-  }, [boningItems, editData?.detail_items, itemPotongOptions]);
+  }, [boningItems, editData?.detail_items]);
 
   const getItemOptionsForRow = (index) => {
     const currentValue = String(details[index]?.id_item_potong || '');

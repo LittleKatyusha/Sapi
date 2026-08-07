@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import HttpClient from '../services/httpClient';
 import { API_ENDPOINTS } from '../config/api';
+import { normalizeMenuUrl } from '../config/menuUrlMap';
 
 /**
  * Hook untuk mengelola menu dynamic dari backend
@@ -62,46 +63,10 @@ export const useDynamicMenu = () => {
             return items.map(item => ({
               ...item,
               url: item.url && item.url !== '#' ? 
-                normalizeUrl(item.url) : 
+                normalizeMenuUrl(item.url) : 
                 item.url,
               children: item.children ? normalizeMenuUrls(item.children) : item.children
             }));
-          };
-          
-          // URL mapping function
-          const normalizeUrl = (url) => {
-            // Remove leading slash if exists
-            const cleanUrl = url.startsWith('/') ? url.substring(1) : url;
-            
-            // Map menu URLs to correct route paths
-            const urlMapping = {
-              'dashboard': '/dashboard',
-              'pembelian': '/ho/pembelian',
-              'pembelian-feedmil': '/ho/pembelian-feedmil',
-              'pembelian-ovk': '/ho/pembelian-ovk',
-              'penjualan': '/ho/penjualan',
-              'penjualan-kulit': '/rph/penjualan-kulit',
-              'keuangan/pengeluaran': '/ho/keuangan/pengeluaran',
-              'keuangan-pengeluaran': '/ho/keuangan/pengeluaran',
-              'keuangan/penerimaan': '/ho/keuangan/penerimaan',
-              'keuangan-penerimaan': '/ho/keuangan/penerimaan',
-              'kandang-office': '/master-data/kandang-office',
-              'jenis-hewan': '/master-data/jenis-hewan',
-              'klasifikasi-hewan': '/master-data/klasifikasi-hewan',
-              'klasifikasi-ovk': '/master-data/klasifikasi-ovk',
-              'klasifikasi-feedmil': '/master-data/klasifikasi-feedmil',
-              'supplier': '/master-data/supplier',
-              'pelanggan': '/master-data/pelanggan',
-              'outlet': '/master-data/outlet',
-              'produk-gds': '/master-data/produk-gds',
-              'eartag': '/master-data/eartag',
-              'nota-supplier': '/reports/nota-supplier',
-              'semua-supplier': '/reports/semua-supplier',
-              'pajak': '/reports/pajak',
-              'settings': '/settings'
-            };
-            
-            return urlMapping[cleanUrl] || `/${cleanUrl}`;
           };
           
           const normalizedData = normalizeMenuUrls(response.data);
@@ -175,79 +140,10 @@ export const useDynamicMenu = () => {
           return items.map(item => ({
             ...item,
             url: item.url && item.url !== '#' ? 
-              normalizeUrl(item.url) : 
+              normalizeMenuUrl(item.url) : 
               item.url,
             children: item.children ? normalizeMenuUrls(item.children) : item.children
           }));
-        };
-        
-        // URL mapping function
-        const normalizeUrl = (url) => {
-          // Remove leading slash if exists
-          const cleanUrl = url.startsWith('/') ? url.substring(1) : url;
-          
-          // Map menu URLs to correct route paths
-          const urlMapping = {
-            'dashboard': '/dashboard',
-            'pembelian': '/ho/pembelian',
-            'pembelian-feedmil': '/ho/pembelian-feedmil',
-            'pembelian-ovk': '/ho/pembelian-ovk',
-            'penjualan': '/ho/penjualan',
-            'keuangan/pengeluaran': '/ho/keuangan/pengeluaran',
-            'keuangan-pengeluaran': '/ho/keuangan/pengeluaran',
-            'keuangan/penerimaan': '/ho/keuangan/penerimaan',
-            'keuangan-penerimaan': '/ho/keuangan/penerimaan',
-            'kandang-office': '/master-data/kandang-office',
-            'jenis-hewan': '/master-data/jenis-hewan',
-            'klasifikasi-hewan': '/master-data/klasifikasi-hewan',
-            'klasifikasi-ovk': '/master-data/klasifikasi-ovk',
-            'klasifikasi-feedmil': '/master-data/klasifikasi-feedmil',
-            'supplier': '/master-data/supplier',
-            'pelanggan': '/master-data/pelanggan',
-            'outlet': '/master-data/outlet',
-            'produk-gds': '/master-data/produk-gds',
-            'eartag': '/master-data/eartag',
-            'reseller': '/master-data/reseller',
-            'pembeli-ho': '/master-data/pembeli-ho',
-            'item-kulit': '/master-data/item-kulit',
-            'item-feedmil': '/master-data/item-feedmil',
-            'item-ovk': '/master-data/item-ovk',
-            'item-lain-lain': '/master-data/item-lain-lain',
-            'klasifikasi-lain-lain': '/master-data/klasifikasi-lain-lain',
-            'persetujuan-ho': '/master-data/persetujuan-ho',
-            'persetujuan-rph': '/master-data/persetujuan-rph',
-            'persetujuan-feedmil': '/master-data/persetujuan-feedmil',
-            'satuan': '/master-data/satuan',
-            'barang': '/master-data/barang',
-            'item-potong': '/master-data/item-potong',
-            'boning': '/master-data/boning',
-            'daging': '/master-data/daging',
-            'karkas': '/master-data/karkas',
-            'item-boning': '/master-data/item-boning',
-            'tarifdof': '/master-data/tarif-dof',
-            'jenispenjualanho': '/master-data/jenis-penjualan-ho',
-            'provinsi': '/master-data/provinsi',
-            'kabupaten': '/master-data/kabupaten',
-            'kecamatan': '/master-data/kecamatan',
-            'kelurahan': '/master-data/kelurahan',
-            'bank': '/master-data/bank',
-            'parameter': '/master-data/parameter',
-            'penjualan-sapi-utuh': '/rph/penjualan-sapi-utuh',
-            'penjualan-kulit': '/rph/penjualan-kulit',
-            'penawaran': '/rph/penawaran',
-            'stok-sapi-qurban': '/rph/stok-sapi-qurban',
-            'perpindahan-ternak': '/rph/perpindahan-ternak',
-            'nota-supplier': '/reports/nota-supplier',
-            'semua-supplier': '/reports/semua-supplier',
-            'pajak': '/reports/pajak',
-            'permission-management': '/system/permission-management',
-            'roles': '/system/roles',
-            'users': '/system/users',
-            'manual-job': '/system/manual-job',
-            'settings': '/settings'
-          };
-          
-          return urlMapping[cleanUrl] || `/${cleanUrl}`;
         };
         
         const normalizedData = normalizeMenuUrls(response.data);
@@ -306,70 +202,10 @@ export const useDynamicMenu = () => {
             return items.map(item => ({
               ...item,
               url: item.url && item.url !== '#' ? 
-                normalizeUrl(item.url) : 
+                normalizeMenuUrl(item.url) : 
                 item.url,
               children: item.children ? normalizeMenuUrls(item.children) : item.children
             }));
-          };
-          
-          // URL mapping function (same as above)
-          const normalizeUrl = (url) => {
-            const cleanUrl = url.startsWith('/') ? url.substring(1) : url;
-            const urlMapping = {
-              'dashboard': '/dashboard',
-              'pembelian': '/ho/pembelian',
-              'pembelian-feedmil': '/ho/pembelian-feedmil',
-              'pembelian-ovk': '/ho/pembelian-ovk',
-              'penjualan': '/ho/penjualan',
-              'keuangan/pengeluaran': '/ho/keuangan/pengeluaran',
-              'keuangan-pengeluaran': '/ho/keuangan/pengeluaran',
-              'keuangan/penerimaan': '/ho/keuangan/penerimaan',
-              'keuangan-penerimaan': '/ho/keuangan/penerimaan',
-              'kandang-office': '/master-data/kandang-office',
-              'jenis-hewan': '/master-data/jenis-hewan',
-              'klasifikasi-hewan': '/master-data/klasifikasi-hewan',
-              'klasifikasi-ovk': '/master-data/klasifikasi-ovk',
-              'klasifikasi-feedmil': '/master-data/klasifikasi-feedmil',
-              'supplier': '/master-data/supplier',
-              'pelanggan': '/master-data/pelanggan',
-              'outlet': '/master-data/outlet',
-              'produk-gds': '/master-data/produk-gds',
-              'eartag': '/master-data/eartag',
-              'reseller': '/master-data/reseller',
-              'pembeli-ho': '/master-data/pembeli-ho',
-              'item-kulit': '/master-data/item-kulit',
-              'item-feedmil': '/master-data/item-feedmil',
-              'item-ovk': '/master-data/item-ovk',
-              'item-lain-lain': '/master-data/item-lain-lain',
-              'klasifikasi-lain-lain': '/master-data/klasifikasi-lain-lain',
-              'persetujuan-ho': '/master-data/persetujuan-ho',
-              'persetujuan-rph': '/master-data/persetujuan-rph',
-              'persetujuan-feedmil': '/master-data/persetujuan-feedmil',
-              'satuan': '/master-data/satuan',
-              'barang': '/master-data/barang',
-              'item-potong': '/master-data/item-potong',
-              'boning': '/master-data/boning',
-              'daging': '/master-data/daging',
-              'karkas': '/master-data/karkas',
-              'item-boning': '/master-data/item-boning',
-              'tarifdof': '/master-data/tarif-dof',
-              'jenispenjualanho': '/master-data/jenis-penjualan-ho',
-              'provinsi': '/master-data/provinsi',
-              'kabupaten': '/master-data/kabupaten',
-              'kecamatan': '/master-data/kecamatan',
-              'kelurahan': '/master-data/kelurahan',
-              'bank': '/master-data/bank',
-              'parameter': '/master-data/parameter',
-              'penjualan-sapi-utuh': '/rph/penjualan-sapi-utuh',
-              'penjualan-kulit': '/rph/penjualan-kulit',
-              'nota-supplier': '/reports/nota-supplier',
-              'semua-supplier': '/reports/semua-supplier',
-              'pajak': '/reports/pajak',
-              'permission-management': '/system/permission-management',
-              'settings': '/settings',
-              'system': '#' // Parent menu
-            };
-            return urlMapping[cleanUrl] || `/${cleanUrl}`;
           };
           
           const normalizedData = normalizeMenuUrls(data);

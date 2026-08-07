@@ -24,6 +24,7 @@ const ItemPotongPage = lazy(() => import('../pages/dataMaster/ItemPotongPage'));
 const MasterResellerPage = lazy(() => import('../pages/dataMaster/MasterResellerPage'));
 const BoningMasterPage = lazy(() => import('../pages/dataMaster/BoningMasterPage'));
 const DagingMasterPage = lazy(() => import('../pages/dataMaster/DagingMasterPage'));
+const KarkasMasterPage = lazy(() => import('../pages/dataMaster/KarkasMasterPage'));
 const PembeliHoPage = lazy(() => import('../pages/dataMaster/PembeliHoPage'));
 const TarifDofPage = lazy(() => import('../pages/dataMaster/TarifDofPage'));
 const SopirPage = lazy(() => import('../pages/dataMaster/SopirPage'));
@@ -121,7 +122,7 @@ export const masterDataRoutes = [
     element: <ProdukGDSPage />
   },
 
-  // 4. Boning & Daging
+  // 4. Boning & Daging & Karkas
   {
     path: '/master-data/boning',
     element: <BoningMasterPage />
@@ -129,6 +130,10 @@ export const masterDataRoutes = [
   {
     path: '/master-data/daging',
     element: <DagingMasterPage />
+  },
+  {
+    path: '/master-data/karkas',
+    element: <KarkasMasterPage />
   },
   {
     path: '/sopir',

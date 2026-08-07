@@ -127,11 +127,13 @@ const usePenjualanBoning = () => {
         setItemPotongOptions(normalizeItemPotongOptions(data.item_potong || []));
       }
 
-      if (!(masterRes.data?.boning_items || []).length) {
-        const boningRes = await PenjualanBoningService.getBoning(idOffice);
-        if (boningRes.success) {
-          setBoningItems(boningRes.data || []);
-        }
+      // Selalu ambil stok Boning terbaru per RPH. Jangan mempertahankan
+      // respons masterdata yang mungkin sudah usang setelah transaksi lain.
+      const boningRes = await PenjualanBoningService.getBoning(idOffice);
+      if (boningRes.success) {
+        setBoningItems(boningRes.data || []);
+      } else {
+        setBoningItems(masterRes.data?.boning_items || []);
       }
 
       let resolvedPedagang = pedagangFromEndpoint.length
