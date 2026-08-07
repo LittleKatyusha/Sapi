@@ -7,15 +7,30 @@ const RESOURCES = {
   pengirimsim: API_ENDPOINTS.MASTER.PENGIRIM_SIM,
 };
 
-const buildParams = (params = {}) => ({
-  draw: params.draw || 1,
-  start: params.start || 0,
-  length: params.length || 10,
-  'search[value]': params.search || '',
-  'search[regex]': false,
-  'order[0][column]': params.order?.[0]?.column ?? 0,
-  'order[0][dir]': params.order?.[0]?.dir ?? 'asc',
-});
+const buildParams = (params = {}) => {
+  const filters = params.filters || {};
+  const orderColumn = params.orderColumn ?? params.order?.[0]?.column ?? 0;
+  const orderDir = params.orderDir || params.order?.[0]?.dir || 'asc';
+
+  const query = {
+    draw: params.draw || 1,
+    start: params.start || 0,
+    length: params.length || 10,
+    'search[value]': params.search || '',
+    'search[regex]': false,
+    'order[0][column]': orderColumn,
+    'order[0][dir]': orderDir,
+    _ts: params._ts || Date.now(),
+  };
+
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value !== '' && value !== null && value !== undefined) {
+      query[`filters[${key}]`] = value;
+    }
+  });
+
+  return query;
+};
 
 class SopirService {
   static getEndpoint(resource) {
@@ -31,9 +46,17 @@ class SopirService {
         params: buildParams(params),
       });
 
+      const dataArray = response.data || [];
+      const mapped = dataArray.map((item, index) => ({
+        pid: item.pid || item.pubid || `TEMP-${index + 1}`,
+        rawPubid: item.pubid,
+        id: item.id,
+        ...item,
+      }));
+
       return {
         success: true,
-        data: response.data || [],
+        data: mapped,
         recordsTotal: response.recordsTotal || 0,
         recordsFiltered: response.recordsFiltered || 0,
         draw: response.draw || 1,

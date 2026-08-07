@@ -3,109 +3,60 @@ import { createPortal } from 'react-dom';
 import DataTable from 'react-data-table-component';
 import {
   Plus, Filter, RotateCcw, Search, ArrowUpDown, ArrowUp, ArrowDown,
-  MoreVertical, Eye, Pencil, Trash2, Building2, Hash, Activity, X, AlertCircle,
+  MoreVertical, Eye, Pencil, Trash2, Users, MapPin, Phone, X, AlertCircle,
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
 } from 'lucide-react';
 
-import AddEditSupplierModal from './supplier/modals/AddEditSupplierModal';
-import SupplierDetailModal from './supplier/modals/SupplierDetailModal';
-import DeleteConfirmationModal from '../../components/shared/modals/DeleteConfirmationModal';
-import useSuppliers from './supplier/hooks/useSuppliers';
-import useParameters from '../system/hooks/useParameters';
-import Notification from './pembeliHo/components/Notification';
+import usePelanggan from './hooks/usePelanggan';
+import AddEditPelangganModal from './modals/AddEditPelangganModal';
+import PelangganDetailModal from './modals/PelangganDetailModal';
+import DeleteConfirmationModal from './components/DeleteConfirmationModal';
+import Notification from './components/Notification';
 
-const STORAGE_KEY = 'supplier_page_state_v1';
+const STORAGE_KEY = 'pelanggan_page_state_v1';
 
-const JenisBadge = ({ jenis }) => {
-  const isPerusahaan = String(jenis) === '1' || jenis === 1 || jenis === 'Perusahaan' || jenis === 'PERUSAHAAN';
-  const isPerorangan = String(jenis) === '2' || jenis === 2 || jenis === 'Perorangan' || jenis === 'PERORANGAN';
-  if (isPerusahaan) {
-    return <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium bg-blue-50 text-blue-700 ring-1 ring-blue-200"><Building2 className="h-2.5 w-2.5 mr-1" />Perusahaan</span>;
-  }
-  if (isPerorangan) {
-    return <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"><Hash className="h-2.5 w-2.5 mr-1" />Perorangan</span>;
-  }
-  return <span className="text-[10px] text-slate-400">-</span>;
+const StatusBadge = ({ status }) => {
+  const isActive = status === 1 || status === '1';
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${isActive ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' : 'bg-red-50 text-red-700 ring-1 ring-red-200'}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-red-500'}`} />
+      {isActive ? 'Aktif' : 'Tidak Aktif'}
+    </span>
+  );
 };
 
-const KategoriBadge = ({ kategori }) => {
-  const map = {
-    1: { label: 'TERNAK', cls: 'bg-orange-50 text-orange-700 ring-orange-200' },
-    2: { label: 'FEEDMIL', cls: 'bg-purple-50 text-purple-700 ring-purple-200' },
-    3: { label: 'OVK', cls: 'bg-indigo-50 text-indigo-700 ring-indigo-200' },
-    4: { label: 'KULIT', cls: 'bg-amber-50 text-amber-700 ring-amber-200' },
-    5: { label: 'LAIN-LAIN', cls: 'bg-teal-50 text-teal-700 ring-teal-200' },
-  };
-  const key = Number(kategori);
-  const cfg = map[key];
-  if (!cfg) return <span className="text-[10px] text-slate-400">{kategori || '-'}</span>;
-  return <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ring-1 ${cfg.cls}`}><Activity className="h-2.5 w-2.5 mr-1" />{cfg.label}</span>;
-};
-
-const SupplierPage = () => {
+const PelangganPage = () => {
   const {
-    suppliers, loading, error,
-    setSearchInput,
+    pelanggan, loading, error,
+    searchInput, setSearchInput,
     page, setPage,
     perPage, setPerPage,
     meta,
     sortField, sortDir, handleSort,
-    filterJenis, setFilterJenis,
-    filterKategori, setFilterKategori,
     resetFilters,
-    createSupplier, updateSupplier, deleteSupplier,
-  } = useSuppliers();
+    createPelanggan, updatePelanggan, deletePelanggan,
+  } = usePelanggan();
 
   const [showModal, setShowModal] = useState(false);
   const [editData, setEditData] = useState(null);
   const [deleteData, setDeleteData] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [notification, setNotification] = useState({ isVisible: false, type: 'info', message: '' });
+  const [notification, setNotification] = useState({ show: false, type: 'success', message: '' });
   const [openMenuId, setOpenMenuId] = useState(null);
   const [detailRow, setDetailRow] = useState(null);
 
-  const [filterInput, setFilterInput] = useState({ name: '', address: '' });
-  const [appliedFilters, setAppliedFilters] = useState({ name: '', address: '' });
+  const [filterInput, setFilterInput] = useState({ name: '', address: '', phone: '' });
+  const [appliedFilters, setAppliedFilters] = useState({ name: '', address: '', phone: '' });
   const [showFilterPanel, setShowFilterPanel] = useState(false);
 
-  const [kategoriSupplierOptions, setKategoriSupplierOptions] = useState([]);
-  const kategoriSupplierOptionsRef = useRef(null);
-  const { fetchParametersByGroup } = useParameters();
-
   const showNotif = useCallback((type, message) => {
-    setNotification({ isVisible: true, type, message });
+    setNotification({ show: true, type, message });
   }, []);
 
   const hasAppliedFilters = useMemo(
-    () => Object.values(appliedFilters).some((v) => v !== '' && v !== null && v !== undefined) || filterJenis !== 'all' || filterKategori !== 'all',
-    [appliedFilters, filterJenis, filterKategori]
+    () => Object.values(appliedFilters).some((v) => v !== '' && v !== null && v !== undefined),
+    [appliedFilters]
   );
-
-  useEffect(() => {
-    const loadOptions = async () => {
-      if (kategoriSupplierOptionsRef.current) {
-        setKategoriSupplierOptions(kategoriSupplierOptionsRef.current);
-        return;
-      }
-      try {
-        const data = await fetchParametersByGroup('kategori_supplier');
-        const options = data.map((item) => ({ value: String(item.value), label: item.name }));
-        kategoriSupplierOptionsRef.current = options;
-        setKategoriSupplierOptions(options);
-      } catch (e) {
-        const fallback = [
-          { value: '1', label: 'Ternak' },
-          { value: '2', label: 'Feedmil' },
-          { value: '3', label: 'Ovk' },
-          { value: '4', label: 'Kulit' },
-          { value: '5', label: 'Lain-lain' },
-        ];
-        kategoriSupplierOptionsRef.current = fallback;
-        setKategoriSupplierOptions(fallback);
-      }
-    };
-    loadOptions();
-  }, [fetchParametersByGroup]);
 
   useEffect(() => {
     try {
@@ -114,16 +65,14 @@ const SupplierPage = () => {
       if (saved.appliedFilters) setAppliedFilters(saved.appliedFilters);
       if (saved.perPage) setPerPage(saved.perPage);
       if (saved.page) setPage(saved.page);
-      if (saved.filterJenis) setFilterJenis(saved.filterJenis);
-      if (saved.filterKategori) setFilterKategori(saved.filterKategori);
     } catch {}
-  }, [setPage, setPerPage, setFilterJenis, setFilterKategori]);
+  }, [setPage, setPerPage]);
 
   useEffect(() => {
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
-      filterInput, appliedFilters, perPage, sortField, sortDir, page, filterJenis, filterKategori,
+      filterInput, appliedFilters, perPage, sortField, sortDir, page,
     }));
-  }, [filterInput, appliedFilters, perPage, sortField, sortDir, page, filterJenis, filterKategori]);
+  }, [filterInput, appliedFilters, perPage, sortField, sortDir, page]);
 
   const totalPages = Math.max(1, Math.ceil((meta.total || 0) / perPage));
   const startIdx = meta.total === 0 ? 0 : (page - 1) * perPage + 1;
@@ -135,19 +84,17 @@ const SupplierPage = () => {
 
   const handleApplyFilter = useCallback(() => {
     setAppliedFilters(filterInput);
-    setSearchInput(filterInput.name || filterInput.address || '');
+    setSearchInput(filterInput.name || filterInput.address || filterInput.phone || '');
     setPage(1);
   }, [filterInput, setSearchInput, setPage]);
 
   const handleResetFilter = useCallback(() => {
-    const empty = { name: '', address: '' };
+    const empty = { name: '', address: '', phone: '' };
     setFilterInput(empty);
     setAppliedFilters(empty);
-    setFilterJenis('all');
-    setFilterKategori('all');
     setSearchInput('');
     resetFilters();
-  }, [resetFilters, setSearchInput, setFilterJenis, setFilterKategori]);
+  }, [resetFilters, setSearchInput]);
 
   const handlePerPageChange = useCallback((n) => {
     setPerPage(n);
@@ -162,18 +109,18 @@ const SupplierPage = () => {
   const handleSave = useCallback(async (formData) => {
     try {
       if (editData) {
-        const result = await updateSupplier(editData.pubid, formData);
+        const result = await updatePelanggan(editData.pubid, formData);
         if (result.success) {
-          showNotif('success', 'Supplier berhasil diperbarui');
+          showNotif('success', 'Pelanggan berhasil diperbarui');
           setShowModal(false);
           setEditData(null);
         } else {
           showNotif('error', result.message || 'Gagal memperbarui data');
         }
       } else {
-        const result = await createSupplier(formData);
+        const result = await createPelanggan(formData);
         if (result.success) {
-          showNotif('success', 'Supplier berhasil ditambahkan');
+          showNotif('success', 'Pelanggan berhasil ditambahkan');
           setShowModal(false);
           setEditData(null);
         } else {
@@ -183,16 +130,16 @@ const SupplierPage = () => {
     } catch (err) {
       showNotif('error', err.message || 'Gagal menyimpan data');
     }
-  }, [editData, updateSupplier, createSupplier, showNotif]);
+  }, [editData, updatePelanggan, createPelanggan, showNotif]);
 
   const handleConfirmDelete = useCallback(async () => {
     if (!deleteData) return;
     setIsDeleting(true);
     try {
-      const result = await deleteSupplier(deleteData.pubid);
+      const result = await deletePelanggan(deleteData.pubid);
       if (result.success) {
         setDeleteData(null);
-        showNotif('success', 'Supplier berhasil dihapus');
+        showNotif('success', 'Pelanggan berhasil dihapus');
       } else {
         showNotif('error', result.message || 'Gagal menghapus data');
       }
@@ -201,7 +148,7 @@ const SupplierPage = () => {
     } finally {
       setIsDeleting(false);
     }
-  }, [deleteData, deleteSupplier, showNotif]);
+  }, [deleteData, deletePelanggan, showNotif]);
 
   const handleEditItem = useCallback((item) => {
     setEditData(item);
@@ -232,7 +179,7 @@ const SupplierPage = () => {
       {
         name: (
           <button type="button" onClick={() => handleSort('name')} className="flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900">
-            <span>Nama Supplier</span>{renderSortIcon('name')}
+            <span>Nama Pelanggan</span>{renderSortIcon('name')}
           </button>
         ),
         grow: 1.6,
@@ -240,7 +187,7 @@ const SupplierPage = () => {
         cell: (row) => (
           <div className="py-1.5 min-w-0 flex items-center gap-2">
             <div className="flex h-7 w-7 items-center justify-center rounded-md bg-amber-50 text-amber-600 shrink-0">
-              <Building2 className="h-3.5 w-3.5" />
+              <Users className="h-3.5 w-3.5" />
             </div>
             <div className="min-w-0">
               <div className="text-sm font-semibold text-slate-800 truncate">{row.name}</div>
@@ -259,27 +206,33 @@ const SupplierPage = () => {
         minWidth: '180px',
         cell: (row) => (
           <div className="flex items-center gap-1.5 text-xs text-slate-600">
+            <MapPin className="h-3 w-3 text-slate-400 shrink-0" />
             <span className="truncate">{row.address || '-'}</span>
           </div>
         ),
       },
       {
         name: (
-          <button type="button" onClick={() => handleSort('jenis_supplier')} className="flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900">
-            <span>Jenis</span>{renderSortIcon('jenis_supplier')}
+          <button type="button" onClick={() => handleSort('phone')} className="flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900">
+            <span>Telepon</span>{renderSortIcon('phone')}
           </button>
         ),
-        width: '120px',
-        cell: (row) => <JenisBadge jenis={row.jenis_supplier_raw != null ? row.jenis_supplier_raw : row.jenis_supplier} />,
+        width: '150px',
+        cell: (row) => (
+          <div className="flex items-center gap-1.5 text-xs text-slate-600">
+            <Phone className="h-3 w-3 text-slate-400 shrink-0" />
+            <span className="truncate">{row.phone || '-'}</span>
+          </div>
+        ),
       },
       {
         name: (
-          <button type="button" onClick={() => handleSort('kategori_supplier')} className="flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900">
-            <span>Kategori</span>{renderSortIcon('kategori_supplier')}
+          <button type="button" onClick={() => handleSort('status')} className="flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900">
+            <span>Status</span>{renderSortIcon('status')}
           </button>
         ),
-        width: '120px',
-        cell: (row) => <KategoriBadge kategori={row.kategori_supplier_raw != null ? row.kategori_supplier_raw : row.kategori_supplier} />,
+        width: '110px',
+        cell: (row) => <StatusBadge status={row.status} />,
       },
       {
         name: <span className="text-xs font-semibold text-slate-600">Aksi</span>,
@@ -325,7 +278,7 @@ const SupplierPage = () => {
   };
 
   useEffect(() => {
-    document.title = 'Master Supplier - TernaSys';
+    document.title = 'Master Pelanggan - TernaSys';
   }, []);
 
   return (
@@ -334,11 +287,11 @@ const SupplierPage = () => {
         <div className="flex items-center justify-between gap-4 px-4 sm:px-6 py-3">
           <div className="flex items-center gap-3 min-w-0">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50 text-amber-600 shrink-0">
-              <Building2 className="h-4 w-4" />
+              <Users className="h-4 w-4" />
             </div>
             <div className="min-w-0">
-              <h1 className="text-base font-bold tracking-tight text-slate-900 truncate">Master Supplier</h1>
-              <p className="text-xs text-slate-500 truncate hidden sm:block">Kelola data supplier</p>
+              <h1 className="text-base font-bold tracking-tight text-slate-900 truncate">Master Pelanggan</h1>
+              <p className="text-xs text-slate-500 truncate hidden sm:block">Kelola data pelanggan</p>
             </div>
           </div>
           <button
@@ -367,7 +320,7 @@ const SupplierPage = () => {
                 Filter
                 {hasAppliedFilters && (
                   <span className="inline-flex items-center justify-center rounded-full bg-amber-600 px-1.5 text-[10px] font-bold text-white">
-                    {(Object.values(appliedFilters).filter((v) => v !== '' && v !== null && v !== undefined).length) + (filterJenis !== 'all' ? 1 : 0) + (filterKategori !== 'all' ? 1 : 0)}
+                    {Object.values(appliedFilters).filter((v) => v !== '' && v !== null && v !== undefined).length}
                   </span>
                 )}
               </button>
@@ -387,13 +340,13 @@ const SupplierPage = () => {
 
             {showFilterPanel && (
               <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                   <input
                     type="text"
                     value={filterInput.name}
                     onChange={(e) => handleFilterChange('name', e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') handleApplyFilter(); }}
-                    placeholder="Nama supplier"
+                    placeholder="Nama pelanggan"
                     className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-100"
                   />
                   <input
@@ -404,25 +357,14 @@ const SupplierPage = () => {
                     placeholder="Alamat"
                     className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-100"
                   />
-                  <select
-                    value={filterJenis}
-                    onChange={(e) => { setFilterJenis(e.target.value); setPage(1); }}
-                    className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-100"
-                  >
-                    <option value="all">Semua Jenis</option>
-                    <option value="1">Perusahaan</option>
-                    <option value="2">Perorangan</option>
-                  </select>
-                  <select
-                    value={filterKategori}
-                    onChange={(e) => { setFilterKategori(e.target.value); setPage(1); }}
-                    className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-100"
-                  >
-                    <option value="all">Semua Kategori</option>
-                    {kategoriSupplierOptions.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
+                  <input
+                    type="text"
+                    value={filterInput.phone}
+                    onChange={(e) => handleFilterChange('phone', e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleApplyFilter(); }}
+                    placeholder="Telepon"
+                    className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-100"
+                  />
                 </div>
                 <div className="flex justify-end gap-1.5 mt-2.5">
                   <button
@@ -453,7 +395,7 @@ const SupplierPage = () => {
           <div className="flex-1 min-h-0 overflow-auto">
             <DataTable
               columns={columns}
-              data={suppliers}
+              data={pelanggan}
               customStyles={customTableStyles}
               progressPending={loading}
               progressComponent={<SkeletonRows />}
@@ -462,7 +404,7 @@ const SupplierPage = () => {
                   <AlertCircle className="mx-auto h-8 w-8 text-slate-300" />
                   <p className="mt-2 text-sm font-semibold text-slate-600">Tidak ada data ditemukan</p>
                   <p className="mt-1 text-xs text-slate-400">
-                    {hasAppliedFilters ? 'Coba ubah filter atau reset' : 'Belum ada supplier terdaftar'}
+                    {hasAppliedFilters ? 'Coba ubah filter atau reset' : 'Belum ada pelanggan terdaftar'}
                   </p>
                 </div>
               }
@@ -522,13 +464,12 @@ const SupplierPage = () => {
       </div>
 
       {showModal && (
-        <AddEditSupplierModal
+        <AddEditPelangganModal
           isOpen={showModal}
           onClose={() => { setShowModal(false); setEditData(null); }}
           onSave={handleSave}
           editData={editData}
           loading={loading}
-          kategoriOptions={kategoriSupplierOptions}
         />
       )}
 
@@ -541,7 +482,7 @@ const SupplierPage = () => {
         />
       )}
 
-      <SupplierDetailModal
+      <PelangganDetailModal
         isOpen={!!detailRow && false}
         onClose={() => setDetailRow(null)}
         data={detailRow}
@@ -551,16 +492,16 @@ const SupplierPage = () => {
         isOpen={!!deleteData}
         onClose={() => setDeleteData(null)}
         onConfirm={handleConfirmDelete}
-        title={`Hapus Supplier "${deleteData?.name || ''}"?`}
-        description="Tindakan ini akan menghapus data supplier secara permanen dan tidak dapat dibatalkan."
+        title={`Hapus Pelanggan "${deleteData?.name || ''}"?`}
+        message={`Apakah Anda yakin ingin menghapus pelanggan "${deleteData?.name}"? Tindakan ini tidak dapat dibatalkan.`}
         loading={isDeleting}
       />
 
       <Notification
-        isVisible={notification.isVisible}
+        show={notification.show}
         type={notification.type}
         message={notification.message}
-        onClose={() => setNotification((n) => ({ ...n, isVisible: false }))}
+        onClose={() => setNotification((n) => ({ ...n, show: false }))}
       />
     </div>
   );
@@ -573,8 +514,8 @@ const SkeletonRows = () => (
         <div className="h-3 w-8 rounded bg-slate-100 animate-pulse" />
         <div className="flex-1 h-3 rounded bg-slate-100 animate-pulse" />
         <div className="h-3 w-28 rounded bg-slate-100 animate-pulse" />
-        <div className="h-3 w-16 rounded bg-slate-100 animate-pulse" />
-        <div className="h-3 w-16 rounded bg-slate-100 animate-pulse" />
+        <div className="h-3 w-20 rounded bg-slate-100 animate-pulse" />
+        <div className="h-3 w-14 rounded bg-slate-100 animate-pulse" />
         <div className="h-3 w-8 rounded bg-slate-100 animate-pulse" />
       </div>
     ))}
@@ -646,8 +587,8 @@ const DetailDrawer = ({ row, onClose, onEdit, onDelete }) => {
       <div className="relative w-full max-w-md bg-white shadow-2xl flex flex-col animate-in slide-in-from-right">
         <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-slate-100">
           <div>
-            <h3 className="text-sm font-bold text-slate-900">Detail Supplier</h3>
-            <p className="text-xs text-slate-500">Informasi lengkap supplier</p>
+            <h3 className="text-sm font-bold text-slate-900">Detail Pelanggan</h3>
+            <p className="text-xs text-slate-500">Informasi lengkap pelanggan</p>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700">
             <X className="h-4 w-4" />
@@ -656,26 +597,24 @@ const DetailDrawer = ({ row, onClose, onEdit, onDelete }) => {
         <div className="flex-1 overflow-auto p-4 space-y-3">
           <div className="rounded-lg border border-slate-200 p-3 flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
-              <Building2 className="h-5 w-5" />
+              <Users className="h-5 w-5" />
             </div>
             <div>
               <h2 className="text-lg font-bold text-slate-800">{row.name}</h2>
-              <div className="flex items-center gap-2 mt-1">
-                <JenisBadge jenis={row.jenis_supplier_raw != null ? row.jenis_supplier_raw : row.jenis_supplier} />
-                <KategoriBadge kategori={row.kategori_supplier_raw != null ? row.kategori_supplier_raw : row.kategori_supplier} />
-              </div>
+              <StatusBadge status={row.status} />
             </div>
           </div>
           <DetailField label="Alamat" value={row.address} />
+          <DetailField label="Telepon" value={row.phone} />
           <DetailField label="Deskripsi" value={row.description} />
-          <DetailField label="Dibuat" value={row.created_at} />
+          <DetailField label="Terdaftar Sejak" value={row.established} />
         </div>
         <div className="shrink-0 flex gap-2 px-4 py-3 border-t border-slate-100 bg-slate-50/50">
           <button onClick={() => onDelete(row)} className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors">
             <Trash2 className="h-3.5 w-3.5" /> Hapus
           </button>
           <button onClick={() => onEdit(row)} className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-amber-600 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-700 transition-colors">
-            <Pencil className="h-3.5 w-3.5" /> Edit Supplier
+            <Pencil className="h-3.5 w-3.5" /> Edit Pelanggan
           </button>
         </div>
       </div>
@@ -691,4 +630,4 @@ const DetailField = ({ label, value }) => (
   </div>
 );
 
-export default SupplierPage;
+export default PelangganPage;

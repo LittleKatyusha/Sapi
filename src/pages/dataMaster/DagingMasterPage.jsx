@@ -1,32 +1,171 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import DataTable from 'react-data-table-component';
-import { PlusCircle, Search, Beef } from 'lucide-react';
+import {
+  Plus, Filter, RotateCcw, Search, ArrowUpDown, ArrowUp, ArrowDown,
+  MoreVertical, Eye, Pencil, Trash2, Beef, AlertCircle,
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, X,
+} from 'lucide-react';
 
 import useDaging from './daging/hooks/useDaging';
 import AddEditDagingModal from './daging/modals/AddEditDagingModal';
 import DeleteConfirmationModal from './daging/modals/DeleteConfirmationModal';
 import Notification from './daging/components/Notification';
-import ActionButton from './daging/components/ActionButton';
-import customTableStyles from './daging/constants/tableStyles';
+
+const STORAGE_KEY = 'daging_state_v1';
 
 const DagingMasterPage = () => {
+  const { data: rawData, loading, error, fetchData, createItem, updateItem, deleteItem } = useDaging();
+
+  const data = useMemo(() => rawData.map((item) => ({
+    ...item,
+    pid: item.pid || item.pubid || item.id,
+  })), [rawData]);
+
+  const [totalRecords, setTotalRecords] = useState(0);
+  const [filteredRecords, setFilteredRecords] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
+  const [sortCol, setSortCol] = useState(1);
+  const [sortDir, setSortDir] = useState('asc');
+
+  const [filterInput, setFilterInput] = useState({ name: '', kode: '', boning: '', description: '' });
+  const [appliedFilters, setAppliedFilters] = useState({ name: '', kode: '', boning: '', description: '' });
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
+
   const [showModal, setShowModal] = useState(false);
   const [editData, setEditData] = useState(null);
   const [deleteData, setDeleteData] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [openMenuId, setOpenMenuId] = useState(null);
   const [notification, setNotification] = useState({ isVisible: false, type: 'info', message: '' });
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const [detailRow, setDetailRow] = useState(null);
 
-  const { data, loading, error, fetchData, createItem, updateItem, deleteItem, searchTerm, setSearchTerm, stats } = useDaging();
+  const stateRef = useRef({});
+  stateRef.current = { currentPage, perPage, sortCol, sortDir, appliedFilters };
 
-  useEffect(() => { fetchData(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const showNotif = useCallback((type, message) => {
+    setNotification({ isVisible: true, type, message });
+  }, []);
 
-  const showNotif = useCallback((type, message) => setNotification({ isVisible: true, type, message }), []);
+  const hasAppliedFilters = useMemo(
+    () => Object.values(appliedFilters).some((v) => v !== '' && v !== null && v !== undefined),
+    [appliedFilters]
+  );
+
+  const filteredData = useMemo(() => {
+    let result = [...data];
+    if (hasAppliedFilters) {
+      result = result.filter((row) => {
+        if (appliedFilters.name && !String(row.name || '').toLowerCase().includes(appliedFilters.name.toLowerCase())) return false;
+        if (appliedFilters.kode && !String(row.kode || '').toLowerCase().includes(appliedFilters.kode.toLowerCase())) return false;
+        if (appliedFilters.boning && !String(row.boning?.name || '').toLowerCase().includes(appliedFilters.boning.toLowerCase())) return false;
+        if (appliedFilters.description && !String(row.description || '').toLowerCase().includes(appliedFilters.description.toLowerCase())) return false;
+        return true;
+      });
+    }
+    result.sort((a, b) => {
+      const dir = sortDir === 'asc' ? 1 : -1;
+      switch (sortCol) {
+        case 1: {
+          const av = a.order_no ?? 0;
+          const bv = b.order_no ?? 0;
+          return (Number(av) - Number(bv)) * dir;
+        }
+        case 2:
+          return String(a.kode || '').localeCompare(String(b.kode || '')) * dir;
+        case 3:
+          return String(a.name || '').localeCompare(String(b.name || '')) * dir;
+        case 4:
+          return String(a.boning?.name || '').localeCompare(String(b.boning?.name || '')) * dir;
+        case 5:
+          return String(a.description || '').localeCompare(String(b.description || '')) * dir;
+        case 6:
+          return String(a.created_at || '').localeCompare(String(b.created_at || '')) * dir;
+        default:
+          return 0;
+      }
+    });
+    return result;
+  }, [data, appliedFilters, hasAppliedFilters, sortCol, sortDir]);
+
+  useEffect(() => {
+    setTotalRecords(data.length);
+    setFilteredRecords(filteredData.length);
+  }, [data.length, filteredData.length]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredRecords / perPage));
+  const startIdx = filteredRecords === 0 ? 0 : (currentPage - 1) * perPage + 1;
+  const endIdx = Math.min(currentPage * perPage, filteredRecords);
+  const pageData = useMemo(() => {
+    const start = (currentPage - 1) * perPage;
+    return filteredData.slice(start, start + perPage);
+  }, [filteredData, currentPage, perPage]);
+
+  const [fetchTrigger, setFetchTrigger] = useState(0);
+  useEffect(() => {
+    if (fetchTrigger > 0) fetchData();
+  }, [fetchTrigger, fetchData]);
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(STORAGE_KEY) || '{}');
+      if (saved.filterInput) setFilterInput(saved.filterInput);
+      if (saved.appliedFilters) setAppliedFilters(saved.appliedFilters);
+      if (saved.perPage) setPerPage(saved.perPage);
+      if (saved.sortCol !== undefined) setSortCol(saved.sortCol);
+      if (saved.sortDir) setSortDir(saved.sortDir);
+      if (saved.currentPage) setCurrentPage(saved.currentPage);
+    } catch {}
+    setFetchTrigger((t) => t + 1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
+      filterInput, appliedFilters, perPage, sortCol, sortDir, currentPage,
+    }));
+  }, [filterInput, appliedFilters, perPage, sortCol, sortDir, currentPage]);
+
+  const handleFilterChange = useCallback((field, value) => {
+    setFilterInput((prev) => ({ ...prev, [field]: value }));
+  }, []);
+
+  const handleApplyFilter = useCallback(() => {
+    setAppliedFilters(filterInput);
+    setCurrentPage(1);
+  }, [filterInput]);
+
+  const handleResetFilter = useCallback(() => {
+    const empty = { name: '', kode: '', boning: '', description: '' };
+    setFilterInput(empty);
+    setAppliedFilters(empty);
+    setCurrentPage(1);
+  }, []);
+
+  const handleSort = useCallback((colIdx) => {
+    if (sortCol === colIdx) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortCol(colIdx);
+      setSortDir('asc');
+    }
+  }, [sortCol]);
+
+  const handlePerPageChange = useCallback((n) => {
+    setPerPage(n);
+    setCurrentPage(1);
+  }, []);
+
+  const handlePageChange = useCallback((p) => {
+    if (p < 1 || p > totalPages) return;
+    setCurrentPage(p);
+  }, [totalPages]);
 
   const handleSave = useCallback(async (payload) => {
     try {
       if (editData) {
-        await updateItem(editData.pid || editData.pubid, payload);
+        await updateItem(editData.pid, payload);
         showNotif('success', 'Jenis daging berhasil diperbarui');
       } else {
         await createItem(payload);
@@ -43,7 +182,7 @@ const DagingMasterPage = () => {
     if (!deleteData) return;
     setIsDeleting(true);
     try {
-      await deleteItem(deleteData.pid || deleteData.pubid);
+      await deleteItem(deleteData.pid);
       setDeleteData(null);
       showNotif('success', 'Jenis daging berhasil dihapus');
     } catch (err) {
@@ -53,157 +192,598 @@ const DagingMasterPage = () => {
     }
   }, [deleteData, deleteItem, showNotif]);
 
-  const filteredData = useMemo(() => {
-    if (!searchTerm) return data;
-    const lower = searchTerm.toLowerCase();
-    return data.filter((i) =>
-      i.name?.toLowerCase().includes(lower) ||
-      i.kode?.toLowerCase().includes(lower) ||
-      i.boning?.name?.toLowerCase().includes(lower) ||
-      i.description?.toLowerCase().includes(lower)
-    );
-  }, [data, searchTerm]);
+  const handleEditItem = useCallback((item) => {
+    setEditData(item);
+    setShowModal(true);
+  }, []);
 
-  const columns = useMemo(() => [
-    {
-      name: 'Urutan',
-      selector: (row) => row.order_no,
-      sortable: true,
-      width: '90px',
-      cell: (row) => <span className="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-xs font-medium">{row.order_no ?? '-'}</span>,
-    },
-    {
-      name: 'Kode',
-      selector: (row) => row.kode,
-      sortable: true,
-      width: '100px',
-      cell: (row) => <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded text-xs font-mono font-bold">{row.kode}</span>,
-    },
-    {
-      name: 'Nama',
-      selector: (row) => row.name,
-      sortable: true,
-      cell: (row) => (
-        <div>
-          <p className="font-semibold text-gray-800 text-sm">{row.name}</p>
-          {row.description && <p className="text-xs text-gray-400 truncate max-w-xs">{row.description}</p>}
-        </div>
-      ),
-    },
-    {
-      name: 'Boning',
-      selector: (row) => row.boning?.name,
-      sortable: true,
-      cell: (row) =>
-        row.boning ? (
-          <span className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded text-xs font-medium">
-            {row.boning.name} ({row.boning.kode})
-          </span>
-        ) : (
-          <span className="text-gray-400 text-xs">-</span>
+  const handleDeleteItem = useCallback((item) => {
+    setDeleteData(item);
+  }, []);
+
+  const columns = useMemo(() => {
+    const startIdxBase = (currentPage - 1) * perPage;
+    const renderSortIcon = (colIdx) => {
+      if (sortCol !== colIdx) return <ArrowUpDown className="h-3 w-3 text-slate-300" />;
+      return sortDir === 'asc'
+        ? <ArrowUp className="h-3 w-3 text-amber-600" />
+        : <ArrowDown className="h-3 w-3 text-amber-600" />;
+    };
+
+    return [
+      {
+        name: <div className="flex items-center gap-1"><span>No</span></div>,
+        width: '52px',
+        center: true,
+        cell: (row, index) => (
+          <div className="w-full text-center text-xs font-medium text-slate-400">{startIdxBase + index + 1}</div>
         ),
+      },
+      {
+        name: (
+          <button
+            type="button"
+            onClick={() => handleSort(1)}
+            className="flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900"
+          >
+            <span>Urutan</span>
+            {renderSortIcon(1)}
+          </button>
+        ),
+        width: '90px',
+        center: true,
+        cell: (row) => (
+          <span className="inline-flex items-center justify-center rounded-md bg-amber-50 text-amber-700 px-2 py-0.5 text-xs font-medium min-w-[28px]">
+            {row.order_no ?? '-'}
+          </span>
+        ),
+      },
+      {
+        name: (
+          <button
+            type="button"
+            onClick={() => handleSort(2)}
+            className="flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900"
+          >
+            <span>Kode</span>
+            {renderSortIcon(2)}
+          </button>
+        ),
+        width: '110px',
+        cell: (row) => (
+          <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-xs font-mono font-semibold text-slate-700">
+            {row.kode || '-'}
+          </span>
+        ),
+      },
+      {
+        name: (
+          <button
+            type="button"
+            onClick={() => handleSort(3)}
+            className="flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900"
+          >
+            <span>Nama Jenis Daging</span>
+            {renderSortIcon(3)}
+          </button>
+        ),
+        grow: 1.5,
+        minWidth: '200px',
+        cell: (row) => (
+          <div className="py-1.5 min-w-0 flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-amber-50 text-amber-600 shrink-0">
+              <Beef className="h-3.5 w-3.5" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-sm font-semibold text-slate-800 truncate">{row.name}</div>
+              {row.description && <div className="text-xs text-slate-500 truncate">{row.description}</div>}
+            </div>
+          </div>
+        ),
+      },
+      {
+        name: (
+          <button
+            type="button"
+            onClick={() => handleSort(4)}
+            className="flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900"
+          >
+            <span>Boning</span>
+            {renderSortIcon(4)}
+          </button>
+        ),
+        width: '160px',
+        cell: (row) =>
+          row.boning ? (
+            <span className="inline-flex items-center rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
+              {row.boning.name} ({row.boning.kode})
+            </span>
+          ) : (
+            <span className="text-xs text-slate-400">-</span>
+          ),
+      },
+      {
+        name: (
+          <button
+            type="button"
+            onClick={() => handleSort(5)}
+            className="flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900"
+          >
+            <span>Deskripsi</span>
+            {renderSortIcon(5)}
+          </button>
+        ),
+        grow: 1.2,
+        minWidth: '180px',
+        cell: (row) => (
+          <span className="text-xs text-slate-600 line-clamp-2">{row.description || '-'}</span>
+        ),
+      },
+      {
+        name: (
+          <button
+            type="button"
+            onClick={() => handleSort(6)}
+            className="flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900"
+          >
+            <span>Dibuat</span>
+            {renderSortIcon(6)}
+          </button>
+        ),
+        width: '130px',
+        cell: (row) => (
+          <span className="text-xs text-slate-500">{row.created_at || '-'}</span>
+        ),
+      },
+      {
+        name: 'Aksi',
+        width: '64px',
+        center: true,
+        ignoreRowClick: true,
+        cell: (row) => (
+          <ActionMenu
+            row={row}
+            isOpen={openMenuId === row.pid}
+            onToggle={() => setOpenMenuId((cur) => (cur === row.pid ? null : row.pid))}
+            onClose={() => setOpenMenuId(null)}
+            onDetail={(r) => { setDetailRow(r); setOpenMenuId(null); }}
+            onEdit={(r) => { handleEditItem(r); setOpenMenuId(null); }}
+            onDelete={(r) => { handleDeleteItem(r); setOpenMenuId(null); }}
+          />
+        ),
+      },
+    ];
+  }, [currentPage, perPage, sortCol, sortDir, handleSort, openMenuId, handleEditItem, handleDeleteItem]);
+
+  const customTableStyles = {
+    headRow: {
+      style: {
+        backgroundColor: '#F8FAFC',
+        borderBottom: '1px solid #E2E8F0',
+        fontSize: '12px',
+        fontWeight: '600',
+        color: '#475569',
+        minHeight: '38px',
+      },
     },
-    {
-      name: 'Aksi',
-      center: true,
-      width: '80px',
-      allowOverflow: true,
-      ignoreRowClick: true,
-      cell: (row) => (
-        <ActionButton
-          item={row}
-          onEdit={(item) => { setEditData(item); setShowModal(true); }}
-          onDelete={(item) => setDeleteData(item)}
-          isOpen={openMenuId === (row.pid || row.pubid)}
-          onToggle={() => setOpenMenuId(openMenuId === (row.pid || row.pubid) ? null : (row.pid || row.pubid))}
-        />
-      ),
+    headCells: { style: { paddingLeft: '12px', paddingRight: '12px' } },
+    rows: {
+      style: {
+        fontSize: '13px',
+        color: '#1E293B',
+        minHeight: '44px',
+        '&:hover': { backgroundColor: '#F8FAFC', cursor: 'pointer' },
+      },
     },
-  ], [openMenuId]);
+    cells: { style: { paddingLeft: '12px', paddingRight: '12px' } },
+  };
 
   return (
-    <div className="min-h-dvh bg-slate-50 p-4 md:p-6">
-      <div className="max-w-5xl mx-auto space-y-4">
-        {/* Header */}
-        <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-200">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-orange-100 rounded-xl">
-                <Beef className="h-7 w-7 text-orange-600" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-800">Master Jenis Daging</h1>
-                <p className="text-gray-500 text-sm">Kelola data master jenis daging berdasarkan kategori boning</p>
+    <div className="flex min-h-dvh flex-col bg-slate-50 overflow-hidden">
+      <header className="shrink-0 border-b border-slate-200 bg-white">
+        <div className="flex items-center justify-between gap-4 px-4 sm:px-6 py-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50 text-amber-600 shrink-0">
+              <Beef className="h-4 w-4" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-base font-bold tracking-tight text-slate-900 truncate">Master Jenis Daging</h1>
+              <p className="text-xs text-slate-500 truncate hidden sm:block">Kelola data master jenis daging berdasarkan kategori boning</p>
+            </div>
+          </div>
+          <button
+            onClick={() => { setEditData(null); setShowModal(true); }}
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-amber-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-700 transition-colors shrink-0"
+          >
+            <Plus className="h-4 w-4" />
+            Tambah
+          </button>
+        </div>
+      </header>
+
+      <div className="flex-1 min-h-0 overflow-auto p-4 sm:px-6">
+        <div className="rounded-xl border border-slate-200 bg-white flex flex-col">
+          <div className="shrink-0 flex flex-col gap-3 border-b border-slate-100 px-4 py-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setShowFilterPanel((v) => !v)}
+                className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${
+                  showFilterPanel || hasAppliedFilters
+                    ? 'border-amber-200 bg-amber-50 text-amber-700'
+                    : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                <Filter className="h-3.5 w-3.5" />
+                Filter
+                {hasAppliedFilters && (
+                  <span className="inline-flex items-center justify-center rounded-full bg-amber-600 px-1.5 text-[10px] font-bold text-white">
+                    {Object.values(appliedFilters).filter((v) => v !== '' && v !== null && v !== undefined).length}
+                  </span>
+                )}
+              </button>
+              {hasAppliedFilters && (
+                <button
+                  type="button"
+                  onClick={handleResetFilter}
+                  className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+                >
+                  <RotateCcw className="h-3 w-3" />
+                  Reset
+                </button>
+              )}
+              <div className="ml-auto text-xs text-slate-500 hidden sm:block">
+                <span className="font-semibold text-slate-700">{filteredRecords.toLocaleString('id-ID')}</span>
+                {hasAppliedFilters && filteredRecords !== totalRecords && (
+                  <span className="text-slate-400"> dari {totalRecords.toLocaleString('id-ID')}</span>
+                )} data
               </div>
             </div>
-            <button
-              onClick={() => { setEditData(null); setShowModal(true); }}
-              className="flex items-center gap-2 bg-orange-600 text-white px-4 py-2.5 rounded-lg font-medium hover:bg-orange-700 shadow-sm transition-colors"
-            >
-              <PlusCircle className="w-5 h-5" />
-              Tambah Jenis Daging
-            </button>
-          </div>
-        </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-orange-600 text-white p-5 rounded-xl shadow-sm">
-            <p className="text-sm opacity-80">Total Jenis Daging</p>
-            <p className="text-3xl font-bold mt-1">{stats.total}</p>
-          </div>
-          <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
-            <p className="text-sm text-gray-500">Hasil Pencarian</p>
-            <p className="text-3xl font-bold text-gray-800 mt-1">{filteredData.length}</p>
-          </div>
-        </div>
-
-        {/* Table */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200">
-          <div className="p-4 border-b border-gray-100">
-            <div className="relative max-w-sm">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Cari nama, kode, atau boning..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-orange-400 focus:border-orange-400"
-              />
-            </div>
+            {showFilterPanel && (
+              <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                  <input
+                    type="text"
+                    value={filterInput.name}
+                    onChange={(e) => handleFilterChange('name', e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleApplyFilter(); }}
+                    placeholder="Nama jenis daging"
+                    className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-100"
+                  />
+                  <input
+                    type="text"
+                    value={filterInput.kode}
+                    onChange={(e) => handleFilterChange('kode', e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleApplyFilter(); }}
+                    placeholder="Kode"
+                    className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-100"
+                  />
+                  <input
+                    type="text"
+                    value={filterInput.boning}
+                    onChange={(e) => handleFilterChange('boning', e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleApplyFilter(); }}
+                    placeholder="Boning"
+                    className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-100"
+                  />
+                  <input
+                    type="text"
+                    value={filterInput.description}
+                    onChange={(e) => handleFilterChange('description', e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleApplyFilter(); }}
+                    placeholder="Deskripsi"
+                    className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-100"
+                  />
+                </div>
+                <div className="flex justify-end gap-1.5 mt-2.5">
+                  <button
+                    type="button"
+                    onClick={handleResetFilter}
+                    className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+                  >
+                    <RotateCcw className="h-3 w-3" />
+                    Reset
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleApplyFilter}
+                    className="inline-flex items-center gap-1 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700 transition-colors"
+                  >
+                    <Search className="h-3 w-3" />
+                    Terapkan
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {error && (
-            <div className="mx-4 mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">{error}</div>
+            <div className="mx-4 mt-3 bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-xs">
+              {error}
+            </div>
           )}
 
-          <DataTable
-            columns={columns}
-            data={filteredData}
-            progressPending={loading}
-            pagination
-            paginationPerPage={15}
-            paginationRowsPerPageOptions={[10, 15, 25, 50]}
-            highlightOnHover
-            responsive
-            noDataComponent={
-              <div className="py-12 text-center text-gray-400">
-                <Beef className="mx-auto h-12 w-12 mb-3 opacity-40" />
-                <p>Tidak ada data jenis daging</p>
+          <div className="flex-1 min-h-0 overflow-auto">
+            <DataTable
+              columns={columns}
+              data={pageData}
+              customStyles={customTableStyles}
+              progressPending={loading}
+              progressComponent={<SkeletonRows />}
+              noDataComponent={
+                <div className="py-12 text-center">
+                  <AlertCircle className="mx-auto h-8 w-8 text-slate-300" />
+                  <p className="mt-2 text-sm font-semibold text-slate-600">Tidak ada data ditemukan</p>
+                  <p className="mt-1 text-xs text-slate-400">
+                    {hasAppliedFilters ? 'Coba ubah filter atau reset' : 'Belum ada jenis daging terdaftar'}
+                  </p>
+                </div>
+              }
+              highlightOnHover
+              pointerOnHover
+              responsive
+              dense
+              onRowClicked={(row) => setDetailRow(row)}
+              pagination={false}
+              fixedHeader={false}
+            />
+          </div>
+
+          <div className="shrink-0 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-t border-slate-100 px-4 py-2.5 bg-white">
+            <div className="flex items-center gap-2 text-xs text-slate-600">
+              <span>Baris:</span>
+              <select
+                value={perPage}
+                onChange={(e) => handlePerPageChange(Number(e.target.value))}
+                className="rounded-md border border-slate-200 bg-white px-1.5 py-1 text-xs outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-100"
+              >
+                {[10, 25, 50, 100].map((n) => (
+                  <option key={n} value={n}>{n}</option>
+                ))}
+              </select>
+              <span className="text-slate-500">
+                {filteredRecords === 0 ? '0-0' : `${startIdx}-${endIdx}`} dari{' '}
+                <span className="font-semibold text-slate-700">{filteredRecords.toLocaleString('id-ID')}</span>
+                {hasAppliedFilters && filteredRecords !== totalRecords && (
+                  <span className="text-slate-400"> (filter dari {totalRecords.toLocaleString('id-ID')})</span>
+                )}
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => handlePageChange(1)}
+                disabled={currentPage <= 1 || loading}
+                className="rounded-md border border-slate-200 p-1.5 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                title="Halaman pertama"
+              >
+                <ChevronsLeft className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage <= 1 || loading}
+                className="rounded-md border border-slate-200 p-1.5 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                title="Prev"
+              >
+                <ChevronLeft className="h-3.5 w-3.5" />
+              </button>
+              <div className="flex items-center gap-1 px-2 text-xs text-slate-600">
+                <span>Hal</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={totalPages}
+                  value={currentPage}
+                  onChange={(e) => {
+                    const p = Number(e.target.value);
+                    if (p >= 1 && p <= totalPages) handlePageChange(p);
+                  }}
+                  className="w-12 rounded-md border border-slate-200 px-1.5 py-1 text-xs text-center outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-100"
+                />
+                <span>/ {totalPages.toLocaleString('id-ID')}</span>
               </div>
-            }
-            customStyles={customTableStyles}
-          />
+              <button
+                type="button"
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage >= totalPages || loading}
+                className="rounded-md border border-slate-200 p-1.5 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                title="Next"
+              >
+                <ChevronRight className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => handlePageChange(totalPages)}
+                disabled={currentPage >= totalPages || loading}
+                className="rounded-md border border-slate-200 p-1.5 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                title="Halaman terakhir"
+              >
+                <ChevronsRight className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
       {showModal && (
-        <AddEditDagingModal item={editData} onClose={() => { setShowModal(false); setEditData(null); }} onSave={handleSave} />
+        <AddEditDagingModal
+          item={editData}
+          onClose={() => { setShowModal(false); setEditData(null); }}
+          onSave={handleSave}
+        />
       )}
-      <DeleteConfirmationModal isOpen={!!deleteData} item={deleteData} onConfirm={handleConfirmDelete} onCancel={() => setDeleteData(null)} isDeleting={isDeleting} />
-      <Notification isVisible={notification.isVisible} type={notification.type} message={notification.message} onClose={() => setNotification((n) => ({ ...n, isVisible: false }))} />
+
+      {detailRow && (
+        <DetailDrawer
+          row={detailRow}
+          onClose={() => setDetailRow(null)}
+          onEdit={(r) => { setDetailRow(null); handleEditItem(r); }}
+          onDelete={(r) => { setDetailRow(null); handleDeleteItem(r); }}
+        />
+      )}
+
+      <DeleteConfirmationModal
+        isOpen={!!deleteData}
+        item={deleteData}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeleteData(null)}
+        isDeleting={isDeleting}
+      />
+
+      <Notification
+        isVisible={notification.isVisible}
+        type={notification.type}
+        message={notification.message}
+        onClose={() => setNotification((n) => ({ ...n, isVisible: false }))}
+      />
     </div>
   );
 };
+
+const SkeletonRows = () => (
+  <div className="py-2">
+    {[...Array(8)].map((_, i) => (
+      <div key={i} className="flex items-center gap-3 px-3 py-2.5 border-b border-slate-50">
+        <div className="h-3 w-8 rounded bg-slate-100 animate-pulse" />
+        <div className="h-3 w-12 rounded bg-slate-100 animate-pulse" />
+        <div className="h-3 w-16 rounded bg-slate-100 animate-pulse" />
+        <div className="flex-1 h-3 rounded bg-slate-100 animate-pulse" />
+        <div className="h-3 w-28 rounded bg-slate-100 animate-pulse" />
+        <div className="h-3 w-24 rounded bg-slate-100 animate-pulse" />
+        <div className="h-3 w-20 rounded bg-slate-100 animate-pulse" />
+        <div className="h-3 w-8 rounded bg-slate-100 animate-pulse" />
+      </div>
+    ))}
+  </div>
+);
+
+const ActionMenu = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onDelete }) => {
+  const buttonRef = useRef(null);
+  const menuRef = useRef(null);
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
+
+  const toggle = (e) => {
+    e.stopPropagation();
+    if (!isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setMenuPos({ top: rect.bottom + 4, left: rect.right - 160 });
+    }
+    onToggle();
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleClick = (e) => {
+      const inBtn = buttonRef.current && buttonRef.current.contains(e.target);
+      const inMenu = menuRef.current && menuRef.current.contains(e.target);
+      if (!inBtn && !inMenu) onClose();
+    };
+    document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
+  }, [isOpen, onClose]);
+
+  return (
+    <div className="relative flex justify-center">
+      <button
+        ref={buttonRef}
+        onClick={toggle}
+        className={`p-1.5 rounded-md transition-colors ${isOpen ? 'bg-slate-100 text-slate-800' : 'text-slate-500 hover:bg-slate-100'}`}
+        title="Aksi"
+      >
+        <MoreVertical className="h-4 w-4" />
+      </button>
+      {isOpen && createPortal(
+        <div
+          ref={menuRef}
+          className="fixed bg-white rounded-lg shadow-xl border border-slate-200 py-1 w-40 z-[99999]"
+          style={{ top: menuPos.top, left: menuPos.left }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            onClick={() => onDetail(row)}
+            className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors"
+          >
+            <Eye className="h-3.5 w-3.5 text-slate-500" /> Lihat Detail
+          </button>
+          <button
+            onClick={() => onEdit(row)}
+            className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors"
+          >
+            <Pencil className="h-3.5 w-3.5 text-amber-500" /> Edit
+          </button>
+          <button
+            onClick={() => onDelete(row)}
+            className="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
+          >
+            <Trash2 className="h-3.5 w-3.5 text-red-500" /> Hapus
+          </button>
+        </div>,
+        document.body
+      )}
+    </div>
+  );
+};
+
+const DetailDrawer = ({ row, onClose, onEdit, onDelete }) => {
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex justify-end">
+      <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-md bg-white shadow-2xl flex flex-col animate-in slide-in-from-right">
+        <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-slate-100">
+          <div>
+            <h3 className="text-sm font-bold text-slate-900">Detail Jenis Daging</h3>
+            <p className="text-xs text-slate-500">Informasi lengkap jenis daging</p>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="flex-1 overflow-auto p-4 space-y-3">
+          <div className="rounded-lg border border-slate-200 p-3 flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
+              <Beef className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-slate-800">{row.name}</h2>
+              <p className="text-xs text-slate-500">{row.kode}</p>
+            </div>
+          </div>
+          <DetailField label="Urutan" value={row.order_no} />
+          <DetailField label="Kode" value={row.kode} />
+          <DetailField label="Boning" value={row.boning ? `${row.boning.name} (${row.boning.kode})` : ''} />
+          <DetailField label="Deskripsi" value={row.description} />
+          <DetailField label="Dibuat" value={row.created_at} />
+          <DetailField label="Diperbarui" value={row.updated_at} />
+        </div>
+        <div className="shrink-0 flex gap-2 px-4 py-3 border-t border-slate-100 bg-slate-50/50">
+          <button
+            onClick={() => onDelete(row)}
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors"
+          >
+            <Trash2 className="h-3.5 w-3.5" /> Hapus
+          </button>
+          <button
+            onClick={() => onEdit(row)}
+            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-amber-600 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-700 transition-colors"
+          >
+            <Pencil className="h-3.5 w-3.5" /> Edit Jenis Daging
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+};
+
+const DetailField = ({ label, value }) => (
+  <div className="rounded-lg border border-slate-200 px-3 py-2">
+    <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{label}</p>
+    <p className="mt-0.5 text-sm text-slate-700 break-words">
+      {value || value === 0 ? value : <span className="text-slate-300">-</span>}
+    </p>
+  </div>
+);
 
 export default DagingMasterPage;

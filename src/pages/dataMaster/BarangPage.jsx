@@ -24,7 +24,7 @@ const BarangPage = () => {
       minWidth: '220px',
       cell: (row) => (
         <div className="py-1.5 min-w-0 flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-sky-50 text-sky-600 shrink-0">
+          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-amber-50 text-amber-600 shrink-0">
             <Package className="h-3.5 w-3.5" />
           </div>
           <div className="min-w-0">
@@ -53,7 +53,7 @@ const BarangPage = () => {
       storageKey="barang_state_v1"
       title="Master Barang"
       subtitle="Kelola data barang"
-      accent="sky"
+      accent="amber"
       icon={Package}
       hook={mappedHook}
       filterFields={[

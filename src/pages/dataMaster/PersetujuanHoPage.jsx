@@ -1,39 +1,20 @@
-import React, { useState, useMemo, useCallback, useEffect } from "react";
-import DataTable from "react-data-table-component";
-import { PlusCircle, Search, LayoutGrid, List } from "lucide-react";
-import ActionButton from "./persetujuanHo/components/ActionButton";
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import DataTable from 'react-data-table-component';
+import {
+  Plus, Filter, RotateCcw, Search, ArrowUpDown, ArrowUp, ArrowDown,
+  MoreVertical, Eye, Pencil, Trash2, Building2, AlertCircle,
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, X,
+} from 'lucide-react';
 
-// Komponen dan hooks terpisah
-import CardView from "./persetujuanHo/components/CardView";
-import AddEditPersetujuanHoModal from "./persetujuanHo/modals/AddEditPersetujuanHoModal";
-import PersetujuanHoDetailModal from "./persetujuanHo/modals/PersetujuanHoDetailModal";
-import DeleteConfirmationModal from "./persetujuanHo/modals/DeleteConfirmationModal";
-import Notification from "./persetujuanHo/components/Notification";
-import usePersetujuanHo from "./persetujuanHo/hooks/usePersetujuanHo";
-import customTableStyles from "./persetujuanHo/constants/tableStyles";
+import usePersetujuanHo from './persetujuanHo/hooks/usePersetujuanHo';
+import AddEditPersetujuanHoModal from './persetujuanHo/modals/AddEditPersetujuanHoModal';
+import DeleteConfirmationModal from './persetujuanHo/modals/DeleteConfirmationModal';
+import Notification from './persetujuanHo/components/Notification';
 
-// Main Page
+const STORAGE_KEY = 'persetujuan_ho_state_v1';
+
 const PersetujuanHoPage = () => {
-  // State
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [showDetailModal, setShowDetailModal] = useState(false);
-  const [editData, setEditData] = useState(null);
-  const [detailData, setDetailData] = useState(null);
-  const [deleteData, setDeleteData] = useState(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [openMenuId, setOpenMenuId] = useState(null);
-  const [viewMode, setViewMode] = useState("table");
-  const [lastRefreshTime, setLastRefreshTime] = useState(Date.now());
-  
-  // Notification state
-  const [notification, setNotification] = useState({
-    isVisible: false,
-    type: 'info',
-    message: ''
-  });
-
-  // Custom hook
   const {
     persetujuanHo,
     loading,
@@ -42,363 +23,682 @@ const PersetujuanHoPage = () => {
     updatePersetujuanHo,
     deletePersetujuanHo,
     fetchPersetujuanHo,
-    searchTerm,
-    setSearchTerm,
-    stats,
   } = usePersetujuanHo();
 
-  // Load data on component mount
-  useEffect(() => {
-    fetchPersetujuanHo();
-  }, [fetchPersetujuanHo]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
+  const [sortCol, setSortCol] = useState(1);
+  const [sortDir, setSortDir] = useState('asc');
 
-  // Handle search with debounce
-  useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      // Fetch data with search term from server
-      fetchPersetujuanHo(searchTerm);
-    }, 500); // 500ms delay for debounce
+  const [filterInput, setFilterInput] = useState({ name: '', description: '' });
+  const [appliedFilters, setAppliedFilters] = useState({ name: '', description: '' });
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
 
-    return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm, fetchPersetujuanHo]);
+  const [showModal, setShowModal] = useState(false);
+  const [editData, setEditData] = useState(null);
+  const [deleteData, setDeleteData] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [notification, setNotification] = useState({ isVisible: false, type: 'info', message: '' });
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const [detailRow, setDetailRow] = useState(null);
 
-  // Auto-refresh when user returns to the page
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        // Check if it's been more than 30 seconds since last refresh
-        const timeSinceLastRefresh = Date.now() - lastRefreshTime;
-        if (timeSinceLastRefresh > 30000) { // 30 seconds
-          fetchPersetujuanHo();
-          setLastRefreshTime(Date.now());
-        }
-      }
-    };
+  const stateRef = useRef({});
+  stateRef.current = { appliedFilters };
 
-    const handleFocus = () => {
-      // Check if it's been more than 30 seconds since last refresh
-      const timeSinceLastRefresh = Date.now() - lastRefreshTime;
-      if (timeSinceLastRefresh > 30000) { // 30 seconds
-        fetchPersetujuanHo();
-        setLastRefreshTime(Date.now());
-      }
-    };
-
-    // Listen for visibility changes
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    // Listen for window focus (backup method)
-    window.addEventListener('focus', handleFocus);
-
-    // Cleanup listeners
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
-    };
-  }, [fetchPersetujuanHo, lastRefreshTime]);
-
-  // Event handlers
-  const handleAdd = useCallback(() => {
-    setEditData(null);
-    setShowAddModal(true);
+  const showNotif = useCallback((type, message) => {
+    setNotification({ isVisible: true, type, message });
   }, []);
 
-  const handleEdit = useCallback((item) => {
-    setEditData(item);
-    setShowEditModal(true);
-  }, []);
+  const hasAppliedFilters = useMemo(
+    () => Object.values(appliedFilters).some((v) => v !== '' && v !== null && v !== undefined),
+    [appliedFilters]
+  );
 
-  const handleDelete = useCallback((item) => {
-    setDeleteData(item);
-  }, []);
+  const totalRecords = persetujuanHo.length;
 
-  const handleDetail = useCallback((item) => {
-    setDetailData(item);
-    setShowDetailModal(true);
-  }, []);
+  const filteredData = useMemo(() => {
+    let result = [...persetujuanHo];
+    const af = stateRef.current.appliedFilters;
+    if (af.name) {
+      const term = af.name.toLowerCase();
+      result = result.filter((item) => item.name?.toLowerCase().includes(term));
+    }
+    if (af.description) {
+      const term = af.description.toLowerCase();
+      result = result.filter((item) => item.description?.toLowerCase().includes(term));
+    }
+    return result;
+  }, [persetujuanHo]);
 
-  // Show notification helper
-  const showNotification = useCallback((type, message) => {
-    setNotification({
-      isVisible: true,
-      type,
-      message
+  const sortedData = useMemo(() => {
+    const data = [...filteredData];
+    data.sort((a, b) => {
+      let va, vb;
+      if (sortCol === 1) { va = a.name || ''; vb = b.name || ''; }
+      else if (sortCol === 2) { va = a.description || ''; vb = b.description || ''; }
+      else if (sortCol === 3) { va = a.created_at || ''; vb = b.created_at || ''; }
+      else { return 0; }
+      const comparison = va.toString().localeCompare(vb.toString(), 'id', { sensitivity: 'base' });
+      return sortDir === 'asc' ? comparison : -comparison;
     });
+    return data;
+  }, [filteredData, sortCol, sortDir]);
+
+  const filteredRecords = sortedData.length;
+  const totalPages = Math.max(1, Math.ceil(filteredRecords / perPage));
+  const startIdx = filteredRecords === 0 ? 0 : (currentPage - 1) * perPage + 1;
+  const endIdx = Math.min(currentPage * perPage, filteredRecords);
+
+  const displayData = useMemo(() => {
+    const start = (currentPage - 1) * perPage;
+    return sortedData.slice(start, start + perPage);
+  }, [sortedData, currentPage, perPage]);
+
+  const [fetchTrigger, setFetchTrigger] = useState(0);
+
+  useEffect(() => {
+    if (fetchTrigger > 0) fetchPersetujuanHo();
+  }, [fetchTrigger, fetchPersetujuanHo]);
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(STORAGE_KEY) || '{}');
+      if (saved.filterInput) setFilterInput(saved.filterInput);
+      if (saved.appliedFilters) setAppliedFilters(saved.appliedFilters);
+      if (saved.perPage) setPerPage(saved.perPage);
+      if (saved.sortCol !== undefined) setSortCol(saved.sortCol);
+      if (saved.sortDir) setSortDir(saved.sortDir);
+      if (saved.currentPage) setCurrentPage(saved.currentPage);
+    } catch {}
+    setFetchTrigger((t) => t + 1);
   }, []);
 
-  const handleSave = useCallback(async (data) => {
+  useEffect(() => {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
+      filterInput, appliedFilters, perPage, sortCol, sortDir, currentPage,
+    }));
+  }, [filterInput, appliedFilters, perPage, sortCol, sortDir, currentPage]);
+
+  const handleFilterChange = useCallback((field, value) => {
+    setFilterInput((prev) => ({ ...prev, [field]: value }));
+  }, []);
+
+  const handleApplyFilter = useCallback(() => {
+    setAppliedFilters(filterInput);
+    setCurrentPage(1);
+  }, [filterInput]);
+
+  const handleResetFilter = useCallback(() => {
+    const empty = { name: '', description: '' };
+    setFilterInput(empty);
+    setAppliedFilters(empty);
+    setCurrentPage(1);
+  }, []);
+
+  const handleSort = useCallback((colIdx) => {
+    if (sortCol === colIdx) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortCol(colIdx);
+      setSortDir('asc');
+    }
+    setCurrentPage(1);
+  }, [sortCol]);
+
+  const handlePerPageChange = useCallback((n) => {
+    setPerPage(n);
+    setCurrentPage(1);
+  }, []);
+
+  const handlePageChange = useCallback((p) => {
+    if (p < 1 || p > totalPages) return;
+    setCurrentPage(p);
+  }, [totalPages]);
+
+  const handleSave = useCallback(async (payload) => {
     try {
       if (editData) {
-        await updatePersetujuanHo(editData.pid || editData.pubid, data);
-        showNotification('success', 'Persetujuan HO berhasil diperbarui');
-        console.log('✅ Persetujuan HO berhasil diupdate');
+        await updatePersetujuanHo(editData.pid || editData.pubid, payload);
+        showNotif('success', 'Persetujuan HO berhasil diperbarui');
       } else {
-        await createPersetujuanHo(data);
-        showNotification('success', 'Persetujuan HO berhasil ditambahkan');
-        console.log('✅ Persetujuan HO berhasil dibuat');
+        await createPersetujuanHo(payload);
+        showNotif('success', 'Persetujuan HO berhasil ditambahkan');
       }
-      
-      // Close modals
-      setShowAddModal(false);
-      setShowEditModal(false);
+      setShowModal(false);
       setEditData(null);
-      
-      // Data refresh is now handled in the hook
-      setLastRefreshTime(Date.now());
     } catch (err) {
-      showNotification('error', err.message || 'Gagal menyimpan data');
-      console.error('❌ Error saving data:', err);
+      showNotif('error', err.message || 'Gagal menyimpan data');
     }
-  }, [editData, updatePersetujuanHo, createPersetujuanHo, showNotification]);
+  }, [editData, updatePersetujuanHo, createPersetujuanHo, showNotif]);
 
   const handleConfirmDelete = useCallback(async () => {
     if (!deleteData) return;
-    
     setIsDeleting(true);
     try {
       await deletePersetujuanHo(deleteData.pid || deleteData.pubid);
       setDeleteData(null);
-      showNotification('success', 'Persetujuan HO berhasil dihapus');
-      
-      // Data refresh is now handled in the hook
-      setLastRefreshTime(Date.now());
+      showNotif('success', 'Persetujuan HO berhasil dihapus');
     } catch (err) {
-      showNotification('error', err.message || 'Gagal menghapus data');
-      console.error('❌ Error deleting data:', err);
+      showNotif('error', err.message || 'Gagal menghapus data');
     } finally {
       setIsDeleting(false);
     }
-  }, [deleteData, deletePersetujuanHo, showNotification]);
+  }, [deleteData, deletePersetujuanHo, showNotif]);
 
-  // Toggle menu untuk mobile
-  const toggleMenu = useCallback((id) => {
-    setOpenMenuId(openMenuId === id ? null : id);
-  }, [openMenuId]);
+  const handleEditItem = useCallback((item) => {
+    setEditData(item);
+    setShowModal(true);
+  }, []);
 
-  // Table columns
-  const columns = useMemo(() => [
-    {
-      name: "No",
-      selector: row => row.order_no,
-      sortable: true,
-      cell: row => (
-        <span className="bg-indigo-100 text-indigo-800 px-2 py-1 rounded text-sm font-medium">
-          {row.order_no}
-        </span>
-      ),
-      width: "100px"
-    },
-    {
-      name: "Nama Persetujuan HO",
-      selector: row => row.name,
-      sortable: true,
-      cell: row => (
-        <div className="flex flex-col">
-          <span className="font-semibold text-gray-800">{row.name}</span>
-          <span className="text-xs text-gray-500 truncate">{row.description}</span>
-        </div>
-      )
-    },
-    {
-      name: "Aksi",
-      cell: row => (
-        <div style={{ position: "relative", right: 0, background: "#fff", zIndex: 10, overflow: "hidden" }}>
-          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", width: "100%" }}>
-            <ActionButton
-              item={row}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              onDetail={handleDetail}
-              isOpen={openMenuId === (row.pid || row.pubid)}
-              onToggle={() => toggleMenu(row.pid || row.pubid)}
-            />
+  const handleDeleteItem = useCallback((item) => {
+    setDeleteData(item);
+  }, []);
+
+  const columns = useMemo(() => {
+    const startIdxBase = (currentPage - 1) * perPage;
+    const renderSortIcon = (colIdx) => {
+      if (sortCol !== colIdx) return <ArrowUpDown className="h-3 w-3 text-slate-300" />;
+      return sortDir === 'asc'
+        ? <ArrowUp className="h-3 w-3 text-amber-600" />
+        : <ArrowDown className="h-3 w-3 text-amber-600" />;
+    };
+
+    return [
+      {
+        name: <div className="flex items-center gap-1"><span>No</span></div>,
+        width: '52px',
+        center: true,
+        cell: (row, index) => (
+          <div className="w-full text-center text-xs font-medium text-slate-400">{startIdxBase + index + 1}</div>
+        ),
+      },
+      {
+        name: (
+          <button
+            type="button"
+            onClick={() => handleSort(1)}
+            className="flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900"
+          >
+            <span>Nama Persetujuan HO</span>
+            {renderSortIcon(1)}
+          </button>
+        ),
+        grow: 1.6,
+        minWidth: '220px',
+        cell: (row) => (
+          <div className="py-1.5 min-w-0 flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-amber-50 text-amber-600 shrink-0">
+              <Building2 className="h-3.5 w-3.5" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-sm font-semibold text-slate-800 truncate">{row.name}</div>
+              <div className="text-xs text-slate-500 truncate">{row.description || '-'}</div>
+            </div>
           </div>
-        </div>
-      ),
-      ignoreRowClick: true,
-      allowOverflow: true,
-      center: true,
-      width: "80px"
-    }
-  ], [openMenuId, handleEdit, handleDelete, handleDetail, toggleMenu]);
+        ),
+      },
+      {
+        name: (
+          <button
+            type="button"
+            onClick={() => handleSort(2)}
+            className="flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900"
+          >
+            <span>Deskripsi</span>
+            {renderSortIcon(2)}
+          </button>
+        ),
+        grow: 1.4,
+        minWidth: '200px',
+        cell: (row) => (
+          <span className="text-xs text-slate-600 line-clamp-2">{row.description || '-'}</span>
+        ),
+      },
+      {
+        name: (
+          <button
+            type="button"
+            onClick={() => handleSort(3)}
+            className="flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900"
+          >
+            <span>Dibuat</span>
+            {renderSortIcon(3)}
+          </button>
+        ),
+        width: '130px',
+        cell: (row) => (
+          <span className="text-xs text-slate-500">{row.created_at || '-'}</span>
+        ),
+      },
+      {
+        name: 'Aksi',
+        width: '64px',
+        center: true,
+        ignoreRowClick: true,
+        cell: (row) => (
+          <ActionMenu
+            row={row}
+            isOpen={openMenuId === (row.pid || row.pubid)}
+            onToggle={() => setOpenMenuId((cur) => (cur === (row.pid || row.pubid) ? null : (row.pid || row.pubid)))}
+            onClose={() => setOpenMenuId(null)}
+            onDetail={(r) => { setDetailRow(r); setOpenMenuId(null); }}
+            onEdit={(r) => { handleEditItem(r); setOpenMenuId(null); }}
+            onDelete={(r) => { handleDeleteItem(r); setOpenMenuId(null); }}
+          />
+        ),
+      },
+    ];
+  }, [currentPage, perPage, sortCol, sortDir, handleSort, openMenuId, handleEditItem, handleDeleteItem]);
 
-  // Add order_no to data (server-side search is already applied)
-  const filteredData = useMemo(() => {
-    // Server already handles the search, just add order_no
-    const result = persetujuanHo.map((item, idx) => ({
-      order_no: idx + 1,
-      ...item
-    }));
-    
-    console.log('📊 PersetujuanHo data:', result.length, 'items');
-    return result;
-  }, [persetujuanHo]);
+  const customTableStyles = {
+    headRow: {
+      style: {
+        backgroundColor: '#F8FAFC',
+        borderBottom: '1px solid #E2E8F0',
+        fontSize: '12px',
+        fontWeight: '600',
+        color: '#475569',
+        minHeight: '38px',
+      },
+    },
+    headCells: { style: { paddingLeft: '12px', paddingRight: '12px' } },
+    rows: {
+      style: {
+        fontSize: '13px',
+        color: '#1E293B',
+        minHeight: '44px',
+        '&:hover': { backgroundColor: '#F8FAFC', cursor: 'pointer' },
+      },
+    },
+    cells: { style: { paddingLeft: '12px', paddingRight: '12px' } },
+  };
 
   return (
-    <div className="min-h-dvh bg-slate-50 p-2 sm:p-4 md:p-6">
-      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
-        {/* Header Section */}
-        <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-slate-200">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-1 sm:mb-2">
-                Manajemen Persetujuan HO
-              </h1>
-              <p className="text-gray-600 text-sm sm:text-base">
-                Kelola data master persetujuan HO
-              </p>
+    <div className="flex min-h-dvh flex-col bg-slate-50 overflow-hidden">
+      <header className="shrink-0 border-b border-slate-200 bg-white">
+        <div className="flex items-center justify-between gap-4 px-4 sm:px-6 py-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50 text-amber-600 shrink-0">
+              <Building2 className="h-4 w-4" />
             </div>
-            <div className="flex flex-col gap-2 sm:flex-row sm:gap-4">
+            <div className="min-w-0">
+              <h1 className="text-base font-bold tracking-tight text-slate-900 truncate">Master Persetujuan HO</h1>
+              <p className="text-xs text-slate-500 truncate hidden sm:block">Kelola data master persetujuan HO</p>
+            </div>
+          </div>
+          <button
+            onClick={() => { setEditData(null); setShowModal(true); }}
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-amber-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-700 transition-colors shrink-0"
+          >
+            <Plus className="h-4 w-4" />
+            Tambah
+          </button>
+        </div>
+      </header>
+
+      <div className="flex-1 min-h-0 overflow-auto p-4 sm:px-6">
+        <div className="rounded-xl border border-slate-200 bg-white flex flex-col">
+          <div className="shrink-0 flex flex-col gap-3 border-b border-slate-100 px-4 py-3">
+            <div className="flex items-center gap-2 flex-wrap">
               <button
-                onClick={handleAdd}
-                className="bg-indigo-600 text-white px-4 py-2 sm:px-5 sm:py-2.5 rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2 font-medium shadow-sm text-sm sm:text-base"
+                type="button"
+                onClick={() => setShowFilterPanel((v) => !v)}
+                className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${
+                  showFilterPanel || hasAppliedFilters
+                    ? 'border-amber-200 bg-amber-50 text-amber-700'
+                    : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                }`}
               >
-                <PlusCircle className="w-5 h-5" />
-                Tambah Persetujuan HO
+                <Filter className="h-3.5 w-3.5" />
+                Filter
+                {hasAppliedFilters && (
+                  <span className="inline-flex items-center justify-center rounded-full bg-amber-600 px-1.5 text-[10px] font-bold text-white">
+                    {Object.values(appliedFilters).filter((v) => v !== '' && v !== null && v !== undefined).length}
+                  </span>
+                )}
+              </button>
+              {hasAppliedFilters && (
+                <button
+                  type="button"
+                  onClick={handleResetFilter}
+                  className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+                >
+                  <RotateCcw className="h-3 w-3" />
+                  Reset
+                </button>
+              )}
+              <div className="ml-auto text-xs text-slate-500 hidden sm:block">
+                <span className="font-semibold text-slate-700">{filteredRecords.toLocaleString('id-ID')}</span>
+                {hasAppliedFilters && filteredRecords !== totalRecords && (
+                  <span className="text-slate-400"> dari {totalRecords.toLocaleString('id-ID')}</span>
+                )} data
+              </div>
+            </div>
+
+            {showFilterPanel && (
+              <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                  <input
+                    type="text"
+                    value={filterInput.name}
+                    onChange={(e) => handleFilterChange('name', e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleApplyFilter(); }}
+                    placeholder="Nama persetujuan HO"
+                    className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-100"
+                  />
+                  <input
+                    type="text"
+                    value={filterInput.description}
+                    onChange={(e) => handleFilterChange('description', e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleApplyFilter(); }}
+                    placeholder="Deskripsi"
+                    className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-100"
+                  />
+                </div>
+                <div className="flex justify-end gap-1.5 mt-2.5">
+                  <button
+                    type="button"
+                    onClick={handleResetFilter}
+                    className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+                  >
+                    <RotateCcw className="h-3 w-3" />
+                    Reset
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleApplyFilter}
+                    className="inline-flex items-center gap-1 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700 transition-colors"
+                  >
+                    <Search className="h-3 w-3" />
+                    Terapkan
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {error && (
+            <div className="mx-4 mt-3 bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-xs">
+              {error}
+            </div>
+          )}
+
+          <div className="flex-1 min-h-0 overflow-auto">
+            <DataTable
+              columns={columns}
+              data={displayData}
+              customStyles={customTableStyles}
+              progressPending={loading}
+              progressComponent={<SkeletonRows />}
+              noDataComponent={
+                <div className="py-12 text-center">
+                  <AlertCircle className="mx-auto h-8 w-8 text-slate-300" />
+                  <p className="mt-2 text-sm font-semibold text-slate-600">Tidak ada data ditemukan</p>
+                  <p className="mt-1 text-xs text-slate-400">
+                    {hasAppliedFilters ? 'Coba ubah filter atau reset' : 'Belum ada persetujuan HO terdaftar'}
+                  </p>
+                </div>
+              }
+              highlightOnHover
+              pointerOnHover
+              responsive
+              dense
+              onRowClicked={(row) => setDetailRow(row)}
+              pagination={false}
+              fixedHeader={false}
+            />
+          </div>
+
+          <div className="shrink-0 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-t border-slate-100 px-4 py-2.5 bg-white">
+            <div className="flex items-center gap-2 text-xs text-slate-600">
+              <span>Baris:</span>
+              <select
+                value={perPage}
+                onChange={(e) => handlePerPageChange(Number(e.target.value))}
+                className="rounded-md border border-slate-200 bg-white px-1.5 py-1 text-xs outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-100"
+              >
+                {[10, 25, 50, 100].map((n) => (
+                  <option key={n} value={n}>{n}</option>
+                ))}
+              </select>
+              <span className="text-slate-500">
+                {filteredRecords === 0 ? '0-0' : `${startIdx}-${endIdx}`} dari{' '}
+                <span className="font-semibold text-slate-700">{filteredRecords.toLocaleString('id-ID')}</span>
+                {hasAppliedFilters && filteredRecords !== totalRecords && (
+                  <span className="text-slate-400"> (filter dari {totalRecords.toLocaleString('id-ID')})</span>
+                )}
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => handlePageChange(1)}
+                disabled={currentPage <= 1 || loading}
+                className="rounded-md border border-slate-200 p-1.5 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                title="Halaman pertama"
+              >
+                <ChevronsLeft className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage <= 1 || loading}
+                className="rounded-md border border-slate-200 p-1.5 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                title="Prev"
+              >
+                <ChevronLeft className="h-3.5 w-3.5" />
+              </button>
+              <div className="flex items-center gap-1 px-2 text-xs text-slate-600">
+                <span>Hal</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={totalPages}
+                  value={currentPage}
+                  onChange={(e) => {
+                    const p = Number(e.target.value);
+                    if (p >= 1 && p <= totalPages) handlePageChange(p);
+                  }}
+                  className="w-12 rounded-md border border-slate-200 px-1.5 py-1 text-xs text-center outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-100"
+                />
+                <span>/ {totalPages.toLocaleString('id-ID')}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage >= totalPages || loading}
+                className="rounded-md border border-slate-200 p-1.5 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                title="Next"
+              >
+                <ChevronRight className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => handlePageChange(totalPages)}
+                disabled={currentPage >= totalPages || loading}
+                className="rounded-md border border-slate-200 p-1.5 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                title="Halaman terakhir"
+              >
+                <ChevronsRight className="h-3.5 w-3.5" />
               </button>
             </div>
           </div>
         </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4 md:gap-6">
-          <div className="bg-indigo-600 text-white p-4 sm:p-5 rounded-xl shadow-sm">
-            <h3 className="text-xs sm:text-sm font-medium opacity-90">Total Persetujuan HO</h3>
-            <p className="text-xl sm:text-3xl font-bold">{stats.total}</p>
-            {stats.displayed < stats.total && (
-              <p className="text-xs opacity-75 mt-1">Menampilkan {stats.displayed} data</p>
-            )}
-          </div>
-        </div>
-
-        {/* Filters and Search */}
-        <div className="bg-white rounded-xl p-3 sm:p-5 shadow-sm border border-slate-200">
-          <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 sm:items-center sm:justify-between">
-            <div className="relative flex-1 max-w-full sm:max-w-md">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Cari persetujuan HO..."
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200 text-sm sm:text-base"
-              />
-            </div>
-            <div className="flex flex-wrap gap-2 sm:gap-3">
-              <div className="flex bg-gray-100 rounded-xl p-1">
-                <button
-                  onClick={() => setViewMode("table")}
-                  className={`px-2.5 py-2 rounded-lg transition-colors duration-200 text-xs sm:text-base ${
-                    viewMode === "table"
-                      ? "bg-white text-indigo-600 shadow-sm"
-                      : "text-gray-600 hover:text-indigo-600"
-                  }`}
-                >
-                  <List className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => setViewMode("card")}
-                  className={`px-2.5 py-2 rounded-lg transition-colors duration-200 text-xs sm:text-base ${
-                    viewMode === "card"
-                      ? "bg-white text-indigo-600 shadow-sm"
-                      : "text-gray-600 hover:text-indigo-600"
-                  }`}
-                >
-                  <LayoutGrid className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        {/* Data Display */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto">
-          <div>
-            {viewMode === "table" ? (
-              <div className="w-full min-w-[600px]">
-                <DataTable
-                  key={`datatable-persetujuanho-${filteredData.length}`}
-                  columns={columns}
-                  data={filteredData}
-                  pagination
-                  paginationPerPage={20}
-                  paginationRowsPerPageOptions={[10, 20, 30, 50, 100]}
-                  customStyles={customTableStyles}
-                  noDataComponent={
-                    <div className="text-center py-12">
-                      <p className="text-gray-500 text-lg">Tidak ada data persetujuan HO ditemukan</p>
-                    </div>
-                  }
-                  progressPending={loading}
-                  responsive={true}
-                  highlightOnHover={true}
-                  pointerOnHover={true}
-                />
-              </div>
-            ) : (
-              <div className="p-2 sm:p-6">
-                <CardView
-                  key={`cardview-persetujuanho-${filteredData.length}`}
-                  data={filteredData}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                  onDetail={handleDetail}
-                  openMenuId={openMenuId}
-                  setOpenMenuId={setOpenMenuId}
-                />
-              </div>
-            )}
-          </div>
-        </div>
-        
-        {/* Modals */}
-        {(showAddModal || showEditModal) && (
-          <AddEditPersetujuanHoModal
-            item={editData}
-            onClose={() => {
-              setShowAddModal(false);
-              setShowEditModal(false);
-              setEditData(null);
-            }}
-            onSave={handleSave}
-            loading={loading}
-          />
-        )}
-
-        {showDetailModal && (
-          <PersetujuanHoDetailModal
-            item={detailData}
-            onClose={() => {
-              setShowDetailModal(false);
-              setDetailData(null);
-            }}
-            onEdit={handleEdit}
-          />
-        )}
-
-        {deleteData && (
-          <DeleteConfirmationModal
-            isOpen={!!deleteData}
-            item={deleteData}
-            onConfirm={handleConfirmDelete}
-            onCancel={() => setDeleteData(null)}
-            isDeleting={isDeleting}
-            itemName={deleteData?.name}
-            message={`Apakah Anda yakin ingin menghapus persetujuan HO "${deleteData?.name}"?`}
-          />
-        )}
-
-        {/* Notification */}
-        <Notification
-          type={notification.type}
-          message={notification.message}
-          isVisible={notification.isVisible}
-          onClose={() => setNotification({ ...notification, isVisible: false })}
-        />
-
       </div>
+
+      {showModal && (
+        <AddEditPersetujuanHoModal
+          item={editData}
+          onClose={() => { setShowModal(false); setEditData(null); }}
+          onSave={handleSave}
+          loading={loading}
+        />
+      )}
+
+      {detailRow && (
+        <DetailDrawer
+          row={detailRow}
+          onClose={() => setDetailRow(null)}
+          onEdit={(r) => { setDetailRow(null); handleEditItem(r); }}
+          onDelete={(r) => { setDetailRow(null); handleDeleteItem(r); }}
+        />
+      )}
+
+      <DeleteConfirmationModal
+        isOpen={!!deleteData}
+        item={deleteData}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeleteData(null)}
+        isDeleting={isDeleting}
+        itemName={deleteData?.name}
+        message={`Apakah Anda yakin ingin menghapus persetujuan HO "${deleteData?.name}"?`}
+      />
+
+      <Notification
+        isVisible={notification.isVisible}
+        type={notification.type}
+        message={notification.message}
+        onClose={() => setNotification((n) => ({ ...n, isVisible: false }))}
+      />
     </div>
   );
 };
+
+const SkeletonRows = () => (
+  <div className="py-2">
+    {[...Array(8)].map((_, i) => (
+      <div key={i} className="flex items-center gap-3 px-3 py-2.5 border-b border-slate-50">
+        <div className="h-3 w-8 rounded bg-slate-100 animate-pulse" />
+        <div className="flex-1 h-3 rounded bg-slate-100 animate-pulse" />
+        <div className="h-3 w-24 rounded bg-slate-100 animate-pulse" />
+        <div className="h-3 w-20 rounded bg-slate-100 animate-pulse" />
+        <div className="h-3 w-8 rounded bg-slate-100 animate-pulse" />
+      </div>
+    ))}
+  </div>
+);
+
+const ActionMenu = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onDelete }) => {
+  const buttonRef = useRef(null);
+  const menuRef = useRef(null);
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
+
+  const toggle = (e) => {
+    e.stopPropagation();
+    if (!isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setMenuPos({ top: rect.bottom + 4, left: rect.right - 160 });
+    }
+    onToggle();
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleClick = (e) => {
+      const inBtn = buttonRef.current && buttonRef.current.contains(e.target);
+      const inMenu = menuRef.current && menuRef.current.contains(e.target);
+      if (!inBtn && !inMenu) onClose();
+    };
+    document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
+  }, [isOpen, onClose]);
+
+  return (
+    <div className="relative flex justify-center">
+      <button
+        ref={buttonRef}
+        onClick={toggle}
+        className={`p-1.5 rounded-md transition-colors ${isOpen ? 'bg-slate-100 text-slate-800' : 'text-slate-500 hover:bg-slate-100'}`}
+        title="Aksi"
+      >
+        <MoreVertical className="h-4 w-4" />
+      </button>
+      {isOpen && createPortal(
+        <div
+          ref={menuRef}
+          className="fixed bg-white rounded-lg shadow-xl border border-slate-200 py-1 w-40 z-[99999]"
+          style={{ top: menuPos.top, left: menuPos.left }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            onClick={() => onDetail(row)}
+            className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors"
+          >
+            <Eye className="h-3.5 w-3.5 text-slate-500" /> Lihat Detail
+          </button>
+          <button
+            onClick={() => onEdit(row)}
+            className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors"
+          >
+            <Pencil className="h-3.5 w-3.5 text-amber-500" /> Edit
+          </button>
+          <button
+            onClick={() => onDelete(row)}
+            className="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
+          >
+            <Trash2 className="h-3.5 w-3.5 text-red-500" /> Hapus
+          </button>
+        </div>,
+        document.body
+      )}
+    </div>
+  );
+};
+
+const DetailDrawer = ({ row, onClose, onEdit, onDelete }) => {
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex justify-end">
+      <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-md bg-white shadow-2xl flex flex-col animate-in slide-in-from-right">
+        <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-slate-100">
+          <div>
+            <h3 className="text-sm font-bold text-slate-900">Detail Persetujuan HO</h3>
+            <p className="text-xs text-slate-500">Informasi lengkap persetujuan HO</p>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="flex-1 overflow-auto p-4 space-y-3">
+          <div className="rounded-lg border border-slate-200 p-3 flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
+              <Building2 className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-slate-800">{row.name}</h2>
+            </div>
+          </div>
+          <DetailField label="Deskripsi" value={row.description} />
+          <DetailField label="Dibuat" value={row.created_at} />
+          <DetailField label="Diperbarui" value={row.updated_at} />
+        </div>
+        <div className="shrink-0 flex gap-2 px-4 py-3 border-t border-slate-100 bg-slate-50/50">
+          <button
+            onClick={() => onDelete(row)}
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors"
+          >
+            <Trash2 className="h-3.5 w-3.5" /> Hapus
+          </button>
+          <button
+            onClick={() => onEdit(row)}
+            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-amber-600 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-700 transition-colors"
+          >
+            <Pencil className="h-3.5 w-3.5" /> Edit
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+};
+
+const DetailField = ({ label, value }) => (
+  <div className="rounded-lg border border-slate-200 px-3 py-2">
+    <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{label}</p>
+    <p className="mt-0.5 text-sm text-slate-700 break-words">
+      {value || <span className="text-slate-300">-</span>}
+    </p>
+  </div>
+);
 
 export default PersetujuanHoPage;

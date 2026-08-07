@@ -655,6 +655,7 @@ const MasterDataTablePage = ({
           Icon={Icon}
           title={`Detail ${entityLabel}`}
           subtitle={`Informasi lengkap ${entityLabel.toLowerCase()}`}
+          rowNameKey={rowNameKey}
         />
       )}
 
@@ -768,7 +769,7 @@ const ActionMenu = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onDelete
   );
 };
 
-const DetailDrawer = ({ row, onClose, onEdit, onDelete, accentBg, accentText, accentBtn, Icon, title, subtitle }) => {
+const DetailDrawer = ({ row, onClose, onEdit, onDelete, accentBg, accentText, accentBtn, Icon, title, subtitle, rowNameKey }) => {
   return createPortal(
     <div className="fixed inset-0 z-[60] flex justify-end">
       <div className="absolute inset-0 bg-zinc-900/30 backdrop-blur-[2px]" onClick={onClose} />
@@ -792,7 +793,7 @@ const DetailDrawer = ({ row, onClose, onEdit, onDelete, accentBg, accentText, ac
               <Icon className="h-5 w-5" strokeWidth={1.75} />
             </div>
             <div className="min-w-0">
-              <h2 className="truncate text-[16px] font-semibold tracking-tight text-zinc-900">{row.name}</h2>
+              <h2 className="truncate text-[16px] font-semibold tracking-tight text-zinc-900">{row[rowNameKey] || row.name || '-'}</h2>
             </div>
           </div>
           {Object.entries(row)
