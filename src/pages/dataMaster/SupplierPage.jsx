@@ -244,7 +244,6 @@ const SupplierPage = () => {
             </div>
             <div className="min-w-0">
               <div className="text-sm font-semibold text-slate-800 truncate">{row.name}</div>
-              <div className="text-xs text-slate-500 truncate">{row.description || '-'}</div>
             </div>
           </div>
         ),
@@ -255,11 +254,10 @@ const SupplierPage = () => {
             <span>Alamat</span>{renderSortIcon('address')}
           </button>
         ),
-        grow: 1.2,
-        minWidth: '180px',
+        width: '220px',
         cell: (row) => (
-          <div className="flex items-center gap-1.5 text-xs text-slate-600">
-            <span className="truncate">{row.address || '-'}</span>
+          <div className="flex items-center gap-1.5 text-xs text-slate-600" title={row.address || ''}>
+            <span className="truncate max-w-[200px]">{row.address || '-'}</span>
           </div>
         ),
       },
