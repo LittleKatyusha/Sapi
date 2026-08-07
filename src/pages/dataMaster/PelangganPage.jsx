@@ -1,482 +1,633 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import DataTable from 'react-data-table-component';
 import {
-    PlusCircle, Search, Users, MapPin, Phone,
-    ChevronUp, ChevronDown, ChevronsUpDown, RotateCcw,
-    Trash2, AlertTriangle, CheckCircle,
+  Plus, Filter, RotateCcw, Search, ArrowUpDown, ArrowUp, ArrowDown,
+  MoreVertical, Eye, Pencil, Trash2, Users, MapPin, Phone, X, AlertCircle,
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
 } from 'lucide-react';
 
-import ActionButton from './pelanggan/components/ActionButton';
+import usePelanggan from './pelanggan/hooks/usePelanggan';
 import AddEditPelangganModal from './pelanggan/modals/AddEditPelangganModal';
 import PelangganDetailModal from './pelanggan/modals/PelangganDetailModal';
-import DeleteConfirmationModal from '../../components/shared/modals/DeleteConfirmationModal';
-import usePelanggan from './pelanggan/hooks/usePelanggan';
+import DeleteConfirmationModal from './pelanggan/components/DeleteConfirmationModal';
+import Notification from './pelanggan/components/Notification';
 
-const SortIcon = ({ field, sortField, sortDir }) => {
-    if (sortField !== field) return <ChevronsUpDown size={13} className="text-gray-300" />;
-    return sortDir === 'asc'
-        ? <ChevronUp size={13} className="text-red-600" />
-        : <ChevronDown size={13} className="text-red-600" />;
-};
-
-const SkeletonRow = () => (
-    <tr className="border-b border-gray-100">
-        <td className="px-4 py-3"><div className="h-4 w-4 rounded bg-gray-200 animate-pulse" /></td>
-        <td className="px-4 py-3"><div className="h-4 w-24 rounded bg-gray-200 animate-pulse" /></td>
-        <td className="px-4 py-3"><div className="h-4 w-48 rounded bg-gray-200 animate-pulse" /></td>
-        <td className="px-4 py-3"><div className="h-4 w-40 rounded bg-gray-200 animate-pulse" /></td>
-        <td className="px-4 py-3"><div className="h-4 w-24 rounded bg-gray-200 animate-pulse" /></td>
-        <td className="px-4 py-3"><div className="h-4 w-20 rounded bg-gray-200 animate-pulse" /></td>
-        <td className="px-4 py-3"><div className="h-4 w-8 rounded bg-gray-200 animate-pulse ml-auto" /></td>
-    </tr>
-);
-
-const EmptyState = () => (
-    <tr>
-        <td colSpan={7} className="py-16 text-center">
-            <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-            <p className="text-gray-500 font-medium">Tidak ada data pelanggan ditemukan</p>
-            <p className="text-gray-400 text-sm mt-1">Coba ubah kata kunci pencarian atau reset filter</p>
-        </td>
-    </tr>
-);
+const STORAGE_KEY = 'pelanggan_page_state_v1';
 
 const StatusBadge = ({ status }) => {
-    const isActive = status === 1;
-    return (
-        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${
-            isActive
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
-                : 'bg-red-50 text-red-700 border-red-100'
-        }`}>
-            {isActive ? <CheckCircle size={12} className="mr-1" /> : <AlertTriangle size={12} className="mr-1" />}
-            {isActive ? 'Aktif' : 'Tidak Aktif'}
-        </span>
-    );
+  const isActive = status === 1 || status === '1';
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${isActive ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' : 'bg-red-50 text-red-700 ring-1 ring-red-200'}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-red-500'}`} />
+      {isActive ? 'Aktif' : 'Tidak Aktif'}
+    </span>
+  );
 };
 
 const PelangganPage = () => {
-    const [showAddModal, setShowAddModal] = useState(false);
-    const [showEditModal, setShowEditModal] = useState(false);
-    const [showDetailModal, setShowDetailModal] = useState(false);
-    const [editData, setEditData] = useState(null);
-    const [detailData, setDetailData] = useState(null);
-    const [deleteData, setDeleteData] = useState(null);
-    const [bulkDeleteData, setBulkDeleteData] = useState(null);
-    const [isDeleting, setIsDeleting] = useState(false);
-    const [openMenuId, setOpenMenuId] = useState(null);
+  const {
+    pelanggan, loading, error,
+    searchInput, setSearchInput,
+    page, setPage,
+    perPage, setPerPage,
+    meta,
+    sortField, sortDir, handleSort,
+    resetFilters,
+    createPelanggan, updatePelanggan, deletePelanggan,
+  } = usePelanggan();
 
-    const {
-        pelanggan,
-        loading,
-        error,
-        searchInput, setSearchInput,
-        page, setPage,
-        perPage, setPerPage,
-        meta,
-        sortField, sortDir, handleSort,
-        resetFilters,
-        selectedIds, toggleSelectId, toggleSelectAll, clearSelection,
-        stats,
-        createPelanggan, updatePelanggan, deletePelanggan, bulkDelete,
-    } = usePelanggan();
+  const [showModal, setShowModal] = useState(false);
+  const [editData, setEditData] = useState(null);
+  const [deleteData, setDeleteData] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [notification, setNotification] = useState({ show: false, type: 'success', message: '' });
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const [detailRow, setDetailRow] = useState(null);
 
-    const handleAdd = useCallback(() => {
-        setEditData(null);
-        setShowAddModal(true);
-    }, []);
+  const [filterInput, setFilterInput] = useState({ name: '', address: '', phone: '' });
+  const [appliedFilters, setAppliedFilters] = useState({ name: '', address: '', phone: '' });
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
 
-    const handleEdit = useCallback((item) => {
-        setEditData(item);
-        setShowEditModal(true);
-    }, []);
+  const showNotif = useCallback((type, message) => {
+    setNotification({ show: true, type, message });
+  }, []);
 
-    const handleDelete = useCallback((item) => {
-        setDeleteData(item);
-    }, []);
+  const hasAppliedFilters = useMemo(
+    () => Object.values(appliedFilters).some((v) => v !== '' && v !== null && v !== undefined),
+    [appliedFilters]
+  );
 
-    const handleDetail = useCallback((item) => {
-        setDetailData(item);
-        setShowDetailModal(true);
-    }, []);
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(STORAGE_KEY) || '{}');
+      if (saved.filterInput) setFilterInput(saved.filterInput);
+      if (saved.appliedFilters) setAppliedFilters(saved.appliedFilters);
+      if (saved.perPage) setPerPage(saved.perPage);
+      if (saved.page) setPage(saved.page);
+    } catch {}
+  }, [setPage, setPerPage]);
 
-    const handleConfirmDelete = useCallback(async () => {
-        if (!deleteData) return;
-        setIsDeleting(true);
-        try {
-            await deletePelanggan(deleteData.pubid);
-        } finally {
-            setIsDeleting(false);
-            setDeleteData(null);
-        }
-    }, [deleteData, deletePelanggan]);
+  useEffect(() => {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
+      filterInput, appliedFilters, perPage, sortField, sortDir, page,
+    }));
+  }, [filterInput, appliedFilters, perPage, sortField, sortDir, page]);
 
-    const handleConfirmBulkDelete = useCallback(async () => {
-        if (!bulkDeleteData) return;
-        setIsDeleting(true);
-        try {
-            await bulkDelete(bulkDeleteData);
-            clearSelection();
-        } finally {
-            setIsDeleting(false);
-            setBulkDeleteData(null);
-        }
-    }, [bulkDeleteData, bulkDelete, clearSelection]);
+  const totalPages = Math.max(1, Math.ceil((meta.total || 0) / perPage));
+  const startIdx = meta.total === 0 ? 0 : (page - 1) * perPage + 1;
+  const endIdx = Math.min(page * perPage, meta.total || 0);
 
-    const handleSave = useCallback(async (formData) => {
-        if (editData) {
-            await updatePelanggan(editData.pubid, formData);
+  const handleFilterChange = useCallback((field, value) => {
+    setFilterInput((prev) => ({ ...prev, [field]: value }));
+  }, []);
+
+  const handleApplyFilter = useCallback(() => {
+    setAppliedFilters(filterInput);
+    setSearchInput(filterInput.name || filterInput.address || filterInput.phone || '');
+    setPage(1);
+  }, [filterInput, setSearchInput, setPage]);
+
+  const handleResetFilter = useCallback(() => {
+    const empty = { name: '', address: '', phone: '' };
+    setFilterInput(empty);
+    setAppliedFilters(empty);
+    setSearchInput('');
+    resetFilters();
+  }, [resetFilters, setSearchInput]);
+
+  const handlePerPageChange = useCallback((n) => {
+    setPerPage(n);
+    setPage(1);
+  }, [setPerPage, setPage]);
+
+  const handlePageChange = useCallback((p) => {
+    if (p < 1 || p > totalPages) return;
+    setPage(p);
+  }, [setPage, totalPages]);
+
+  const handleSave = useCallback(async (formData) => {
+    try {
+      if (editData) {
+        const result = await updatePelanggan(editData.pubid, formData);
+        if (result.success) {
+          showNotif('success', 'Pelanggan berhasil diperbarui');
+          setShowModal(false);
+          setEditData(null);
         } else {
-            await createPelanggan(formData);
+          showNotif('error', result.message || 'Gagal memperbarui data');
         }
-        setShowAddModal(false);
-        setShowEditModal(false);
-        setEditData(null);
-    }, [editData, updatePelanggan, createPelanggan]);
+      } else {
+        const result = await createPelanggan(formData);
+        if (result.success) {
+          showNotif('success', 'Pelanggan berhasil ditambahkan');
+          setShowModal(false);
+          setEditData(null);
+        } else {
+          showNotif('error', result.message || 'Gagal menambahkan data');
+        }
+      }
+    } catch (err) {
+      showNotif('error', err.message || 'Gagal menyimpan data');
+    }
+  }, [editData, updatePelanggan, createPelanggan, showNotif]);
 
-    const allSelected = pelanggan.length > 0 && selectedIds.length === pelanggan.length;
-    const someSelected = selectedIds.length > 0 && selectedIds.length < pelanggan.length;
-    const hasActiveFilter = searchInput || sortField !== 'id' || sortDir !== 'asc';
+  const handleConfirmDelete = useCallback(async () => {
+    if (!deleteData) return;
+    setIsDeleting(true);
+    try {
+      const result = await deletePelanggan(deleteData.pubid);
+      if (result.success) {
+        setDeleteData(null);
+        showNotif('success', 'Pelanggan berhasil dihapus');
+      } else {
+        showNotif('error', result.message || 'Gagal menghapus data');
+      }
+    } catch (err) {
+      showNotif('error', err.message || 'Gagal menghapus data');
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [deleteData, deletePelanggan, showNotif]);
 
-    const pageNumbers = useMemo(() => {
-        const pages = [];
-        const maxButtons = 5;
-        let start = Math.max(1, page - Math.floor(maxButtons / 2));
-        let end = Math.min(meta.last_page || 1, start + maxButtons - 1);
-        if (end - start + 1 < maxButtons) start = Math.max(1, end - maxButtons + 1);
-        for (let i = start; i <= end; i++) pages.push(i);
-        return pages;
-    }, [page, meta.last_page]);
+  const handleEditItem = useCallback((item) => {
+    setEditData(item);
+    setShowModal(true);
+  }, []);
 
-    return (
-        <div className="min-h-dvh bg-slate-50 p-4 md:p-6">
-            <div className="max-w-[1600px] mx-auto space-y-4">
-                {/* Header */}
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                        <h1 className="text-xl md:text-2xl font-bold text-gray-900">Data Pelanggan</h1>
-                        <p className="text-sm text-gray-500 mt-0.5">Kelola data pelanggan perusahaan dengan mudah</p>
-                    </div>
-                    <button
-                        onClick={handleAdd}
-                        className="inline-flex items-center gap-2 bg-red-600 text-white px-4 py-2.5 rounded-xl hover:bg-red-700 transition-colors text-sm font-medium shadow-sm"
-                    >
-                        <PlusCircle size={18} />
-                        Tambah Pelanggan
-                    </button>
-                </div>
+  const handleDeleteItem = useCallback((item) => {
+    setDeleteData(item);
+  }, []);
 
-                {/* Stat cards */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <div className="bg-white rounded-xl border border-gray-200 p-4">
-                        <div className="flex items-center gap-3">
-                            <div className="h-9 w-9 rounded-lg bg-red-50 flex items-center justify-center">
-                                <Users size={16} className="text-red-600" />
-                            </div>
-                            <div>
-                                <div className="text-xs text-gray-500">Total Pelanggan</div>
-                                <div className="text-lg font-bold text-gray-900">{stats.total}</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="bg-white rounded-xl border border-gray-200 p-4">
-                        <div className="flex items-center gap-3">
-                            <div className="h-9 w-9 rounded-lg bg-emerald-50 flex items-center justify-center">
-                                <CheckCircle size={16} className="text-emerald-600" />
-                            </div>
-                            <div>
-                                <div className="text-xs text-gray-500">Aktif</div>
-                                <div className="text-lg font-bold text-gray-900">{stats.active}</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="bg-white rounded-xl border border-gray-200 p-4">
-                        <div className="flex items-center gap-3">
-                            <div className="h-9 w-9 rounded-lg bg-sky-50 flex items-center justify-center">
-                                <MapPin size={16} className="text-sky-600" />
-                            </div>
-                            <div>
-                                <div className="text-xs text-gray-500">Halaman</div>
-                                <div className="text-lg font-bold text-gray-900">{meta.current_page} / {meta.last_page || 1}</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="bg-white rounded-xl border border-gray-200 p-4">
-                        <div className="flex items-center gap-3">
-                            <div className="h-9 w-9 rounded-lg bg-amber-50 flex items-center justify-center">
-                                <Phone size={16} className="text-amber-600" />
-                            </div>
-                            <div>
-                                <div className="text-xs text-gray-500">Terpilih</div>
-                                <div className="text-lg font-bold text-gray-900">{selectedIds.length}</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+  const columns = useMemo(() => {
+    const renderSortIcon = (field) => {
+      if (sortField !== field) return <ArrowUpDown className="h-3 w-3 text-slate-300" />;
+      return sortDir === 'asc'
+        ? <ArrowUp className="h-3 w-3 text-amber-600" />
+        : <ArrowDown className="h-3 w-3 text-amber-600" />;
+    };
 
-                {/* Filter bar */}
-                <div className="bg-white rounded-xl border border-gray-200 p-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                    <div className="relative flex-1 max-w-md">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <input
-                            type="text"
-                            placeholder="Cari nama, alamat, atau kontak pelanggan..."
-                            value={searchInput}
-                            onChange={(e) => setSearchInput(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm"
-                        />
-                    </div>
-                    {hasActiveFilter && (
-                        <button
-                            onClick={resetFilters}
-                            className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50"
-                        >
-                            <RotateCcw size={14} />
-                            Reset
-                        </button>
-                    )}
-                </div>
+    return [
+      {
+        name: <span className="text-xs font-semibold text-slate-600">No</span>,
+        width: '52px',
+        center: true,
+        cell: (row, index) => (
+          <div className="w-full text-center text-xs font-medium text-slate-400">{(meta.from || 0) + index}</div>
+        ),
+      },
+      {
+        name: (
+          <button type="button" onClick={() => handleSort('name')} className="flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900">
+            <span>Nama Pelanggan</span>{renderSortIcon('name')}
+          </button>
+        ),
+        grow: 1.6,
+        minWidth: '220px',
+        cell: (row) => (
+          <div className="py-1.5 min-w-0 flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-amber-50 text-amber-600 shrink-0">
+              <Users className="h-3.5 w-3.5" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-sm font-semibold text-slate-800 truncate">{row.name}</div>
+              <div className="text-xs text-slate-500 truncate">{row.description || '-'}</div>
+            </div>
+          </div>
+        ),
+      },
+      {
+        name: (
+          <button type="button" onClick={() => handleSort('address')} className="flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900">
+            <span>Alamat</span>{renderSortIcon('address')}
+          </button>
+        ),
+        grow: 1.2,
+        minWidth: '180px',
+        cell: (row) => (
+          <div className="flex items-center gap-1.5 text-xs text-slate-600">
+            <MapPin className="h-3 w-3 text-slate-400 shrink-0" />
+            <span className="truncate">{row.address || '-'}</span>
+          </div>
+        ),
+      },
+      {
+        name: (
+          <button type="button" onClick={() => handleSort('phone')} className="flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900">
+            <span>Telepon</span>{renderSortIcon('phone')}
+          </button>
+        ),
+        width: '150px',
+        cell: (row) => (
+          <div className="flex items-center gap-1.5 text-xs text-slate-600">
+            <Phone className="h-3 w-3 text-slate-400 shrink-0" />
+            <span className="truncate">{row.phone || '-'}</span>
+          </div>
+        ),
+      },
+      {
+        name: (
+          <button type="button" onClick={() => handleSort('status')} className="flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900">
+            <span>Status</span>{renderSortIcon('status')}
+          </button>
+        ),
+        width: '110px',
+        cell: (row) => <StatusBadge status={row.status} />,
+      },
+      {
+        name: <span className="text-xs font-semibold text-slate-600">Aksi</span>,
+        width: '64px',
+        center: true,
+        ignoreRowClick: true,
+        cell: (row) => (
+          <ActionMenu
+            row={row}
+            isOpen={openMenuId === row.pubid}
+            onToggle={() => setOpenMenuId((cur) => (cur === row.pubid ? null : row.pubid))}
+            onClose={() => setOpenMenuId(null)}
+            onDetail={(r) => { setDetailRow(r); setOpenMenuId(null); }}
+            onEdit={(r) => { handleEditItem(r); setOpenMenuId(null); }}
+            onDelete={(r) => { handleDeleteItem(r); setOpenMenuId(null); }}
+          />
+        ),
+      },
+    ];
+  }, [meta.from, sortField, sortDir, handleSort, openMenuId, handleEditItem, handleDeleteItem]);
 
-                {/* Bulk action bar */}
-                {selectedIds.length > 0 && (
-                    <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-2.5 flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-sm text-red-700">
-                            <AlertTriangle size={16} />
-                            <span className="font-medium">{selectedIds.length} pelanggan terpilih</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <button
-                                onClick={() => setBulkDeleteData(selectedIds)}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700"
-                            >
-                                <Trash2 size={14} />
-                                Hapus Terpilih
-                            </button>
-                            <button
-                                onClick={clearSelection}
-                                className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg"
-                            >
-                                Batal
-                            </button>
-                        </div>
-                    </div>
+  const customTableStyles = {
+    headRow: {
+      style: {
+        backgroundColor: '#F8FAFC',
+        borderBottom: '1px solid #E2E8F0',
+        fontSize: '12px',
+        fontWeight: '600',
+        color: '#475569',
+        minHeight: '38px',
+      },
+    },
+    headCells: { style: { paddingLeft: '12px', paddingRight: '12px' } },
+    rows: {
+      style: {
+        fontSize: '13px',
+        color: '#1E293B',
+        minHeight: '44px',
+        '&:hover': { backgroundColor: '#F8FAFC', cursor: 'pointer' },
+      },
+    },
+    cells: { style: { paddingLeft: '12px', paddingRight: '12px' } },
+  };
+
+  useEffect(() => {
+    document.title = 'Master Pelanggan - TernaSys';
+  }, []);
+
+  return (
+    <div className="flex min-h-dvh flex-col bg-slate-50 overflow-hidden">
+      <header className="shrink-0 border-b border-slate-200 bg-white">
+        <div className="flex items-center justify-between gap-4 px-4 sm:px-6 py-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50 text-amber-600 shrink-0">
+              <Users className="h-4 w-4" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-base font-bold tracking-tight text-slate-900 truncate">Master Pelanggan</h1>
+              <p className="text-xs text-slate-500 truncate hidden sm:block">Kelola data pelanggan</p>
+            </div>
+          </div>
+          <button
+            onClick={() => { setEditData(null); setShowModal(true); }}
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-amber-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-700 transition-colors shrink-0"
+          >
+            <Plus className="h-4 w-4" /> Tambah
+          </button>
+        </div>
+      </header>
+
+      <div className="flex-1 min-h-0 overflow-auto p-4 sm:px-6">
+        <div className="rounded-xl border border-slate-200 bg-white flex flex-col">
+          <div className="shrink-0 flex flex-col gap-3 border-b border-slate-100 px-4 py-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setShowFilterPanel((v) => !v)}
+                className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${
+                  showFilterPanel || hasAppliedFilters
+                    ? 'border-amber-200 bg-amber-50 text-amber-700'
+                    : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                <Filter className="h-3.5 w-3.5" />
+                Filter
+                {hasAppliedFilters && (
+                  <span className="inline-flex items-center justify-center rounded-full bg-amber-600 px-1.5 text-[10px] font-bold text-white">
+                    {Object.values(appliedFilters).filter((v) => v !== '' && v !== null && v !== undefined).length}
+                  </span>
                 )}
-
-                {/* Table */}
-                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                            <thead className="bg-gray-50/80 border-b border-gray-200 sticky top-0 z-10">
-                                <tr>
-                                    <th className="px-4 py-3 w-10">
-                                        <input
-                                            type="checkbox"
-                                            checked={allSelected}
-                                            ref={(el) => { if (el) el.indeterminate = someSelected; }}
-                                            onChange={toggleSelectAll}
-                                            className="w-4 h-4 rounded border-gray-300 text-red-600 focus:ring-red-500 cursor-pointer"
-                                        />
-                                    </th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-16">No</th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer select-none" onClick={() => handleSort('nama')}>
-                                        <div className="inline-flex items-center gap-1.5">Nama <SortIcon field="nama" sortField={sortField} sortDir={sortDir} /></div>
-                                    </th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer select-none" onClick={() => handleSort('alamat')}>
-                                        <div className="inline-flex items-center gap-1.5">Alamat <SortIcon field="alamat" sortField={sortField} sortDir={sortDir} /></div>
-                                    </th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer select-none" onClick={() => handleSort('kontak')}>
-                                        <div className="inline-flex items-center gap-1.5">Kontak <SortIcon field="kontak" sortField={sortField} sortDir={sortDir} /></div>
-                                    </th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100">
-                                {loading ? (
-                                    Array.from({ length: 8 }).map((_, i) => <SkeletonRow key={`sk-${i}`} />)
-                                ) : pelanggan.length === 0 ? (
-                                    <EmptyState />
-                                ) : (
-                                    pelanggan.map((row, index) => {
-                                        const isSelected = selectedIds.includes(row.pubid);
-                                        return (
-                                            <tr
-                                                key={row.pubid}
-                                                className={`group transition-colors ${isSelected ? 'bg-red-50/50' : 'hover:bg-gray-50'}`}
-                                            >
-                                                <td className="px-4 py-3">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={isSelected}
-                                                        onChange={() => toggleSelectId(row.pubid)}
-                                                        className="w-4 h-4 rounded border-gray-300 text-red-600 focus:ring-red-500 cursor-pointer"
-                                                    />
-                                                </td>
-                                                <td className="px-4 py-3 text-gray-500 font-medium">
-                                                    {meta.from + index}
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    <div className="flex items-center gap-2">
-                                                        <Users size={15} className="text-gray-400 flex-shrink-0" />
-                                                        <div className="min-w-0">
-                                                            <div className="font-medium text-gray-800 truncate max-w-[220px]" title={row.name}>
-                                                                {row.name}
-                                                            </div>
-                                                            <div className="text-xs text-gray-500">Pelanggan</div>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    <div className="flex items-center gap-1.5 text-gray-600">
-                                                        <MapPin size={13} className="flex-shrink-0 text-gray-400" />
-                                                        <span className="max-w-[260px] truncate" title={row.address}>
-                                                            {row.address || '-'}
-                                                        </span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    <div className="flex items-center gap-1.5 text-gray-600">
-                                                        <Phone size={13} className="flex-shrink-0 text-gray-400" />
-                                                        <span>{row.phone || '-'}</span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    <StatusBadge status={row.status} />
-                                                </td>
-                                                <td className="px-4 py-3 text-right">
-                                                    <div className="flex items-center justify-end">
-                                                        <ActionButton
-                                                            row={row}
-                                                            openMenuId={openMenuId}
-                                                            setOpenMenuId={setOpenMenuId}
-                                                            onEdit={handleEdit}
-                                                            onDelete={handleDelete}
-                                                            onDetail={handleDetail}
-                                                            isActive={openMenuId === row.pubid}
-                                                            usePortal={true}
-                                                        />
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {/* Pagination footer */}
-                    <div className="border-t border-gray-200 px-4 py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="text-xs text-gray-500">
-                            Menampilkan <span className="font-medium text-gray-700">{meta.from || 0}</span>–<span className="font-medium text-gray-700">{meta.to || 0}</span> dari <span className="font-medium text-gray-700">{meta.total || 0}</span> data
-                        </div>
-                        <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-2 text-xs text-gray-500">
-                                <span>Baris:</span>
-                                <select
-                                    value={perPage}
-                                    onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1); }}
-                                    className="px-2 py-1 border border-gray-300 rounded-md text-xs focus:ring-1 focus:ring-red-500"
-                                >
-                                    {[10, 25, 50, 100].map((n) => (
-                                        <option key={n} value={n}>{n}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="flex items-center gap-1">
-                                <button
-                                    onClick={() => setPage(1)}
-                                    disabled={page <= 1}
-                                    className="px-2 py-1 text-xs border border-gray-300 rounded-md disabled:opacity-40 hover:bg-gray-50"
-                                >
-                                    «
-                                </button>
-                                <button
-                                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                                    disabled={page <= 1}
-                                    className="px-2 py-1 text-xs border border-gray-300 rounded-md disabled:opacity-40 hover:bg-gray-50"
-                                >
-                                    ‹
-                                </button>
-                                {pageNumbers.map((p) => (
-                                    <button
-                                        key={p}
-                                        onClick={() => setPage(p)}
-                                        className={`px-2.5 py-1 text-xs border rounded-md ${
-                                            p === page
-                                                ? 'bg-red-600 text-white border-red-600'
-                                                : 'border-gray-300 text-gray-600 hover:bg-gray-50'
-                                        }`}
-                                    >
-                                        {p}
-                                    </button>
-                                ))}
-                                <button
-                                    onClick={() => setPage((p) => Math.min(meta.last_page || 1, p + 1))}
-                                    disabled={page >= (meta.last_page || 1)}
-                                    className="px-2 py-1 text-xs border border-gray-300 rounded-md disabled:opacity-40 hover:bg-gray-50"
-                                >
-                                    ›
-                                </button>
-                                <button
-                                    onClick={() => setPage(meta.last_page || 1)}
-                                    disabled={page >= (meta.last_page || 1)}
-                                    className="px-2 py-1 text-xs border border-gray-300 rounded-md disabled:opacity-40 hover:bg-gray-50"
-                                >
-                                    »
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {error && (
-                    <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">
-                        {error}
-                    </div>
-                )}
+              </button>
+              {hasAppliedFilters && (
+                <button
+                  type="button"
+                  onClick={handleResetFilter}
+                  className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+                >
+                  <RotateCcw className="h-3 w-3" /> Reset
+                </button>
+              )}
+              <div className="ml-auto text-xs text-slate-500 hidden sm:block">
+                <span className="font-semibold text-slate-700">{(meta.total || 0).toLocaleString('id-ID')}</span> data
+              </div>
             </div>
 
-            {/* Modals */}
-            <AddEditPelangganModal
-                isOpen={showAddModal || showEditModal}
-                onClose={() => {
-                    setShowAddModal(false);
-                    setShowEditModal(false);
-                    setEditData(null);
-                }}
-                onSave={handleSave}
-                editData={editData}
-                loading={loading}
-            />
+            {showFilterPanel && (
+              <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                  <input
+                    type="text"
+                    value={filterInput.name}
+                    onChange={(e) => handleFilterChange('name', e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleApplyFilter(); }}
+                    placeholder="Nama pelanggan"
+                    className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-100"
+                  />
+                  <input
+                    type="text"
+                    value={filterInput.address}
+                    onChange={(e) => handleFilterChange('address', e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleApplyFilter(); }}
+                    placeholder="Alamat"
+                    className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-100"
+                  />
+                  <input
+                    type="text"
+                    value={filterInput.phone}
+                    onChange={(e) => handleFilterChange('phone', e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleApplyFilter(); }}
+                    placeholder="Telepon"
+                    className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-100"
+                  />
+                </div>
+                <div className="flex justify-end gap-1.5 mt-2.5">
+                  <button
+                    type="button"
+                    onClick={handleResetFilter}
+                    className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+                  >
+                    <RotateCcw className="h-3 w-3" /> Reset
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleApplyFilter}
+                    className="inline-flex items-center gap-1 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700 transition-colors"
+                  >
+                    <Search className="h-3 w-3" /> Terapkan
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
 
-            <PelangganDetailModal
-                isOpen={showDetailModal}
-                onClose={() => {
-                    setShowDetailModal(false);
-                    setDetailData(null);
-                }}
-                data={detailData}
-            />
+          {error && (
+            <div className="mx-4 mt-3 bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-xs">
+              {error}
+            </div>
+          )}
 
-            <DeleteConfirmationModal
-                isOpen={!!deleteData}
-                onClose={() => { setDeleteData(null); setIsDeleting(false); }}
-                onConfirm={handleConfirmDelete}
-                title={`Hapus Pelanggan "${deleteData?.name || ''}"?`}
-                description="Tindakan ini akan menghapus data pelanggan secara permanen dan tidak dapat dibatalkan."
-                loading={isDeleting}
+          <div className="flex-1 min-h-0 overflow-auto">
+            <DataTable
+              columns={columns}
+              data={pelanggan}
+              customStyles={customTableStyles}
+              progressPending={loading}
+              progressComponent={<SkeletonRows />}
+              noDataComponent={
+                <div className="py-12 text-center">
+                  <AlertCircle className="mx-auto h-8 w-8 text-slate-300" />
+                  <p className="mt-2 text-sm font-semibold text-slate-600">Tidak ada data ditemukan</p>
+                  <p className="mt-1 text-xs text-slate-400">
+                    {hasAppliedFilters ? 'Coba ubah filter atau reset' : 'Belum ada pelanggan terdaftar'}
+                  </p>
+                </div>
+              }
+              highlightOnHover
+              pointerOnHover
+              responsive
+              dense
+              onRowClicked={(row) => setDetailRow(row)}
+              pagination={false}
+              fixedHeader={false}
             />
+          </div>
 
-            <DeleteConfirmationModal
-                isOpen={!!bulkDeleteData}
-                onClose={() => { setBulkDeleteData(null); setIsDeleting(false); }}
-                onConfirm={handleConfirmBulkDelete}
-                title={`Hapus ${bulkDeleteData?.length || 0} pelanggan terpilih?`}
-                description="Tindakan ini akan menghapus semua pelanggan terpilih secara permanen dan tidak dapat dibatalkan."
-                loading={isDeleting}
-            />
+          <div className="shrink-0 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-t border-slate-100 px-4 py-2.5 bg-white">
+            <div className="flex items-center gap-2 text-xs text-slate-600">
+              <span>Baris:</span>
+              <select
+                value={perPage}
+                onChange={(e) => handlePerPageChange(Number(e.target.value))}
+                className="rounded-md border border-slate-200 bg-white px-1.5 py-1 text-xs outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-100"
+              >
+                {[10, 25, 50, 100].map((n) => <option key={n} value={n}>{n}</option>)}
+              </select>
+              <span className="text-slate-500">
+                {(meta.total || 0) === 0 ? '0-0' : `${startIdx}-${endIdx}`} dari{' '}
+                <span className="font-semibold text-slate-700">{(meta.total || 0).toLocaleString('id-ID')}</span>
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <button type="button" onClick={() => handlePageChange(1)} disabled={page <= 1 || loading} className="rounded-md border border-slate-200 p-1.5 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed" title="Halaman pertama">
+                <ChevronsLeft className="h-3.5 w-3.5" />
+              </button>
+              <button type="button" onClick={() => handlePageChange(page - 1)} disabled={page <= 1 || loading} className="rounded-md border border-slate-200 p-1.5 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed" title="Prev">
+                <ChevronLeft className="h-3.5 w-3.5" />
+              </button>
+              <div className="flex items-center gap-1 px-2 text-xs text-slate-600">
+                <span>Hal</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={totalPages}
+                  value={page}
+                  onChange={(e) => { const p = Number(e.target.value); if (p >= 1 && p <= totalPages) handlePageChange(p); }}
+                  className="w-12 rounded-md border border-slate-200 px-1.5 py-1 text-xs text-center outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-100"
+                />
+                <span>/ {totalPages.toLocaleString('id-ID')}</span>
+              </div>
+              <button type="button" onClick={() => handlePageChange(page + 1)} disabled={page >= totalPages || loading} className="rounded-md border border-slate-200 p-1.5 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed" title="Next">
+                <ChevronRight className="h-3.5 w-3.5" />
+              </button>
+              <button type="button" onClick={() => handlePageChange(totalPages)} disabled={page >= totalPages || loading} className="rounded-md border border-slate-200 p-1.5 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed" title="Halaman terakhir">
+                <ChevronsRight className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
         </div>
-    );
+      </div>
+
+      {showModal && (
+        <AddEditPelangganModal
+          isOpen={showModal}
+          onClose={() => { setShowModal(false); setEditData(null); }}
+          onSave={handleSave}
+          editData={editData}
+          loading={loading}
+        />
+      )}
+
+      {detailRow && (
+        <DetailDrawer
+          row={detailRow}
+          onClose={() => setDetailRow(null)}
+          onEdit={(r) => { setDetailRow(null); handleEditItem(r); }}
+          onDelete={(r) => { setDetailRow(null); handleDeleteItem(r); }}
+        />
+      )}
+
+      <PelangganDetailModal
+        isOpen={!!detailRow && false}
+        onClose={() => setDetailRow(null)}
+        data={detailRow}
+      />
+
+      <DeleteConfirmationModal
+        isOpen={!!deleteData}
+        onClose={() => setDeleteData(null)}
+        onConfirm={handleConfirmDelete}
+        title={`Hapus Pelanggan "${deleteData?.name || ''}"?`}
+        message={`Apakah Anda yakin ingin menghapus pelanggan "${deleteData?.name}"? Tindakan ini tidak dapat dibatalkan.`}
+        loading={isDeleting}
+      />
+
+      <Notification
+        show={notification.show}
+        type={notification.type}
+        message={notification.message}
+        onClose={() => setNotification((n) => ({ ...n, show: false }))}
+      />
+    </div>
+  );
 };
+
+const SkeletonRows = () => (
+  <div className="py-2">
+    {[...Array(8)].map((_, i) => (
+      <div key={i} className="flex items-center gap-3 px-3 py-2.5 border-b border-slate-50">
+        <div className="h-3 w-8 rounded bg-slate-100 animate-pulse" />
+        <div className="flex-1 h-3 rounded bg-slate-100 animate-pulse" />
+        <div className="h-3 w-28 rounded bg-slate-100 animate-pulse" />
+        <div className="h-3 w-20 rounded bg-slate-100 animate-pulse" />
+        <div className="h-3 w-14 rounded bg-slate-100 animate-pulse" />
+        <div className="h-3 w-8 rounded bg-slate-100 animate-pulse" />
+      </div>
+    ))}
+  </div>
+);
+
+const ActionMenu = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onDelete }) => {
+  const buttonRef = useRef(null);
+  const menuRef = useRef(null);
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
+
+  const toggle = (e) => {
+    e.stopPropagation();
+    if (!isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setMenuPos({ top: rect.bottom + 4, left: rect.right - 160 });
+    }
+    onToggle();
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleClick = (e) => {
+      const inBtn = buttonRef.current && buttonRef.current.contains(e.target);
+      const inMenu = menuRef.current && menuRef.current.contains(e.target);
+      if (!inBtn && !inMenu) onClose();
+    };
+    document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
+  }, [isOpen, onClose]);
+
+  return (
+    <div className="relative flex justify-center">
+      <button
+        ref={buttonRef}
+        onClick={toggle}
+        className={`p-1.5 rounded-md transition-colors ${isOpen ? 'bg-slate-100 text-slate-800' : 'text-slate-500 hover:bg-slate-100'}`}
+        title="Aksi"
+      >
+        <MoreVertical className="h-4 w-4" />
+      </button>
+      {isOpen && createPortal(
+        <div
+          ref={menuRef}
+          className="fixed bg-white rounded-lg shadow-xl border border-slate-200 py-1 w-40 z-[99999]"
+          style={{ top: menuPos.top, left: menuPos.left }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button onClick={() => onDetail(row)} className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors">
+            <Eye className="h-3.5 w-3.5 text-slate-500" /> Lihat Detail
+          </button>
+          <button onClick={() => onEdit(row)} className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors">
+            <Pencil className="h-3.5 w-3.5 text-amber-500" /> Edit
+          </button>
+          <button onClick={() => onDelete(row)} className="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors">
+            <Trash2 className="h-3.5 w-3.5 text-red-500" /> Hapus
+          </button>
+        </div>,
+        document.body
+      )}
+    </div>
+  );
+};
+
+const DetailDrawer = ({ row, onClose, onEdit, onDelete }) => {
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex justify-end">
+      <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-md bg-white shadow-2xl flex flex-col animate-in slide-in-from-right">
+        <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-slate-100">
+          <div>
+            <h3 className="text-sm font-bold text-slate-900">Detail Pelanggan</h3>
+            <p className="text-xs text-slate-500">Informasi lengkap pelanggan</p>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="flex-1 overflow-auto p-4 space-y-3">
+          <div className="rounded-lg border border-slate-200 p-3 flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
+              <Users className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-slate-800">{row.name}</h2>
+              <StatusBadge status={row.status} />
+            </div>
+          </div>
+          <DetailField label="Alamat" value={row.address} />
+          <DetailField label="Telepon" value={row.phone} />
+          <DetailField label="Deskripsi" value={row.description} />
+          <DetailField label="Terdaftar Sejak" value={row.established} />
+        </div>
+        <div className="shrink-0 flex gap-2 px-4 py-3 border-t border-slate-100 bg-slate-50/50">
+          <button onClick={() => onDelete(row)} className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors">
+            <Trash2 className="h-3.5 w-3.5" /> Hapus
+          </button>
+          <button onClick={() => onEdit(row)} className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-amber-600 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-700 transition-colors">
+            <Pencil className="h-3.5 w-3.5" /> Edit Pelanggan
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+};
+
+const DetailField = ({ label, value }) => (
+  <div className="rounded-lg border border-slate-200 px-3 py-2">
+    <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{label}</p>
+    <p className="mt-0.5 text-sm text-slate-700 break-words">{value || <span className="text-slate-300">-</span>}</p>
+  </div>
+);
 
 export default PelangganPage;
