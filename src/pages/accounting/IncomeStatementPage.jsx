@@ -20,23 +20,18 @@ export default function IncomeStatementPage() {
       try {
         setError('');
         const response = await accountingService.getSettings();
-        const loadedSettings = response?.data ?? [];
-        setSettings(loadedSettings);
-
-        if (loadedSettings.length) {
-          setSettingId(String(loadedSettings[0].id));
-        }
-      } catch (exception) {
-        setError(exception.message || 'Gagal memuat master akunting.');
+        const s = response?.data ?? [];
+        setSettings(s);
+        if (s.length) setSettingId(String(s[0].id));
+      } catch (e) {
+        setError(e.message || 'Gagal memuat master akunting.');
       }
     };
-
     loadSettings();
   }, []);
 
   const loadReport = async () => {
     if (!settingId) return;
-
     try {
       setLoading(true);
       setError('');
@@ -46,9 +41,9 @@ export default function IncomeStatementPage() {
         tanggal_to: tanggalTo || undefined,
       });
       setReport(response?.data ?? null);
-    } catch (exception) {
+    } catch (e) {
       setReport(null);
-      setError(exception.message || 'Gagal memuat laporan laba rugi.');
+      setError(e.message || 'Gagal memuat laporan laba rugi.');
     } finally {
       setLoading(false);
     }
@@ -60,60 +55,28 @@ export default function IncomeStatementPage() {
     <div className="space-y-6 p-4 md:p-6">
       <header>
         <h1 className="text-2xl font-bold text-gray-900">Laporan Laba Rugi</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Ringkasan pendapatan, beban, dan laba (rugi) bersih periode berjalan.
-        </p>
+        <p className="mt-1 text-sm text-gray-500">Ringkasan pendapatan, beban, dan laba (rugi) bersih periode berjalan.</p>
       </header>
 
-      {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-          {error}
-        </div>
-      )}
+      {error && <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>}
 
       <section className="grid grid-cols-1 gap-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm md:grid-cols-4 md:items-end md:p-6">
         <label className="text-sm text-gray-700">
           Entitas Akunting
-          <select
-            value={settingId}
-            onChange={(event) => setSettingId(event.target.value)}
-            className="mt-1 w-full rounded-lg border p-2"
-          >
+          <select value={settingId} onChange={(e) => setSettingId(e.target.value)} className="mt-1 w-full rounded-lg border p-2">
             <option value="">Pilih entitas</option>
-            {settings.map((setting) => (
-              <option key={setting.id} value={setting.id}>
-                {setting.nama_perusahaan} ({setting.entitas})
-              </option>
-            ))}
+            {settings.map((s) => <option key={s.id} value={s.id}>{s.nama_perusahaan} ({s.entitas})</option>)}
           </select>
         </label>
-
         <label className="text-sm text-gray-700">
           Dari Tanggal
-          <input
-            type="date"
-            value={tanggalFrom}
-            onChange={(event) => setTanggalFrom(event.target.value)}
-            className="mt-1 w-full rounded-lg border p-2"
-          />
+          <input type="date" value={tanggalFrom} onChange={(e) => setTanggalFrom(e.target.value)} className="mt-1 w-full rounded-lg border p-2" />
         </label>
-
         <label className="text-sm text-gray-700">
           Sampai Tanggal
-          <input
-            type="date"
-            value={tanggalTo}
-            onChange={(event) => setTanggalTo(event.target.value)}
-            className="mt-1 w-full rounded-lg border p-2"
-          />
+          <input type="date" value={tanggalTo} onChange={(e) => setTanggalTo(e.target.value)} className="mt-1 w-full rounded-lg border p-2" />
         </label>
-
-        <button
-          type="button"
-          onClick={loadReport}
-          disabled={loading || !settingId}
-          className="rounded-lg bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
-        >
+        <button type="button" onClick={loadReport} disabled={loading || !settingId} className="rounded-lg bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
           {loading ? 'Memuat...' : 'Tampilkan'}
         </button>
       </section>
@@ -123,21 +86,15 @@ export default function IncomeStatementPage() {
           <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
               <p className="text-xs font-medium uppercase text-gray-500">Total Pendapatan</p>
-              <p className="mt-1 text-xl font-bold text-green-600">
-                {formatNumber(report.total_revenue)}
-              </p>
+              <p className="mt-1 text-xl font-bold text-green-600">{formatNumber(report.total_revenue)}</p>
             </div>
             <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
               <p className="text-xs font-medium uppercase text-gray-500">Total Beban</p>
-              <p className="mt-1 text-xl font-bold text-red-600">
-                {formatNumber(report.total_expense)}
-              </p>
+              <p className="mt-1 text-xl font-bold text-red-600">{formatNumber(report.total_expense)}</p>
             </div>
             <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
               <p className="text-xs font-medium uppercase text-gray-500">Laba (Rugi) Bersih</p>
-              <p className="mt-1 text-xl font-bold text-indigo-600">
-                {formatNumber(report.net_income)}
-              </p>
+              <p className="mt-1 text-xl font-bold text-indigo-600">{formatNumber(report.net_income)}</p>
             </div>
           </section>
 
@@ -153,13 +110,7 @@ export default function IncomeStatementPage() {
                       <td className="p-3 text-right">{formatNumber(row.amount)}</td>
                     </tr>
                   ))}
-                  {!(report.revenues ?? []).length && (
-                    <tr>
-                      <td colSpan="3" className="p-4 text-center text-gray-500">
-                        Tidak ada pendapatan.
-                      </td>
-                    </tr>
-                  )}
+                  {!(report.revenues ?? []).length && <tr><td colSpan="3" className="p-4 text-center text-gray-500">Tidak ada pendapatan.</td></tr>}
                 </tbody>
               </table>
             </section>
@@ -175,18 +126,18 @@ export default function IncomeStatementPage() {
                       <td className="p-3 text-right">{formatNumber(row.amount)}</td>
                     </tr>
                   ))}
-                  {!(report.expenses ?? []).length && (
-                    <tr>
-                      <td colSpan="3" className="p-4 text-center text-gray-500">
-                        Tidak ada beban.
-                      </td>
-                    </tr>
-                  )}
+                  {!(report.expenses ?? []).length && <tr><td colSpan="3" className="p-4 text-center text-gray-500">Tidak ada beban.</td></tr>}
                 </tbody>
               </table>
             </section>
           </div>
         </>
+      )}
+
+      {!report && !loading && !error && (
+        <div className="rounded-xl border-2 border-dashed border-gray-200 p-12 text-center text-gray-400">
+          Pilih entitas dan rentang tanggal, lalu klik Tampilkan.
+        </div>
       )}
     </div>
   );

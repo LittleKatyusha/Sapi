@@ -20,23 +20,18 @@ export default function TrialBalancePage() {
       try {
         setError('');
         const response = await accountingService.getSettings();
-        const loadedSettings = response?.data ?? [];
-        setSettings(loadedSettings);
-
-        if (loadedSettings.length) {
-          setSettingId(String(loadedSettings[0].id));
-        }
-      } catch (exception) {
-        setError(exception.message || 'Gagal memuat master akunting.');
+        const s = response?.data ?? [];
+        setSettings(s);
+        if (s.length) setSettingId(String(s[0].id));
+      } catch (e) {
+        setError(e.message || 'Gagal memuat master akunting.');
       }
     };
-
     loadSettings();
   }, []);
 
   const loadReport = async () => {
     if (!settingId) return;
-
     try {
       setLoading(true);
       setError('');
@@ -46,9 +41,9 @@ export default function TrialBalancePage() {
         tanggal_to: tanggalTo || undefined,
       });
       setReport(response?.data ?? null);
-    } catch (exception) {
+    } catch (e) {
       setReport(null);
-      setError(exception.message || 'Gagal memuat neraca saldo.');
+      setError(e.message || 'Gagal memuat neraca saldo.');
     } finally {
       setLoading(false);
     }
@@ -60,60 +55,28 @@ export default function TrialBalancePage() {
     <div className="space-y-6 p-4 md:p-6">
       <header>
         <h1 className="text-2xl font-bold text-gray-900">Neraca Saldo</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Keseimbangan saldo debit dan kredit seluruh Chart of Accounts.
-        </p>
+        <p className="mt-1 text-sm text-gray-500">Keseimbangan saldo debit dan kredit seluruh Chart of Accounts.</p>
       </header>
 
-      {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-          {error}
-        </div>
-      )}
+      {error && <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>}
 
       <section className="grid grid-cols-1 gap-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm md:grid-cols-4 md:items-end md:p-6">
         <label className="text-sm text-gray-700">
           Entitas Akunting
-          <select
-            value={settingId}
-            onChange={(event) => setSettingId(event.target.value)}
-            className="mt-1 w-full rounded-lg border p-2"
-          >
+          <select value={settingId} onChange={(e) => setSettingId(e.target.value)} className="mt-1 w-full rounded-lg border p-2">
             <option value="">Pilih entitas</option>
-            {settings.map((setting) => (
-              <option key={setting.id} value={setting.id}>
-                {setting.nama_perusahaan} ({setting.entitas})
-              </option>
-            ))}
+            {settings.map((s) => <option key={s.id} value={s.id}>{s.nama_perusahaan} ({s.entitas})</option>)}
           </select>
         </label>
-
         <label className="text-sm text-gray-700">
           Dari Tanggal
-          <input
-            type="date"
-            value={tanggalFrom}
-            onChange={(event) => setTanggalFrom(event.target.value)}
-            className="mt-1 w-full rounded-lg border p-2"
-          />
+          <input type="date" value={tanggalFrom} onChange={(e) => setTanggalFrom(e.target.value)} className="mt-1 w-full rounded-lg border p-2" />
         </label>
-
         <label className="text-sm text-gray-700">
           Sampai Tanggal
-          <input
-            type="date"
-            value={tanggalTo}
-            onChange={(event) => setTanggalTo(event.target.value)}
-            className="mt-1 w-full rounded-lg border p-2"
-          />
+          <input type="date" value={tanggalTo} onChange={(e) => setTanggalTo(e.target.value)} className="mt-1 w-full rounded-lg border p-2" />
         </label>
-
-        <button
-          type="button"
-          onClick={loadReport}
-          disabled={loading || !settingId}
-          className="rounded-lg bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
-        >
+        <button type="button" onClick={loadReport} disabled={loading || !settingId} className="rounded-lg bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
           {loading ? 'Memuat...' : 'Tampilkan'}
         </button>
       </section>
@@ -156,6 +119,12 @@ export default function TrialBalancePage() {
             </table>
           </div>
         </section>
+      )}
+
+      {!report && !loading && !error && (
+        <div className="rounded-xl border-2 border-dashed border-gray-200 p-12 text-center text-gray-400">
+          Pilih entitas dan rentang tanggal, lalu klik Tampilkan.
+        </div>
       )}
     </div>
   );
