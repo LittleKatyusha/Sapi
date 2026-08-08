@@ -26,6 +26,8 @@ const accountingService = {
   getTrialBalance: (params) => httpClient.get(`${BASE_URL}/reports/trial-balance`, { params }),
   getIncomeStatement: (params) => httpClient.get(`${BASE_URL}/reports/income-statement`, { params }),
   getBalanceSheet: (params) => httpClient.get(`${BASE_URL}/reports/balance-sheet`, { params }),
+  getInventoryReconciliation: (params) => httpClient.get(`${BASE_URL}/reports/inventory-reconciliation`, { params }),
+  getBankReconciliation: (params) => httpClient.get(`${BASE_URL}/reports/bank-reconciliation`, { params }),
 };
 
 export default accountingService;
