@@ -42,6 +42,47 @@ const accountingService = {
 
   getAuditLogs: (params = {}) => httpClient.get(`${BASE_URL}/audit-logs`, { params }),
   getExceptionsDashboard: (params = {}) => httpClient.get(`${BASE_URL}/dashboard/exceptions`, { params }),
+
+  // P2 — Cost Centers
+  getCostCenters: (params = {}) => httpClient.get(`${BASE_URL}/cost-centers`, { params }),
+  createCostCenter: (data) => httpClient.post(`${BASE_URL}/cost-centers`, data),
+  updateCostCenter: (id, data) => httpClient.put(`${BASE_URL}/cost-centers/${id}`, data),
+  deleteCostCenter: (id) => httpClient.delete(`${BASE_URL}/cost-centers/${id}`),
+
+  // P2 — Budgets
+  getBudgets: (params = {}) => httpClient.get(`${BASE_URL}/budgets`, { params }),
+  upsertBudget: (data) => httpClient.post(`${BASE_URL}/budgets`, data),
+  deleteBudget: (id) => httpClient.delete(`${BASE_URL}/budgets/${id}`),
+  getBudgetVariance: (params) => httpClient.get(`${BASE_URL}/budgets/variance`, { params }),
+
+  // P2 — Recurring Journals
+  getRecurring: (params = {}) => httpClient.get(`${BASE_URL}/recurring`, { params }),
+  createRecurring: (data) => httpClient.post(`${BASE_URL}/recurring`, data),
+  updateRecurring: (id, data) => httpClient.put(`${BASE_URL}/recurring/${id}`, data),
+  deleteRecurring: (id) => httpClient.delete(`${BASE_URL}/recurring/${id}`),
+
+  // P2 — Fixed Assets
+  getAssets: (params = {}) => httpClient.get(`${BASE_URL}/assets`, { params }),
+  createAsset: (data) => httpClient.post(`${BASE_URL}/assets`, data),
+  updateAsset: (id, data) => httpClient.put(`${BASE_URL}/assets/${id}`, data),
+  runDepreciation: (data) => httpClient.post(`${BASE_URL}/assets/depreciation`, data),
+  disposeAsset: (id, data) => httpClient.post(`${BASE_URL}/assets/${id}/dispose`, data),
+
+  // P2 — Tax Rules
+  getTaxRules: (params = {}) => httpClient.get(`${BASE_URL}/tax-rules`, { params }),
+  createTaxRule: (data) => httpClient.post(`${BASE_URL}/tax-rules`, data),
+  deleteTaxRule: (id) => httpClient.delete(`${BASE_URL}/tax-rules/${id}`),
+  calculateTax: (params) => httpClient.get(`${BASE_URL}/tax-rules/calculate`, { params }),
+
+  // P2 — Allocations
+  getAllocations: (params = {}) => httpClient.get(`${BASE_URL}/allocations`, { params }),
+  createAllocation: (data) => httpClient.post(`${BASE_URL}/allocations`, data),
+  deleteAllocation: (id) => httpClient.delete(`${BASE_URL}/allocations/${id}`),
+  runAllocation: (id, data) => httpClient.post(`${BASE_URL}/allocations/${id}/run`, data),
+
+  // P2 — Consolidation
+  getConsolidatedTrialBalance: (params) => httpClient.get(`${BASE_URL}/consolidation/trial-balance`, { params }),
+  getConsolidatedBalanceSheet: (params) => httpClient.get(`${BASE_URL}/consolidation/balance-sheet`, { params }),
 };
 
 export default accountingService;
