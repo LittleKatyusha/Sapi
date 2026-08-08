@@ -4,7 +4,7 @@
  * Replaces hardcoded fetch calls throughout the application
  */
 
-import { API_BASE_URL } from '../config/api.js';
+import { API_BASE_URL, API_ENDPOINTS } from '../config/api.js';
 import performanceMonitor from '../utils/performanceMonitor';
 import { CORS_CONFIG, generateCorsHeaders } from '../config/cors.js';
 
@@ -83,10 +83,55 @@ const getAuthToken = () => {
   if (token && token !== 'cookie-based') {
     return token;
   }
-  
+
   // Fallback to old keys for backward compatibility
   return localStorage.getItem('authToken') || localStorage.getItem('secureAuthToken');
 };
+
+const TOKEN_KEY = 'token';
+const REFRESH_INTERVAL_MS = 25 * 60 * 1000; // refresh every 25 minutes
+const TOKEN_REFRESH_LOCK_KEY = 'tokenRefreshLock';
+const TOKEN_REFRESH_LOCK_TTL_MS = 60 * 1000; // 1 minute
+
+const getToken = () => {
+  const token = localStorage.getItem(TOKEN_KEY);
+  if (token && token !== 'cookie-based') return token;
+  return localStorage.getItem('authToken') || localStorage.getItem('secureAuthToken');
+};
+
+const setToken = (token) => {
+  if (!token) return;
+  localStorage.setItem(TOKEN_KEY, token);
+};
+
+const isTokenCloseToExpiry = (token, thresholdMinutes = 5) => {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    if (!payload.exp) return false;
+    const now = Math.floor(Date.now() / 1000);
+    return payload.exp - now <= thresholdMinutes * 60;
+  } catch {
+    return false;
+  }
+};
+
+const acquireRefreshLock = () => {
+  const now = Date.now();
+  const lock = localStorage.getItem(TOKEN_REFRESH_LOCK_KEY);
+  if (lock) {
+    const { acquiredAt } = JSON.parse(lock);
+    if (now - acquiredAt < TOKEN_REFRESH_LOCK_TTL_MS) return false;
+  }
+  localStorage.setItem(TOKEN_REFRESH_LOCK_KEY, JSON.stringify({ acquiredAt: now }));
+  return true;
+};
+
+const releaseRefreshLock = () => {
+  localStorage.removeItem(TOKEN_REFRESH_LOCK_KEY);
+};
+
+let refreshTimer = null;
+let isRefreshing = false;
 
 // CSRF token handling removed - using JWT authentication only
 
@@ -95,13 +140,13 @@ const getAuthToken = () => {
  */
 const buildHeaders = async (customHeaders = {}) => {
   const headers = { ...DEFAULT_HEADERS, ...customHeaders };
-  
+
   // Add authentication token if available
   const token = getAuthToken();
   if (token) {
     headers.Authorization = `Bearer ${token}`;
   }
-  
+
   // Add CORS headers for preflight requests
   const corsHeaders = generateCorsHeaders(window.location.origin);
   Object.keys(corsHeaders).forEach(key => {
@@ -109,18 +154,98 @@ const buildHeaders = async (customHeaders = {}) => {
       headers[key] = corsHeaders[key];
     }
   });
-  
+
   // Add origin header for CORS
   if (window.location.origin) {
     headers.Origin = window.location.origin;
   }
-  
+
   return headers;
+};
+
+const refreshToken = async () => {
+  if (isRefreshing) return;
+  if (!acquireRefreshLock()) return;
+
+  isRefreshing = true;
+  try {
+    const token = getToken();
+    if (!token) return;
+
+    // Only refresh if token is close to expiry (prevents unnecessary refresh calls)
+    if (!isTokenCloseToExpiry(token, 30)) return;
+
+    const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.AUTH.REFRESH_TOKEN}`, {
+      method: 'POST',
+      headers: {
+        ...DEFAULT_HEADERS,
+        Authorization: `Bearer ${token}`,
+      },
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        handleAuthExpired();
+      }
+      return;
+    }
+
+    const data = await response.json();
+    const newToken = data?.data?.token || data?.token;
+    if (newToken) {
+      setToken(newToken);
+      window.dispatchEvent(new CustomEvent('auth:tokenRefreshed', { detail: { token: newToken, timestamp: Date.now() } }));
+    }
+  } catch (error) {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('🔄 Token refresh failed:', error.message);
+    }
+  } finally {
+    isRefreshing = false;
+    releaseRefreshLock();
+  }
+};
+
+const handleAuthExpired = () => {
+  localStorage.removeItem('authToken');
+  localStorage.removeItem('secureAuthToken');
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem('user');
+  localStorage.removeItem('isAuthenticated');
+  window.dispatchEvent(new CustomEvent('auth:logout', { detail: { reason: 'token_refresh_failed', timestamp: Date.now() } }));
+};
+
+const startTokenRefreshTimer = () => {
+  if (refreshTimer) clearInterval(refreshTimer);
+  refreshTimer = setInterval(() => {
+    const token = getToken();
+    if (!token) {
+      clearInterval(refreshTimer);
+      refreshTimer = null;
+      return;
+    }
+    if (isTokenCloseToExpiry(token, 30)) {
+      refreshToken();
+    }
+  }, REFRESH_INTERVAL_MS);
+};
+
+const stopTokenRefreshTimer = () => {
+  if (refreshTimer) {
+    clearInterval(refreshTimer);
+    refreshTimer = null;
+  }
 };
 
 /**
  * Handle response errors (including CORS errors)
  */
+// Ensure refresh timer starts on module load when a token exists
+if (typeof window !== 'undefined' && getToken()) {
+  startTokenRefreshTimer();
+}
+
 const handleResponseError = async (response) => {
   if (!response.ok) {
     let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
@@ -161,14 +286,8 @@ const handleResponseError = async (response) => {
     
     // Handle 401 Unauthorized
     if (response.status === 401) {
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('secureAuthToken');
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      localStorage.removeItem('isAuthenticated');
+      handleAuthExpired();
       errorMessage = 'Sesi Anda telah berakhir. Silakan login kembali.';
-      // Notify auth hooks to sync state
-      window.dispatchEvent(new CustomEvent('auth:logout', { detail: { reason: '401', timestamp: Date.now() } }));
     }
     
     // Handle 419 - Token mismatch (should not occur with JWT)
@@ -534,6 +653,12 @@ if (typeof window !== 'undefined') {
     }
   }, CACHE_DURATION);
 }
+
+export const TokenRefresh = {
+  start: startTokenRefreshTimer,
+  stop: stopTokenRefreshTimer,
+  refresh: refreshToken,
+};
 
 export default HttpClient;
 

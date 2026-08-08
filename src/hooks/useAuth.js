@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import HttpClient from '../services/httpClient';
+import HttpClient, { TokenRefresh } from '../services/httpClient';
 import { API_ENDPOINTS } from '../config/api';
 
 export const useAuth = () => {
@@ -16,16 +16,31 @@ export const useAuth = () => {
     const checkAuth = () => {
       const storedToken = localStorage.getItem('token');
       const storedUser = localStorage.getItem('user');
-      
+
       if (storedToken && storedUser) {
         setToken(storedToken);
         setUser(JSON.parse(storedUser));
         setIsAuthenticated(true);
+        TokenRefresh.start();
       }
       setLoading(false);
     };
 
     checkAuth();
+
+    const handleTokenRefreshed = (event) => {
+      const newToken = event.detail?.token;
+      if (newToken) {
+        setToken(newToken);
+        setIsAuthenticated(true);
+      }
+    };
+
+    window.addEventListener('auth:tokenRefreshed', handleTokenRefreshed);
+    return () => {
+      window.removeEventListener('auth:tokenRefreshed', handleTokenRefreshed);
+      TokenRefresh.stop();
+    };
   }, []);
 
   // Login function with required API-KEY
@@ -38,11 +53,12 @@ export const useAuth = () => {
         
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(user));
-        
+
         setToken(token);
         setUser(user);
         setIsAuthenticated(true);
-        
+        TokenRefresh.start();
+
         return { success: true, token, user };
       } else {
         return {
@@ -72,6 +88,7 @@ export const useAuth = () => {
       setToken(null);
       setUser(null);
       setIsAuthenticated(false);
+      TokenRefresh.stop();
       navigate('/login');
     }
   }, [token, navigate]);

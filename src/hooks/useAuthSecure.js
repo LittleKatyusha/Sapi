@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import HttpClient from '../services/httpClient';
+import HttpClient, { TokenRefresh } from '../services/httpClient';
 import { API_ENDPOINTS } from '../config/api';
 
 export const useAuthSecure = () => {
@@ -13,26 +13,20 @@ export const useAuthSecure = () => {
   const [blockTimeRemaining, setBlockTimeRemaining] = useState(0);
   
   const navigate = useNavigate();
-  const refreshTimer = useRef(null);
   const deviceFingerprint = useRef(null);
 
   // Device fingerprint handled by backend
 
   // Token monitoring untuk refresh
   useEffect(() => {
-    const checkToken = () => {
-      if (isAuthenticated && token) {
-        // Token validation handled by backend
-      }
-    };
+    if (isAuthenticated && token) {
+      TokenRefresh.start();
+    } else {
+      TokenRefresh.stop();
+    }
 
-    // Check every 5 minutes instead of 30 seconds
-    refreshTimer.current = setInterval(checkToken, 5 * 60 * 1000);
-    
     return () => {
-      if (refreshTimer.current) {
-        clearInterval(refreshTimer.current);
-      }
+      TokenRefresh.stop();
     };
   }, [isAuthenticated, token]);
 
@@ -77,16 +71,12 @@ export const useAuthSecure = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('isAuthenticated');
-    
+
     setToken(null);
     setUser(null);
     setIsAuthenticated(false);
-    
-    // Clear timer
-    if (refreshTimer.current) {
-      clearInterval(refreshTimer.current);
-      refreshTimer.current = null;
-    }
+
+    TokenRefresh.stop();
   }, []);
 
   // Listen for auth:logout events from httpClient (401 handler)
@@ -148,11 +138,12 @@ export const useAuthSecure = () => {
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(user));
         localStorage.setItem('isAuthenticated', 'true');
-        
+
         // Update state
         setToken(token);
         setUser(user);
         setIsAuthenticated(true);
+        TokenRefresh.start();
         
         console.log('Login success for user:', user.pid);
         
