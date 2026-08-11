@@ -1,7 +1,15 @@
 import React, { useState } from 'react';
 import { LogOut, X, AlertTriangle } from 'lucide-react';
 
-const LogoutModal = ({ isOpen, onClose, onConfirm }) => {
+const LogoutModal = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  title = 'Konfirmasi Logout',
+  message = 'Apakah Anda yakin ingin keluar dari sistem? Anda perlu login kembali untuk mengakses dashboard.',
+  confirmText = 'Logout',
+  cancelText = 'Batal'
+}) => {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleConfirm = async () => {
@@ -13,7 +21,7 @@ const LogoutModal = ({ isOpen, onClose, onConfirm }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-md transform transition-all">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
@@ -21,7 +29,7 @@ const LogoutModal = ({ isOpen, onClose, onConfirm }) => {
             <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
               <AlertTriangle className="w-5 h-5 text-red-600" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900">Konfirmasi Logout</h3>
+            <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
           </div>
           <button
             onClick={onClose}
@@ -35,7 +43,7 @@ const LogoutModal = ({ isOpen, onClose, onConfirm }) => {
         {/* Content */}
         <div className="p-6">
           <p className="text-gray-600 mb-6">
-            Apakah Anda yakin ingin keluar dari sistem? Anda perlu login kembali untuk mengakses dashboard.
+            {message}
           </p>
 
           {/* Action Buttons */}
@@ -45,7 +53,7 @@ const LogoutModal = ({ isOpen, onClose, onConfirm }) => {
               disabled={isLoading}
               className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
             >
-              Batal
+              {cancelText}
             </button>
             <button
               onClick={handleConfirm}
@@ -63,7 +71,7 @@ const LogoutModal = ({ isOpen, onClose, onConfirm }) => {
               ) : (
                 <>
                   <LogOut className="w-4 h-4 mr-2" />
-                  Logout
+                  {confirmText}
                 </>
               )}
             </button>

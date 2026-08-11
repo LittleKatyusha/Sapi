@@ -1,17 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import {
-  Home, Users, Package, FileText, Settings, Menu, LogOut,
-  ChevronDown, ChevronRight, Shield, Beef, DollarSign,
-  ShoppingCart, TrendingUp, RotateCcw, Truck, UserCheck, Key,
-  Building2, ArrowLeft, Plus, Search, Filter, Download, Eye, Edit, Trash2, Syringe,
-  BarChart3, Receipt
-} from 'lucide-react';
+import { useLocation } from 'react-router-dom';
+import { Menu, LogOut, Shield } from 'lucide-react';
 import { useAuthSecure } from '../hooks/useAuthSecure';
 import { useDynamicMenu } from '../hooks/useDynamicMenu';
 import { DynamicMenuList } from './DynamicMenuItem';
 import SecurityNotification from './security/SecurityNotification';
 import MenuStatusPanel from './MenuStatusPanel';
+import LogoutModal from './LogoutModal';
 
 
 const LayoutSecure = ({ children, title }) => {
@@ -21,6 +16,7 @@ const LayoutSecure = ({ children, title }) => {
   const [notification, setNotification] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
   const [showMenuStatus, setShowMenuStatus] = useState(false);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const location = useLocation();
   
   const {
@@ -104,10 +100,12 @@ const LayoutSecure = ({ children, title }) => {
     });
   };
 
-  const handleLogout = async () => {
-    if (window.confirm('Apakah Anda yakin ingin keluar?')) {
-      await logout();
-    }
+  const handleLogout = () => {
+    setIsLogoutModalOpen(true);
+  };
+
+  const handleConfirmLogout = async () => {
+    await logout();
   };
 
   // Handle hover events untuk auto-expand
@@ -533,6 +531,13 @@ const LayoutSecure = ({ children, title }) => {
         clearCache={clearCache}
         isEmpty={isMenuEmpty}
         isStale={isStale}
+      />
+
+      {/* Logout Confirmation Modal */}
+      <LogoutModal
+        isOpen={isLogoutModalOpen}
+        onClose={() => setIsLogoutModalOpen(false)}
+        onConfirm={handleConfirmLogout}
       />
     </div>
   );

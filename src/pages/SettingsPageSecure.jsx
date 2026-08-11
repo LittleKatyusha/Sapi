@@ -4,6 +4,7 @@ import { useAuthSecure } from '../hooks/useAuthSecure';
 
 import PasswordStrengthIndicator from '../components/security/PasswordStrengthIndicator';
 import SecurityNotification from '../components/security/SecurityNotification';
+import LogoutModal from '../components/LogoutModal';
 
 // Enhanced Change Password Modal dengan security features
 const ChangePasswordModalSecure = ({ isOpen, onClose, onSubmit, loading }) => {
@@ -276,6 +277,7 @@ const ChangePasswordModalSecure = ({ isOpen, onClose, onSubmit, loading }) => {
 const SettingsPageSecure = () => {
   const { user, updateProfile, changePassword, logout, getSecurityStatus } = useAuthSecure();
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
@@ -462,12 +464,14 @@ const SettingsPageSecure = () => {
   };
 
   // Logout everywhere function
-  const handleLogoutEverywhere = async () => {
-    if (window.confirm('Apakah Anda yakin ingin keluar dari semua perangkat? Anda harus login ulang di semua perangkat.')) {
-      console.log('Logout everywhere initiated');
-      await logout(true);
-      showNotification('Berhasil keluar dari semua perangkat.', 'success');
-    }
+  const handleLogoutEverywhere = () => {
+    setIsLogoutModalOpen(true);
+  };
+
+  const handleConfirmLogoutEverywhere = async () => {
+    console.log('Logout everywhere initiated');
+    await logout(true);
+    showNotification('Berhasil keluar dari semua perangkat.', 'success');
   };
 
 
@@ -750,6 +754,15 @@ const SettingsPageSecure = () => {
         onClose={() => setIsPasswordModalOpen(false)}
         onSubmit={handleChangePassword}
         loading={passwordLoading}
+      />
+
+      <LogoutModal
+        isOpen={isLogoutModalOpen}
+        onClose={() => setIsLogoutModalOpen(false)}
+        onConfirm={handleConfirmLogoutEverywhere}
+        title="Konfirmasi Keluar Semua Perangkat"
+        message="Apakah Anda yakin ingin keluar dari semua perangkat? Anda harus login ulang di semua perangkat."
+        confirmText="Keluar Semua Perangkat"
       />
 
       {/* Security Notification */}
