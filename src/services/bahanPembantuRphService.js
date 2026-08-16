@@ -239,6 +239,8 @@ class BahanPembantuRphService {
       namaBank: item.nama_bank,
       keterangan: item.keterangan,
       createdAt: item.created_at,
+      paymentPid: item.payment_pid,
+      sisaPembayaran: item.sisa_pembayaran,
     };
   }
 }

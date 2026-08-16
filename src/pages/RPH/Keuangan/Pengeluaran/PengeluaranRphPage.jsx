@@ -286,8 +286,8 @@ const PengeluaranRphPage = () => {
           name: 'No PO / Nota',
           cell: (r) => (
             <div className="py-1">
-              <div className="text-sm font-semibold text-gray-800">{r.no_po || '-'}</div>
-              <div className="text-xs text-gray-500">{r.nota || '-'}</div>
+              <div className="text-sm font-semibold text-gray-800">{r.no_po || r.nota_sistem || r.nota || '-'}</div>
+              <div className="text-xs text-gray-500">{r.nota || (r.no_po ? r.nota_sistem || '-' : '-')}</div>
             </div>
           ),
           sortable: true,

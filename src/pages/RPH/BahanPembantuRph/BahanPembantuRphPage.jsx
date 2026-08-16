@@ -9,6 +9,7 @@ import {
   Eye,
   Pencil,
   Trash2,
+  Banknote,
   CalendarDays,
   TrendingUp,
   AlertCircle,
@@ -53,7 +54,7 @@ const SummaryCard = ({ title, value, subtext, icon: Icon, accentClass }) => (
   </div>
 );
 
-const ActionMenu = ({ row, onClose, buttonRef, onDetail, onEdit, onDelete }) => {
+const ActionMenu = ({ row, onClose, buttonRef, onDetail, onEdit, onDelete, onBayar }) => {
   const menuRef = useRef(null);
   const [menuStyle, setMenuStyle] = useState(null);
 
@@ -122,6 +123,17 @@ const ActionMenu = ({ row, onClose, buttonRef, onDetail, onEdit, onDelete }) => 
     }
   ];
 
+  if (row.paymentPid && row.sisaPembayaran > 0) {
+    actions.splice(1, 0, {
+      label: 'Bayar',
+      description: `Bayar ${row.notaSistem || ''}`,
+      icon: Banknote,
+      iconClass: 'text-emerald-600',
+      bgClass: 'bg-emerald-100',
+      onClick: () => onBayar?.(row)
+    });
+  }
+
   const handleActionClick = (action) => {
     action.onClick?.();
     onClose();
@@ -161,7 +173,7 @@ const ActionMenu = ({ row, onClose, buttonRef, onDetail, onEdit, onDelete }) => 
   );
 };
 
-const ActionButton = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onDelete }) => {
+const ActionButton = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onDelete, onBayar }) => {
   const buttonRef = useRef(null);
 
   return (
@@ -190,6 +202,7 @@ const ActionButton = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onDele
           onDetail={onDetail}
           onEdit={onEdit}
           onDelete={onDelete}
+          onBayar={onBayar}
         />
       )}
     </div>
@@ -208,7 +221,8 @@ const MobileBahanPembantuCard = ({
   onCloseMenu,
   onDetail,
   onEdit,
-  onDelete
+  onDelete,
+  onBayar
 }) => (
   <div className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-sm">
     <div className="flex items-start justify-between gap-3">
@@ -279,6 +293,7 @@ const MobileBahanPembantuCard = ({
         onDetail={onDetail}
         onEdit={onEdit}
         onDelete={onDelete}
+        onBayar={onBayar}
       />
     </div>
   </div>
@@ -504,6 +519,12 @@ const [appliedFilters, setAppliedFilters] = useState(emptyFilter);
     setOpenMenuIdMobile(null);
   };
 
+  const handleBayar = (row) => {
+    setOpenMenuIdDesktop(null);
+    setOpenMenuIdMobile(null);
+    navigate(`/rph/keuangan/pengeluaran/bayar/${row.paymentPid}`);
+  };
+
   const confirmDelete = async () => {
     if (!selectedItem?.pid) return;
 
@@ -571,6 +592,7 @@ const [appliedFilters, setAppliedFilters] = useState(emptyFilter);
               onDetail={handleDetail}
               onEdit={handleEdit}
               onDelete={handleDelete}
+              onBayar={handleBayar}
             />
           </div>
         )
@@ -1047,6 +1069,7 @@ const [appliedFilters, setAppliedFilters] = useState(emptyFilter);
                         onDetail={handleDetail}
                         onEdit={handleEdit}
                         onDelete={handleDelete}
+                        onBayar={handleBayar}
                       />
                     ))}
                   </>
