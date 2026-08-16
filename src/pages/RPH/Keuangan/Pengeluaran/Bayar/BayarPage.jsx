@@ -47,6 +47,7 @@ const BayarPengeluaranPage = () => {
   }, [pid]);
 
   const sisa = pembayaran?.sisa_pembayaran || 0;
+  const nomorTransaksi = pembayaran?.no_po || pembayaran?.nota_sistem || pembayaran?.nota || '-';
 
   const handleNominalChange = (e) => {
     const raw = e.target.value.replace(/[^0-9]/g, '');
@@ -181,7 +182,7 @@ const BayarPengeluaranPage = () => {
               <Banknote className="w-6 h-6 text-emerald-600" />
               Pembayaran Pengeluaran
             </h1>
-            <p className="text-gray-500 text-xs mt-0.5">{pembayaran?.no_po || '...'}</p>
+            <p className="text-gray-500 text-xs mt-0.5">{pembayaran ? nomorTransaksi : '...'}</p>
           </div>
         </div>
 
@@ -189,8 +190,8 @@ const BayarPengeluaranPage = () => {
         {pembayaran && (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
-              <p className="text-xs text-gray-500 font-medium uppercase">No PO</p>
-              <p className="text-sm font-bold text-gray-800 truncate">{pembayaran.no_po || '-'}</p>
+              <p className="text-xs text-gray-500 font-medium uppercase">No PO / Nota</p>
+              <p className="text-sm font-bold text-gray-800 truncate">{nomorTransaksi}</p>
             </div>
             <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
               <p className="text-xs text-gray-500 font-medium uppercase">Total Tagihan</p>
