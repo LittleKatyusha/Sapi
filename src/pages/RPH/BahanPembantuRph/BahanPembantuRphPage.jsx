@@ -338,7 +338,9 @@ const [appliedFilters, setAppliedFilters] = useState(emptyFilter);
     tanggalPembayaran: item.tanggalPembayaran ?? item.tanggal_pembayaran ?? null,
     peruntukkan: item.peruntukkan ?? '-',
     payor: item.payor ?? '-',
-    createdAt: item.createdAt ?? item.created_at ?? null
+    createdAt: item.createdAt ?? item.created_at ?? null,
+    paymentPid: item.paymentPid ?? item.payment_pid ?? null,
+    sisaPembayaran: Number(item.sisaPembayaran ?? item.sisa_pembayaran ?? 0)
   });
 
   // Build filter params for the active tab from a filter object
