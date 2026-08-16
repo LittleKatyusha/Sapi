@@ -18,6 +18,7 @@ const JENIS_PEMBELIAN_OPTIONS = [
   // { value: 'feedmil', label: 'Pembelian Feedmil (HO)' },
   // { value: 'ovk', label: 'Pembelian OVK (HO)' },
   { value: 'lain_lain', label: 'Pembelian Lain-Lain' },
+  { value: 'bahan_pembantu_rph', label: 'Pembelian Lain-Lain: Bahan Pembantu RPH' },
   { value: 'kulit', label: 'Pembelian Kulit' },
   { value: 'rph_feedmil', label: 'Pembelian Feedmil RPH (dari HO)' },
   { value: 'rph_ovk', label: 'Pembelian OVK RPH (dari HO)' },
