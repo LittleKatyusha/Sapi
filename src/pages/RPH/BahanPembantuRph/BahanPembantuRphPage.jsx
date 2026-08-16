@@ -327,6 +327,7 @@ const [appliedFilters, setAppliedFilters] = useState(emptyFilter);
 
   const normalizeBiayaRow = (item) => ({
     ...item,
+    notaSistem: item.notaSistem ?? item.nota_sistem ?? '-',
     namaProduk: item.namaProduk ?? item.nama_produk ?? item.item_lain_lain ?? '-',
     hargaSatuan: item.hargaSatuan ?? item.harga ?? null,
     biayaTotal: item.biayaTotal ?? item.harga ?? null,
@@ -344,6 +345,7 @@ const [appliedFilters, setAppliedFilters] = useState(emptyFilter);
   const buildFilterParams = (filters) => {
     if (isBiayaTab) {
       return {
+        nota_sistem: filters.nota || '',
         nama_bayar: filters.namaBayar || '',
         keterangan: filters.keterangan || '',
         peruntukkan: filters.peruntukkan || '',
@@ -620,6 +622,17 @@ const [appliedFilters, setAppliedFilters] = useState(emptyFilter);
     if (isBiayaTab) {
       return [
         ...baseColumns,
+        fixedWidthColumn({
+          name: 'Nota Sistem',
+          selector: (row) => row.notaSistem,
+          sortable: true,
+          width: '150px',
+          cell: (row) => (
+            <div className="inline-flex rounded-md bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700">
+              {row.notaSistem}
+            </div>
+          )
+        }),
         flexibleColumn({
           name: 'Item / Keterangan',
           selector: (row) => row.namaProduk,
@@ -915,16 +928,14 @@ const [appliedFilters, setAppliedFilters] = useState(emptyFilter);
                   </div>
 
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-                    {!isBiayaTab && (
-                      <input
-                        type="text"
-                        value={filterInput.nota}
-                        onChange={(e) => handleFilterChange('nota', e.target.value)}
-                        onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
-                        placeholder="Nota Sistem"
-                        className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-100"
-                      />
-                    )}
+                    <input
+                      type="text"
+                      value={filterInput.nota}
+                      onChange={(e) => handleFilterChange('nota', e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
+                      placeholder="Nota Sistem"
+                      className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-100"
+                    />
                     <input
                       type="text"
                       value={filterInput.namaProduk}
@@ -1058,7 +1069,7 @@ const [appliedFilters, setAppliedFilters] = useState(emptyFilter);
                         key={row.pid}
                         row={row}
                         index={startIdx + index}
-                        showNotaSistem={!isBiayaTab}
+                        showNotaSistem
                         isBiayaTab={isBiayaTab}
                         isMenuOpen={openMenuIdMobile === row.pid}
                         onToggleMenu={() => {
