@@ -26,8 +26,9 @@ const formatCurrency = (value) => new Intl.NumberFormat('id-ID', {
 
 const formatNumber = (value, digits = 3) => Number(value || 0).toFixed(digits);
 const formatMoneyInput = (value) => {
-  const raw = String(value ?? '').replace(/[^\d]/g, '');
-  return raw ? Number(raw).toLocaleString('id-ID') : '';
+  if (value === '' || value === null || value === undefined) return '';
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric.toLocaleString('id-ID') : '';
 };
 const parseMoneyInput = (value) => String(value ?? '').replace(/[^\d]/g, '');
 
@@ -682,13 +683,13 @@ const AddEditBoningModal = ({
                             type="text"
                             inputMode="numeric"
                             value={formatMoneyInput(item.harga_jual)}
-                            onChange={(event) => updateDetail(index, 'harga_jual', parseMoneyInput(event.target.value))}
-                            className={inputClass}
+                            readOnly
+                            className={`${inputClass} cursor-not-allowed bg-slate-50 text-slate-600`}
                             placeholder="0"
                           />
                           {item.loadingHarga && <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-rose-500" />}
                         </div>
-                        <p className="mt-1 text-xs text-slate-500">Harga per 1 Kg. Total item dihitung otomatis dari jumlah Kg x harga per Kg.</p>
+                        <p className="mt-1 text-xs text-slate-500">Harga otomatis dari master harga pedagang. Total item dihitung dari jumlah Kg x harga per Kg.</p>
                         {errors[`details.${index}.harga_jual`] && <p className="mt-1 text-xs text-rose-600">{errors[`details.${index}.harga_jual`]}</p>}
                       </div>
 
