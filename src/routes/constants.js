@@ -58,6 +58,7 @@ export const ROUTE_PATHS = Object.freeze({
   HR_EMPLOYEES: '/hr/employees',
   HR_ATTENDANCE: '/hr/attendance',
   HR_LEAVE_REQUESTS: '/hr/leave-requests',
+  HR_TALENT: '/hr/talent',
 
   // Master Data
   MASTER_OFFICE_KANDANG: '/master-data/kandang-office',

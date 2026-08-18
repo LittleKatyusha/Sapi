@@ -69,6 +69,7 @@ export const pageTitleMap = {
   '/hr/employees': 'Data Karyawan',
   '/hr/attendance': 'Absensi',
   '/hr/leave-requests': 'Pengajuan Cuti',
+  '/hr/talent': 'Talent Suite',
   '/settings': 'Pengaturan Keamanan',
   '/ho/pembelian-feedmil': 'Head Office: Pembelian Feedmil',
   '/ho/pembelian-feedmil/add': 'Head Office: Tambah Pembelian Feedmil',

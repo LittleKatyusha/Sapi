@@ -19,6 +19,7 @@ const MeatStockPage = lazy(() => import('./pages/inventory/MeatStockPage'));
 const EmployeePage = lazy(() => import('./pages/humanResources/EmployeePage'));
 const AttendancePage = lazy(() => import('./pages/humanResources/AttendancePage'));
 const LeaveRequestPage = lazy(() => import('./pages/humanResources/LeaveRequestPage'));
+const TalentSuitePage = lazy(() => import('./pages/humanResources/TalentSuitePage'));
 const DeliveryOrderPage = lazy(() => import('./pages/operations/DeliveryOrderPage'));
 const SettingsPageSecure = lazy(() => import('./pages/SettingsPageSecure'));
 
@@ -340,6 +341,7 @@ function AppSecure() {
               <Route path="/hr/employees" element={<EmployeePage />} />
               <Route path="/hr/attendance" element={<AttendancePage />} />
               <Route path="/hr/leave-requests" element={<LeaveRequestPage />} />
+              <Route path="/hr/talent" element={<TalentSuitePage />} />
 
               {/* Settings Route */}
               <Route path="/settings" element={<SettingsPageSecure />} />

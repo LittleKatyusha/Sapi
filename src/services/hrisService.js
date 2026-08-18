@@ -41,6 +41,25 @@ export const hrisService = {
   getDashboardSummary: () => httpClient.get('/dashboard/summary'),
   getNotifications: (params) => httpClient.get('/notifications', { params }),
   markNotificationRead: (id) => httpClient.put(`/notifications/${id}/read`),
+
+  // Talent Suite
+  getTalentAnalytics: () => httpClient.get('/hris/talent/analytics/workforce', { cache: false }),
+  getManpowerRequests: (params) => httpClient.get('/hris/talent/manpower', { params, cache: false }),
+  createManpowerRequest: (data) => httpClient.post('/hris/talent/manpower', data),
+  decideManpowerRequest: (pubid, data) => httpClient.put(`/hris/talent/manpower/${pubid}/decision`, data),
+  getCandidates: (params) => httpClient.get('/hris/talent/candidates', { params, cache: false }),
+  createCandidate: (data) => httpClient.post('/hris/talent/candidates', data),
+  updateCandidateStage: (pubid, stage) => httpClient.patch(`/hris/talent/candidates/${pubid}/stage`, { stage }),
+  convertCandidate: (pubid, data) => httpClient.post(`/hris/talent/candidates/${pubid}/convert`, data),
+  getAppraisals: (params) => httpClient.get('/hris/talent/appraisals', { params, cache: false }),
+  createAppraisal: (data) => httpClient.post('/hris/talent/appraisals', data),
+  updateAppraisal: (pubid, data) => httpClient.patch(`/hris/talent/appraisals/${pubid}`, data),
+  exportKpi: (params) => httpClient.get('/hris/talent/reports/kpi', { params: { ...params, export: 1 }, responseType: 'blob', cache: false }),
+  getTrainings: (params) => httpClient.get('/hris/talent/trainings', { params, cache: false }),
+  createTraining: (data) => httpClient.post('/hris/talent/trainings', data),
+  updateTraining: (pubid, data) => httpClient.patch(`/hris/talent/trainings/${pubid}`, data),
+  getSuccessionPlans: (params) => httpClient.get('/hris/talent/succession', { params, cache: false }),
+  createSuccessionPlan: (data) => httpClient.post('/hris/talent/succession', data),
 };
 
 export default hrisService;

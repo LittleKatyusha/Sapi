@@ -496,6 +496,10 @@ class HttpClient {
     });
   }
 
+  static async patch(endpoint, data = null, options = {}) {
+    return this.post(endpoint, data, { ...options, method: 'PATCH' });
+  }
+
   /**
    * DELETE request
    */
