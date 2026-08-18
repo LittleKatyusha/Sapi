@@ -75,6 +75,11 @@ export const MENU_URL_MAPPING = {
   'manual-job': '/system/manual-job',
   'system': '#',
 
+  // HRIS
+  'hr/employees': '/hr/employees',
+  'hr/attendance': '/hr/attendance',
+  'hr/leave-requests': '/hr/leave-requests',
+
   // Settings
   'settings': '/settings',
 };
