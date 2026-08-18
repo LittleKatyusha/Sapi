@@ -21,6 +21,8 @@ import {
 export const ICON_MAPPING = {
   // Navigation & Layout
   'home': Home,
+  'dashboard': Home,
+  'layout-dashboard': Home,
   'menu': Menu,
   'grid': Grid,
   'layers': Layers,

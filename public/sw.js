@@ -1,16 +1,11 @@
 // Service Worker for Production Caching
-const CACHE_NAME = 'dashboard-sapi-v1.0.0';
-const STATIC_CACHE = 'static-v1.0.0';
-const DYNAMIC_CACHE = 'dynamic-v1.0.0';
+const CACHE_NAME = 'dashboard-sapi-v1.0.1';
+const STATIC_CACHE = 'static-v1.0.1';
+const DYNAMIC_CACHE = 'dynamic-v1.0.1';
 
-// Assets to cache immediately
-const STATIC_ASSETS = [
-  '/',
-  '/static/js/bundle.js',
-  '/static/css/main.css',
-  '/manifest.json',
-  '/favicon.ico'
-];
+// Assets to cache immediately on install
+// ponytail: empty for dev; populate with hashed filenames from build manifest for production
+const STATIC_ASSETS = [];
 
 // API endpoints to cache with network-first strategy
 const API_CACHE_PATTERNS = [
@@ -66,6 +61,11 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
+  // Skip non-http(s) schemes (e.g. chrome-extension://)
+  if (!url.protocol.startsWith('http')) {
+    return;
+  }
+
   // Skip non-GET requests
   if (request.method !== 'GET') {
     return;
@@ -97,6 +97,7 @@ self.addEventListener('fetch', (event) => {
 
 // Cache-first strategy for static assets
 async function cacheFirstStrategy(request) {
+  if (!request.url.startsWith('http')) return fetch(request);
   try {
     const cachedResponse = await caches.match(request);
     if (cachedResponse) {
@@ -118,6 +119,7 @@ async function cacheFirstStrategy(request) {
 
 // Network-first strategy for dynamic content
 async function networkFirstStrategy(request) {
+  if (!request.url.startsWith('http')) return fetch(request);
   try {
     const networkResponse = await fetch(request);
     
