@@ -43,6 +43,7 @@ export const hrisService = {
   markNotificationRead: (id) => httpClient.put(`/notifications/${id}/read`),
 
   // Talent Suite
+  getTalentCapabilities: () => httpClient.get('/hris/talent/capabilities', { cache: false }),
   getTalentAnalytics: () => httpClient.get('/hris/talent/analytics/workforce', { cache: false }),
   getManpowerRequests: (params) => httpClient.get('/hris/talent/manpower', { params, cache: false }),
   createManpowerRequest: (data) => httpClient.post('/hris/talent/manpower', data),

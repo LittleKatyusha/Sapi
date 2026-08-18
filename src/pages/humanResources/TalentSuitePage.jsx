@@ -15,6 +15,12 @@ const api = {
   succession: hrisService.getSuccessionPlans,
 };
 
+const viewPermissions = {
+  manpower: 'hris.talent.recruitment.view', candidates: 'hris.talent.recruitment.view',
+  appraisals: 'hris.talent.performance.view', trainings: 'hris.talent.learning.view',
+  succession: 'hris.talent.succession.view',
+};
+
 const fields = {
   manpower: [
     ['office_id', 'Office ID', 'number'], ['position_id', 'Position ID', 'number'], ['department_id', 'Department ID', 'number'],
@@ -22,7 +28,8 @@ const fields = {
   ],
   candidates: [
     ['manpower_request_pubid', 'UUID manpower request', 'text'], ['full_name', 'Nama lengkap', 'text'], ['email', 'Email', 'email'],
-    ['phone', 'Telepon', 'text'], ['source', 'Sumber kandidat', 'text'], ['retention_until', 'Retensi data sampai', 'date']
+    ['phone', 'Telepon', 'text'], ['source', 'Sumber kandidat', 'text'], ['interview_date', 'Jadwal interview', 'datetime-local'],
+    ['offer_salary', 'Nilai offer', 'number'], ['retention_until', 'Retensi data sampai', 'date']
   ],
   appraisals: [
     ['employee_pubid', 'UUID karyawan', 'text'], ['period_year', 'Tahun', 'number'], ['period_quarter', 'Periode (Q1/Q2/Q3/Q4/ANNUAL)', 'text'],
@@ -30,7 +37,8 @@ const fields = {
   ],
   trainings: [
     ['employee_pubid', 'UUID karyawan', 'text'], ['title', 'Program pelatihan', 'text'], ['provider', 'Penyelenggara', 'text'],
-    ['start_date', 'Mulai', 'date'], ['end_date', 'Selesai', 'date'], ['cost', 'Biaya', 'number'], ['certificate_number', 'Nomor sertifikat', 'text']
+    ['start_date', 'Mulai', 'date'], ['end_date', 'Selesai', 'date'], ['cost', 'Biaya', 'number'], ['certificate_number', 'Nomor sertifikat', 'text'],
+    ['expiry_date', 'Sertifikat berlaku sampai', 'date']
   ],
   succession: [
     ['position_id', 'Position ID', 'number'], ['candidate_employee_pubid', 'UUID kandidat karyawan', 'text'],
@@ -51,27 +59,37 @@ const TalentSuitePage = () => {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState('');
   const [query, setQuery] = React.useState('');
+  const [filters, setFilters] = React.useState({ status: '', period_year: '' });
+  const [page, setPage] = React.useState(1);
+  const [lastPage, setLastPage] = React.useState(1);
   const [modal, setModal] = React.useState(false);
   const [form, setForm] = React.useState({});
   const [saving, setSaving] = React.useState(false);
-  const user = React.useMemo(() => {
-    try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; }
-  }, []);
-  const permissions = user.hris_permissions || user.permissions || [];
-  const can = (suffix) => Number(user.roles_id) === 404 || permissions.includes(`hris.talent.${suffix}`);
+  const [capabilities, setCapabilities] = React.useState({ super_admin: false, permissions: [] });
+  const can = (suffix) => capabilities.super_admin || capabilities.permissions.includes(`hris.talent.${suffix}`);
   const canCreate = can({ manpower: 'recruitment.manage', candidates: 'recruitment.manage', appraisals: 'performance.manage', trainings: 'learning.manage', succession: 'succession.manage' }[tab]);
 
   const load = React.useCallback(async () => {
     setLoading(true); setError('');
     try {
-      const [list, summary] = await Promise.allSettled([api[tab]({ per_page: 100 }), hrisService.getTalentAnalytics()]);
-      if (list.status === 'rejected') throw list.reason;
+      const params = { page, per_page: 15 };
+      if (filters.status) params[tab === 'candidates' ? 'stage' : 'status'] = filters.status;
+      if (tab === 'appraisals' && filters.period_year) params.period_year = filters.period_year;
+      const [list, summary, access] = await Promise.allSettled([api[tab](params), hrisService.getTalentAnalytics(), hrisService.getTalentCapabilities()]);
+      const accessData = access.status === 'fulfilled' ? access.value?.data : null;
+      if (accessData) setCapabilities(accessData);
+      if (list.status === 'rejected') {
+        const firstAllowed = accessData && tabs.find(([key]) => accessData.super_admin || accessData.permissions.includes(viewPermissions[key]));
+        if (firstAllowed && firstAllowed[0] !== tab) { setTab(firstAllowed[0]); setPage(1); return; }
+        throw list.reason;
+      }
       setRows(list.value?.data?.data || []);
+      setLastPage(list.value?.data?.last_page || 1);
       if (summary.status === 'fulfilled') setAnalytics(summary.value?.data || {});
     } catch (e) {
       setError(e.message || 'Data Talent Suite gagal dimuat.');
     } finally { setLoading(false); }
-  }, [tab]);
+  }, [tab, page, filters]);
 
   React.useEffect(() => { load(); }, [load]);
 
@@ -93,7 +111,9 @@ const TalentSuitePage = () => {
 
   const decide = async (row, decision) => {
     try {
-      await hrisService.decideManpowerRequest(row.pubid, { decision, ...(decision === 'REJECTED' ? { reason: 'Ditolak melalui Talent Suite' } : {}) });
+      const reason = decision === 'REJECTED' ? window.prompt('Alasan penolakan:') : null;
+      if (decision === 'REJECTED' && !reason) return;
+      await hrisService.decideManpowerRequest(row.pubid, { decision, ...(reason ? { reason } : {}) });
       await load();
     } catch (e) { setError(e.message || 'Keputusan gagal disimpan.'); }
   };
@@ -105,6 +125,29 @@ const TalentSuitePage = () => {
     catch (e) { setError(e.message || 'Tahap kandidat gagal diperbarui.'); }
   };
 
+  const rejectCandidate = async (row) => {
+    try { await hrisService.updateCandidateStage(row.pubid, 'REJECTED'); await load(); }
+    catch (e) { setError(e.message || 'Kandidat gagal ditolak.'); }
+  };
+
+  const advanceAppraisal = async (row) => {
+    const status = { DRAFT: 'SUBMITTED', SUBMITTED: 'REVIEWED', REVIEWED: 'CALIBRATED', CALIBRATED: 'FINAL' }[row.status];
+    if (!status) return;
+    const selfScore = status === 'SUBMITTED' ? window.prompt('Nilai mandiri (0-100, opsional):') : null;
+    const managerScore = status === 'REVIEWED' ? window.prompt('Nilai manager (0-100, opsional):') : null;
+    const finalScore = status === 'FINAL' ? window.prompt('Nilai final (0-100):') : null;
+    if (status === 'FINAL' && finalScore === null) return;
+    try { await hrisService.updateAppraisal(row.pubid, { status, ...(selfScore ? { self_score: selfScore } : {}), ...(managerScore ? { manager_score: managerScore } : {}), ...(finalScore !== null ? { final_score: finalScore } : {}) }); await load(); }
+    catch (e) { setError(e.message || 'Siklus KPI gagal diperbarui.'); }
+  };
+
+  const advanceTraining = async (row, status) => {
+    const result = ['PASSED', 'FAILED'].includes(status) ? window.prompt('Hasil pelatihan:') : null;
+    if (['PASSED', 'FAILED'].includes(status) && !result) return;
+    try { await hrisService.updateTraining(row.pubid, { status, ...(result ? { result } : {}) }); await load(); }
+    catch (e) { setError(e.message || 'Status pelatihan gagal diperbarui.'); }
+  };
+
   const convert = async (row) => {
     try { await hrisService.convertCandidate(row.pubid, { joined_date: new Date().toISOString().slice(0, 10) }); await load(); }
     catch (e) { setError(e.message || 'Konversi kandidat gagal.'); }
@@ -112,7 +155,7 @@ const TalentSuitePage = () => {
 
   const exportKpi = async () => {
     try {
-      const blob = await hrisService.exportKpi({});
+      const blob = await hrisService.exportKpi(filters.period_year ? { period_year: filters.period_year } : {});
       const url = URL.createObjectURL(blob); const link = document.createElement('a');
       link.href = url; link.download = 'kpi-report.csv'; link.click(); URL.revokeObjectURL(url);
     } catch (e) { setError(e.message || 'Export KPI gagal.'); }
@@ -139,7 +182,7 @@ const TalentSuitePage = () => {
 
       <section className="-mt-2 relative mx-2 md:mx-6 rounded-b-3xl border border-slate-300 bg-[#fffdf6] shadow-xl">
         <nav className="flex overflow-x-auto border-b border-slate-200 p-2" aria-label="Talent modules">
-          {tabs.map(([key, label, Icon]) => <button key={key} onClick={() => setTab(key)} className={`flex min-w-max items-center gap-2 rounded-xl px-4 py-3 font-sans text-sm font-bold transition ${tab === key ? 'bg-[#e7a931] text-[#122b2a]' : 'text-slate-500 hover:bg-slate-100'}`}><Icon size={17}/>{label}</button>)}
+          {tabs.filter(([key]) => capabilities.super_admin || capabilities.permissions.includes(viewPermissions[key])).map(([key, label, Icon]) => <button key={key} onClick={() => { setTab(key); setPage(1); setFilters({ status: '', period_year: '' }); }} className={`flex min-w-max items-center gap-2 rounded-xl px-4 py-3 font-sans text-sm font-bold transition ${tab === key ? 'bg-[#e7a931] text-[#122b2a]' : 'text-slate-500 hover:bg-slate-100'}`}><Icon size={17}/>{label}</button>)}
         </nav>
 
         <div className="p-4 md:p-7">
@@ -147,6 +190,8 @@ const TalentSuitePage = () => {
             <div><p className="font-sans text-xs uppercase tracking-[.2em] text-slate-500">Live register</p><h2 className="mt-1 text-3xl">{title}</h2></div>
             <div className="flex flex-wrap gap-2">
               <label className="flex items-center gap-2 rounded-xl border bg-white px-3 py-2 font-sans text-sm"><Search size={16}/><span className="sr-only">Cari</span><input value={query} onChange={e => setQuery(e.target.value)} className="w-36 outline-none" placeholder="Cari data..." /></label>
+              {tab !== 'succession' && <label className="sr-only">Filter status<select aria-label="Filter status" value={filters.status} onChange={e => { setFilters({ ...filters, status: e.target.value }); setPage(1); }} className="not-sr-only rounded-xl border bg-white px-3 py-2 font-sans text-sm"><option value="">Semua status</option>{({ manpower: ['PENDING','APPROVED','REJECTED'], candidates: ['APPLIED','SCREENING','INTERVIEW','OFFER','ACCEPTED','REJECTED','CONVERTED'], appraisals: ['DRAFT','SUBMITTED','REVIEWED','CALIBRATED','FINAL'], trainings: ['SCHEDULED','IN_PROGRESS','PASSED','FAILED'] }[tab] || []).map(status => <option key={status}>{status}</option>)}</select></label>}
+              {tab === 'appraisals' && <input aria-label="Filter tahun KPI" type="number" min="2000" max="2100" placeholder="Tahun" value={filters.period_year} onChange={e => { setFilters({ ...filters, period_year: e.target.value }); setPage(1); }} className="w-24 rounded-xl border bg-white px-3 py-2 font-sans text-sm" />}
               <button onClick={load} aria-label="Muat ulang" className="rounded-xl border bg-white p-2.5 hover:bg-slate-100"><RefreshCw size={18}/></button>
               {tab === 'appraisals' && can('performance.export') && <button onClick={exportKpi} className="flex items-center gap-2 rounded-xl border bg-white px-4 py-2 font-sans text-sm font-bold"><Download size={17}/>CSV</button>}
               {canCreate && <button onClick={() => setModal(true)} className="flex items-center gap-2 rounded-xl bg-[#122b2a] px-4 py-2 font-sans text-sm font-bold text-white"><Plus size={17}/>Tambah</button>}
@@ -160,13 +205,14 @@ const TalentSuitePage = () => {
               const context = row.reason || row.goal || row.provider || row.period_quarter || row.readiness_level || '—';
               const value = row.quantity ?? row.final_score ?? row.cost ?? row.offer_salary ?? row.period_year ?? '—';
               const status = row.status || row.stage || row.readiness_level || 'RECORDED';
-              return <tr key={row.pubid} className="border-b border-slate-200 hover:bg-[#f7f2e4]"><td className="py-4 font-bold">{identity}</td><td className="max-w-xs truncate text-slate-600">{context}</td><td>{value}</td><td><span className={`rounded-full border px-2.5 py-1 text-[11px] font-black ${statusTone(status)}`}>{status}</span></td><td className="text-right">{tab === 'manpower' && row.status === 'PENDING' && can('recruitment.approve') && <span className="flex justify-end gap-2"><button onClick={() => decide(row, 'APPROVED')} className="font-bold text-emerald-700">Setujui</button><button onClick={() => decide(row, 'REJECTED')} className="font-bold text-rose-700">Tolak</button></span>}{tab === 'candidates' && can('recruitment.manage') && !['ACCEPTED','REJECTED','CONVERTED'].includes(row.stage) && <button onClick={() => advance(row)} className="font-bold text-teal-800">Tahap berikutnya</button>}{tab === 'candidates' && row.stage === 'ACCEPTED' && can('recruitment.manage') && <button onClick={() => convert(row)} className="font-bold text-emerald-700">Jadikan karyawan</button>}</td></tr>;
+              return <tr key={row.pubid} className="border-b border-slate-200 hover:bg-[#f7f2e4]"><td className="py-4 font-bold">{identity}</td><td className="max-w-xs truncate text-slate-600">{context}</td><td>{value}</td><td><span className={`rounded-full border px-2.5 py-1 text-[11px] font-black ${statusTone(status)}`}>{status}</span></td><td className="text-right"><span className="flex justify-end gap-3">{tab === 'manpower' && row.status === 'PENDING' && can('recruitment.approve') && <><button onClick={() => decide(row, 'APPROVED')} className="font-bold text-emerald-700">Setujui</button><button onClick={() => decide(row, 'REJECTED')} className="font-bold text-rose-700">Tolak</button></>}{tab === 'candidates' && can('recruitment.manage') && !['ACCEPTED','REJECTED','CONVERTED'].includes(row.stage) && <><button onClick={() => advance(row)} className="font-bold text-teal-800">Tahap berikutnya</button><button onClick={() => rejectCandidate(row)} className="font-bold text-rose-700">Tolak</button></>}{tab === 'candidates' && row.stage === 'ACCEPTED' && can('recruitment.manage') && <button onClick={() => convert(row)} className="font-bold text-emerald-700">Jadikan karyawan</button>}{tab === 'appraisals' && row.status !== 'FINAL' && can('performance.manage') && <button onClick={() => advanceAppraisal(row)} className="font-bold text-teal-800">Lanjutkan siklus</button>}{tab === 'trainings' && row.status === 'SCHEDULED' && can('learning.manage') && <button onClick={() => advanceTraining(row, 'IN_PROGRESS')} className="font-bold text-teal-800">Mulai</button>}{tab === 'trainings' && row.status === 'IN_PROGRESS' && can('learning.manage') && <><button onClick={() => advanceTraining(row, 'PASSED')} className="font-bold text-emerald-700">Lulus</button><button onClick={() => advanceTraining(row, 'FAILED')} className="font-bold text-rose-700">Gagal</button></>}</span></td></tr>;
             })}</tbody></table></div>
           )}
+          {!loading && lastPage > 1 && <div className="mt-5 flex items-center justify-end gap-3 font-sans text-sm"><button disabled={page === 1} onClick={() => setPage(page - 1)} className="rounded-lg border px-3 py-2 disabled:opacity-40">Sebelumnya</button><span>Halaman {page} / {lastPage}</span><button disabled={page === lastPage} onClick={() => setPage(page + 1)} className="rounded-lg border px-3 py-2 disabled:opacity-40">Berikutnya</button></div>}
         </div>
       </section>
 
-      {modal && <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/70 p-4" role="dialog" aria-modal="true" aria-labelledby="talent-form-title"><form onSubmit={submit} className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-[#fffdf6] p-6 shadow-2xl"><div className="flex items-center justify-between"><div><p className="font-sans text-xs uppercase tracking-widest text-amber-700">New record</p><h3 id="talent-form-title" className="text-3xl">Tambah {title}</h3></div><button type="button" onClick={() => setModal(false)} aria-label="Tutup"><X/></button></div><div className="mt-6 grid gap-4 md:grid-cols-2">{fields[tab].map(([name, label, type]) => <label key={name} className={`font-sans text-xs font-bold text-slate-600 ${type === 'textarea' ? 'md:col-span-2' : ''}`}>{label}{type === 'textarea' ? <textarea required={['reason','goal','competency_matrix'].includes(name)} value={form[name] || ''} onChange={e => setForm({...form, [name]: e.target.value})} className="mt-1 min-h-24 w-full rounded-xl border bg-white p-3 text-sm font-normal text-slate-900 outline-none focus:ring-2 focus:ring-amber-500"/> : <input required={!['department_id','email','phone','source','provider','end_date','cost','certificate_number','kpi_achievement'].includes(name)} type={type} value={form[name] || ''} onChange={e => setForm({...form, [name]: e.target.value})} className="mt-1 w-full rounded-xl border bg-white p-3 text-sm font-normal text-slate-900 outline-none focus:ring-2 focus:ring-amber-500"/>}</label>)}</div><div className="mt-6 flex justify-end gap-2"><button type="button" onClick={() => setModal(false)} className="rounded-xl border px-5 py-3 font-sans font-bold">Batal</button><button disabled={saving} className="rounded-xl bg-[#122b2a] px-5 py-3 font-sans font-bold text-white disabled:opacity-50">{saving ? 'Menyimpan…' : 'Simpan'}</button></div></form></div>}
+      {modal && <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/70 p-4" role="dialog" aria-modal="true" aria-labelledby="talent-form-title"><form onSubmit={submit} className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-[#fffdf6] p-6 shadow-2xl"><div className="flex items-center justify-between"><div><p className="font-sans text-xs uppercase tracking-widest text-amber-700">New record</p><h3 id="talent-form-title" className="text-3xl">Tambah {title}</h3></div><button type="button" onClick={() => setModal(false)} aria-label="Tutup"><X/></button></div><div className="mt-6 grid gap-4 md:grid-cols-2">{fields[tab].map(([name, label, type]) => <label key={name} className={`font-sans text-xs font-bold text-slate-600 ${type === 'textarea' ? 'md:col-span-2' : ''}`}>{label}{type === 'textarea' ? <textarea required={['reason','goal','competency_matrix'].includes(name)} value={form[name] || ''} onChange={e => setForm({...form, [name]: e.target.value})} className="mt-1 min-h-24 w-full rounded-xl border bg-white p-3 text-sm font-normal text-slate-900 outline-none focus:ring-2 focus:ring-amber-500"/> : <input required={!['department_id','email','phone','source','interview_date','offer_salary','provider','end_date','cost','certificate_number','expiry_date','kpi_achievement','self_score','manager_score'].includes(name)} type={type} value={form[name] || ''} onChange={e => setForm({...form, [name]: e.target.value})} className="mt-1 w-full rounded-xl border bg-white p-3 text-sm font-normal text-slate-900 outline-none focus:ring-2 focus:ring-amber-500"/>}</label>)}</div><div className="mt-6 flex justify-end gap-2"><button type="button" onClick={() => setModal(false)} className="rounded-xl border px-5 py-3 font-sans font-bold">Batal</button><button disabled={saving} className="rounded-xl bg-[#122b2a] px-5 py-3 font-sans font-bold text-white disabled:opacity-50">{saving ? 'Menyimpan…' : 'Simpan'}</button></div></form></div>}
     </main>
   );
 };
