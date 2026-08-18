@@ -29,10 +29,12 @@ export const hrisService = {
   submitCorrection: (data) => httpClient.post('/attendance/corrections', data),
 
   // Leave & Overtime
-  getLeaveTypes: () => httpClient.get('/leave/types'),
-  getLeaveBalance: (employeeId) => httpClient.get(`/leave/balance/${employeeId}`),
-  submitLeaveRequest: (data) => httpClient.post('/leave/requests', data),
-  approveLeaveRequest: (id, level) => httpClient.put(`/leave/requests/${id}/approvals/${level}/approve`),
+  getLeaveTypes: () => httpClient.get('/api/hris/leave/types', { cache: false }),
+  getLeaveBalance: (employeeId) => httpClient.get(`/api/hris/leave/balance/${employeeId}`),
+  getLeaveRequests: (params) => httpClient.get('/api/hris/leave/requests', { params, cache: false }),
+  submitLeaveRequest: (data) => httpClient.post('/api/hris/leave/requests', data),
+  approveLeaveRequest: (id, level) => httpClient.post(`/api/hris/leave/requests/${id}/approve/${level}`),
+  rejectLeaveRequest: (id, level, reason) => httpClient.post(`/api/hris/leave/requests/${id}/reject/${level}`, { reason }),
   submitOvertimeRequest: (data) => httpClient.post('/overtime/requests', data),
 
   // ESS & Dashboard
