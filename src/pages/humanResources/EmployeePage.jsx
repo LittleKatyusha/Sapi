@@ -4,53 +4,103 @@ import {
     ChevronLeft, ChevronRight, RotateCcw, Search, Info, PackageCheck,
     Mail, Phone, MapPin, Calendar, User
 } from 'lucide-react';
+import hrisService from '../../services/hrisService';
 
 // --- HOOKS (Logika Terpusat) ---
 
 // Hook kustom untuk mengelola state dan logika data karyawan.
-const useEmployees = (initialEmployees = []) => {
-    const [employees, setEmployees] = React.useState(initialEmployees);
+const useEmployees = () => {
+    const [employees, setEmployees] = React.useState([]);
     const [loading, setLoading] = React.useState(false);
+    const [pagination, setPagination] = React.useState({ current_page: 1, total: 0, per_page: 15 });
 
-    const addEmployee = React.useCallback((newItemData) => {
+    const fetchEmployees = React.useCallback(async (params = {}) => {
         setLoading(true);
-        return new Promise(resolve => {
-            setTimeout(() => {
-                const newItem = {
-                    ...newItemData,
-                    id: `KRY-${String(Math.floor(Math.random() * 900) + 100)}`,
-                    photoUrl: `https://placehold.co/100x100/E2E8F0/4A5568?text=${newItemData.name.charAt(0).toUpperCase()}`
-                };
-                setEmployees(prev => [newItem, ...prev]);
-                setLoading(false);
-                resolve(newItem);
-            }, 500);
-        });
+        try {
+            const res = await hrisService.getEmployees(params);
+            if (res.data && res.data.data) {
+                const list = (res.data.data.data || res.data.data).map(emp => ({
+                    id: emp.nik || `KRY-${emp.id}`,
+                    realId: emp.id,
+                    name: emp.full_name,
+                    position: emp.position?.name || 'Staff',
+                    gender: emp.gender === 'L' || emp.gender === 'MALE' ? 'Laki-laki' : 'Perempuan',
+                    email: emp.email || '-',
+                    phone: emp.phone || '-',
+                    address: emp.address || '-',
+                    status: emp.status,
+                    photoUrl: emp.photo_url || `https://placehold.co/100x100/E2E8F0/4A5568?text=${(emp.full_name || 'K').charAt(0).toUpperCase()}`
+                }));
+                setEmployees(list);
+                if (res.data.data.total) {
+                    setPagination({
+                        current_page: res.data.data.current_page,
+                        total: res.data.data.total,
+                        per_page: res.data.data.per_page
+                    });
+                }
+            }
+        } catch (e) {
+            console.error('Fetch employees error:', e);
+        } finally {
+            setLoading(false);
+        }
     }, []);
 
-    const updateEmployee = React.useCallback((updatedItemData) => {
-        setLoading(true);
-        return new Promise(resolve => {
-            setTimeout(() => {
-                setEmployees(prev => prev.map(item => item.id === updatedItemData.id ? updatedItemData : item));
-                setLoading(false);
-                resolve(updatedItemData);
-            }, 500);
-        });
-    }, []);
+    React.useEffect(() => {
+        fetchEmployees();
+    }, [fetchEmployees]);
 
-    const deleteEmployee = React.useCallback((employeeId) => {
+    const addEmployee = React.useCallback(async (newItemData) => {
         setLoading(true);
-        return new Promise(resolve => {
-            setTimeout(() => {
-                setEmployees(prev => prev.filter(item => item.id !== employeeId));
-                setLoading(false);
-                resolve();
-            }, 500);
-        });
-    }, []);
+        try {
+            await hrisService.createEmployee({
+                full_name: newItemData.name,
+                email: newItemData.email,
+                phone: newItemData.phone,
+                address: newItemData.address,
+                gender: newItemData.gender === 'Perempuan' ? 'P' : 'L',
+                office_id: 1, // Default HO
+            });
+            await fetchEmployees();
+        } catch (e) {
+            console.error('Add employee error:', e);
+        } finally {
+            setLoading(false);
+        }
+    }, [fetchEmployees]);
 
-    return { employees, addEmployee, updateEmployee, deleteEmployee, loading };
+    const updateEmployee = React.useCallback(async (updatedItemData) => {
+        setLoading(true);
+        try {
+            await hrisService.updateEmployee(updatedItemData.realId, {
+                full_name: updatedItemData.name,
+                email: updatedItemData.email,
+                phone: updatedItemData.phone,
+                address: updatedItemData.address,
+                office_id: 1,
+            });
+            await fetchEmployees();
+        } catch (e) {
+            console.error('Update employee error:', e);
+        } finally {
+            setLoading(false);
+        }
+    }, [fetchEmployees]);
+
+    const deleteEmployee = React.useCallback(async (employeeRealId) => {
+        setLoading(true);
+        try {
+            await hrisService.updateEmployeeStatus(employeeRealId, { status: 'TERMINATED', reason: 'Non-aktifkan karyawan' });
+            await fetchEmployees();
+        } catch (e) {
+            console.error('Terminate employee error:', e);
+        } finally {
+            setLoading(false);
+        }
+    }, [fetchEmployees]);
+
+    return { employees, addEmployee, updateEmployee, deleteEmployee, loading, fetchEmployees, pagination };
 };
 
 
