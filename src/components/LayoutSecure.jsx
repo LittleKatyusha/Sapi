@@ -7,6 +7,7 @@ import { DynamicMenuList } from './DynamicMenuItem';
 import SecurityNotification from './security/SecurityNotification';
 import MenuStatusPanel from './MenuStatusPanel';
 import LogoutModal from './LogoutModal';
+import TopProgressBar from './TopProgressBar';
 
 
 const LayoutSecure = ({ children, title }) => {
@@ -135,6 +136,7 @@ const LayoutSecure = ({ children, title }) => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
+      <TopProgressBar />
       {/* Sidebar */}
       <div
         className={`bg-emerald-800 shadow-lg sidebar-container sidebar-hover-transition sidebar-no-select ${
