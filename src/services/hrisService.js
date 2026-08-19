@@ -23,6 +23,7 @@ export const hrisService = {
   // Attendance & Shifts
   getShifts: () => httpClient.get('/api/hris/attendance/shifts'),
   assignSchedule: (data) => httpClient.post('/api/hris/attendance/schedules', data),
+  getMyAttendanceStatus: () => httpClient.get('/api/hris/attendance/me', { cache: false }),
   checkIn: (data) => httpClient.post('/api/hris/attendance/check-in', data),
   checkOut: (data) => httpClient.post('/api/hris/attendance/check-out', data),
   getAttendanceEvents: (params) => httpClient.get('/api/hris/attendance/events', { params, cache: false }),
