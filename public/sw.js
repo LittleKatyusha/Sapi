@@ -66,8 +66,13 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Skip non-GET requests
+  // Skip non-GET requests or opaque response schemes
   if (request.method !== 'GET') {
+    return;
+  }
+
+  // Skip caching third-party or Cloudflare analytics/beacon requests
+  if (url.hostname.includes('cloudflareinsights.com') || url.hostname.includes('challenges.cloudflare.com')) {
     return;
   }
 
