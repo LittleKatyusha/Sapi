@@ -14,15 +14,18 @@ const formatNumberInput = (value) => {
   return Number.isFinite(number) ? new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 }).format(number) : '';
 };
 const parseNumberInput = (value) => String(value || '').replace(/\./g, '').replace(',', '.').replace(/[^\d.]/g, '');
-const blankItem = (harga = 0) => ({ id_pembelian_ho_detail: '', berat_paha_depan_kg: '', berat_paha_belakang_kg: '', harga_karkas_aktual: harga || '', berat_kulit_kg: 0, perlakuan_kulit: 'DITABUNG', nominal_kulit: '', alasan_perubahan_harga: '' });
+const blankItem = (harga = 0) => ({ id_pembelian_ho_detail: '', code_eartag: '', eartag_supplier: '', berat_paha_depan_kg: '', berat_paha_belakang_kg: '', harga_karkas_aktual: harga || '', berat_kulit_kg: 0, perlakuan_kulit: 'DITABUNG', nominal_kulit: '', alasan_perubahan_harga: '' });
 const initial = (harga = 0) => ({ id_pedagang: '', tanggal_penjualan: new Date().toISOString().slice(0, 10), tipe_pembayaran: '1', id_syarat_pembelian: '', gunakan_saldo: false, penggunaan_saldo: '', pengiriman: 'DIAMBIL', biaya_pengiriman: 0, alamat_pengiriman: '', id_pengirim: '', id_kendaraan_ekspedisi: '', nama_penerima: '', keterangan: '', items: [blankItem(harga)] });
 const optionRows = (response) => Array.isArray(response) ? response : (response?.data || []);
 const toSelectOptions = (items) => items.map((item) => ({ value: String(item.id), label: item.label }));
 const sapiCode = (item) => item.code_eartag || String(item.label || '').split(' - ')[0].split(' \u2014 ')[0].split(' \u00e2\u20ac\u201d ')[0] || item.eartag || '-';
+const sapiSupplierEartag = (item) => item.eartag_supplier || item.eartagSupplier || item.supplier_eartag || '';
 const toSapiOptions = (items) => items.map((item) => ({
   value: String(item.id),
   label: item.label,
   eartag: sapiCode(item),
+  code_eartag: item.code_eartag || sapiCode(item),
+  eartag_supplier: sapiSupplierEartag(item),
   klasifikasi: item.klasifikasi || '-',
   berat: Number(item.berat || 0),
 }));
@@ -37,6 +40,7 @@ const detailToSapiOption = (detail) => {
     label: `${eartag} - ${klasifikasi} - ${berat.toFixed(2)} kg`,
     eartag,
     code_eartag: detail.code_eartag,
+    eartag_supplier: detail.eartag_supplier || '',
     klasifikasi,
     berat,
     isEditOption: true,
@@ -79,6 +83,7 @@ const formatSapiOption = (option, { context }) => {
         <span className="h-1 w-1 rounded-full bg-slate-300" />
         <span>{option.berat.toFixed(2)} kg</span>
       </div>
+      <div className="mt-0.5 font-mono text-xs text-slate-500">Supplier: {option.eartag_supplier || '-'}</div>
     </div>
   );
 };
@@ -184,6 +189,7 @@ const KarkasFormModal = ({
   banks,
   pengirim,
   kendaraan,
+  sapi,
   available,
   onClose,
   onSubmit,
@@ -280,11 +286,13 @@ const KarkasFormModal = ({
               const totalBerat = Number(x.berat_paha_depan_kg || 0) + Number(x.berat_paha_belakang_kg || 0);
               const nominalKarkas = totalBerat * Number(x.harga_karkas_aktual || 0);
               const nominalKulit = Number(x.nominal_kulit || 0);
+              const selectedSapi = toSapiOptions(sapi).find(item => item.value === String(x.id_pembelian_ho_detail));
               return (
                 <div key={i} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                   <div className="grid gap-4 lg:grid-cols-[2fr_1fr_1fr_1fr_auto]">
                     <Field label="Sapi">
-                      <SearchableSelect required value={String(x.id_pembelian_ho_detail || '')} onChange={v => setItem(i, 'id_pembelian_ho_detail', v || '')} options={toSapiOptions(available(x.id_pembelian_ho_detail))} placeholder="Pilih sapi" accentColor="red" maxMenuHeight={280} formatOptionLabel={formatSapiOption} filterOption={(candidate, input) => candidate.data.label.toLowerCase().includes(input.toLowerCase())} />
+                      <SearchableSelect required value={String(x.id_pembelian_ho_detail || '')} onChange={v => { const selected = toSapiOptions(available(x.id_pembelian_ho_detail)).find(option => option.value === String(v)); setItem(i, 'id_pembelian_ho_detail', v || ''); setItem(i, 'code_eartag', selected?.code_eartag || ''); setItem(i, 'eartag_supplier', selected?.eartag_supplier || ''); }} options={toSapiOptions(available(x.id_pembelian_ho_detail))} placeholder="Pilih sapi" accentColor="red" maxMenuHeight={280} formatOptionLabel={formatSapiOption} filterOption={(candidate, input) => candidate.data.label.toLowerCase().includes(input.toLowerCase())} />
+                      {x.id_pembelian_ho_detail && <div className="mt-2 space-y-1 text-xs"><div><span className="text-slate-500">Eartag Sistem:</span> <span className="font-mono font-semibold text-slate-800">{selectedSapi?.code_eartag || x.code_eartag || '-'}</span></div><div><span className="text-slate-500">Eartag Supplier:</span> <span className="font-mono font-semibold text-slate-800">{selectedSapi?.eartag_supplier || x.eartag_supplier || '-'}</span></div></div>}
                     </Field>
                     <Field label="Paha Depan (kg)">
                       <Input required type="number" min="0.01" step="0.01" value={x.berat_paha_depan_kg} onChange={e => setItem(i, 'berat_paha_depan_kg', e.target.value)} />
@@ -431,7 +439,7 @@ export default function PenjualanKarkasPage() {
   const openDetail = async (row) => { setActionLoading('Memuat detail transaksi...'); try { const x = await PenjualanKarkasService.show(row.pid); setDetail(x.data); } catch (e) { setError(e.message); } finally { setActionLoading(''); } };
   const available = (selected) => sapi.filter(x => (!x.isEditOption || form.pid) && !form.items.some(i => String(i.id_pembelian_ho_detail) === String(x.id) && String(x.id) !== String(selected)));
 
-  if (isFormPage) return <KarkasFormModal fullPage form={form} saving={saving} totals={totals} pedagang={pedagang} banks={banks} pengirim={pengirim} kendaraan={kendaraan} available={available} onClose={() => navigate('/rph/penjualan-karkas')} onSubmit={save} selectPedagang={selectPedagang} selectPaymentType={selectPaymentType} selectShipping={selectShipping} setHeader={setHeader} setItem={setItem} addItem={() => setForm(f => ({ ...f, items: [...f.items, blankItem()] }))} removeItem={(i) => setForm(f => ({ ...f, items: f.items.filter((_, n) => n !== i) }))} />;
+  if (isFormPage) return <KarkasFormModal fullPage form={form} saving={saving} totals={totals} pedagang={pedagang} banks={banks} pengirim={pengirim} kendaraan={kendaraan} sapi={sapi} available={available} onClose={() => navigate('/rph/penjualan-karkas')} onSubmit={save} selectPedagang={selectPedagang} selectPaymentType={selectPaymentType} selectShipping={selectShipping} setHeader={setHeader} setItem={setItem} addItem={() => setForm(f => ({ ...f, items: [...f.items, blankItem()] }))} removeItem={(i) => setForm(f => ({ ...f, items: f.items.filter((_, n) => n !== i) }))} />;
 
   return <div className="min-h-screen bg-slate-50"><div className="space-y-6 px-4 py-5 sm:px-6 lg:px-8">
     <div className="rounded-3xl border border-white/60 bg-white/90 p-6 shadow-xl shadow-rose-100/50">
@@ -470,6 +478,7 @@ export default function PenjualanKarkasPage() {
     banks={banks}
     pengirim={pengirim}
     kendaraan={kendaraan}
+    sapi={sapi}
     available={available}
     onClose={() => setModal(null)}
     onSubmit={save}
