@@ -932,7 +932,7 @@ const AddEditPembelianFeedmilPage = () => {
 
     // Calculate totals
     const totals = useMemo(() => {
-        const totalJumlah = detailItems.reduce((sum, item) => (parseInt(item.jumlah) || 1), 0); // Sum of qty
+        const totalJumlah = detailItems.reduce((sum, item) => sum + (parseInt(item.jumlah, 10) || 1), 0); // Sum of qty
         const totalHargaBeli = detailItems.reduce((sum, item) => {
             const harga = parseFloat(item.harga);
             const jumlah = parseInt(item.jumlah) || 1;

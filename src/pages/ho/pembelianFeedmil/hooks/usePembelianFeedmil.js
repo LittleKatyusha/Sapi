@@ -436,6 +436,7 @@ const usePembelianFeedmil = () => {
                     if (item.id_satuan) {
                         formData.append(`details[${index}][id_satuan]`, parseInt(item.id_satuan));
                     }
+                    formData.append(`details[${index}][jumlah]`, parseInt(item.jumlah, 10) || 1);
                     formData.append(`details[${index}][harga]`, parseFloat(item.harga) || 0);
                     const persentaseValue = (() => {
                         if (!item.persentase) return 0;
