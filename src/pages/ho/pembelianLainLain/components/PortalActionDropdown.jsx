@@ -82,6 +82,7 @@ const PortalActionDropdown = ({
   }, [open]);
 
   const isLoading = downloadLoadingId === rowId;
+  const isLunas = Number(row.payment_status) === 1 || String(row.payment_status_label).toLowerCase() === 'lunas';
 
   const menuElement = menuStyle ? (
     <div
@@ -97,10 +98,12 @@ const PortalActionDropdown = ({
       <button onClick={() => { onDetail(row); setOpen(false); }} className="w-full px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2" role="menuitem">
         <Eye className="w-4 h-4" /> {labels.detail || 'Detail'}
       </button>
-      <button onClick={() => { onEdit(row); setOpen(false); }} className="w-full px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2" role="menuitem">
-        <Pencil className="w-4 h-4" /> {labels.edit || 'Edit'}
-      </button>
-      {onBayar && row.payment_status !== 1 && (
+      {!isLunas && (
+        <button onClick={() => { onEdit(row); setOpen(false); }} className="w-full px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2" role="menuitem">
+          <Pencil className="w-4 h-4" /> {labels.edit || 'Edit'}
+        </button>
+      )}
+      {onBayar && !isLunas && (
         <button onClick={() => { onBayar(row); setOpen(false); }} className="w-full px-3 py-1.5 text-sm text-emerald-600 hover:bg-emerald-50 flex items-center gap-2" role="menuitem">
           <Banknote className="w-4 h-4" /> {labels.bayar || 'Bayar'}
         </button>
