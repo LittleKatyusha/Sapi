@@ -13,6 +13,7 @@ import DeleteConfirmationModal from './modals/DeleteConfirmationModal';
 import MenuTreeViewModal from './modals/MenuTreeViewModal';
 import MenuAccessModal from './modals/MenuAccessModal';
 import AddCustomRoleModal from './modals/AddCustomRoleModal';
+import BulkMenuAccessModal from './modals/BulkMenuAccessModal';
 
 const MenuManagementPage = () => {
   // State management
@@ -27,6 +28,7 @@ const MenuManagementPage = () => {
   const [selectedMenuForAccess, setSelectedMenuForAccess] = useState(null);
   const [viewMode, setViewMode] = useState('table'); // 'table' | 'tree'
   const [isAddCustomRoleModalOpen, setIsAddCustomRoleModalOpen] = useState(false);
+  const [isBulkAccessModalOpen, setIsBulkAccessModalOpen] = useState(false);
 
   // Custom hook untuk data management
   const {
@@ -401,6 +403,13 @@ const MenuManagementPage = () => {
               Tree View
             </button>
             <button
+              onClick={() => setIsBulkAccessModalOpen(true)}
+              className="inline-flex items-center px-4 py-2 border border-emerald-300 rounded-lg text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors"
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              Bulk Assign Menu
+            </button>
+            <button
               onClick={() => setIsAddCustomRoleModalOpen(true)}
               className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
             >
@@ -622,6 +631,17 @@ const MenuManagementPage = () => {
           onAccessUpdated={handleAccessUpdated}
         />
       )}
+
+      <BulkMenuAccessModal
+        isOpen={isBulkAccessModalOpen}
+        onClose={() => setIsBulkAccessModalOpen(false)}
+        menuTree={menuTree}
+        roles={roles}
+        onSaved={(count) => {
+          showNotification(`${count} menu berhasil diassign.`, 'success');
+          handleAccessUpdated();
+        }}
+      />
 
       {/* Add Custom Role Modal */}
       {isAddCustomRoleModalOpen && (

@@ -255,6 +255,8 @@ const useMenus = () => {
             let rolesData = [];
             if (result.status === 'ok' && result.data && Array.isArray(result.data)) {
                 rolesData = result.data;
+            } else if (result.status === 'ok' && Array.isArray(result.data?.data)) {
+                rolesData = result.data.data;
             } else if (result.draw && result.data && Array.isArray(result.data)) {
                 rolesData = result.data;
             }

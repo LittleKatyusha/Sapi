@@ -39,7 +39,7 @@ const MenuAccessModal = ({ isOpen, onClose, menu, roles, onAccessUpdated }) => {
       if (result.status === 'ok' && result.data) {
         setAccessInfo(result.data);
         // Set selected roles based on current access
-        const currentRoleIds = result.data.accessible_roles ? result.data.accessible_roles.map(role => role.id) : [];
+        const currentRoleIds = result.data.accessible_roles ? result.data.accessible_roles.map(role => Number(role.id)) : [];
         setSelectedRoles(currentRoleIds);
       }
     } catch (error) {
@@ -59,10 +59,11 @@ const MenuAccessModal = ({ isOpen, onClose, menu, roles, onAccessUpdated }) => {
 
   const handleRoleToggle = (roleId) => {
     setSelectedRoles(prev => {
-      if (prev.includes(roleId)) {
-        return prev.filter(id => id !== roleId);
+      const normalizedRoleId = Number(roleId);
+      if (prev.includes(normalizedRoleId)) {
+        return prev.filter(id => id !== normalizedRoleId);
       } else {
-        return [...prev, roleId];
+        return [...prev, normalizedRoleId];
       }
     });
   };
@@ -221,7 +222,7 @@ const MenuAccessModal = ({ isOpen, onClose, menu, roles, onAccessUpdated }) => {
                 <div className="space-y-2 max-h-64 overflow-y-auto">
                   {/* Custom roles (selected but not in roles list) */}
                   {selectedRoles
-                    .filter(roleId => !roles.some(role => role.id === roleId))
+                      .filter(roleId => !roles.some(role => Number(role.id) === roleId))
                     .map(roleId => (
                       <div
                         key={`custom-${roleId}`}
@@ -252,8 +253,9 @@ const MenuAccessModal = ({ isOpen, onClose, menu, roles, onAccessUpdated }) => {
 
                   {/* Regular roles */}
                   {roles.map((role) => {
-                    const isSelected = selectedRoles.includes(role.id);
-                    const hasCurrentAccess = accessInfo?.accessible_roles.some(r => r.id === role.id);
+                    const roleId = Number(role.id);
+                    const isSelected = selectedRoles.includes(roleId);
+                    const hasCurrentAccess = accessInfo?.accessible_roles.some(r => Number(r.id) === roleId);
                     
                     return (
                       <div
@@ -263,7 +265,7 @@ const MenuAccessModal = ({ isOpen, onClose, menu, roles, onAccessUpdated }) => {
                             ? 'bg-emerald-50 border-emerald-200' 
                             : 'bg-white border-gray-200 hover:bg-gray-50'
                         }`}
-                        onClick={() => handleRoleToggle(role.id)}
+                        onClick={() => handleRoleToggle(roleId)}
                       >
                         <div className="flex items-center space-x-3">
                           <div className={`w-5 h-5 rounded flex items-center justify-center ${
