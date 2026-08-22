@@ -8,6 +8,11 @@ const flattenMenus = (items, parentId = null) => items.flatMap((item) => [
   ...flattenMenus(item.children || [], item.id)
 ]);
 
+const collectDescendantIds = (menu) => [
+  menu.id,
+  ...collectDescendantIds(menu.children || []).flat()
+];
+
 const BulkMenuAccessModal = ({ isOpen, onClose, menuTree, roles, onSaved }) => {
   const [roleId, setRoleId] = useState('');
   const [menuIds, setMenuIds] = useState([]);
@@ -31,9 +36,14 @@ const BulkMenuAccessModal = ({ isOpen, onClose, menuTree, roles, onSaved }) => {
 
   if (!isOpen) return null;
 
-  const toggleMenu = (menuId) => setMenuIds((previous) => (
-    previous.includes(menuId) ? previous.filter((id) => id !== menuId) : [...previous, menuId]
-  ));
+  const toggleMenu = (menu) => setMenuIds((previous) => {
+    const ids = collectDescendantIds(menu);
+    const selected = ids.every((id) => previous.includes(id));
+
+    return selected
+      ? previous.filter((id) => !ids.includes(id))
+      : [...new Set([...previous, ...ids])];
+  });
 
   const save = async () => {
     if (!roleId) return;
@@ -91,7 +101,7 @@ const BulkMenuAccessModal = ({ isOpen, onClose, menuTree, roles, onSaved }) => {
             <div className="max-h-80 overflow-y-auto p-2">
               {menus.map((menu) => (
                 <label key={menu.id} className="flex cursor-pointer items-center gap-3 rounded px-3 py-2 hover:bg-gray-50" style={{ paddingLeft: `${12 + (menu.depth || 0) * 24}px` }}>
-                  <input type="checkbox" checked={menuIds.includes(menu.id)} onChange={() => toggleMenu(menu.id)} />
+                  <input type="checkbox" checked={menuIds.includes(menu.id)} onChange={() => toggleMenu(menu)} />
                   <span className="text-sm text-gray-800">{menu.nama}</span>
                   {menu.url && menu.url !== '#' && <span className="ml-auto text-xs text-gray-400">{menu.url}</span>}
                 </label>
