@@ -42,8 +42,7 @@ const BulkMenuAccessModal = ({ isOpen, onClose, menuTree, roles, onSaved }) => {
     try {
       const result = await HttpClient.post(`${API_ENDPOINTS.SYSTEM.MENU}/bulk-sync-access`, {
         role_id: Number(roleId),
-        menu_ids: menuIds,
-        scope_menu_ids: menus.map((menu) => menu.id)
+        menu_ids: menuIds
       });
 
       if (result.status !== 'ok') throw new Error(result.message || 'Gagal bulk assign akses menu.');

@@ -123,41 +123,10 @@ const useMenus = () => {
                 throw new Error('Token authentication tidak ditemukan.');
             }
             
-            // Always use /data endpoint for tree structure consistency
-            const queryParams = new URLSearchParams({
-                'start': '0',
-                'length': '1000',
-                'draw': '1',
-                'search[value]': '',
-                'order[0][column]': '0',
-                'order[0][dir]': 'asc',
-                '_t': Date.now().toString() // Force no-cache
-            });
-            
-            const result = await HttpClient.get(`${API_BASE}/data?${queryParams.toString()}`);
-            
-            if (result.status === 'ok' && result.data && result.data.data) {
-                const flatData = result.data.data;
-                
-                // Convert flat data to tree structure
-                const buildTree = (items, parentId = null, depth = 0) => {
-                    return items
-                        .filter(item => {
-                            if (parentId === null) {
-                                return item.parent_name === '-';
-                            }
-                            return item.parent_name !== '-' && items.find(p => p.nama === item.parent_name)?.pid === parentId;
-                        })
-                        .map(item => ({
-                            ...item,
-                            depth,
-                            children: buildTree(items, item.pid, depth + 1)
-                        }))
-                        .sort((a, b) => a.sequence_order - b.sequence_order);
-                };
-                
-                const treeData = buildTree(flatData);
-                setMenuTree(treeData);
+            const result = await HttpClient.get(`${API_BASE}/tree?_t=${Date.now()}`);
+
+            if (result.status === 'ok' && Array.isArray(result.data)) {
+                setMenuTree(result.data);
             } else {
                 throw new Error('Gagal memuat struktur menu.');
             }
