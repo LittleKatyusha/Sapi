@@ -530,6 +530,13 @@ const filteredData = useMemo(() => {
         )
       },
       {
+        name: 'RPH',
+        selector: (row) => row.nama_rph,
+        sortable: true,
+        minWidth: '150px',
+        cell: (row) => <span className="text-xs font-medium text-slate-700">{row.nama_rph || '-'}</span>
+      },
+      {
         name: 'Total Harga',
         selector: (row) => row.total,
         sortable: true,

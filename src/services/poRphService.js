@@ -249,6 +249,7 @@ class PoRphService {
       no_faktur: item.no_faktur || '',
       persetujuan_rph: item.persetujuan_rph || '',
       persetujuan_ho: item.persetujuan_ho || '',
+      nama_rph: item.nama_rph || '',
       payment_status: item.payment_status !== undefined && item.payment_status !== null ? Number(item.payment_status) : null,
       payment_status_label: item.payment_status_label || null,
       total_tagihan: parseFloat(item.total_tagihan) || 0,

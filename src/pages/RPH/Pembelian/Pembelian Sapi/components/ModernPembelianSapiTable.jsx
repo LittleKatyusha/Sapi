@@ -335,10 +335,11 @@ const ModernPembelianSapiTable = ({
     <div className="space-y-3">
       <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px]">
+          <table className="w-full min-w-[1000px]">
             <thead className="bg-gray-50/50 border-b border-gray-100">
               <tr>
                 <th className="py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center w-10">No</th>
+                <TableHeader label="RPH" sortKey="nama_rph" />
                 <TableHeader label="PO & Nota" sortKey="no_po" />
                 <TableHeader label="Tanggal" sortKey="created_at" />
                 <TableHeader label="Persetujuan" sortKey="persetujuan" />
@@ -361,6 +362,9 @@ const ModernPembelianSapiTable = ({
                   <tr key={rowId || index} className="group hover:bg-gray-50/60 transition-colors">
                     <td className="px-3 py-2.5 text-center text-gray-500 font-medium">
                       {rowNumber}
+                    </td>
+                    <td className="px-3 py-2.5 whitespace-nowrap">
+                      <div className="text-xs font-medium text-gray-700">{row.nama_rph || '-'}</div>
                     </td>
                     <td className="px-3 py-2.5">
                       <div className="font-medium text-gray-900 truncate" title={row.no_po}>{row.no_po || '-'}</div>

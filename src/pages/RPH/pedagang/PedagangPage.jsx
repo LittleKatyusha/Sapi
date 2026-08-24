@@ -746,6 +746,7 @@ const PedagangPage = () => {
                       Pedagang <SortIcon column="nama_alias" />
                     </button>
                   </th>
+                  <th className="text-left text-[10px] font-bold text-gray-500 uppercase px-3 py-3">RPH</th>
                   <th className="text-left text-[10px] font-bold text-gray-500 uppercase px-3 py-3">Pasar / Status</th>
                   <th className="text-right text-[10px] font-bold text-gray-500 uppercase px-3 py-3">
                     <button onClick={() => handleSort('saldo_akhir')} className="flex items-center gap-1 hover:text-gray-700 ml-auto">
@@ -761,14 +762,14 @@ const PedagangPage = () => {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={8} className="py-16 text-center">
+                    <td colSpan={9} className="py-16 text-center">
                       <Loader2 className="w-6 h-6 text-emerald-500 animate-spin mx-auto mb-2" />
                       <p className="text-sm text-gray-500">Memuat data...</p>
                     </td>
                   </tr>
                 ) : sortedData.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="py-16 text-center">
+                    <td colSpan={9} className="py-16 text-center">
                       <Users className="w-10 h-10 text-gray-300 mx-auto mb-3" />
                       <p className="text-sm text-gray-500">Tidak ada data pedagang ditemukan</p>
                     </td>
@@ -797,6 +798,7 @@ const PedagangPage = () => {
                           </div>
                         </div>
                       </td>
+                      <td className="px-3 py-3 text-xs font-medium text-gray-700">{row.nama_rph || '-'}</td>
                       <td className="px-3 py-3">
                         <div className="flex flex-col gap-1">
                           <span className="text-xs text-gray-700 flex items-center gap-1">

@@ -316,6 +316,10 @@ const PembelianSapiQurbanPage = () => {
             cell: row => <div className="flex justify-center">{getJenisBadge(row.jenis_pembelian)}</div>
         },
         {
+            name: 'RPH', selector: row => row.nama_rph, sortable: true, minWidth: '150px',
+            cell: row => <span className="text-xs font-medium text-gray-700">{row.nama_rph || '-'}</span>
+        },
+        {
             name: 'Pemasok & Pengirim', selector: row => row.pemasok, sortable: true, minWidth: '220px', grow: 3,
             cell: row => (
                 <div className="flex flex-col gap-0.5 py-1 min-w-0">

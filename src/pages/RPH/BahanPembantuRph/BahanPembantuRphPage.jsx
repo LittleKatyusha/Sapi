@@ -617,6 +617,13 @@ const [appliedFilters, setAppliedFilters] = useState(emptyFilter);
               </div>
             </div>
           )
+        }),
+        fixedWidthColumn({
+          name: 'RPH',
+          selector: (row) => row.namaRph,
+          sortable: true,
+          width: '150px',
+          cell: (row) => <span className="text-xs font-medium text-slate-700">{row.namaRph || '-'}</span>
         })
       );
     }

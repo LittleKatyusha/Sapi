@@ -134,6 +134,7 @@ const PembelianSapiCard = ({
                     </div>
                     <h3 className="text-base font-semibold text-gray-900 truncate">{data.no_po || '-'}</h3>
                     <p className="text-xs text-gray-500 truncate">Nota: {data.nota || '-'}</p>
+                    <p className="text-xs text-gray-500 truncate">RPH: {data.nama_rph || '-'}</p>
                     <div className="mt-3 grid grid-cols-2 gap-3">
                         <div>
                             <p className="text-xs text-gray-500">Tanggal</p>

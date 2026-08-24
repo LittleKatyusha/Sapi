@@ -226,6 +226,7 @@ class BahanPembantuRphService {
       pid: item.pid,
       notaSistem: item.nota_sistem,
       namaProduk: item.nama_produk,
+      namaRph: item.nama_rph,
       peruntukkan: item.peruntukkan,
       qty: item.qty,
       satuan: item.satuan,
