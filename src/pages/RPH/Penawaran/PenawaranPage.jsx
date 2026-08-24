@@ -688,6 +688,7 @@ const PenawaranPage = () => {
                                     {row.nomor_spp || '-'}
                                   </span>
                                 </div>
+                                <div className="mt-1 text-xs font-medium text-gray-600">{row.nama_rph || '-'}</div>
                               </td>
                               <td className="px-4 py-3.5">
                                 <div className="text-sm font-medium text-gray-900">{formatDate(row.tgl_pengajuan)}</div>
@@ -794,6 +795,7 @@ const PenawaranPage = () => {
                               </span>
                             </div>
                             <div className="text-sm font-semibold text-gray-900">{formatDate(row.tgl_pengajuan)}</div>
+                            <div className="text-xs text-gray-500 mt-1">RPH: {row.nama_rph || '-'}</div>
                           </div>
                           <button
                             onClick={(e) => {

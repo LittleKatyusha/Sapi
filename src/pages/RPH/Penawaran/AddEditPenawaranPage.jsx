@@ -6,8 +6,6 @@ import PedagangPickerModal from './PedagangPickerModal';
 
 const formatRupiah = (val) => 'Rp ' + (Number(val || 0)).toLocaleString('id-ID');
 
-const RPH_ID_DEFAULT = 1;
-
 const AddEditPenawaranPage = () => {
   const { pid } = useParams();
   const navigate = useNavigate();
@@ -116,7 +114,6 @@ const AddEditPenawaranPage = () => {
     e.preventDefault();
     if (!validate()) return;
     const payload = {
-      rph_id: RPH_ID_DEFAULT,
       tgl_pengajuan: form.tgl_pengajuan,
       diajukan_kepada: form.diajukan_kepada ? Number(form.diajukan_kepada) : null,
       notes: form.notes,
