@@ -186,7 +186,7 @@ const KandangPage = () => {
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               onKeyDown={handleKeyDownSearch}
-              placeholder="Cari kode / nama / lokasi kandang..."
+              placeholder="Cari RPH / kode / nama / lokasi kandang..."
               className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:border-amber-500 focus:ring-2 focus:ring-amber-500/15 outline-none"
             />
           </div>
@@ -218,6 +218,7 @@ const KandangPage = () => {
               <table className="w-full text-sm">
                 <thead className="bg-slate-50">
                   <tr className="text-left text-xs font-semibold text-slate-500 uppercase">
+                    <th className="px-4 py-3">RPH</th>
                     <th className="px-4 py-3">Kode</th>
                     <th className="px-4 py-3">Nama</th>
                     <th className="px-4 py-3">Lokasi</th>
@@ -230,6 +231,7 @@ const KandangPage = () => {
                 <tbody className="divide-y divide-slate-100">
                   {rows.map((row) => (
                     <tr key={row.pid} className="hover:bg-slate-50">
+                      <td className="px-4 py-3 text-slate-700">{row.nama_rph || '-'}</td>
                       <td className="px-4 py-3 font-semibold text-slate-800">{row.kode}</td>
                       <td className="px-4 py-3 text-slate-700">{row.nama}</td>
                       <td className="px-4 py-3 text-slate-500">{row.lokasi || '-'}</td>

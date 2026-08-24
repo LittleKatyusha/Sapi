@@ -348,6 +348,11 @@ const StokSapiQurbanPage = () => {
       },
     },
     {
+      name: 'RPH',
+      minWidth: '170px',
+      cell: (row) => <span className="text-sm font-medium text-gray-700">{row.nama_rph || '-'}</span>,
+    },
+    {
       name: 'Status',
       sortable: false,
       width: '130px',
