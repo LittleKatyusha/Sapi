@@ -50,7 +50,6 @@ const AddEditBoningModal = ({
   fetchPedagangHarga,
   loading,
   masterLoading,
-  idOffice,
 }) => {
   const [form, setForm] = useState({
     id_pedagang: '',
@@ -416,7 +415,6 @@ const AddEditBoningModal = ({
 
   const buildPayload = () => ({
     ...(isEdit ? { pid: editData.penjualan.pid } : {}),
-    id_rph: idOffice,
     id_pedagang: Number(form.id_pedagang),
     tgl_penjualan: form.tgl_penjualan,
     details: details.map((item) => ({

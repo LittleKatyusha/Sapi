@@ -190,7 +190,7 @@ const PenjualanBoningPage = () => {
     handlePageChange, handlePerPageChange,
     handleSearch, clearSearch,
     handleDateRange, clearDateRange,
-    refresh, idOffice,
+    refresh,
   } = usePenjualanBoning();
 
   const [notification, setNotification] = useState(null);
@@ -348,8 +348,9 @@ const PenjualanBoningPage = () => {
       sortable: true,
       minWidth: '180px',
       cell: (row) => (
-        <div className="rounded-lg bg-rose-50 px-2 py-1 font-mono text-xs text-rose-700">
-          {row.no_kwitansi || '-'}
+        <div className="py-2">
+          <div className="rounded-lg bg-rose-50 px-2 py-1 font-mono text-xs text-rose-700">{row.no_kwitansi || '-'}</div>
+          <div className="mt-1 text-xs text-slate-500">{row.nama_rph || '-'}</div>
         </div>
       ),
     },
@@ -418,7 +419,7 @@ const PenjualanBoningPage = () => {
   if (isFormPage) {
     const formData = routePid ? selectedItem : null;
     return <div className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 lg:px-8">
-      <AddEditBoningModal fullPage isOpen onClose={() => navigate('/rph/penjualan-boning')} onSubmit={routePid ? handleUpdate : handleStore} editData={formData} pedagangList={pedagangList} boningItems={boningItems} itemPotongOptions={itemPotongOptions} bankOptions={bankOptions} pengirimOptions={pengirimOptions} kendaraanOptions={kendaraanOptions} fetchHarga={fetchHarga} fetchPedagangHarga={fetchPedagangHarga} loading={routePid ? updateLoading : createLoading} masterLoading={masterLoading} idOffice={idOffice} />
+      <AddEditBoningModal fullPage isOpen onClose={() => navigate('/rph/penjualan-boning')} onSubmit={routePid ? handleUpdate : handleStore} editData={formData} pedagangList={pedagangList} boningItems={boningItems} itemPotongOptions={itemPotongOptions} bankOptions={bankOptions} pengirimOptions={pengirimOptions} kendaraanOptions={kendaraanOptions} fetchHarga={fetchHarga} fetchPedagangHarga={fetchPedagangHarga} loading={routePid ? updateLoading : createLoading} masterLoading={masterLoading} />
     </div>;
   }
 
@@ -451,7 +452,7 @@ const PenjualanBoningPage = () => {
                 type="text"
                 value={searchTerm}
                 onChange={(event) => handleSearch(event.target.value)}
-                placeholder="Cari no kwitansi atau pedagang"
+                placeholder="Cari no kwitansi, pedagang, atau RPH"
                 className="w-full rounded-2xl border border-slate-300 py-3 pl-10 pr-10 text-sm outline-none transition focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20"
               />
               {searchTerm && (
@@ -588,7 +589,6 @@ const PenjualanBoningPage = () => {
         fetchPedagangHarga={fetchPedagangHarga}
         loading={createLoading}
         masterLoading={masterLoading}
-        idOffice={idOffice}
       />
 
       <AddEditBoningModal
@@ -606,7 +606,6 @@ const PenjualanBoningPage = () => {
         fetchPedagangHarga={fetchPedagangHarga}
         loading={updateLoading}
         masterLoading={masterLoading}
-        idOffice={idOffice}
       />
 
       <DetailBoningModal
