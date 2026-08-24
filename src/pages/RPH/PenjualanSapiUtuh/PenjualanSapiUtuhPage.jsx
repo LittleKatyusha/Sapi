@@ -727,6 +727,13 @@ const PenjualanSapiUtuhPage = () => {
       },
     },
     {
+      name: 'RPH',
+      selector: (row) => row.nama_rph,
+      sortable: true,
+      minWidth: '150px',
+      cell: (row) => <span className="text-sm font-medium text-gray-700">{row.nama_rph || '-'}</span>,
+    },
+    {
       name: 'Jenis',
       selector: (row) => row.jenis_transaksi,
       sortable: true,
