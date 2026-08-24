@@ -611,7 +611,7 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, re
                       <span className="text-gray-400">Bobot:</span> {row.bobot ? `${Number(row.bobot)} KG` : '-'}
                     </div>
                     <div className="text-xs text-gray-500">
-                      <span className="text-gray-400">Lokasi:</span> {row.lokasi_sapi || '-'}
+                      <span className="text-gray-400">RPH:</span> {row.nama_rph || row.lokasi_sapi || '-'}
                     </div>
                   </div>
                 </td>

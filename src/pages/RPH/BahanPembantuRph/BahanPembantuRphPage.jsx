@@ -255,6 +255,10 @@ const MobileBahanPembantuCard = ({
           <p className="font-medium text-slate-700">{row.payor || '-'}</p>
         </div>
         <div className="col-span-2">
+          <p className="text-[10px] text-slate-400">RPH</p>
+          <p className="font-medium text-slate-700">{row.namaRph || '-'}</p>
+        </div>
+        <div className="col-span-2">
           <p className="text-[10px] text-slate-400">Keterangan</p>
           <p className="font-medium text-slate-700">{row.keterangan || '-'}</p>
         </div>
@@ -272,6 +276,10 @@ const MobileBahanPembantuCard = ({
         <div>
           <p className="text-[10px] text-slate-400">Pemasok</p>
           <p className="font-medium text-slate-700">{row.pemasok || '-'}</p>
+        </div>
+        <div className="col-span-2">
+          <p className="text-[10px] text-slate-400">RPH</p>
+          <p className="font-medium text-slate-700">{row.namaRph || '-'}</p>
         </div>
         <div>
           <p className="text-[10px] text-slate-400">Qty</p>
@@ -338,6 +346,7 @@ const [appliedFilters, setAppliedFilters] = useState(emptyFilter);
     tanggalPembayaran: item.tanggalPembayaran ?? item.tanggal_pembayaran ?? null,
     peruntukkan: item.peruntukkan ?? '-',
     payor: item.payor ?? '-',
+    namaRph: item.namaRph ?? item.nama_rph ?? '-',
     createdAt: item.createdAt ?? item.created_at ?? null,
     paymentPid: item.paymentPid ?? item.payment_pid ?? null,
     sisaPembayaran: Number(item.sisaPembayaran ?? item.sisa_pembayaran ?? 0)
@@ -641,6 +650,13 @@ const [appliedFilters, setAppliedFilters] = useState(emptyFilter);
               {row.notaSistem}
             </div>
           )
+        }),
+        fixedWidthColumn({
+          name: 'RPH',
+          selector: (row) => row.namaRph,
+          sortable: true,
+          width: '150px',
+          cell: (row) => <span className="text-xs font-medium text-slate-700">{row.namaRph || '-'}</span>
         }),
         flexibleColumn({
           name: 'Item / Keterangan',

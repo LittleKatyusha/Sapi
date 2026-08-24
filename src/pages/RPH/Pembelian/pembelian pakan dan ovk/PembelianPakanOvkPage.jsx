@@ -264,6 +264,10 @@ const MobilePurchaseCard = ({
           <p className="text-gray-400">Pemasok</p>
           <p className="font-medium text-gray-700">{row.supplier || '-'}</p>
         </div>
+        <div className="col-span-2">
+          <p className="text-gray-400">RPH</p>
+          <p className="font-medium text-gray-700">{row.nama_rph || '-'}</p>
+        </div>
         <div className="col-span-2 flex items-center justify-between border-t border-gray-100 pt-2">
           <p className="text-gray-400">Total</p>
           <p className="font-semibold text-emerald-700">{formatCurrency(row.total)}</p>
@@ -440,7 +444,7 @@ const filteredData = useMemo(() => {
  if (!keyword) return activeData;
 
  return activeData.filter((item) =>
- [item.nomor, item.jenisItem, item.supplier, item.status]
+ [item.nomor, item.jenisItem, item.supplier, item.nama_rph, item.status]
  .filter(Boolean)
  .some((value) => value.toLowerCase().includes(keyword))
  );

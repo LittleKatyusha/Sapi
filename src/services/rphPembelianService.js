@@ -214,6 +214,7 @@ class RphPembelianService {
       nomor: item.nomor_pemesanan || '- ',
       tanggal: item.tgl_pemesanan || item.created_at || null,
       supplier: item.pemasok || '- ',
+      nama_rph: item.nama_rph || '-',
       jenisItem: item.nama_produk || '- ',
       jumlah: Number(item.total_jumlah) || 0,
       satuan: item.satuan || item.satuan_produk || '-',
