@@ -33,6 +33,7 @@ const QurbanCard = ({ item, index, onEdit, onUnduhBerkas, formatCurrency }) => {
             </div>
 
             <div className="text-xs text-gray-700 truncate" title={item.pemasok}>{item.pemasok || '-'}</div>
+            <div className="text-xs text-gray-500 truncate" title={item.nama_rph}>RPH: {item.nama_rph || '-'}</div>
 
             <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
                 <button onClick={() => onEdit(item)} className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded text-[11px] font-medium transition-colors">
