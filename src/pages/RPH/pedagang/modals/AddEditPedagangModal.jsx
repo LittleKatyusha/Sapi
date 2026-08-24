@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   X, Save, User, MapPin, Phone, Store, Hash, Calendar,
-  ChevronDown, ChevronUp, DollarSign, Loader2,
+  ChevronDown, ChevronUp, DollarSign, Loader2, AlertCircle,
 } from 'lucide-react';
 import PedagangService from '../../../../services/pedagangService';
 import HttpClient from '../../../../services/httpClient';
@@ -268,7 +268,10 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (loadingItemBoning) return;
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      setActiveTab('identitas');
+      return;
+    }
     setIsSubmitting(true);
     try {
       const payload = { ...formData };
@@ -455,6 +458,19 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5">
+          {Object.values(errors).some(Boolean) && (
+            <div role="alert" className="mb-4 flex gap-3 rounded-lg border border-red-200 bg-red-50 p-3 text-red-700">
+              <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+              <div>
+                <p className="text-sm font-bold">Data belum sesuai</p>
+                <ul className="mt-1 list-disc pl-4 text-xs">
+                  {Object.entries(errors).filter(([, message]) => message).map(([field, message]) => (
+                    <li key={field}>{message}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
           {detailLoading ? (
             <div className="flex flex-col items-center justify-center py-16 text-gray-400">
               <Loader2 className="w-8 h-8 animate-spin mb-3" />
