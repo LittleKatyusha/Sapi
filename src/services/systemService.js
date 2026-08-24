@@ -257,10 +257,10 @@ class SystemService {
 
     async getOffice() {
         try {
-            const response = await httpClient.get('/api/master/office/data');
+            const response = await httpClient.get('/api/master/office/data', { params: { per_page: 100 } });
             return {
                 success: true,
-                data: response.data || response,
+                data: response?.data?.data || response?.data || response || [],
             };
         } catch (error) {
             console.error('Error fetching office:', error);
@@ -294,4 +294,6 @@ class SystemService {
     }
 }
 
-export default new SystemService();
+const systemService = new SystemService();
+
+export default systemService;

@@ -192,6 +192,7 @@ const SapiPickerModal = ({ isOpen, onClose, onConfirm, fetchSapiByGolongan, sele
               eartag: sapi.eartag,
               jenis_ternak: sapi.jenis_ternak,
               klasifikasi: sapi.klasifikasi,
+              nama_rph: sapi.nama_rph,
               bobot: sapi.bobot || 0,
               keterangan: '',
             },
@@ -345,6 +346,8 @@ const SapiPickerModal = ({ isOpen, onClose, onConfirm, fetchSapiByGolongan, sele
                               </span>
                             </div>
                             <div className="text-xs text-gray-500 mt-0.5 flex items-center gap-2">
+                              <span className="font-medium text-blue-600">RPH: {sapi.nama_rph || '-'}</span>
+                              <span className="text-gray-300">·</span>
                               <span>{sapi.jenis_ternak}</span>
                               <span className="text-gray-300">·</span>
                               <span className="flex items-center gap-0.5">
@@ -853,6 +856,7 @@ const AddEditPerpindahanTernakPage = () => {
                     <thead className="bg-slate-50 border-b border-gray-200">
                       <tr>
                         <th className="px-3 py-2.5 text-left font-semibold text-gray-600 text-xs uppercase tracking-wider">Eartag</th>
+                        <th className="px-3 py-2.5 text-left font-semibold text-gray-600 text-xs uppercase tracking-wider">RPH</th>
                         <th className="px-3 py-2.5 text-left font-semibold text-gray-600 text-xs uppercase tracking-wider">Jenis</th>
                         <th className="px-3 py-2.5 text-left font-semibold text-gray-600 text-xs uppercase tracking-wider">Klasifikasi</th>
                         <th className="px-3 py-2.5 text-left font-semibold text-gray-600 text-xs uppercase tracking-wider">Bobot (kg)</th>
@@ -866,6 +870,7 @@ const AddEditPerpindahanTernakPage = () => {
                         return (
                         <tr key={ternakKey} className="hover:bg-slate-50/50">
                           <td className="px-3 py-2.5 font-semibold text-gray-800 font-mono text-xs">{ternak.eartag}</td>
+                          <td className="px-3 py-2.5 text-gray-600">{ternak.nama_rph || '-'}</td>
                           <td className="px-3 py-2.5 text-gray-600">{ternak.jenis_ternak}</td>
                           <td className="px-3 py-2.5">
                             <span className="inline-block text-[10px] font-semibold bg-slate-100 text-slate-600 px-2 py-0.5 rounded">
