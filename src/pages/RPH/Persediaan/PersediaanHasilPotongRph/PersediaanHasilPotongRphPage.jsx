@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Package, Layers, Loader2, Beef, Boxes, CheckCircle2, XCircle, X } from 'lucide-react';
+import { Package, Loader2, Beef, Boxes, CheckCircle2, XCircle, X } from 'lucide-react';
 import useDocumentTitle from '../../../../hooks/useDocumentTitle';
 import PersediaanTab from './components/PersediaanTab';
 import BoningTab from './components/BoningTab';
@@ -12,8 +12,6 @@ import PotongSapiBiasaModal from '../../StokSapi/modals/PotongSapiBiasaModal';
 
 const TABS = [
   { id: 'boning', label: 'Boning', icon: Beef, desc: 'Item potong boning' },
-  { id: 'sapi', label: 'Sapi', icon: Package, desc: 'Stok sapi hidup' },
-  { id: 'karkas', label: 'Karkas', icon: Layers, desc: 'Karkas utuh' },
   { id: 'kulit', label: 'Kulit', icon: Boxes, desc: 'Hasil potong kulit' },
 ];
 
@@ -215,7 +213,7 @@ const PersediaanHasilPotongRphPage = () => {
                   <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Persediaan Hasil Potong</h1>
                   <span className="hidden sm:inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-700">RPH</span>
                 </div>
-                <p className="text-sm text-slate-500 mt-0.5">Boning, Sapi, Karkas, dan Kulit — semua stok hasil potong dalam satu tempat</p>
+                <p className="text-sm text-slate-500 mt-0.5">Boning dan Kulit — semua stok hasil potong dalam satu tempat</p>
               </div>
             </div>
             <div className="flex items-center gap-2 text-sm text-slate-500">
