@@ -283,6 +283,7 @@ const PenerimaanHoPage = () => {
               {r.nota && r.nota_sistem_ho && (
                 <div className="text-xs text-gray-500">Nota: {r.nota}</div>
               )}
+              <div className="text-xs text-gray-500">Office: {r.nama_office || '-'}</div>
             </div>
           ),
           sortable: true,
@@ -331,6 +332,7 @@ const PenerimaanHoPage = () => {
             {r.nota && r.nota_sistem_ho && (
               <div className="text-xs text-gray-500">Nota: {r.nota}</div>
             )}
+            <div className="text-xs text-gray-500">Office: {r.nama_office || '-'}</div>
           </div>
         ),
         sortable: true,
