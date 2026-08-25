@@ -10,7 +10,6 @@ const getToday = () => {
 
 const JENIS_POTONG_OPTIONS = [
   { value: 1, label: 'Boning' },
-  { value: 2, label: 'Karkas' },
   { value: 3, label: 'Kulit' },
 ];
 
@@ -102,6 +101,7 @@ const PotongSapiBiasaModal = ({
   const [loadingItemPotong, setLoadingItemPotong] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [notification, setNotification] = useState(null);
+  const beratSapi = Number(cowData?.bobot ?? cowData?.berat ?? initialData?.header?.berat_sapi ?? 0);
 
   const fetchItemPotongOptions = useCallback(async () => {
     setLoadingItemPotong(true);
@@ -263,6 +263,12 @@ const PotongSapiBiasaModal = ({
       return;
     }
 
+    const totalBeratInput = details.reduce((sum, detail) => sum + Number(detail.berat), 0);
+    if (beratSapi > 0 && totalBeratInput > beratSapi) {
+      setNotification({ type: 'error', message: `Total berat hasil potong (${totalBeratInput} kg) tidak boleh melebihi berat sapi (${beratSapi} kg).` });
+      return;
+    }
+
     setIsSubmitting(true);
     setNotification({ type: 'info', message: mode === 'edit' ? 'Menyimpan perubahan data potong sapi...' : 'Menyimpan data potong sapi...' });
 
@@ -311,6 +317,7 @@ const PotongSapiBiasaModal = ({
 
   const totalBerat = details.reduce((sum, detail) => sum + (Number(detail.berat) || 0), 0);
   const totalDetail = details.length;
+  const sisaBerat = beratSapi - totalBerat;
 
   return (
     <>
@@ -330,6 +337,7 @@ const PotongSapiBiasaModal = ({
                 <p className="text-sm text-slate-500">
                   Form potong sapi untuk sapi <span className="font-semibold text-indigo-600">{cowData?.eartag || cowData?.eartag_supplier || cowData?.sapi || initialData?.header?.sapi || cowData?.jenis_sapi || '-'}</span>
                 </p>
+                <p className="mt-1 text-sm font-semibold text-slate-700">Berat sapi: {beratSapi || '-'} kg</p>
               </div>
             </div>
             <button
@@ -427,6 +435,7 @@ const PotongSapiBiasaModal = ({
                                 onChange={(e) => handleDetailChange(index, 'berat', e.target.value)}
                                 placeholder="0"
                                 min="1"
+                                max={beratSapi || undefined}
                                 className="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 transition-all focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                                 required
                               />
@@ -451,6 +460,10 @@ const PotongSapiBiasaModal = ({
                     <p className="text-[11px] font-semibold text-indigo-500">Total Berat</p>
                     <p className="text-sm font-bold text-indigo-700">{totalBerat} kg</p>
                   </div>
+                </div>
+
+                <div className={`rounded-xl p-3 text-sm font-semibold ${sisaBerat < 0 ? 'bg-rose-50 text-rose-700' : 'bg-emerald-50 text-emerald-700'}`}>
+                  Berat sapi: {beratSapi || '-'} kg · Sisa: {sisaBerat} kg
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -514,7 +527,7 @@ const PotongSapiBiasaModal = ({
             <button
               type="button"
               onClick={handleSubmit}
-              disabled={isSubmitting}
+              disabled={isSubmitting || (beratSapi > 0 && totalBerat > beratSapi)}
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:from-indigo-600 hover:to-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isSubmitting ? (
