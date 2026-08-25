@@ -405,6 +405,7 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
 
   const hargaBoning = useMemo(() => itemBoningOptions.filter((i) => Number(i.id_jenis_potong) === 1), [itemBoningOptions]);
   const hargaKarkas = useMemo(() => itemBoningOptions.filter((i) => Number(i.id_jenis_potong) === 2), [itemBoningOptions]);
+  const hargaKulit = useMemo(() => itemBoningOptions.filter((i) => Number(i.id_jenis_potong) === 3), [itemBoningOptions]);
 
   if (!isOpen) return null;
 
@@ -619,6 +620,14 @@ const AddEditPedagangModal = ({ isOpen, onClose, onSave, editData, loading }) =>
                                 {hargaBoning.map(renderHargaInput)}
                               </div>
                             ) : <p className="text-sm text-gray-400">Tidak ada item boning.</p>}
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wide mb-3">Kulit</h4>
+                            {hargaKulit.length > 0 ? (
+                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                {hargaKulit.map(renderHargaInput)}
+                              </div>
+                            ) : <p className="text-sm text-gray-400">Tidak ada item kulit.</p>}
                           </div>
                         </>
                       )}
