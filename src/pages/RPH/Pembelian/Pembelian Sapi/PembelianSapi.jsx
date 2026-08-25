@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { PlusCircle, Calendar, CalendarDays, CalendarRange, Truck, CheckCircle2 } from 'lucide-react';
+import HttpClient from '../../../../services/httpClient';
+import { API_ENDPOINTS } from '../../../../config/api';
 
 // Import real hooks
 import usePoRph from './hooks/usePoRph';
@@ -93,11 +95,25 @@ const Notification = React.memo(({ notification, onClose }) => {
 const PembelianSapi = () => {
     const navigate = useNavigate();
     const location = useLocation();
+    const user = JSON.parse(localStorage.getItem('user') || 'null');
+    const isRphUser = Number(user?.roles_id) === 2;
     const [notification, setNotification] = useState(null);
     const [lastRefreshTime, setLastRefreshTime] = useState(Date.now());
     const [isTableReady, setIsTableReady] = useState(false);
+    const [officeName, setOfficeName] = useState('');
     const fetchTimeoutRef = useRef(null);
     const isFetchingRef = useRef(false);
+
+    useEffect(() => {
+        if (!isRphUser || !user?.id_office) return;
+
+        HttpClient.get(`${API_ENDPOINTS.MASTER.OFFICE}/data`, { params: { draw: 1, start: 0, length: 100 } })
+            .then((response) => {
+                const offices = response?.data?.data || response?.data || [];
+                setOfficeName(offices.find((office) => Number(office.id) === Number(user.id_office))?.name || '');
+            })
+            .catch(() => setOfficeName(''));
+    }, [isRphUser, user?.id_office]);
     
     // Modal states
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -427,9 +443,12 @@ const PembelianSapi = () => {
                     <div className="bg-white rounded-lg border border-gray-100 p-4 shadow-sm">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                             <div>
-                                <h1 className="text-lg sm:text-xl font-bold text-gray-900">
-                                    Kelola data pembelian doka & sapi
-                                </h1>
+                                <div className="flex items-center gap-2">
+                                    <h1 className="text-lg sm:text-xl font-bold text-gray-900">
+                                        Kelola data pembelian doka & sapi
+                                    </h1>
+                                    {isRphUser && officeName && <span className="text-lg sm:text-xl font-bold text-gray-900">{officeName}</span>}
+                                </div>
                                 <p className="text-sm text-gray-500">
                                     Kelola data pembelian doka & sapi dan ternak
                                 </p>
