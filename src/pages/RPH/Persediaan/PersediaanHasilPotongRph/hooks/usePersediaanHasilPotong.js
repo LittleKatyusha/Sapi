@@ -3,6 +3,7 @@ import PersediaanHasilPotongService from '../../../../../services/persediaanHasi
 
 const usePersediaanHasilPotong = (type) => {
   const [dataList, setDataList] = useState([]);
+  const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -31,6 +32,7 @@ const usePersediaanHasilPotong = (type) => {
 
       if (res.success) {
         setDataList(res.data || []);
+        setSummary(res.summary || null);
         const total = res.recordsFiltered || res.recordsTotal || 0;
         setServerPagination({
           currentPage: page,
@@ -80,6 +82,7 @@ const usePersediaanHasilPotong = (type) => {
 
   return {
     dataList,
+    summary,
     loading,
     error,
     searchTerm,

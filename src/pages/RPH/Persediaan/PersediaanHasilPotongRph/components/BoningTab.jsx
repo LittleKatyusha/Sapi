@@ -113,19 +113,27 @@ const ActionButton = ({ row, isOpen, onToggle, onClose, onDetail }) => {
   );
 };
 
-const BoningSummaryCard = ({ data }) => {
+const BoningSummaryCard = ({ data, summary }) => {
   const stats = useMemo(() => {
+    if (summary) {
+      return {
+        totalItem: Number(summary.total_item ?? 0),
+        totalMasuk: Number(summary.berat_masuk ?? 0),
+        totalSisa: Number(summary.berat_sisa ?? 0),
+        habisCount: 0,
+      };
+    }
     const totalItem = data.length;
     const totalMasuk = data.reduce((s, i) => s + Number(i.berat_masuk ?? 0), 0);
     const totalSisa = data.reduce((s, i) => s + Number(i.berat_sisa ?? 0), 0);
     const habisCount = data.filter((i) => Number(i.berat_sisa ?? 0) <= 0).length;
     return { totalItem, totalMasuk, totalSisa, habisCount };
-  }, [data]);
+  }, [data, summary]);
 
   const cards = [
     { label: 'Total Item', value: stats.totalItem, icon: Beef, color: 'emerald', sub: 'item boning' },
     { label: 'Berat Masuk', value: formatJumlah(stats.totalMasuk), icon: ArrowDownToLine, color: 'sky', sub: 'total produksi' },
-    { label: 'Sisa Stok', value: formatJumlah(stats.totalSisa), icon: Package, color: stats.totalSisa > 0 ? 'amber' : 'rose', sub: `${stats.habisCount} habis` },
+    { label: 'Sisa Stok', value: formatJumlah(stats.totalSisa), icon: Package, color: stats.totalSisa > 0 ? 'amber' : 'rose', sub: 'stok tersedia' },
   ];
 
   const colorMap = {
@@ -162,6 +170,7 @@ const BoningSummaryCard = ({ data }) => {
 const BoningSummaryTable = ({ onOpenDetail, refreshKey }) => {
   const {
     dataList,
+    summary,
     loading,
     error,
     searchTerm,
@@ -294,7 +303,7 @@ const BoningSummaryTable = ({ onOpenDetail, refreshKey }) => {
 
   return (
     <div className="space-y-3">
-      {!error && dataList.length > 0 && <BoningSummaryCard data={dataList} />}
+      {!error && <BoningSummaryCard data={dataList} summary={summary} />}
 
       {/* Compact Toolbar — sticky on scroll */}
       <div className="sticky top-0 z-20 flex flex-col lg:flex-row lg:items-center gap-2.5 bg-white/95 backdrop-blur-sm py-1">

@@ -31,6 +31,7 @@ class PersediaanHasilPotongService {
         data: response.data || [],
         recordsTotal: response.recordsTotal || 0,
         recordsFiltered: response.recordsFiltered || 0,
+        summary: response.summary || null,
         draw: response.draw || 1,
         message: 'Success',
       };
@@ -41,6 +42,7 @@ class PersediaanHasilPotongService {
         data: null,
         recordsTotal: 0,
         recordsFiltered: 0,
+        summary: null,
         draw: 1,
         message: error?.data?.message || error?.message || 'Failed to fetch data',
       };
