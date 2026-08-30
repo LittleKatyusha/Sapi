@@ -163,10 +163,11 @@ function RowActionButton({ row, isOpen, onToggle, onClose, onDetail, onEdit, onD
   );
 }
 
-function PenjualanKulitForm({ open, mode, initialData, master, saving, onClose, onSubmit, fullPage = false }) {
+function PenjualanKulitForm({ open, mode, initialData, master, saving, onClose, onSubmit, onRefreshStock, fullPage = false }) {
   const [form, setForm] = useState(emptyForm());
   const [line, setLine] = useState(emptyLine);
   const [error, setError] = useState('');
+  const [refreshingStock, setRefreshingStock] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -270,6 +271,12 @@ function PenjualanKulitForm({ open, mode, initialData, master, saving, onClose, 
     setLine(emptyLine);
   };
 
+  const refreshStock = async () => {
+    setRefreshingStock(true);
+    await onRefreshStock?.();
+    setRefreshingStock(false);
+  };
+
   const submit = (posting = false) => {
     setError('');
     if (!form.id_pedagang) return setError('Pedagang wajib dipilih.');
@@ -336,7 +343,7 @@ function PenjualanKulitForm({ open, mode, initialData, master, saving, onClose, 
           <div className="mt-6 border-t pt-5">
             <h3 className="mb-3 text-sm font-bold uppercase text-slate-600">Detail Kulit</h3>
             <div className="grid gap-3 md:grid-cols-5">
-              <Field label="Kulit" required><SearchableSelect value={line.id_stok_kulit_rph} onChange={(value) => setLine((c) => ({ ...c, id_stok_kulit_rph: value || '' }))} options={toOptions(formStockOptions)} placeholder="Pilih stok kulit" accentColor="green" maxMenuHeight={280} /></Field>
+              <Field label="Kulit" required><SearchableSelect value={line.id_stok_kulit_rph} onChange={(value) => setLine((c) => ({ ...c, id_stok_kulit_rph: value || '' }))} onMenuOpen={refreshStock} options={toOptions(formStockOptions)} placeholder="Pilih stok kulit" accentColor="green" maxMenuHeight={280} isLoading={refreshingStock} /></Field>
               <Field label="Stok Tersedia"><input className={`${inputClass} bg-slate-50`} readOnly value={selectedStock ? kg(selectedStock.berat_tersedia) : '-'} /></Field>
               <Field label="Berat Kulit" required><input className={inputClass} type="number" min="0" step="1" value={line.berat_kulit} onChange={(e) => setLine((c) => ({ ...c, berat_kulit: e.target.value }))} /></Field>
               <Field label="Harga per Kg" required><input className={inputClass} type="text" inputMode="numeric" value={nominalInput(line.harga_per_kg)} onChange={(e) => setLine((c) => ({ ...c, harga_per_kg: parseNominalInput(e.target.value) }))} /></Field>
@@ -386,12 +393,16 @@ export default function PenjualanKulitPage() {
     setLoading(false);
   }, [filters]);
 
-  const loadMaster = async () => {
+  const loadMaster = useCallback(async () => {
     const res = await PenjualanKulitService.getMasterData();
     if (res.success) setMaster(res.data || {});
-  };
+  }, []);
 
-  useEffect(() => { load(); loadMaster(); }, [load]);
+  useEffect(() => { load(); loadMaster(); }, [load, loadMaster]);
+
+  useEffect(() => {
+    if (isFormPage) loadMaster();
+  }, [isFormPage, routePid, loadMaster]);
 
   useEffect(() => {
     if (!openMenuId) return undefined;
@@ -448,7 +459,7 @@ export default function PenjualanKulitPage() {
     });
   }, [isFormPage, routePid]);
 
-  if (isFormPage) return <PenjualanKulitForm fullPage open mode={routePid ? 'edit' : 'add'} initialData={routePid ? selected : null} master={master} saving={saving} onClose={() => navigate('/rph/penjualan-kulit')} onSubmit={save} />;
+  if (isFormPage) return <PenjualanKulitForm fullPage open mode={routePid ? 'edit' : 'add'} initialData={routePid ? selected : null} master={master} saving={saving} onClose={() => navigate('/rph/penjualan-kulit')} onSubmit={save} onRefreshStock={loadMaster} />;
 
   return (
     <div className="min-h-screen bg-slate-50 p-4 md:p-6">
@@ -478,7 +489,7 @@ export default function PenjualanKulitPage() {
         </table>
       </div>
 
-      <PenjualanKulitForm open={modal === 'add' || modal === 'edit'} mode={modal} initialData={selected} master={master} saving={saving} onClose={() => setModal(null)} onSubmit={save} />
+      <PenjualanKulitForm open={modal === 'add' || modal === 'edit'} mode={modal} initialData={selected} master={master} saving={saving} onClose={() => setModal(null)} onSubmit={save} onRefreshStock={loadMaster} />
       {modal === 'detail' && selected ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"><div className="w-full max-w-3xl rounded-xl bg-white shadow-2xl"><div className="flex justify-between border-b px-5 py-4"><h2 className="text-lg font-bold">Detail {selected.penjualan.no_kwitansi}</h2><button onClick={() => setModal(null)}><X className="h-5 w-5" /></button></div><div className="p-5"><div className="grid gap-3 text-sm md:grid-cols-4"><div><span className="text-slate-500">Pedagang</span><div className="font-semibold">{selected.penjualan.nama_pedagang}</div></div><div><span className="text-slate-500">Status</span><div className="font-semibold">{selected.penjualan.status}</div></div><div><span className="text-slate-500">Total</span><div className="font-semibold">{money(selected.penjualan.total_penjualan)}</div></div><div><span className="text-slate-500">Saldo Pedagang Digunakan</span><div className="font-semibold text-sky-700">{money(selected.penjualan.penggunaan_saldo || 0)}</div></div></div><div className="mt-5 overflow-hidden rounded-lg border"><table className="min-w-full text-sm"><thead className="bg-slate-50 text-left text-xs uppercase text-slate-500"><tr><th className="px-3 py-2">Kulit</th><th className="px-3 py-2 text-right">Berat</th><th className="px-3 py-2 text-right">Harga</th><th className="px-3 py-2 text-right">Subtotal</th></tr></thead><tbody>{selected.details.map((d) => <tr key={d.id} className="border-t"><td className="px-3 py-2">{[d.item_potong_name || d.item_kulit_name, d.klasifikasi_hewan_name].filter(Boolean).join(' - ')}</td><td className="px-3 py-2 text-right">{kg(d.berat_kulit)}</td><td className="px-3 py-2 text-right">{money(d.harga_per_kg)}</td><td className="px-3 py-2 text-right">{money(d.subtotal)}</td></tr>)}</tbody></table></div></div></div></div>
       ) : null}

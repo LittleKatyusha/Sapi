@@ -61,7 +61,7 @@ const PenjualanKulitService = {
 
   async getMasterData() {
     try {
-      const res = await HttpClient.get(EP.MASTER_DATA);
+      const res = await HttpClient.get(`${EP.MASTER_DATA}?_ts=${Date.now()}`);
       return { success: true, data: res.data || {} };
     } catch (err) {
       return { success: false, data: {}, message: mapError(err, 'Gagal memuat master data') };
