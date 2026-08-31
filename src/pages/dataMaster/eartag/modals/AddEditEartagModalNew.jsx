@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Edit2, Plus, X, Tag, Settings, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Edit2, Plus, X, Tag } from 'lucide-react';
 
 const AddEditEartagModalNew = ({ isOpen, onClose, onSave, editData = null }) => {
     const [formData, setFormData] = useState({
