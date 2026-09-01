@@ -522,7 +522,7 @@ const ModernPembelianOVKTable = ({
           Data pembelian OVK akan muncul di sini. Coba tambahkan data baru atau ubah pencarian/filter tanggal.
         </p>
         <button
-          onClick={() => navigate('/ho/pembelian-ovk/add')}
+          onClick={() => navigate('/feedmil/pembelian-ovk/add')}
           className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
         >
           <PlusCircle className="w-4 h-4" />

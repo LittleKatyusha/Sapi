@@ -22,15 +22,15 @@ export const ROUTE_PATHS = Object.freeze({
   HO_PURCHASE_EDIT: '/ho/pembelian/edit/:id',
   HO_PURCHASE_DETAIL: '/ho/pembelian/detail/:id',
 
-  HO_FEEDMIL: '/ho/pembelian-feedmil',
-  HO_FEEDMIL_ADD: '/ho/pembelian-feedmil/add',
-  HO_FEEDMIL_EDIT: '/ho/pembelian-feedmil/edit/:id',
-  HO_FEEDMIL_DETAIL: '/ho/pembelian-feedmil/detail/:id',
+  HO_FEEDMIL: '/feedmil/pembelian-feedmil',
+  HO_FEEDMIL_ADD: '/feedmil/pembelian-feedmil/add',
+  HO_FEEDMIL_EDIT: '/feedmil/pembelian-feedmil/edit/:id',
+  HO_FEEDMIL_DETAIL: '/feedmil/pembelian-feedmil/detail/:id',
 
-  HO_OVK: '/ho/pembelian-ovk',
-  HO_OVK_ADD: '/ho/pembelian-ovk/add',
-  HO_OVK_EDIT: '/ho/pembelian-ovk/edit/:id',
-  HO_OVK_DETAIL: '/ho/pembelian-ovk/detail/:id',
+  HO_OVK: '/feedmil/pembelian-ovk',
+  HO_OVK_ADD: '/feedmil/pembelian-ovk/add',
+  HO_OVK_EDIT: '/feedmil/pembelian-ovk/edit/:id',
+  HO_OVK_DETAIL: '/feedmil/pembelian-ovk/detail/:id',
 
   HO_KULIT: '/ho/pembelian-kulit',
   HO_KULIT_ADD: '/ho/pembelian-kulit/add',

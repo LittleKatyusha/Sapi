@@ -161,6 +161,17 @@ const StokDokaPage = lazy(() => import('./pages/RPH/Persediaan/StokDoka/StokDoka
 const PerpindahanTernakPage = lazy(() => import('./pages/RPH/Perpindahan/PerpindahanTernakPage'));
 const AddEditPerpindahanTernakPage = lazy(() => import('./pages/RPH/Perpindahan/AddEditPerpindahanTernakPage'));
 
+// HO Konsentrat Pages - Lazy loaded
+const ResepKonsentratPage = lazy(() => import('./pages/ho/resepKonsentrat/ResepKonsentratPage'));
+const AddEditResepKonsentratPage = lazy(() => import('./pages/ho/resepKonsentrat/AddEditResepKonsentratPage'));
+const PenjualanKonsentratPage = lazy(() => import('./pages/ho/penjualanKonsentrat/PenjualanKonsentratPage'));
+
+// RPH Konsentrat Pages - Lazy loaded
+const PembelianKonsentratPage = lazy(() => import('./pages/RPH/Konsentrat/PembelianKonsentratPage'));
+const AddEditPembelianKonsentratPage = lazy(() => import('./pages/RPH/Konsentrat/AddEditPembelianKonsentratPage'));
+const PemberianPakanKonsentratPage = lazy(() => import('./pages/RPH/Konsentrat/PemberianPakanKonsentratPage'));
+const AddEditPemberianPakanKonsentratPage = lazy(() => import('./pages/RPH/Konsentrat/AddEditPemberianPakanKonsentratPage'));
+
 // RPH Stok Sapi Page - Lazy loaded
 const StokSapi = lazy(() => import('./pages/RPH/StokSapi/StokSapiPage'));
 const PemberianOvkSapiPage = lazy(() => import('./pages/RPH/StokSapi/PemberianOvkSapiPage'));
@@ -514,15 +525,24 @@ function AppSecure() {
               <Route path="/rph/perpindahan-ternak/tambah" element={<AddEditPerpindahanTernakPage />} />
               <Route path="/rph/perpindahan-ternak/edit/:pid" element={<AddEditPerpindahanTernakPage />} />
 
-              {/* HO Feedmil and OVK Routes */}
-              <Route path="/ho/pembelian-feedmil" element={<PembelianFeedmilPage />} />
-              <Route path="/ho/pembelian-feedmil/add" element={<AddEditPembelianFeedmilPage />} />
-              <Route path="/ho/pembelian-feedmil/edit/:id" element={<AddEditPembelianFeedmilPage />} />
-              <Route path="/ho/pembelian-feedmil/detail/:id" element={<PembelianFeedmilDetailPage />} />
-              <Route path="/ho/pembelian-ovk" element={<PembelianOVKPage />} />
-              <Route path="/ho/pembelian-ovk/add" element={<AddEditPembelianOVKPage />} />
-              <Route path="/ho/pembelian-ovk/edit/:id" element={<AddEditPembelianOVKPage />} />
-              <Route path="/ho/pembelian-ovk/detail/:id" element={<PembelianOVKDetailPage />} />
+              {/* Feedmil Routes */}
+              <Route path="/feedmil/pembelian-feedmil" element={<PembelianFeedmilPage />} />
+              <Route path="/feedmil/pembelian-feedmil/add" element={<AddEditPembelianFeedmilPage />} />
+              <Route path="/feedmil/pembelian-feedmil/edit/:id" element={<AddEditPembelianFeedmilPage />} />
+              <Route path="/feedmil/pembelian-feedmil/detail/:id" element={<PembelianFeedmilDetailPage />} />
+              <Route path="/feedmil/pembelian-ovk" element={<PembelianOVKPage />} />
+              <Route path="/feedmil/pembelian-ovk/add" element={<AddEditPembelianOVKPage />} />
+              <Route path="/feedmil/pembelian-ovk/edit/:id" element={<AddEditPembelianOVKPage />} />
+              <Route path="/feedmil/pembelian-ovk/detail/:id" element={<PembelianOVKDetailPage />} />
+              {/* Backward compat redirects */}
+              <Route path="/ho/pembelian-feedmil" element={<Navigate to="/feedmil/pembelian-feedmil" replace />} />
+              <Route path="/ho/pembelian-feedmil/add" element={<Navigate to="/feedmil/pembelian-feedmil/add" replace />} />
+              <Route path="/ho/pembelian-feedmil/edit/:id" element={<Navigate to="/feedmil/pembelian-feedmil/edit/:id" replace />} />
+              <Route path="/ho/pembelian-feedmil/detail/:id" element={<Navigate to="/feedmil/pembelian-feedmil/detail/:id" replace />} />
+              <Route path="/ho/pembelian-ovk" element={<Navigate to="/feedmil/pembelian-ovk" replace />} />
+              <Route path="/ho/pembelian-ovk/add" element={<Navigate to="/feedmil/pembelian-ovk/add" replace />} />
+              <Route path="/ho/pembelian-ovk/edit/:id" element={<Navigate to="/feedmil/pembelian-ovk/edit/:id" replace />} />
+              <Route path="/ho/pembelian-ovk/detail/:id" element={<Navigate to="/feedmil/pembelian-ovk/detail/:id" replace />} />
               
               {/* HO Pembelian Kulit Routes */}
               <Route path="/ho/pembelian-kulit" element={<PembelianKulitPage />} />
@@ -608,6 +628,23 @@ function AppSecure() {
               <Route path="/ho/penjualan-sapi" element={<PenjualanSapiHOPage />} />
               <Route path="/penjualan-sapi" element={<Navigate to="/ho/penjualan-sapi" replace />} />
               {/* Add and Edit routes removed - handled by modals in the main page */}
+
+              {/* Feedmil Konsentrat Routes */}
+              <Route path="/feedmil/resep-konsentrat" element={<ResepKonsentratPage />} />
+              <Route path="/feedmil/resep-konsentrat/add" element={<AddEditResepKonsentratPage />} />
+              <Route path="/feedmil/resep-konsentrat/edit/:id" element={<AddEditResepKonsentratPage />} />
+              <Route path="/feedmil/penjualan-konsentrat" element={<PenjualanKonsentratPage />} />
+              {/* Backward compat redirects */}
+              <Route path="/ho/resep-konsentrat" element={<Navigate to="/feedmil/resep-konsentrat" replace />} />
+              <Route path="/ho/resep-konsentrat/add" element={<Navigate to="/feedmil/resep-konsentrat/add" replace />} />
+              <Route path="/ho/resep-konsentrat/edit/:id" element={<Navigate to="/feedmil/resep-konsentrat/edit/:id" replace />} />
+              <Route path="/ho/penjualan-konsentrat" element={<Navigate to="/feedmil/penjualan-konsentrat" replace />} />
+
+              {/* RPH Konsentrat Routes */}
+              <Route path="/rph/pembelian-konsentrat" element={<PembelianKonsentratPage />} />
+              <Route path="/rph/pembelian-konsentrat/add" element={<AddEditPembelianKonsentratPage />} />
+              <Route path="/rph/pemberian-pakan-konsentrat" element={<PemberianPakanKonsentratPage />} />
+              <Route path="/rph/pemberian-pakan-konsentrat/add" element={<AddEditPemberianPakanKonsentratPage />} />
 
               {/* System Routes */}
               <Route path="/system/permission-management" element={<PermissionManagementPage />} />

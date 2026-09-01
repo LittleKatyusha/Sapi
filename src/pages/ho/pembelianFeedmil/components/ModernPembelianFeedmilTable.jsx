@@ -498,7 +498,7 @@ const ModernPembelianFeedmilTable = ({
           Data pembelian feedmil akan muncul di sini. Coba tambahkan data baru atau ubah pencarian/filter.
         </p>
         <button
-          onClick={() => navigate('/ho/pembelian-feedmil/add')}
+          onClick={() => navigate('/feedmil/pembelian-feedmil/add')}
           className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
         >
           <PlusCircle className="w-4 h-4" />

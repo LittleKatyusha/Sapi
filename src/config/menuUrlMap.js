@@ -11,9 +11,13 @@ export const MENU_URL_MAPPING = {
 
   // HO modules
   'pembelian': '/ho/pembelian',
-  'pembelian-feedmil': '/ho/pembelian-feedmil',
-  'pembelian-ovk': '/ho/pembelian-ovk',
   'penjualan': '/ho/penjualan',
+
+  // Feedmil modules (top-level parent)
+  'pembelian-feedmil': '/feedmil/pembelian-feedmil',
+  'pembelian-ovk': '/feedmil/pembelian-ovk',
+  'resep-konsentrat': '/feedmil/resep-konsentrat',
+  'penjualan-konsentrat': '/feedmil/penjualan-konsentrat',
   'keuangan/pengeluaran': '/ho/keuangan/pengeluaran',
   'keuangan-pengeluaran': '/ho/keuangan/pengeluaran',
   'keuangan/penerimaan': '/ho/keuangan/penerimaan',
@@ -62,6 +66,8 @@ export const MENU_URL_MAPPING = {
   'penawaran': '/rph/penawaran',
   'stok-sapi-qurban': '/rph/stok-sapi-qurban',
   'perpindahan-ternak': '/rph/perpindahan-ternak',
+  'pembelian-konsentrat': '/rph/pembelian-konsentrat',
+  'pemberian-pakan-konsentrat': '/rph/pemberian-pakan-konsentrat',
 
   // Reports
   'nota-supplier': '/reports/nota-supplier',

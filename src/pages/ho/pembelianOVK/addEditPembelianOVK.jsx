@@ -316,7 +316,7 @@ const AddEditPembelianOVKPage = () => {
                     // Block edit if already paid off (lunas)
                     if (headerData.payment_status === 1) {
                         alert('Pembelian yang sudah lunas tidak dapat diedit.');
-                        navigate('/ho/pembelian-ovk');
+                        navigate('/feedmil/pembelian-ovk');
                         return;
                     }
 
@@ -1216,7 +1216,7 @@ const AddEditPembelianOVKPage = () => {
                     sessionStorage.setItem('ovk-should-refresh', 'true');
                     // Dispatch custom event
                     window.dispatchEvent(new CustomEvent('ovk-data-updated'));
-                    navigate('/ho/pembelian-ovk', { state: { fromEdit: true } });
+                    navigate('/feedmil/pembelian-ovk', { state: { fromEdit: true } });
                 }, 1500);
             } else {
                 setNotification({
@@ -1240,7 +1240,7 @@ const AddEditPembelianOVKPage = () => {
         sessionStorage.setItem('ovk-should-refresh', 'true');
         // Dispatch custom event
         window.dispatchEvent(new CustomEvent('ovk-data-updated'));
-        navigate('/ho/pembelian-ovk', { state: { fromEdit: true } });
+        navigate('/feedmil/pembelian-ovk', { state: { fromEdit: true } });
     };
 
     // Auto-hide notification

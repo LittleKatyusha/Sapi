@@ -121,7 +121,7 @@ const PembelianFeedmilPage = () => {
             });
             return;
         }
-        navigate(`/ho/pembelian-feedmil/edit/${encodeURIComponent(id)}`);
+        navigate(`/feedmil/pembelian-feedmil/edit/${encodeURIComponent(id)}`);
     };
 
     const handleDetail = (pembelianItem) => {
@@ -133,7 +133,7 @@ const PembelianFeedmilPage = () => {
             });
             return;
         }
-        navigate(`/ho/pembelian-feedmil/detail/${encodeURIComponent(id)}`);
+        navigate('/feedmil/pembelian-feedmil', { state: { fromEdit: true } });
     };
 
     const handleBayar = (pembelianItem) => {
@@ -145,7 +145,7 @@ const PembelianFeedmilPage = () => {
             });
             return;
         }
-        navigate(`/ho/keuangan/pengeluaran/bayar/${encodeURIComponent(id)}`);
+        navigate('/feedmil/keuangan/pengeluaran/bayar/' + encodeURIComponent(id));
     };
 
     const handleDelete = (pembelianItem) => {
@@ -385,7 +385,7 @@ const PembelianFeedmilPage = () => {
                             Lihat Stok
                         </button>
                         <button
-                            onClick={() => navigate('/ho/pembelian-feedmil/add')}
+                            onClick={() => navigate('/feedmil/pembelian-feedmil/add')}
                             className="bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-lg shadow-sm hover:shadow transition-all duration-200 flex items-center gap-2 text-sm font-medium active:scale-[0.98]"
                         >
                             <PlusCircle className="w-4 h-4" />

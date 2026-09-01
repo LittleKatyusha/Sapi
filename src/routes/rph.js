@@ -24,6 +24,11 @@ const StokDokaPage = lazy(() => import('../pages/RPH/Persediaan/StokDoka/StokDok
 const PerpindahanTernakPage = lazy(() => import('../pages/RPH/Perpindahan/PerpindahanTernakPage'));
 const AddEditPerpindahanTernakPage = lazy(() => import('../pages/RPH/Perpindahan/AddEditPerpindahanTernakPage'));
 
+const PembelianKonsentratPage = lazy(() => import('../pages/RPH/Konsentrat/PembelianKonsentratPage'));
+const AddEditPembelianKonsentratPage = lazy(() => import('../pages/RPH/Konsentrat/AddEditPembelianKonsentratPage'));
+const PemberianPakanKonsentratPage = lazy(() => import('../pages/RPH/Konsentrat/PemberianPakanKonsentratPage'));
+const AddEditPemberianPakanKonsentratPage = lazy(() => import('../pages/RPH/Konsentrat/AddEditPemberianPakanKonsentratPage'));
+
 export const rphRoutes = [
   {
     path: '/rph/pembelian-sapi',
@@ -128,5 +133,23 @@ export const rphRoutes = [
   {
     path: '/rph/perpindahan-ternak/edit/:pid',
     element: <AddEditPerpindahanTernakPage />
+  },
+
+  // RPH Konsentrat
+  {
+    path: '/rph/pembelian-konsentrat',
+    element: <PembelianKonsentratPage />
+  },
+  {
+    path: '/rph/pembelian-konsentrat/add',
+    element: <AddEditPembelianKonsentratPage />
+  },
+  {
+    path: '/rph/pemberian-pakan-konsentrat',
+    element: <PemberianPakanKonsentratPage />
+  },
+  {
+    path: '/rph/pemberian-pakan-konsentrat/add',
+    element: <AddEditPemberianPakanKonsentratPage />
   }
 ];
