@@ -160,7 +160,13 @@ class StokSapiService {
 
   static async sapiMati(data) {
     try {
-      const response = await HttpClient.post('/api/rph/persediaan/sapimati/store', data);
+      const payload = data.file instanceof File
+        ? Object.entries(data).reduce((formData, [key, value]) => {
+            if (value !== null && value !== undefined) formData.append(key, value);
+            return formData;
+          }, new FormData())
+        : data;
+      const response = await HttpClient.post('/api/rph/persediaan/sapimati/store', payload);
       HttpClient.clearCache('sapimati');
       return { success: true, data: response.data, message: response.data?.message || response.message || 'Data created successfully' };
     } catch (error) {
@@ -278,6 +284,14 @@ class StokSapiService {
         message: error?.data?.message || error?.message || 'Failed to fetch sapi mati data',
       };
     }
+  }
+
+  static async downloadBuktiSapiMati(pid) {
+    return HttpClient.get('/api/rph/persediaan/sapimati/download', {
+      cache: false,
+      responseType: 'blob',
+      params: { pid },
+    });
   }
 
   static async potongSapiBiasa(data) {

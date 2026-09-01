@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { AlertCircle, Loader2, RefreshCw, AlertTriangle, Filter, Search, RotateCcw } from 'lucide-react';
+import { AlertCircle, Loader2, RefreshCw, AlertTriangle, Filter, Search, RotateCcw, Download } from 'lucide-react';
 import StokSapiService from '../../../../services/stokSapiService';
 import SapiMatiModal from '../modals/SapiMatiModal';
 import ActionButton from './ActionButton';
@@ -121,6 +121,20 @@ const SapiMatiTab = () => {
     }
   };
 
+  const handleDownload = async (item) => {
+    try {
+      const blob = await StokSapiService.downloadBuktiSapiMati(item.pid);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `bukti-sapi-mati-${item.sapi || 'dokumen'}`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err?.data?.message || err?.message || 'Gagal mengunduh bukti kematian');
+    }
+  };
+
   return (
     <div className="space-y-3">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -204,19 +218,20 @@ const SapiMatiTab = () => {
               <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Tanggal & Pelapor</th>
               <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Sapi</th>
               <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Sebab & Keterangan</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">Bukti</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
             {loading ? (
               <tr>
-                <td colSpan={5} className="px-4 py-10 text-center">
+                <td colSpan={6} className="px-4 py-10 text-center">
                   <Loader2 className="h-8 w-8 animate-spin text-slate-400 mx-auto" />
                   <p className="mt-2 text-sm text-slate-500">Memuat data...</p>
                 </td>
               </tr>
             ) : !loading && data.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-3 py-8 text-center">
+                <td colSpan={6} className="px-3 py-8 text-center">
                   <div className="flex flex-col items-center justify-center">
                     <div className="rounded-full bg-slate-100 p-3 mb-2">
                       <AlertTriangle className="h-8 w-8 text-slate-400" />
@@ -266,6 +281,19 @@ const SapiMatiTab = () => {
                       </div>
                       <div className="text-sm text-slate-600" title={item.keterangan}>{item.keterangan || '-'}</div>
                     </div>
+                  </td>
+                  <td className="px-3 py-2 text-center whitespace-nowrap">
+                    {item.file ? (
+                      <button
+                        type="button"
+                        onClick={() => handleDownload(item)}
+                        className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-500/30"
+                        aria-label={`Unduh bukti kematian ${item.sapi || ''}`}
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                        Unduh
+                      </button>
+                    ) : <span className="text-xs text-slate-400">-</span>}
                   </td>
                 </tr>
               ))

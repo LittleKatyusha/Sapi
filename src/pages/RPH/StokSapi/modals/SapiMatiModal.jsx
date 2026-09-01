@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, AlertCircle, CheckCircle2, Loader2, Save, Calendar, FileText, AlertTriangle } from 'lucide-react';
+import { X, AlertCircle, CheckCircle2, Loader2, Save, Calendar, FileText, AlertTriangle, Paperclip } from 'lucide-react';
 import SearchableSelect from '../../../../components/shared/SearchableSelect';
 import StokSapiService from '../../../../services/stokSapiService';
 import HttpClient from '../../../../services/httpClient';
@@ -82,6 +82,7 @@ const SapiMatiModal = ({ isOpen, onClose, onSuccess, cowData }) => {
   const [idSebabKematian, setIdSebabKematian] = useState(null);
   const [idMengetahui, setIdMengetahui] = useState(null);
   const [keterangan, setKeterangan] = useState('');
+  const [bukti, setBukti] = useState(null);
 
   const [sebabOptions, setSebabOptions] = useState([]);
   const [mengetahuiOptions, setMengetahuiOptions] = useState([]);
@@ -147,6 +148,7 @@ const SapiMatiModal = ({ isOpen, onClose, onSuccess, cowData }) => {
     setIdSebabKematian(null);
     setIdMengetahui(null);
     setKeterangan('');
+    setBukti(null);
     setNotification(null);
     onClose();
   };
@@ -169,6 +171,16 @@ const SapiMatiModal = ({ isOpen, onClose, onSuccess, cowData }) => {
       return;
     }
 
+    if (bukti && !['image/jpeg', 'image/png', 'application/pdf'].includes(bukti.type)) {
+      setNotification({ type: 'error', message: 'Bukti harus berupa JPG, PNG, atau PDF.' });
+      return;
+    }
+
+    if (bukti && bukti.size > 5 * 1024 * 1024) {
+      setNotification({ type: 'error', message: 'Ukuran bukti maksimal 5 MB.' });
+      return;
+    }
+
     setIsSubmitting(true);
     setNotification({ type: 'info', message: 'Menyimpan data sapi mati...' });
 
@@ -178,6 +190,7 @@ const SapiMatiModal = ({ isOpen, onClose, onSuccess, cowData }) => {
       id_sebab_kematian: parseInt(idSebabKematian),
       id_mengetahui: parseInt(idMengetahui),
       keterangan: keterangan.trim() || null,
+      file: bukti,
     };
 
     const response = await StokSapiService.sapiMati(payload);
@@ -226,7 +239,7 @@ const SapiMatiModal = ({ isOpen, onClose, onSuccess, cowData }) => {
             </button>
           </div>
 
-          <form onSubmit={handleSubmit} className="p-5 space-y-5 overflow-y-auto max-h-[calc(90vh-180px)]">
+          <form id="sapi-mati-form" onSubmit={handleSubmit} className="p-5 space-y-5 overflow-y-auto max-h-[calc(90vh-180px)]">
             {cowData && (
               <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
                 <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-3">Data Sapi</h3>
@@ -298,6 +311,21 @@ const SapiMatiModal = ({ isOpen, onClose, onSuccess, cowData }) => {
                 />
               </div>
             </Field>
+
+            <Field label="Bukti Kematian" helperText="Opsional. JPG, PNG, atau PDF, maksimal 5 MB.">
+              <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-slate-300 bg-slate-50/60 px-3 py-2.5 text-sm transition-colors hover:border-slate-400 hover:bg-slate-50">
+                <Paperclip className="h-4 w-4 shrink-0 text-slate-500" />
+                <span className="min-w-0 flex-1 truncate text-slate-600">{bukti ? bukti.name : 'Pilih berkas bukti'}</span>
+                <span className="text-xs font-medium text-slate-500">Pilih</span>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,application/pdf"
+                  onChange={(event) => setBukti(event.target.files?.[0] || null)}
+                  disabled={isSubmitting}
+                  className="sr-only"
+                />
+              </label>
+            </Field>
           </form>
 
           <div className="flex items-center justify-end gap-3 p-5 border-t border-slate-100 bg-slate-50/50">
@@ -311,7 +339,7 @@ const SapiMatiModal = ({ isOpen, onClose, onSuccess, cowData }) => {
             </button>
             <button
               type="submit"
-              onClick={handleSubmit}
+              form="sapi-mati-form"
               disabled={isSubmitting}
               className="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-slate-500 to-gray-600 rounded-xl hover:from-slate-600 hover:to-gray-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
             >
