@@ -286,6 +286,27 @@ class StokSapiService {
     }
   }
 
+  static async updateSapiMati(data) {
+    try {
+      const payload = data.file instanceof File
+        ? Object.entries(data).reduce((formData, [key, value]) => {
+            if (value !== null && value !== undefined) formData.append(key, value);
+            return formData;
+          }, new FormData())
+        : data;
+      const response = await HttpClient.post('/api/rph/persediaan/sapimati/update', payload);
+      HttpClient.clearCache('sapimati');
+      return { success: true, data: response.data, message: response.data?.message || response.message || 'Data updated successfully' };
+    } catch (error) {
+      console.error('StokSapiService.updateSapiMati error:', error);
+      const validationErrors = error?.data?.data;
+      const message = validationErrors
+        ? Object.values(validationErrors).flat().join(', ')
+        : error?.data?.message || error?.message || 'Gagal memperbarui data sapi mati';
+      return { success: false, data: null, message };
+    }
+  }
+
   static async downloadBuktiSapiMati(pid) {
     return HttpClient.get('/api/rph/persediaan/sapimati/download', {
       cache: false,

@@ -77,7 +77,7 @@ const Field = ({ label, required = false, helperText, children }) => (
   </div>
 );
 
-const SapiMatiModal = ({ isOpen, onClose, onSuccess, cowData }) => {
+const SapiMatiModal = ({ isOpen, onClose, onSuccess, cowData, editData = null }) => {
   const [tglKematian, setTglKematian] = useState(getToday());
   const [idSebabKematian, setIdSebabKematian] = useState(null);
   const [idMengetahui, setIdMengetahui] = useState(null);
@@ -137,6 +137,16 @@ const SapiMatiModal = ({ isOpen, onClose, onSuccess, cowData }) => {
   }, [isOpen, fetchSebabOptions, fetchMengetahuiOptions]);
 
   useEffect(() => {
+    if (!isOpen) return;
+
+    setTglKematian(editData?.tgl_kematian_value || getToday());
+    setIdSebabKematian(editData?.id_sebab_kematian || null);
+    setIdMengetahui(editData?.id_mengetahui || null);
+    setKeterangan(editData?.keterangan || '');
+    setBukti(null);
+  }, [isOpen, editData]);
+
+  useEffect(() => {
     if (!notification || notification.type === 'info') return undefined;
     const timer = setTimeout(() => setNotification(null), 5000);
     return () => clearTimeout(timer);
@@ -185,7 +195,7 @@ const SapiMatiModal = ({ isOpen, onClose, onSuccess, cowData }) => {
     setNotification({ type: 'info', message: 'Menyimpan data sapi mati...' });
 
     const payload = {
-      pid: cowData?.pid,
+      pid: editData?.pid || cowData?.pid,
       tgl_kematian: tglKematian,
       id_sebab_kematian: parseInt(idSebabKematian),
       id_mengetahui: parseInt(idMengetahui),
@@ -193,10 +203,12 @@ const SapiMatiModal = ({ isOpen, onClose, onSuccess, cowData }) => {
       file: bukti,
     };
 
-    const response = await StokSapiService.sapiMati(payload);
+    const response = editData
+      ? await StokSapiService.updateSapiMati(payload)
+      : await StokSapiService.sapiMati(payload);
 
     if (response.success) {
-      setNotification({ type: 'success', message: response.message || 'Data sapi mati berhasil disimpan.' });
+      setNotification({ type: 'success', message: response.message || `Data sapi mati berhasil ${editData ? 'diperbarui' : 'disimpan'}.` });
       setIsSubmitting(false);
       setTimeout(() => {
         handleClose();
@@ -351,7 +363,7 @@ const SapiMatiModal = ({ isOpen, onClose, onSuccess, cowData }) => {
               ) : (
                 <>
                   <Save className="h-4 w-4" />
-                  Simpan Sapi Mati
+                  {editData ? 'Simpan Perubahan' : 'Simpan Sapi Mati'}
                 </>
               )}
             </button>

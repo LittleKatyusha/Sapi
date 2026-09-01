@@ -90,8 +90,10 @@ const SapiMatiTab = () => {
       pid: record.pid,
       pubid: record.pubid,
       sapi: record.sapi,
-      eartag_supplier: record.sapi,
-      klasifikasi_hewan: record.klasifikasi_hewan,
+      eartag: record.eartag,
+      jenis_sapi: record.klasifikasi_hewan,
+      bobot: record.bobot,
+      lokasi_sapi: record.lokasi_sapi,
     };
     setSelectedRecord({ ...record, cowData });
     setEditModalOpen(true);
