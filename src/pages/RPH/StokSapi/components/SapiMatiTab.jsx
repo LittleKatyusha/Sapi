@@ -256,7 +256,7 @@ const SapiMatiTab = () => {
                         openMenuId={openMenuId}
                         setOpenMenuId={setOpenMenuId}
                         onEdit={() => handleEdit(item)}
-                        onDelete={() => handleDelete(item.pid)}
+                        onDelete={item.can_delete ? () => handleDelete(item.pid) : undefined}
                       />
                     </div>
                   </td>

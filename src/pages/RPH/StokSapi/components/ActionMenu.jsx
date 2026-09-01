@@ -151,22 +151,22 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onOvk, onPotongPaksa, onP
         text: 'text-slate-600',
       }
     ] : []),
-    {
-      divider: true,
-    },
-    {
-      label: 'Hapus',
-      icon: Trash2,
-      onClick: () => {
-        onDelete(row);
-        onClose();
+    ...(onDelete ? [
+      { divider: true },
+      {
+        label: 'Hapus',
+        icon: Trash2,
+        onClick: () => {
+          onDelete(row);
+          onClose();
+        },
+        className: 'text-red-600',
+        description: 'Hapus data',
+        bg: 'bg-red-100',
+        hoverBg: 'group-hover:bg-red-200',
+        text: 'text-red-600',
       },
-      className: 'text-red-600',
-      description: 'Hapus data',
-      bg: 'bg-red-100',
-      hoverBg: 'group-hover:bg-red-200',
-      text: 'text-red-600',
-    },
+    ] : []),
   ];
 
   // Render menu hanya jika posisi sudah didapat
