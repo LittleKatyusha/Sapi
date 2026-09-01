@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { PlusCircle, Package, Truck, Calendar, CalendarDays, CalendarRange, Boxes, XCircle } from 'lucide-react';
+import { PlusCircle, Package, Truck, Calendar, CalendarDays, CalendarRange, Boxes, XCircle, FileText } from 'lucide-react';
 
 import usePembelianOVK from './hooks/usePembelianOVK';
 import useFarmAPI from './hooks/useFarmAPI';
 import useBanksAPI from '../pembelianFeedmil/hooks/useBanksAPI';
 import ModernPembelianOVKTable from './components/ModernPembelianOVKTable';
 import PembelianOVKFilterPanel from './components/PembelianOVKFilterPanel';
+import { StokOvkContent } from './StokOvkPage';
 
 // Import modals
 import DeleteConfirmationModal from '../pembelianFeedmil/modals/DeleteConfirmationModal';
-import StokOvkModal from './modals/StokOvkModal';
 
 const PembelianOVKPage = () => {
     const navigate = useNavigate();
@@ -19,7 +19,7 @@ const PembelianOVKPage = () => {
     const [selectedPembelian, setSelectedPembelian] = useState(null);
     const [notification, setNotification] = useState(null);
     const [lastRefreshTime, setLastRefreshTime] = useState(Date.now());
-    const [isStokModalOpen, setIsStokModalOpen] = useState(false);
+    const [activeTab, setActiveTab] = useState('histori');
     
     const {
         pembelian: filteredData,
@@ -264,22 +264,11 @@ const PembelianOVKPage = () => {
             `}</style>
             <div className="min-h-screen bg-gray-50 p-4 sm:p-6 md:p-8">
                 <div className="w-full space-y-6">
-                    <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
-                        <StatCard title="Total Pembelian" value={serverPagination.totalItems} icon={Truck} accentColor="bg-blue-500" />
-                        <StatCard title="Total OVK" value={stats.totalOVK} icon={Package} accentColor="bg-emerald-500" />
-                        <StatCard title="Hari Ini" value={stats.today} icon={Calendar} accentColor="bg-amber-500" />
-                        <StatCard title="Bulan Ini" value={stats.thisMonth} icon={CalendarDays} accentColor="bg-purple-500" />
-                        <StatCard title="Tahun Ini" value={stats.thisYear} icon={CalendarRange} accentColor="bg-indigo-500" />
-                    </div>
-
-                    <div className="flex justify-end gap-2">
-                        <button
-                            onClick={() => setIsStokModalOpen(true)}
-                            className="bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-4 py-2.5 rounded-lg shadow-sm hover:shadow transition-all duration-200 flex items-center gap-2 text-sm font-medium active:scale-[0.98]"
-                        >
-                            <Boxes className="w-4 h-4" />
-                            Lihat Stok
-                        </button>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div>
+                            <h1 className="text-2xl font-bold text-gray-900">Pembelian OVK HO</h1>
+                            <p className="text-sm text-gray-500 mt-1">Beli OVK & monitor stok</p>
+                        </div>
                         <button
                             onClick={() => navigate('/feedmil/pembelian-ovk/add')}
                             className="bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-lg shadow-sm hover:shadow transition-all duration-200 flex items-center gap-2 text-sm font-medium active:scale-[0.98]"
@@ -289,45 +278,81 @@ const PembelianOVKPage = () => {
                         </button>
                     </div>
 
-                    <PembelianOVKFilterPanel
-                        filters={advancedFilters}
-                        onApply={handleAdvancedFilters}
-                        onReset={clearAdvancedFilters}
-                    />
-
-                    <div className="space-y-4">
-                        {error && (
-                            <div className="bg-white rounded-xl shadow-sm border border-red-100 p-4 flex items-center gap-3 text-red-700">
-                                <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center">
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                    </svg>
-                                </div>
-                                <div>
-                                    <div className="text-sm font-semibold">Gagal memuat data</div>
-                                    <div className="text-xs text-red-600">{error}</div>
-                                </div>
-                            </div>
-                        )}
-
-                        <ModernPembelianOVKTable
-                            data={filteredData}
-                            loading={loading}
-                            serverPagination={{
-                                currentPage: serverPagination.currentPage,
-                                perPage: serverPagination.perPage,
-                                totalRecords: serverPagination.totalItems || serverPagination.totalRecords || 0
-                            }}
-                            onPageChange={handleServerPageChange}
-                            onPerPageChange={handleServerPerPageChange}
-                            onEdit={handleEdit}
-                            onDelete={handleDelete}
-                            onDetail={handleDetail}
-                            onBayar={handleBayar}
-                            getFarmName={getFarmName}
-                            getBankName={getBankName}
-                        />
+                    {/* Tabs */}
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-1 flex gap-1 w-fit">
+                        <button
+                            onClick={() => setActiveTab('histori')}
+                            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-2 ${
+                                activeTab === 'histori' ? 'bg-green-600 text-white' : 'text-gray-600 hover:bg-gray-100'
+                            }`}
+                        >
+                            <FileText className="w-4 h-4" />
+                            Histori Pembelian
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('stok')}
+                            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-2 ${
+                                activeTab === 'stok' ? 'bg-green-600 text-white' : 'text-gray-600 hover:bg-gray-100'
+                            }`}
+                        >
+                            <Boxes className="w-4 h-4" />
+                            Stok OVK
+                        </button>
                     </div>
+
+                    {activeTab === 'histori' ? (
+                        <>
+                            <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+                                <StatCard title="Total Pembelian" value={serverPagination.totalItems} icon={Truck} accentColor="bg-blue-500" />
+                                <StatCard title="Total OVK" value={stats.totalOVK} icon={Package} accentColor="bg-emerald-500" />
+                                <StatCard title="Hari Ini" value={stats.today} icon={Calendar} accentColor="bg-amber-500" />
+                                <StatCard title="Bulan Ini" value={stats.thisMonth} icon={CalendarDays} accentColor="bg-purple-500" />
+                                <StatCard title="Tahun Ini" value={stats.thisYear} icon={CalendarRange} accentColor="bg-indigo-500" />
+                            </div>
+
+                            <PembelianOVKFilterPanel
+                                filters={advancedFilters}
+                                onApply={handleAdvancedFilters}
+                                onReset={clearAdvancedFilters}
+                            />
+
+                            <div className="space-y-4">
+                                {error && (
+                                    <div className="bg-white rounded-xl shadow-sm border border-red-100 p-4 flex items-center gap-3 text-red-700">
+                                        <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center">
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <div className="text-sm font-semibold">Gagal memuat data</div>
+                                            <div className="text-xs text-red-600">{error}</div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <ModernPembelianOVKTable
+                                    data={filteredData}
+                                    loading={loading}
+                                    serverPagination={{
+                                        currentPage: serverPagination.currentPage,
+                                        perPage: serverPagination.perPage,
+                                        totalRecords: serverPagination.totalItems || serverPagination.totalRecords || 0
+                                    }}
+                                    onPageChange={handleServerPageChange}
+                                    onPerPageChange={handleServerPerPageChange}
+                                    onEdit={handleEdit}
+                                    onDelete={handleDelete}
+                                    onDetail={handleDetail}
+                                    onBayar={handleBayar}
+                                    getFarmName={getFarmName}
+                                    getBankName={getBankName}
+                                />
+                            </div>
+                        </>
+                    ) : (
+                        <StokOvkContent />
+                    )}
                 </div>
 
                 {notification && (
@@ -419,11 +444,6 @@ const PembelianOVKPage = () => {
                     bodyText="Apakah Anda yakin ingin memcancel pembelian ini? Stok dan data pembayaran akan dihapus juga."
                     warningText={<><strong>Peringatan:</strong> Tindakan ini akan menghapus stok dan data pembayaran terkait.</>}
                     icon={XCircle}
-                />
-
-                <StokOvkModal
-                    isOpen={isStokModalOpen}
-                    onClose={() => setIsStokModalOpen(false)}
                 />
             </div>
         </>

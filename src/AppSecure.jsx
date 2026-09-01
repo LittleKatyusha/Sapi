@@ -203,6 +203,7 @@ const ReportRphPage = lazy(() => import('./pages/reporting/rph/ReportRphPage'));
 const PembelianFeedmilPage = lazy(() => import('./pages/ho/pembelianFeedmil/PembelianFeedmilPage'));
 const AddEditPembelianFeedmilPage = lazy(() => import('./pages/ho/pembelianFeedmil/AddEditPembelianFeedmilPage'));
 const PembelianFeedmilDetailPage = lazy(() => import('./pages/ho/pembelianFeedmil/PembelianFeedmilDetailPage'));
+const StokFeedmilPage = lazy(() => import('./pages/ho/pembelianFeedmil/StokFeedmilPage'));
 const PembelianOVKPage = lazy(() => import('./pages/ho/pembelianOVK/PembelianOVKPage'));
 const AddEditPembelianOVKPage = lazy(() => import('./pages/ho/pembelianOVK/addEditPembelianOVK'));
 const PembelianOVKDetailPage = lazy(() => import('./pages/ho/pembelianOVK/PembelianOVKDetailPage'));
@@ -530,6 +531,7 @@ function AppSecure() {
               <Route path="/feedmil/pembelian-feedmil/add" element={<AddEditPembelianFeedmilPage />} />
               <Route path="/feedmil/pembelian-feedmil/edit/:id" element={<AddEditPembelianFeedmilPage />} />
               <Route path="/feedmil/pembelian-feedmil/detail/:id" element={<PembelianFeedmilDetailPage />} />
+              <Route path="/feedmil/stok-feedmil" element={<StokFeedmilPage />} />
               <Route path="/feedmil/pembelian-ovk" element={<PembelianOVKPage />} />
               <Route path="/feedmil/pembelian-ovk/add" element={<AddEditPembelianOVKPage />} />
               <Route path="/feedmil/pembelian-ovk/edit/:id" element={<AddEditPembelianOVKPage />} />

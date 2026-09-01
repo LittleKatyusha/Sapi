@@ -11,7 +11,8 @@ import {
   Cpu, HardDrive, Wifi, Bluetooth, Battery, Power,
   Camera, Image, Video, Music, Headphones, Mic,
   Printer, Monitor, Keyboard, Mouse, Smartphone,
-  Tablet, Laptop, Server, Cloud, CloudDownload, CloudUpload
+  Tablet, Laptop, Server, Cloud, CloudDownload, CloudUpload,
+  Wheat, FlaskConical
 } from 'lucide-react';
 
 /**
@@ -136,7 +137,11 @@ export const ICON_MAPPING = {
   'mouse': Mouse,
   'smartphone': Smartphone,
   'tablet': Tablet,
-  'laptop': Laptop
+  'laptop': Laptop,
+
+  // Feedmill & Konsentrat
+  'wheat': Wheat,
+  'flask-conical': FlaskConical
 };
 
 /**
@@ -205,10 +210,12 @@ export const isIconAvailable = (iconName) => {
   return ICON_MAPPING.hasOwnProperty(normalizedName);
 };
 
-export default {
+const iconMappingModule = {
   ICON_MAPPING,
   getIconComponent,
   renderIcon,
   getAvailableIcons,
   isIconAvailable
 };
+
+export default iconMappingModule;

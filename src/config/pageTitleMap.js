@@ -79,6 +79,7 @@ export const pageTitleMap = {
   '/feedmil/pembelian-feedmil/add': 'Feedmil: Tambah Pembelian Feedmil',
   '/feedmil/pembelian-feedmil/edit/:id': 'Feedmil: Edit Pembelian Feedmil',
   '/feedmil/pembelian-feedmil/detail/:id': 'Feedmil: Detail Pembelian Feedmil',
+  '/feedmil/stok-feedmil': 'Feedmil: Stok Feedmil',
   '/feedmil/pembelian-ovk': 'Feedmil: Pembelian OVK',
   '/feedmil/pembelian-ovk/add': 'Feedmil: Tambah Pembelian OVK',
   '/feedmil/pembelian-ovk/edit/:id': 'Feedmil: Edit Pembelian OVK',
