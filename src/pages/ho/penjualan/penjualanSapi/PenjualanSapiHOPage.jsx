@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
-    Search, ShoppingCart, X, Loader2, Calendar,
-    ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUpDown, ChevronDown, ChevronUp, SlidersHorizontal
+    Search, ShoppingCart, X, Loader2,
+    ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUpDown, ChevronDown, ChevronUp, SlidersHorizontal,
+    FileSpreadsheet, FileText, Download
 } from 'lucide-react';
 
 import usePenjualanSapiHO from './hooks/usePenjualanSapiHO';
@@ -10,6 +11,8 @@ import PenjualanSapiCard from './components/PenjualanSapiCard';
 import ActionButton from './components/ActionButton';
 import CustomPagination from './components/CustomPagination';
 import PurchasingOrderModal from './modals/PurchasingOrderModal';
+import ExportPenjualanSapiModal from './modals/ExportPenjualanSapiModal';
+import PenjualanDokaSapiService from '../../../../services/penjualanDokaSapiService';
 import { API_BASE_URL } from '../../../../config/api';
 
 const STATUS_OPTIONS = [
@@ -33,6 +36,13 @@ const formatCurrency = (amount) => {
 
 const formatDate = (dateString) => {
     if (!dateString) return '-';
+    // Handle d-m-Y format (e.g. "02-09-2026" = 2 Sept 2026) — JS parses as MM-DD by default
+    if (typeof dateString === 'string' && /^\d{2}-\d{2}-\d{4}$/.test(dateString)) {
+        const [dd, mm, yyyy] = dateString.split('-');
+        const d = new Date(`${yyyy}-${mm}-${dd}`);
+        if (isNaN(d.getTime())) return dateString;
+        return d.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    }
     return new Date(dateString).toLocaleDateString('id-ID', {
         day: '2-digit',
         month: '2-digit',
@@ -155,6 +165,9 @@ const PenjualanSapiHOPage = () => {
     const [appliedFilters, setAppliedFilters] = useState(filterValues);
     const fetchTimeoutRef = useRef(null);
     const isFetchingRef = useRef(false);
+    const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+    const [exportLoading, setExportLoading] = useState(false);
+    const [cardData, setCardData] = useState(null);
 
     const {
         penjualan: filteredData,
@@ -226,6 +239,18 @@ const PenjualanSapiHOPage = () => {
                 throw new Error(errorText || `HTTP ${response.status}`);
             }
             const blob = await response.blob();
+            // Detect JSON error response disguised as blob
+            const contentType = response.headers.get('content-type') || '';
+            if (contentType.includes('application/json')) {
+                const text = await blob.text();
+                try {
+                    const errJson = JSON.parse(text);
+                    throw new Error(errJson.message || errJson.error || 'Server error');
+                } catch (parseErr) {
+                    if (parseErr.message && !parseErr.message.includes('JSON')) throw parseErr;
+                    throw new Error(text || 'Server error');
+                }
+            }
             const blobUrl = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = blobUrl;
@@ -323,6 +348,79 @@ const PenjualanSapiHOPage = () => {
         setNotification({ type: 'success', message: `Pesanan ${row.no_po || row.nota} berhasil ditolak` });
     };
 
+    // Fetch server-side card data for accurate stat cards
+    const fetchCardData = useCallback(async () => {
+        try {
+            const result = await PenjualanDokaSapiService.getCardData();
+            if (result?.status === 'ok' && result?.data) {
+                setCardData(result.data);
+            }
+        } catch (err) {
+            console.error('Error fetching card data:', err);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchCardData();
+    }, [fetchCardData]);
+
+    // Export handler — download Excel or PDF with filters
+    const handleExportConfirm = async (filters, format) => {
+        setExportLoading(true);
+        setNotification({ type: 'info', message: `Mengunduh ${format === 'excel' ? 'Excel' : 'PDF'}...` });
+        try {
+            const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+            if (!token) {
+                setNotification({ type: 'error', message: 'Token autentikasi tidak ditemukan. Silakan login kembali.' });
+                return;
+            }
+            const type = format === 'excel' ? 'export-excel' : 'export-rekap-pdf';
+            const url = PenjualanDokaSapiService.buildExportUrl(filters, type);
+            const response = await fetch(`${API_BASE_URL}${url}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': format === 'excel'
+                        ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                        : 'application/pdf',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            if (!response.ok) {
+                const errorText = await response.text().catch(() => '');
+                throw new Error(errorText || `HTTP ${response.status}`);
+            }
+            const blob = await response.blob();
+            const contentType = response.headers.get('content-type') || '';
+            if (contentType.includes('application/json')) {
+                const text = await blob.text();
+                try {
+                    const errJson = JSON.parse(text);
+                    throw new Error(errJson.message || errJson.error || 'Server error');
+                } catch (parseErr) {
+                    if (parseErr.message && !parseErr.message.includes('JSON')) throw parseErr;
+                    throw new Error(text || 'Server error');
+                }
+            }
+            const blobUrl = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            const ext = format === 'excel' ? 'xlsx' : 'pdf';
+            const prefix = format === 'excel' ? 'Laporan_Penjualan_Sapi_HO' : 'Rekap_Penjualan_Sapi_HO';
+            link.download = `${prefix}_${Date.now()}.${ext}`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(blobUrl);
+            setNotification({ type: 'success', message: `Export ${format === 'excel' ? 'Excel' : 'PDF'} berhasil diunduh` });
+            setIsExportModalOpen(false);
+        } catch (error) {
+            setNotification({ type: 'error', message: `Gagal export: ${error.message}` });
+        } finally {
+            setExportLoading(false);
+        }
+    };
+
     const displayedData = useMemo(() => {
         let data = [...filteredData];
 
@@ -366,36 +464,37 @@ const PenjualanSapiHOPage = () => {
         {
             icon: ShoppingCart,
             label: 'Total Penjualan',
-            value: backendTotal || stats?.totalFromBackend || 0,
-            subvalue: `${stats?.totalRecords || serverPagination.totalItems || 0} data`,
+            value: cardData?.total_records ?? backendTotal ?? stats?.totalFromBackend ?? 0,
+            subvalue: `${cardData?.total_ekor ?? 0} ekor`,
             colorClass: 'bg-indigo-50 text-indigo-600'
         },
         {
             icon: Loader2,
-            label: 'Menunggu',
-            value: stats?.pending || 0,
+            label: 'Menunggu Approval',
+            value: cardData?.pending ?? stats?.pending ?? 0,
+            subvalue: cardData ? `${cardData.pending_ekor} ekor` : undefined,
             colorClass: 'bg-amber-50 text-amber-600'
         },
         {
-            icon: Calendar,
-            label: 'Hari Ini',
-            value: stats?.today?.count || 0,
-            subvalue: stats?.today ? `${stats.today.totalAnimals} ekor • ${formatCurrency(stats.today.totalAmount)}` : undefined,
-            colorClass: 'bg-blue-50 text-blue-600'
-        },
-        {
-            icon: Calendar,
-            label: 'Minggu Ini',
-            value: stats?.week?.count || 0,
-            subvalue: stats?.week ? `${stats.week.totalAnimals} ekor` : undefined,
-            colorClass: 'bg-purple-50 text-purple-600'
-        },
-        {
-            icon: Calendar,
-            label: 'Bulan Ini',
-            value: stats?.month?.count || 0,
-            subvalue: stats?.month ? `${stats.month.totalAnimals} ekor` : undefined,
+            icon: FileText,
+            label: 'Disetujui',
+            value: cardData?.approved ?? 0,
+            subvalue: cardData ? `${cardData.approved_ekor} ekor` : undefined,
             colorClass: 'bg-green-50 text-green-600'
+        },
+        {
+            icon: ShoppingCart,
+            label: 'Ditolak',
+            value: cardData?.rejected ?? 0,
+            subvalue: cardData ? `${cardData.rejected_ekor} ekor` : undefined,
+            colorClass: 'bg-red-50 text-red-600'
+        },
+        {
+            icon: Download,
+            label: 'Piutang Outstanding',
+            value: formatCurrency(cardData?.piutang_outstanding ?? 0),
+            subvalue: cardData ? `Margin: ${formatCurrency(cardData.total_margin)}` : undefined,
+            colorClass: 'bg-blue-50 text-blue-600'
         },
     ];
 
@@ -433,7 +532,7 @@ const PenjualanSapiHOPage = () => {
         <div className="min-h-screen bg-[#f9fafb] p-3 sm:p-4 md:p-6">
             <div className="mx-auto w-full max-w-none space-y-4">
                 {/* Header */}
-                <div className="bg-white rounded-lg border border-gray-100 p-4 flex items-center shadow-sm">
+                <div className="bg-white rounded-lg border border-gray-100 p-4 flex items-center justify-between shadow-sm">
                     <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-lg bg-green-50 flex items-center justify-center">
                             <ShoppingCart className="w-5 h-5 text-green-600" />
@@ -442,6 +541,16 @@ const PenjualanSapiHOPage = () => {
                             <h1 className="text-lg font-semibold text-gray-900">Penjualan Sapi</h1>
                             <p className="text-xs text-gray-500">Kelola data Penjualan Sapi</p>
                         </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setIsExportModalOpen(true)}
+                            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm"
+                            title="Export Laporan Penjualan Sapi (Excel / PDF)"
+                        >
+                            <FileSpreadsheet className="w-4 h-4" />
+                            Export Laporan
+                        </button>
                     </div>
                 </div>
 
@@ -791,6 +900,21 @@ const PenjualanSapiHOPage = () => {
                     onApprove={handleApproveCallback}
                     onReject={handleRejectCallback}
                     refreshData={fetchPenjualan}
+                />
+
+                {/* Export Modal */}
+                <ExportPenjualanSapiModal
+                    isOpen={isExportModalOpen}
+                    onClose={() => setIsExportModalOpen(false)}
+                    onConfirm={handleExportConfirm}
+                    loading={exportLoading}
+                    initialFilters={{
+                        start_date: appliedFilters.startDate || '',
+                        end_date: appliedFilters.endDate || '',
+                        status: appliedFilters.status && appliedFilters.status !== 'all' ? appliedFilters.status : '',
+                        rph: '',
+                        payment_status: '',
+                    }}
                 />
             </div>
         </div>
