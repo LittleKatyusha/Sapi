@@ -51,10 +51,10 @@ const ExportPengeluaranModal = ({ isOpen, onClose, onConfirm, loading = false, i
         return null;
     }, [filters.start_date, filters.end_date]);
 
-    const hasActiveFilter = useMemo(() => Object.values(filters).some(v => v && String(v).trim() !== ''), [filters]);
+    const hasDateRange = Boolean(filters.start_date && filters.end_date);
 
     const handleConfirm = () => {
-        if (rangeError) return;
+        if (rangeError || !hasDateRange) return;
         onConfirm(filters, format);
     };
 
@@ -146,7 +146,7 @@ const ExportPengeluaranModal = ({ isOpen, onClose, onConfirm, loading = false, i
 
                     <div className="bg-gray-50 rounded-lg p-2.5 text-xs text-gray-600 flex items-center justify-between">
                         <span>Filter aktif:</span>
-                        <span className={`font-medium ${hasActiveFilter ? 'text-blue-600' : 'text-gray-400'}`}>{hasActiveFilter ? 'Ya' : 'Tidak (export semua)'}</span>
+                        <span className={`font-medium ${hasDateRange ? 'text-blue-600' : 'text-red-500'}`}>{hasDateRange ? 'Periode dipilih' : 'Pilih periode dahulu'}</span>
                     </div>
                 </div>
 
@@ -154,7 +154,7 @@ const ExportPengeluaranModal = ({ isOpen, onClose, onConfirm, loading = false, i
                     <button onClick={() => setFilters(EMPTY)} disabled={loading} className="text-sm text-gray-600 hover:text-gray-800 disabled:opacity-50">Reset Filter</button>
                     <div className="flex gap-2">
                         <button onClick={onClose} disabled={loading} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50">Batal</button>
-                        <button onClick={handleConfirm} disabled={loading || !!rangeError} className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors disabled:cursor-not-allowed flex items-center gap-2 ${format === 'excel' ? 'bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400' : 'bg-red-600 hover:bg-red-700 disabled:bg-red-400'}`}>
+                        <button onClick={handleConfirm} disabled={loading || !!rangeError || !hasDateRange} className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors disabled:cursor-not-allowed flex items-center gap-2 ${format === 'excel' ? 'bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400' : 'bg-red-600 hover:bg-red-700 disabled:bg-red-400'}`}>
                             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : (format === 'excel' ? <FileSpreadsheet className="w-4 h-4" /> : <FileText className="w-4 h-4" />)}
                             {loading ? 'Processing...' : `Export ${format === 'excel' ? 'Excel' : 'PDF'}`}
                         </button>
