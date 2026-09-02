@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Filter, Search, RotateCcw, RefreshCw, AlertCircle, Home, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, CheckCircle2 } from 'lucide-react';
 import ActionButton from './ActionButton';
 import StokDetailModal from './StokDetailModal';
@@ -7,7 +8,8 @@ import StokSapiService from '../../../../services/stokSapiService';
 import { formatNumber } from '../constants/dummyData';
 import { Notification } from '../../../../components/shared/NotificationComponent';
 
-const StokDetailTab = ({ onOvk, onKasihPakan, onPotongPaksa, onPotongSapiBiasa, onSapiMati, refreshTrigger = 0 }) => {
+const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, refreshTrigger = 0 }) => {
+  const navigate = useNavigate();
   const [openMenuId, setOpenMenuId] = useState(null);
   const [detailRow, setDetailRow] = useState(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
@@ -585,11 +587,10 @@ const StokDetailTab = ({ onOvk, onKasihPakan, onPotongPaksa, onPotongSapiBiasa, 
                        openMenuId={openMenuId}
                        setOpenMenuId={setOpenMenuId}
                        onDetail={() => handleDetail(row)}
-                       onEdit={() => console.log('Edit', row)}
+                       onEdit={() => navigate(`/rph/stok-sapi/edit/${row.pid}`)}
                        onDelete={() => console.log('Delete', row)}
                         onOvk={() => onOvk(row)}
-                        onKasihPakan={() => onKasihPakan(row)}
-                        onPotongPaksa={() => onPotongPaksa(row)}
+                       onPotongPaksa={() => onPotongPaksa(row)}
                         onPotongSapiBiasa={() => onPotongSapiBiasa(row)}
                         onSapiMati={() => onSapiMati(row)}
                     />

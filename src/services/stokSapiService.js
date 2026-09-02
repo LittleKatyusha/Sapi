@@ -90,6 +90,56 @@ class StokSapiService {
     }
   }
 
+  /**
+   * Update data pemeliharaan sapi (eartag, berat, kondisi, keterangan_kondisi).
+   * Endpoint: POST /api/rph/pemeliharaansapi/update
+   */
+  static async update(payload) {
+    try {
+      const response = await HttpClient.post(`${this.API_PREFIX}/update`, payload);
+      HttpClient.clearCache('pemeliharaansapi');
+      return {
+        success: true,
+        data: response.data,
+        message: response.message || 'Data berhasil diperbarui',
+      };
+    } catch (error) {
+      console.error('StokSapiService.update error:', error);
+      let message = 'Gagal memperbarui data';
+      if (error?.data?.data && typeof error.data.data === 'object') {
+        const validationMessages = Object.values(error.data.data).flat();
+        message = validationMessages.join(', ');
+      } else if (error?.data?.message) {
+        message = error.data.message;
+      } else if (error?.message) {
+        message = error.message;
+      }
+      return { success: false, data: null, message };
+    }
+  }
+
+  /**
+   * Riwayat perubahan (berat & kondisi) untuk sapi tertentu.
+   * Endpoint: POST /api/rph/pemeliharaansapi/history
+   */
+  static async history(pid) {
+    try {
+      const response = await HttpClient.post(`${this.API_PREFIX}/history`, { pid });
+      return {
+        success: true,
+        data: response.data,
+        message: 'Data retrieved successfully',
+      };
+    } catch (error) {
+      console.error('StokSapiService.history error:', error);
+      return {
+        success: false,
+        data: null,
+        message: error?.data?.message || error?.message || 'Failed to fetch history',
+      };
+    }
+  }
+
   static async bulkAssignKandang(pids, kandangPid) {
     try {
       const response = await HttpClient.post(`${this.API_PREFIX}/bulk-assign-kandang`, {

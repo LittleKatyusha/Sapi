@@ -176,6 +176,7 @@ const AddEditPembelianKonsentratPage = lazy(() => import('./pages/RPH/Konsentrat
 
 // RPH Stok Sapi Page - Lazy loaded
 const StokSapi = lazy(() => import('./pages/RPH/StokSapi/StokSapiPage'));
+const EditStokSapiPage = lazy(() => import('./pages/RPH/StokSapi/EditStokSapiPage'));
 const PemberianOvkSapiPage = lazy(() => import('./pages/RPH/StokSapi/PemberianOvkSapiPage'));
 const AddEditPemberianOvkSapiPage = lazy(() => import('./pages/RPH/StokSapi/AddEditPemberianOvkSapiPage'));
 
@@ -450,6 +451,7 @@ function AppSecure() {
 
               {/* RPH Stok Sapi Route */}
               <Route path="/rph/stok-sapi" element={<StokSapi />} />
+              <Route path="/rph/stok-sapi/edit/:pid" element={<EditStokSapiPage />} />
               <Route path="/rph/pemberian-ovk-sapi" element={<PemberianOvkSapiPage />} />
               <Route path="/rph/pemberian-ovk-sapi/add" element={<AddEditPemberianOvkSapiPage />} />
               <Route path="/rph/pemberian-ovk-sapi/edit/:pid" element={<AddEditPemberianOvkSapiPage />} />

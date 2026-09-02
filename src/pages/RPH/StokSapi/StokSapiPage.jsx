@@ -9,7 +9,6 @@ import SapiMatiTab from './components/SapiMatiTab';
 import PotongPaksaModal from './modals/PotongPaksaModal';
 import SapiMatiModal from './modals/SapiMatiModal';
 import PotongSapiBiasaModal from './modals/PotongSapiBiasaModal';
-import KasihPakanKonsentratModal from './modals/KasihPakanKonsentratModal';
 import BeriPakanKonsentratModal from './modals/BeriPakanKonsentratModal';
 
 const TABS = [
@@ -28,7 +27,6 @@ const StokSapiPage = () => {
   const [potongPaksaModalOpen, setPotongPaksaModalOpen] = useState(false);
   const [sapiMatiModalOpen, setSapiMatiModalOpen] = useState(false);
   const [potongSapiBiasaModalOpen, setPotongSapiBiasaModalOpen] = useState(false);
-  const [kasihPakanModalOpen, setKasihPakanModalOpen] = useState(false);
   const [beriPakanModalOpen, setBeriPakanModalOpen] = useState(false);
   const [stokDetailRefreshKey, setStokDetailRefreshKey] = useState(0);
   const [selectedCowForAction, setSelectedCowForAction] = useState(null);
@@ -65,22 +63,6 @@ const StokSapiPage = () => {
 
   const handlePotongSapiBiasaSuccess = useCallback(() => {
     setPotongSapiBiasaModalOpen(false);
-    setSelectedCowForAction(null);
-    setStokDetailRefreshKey((prev) => prev + 1);
-  }, []);
-
-  const handleKasihPakan = useCallback((cow) => {
-    setSelectedCowForAction(cow);
-    setKasihPakanModalOpen(true);
-  }, []);
-
-  const handleKasihPakanClose = useCallback(() => {
-    setKasihPakanModalOpen(false);
-    setSelectedCowForAction(null);
-  }, []);
-
-  const handleKasihPakanSuccess = useCallback(() => {
-    setKasihPakanModalOpen(false);
     setSelectedCowForAction(null);
     setStokDetailRefreshKey((prev) => prev + 1);
   }, []);
@@ -173,7 +155,6 @@ const StokSapiPage = () => {
               <StokDetailTab
                 refreshTrigger={stokDetailRefreshKey}
                 onOvk={(cow) => navigate('/rph/pemberian-ovk-sapi/add', { state: { cow } })}
-                onKasihPakan={handleKasihPakan}
                 onPotongPaksa={handlePotongPaksa}
                 onPotongSapiBiasa={handlePotongSapiBiasa}
                 onSapiMati={handleSapiMati}
@@ -206,12 +187,6 @@ const StokSapiPage = () => {
         isOpen={potongSapiBiasaModalOpen}
         onClose={handlePotongSapiBiasaClose}
         onSuccess={handlePotongSapiBiasaSuccess}
-        cowData={selectedCowForAction}
-      />
-      <KasihPakanKonsentratModal
-        isOpen={kasihPakanModalOpen}
-        onClose={handleKasihPakanClose}
-        onSuccess={handleKasihPakanSuccess}
         cowData={selectedCowForAction}
       />
       <BeriPakanKonsentratModal
