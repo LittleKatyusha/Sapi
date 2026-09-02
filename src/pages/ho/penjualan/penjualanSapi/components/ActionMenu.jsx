@@ -1,6 +1,6 @@
 import React, { useRef, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Eye, Download } from 'lucide-react';
+import { ClipboardCheck, Download } from 'lucide-react';
 
 const ActionMenu = ({ row, onDetail, onDownloadOrder, onDownloadSuratJalan, onClose, buttonRef }) => {
     const menuRef = useRef(null);
@@ -37,11 +37,11 @@ const ActionMenu = ({ row, onDetail, onDownloadOrder, onDownloadSuratJalan, onCl
 
     const actions = [
         {
-            label: 'Lihat Detail',
-            icon: Eye,
+            label: 'Persetujuan',
+            icon: ClipboardCheck,
             onClick: () => { onDetail(row); onClose(); },
             className: 'text-gray-700',
-            description: 'Buka informasi lengkap',
+            description: 'Setujui / tolak pesanan',
             bg: 'bg-blue-100',
             hoverBg: 'group-hover:bg-blue-200',
             text: 'text-blue-600',
@@ -100,7 +100,7 @@ const ActionMenu = ({ row, onDetail, onDownloadOrder, onDownloadSuratJalan, onCl
                                 if (!action.disabled) {
                                     action.onClick();
                                     // onClose is handled individually in each action
-                                    if (action.label === 'Lihat Detail') {
+                                    if (action.label === 'Persetujuan') {
                                         onClose();
                                     }
                                 }
