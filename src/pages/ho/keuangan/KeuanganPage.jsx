@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Wallet, Banknote } from 'lucide-react';
+import { Wallet, Banknote, FileSpreadsheet, Loader2 } from 'lucide-react';
 
 import useKeuangan from './hooks/useKeuangan';
 import usePengajuanBiayaKas from '../keuanganKas/hooks/usePengajuanBiayaKas';
@@ -26,6 +26,7 @@ import DetailModal from '../keuanganKas/modals/DetailModal';
 import SetorKasModal from '../keuanganKas/modals/SetorKasModal';
 import FormPengajuanBiayaModal from '../keuanganKas/modals/FormPengajuanBiayaModal';
 import BankDepositDetailModal from '../keuanganKas/modals/BankDepositDetailModal';
+import ExportPengeluaranModal from './modals/ExportPengeluaranModal';
 
 const KeuanganPage = () => {
     const navigate = useNavigate();
@@ -140,6 +141,8 @@ const KeuanganPage = () => {
         end_date: ''
     });
     const [isDownloadingReport, setIsDownloadingReport] = useState(false);
+    const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+    const [isExporting, setIsExporting] = useState(false);
 
     // Field configs for each tab's filter panel
     const transaksiFields = [
@@ -213,6 +216,50 @@ const KeuanganPage = () => {
             setIsDownloadingReport(false);
         }
     }, [tersetorFilters.start_date, tersetorFilters.end_date]);
+
+    // Export handler — triggered from ExportPengeluaranModal confirm
+    const handleExportPengeluaran = useCallback(async (filterData, format = 'excel') => {
+        setIsExportModalOpen(false);
+        if (isExporting) return;
+        setIsExporting(true);
+        setNotification({ type: 'info', message: `Sedang menggenerate ${format === 'excel' ? 'Excel' : 'PDF'}...` });
+        try {
+            const params = {
+                tipe_pembayaran: tipePembayaran,
+                ...(filterData?.start_date ? { start_date: filterData.start_date } : {}),
+                ...(filterData?.end_date ? { end_date: filterData.end_date } : {}),
+                ...(filterData?.purchase_type ? { purchase_type: filterData.purchase_type } : {}),
+                ...(filterData?.payment_status !== '' && filterData?.payment_status != null ? { payment_status: filterData.payment_status } : {}),
+            };
+
+            const blob = format === 'excel'
+                ? await pengeluaranService.exportPengeluaranExcel(params)
+                : await pengeluaranService.exportPengeluaranRekapPdf(params);
+
+            // Blob error detection — backend may return JSON error instead of file
+            const inspection = await pengeluaranService.inspectBlobResponse(blob);
+            if (inspection.isError) {
+                throw new Error(inspection.message);
+            }
+
+            const ext = format === 'excel' ? 'xlsx' : 'pdf';
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `Laporan_Pengeluaran_${metodeBayar}_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '')}.${ext}`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+
+            setNotification({ type: 'success', message: `Export ${format === 'excel' ? 'Excel' : 'PDF'} berhasil diunduh.` });
+        } catch (err) {
+            console.error('Error exporting pengeluaran:', err);
+            setNotification({ type: 'error', message: err.message || `Gagal export ${format === 'excel' ? 'Excel' : 'PDF'}` });
+        } finally {
+            setIsExporting(false);
+        }
+    }, [isExporting, tipePembayaran, metodeBayar]);
 
     // Consume navigation state from Hutang Vendor "Bayar via Kas/Bank"
     useEffect(() => {
@@ -397,20 +444,20 @@ const KeuanganPage = () => {
 
     const handleDownload = async (item, type = 'pengajuan') => {
         try {
+            // FIX: strictly use id_pembayaran — never fallback to item.id (could be wrong entity)
+            const idPembayaranPembelian = item.id_pembayaran;
+            if (!idPembayaranPembelian) {
+                throw new Error('ID Pembayaran tidak ditemukan. Data tidak valid untuk dicetak.');
+            }
+
             setNotification({
                 type: 'info',
-                message: `Mengunduh berkas ${type}...`
+                message: `Mengunduh bukti ${type}...`
             });
 
             const userStr = localStorage.getItem('user');
             const user = userStr ? JSON.parse(userStr) : {};
             const petugas = user.name || 'Admin';
-
-            const idPembayaranPembelian = item.id_pembayaran || item.id;
-
-            if (!idPembayaranPembelian) {
-                throw new Error('ID Pembayaran tidak ditemukan');
-            }
 
             let blob;
             if (item.purchase_type === 7) {
@@ -419,10 +466,17 @@ const KeuanganPage = () => {
                 blob = await pengeluaranService.downloadReportPembelian(idPembayaranPembelian, petugas);
             }
 
+            // Blob error detection — Jasper/backend may return JSON error instead of PDF
+            const inspection = await pengeluaranService.inspectBlobResponse(blob);
+            if (inspection.isError) {
+                throw new Error(inspection.message);
+            }
+
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            const filename = `Bukti_${item.purchase_type === 7 ? 'Pengajuan' : 'Pembelian'}_${item.nota || item.nota_sistem || 'Report'}.pdf`;
+            const statusLabel = item.payment_status === 1 ? 'Lunas' : (item.payment_status === 0 ? 'BelumLunas' : 'BelumBayar');
+            const filename = `Bukti_${item.purchase_type === 7 ? 'Pengajuan' : 'Pembelian'}_${item.nota || item.nota_sistem || 'Report'}_${statusLabel}.pdf`;
             link.setAttribute('download', filename);
 
             document.body.appendChild(link);
@@ -432,7 +486,7 @@ const KeuanganPage = () => {
 
             setNotification({
                 type: 'success',
-                message: `Berhasil mengunduh berkas ${type}`
+                message: `Berhasil mengunduh bukti ${type}`
             });
         } catch (err) {
             console.error('Download error:', err);
@@ -704,10 +758,25 @@ const KeuanganPage = () => {
                                     </p>
                                 </div>
                             </div>
-                            {/* Metode Bayar Toggle - Compact */}
-                            <div className="inline-flex bg-gray-100 rounded-lg p-1 border border-gray-200 self-start sm:self-auto">
+                            <div className="flex items-center gap-2 self-start sm:self-auto">
+                                {/* Export Laporan Button */}
                                 <button
-                                    onClick={() => handleMetodeChange('kas')}
+                                    onClick={() => setIsExportModalOpen(true)}
+                                    disabled={isExporting}
+                                    className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg shadow-sm hover:shadow transition-all duration-200 flex items-center gap-2 text-sm font-medium active:scale-[0.98]"
+                                    title="Export laporan pengeluaran ke Excel/PDF"
+                                >
+                                    {isExporting ? (
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                        <FileSpreadsheet className="w-4 h-4" />
+                                    )}
+                                    {isExporting ? 'Processing...' : 'Export Laporan'}
+                                </button>
+                                {/* Metode Bayar Toggle - Compact */}
+                                <div className="inline-flex bg-gray-100 rounded-lg p-1 border border-gray-200">
+                                    <button
+                                        onClick={() => handleMetodeChange('kas')}
                                     className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-semibold transition-all ${
                                         metodeBayar === 'kas'
                                             ? 'bg-white text-blue-700 shadow-sm'
@@ -730,6 +799,7 @@ const KeuanganPage = () => {
                                 </button>
                             </div>
                         </div>
+                    </div>
                     </div>
 
                     {/* Info Cards Section - Compact */}
@@ -937,6 +1007,15 @@ const KeuanganPage = () => {
                 isOpen={isBankDepositDetailModalOpen}
                 onClose={handleCloseBankDepositDetailModal}
                 data={selectedItem}
+            />
+
+            <ExportPengeluaranModal
+                isOpen={isExportModalOpen}
+                onClose={() => setIsExportModalOpen(false)}
+                onConfirm={handleExportPengeluaran}
+                loading={isExporting}
+                initialFilters={advancedFilters}
+                tipePembayaran={tipePembayaran}
             />
         </>
     );
