@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { PlusCircle, ShoppingCart, Truck, Calendar, CalendarDays, CalendarRange } from 'lucide-react';
+import { PlusCircle, ShoppingCart, Truck, Calendar, CalendarDays, CalendarRange, FileSpreadsheet, Loader2 } from 'lucide-react';
 
 import usePembelianHO from './hooks/usePembelianHO';
 import LaporanPembelianService from '../../../services/laporanPembelianService';
@@ -12,6 +12,7 @@ import { downloadEartagLabelPDF } from './utils/eartagLabelPDF';
 import { downloadSuratJalanPDF } from './utils/suratJalanPDF';
 import HttpClient from '../../../services/httpClient';
 import { API_ENDPOINTS } from '../../../config/api';
+import ExportExcelModal from './modals/ExportExcelModal';
 
 // Import modals
 import DeleteConfirmationModal from './modals/DeleteConfirmationModal';
@@ -400,6 +401,54 @@ const PembelianHOPage = () => {
         }
     }, []);
 
+    // Export Excel handler — download filtered pembelian as .xlsx via modal filter
+    const [excelLoading, setExcelLoading] = useState(false);
+    const [exportModalOpen, setExportModalOpen] = useState(false);
+    const handleExportExcel = useCallback(async (filterData) => {
+        setExportModalOpen(false);
+        if (excelLoading) return;
+        setExcelLoading(true);
+        try {
+            const params = {};
+            if (filterData?.startDate) params.start_date = filterData.startDate;
+            if (filterData?.endDate) params.end_date = filterData.endDate;
+            if (filterData?.nota_sistem) params.filter_nota_sistem = filterData.nota_sistem;
+            if (filterData?.nota) params.filter_nota = filterData.nota;
+            if (filterData?.nama_supplier) params.filter_nama_supplier = filterData.nama_supplier;
+            if (filterData?.plat_nomor) params.filter_plat_nomor = filterData.plat_nomor;
+            if (filterData?.jumlah) params.filter_jumlah = filterData.jumlah;
+            if (filterData?.jenis_pembelian) params.filter_jenis_pembelian = filterData.jenis_pembelian;
+
+            const blob = await HttpClient.get(`${API_ENDPOINTS.HO.PEMBELIAN}/export-excel`, {
+                params,
+                responseType: 'blob',
+                cache: false,
+            });
+
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `Pembelian_DOKA_Sapi_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '')}.xlsx`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+
+            setNotification({
+                type: 'success',
+                message: 'Export Excel berhasil diunduh.'
+            });
+        } catch (err) {
+            console.error('Error exporting Excel:', err);
+            setNotification({
+                type: 'error',
+                message: err.message || 'Gagal export Excel'
+            });
+        } finally {
+            setExcelLoading(false);
+        }
+    }, [excelLoading]);
+
     const handleDeletePembelian = useCallback(async (pembelian) => {
         try {
             // Backend expects encrypted PID yang dikirim sebagai 'pid' dalam response getData
@@ -723,7 +772,19 @@ const PembelianHOPage = () => {
                     <StatCard title="Tahun Ini" value={stats.thisYear} icon={CalendarRange} accentColor="bg-indigo-500" />
                 </div>
 
-                <div className="flex justify-end">
+                <div className="flex justify-end gap-2">
+                    <button
+                        onClick={() => setExportModalOpen(true)}
+                        disabled={excelLoading}
+                        className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white px-4 py-2.5 rounded-lg shadow-sm hover:shadow transition-all duration-200 flex items-center gap-2 text-sm font-medium active:scale-[0.98]"
+                    >
+                        {excelLoading ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                            <FileSpreadsheet className="w-4 h-4" />
+                        )}
+                        {excelLoading ? 'Exporting...' : 'Export Excel'}
+                    </button>
                     <button
                         onClick={() => navigate('/ho/pembelian/add')}
                         className="bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-lg shadow-sm hover:shadow transition-all duration-200 flex items-center gap-2 text-sm font-medium active:scale-[0.98]"
@@ -850,6 +911,15 @@ const PembelianHOPage = () => {
                 data={selectedPembelian}
                 loading={loading}
                 type="pembelian"
+            />
+
+            <ExportExcelModal
+                isOpen={exportModalOpen}
+                onClose={() => setExportModalOpen(false)}
+                onConfirm={handleExportExcel}
+                loading={excelLoading}
+                initialFilters={advancedFilters}
+                tipePembelianOptions={tipePembelianOptions}
             />
         </div>
         </>
