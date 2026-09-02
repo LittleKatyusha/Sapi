@@ -141,8 +141,6 @@ export const pageTitleMap = {
   '/rph/perpindahan-ternak': 'RPH: Perpindahan Ternak',
   '/rph/pembelian-konsentrat': 'RPH: Pembelian Konsentrat',
   '/rph/pembelian-konsentrat/add': 'RPH: Beli Konsentrat',
-  '/rph/pemberian-pakan-konsentrat': 'RPH: Pemberian Pakan Konsentrat',
-  '/rph/pemberian-pakan-konsentrat/add': 'RPH: Kasih Pakan Konsentrat',
 
   // Accounting Module
   '/akuntansi/coa': 'Chart of Accounts (COA)',

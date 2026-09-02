@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, Plus, Trash2, Package, Calculator, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Trash2, Package, Calculator, AlertCircle, Scale, TrendingDown, TrendingUp } from 'lucide-react';
 
 import useDocumentTitle from '../../../hooks/useDocumentTitle';
 import resepKonsentratService from '../../../services/resepKonsentratService';
@@ -39,6 +39,9 @@ const AddEditResepKonsentratPage = () => {
     keterangan: '',
   });
 
+  const [stokAwalKg, setStokAwalKg] = useState('');
+  const [stokAwalTouched, setStokAwalTouched] = useState(false);
+
   const [items, setItems] = useState([
     { id_item: '', jumlah: '', id_satuan: '', item_name: '', satuan_name: '', harga: 0, sisa_stok: 0, markup_type: 'percent', markup_value: 0 },
   ]);
@@ -72,24 +75,38 @@ const AddEditResepKonsentratPage = () => {
     return it.markup_type === 'nominal' ? hpp + m : hpp * (1 + m / 100);
   };
 
-  // Preview HPP & harga jual real-time.
+  // Total berat bahan baku (sum qty input) — untuk audit & default stok awal.
+  const totalBahanBakuKg = useMemo(() => {
+    return items.reduce((sum, it) => {
+      const j = parseFloat(it.jumlah) || 0;
+      return sum + (j > 0 ? j : 0);
+    }, 0);
+  }, [items]);
+
+  // Stok awal hasil: jika user belum edit, default = total bahan baku.
+  const effectiveStokAwal = stokAwalTouched
+    ? (parseFloat(stokAwalKg) || 0)
+    : totalBahanBakuKg;
+  const selisihKg = effectiveStokAwal - totalBahanBakuKg;
+  const selisihPct = totalBahanBakuKg > 0 ? (selisihKg / totalBahanBakuKg) * 100 : 0;
+
+  // Preview HPP & harga jual real-time (HPP per kg berdasarkan berat hasil).
   const preview = useMemo(() => {
     let totalBiaya = 0;
-    let totalKg = 0;
     let totalHargaJual = 0;
     items.forEach((it) => {
       const j = parseFloat(it.jumlah) || 0;
       const h = parseFloat(it.harga) || 0;
       if (j > 0) {
-        totalKg += j;
         totalBiaya += j * h;
         totalHargaJual += j * hargaJualPerKg(it);
       }
     });
-    const hppPerKg = totalKg > 0 ? totalBiaya / totalKg : 0;
-    const hargaJualPerKgAvg = totalKg > 0 ? totalHargaJual / totalKg : 0;
-    return { totalBiaya, totalKg, hppPerKg, totalHargaJual, hargaJualPerKgAvg };
-  }, [items]);
+    const hasilKg = effectiveStokAwal > 0 ? effectiveStokAwal : totalBahanBakuKg;
+    const hppPerKg = hasilKg > 0 ? totalBiaya / hasilKg : 0;
+    const hargaJualPerKgAvg = hasilKg > 0 ? totalHargaJual / hasilKg : 0;
+    return { totalBiaya, totalBahanBakuKg, hasilKg, hppPerKg, totalHargaJual, hargaJualPerKgAvg };
+  }, [items, effectiveStokAwal, totalBahanBakuKg]);
 
   const handleChange = (field, value) => {
     setForm((f) => ({ ...f, [field]: value }));
@@ -149,6 +166,8 @@ const AddEditResepKonsentratPage = () => {
       if (!['nominal', 'percent'].includes(it.markup_type)) e[`items[${i}].markup_type`] = 'Tipe markup tidak valid';
       if (it.markup_value === '' || parseFloat(it.markup_value) < 0) e[`items[${i}].markup_value`] = 'Markup wajib & >= 0';
     });
+    const hasilKg = effectiveStokAwal;
+    if (!hasilKg || hasilKg <= 0) e.stok_awal_kg = 'Stok awal hasil (kg) wajib & > 0';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -163,6 +182,7 @@ const AddEditResepKonsentratPage = () => {
       name: form.name.trim(),
       tgl_produksi: form.tgl_produksi,
       keterangan: form.keterangan?.trim() || null,
+      stok_awal_kg: parseFloat(effectiveStokAwal),
       items: items
         .filter((it) => it.id_item && parseFloat(it.jumlah) > 0)
         .map((it) => ({
@@ -380,6 +400,84 @@ const AddEditResepKonsentratPage = () => {
             {errors.items && <p className="text-xs text-red-600">{errors.items}</p>}
           </div>
 
+          {/* Stok Awal Hasil — editable untuk susut/tambah produksi */}
+          <div className="p-5 border-t border-gray-200 bg-gradient-to-r from-amber-50 to-yellow-50">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+              <div className="lg:col-span-1">
+                <label className="block text-sm font-semibold text-gray-700 mb-1 flex items-center gap-1.5">
+                  <Scale className="w-4 h-4 text-amber-600" />
+                  Stok Awal Hasil (kg) <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.001"
+                  value={stokAwalTouched ? stokAwalKg : (totalBahanBakuKg > 0 ? totalBahanBakuKg : '')}
+                  onChange={(e) => {
+                    setStokAwalKg(e.target.value);
+                    setStokAwalTouched(true);
+                    if (errors.stok_awal_kg) setErrors((prev) => ({ ...prev, stok_awal_kg: null }));
+                  }}
+                  onFocus={() => {
+                    if (!stokAwalTouched && totalBahanBakuKg > 0) {
+                      setStokAwalKg(String(totalBahanBakuKg));
+                      setStokAwalTouched(true);
+                    }
+                  }}
+                  className={`w-full px-3 py-2.5 border rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-amber-500 ${
+                    errors.stok_awal_kg ? 'border-red-300 bg-red-50' : 'border-amber-300 bg-white'
+                  }`}
+                  placeholder="0.000"
+                />
+                {errors.stok_awal_kg && <p className="text-xs text-red-600 mt-1">{errors.stok_awal_kg}</p>}
+                <p className="text-xs text-gray-500 mt-1">
+                  Berat aktual hasil produksi. Bisa berbeda dari total bahan baku (susut/tambah).
+                </p>
+              </div>
+
+              {/* Audit monitoring */}
+              <div className="lg:col-span-2 rounded-lg border border-amber-200 bg-white p-3 space-y-2">
+                <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide flex items-center gap-1.5">
+                  <Calculator className="w-3.5 h-3.5 text-amber-600" />
+                  Monitoring Bahan Baku vs Hasil (Audit)
+                </p>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="rounded-md bg-gray-50 border border-gray-200 p-2">
+                    <p className="text-[10px] font-medium text-gray-500 uppercase">Total Bahan Baku</p>
+                    <p className="text-sm font-bold text-gray-900">{formatNumber(totalBahanBakuKg)} kg</p>
+                  </div>
+                  <div className="rounded-md bg-amber-50 border border-amber-200 p-2">
+                    <p className="text-[10px] font-medium text-amber-600 uppercase">Stok Awal Hasil</p>
+                    <p className="text-sm font-bold text-amber-700">{formatNumber(effectiveStokAwal)} kg</p>
+                  </div>
+                  <div className={`rounded-md border p-2 ${selisihKg < 0 ? 'bg-rose-50 border-rose-200' : selisihKg > 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-gray-50 border-gray-200'}`}>
+                    <p className={`text-[10px] font-medium uppercase ${selisihKg < 0 ? 'text-rose-600' : selisihKg > 0 ? 'text-emerald-600' : 'text-gray-500'}`}>
+                      {selisihKg < 0 ? 'Susut' : selisihKg > 0 ? 'Tambah' : 'Sama'}
+                    </p>
+                    <p className={`text-sm font-bold ${selisihKg < 0 ? 'text-rose-700' : selisihKg > 0 ? 'text-emerald-700' : 'text-gray-700'}`}>
+                      {selisihKg >= 0 ? '+' : ''}{formatNumber(selisihKg)} kg
+                    </p>
+                    {totalBahanBakuKg > 0 && (
+                      <p className={`text-[10px] ${selisihKg < 0 ? 'text-rose-500' : selisihKg > 0 ? 'text-emerald-500' : 'text-gray-400'}`}>
+                        ({selisihPct >= 0 ? '+' : ''}{selisihPct.toFixed(2)}%)
+                      </p>
+                    )}
+                  </div>
+                </div>
+                {Math.abs(selisihKg) > 0.001 && totalBahanBakuKg > 0 && (
+                  <div className={`flex items-start gap-2 rounded-md p-2 text-xs ${selisihKg < 0 ? 'bg-rose-50 text-rose-700' : 'bg-emerald-50 text-emerald-700'}`}>
+                    {selisihKg < 0 ? <TrendingDown className="w-3.5 h-3.5 mt-0.5 shrink-0" /> : <TrendingUp className="w-3.5 h-3.5 mt-0.5 shrink-0" />}
+                    <span>
+                      {selisihKg < 0
+                        ? `Susut produksi ${formatNumber(Math.abs(selisihKg))} kg (${Math.abs(selisihPct).toFixed(2)}% dari bahan baku). HPP/kg dihitung dari berat hasil, bukan bahan baku.`
+                        : `Tambahan produksi ${formatNumber(selisihKg)} kg (${selisihPct.toFixed(2)}% dari bahan baku). HPP/kg dihitung dari berat hasil.`}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* Preview */}
           <div className="p-5 border-t border-gray-200 bg-gradient-to-r from-blue-50 to-emerald-50">
             <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
@@ -388,20 +486,22 @@ const AddEditResepKonsentratPage = () => {
             </h3>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div className="bg-white rounded-lg p-3 border border-gray-200">
-                <p className="text-xs font-medium text-gray-500 uppercase">Total Bahan</p>
-                <p className="text-lg font-bold text-gray-900">{formatNumber(preview.totalKg)} kg</p>
+                <p className="text-xs font-medium text-gray-500 uppercase">Bahan Baku</p>
+                <p className="text-lg font-bold text-gray-900">{formatNumber(preview.totalBahanBakuKg)} kg</p>
               </div>
-              <div className="bg-white rounded-lg p-3 border border-gray-200">
-                <p className="text-xs font-medium text-gray-500 uppercase">Total Biaya</p>
-                <p className="text-lg font-bold text-gray-900">{formatRupiah(preview.totalBiaya)}</p>
+              <div className="bg-white rounded-lg p-3 border border-amber-200 ring-1 ring-amber-100">
+                <p className="text-xs font-medium text-amber-600 uppercase">Hasil Produksi</p>
+                <p className="text-lg font-bold text-amber-700">{formatNumber(preview.hasilKg)} kg</p>
               </div>
               <div className="bg-white rounded-lg p-3 border border-gray-200">
                 <p className="text-xs font-medium text-gray-500 uppercase">HPP / kg</p>
                 <p className="text-lg font-bold text-gray-900">{formatRupiah(preview.hppPerKg)}</p>
+                <p className="text-[10px] text-gray-400">dari berat hasil</p>
               </div>
               <div className="bg-white rounded-lg p-3 border border-blue-200 ring-2 ring-blue-100">
-                <p className="text-xs font-medium text-blue-600 uppercase">Total Harga Jual</p>
-                <p className="text-lg font-bold text-blue-700">{formatRupiah(preview.totalHargaJual)}</p>
+                <p className="text-xs font-medium text-blue-600 uppercase">Harga Jual/kg</p>
+                <p className="text-lg font-bold text-blue-700">{formatRupiah(preview.hargaJualPerKgAvg)}</p>
+                <p className="text-[10px] text-blue-400">Total: {formatRupiah(preview.totalHargaJual)}</p>
               </div>
             </div>
           </div>

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import { Filter, Search, RotateCcw, RefreshCw, AlertCircle, Home, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Filter, Search, RotateCcw, RefreshCw, AlertCircle, Home, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, CheckCircle2 } from 'lucide-react';
 import ActionButton from './ActionButton';
 import StokDetailModal from './StokDetailModal';
 import BulkAssignKandangModal from '../modals/BulkAssignKandangModal';
@@ -7,7 +7,7 @@ import StokSapiService from '../../../../services/stokSapiService';
 import { formatNumber } from '../constants/dummyData';
 import { Notification } from '../../../../components/shared/NotificationComponent';
 
-const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, refreshTrigger = 0 }) => {
+const StokDetailTab = ({ onOvk, onKasihPakan, onPotongPaksa, onPotongSapiBiasa, onSapiMati, refreshTrigger = 0 }) => {
   const [openMenuId, setOpenMenuId] = useState(null);
   const [detailRow, setDetailRow] = useState(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
@@ -588,6 +588,7 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, re
                        onEdit={() => console.log('Edit', row)}
                        onDelete={() => console.log('Delete', row)}
                         onOvk={() => onOvk(row)}
+                        onKasihPakan={() => onKasihPakan(row)}
                         onPotongPaksa={() => onPotongPaksa(row)}
                         onPotongSapiBiasa={() => onPotongSapiBiasa(row)}
                         onSapiMati={() => onSapiMati(row)}
@@ -641,6 +642,12 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, re
                     <div className="text-xs text-gray-700 font-medium">
                       total: Rp {row.nilai_pakan || '0'}
                     </div>
+                    {row.sudah_diberi_pakan_hari_ini && (
+                      <div className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700 border border-emerald-200">
+                        <CheckCircle2 className="h-3 w-3" />
+                        Sudah diberi pakan hari ini{row.sesi_pakan_hari_ini > 1 ? ` (${row.sesi_pakan_hari_ini}x)` : ''}
+                      </div>
+                    )}
                   </div>
                 </td>
                 {/* OVK */}

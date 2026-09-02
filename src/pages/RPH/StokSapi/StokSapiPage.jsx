@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Package, ClipboardList, Scale, AlertTriangle } from 'lucide-react';
+import { Package, ClipboardList, Scale, AlertTriangle, Wheat } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import useDocumentTitle from '../../../hooks/useDocumentTitle';
 import StokRingkasTab from './components/StokRingkasTab';
@@ -9,6 +9,8 @@ import SapiMatiTab from './components/SapiMatiTab';
 import PotongPaksaModal from './modals/PotongPaksaModal';
 import SapiMatiModal from './modals/SapiMatiModal';
 import PotongSapiBiasaModal from './modals/PotongSapiBiasaModal';
+import KasihPakanKonsentratModal from './modals/KasihPakanKonsentratModal';
+import BeriPakanKonsentratModal from './modals/BeriPakanKonsentratModal';
 
 const TABS = [
   { id: 'ringkas', label: 'Ringkas', icon: Package },
@@ -26,6 +28,8 @@ const StokSapiPage = () => {
   const [potongPaksaModalOpen, setPotongPaksaModalOpen] = useState(false);
   const [sapiMatiModalOpen, setSapiMatiModalOpen] = useState(false);
   const [potongSapiBiasaModalOpen, setPotongSapiBiasaModalOpen] = useState(false);
+  const [kasihPakanModalOpen, setKasihPakanModalOpen] = useState(false);
+  const [beriPakanModalOpen, setBeriPakanModalOpen] = useState(false);
   const [stokDetailRefreshKey, setStokDetailRefreshKey] = useState(0);
   const [selectedCowForAction, setSelectedCowForAction] = useState(null);
 
@@ -65,6 +69,35 @@ const StokSapiPage = () => {
     setStokDetailRefreshKey((prev) => prev + 1);
   }, []);
 
+  const handleKasihPakan = useCallback((cow) => {
+    setSelectedCowForAction(cow);
+    setKasihPakanModalOpen(true);
+  }, []);
+
+  const handleKasihPakanClose = useCallback(() => {
+    setKasihPakanModalOpen(false);
+    setSelectedCowForAction(null);
+  }, []);
+
+  const handleKasihPakanSuccess = useCallback(() => {
+    setKasihPakanModalOpen(false);
+    setSelectedCowForAction(null);
+    setStokDetailRefreshKey((prev) => prev + 1);
+  }, []);
+
+  const handleBeriPakan = useCallback(() => {
+    setBeriPakanModalOpen(true);
+  }, []);
+
+  const handleBeriPakanClose = useCallback(() => {
+    setBeriPakanModalOpen(false);
+  }, []);
+
+  const handleBeriPakanSuccess = useCallback(() => {
+    setBeriPakanModalOpen(false);
+    setStokDetailRefreshKey((prev) => prev + 1);
+  }, []);
+
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-[1600px] space-y-4 p-3 sm:p-4">
@@ -82,6 +115,14 @@ const StokSapiPage = () => {
             </div>
 
             <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleBeriPakan}
+                className="inline-flex items-center gap-2 rounded-md border border-amber-300 bg-amber-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-600"
+              >
+                <Wheat className="h-4 w-4" />
+                Beri Pakan Konsentrat
+              </button>
               <button
                 type="button"
                 onClick={() => navigate('/rph/pemberian-ovk-sapi')}
@@ -132,6 +173,7 @@ const StokSapiPage = () => {
               <StokDetailTab
                 refreshTrigger={stokDetailRefreshKey}
                 onOvk={(cow) => navigate('/rph/pemberian-ovk-sapi/add', { state: { cow } })}
+                onKasihPakan={handleKasihPakan}
                 onPotongPaksa={handlePotongPaksa}
                 onPotongSapiBiasa={handlePotongSapiBiasa}
                 onSapiMati={handleSapiMati}
@@ -165,6 +207,17 @@ const StokSapiPage = () => {
         onClose={handlePotongSapiBiasaClose}
         onSuccess={handlePotongSapiBiasaSuccess}
         cowData={selectedCowForAction}
+      />
+      <KasihPakanKonsentratModal
+        isOpen={kasihPakanModalOpen}
+        onClose={handleKasihPakanClose}
+        onSuccess={handleKasihPakanSuccess}
+        cowData={selectedCowForAction}
+      />
+      <BeriPakanKonsentratModal
+        isOpen={beriPakanModalOpen}
+        onClose={handleBeriPakanClose}
+        onSuccess={handleBeriPakanSuccess}
       />
     </div>
   );

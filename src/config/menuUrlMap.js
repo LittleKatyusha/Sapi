@@ -69,7 +69,6 @@ export const MENU_URL_MAPPING = {
   'stok-sapi-qurban': '/rph/stok-sapi-qurban',
   'perpindahan-ternak': '/rph/perpindahan-ternak',
   'pembelian-konsentrat': '/rph/pembelian-konsentrat',
-  'pemberian-pakan-konsentrat': '/rph/pemberian-pakan-konsentrat',
 
   // Reports
   'nota-supplier': '/reports/nota-supplier',

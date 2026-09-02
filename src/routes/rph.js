@@ -26,8 +26,6 @@ const AddEditPerpindahanTernakPage = lazy(() => import('../pages/RPH/Perpindahan
 
 const PembelianKonsentratPage = lazy(() => import('../pages/RPH/Konsentrat/PembelianKonsentratPage'));
 const AddEditPembelianKonsentratPage = lazy(() => import('../pages/RPH/Konsentrat/AddEditPembelianKonsentratPage'));
-const PemberianPakanKonsentratPage = lazy(() => import('../pages/RPH/Konsentrat/PemberianPakanKonsentratPage'));
-const AddEditPemberianPakanKonsentratPage = lazy(() => import('../pages/RPH/Konsentrat/AddEditPemberianPakanKonsentratPage'));
 
 export const rphRoutes = [
   {
@@ -143,13 +141,5 @@ export const rphRoutes = [
   {
     path: '/rph/pembelian-konsentrat/add',
     element: <AddEditPembelianKonsentratPage />
-  },
-  {
-    path: '/rph/pemberian-pakan-konsentrat',
-    element: <PemberianPakanKonsentratPage />
-  },
-  {
-    path: '/rph/pemberian-pakan-konsentrat/add',
-    element: <AddEditPemberianPakanKonsentratPage />
   }
 ];

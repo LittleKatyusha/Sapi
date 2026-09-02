@@ -173,8 +173,6 @@ const PengeluaranFeedmillPage = lazy(() => import('./pages/feedmill/keuangan/Pen
 // RPH Konsentrat Pages - Lazy loaded
 const PembelianKonsentratPage = lazy(() => import('./pages/RPH/Konsentrat/PembelianKonsentratPage'));
 const AddEditPembelianKonsentratPage = lazy(() => import('./pages/RPH/Konsentrat/AddEditPembelianKonsentratPage'));
-const PemberianPakanKonsentratPage = lazy(() => import('./pages/RPH/Konsentrat/PemberianPakanKonsentratPage'));
-const AddEditPemberianPakanKonsentratPage = lazy(() => import('./pages/RPH/Konsentrat/AddEditPemberianPakanKonsentratPage'));
 
 // RPH Stok Sapi Page - Lazy loaded
 const StokSapi = lazy(() => import('./pages/RPH/StokSapi/StokSapiPage'));
@@ -656,8 +654,6 @@ function AppSecure() {
               {/* RPH Konsentrat Routes */}
               <Route path="/rph/pembelian-konsentrat" element={<PembelianKonsentratPage />} />
               <Route path="/rph/pembelian-konsentrat/add" element={<AddEditPembelianKonsentratPage />} />
-              <Route path="/rph/pemberian-pakan-konsentrat" element={<PemberianPakanKonsentratPage />} />
-              <Route path="/rph/pemberian-pakan-konsentrat/add" element={<AddEditPemberianPakanKonsentratPage />} />
 
               {/* System Routes */}
               <Route path="/system/permission-management" element={<PermissionManagementPage />} />

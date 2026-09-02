@@ -1,8 +1,8 @@
 import React, { useRef, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Eye, Edit, Trash2, Package, Scissors, AlertTriangle, Beef } from 'lucide-react';
+import { Eye, Edit, Trash2, Package, Scissors, AlertTriangle, Beef, Wheat } from 'lucide-react';
 
-const ActionMenu = ({ row, onEdit, onDelete, onDetail, onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, onClose, buttonRef }) => {
+const ActionMenu = ({ row, onEdit, onDelete, onDetail, onOvk, onKasihPakan, onPotongPaksa, onPotongSapiBiasa, onSapiMati, onClose, buttonRef }) => {
   const menuRef = useRef(null);
   const [menuStyle, setMenuStyle] = useState(null);
 
@@ -104,6 +104,21 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onOvk, onPotongPaksa, onP
         bg: 'bg-emerald-100',
         hoverBg: 'group-hover:bg-emerald-200',
         text: 'text-emerald-600',
+      }
+    ] : []),
+    ...(onKasihPakan ? [
+      {
+        label: 'Kasih Pakan Konsentrat',
+        icon: Wheat,
+        onClick: () => {
+          onKasihPakan(row);
+          onClose();
+        },
+        className: 'text-amber-700',
+        description: 'FIFO konsumsi stok konsentrat',
+        bg: 'bg-amber-100',
+        hoverBg: 'group-hover:bg-amber-200',
+        text: 'text-amber-600',
       }
     ] : []),
     ...(onPotongSapiBiasa ? [
