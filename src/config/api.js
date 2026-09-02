@@ -268,6 +268,7 @@ export const API_ENDPOINTS = {
     PO: {
       BASE: '/api/rph/po',
       NOTA: '/api/rph/po/getnota',
+      NOTA_DETAIL: '/api/rph/po/getnota/detail',
       DATA: '/api/rph/po/data',
       SHOW: '/api/rph/po/show',
       STORE: '/api/rph/po/store',

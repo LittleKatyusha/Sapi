@@ -142,7 +142,11 @@ class PenjualanDokaSapiService {
       };
     } catch (error) {
       console.error('Error approving Penjualan Doka Sapi:', error);
-      throw error;
+      const message = this._extractErrorMessage(error, 'Gagal menyetujui pesanan');
+      const wrapped = new Error(message);
+      wrapped.data = error.data;
+      wrapped.status = error.status;
+      throw wrapped;
     }
   }
 
@@ -169,8 +173,41 @@ class PenjualanDokaSapiService {
       };
     } catch (error) {
       console.error('Error rejecting Penjualan Doka Sapi:', error);
-      throw error;
+      const message = this._extractErrorMessage(error, 'Gagal menolak pesanan');
+      const wrapped = new Error(message);
+      wrapped.data = error.data;
+      wrapped.status = error.status;
+      throw wrapped;
     }
+  }
+
+  /**
+   * Extract a user-friendly message from an HttpClient error.
+   * Backend validation errors come back as:
+   *   { status: 'no', message: 'Validasi gagal', data: { catatan: ['...'] }, code: 400 }
+   * HttpClient stores the parsed body in error.data and sets error.message to the raw message.
+   */
+  static _extractErrorMessage(error, fallback) {
+    const data = error?.data;
+    if (data && typeof data === 'object') {
+      // Laravel validation messages: { field: ['msg1', 'msg2', ...] }
+      const fieldMessages = [];
+      Object.keys(data).forEach((field) => {
+        const v = data[field];
+        if (Array.isArray(v) && v.length > 0) {
+          fieldMessages.push(`${field}: ${v.join(', ')}`);
+        } else if (typeof v === 'string') {
+          fieldMessages.push(`${field}: ${v}`);
+        }
+      });
+      if (fieldMessages.length > 0) {
+        return fieldMessages.join(' | ');
+      }
+      if (typeof data.message === 'string' && data.message) {
+        return data.message;
+      }
+    }
+    return error?.message || fallback;
   }
 
   /**

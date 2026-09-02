@@ -69,6 +69,32 @@ class PoRphService {
   }
 
   /**
+   * Get detail item (sapi) dari sebuah nota HO
+   * @param {number} idNota - ID nota (tr_pembelian_ho.id)
+   * @returns {Promise} API response dengan list detail sapi + total_ekor/berat/nilai
+   */
+  static async getNotaDetail(idNota) {
+    try {
+      const response = await HttpClient.post(
+        API_ENDPOINTS.RPH?.PO?.NOTA_DETAIL || `${this.API_BASE}/getnota/detail`,
+        { id_nota: idNota }
+      );
+      return {
+        success: true,
+        data: response.data || null,
+        message: response.message || 'Detail nota berhasil dimuat',
+      };
+    } catch (error) {
+      console.error('Error fetching nota detail:', error);
+      return {
+        success: false,
+        data: null,
+        message: error.message || 'Gagal mengambil detail nota',
+      };
+    }
+  }
+
+  /**
    * Get list of PO RPH with DataTable support
    * @param {Object} params - Query parameters
    * @param {number} params.start - Starting index for pagination
