@@ -26,6 +26,7 @@ const PembelianLainLainTabs = ({
     bankOptions,
     onAsetAdd,
     onAsetReport,
+    onAsetNotification,
     isDownloadingReport,
     // Biaya props
     biayaData,
@@ -138,7 +139,7 @@ const PembelianLainLainTabs = ({
                                 className="bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 px-4 py-2.5 rounded-lg shadow-sm transition-all duration-200 flex items-center gap-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 <Download className="w-4 h-4" />
-                                Laporan
+                                Cetak / Export
                             </button>
                             <button
                                 onClick={onAsetAdd}
@@ -189,6 +190,7 @@ const PembelianLainLainTabs = ({
                         getFarmName={getFarmName}
                         getBankName={getBankName}
                         bankOptions={bankOptions}
+                        onNotification={onAsetNotification}
                     />
                 </div>
             )}

@@ -194,10 +194,14 @@ export const API_ENDPOINTS = {
       PEMBELIAN: '/api/ho/ovk/pembelian'
     },
     LAINLAIN: {
-      PEMBELIAN: '/api/ho/lainlain/pembelian'
+      PEMBELIAN: '/api/ho/lainlain/pembelian',
+      EXPORT_EXCEL: '/api/ho/lainlain/pembelian/export-excel',
+      EXPORT_PDF: '/api/ho/lainlain/pembelian/export-pdf'
     },
     BEBAN_BIAYA: {
-      PEMBELIAN: '/api/ho/bebanbiaya/pembelian'
+      PEMBELIAN: '/api/ho/bebanbiaya/pembelian',
+      EXPORT_EXCEL: '/api/ho/bebanbiaya/pembelian/export-excel',
+      EXPORT_PDF: '/api/ho/bebanbiaya/pembelian/export-pdf'
     },
     BAHAN_PEMBANTU: {
       PEMBELIAN: '/api/ho/bahanpembantu/pembelian',

@@ -109,7 +109,8 @@ const ModernPembelianLainLainTable = ({
   onBayar,
   getFarmName,
   getBankName,
-  bankOptions = []
+  bankOptions = [],
+  onNotification
 }) => {
   const navigate = useNavigate();
   const [expandedRows, setExpandedRows] = useState(new Set());
@@ -137,6 +138,7 @@ const ModernPembelianLainLainTable = ({
     if (!id) return;
     const rowId = row.id || row.encryptedPid;
     setDownloadLoadingId(rowId);
+    onNotification?.({ type: 'info', message: 'Memproses nota pembelian aset...' });
     try {
       const blob = await LaporanPembelianService.downloadReportNotaLainLain(id);
       const url = window.URL.createObjectURL(blob);
@@ -147,8 +149,10 @@ const ModernPembelianLainLainTable = ({
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
+      onNotification?.({ type: 'success', message: 'Nota pembelian aset berhasil diunduh.' });
     } catch (error) {
       console.error('Download lain-lain report error:', error);
+      onNotification?.({ type: 'error', message: error.message || 'Gagal mengunduh nota pembelian aset.' });
     } finally {
       setDownloadLoadingId(null);
     }
