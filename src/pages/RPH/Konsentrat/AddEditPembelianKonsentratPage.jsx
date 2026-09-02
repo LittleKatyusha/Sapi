@@ -5,6 +5,7 @@ import { ArrowLeft, Save, Plus, Trash2, ShoppingCart, Calculator, AlertCircle } 
 import useDocumentTitle from '../../../hooks/useDocumentTitle';
 import pembelianKonsentratService from '../../../services/pembelianKonsentratService';
 import { useNotification } from '../../../components/shared/Notification';
+import SearchableSelect from '../../../components/shared/SearchableSelect';
 
 const formatRupiah = (v) => {
   const n = Number(v || 0);
@@ -85,6 +86,15 @@ const AddEditPembelianKonsentratPage = () => {
     setItems((prev) => {
       const next = [...prev];
       next[idx] = { ...next[idx], [field]: value };
+      // Clamp jumlah ke stok resep (total_jumlah) — tidak bisa melebihi stok
+      if (field === 'jumlah') {
+        const opt = resepOptions.find((o) => o.pid === next[idx].pid_resep);
+        const max = parseFloat(opt?.total_jumlah) || 0;
+        const inputVal = parseFloat(value);
+        if (value !== '' && !isNaN(inputVal) && max > 0 && inputVal > max) {
+          next[idx].jumlah = String(max);
+        }
+      }
       return next;
     });
     if (errors[`items[${idx}]`]) setErrors((e) => ({ ...e, [`items[${idx}]`]: null }));
@@ -173,17 +183,6 @@ const AddEditPembelianKonsentratPage = () => {
           </div>
           <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">ID RPH <span className="text-red-500">*</span></label>
-              <input
-                type="number"
-                value={form.id_rph}
-                onChange={(e) => handleChange('id_rph', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.id_rph ? 'border-red-300 bg-red-50' : 'border-gray-300'}`}
-                placeholder="Contoh: 2"
-              />
-              {errors.id_rph && <p className="text-xs text-red-600 mt-1">{errors.id_rph}</p>}
-            </div>
-            <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal Jual <span className="text-red-500">*</span></label>
               <input
                 type="date"
@@ -193,7 +192,7 @@ const AddEditPembelianKonsentratPage = () => {
               />
               {errors.tgl_jual && <p className="text-xs text-red-600 mt-1">{errors.tgl_jual}</p>}
             </div>
-            <div className="sm:col-span-2">
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Keterangan</label>
               <input
                 type="text"
@@ -241,18 +240,18 @@ const AddEditPembelianKonsentratPage = () => {
                 <div key={idx} className="grid grid-cols-12 gap-2 items-start p-3 bg-gray-50 rounded-lg">
                   <div className="col-span-12 sm:col-span-7">
                     <label className="block text-xs font-medium text-gray-600 mb-1">Resep Konsentrat HO</label>
-                    <select
-                      value={it.pid_resep}
-                      onChange={(e) => handleItemChange(idx, 'pid_resep', e.target.value)}
-                      className="w-full px-2.5 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                    >
-                      <option value="">— Pilih resep —</option>
-                      {resepOptions.map((o) => (
-                        <option key={o.pid} value={o.pid}>
-                          {o.kode} — {o.name} (HO: {o.nama_office}, stok: {formatNumber(o.total_jumlah)} kg @ {formatRupiah(o.harga_jual_per_kg)})
-                        </option>
-                      ))}
-                    </select>
+                    <SearchableSelect
+                      options={resepOptions.map((o) => ({
+                        value: o.pid,
+                        label: `${o.kode} — ${o.name} (HO: ${o.nama_office}, stok: ${formatNumber(o.total_jumlah)} kg @ ${formatRupiah(o.harga_jual_per_kg)})`,
+                      }))}
+                      value={it.pid_resep || null}
+                      onChange={(v) => handleItemChange(idx, 'pid_resep', v || '')}
+                      placeholder="— Pilih resep —"
+                      accentColor="blue"
+                      isLoading={resepLoading}
+                      isClearable
+                    />
                     {opt && (
                       <p className="text-xs text-gray-500 mt-1">
                         HO: {opt.nama_office} • Tgl produksi: {opt.tgl_produksi} • HPP: {formatRupiah(opt.hpp_per_kg)}
@@ -264,6 +263,7 @@ const AddEditPembelianKonsentratPage = () => {
                     <input
                       type="number"
                       min="0"
+                      max={opt?.total_jumlah || 0}
                       step="0.001"
                       value={it.jumlah}
                       onChange={(e) => handleItemChange(idx, 'jumlah', e.target.value)}
@@ -277,6 +277,11 @@ const AddEditPembelianKonsentratPage = () => {
                     )}
                     {opt && (
                       <p className="text-xs text-gray-400 mt-1">Maks: {formatNumber(opt.total_jumlah)} kg</p>
+                    )}
+                    {opt && parseFloat(it.jumlah) >= Number(opt.total_jumlah) && Number(opt.total_jumlah) > 0 && (
+                      <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" /> Maks. stok tercapai
+                      </p>
                     )}
                   </div>
                   <div className="col-span-4 sm:col-span-1 flex items-end">

@@ -18,12 +18,12 @@ const pembelianKonsentratService = {
   getStok: async (params = {}) => {
     try {
       const response = await httpClient.get(`${API_BASE}/stok`, { params, cache: false });
-      return { success: true, data: response?.data || [] };
+      return { success: true, data: response };
     } catch (error) {
       return {
         success: false,
         message: error?.data?.message || error?.message || 'Gagal mengambil stok konsentrat RPH',
-        data: [],
+        data: { data: [] },
       };
     }
   },
@@ -81,6 +81,46 @@ const pembelianKonsentratService = {
       return {
         success: false,
         message: error?.data?.message || error?.message || 'Gagal membatalkan pembelian konsentrat',
+      };
+    }
+  },
+
+  storePayment: async (data) => {
+    try {
+      const response = await httpClient.post(`${API_BASE}/bayar`, data);
+      return {
+        success: true,
+        data: response?.data,
+        message: response?.message || 'Pembayaran berhasil dicatat',
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error?.data?.message || error?.message || 'Gagal mencatat pembayaran',
+      };
+    }
+  },
+
+  getPaymentHistory: async (pid) => {
+    try {
+      const response = await httpClient.post(`${API_BASE}/payment-history`, { pid });
+      return { success: true, data: response?.data };
+    } catch (error) {
+      return {
+        success: false,
+        message: error?.data?.message || error?.message || 'Gagal mengambil riwayat pembayaran',
+      };
+    }
+  },
+
+  getCardData: async (params = {}) => {
+    try {
+      const response = await httpClient.get(`${API_BASE}/card`, { params, cache: false });
+      return { success: true, data: response?.data ?? response };
+    } catch (error) {
+      return {
+        success: false,
+        message: error?.data?.message || error?.message || 'Gagal mengambil card data',
       };
     }
   },

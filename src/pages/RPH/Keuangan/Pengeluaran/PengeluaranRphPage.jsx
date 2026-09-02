@@ -12,7 +12,7 @@ import SearchableSelect from '../../../../components/shared/SearchableSelect';
 const JENIS_PEMBELIAN_OPTIONS = [
   { value: 'sapi', label: 'Pembelian Sapi RPH' },
   { value: 'qurban', label: 'Pembelian Sapi Qurban' },
-  { value: 'rph_feedmil', label: 'Pembelian Pakan (RPH)' },
+  { value: 'rph_feedmil', label: 'Pembelian Konsentrat' },
   { value: 'rph_ovk', label: 'Pembelian OVK (RPH)' },
   { value: 'rph_hewan', label: 'Pembelian Hewan (RPH)' },
   // { value: 'feedmil', label: 'Pembelian Feedmil (HO)' },
@@ -20,7 +20,6 @@ const JENIS_PEMBELIAN_OPTIONS = [
   { value: 'lain_lain', label: 'Pembelian Lain-Lain' },
   { value: 'bahan_pembantu_rph', label: 'Pembelian Lain-Lain: Bahan Pembantu RPH' },
   { value: 'kulit', label: 'Pembelian Kulit' },
-  { value: 'rph_feedmil', label: 'Pembelian Feedmil RPH (dari HO)' },
   { value: 'rph_ovk', label: 'Pembelian OVK RPH (dari HO)' },
   { value: 'rph_hewan', label: 'Pembelian Hewan RPH (dari Vendor)' },
 ];

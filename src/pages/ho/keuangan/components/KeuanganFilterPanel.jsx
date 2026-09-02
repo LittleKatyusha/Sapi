@@ -5,7 +5,6 @@ import SearchableSelect from '../../../../components/shared/SearchableSelect';
 export const JENIS_PEMBELIAN_OPTIONS = [
     { value: '', label: 'Semua Jenis' },
     { value: '1', label: 'DOKA' },
-    { value: '2', label: 'Feedmil' },
     { value: '3', label: 'OVK' },
     { value: '4', label: 'Kulit' },
     { value: '5', label: 'Lain-Lain' },

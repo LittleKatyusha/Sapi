@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DataTable from 'react-data-table-component';
-import { PlusCircle, Search, XCircle, FileText, Boxes, Ban } from 'lucide-react';
+import { PlusCircle, Search, XCircle, FileText, Boxes, Ban, Wallet, History, MoreVertical, AlertCircle, Calendar, CalendarRange, CalendarDays, TrendingUp } from 'lucide-react';
 
 import useDocumentTitle from '../../../hooks/useDocumentTitle';
 import pembelianKonsentratService from '../../../services/pembelianKonsentratService';
@@ -29,7 +29,7 @@ const getRphId = () => {
 const PembelianKonsentratPage = () => {
   useDocumentTitle('Pembelian Konsentrat RPH');
   const navigate = useNavigate();
-  const { showError } = useNotification();
+  const { showError, showSuccess } = useNotification();
 
   const idRph = getRphId();
 
@@ -50,6 +50,29 @@ const PembelianKonsentratPage = () => {
   const [cancelTarget, setCancelTarget] = useState(null);
   const [cancelAlasan, setCancelAlasan] = useState('');
   const [cancelLoading, setCancelLoading] = useState(false);
+
+  const [payTarget, setPayTarget] = useState(null);
+  const [payHistory, setPayHistory] = useState(null);
+  const [payLoading, setPayLoading] = useState(false);
+  const [payForm, setPayForm] = useState({ nominal_pembayaran: '', metode_pembayaran: 'tunai', nama_pembayar: '', payment_date: '', note: '' });
+  const [paySubmitting, setPaySubmitting] = useState(false);
+
+  const [cardData, setCardData] = useState(null);
+  const [cardLoading, setCardLoading] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
+  const menuBtnRefs = useRef({});
+
+  const fetchCardData = useCallback(async () => {
+    if (!idRph) return;
+    setCardLoading(true);
+    const res = await pembelianKonsentratService.getCardData({ id_rph: idRph });
+    setCardLoading(false);
+    if (res.success) {
+      const payload = res.data?.data ?? res.data;
+      setCardData(payload);
+    }
+  }, [idRph]);
 
   const fetchData = useCallback(async () => {
     if (!idRph) {
@@ -83,6 +106,16 @@ const PembelianKonsentratPage = () => {
     fetchData();
   }, [fetchData]);
 
+  useEffect(() => {
+    fetchCardData();
+  }, [fetchCardData]);
+
+  useEffect(() => {
+    const onClick = () => setOpenMenuId(null);
+    window.addEventListener('click', onClick);
+    return () => window.removeEventListener('click', onClick);
+  }, []);
+
   const handleSearch = () => {
     setCurrentPage(1);
     setSearchQuery(searchInput.trim());
@@ -103,6 +136,57 @@ const PembelianKonsentratPage = () => {
   const openCancel = (row) => {
     setCancelTarget(row);
     setCancelAlasan('');
+  };
+
+  const openPay = async (row) => {
+    setPayTarget(row);
+    setPayForm({ nominal_pembayaran: '', metode_pembayaran: 'tunai', nama_pembayar: '', payment_date: '', note: '' });
+    setPayHistory(null);
+    setPayLoading(true);
+    const res = await pembelianKonsentratService.getPaymentHistory(row.pid);
+    setPayLoading(false);
+    if (res.success) {
+      setPayHistory(res.data);
+      const sisa = Number(res.data?.sisa_pembayaran || 0);
+      if (sisa > 0) {
+        setPayForm((f) => ({ ...f, nominal_pembayaran: String(sisa) }));
+      }
+    } else {
+      showError(res.message || 'Gagal memuat riwayat pembayaran');
+    }
+  };
+
+  const submitPayment = async () => {
+    if (!payTarget) return;
+    const nominal = Number(payForm.nominal_pembayaran);
+    if (!nominal || nominal <= 0) {
+      showError('Nominal pembayaran harus > 0');
+      return;
+    }
+    if (!payForm.metode_pembayaran) {
+      showError('Metode pembayaran wajib dipilih');
+      return;
+    }
+    setPaySubmitting(true);
+    const res = await pembelianKonsentratService.storePayment({
+      pid: payTarget.pid,
+      nominal_pembayaran: nominal,
+      metode_pembayaran: payForm.metode_pembayaran,
+      nama_pembayar: payForm.nama_pembayar || null,
+      payment_date: payForm.payment_date || null,
+      note: payForm.note || null,
+    });
+    setPaySubmitting(false);
+    if (res.success) {
+      showSuccess(res.message || 'Pembayaran berhasil dicatat');
+      // Refresh history
+      const hist = await pembelianKonsentratService.getPaymentHistory(payTarget.pid);
+      if (hist.success) setPayHistory(hist.data);
+      setPayForm({ nominal_pembayaran: '', metode_pembayaran: 'tunai', nama_pembayar: '', payment_date: '', note: '' });
+      fetchData();
+    } else {
+      showError(res.message || 'Gagal mencatat pembayaran');
+    }
   };
 
   const confirmCancel = async () => {
@@ -156,30 +240,88 @@ const PembelianKonsentratPage = () => {
     },
     {
       name: 'Status',
-      selector: (row) => row.is_cancel,
+      selector: (row) => row.status_pembayaran,
       center: true,
-      cell: (row) => (
-        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-          row.is_cancel === 1
-            ? 'bg-red-50 text-red-700 border border-red-200'
-            : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-        }`}>
-          {row.is_cancel === 1 ? 'Dibatalkan' : 'Aktif'}
-        </span>
-      ),
+      cell: (row) => {
+        const s = row.status_pembayaran || (row.is_cancel === 1 ? 'dibatalkan' : 'belum_dibayar');
+        const map = {
+          belum_dibayar: 'bg-amber-50 text-amber-700 border-amber-200',
+          belum_lunas: 'bg-blue-50 text-blue-700 border-blue-200',
+          lunas: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+          dibatalkan: 'bg-red-50 text-red-700 border-red-200',
+        };
+        const label = {
+          belum_dibayar: 'Belum Dibayar',
+          belum_lunas: 'Belum Lunas',
+          lunas: 'Lunas',
+          dibatalkan: 'Dibatalkan',
+        };
+        return (
+          <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${map[s] || map.belum_dibayar}`}>
+            {label[s] || 'Belum Dibayar'}
+          </span>
+        );
+      },
     },
     {
       name: 'Aksi',
       center: true,
       cell: (row) => (
-        <div className="flex items-center gap-1.5">
-          <button onClick={() => handleDetail(row)} className="px-2.5 py-1 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors">
-            Detail
+        <div className="relative">
+          <button
+            ref={(el) => { menuBtnRefs.current[row.pid] = el; }}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (openMenuId === row.pid) {
+                setOpenMenuId(null);
+              } else {
+                const rect = e.currentTarget.getBoundingClientRect();
+                setMenuPos({ top: rect.bottom + 4, left: rect.right - 160 });
+                setOpenMenuId(row.pid);
+              }
+            }}
+            className="p-1.5 rounded-md hover:bg-gray-100 text-gray-500"
+            aria-label="Aksi"
+          >
+            <MoreVertical className="w-4 h-4" />
           </button>
-          {row.is_cancel === 0 && (
-            <button onClick={() => openCancel(row)} className="px-2.5 py-1 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-md transition-colors">
-              Cancel
-            </button>
+          {openMenuId === row.pid && (
+            <div
+              className="fixed z-[9999] w-40 bg-white border border-gray-200 rounded-lg shadow-lg py-1"
+              style={{ top: menuPos.top, left: menuPos.left }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={() => { handleDetail(row); setOpenMenuId(null); }}
+                className="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+              >
+                <FileText className="w-3.5 h-3.5" /> Detail
+              </button>
+              {row.is_cancel === 0 && row.status_pembayaran !== 'lunas' && (
+                <button
+                  onClick={() => { setOpenMenuId(null); navigate(`/rph/keuangan/pengeluaran/bayar/${encodeURIComponent(row.payment_pid || row.pid)}?jenis=rph_feedmil`); }}
+                  className="w-full text-left px-3 py-2 text-xs text-emerald-700 hover:bg-emerald-50 flex items-center gap-2"
+                >
+                  <Wallet className="w-3.5 h-3.5" /> Bayar
+                </button>
+              )}
+              {row.is_cancel === 0 && row.status_pembayaran !== 'belum_dibayar' && (
+                <button
+                  onClick={() => { openPay(row); setOpenMenuId(null); }}
+                  className="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                >
+                  <History className="w-3.5 h-3.5" /> Riwayat Bayar
+                </button>
+              )}
+              {row.is_cancel === 0 && (
+                <button
+                  onClick={() => { openCancel(row); setOpenMenuId(null); }}
+                  className="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50 flex items-center gap-2"
+                >
+                  <Ban className="w-3.5 h-3.5" /> Batalkan
+                </button>
+              )}
+            </div>
           )}
         </div>
       ),
@@ -266,6 +408,79 @@ const PembelianKonsentratPage = () => {
           </button>
         </div>
 
+        {/* Summary Cards (histori tab) */}
+        {activeTab === 'histori' && (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+            {[
+              {
+                label: 'Tagihan Harus Dibayar',
+                count: cardData?.tagihan?.jumlah ?? 0,
+                total: cardData?.tagihan?.nominal ?? 0,
+                icon: AlertCircle,
+                bg: 'bg-red-50', border: 'border-red-200', iconBg: 'bg-red-100', iconColor: 'text-red-600',
+                labelColor: 'text-red-500', valueColor: 'text-red-700', subColor: 'text-red-600',
+                subText: 'tagihan',
+              },
+              {
+                label: 'Pembayaran Hari Ini',
+                count: cardData?.keluarhariini?.jumlah ?? 0,
+                total: cardData?.keluarhariini?.nominal ?? 0,
+                icon: Calendar,
+                bg: 'bg-yellow-50', border: 'border-yellow-200', iconBg: 'bg-yellow-100', iconColor: 'text-yellow-600',
+                labelColor: 'text-yellow-600', valueColor: 'text-yellow-800', subColor: 'text-yellow-700',
+                subText: 'pembayaran',
+              },
+              {
+                label: 'Pembayaran Minggu Ini',
+                count: cardData?.keluarmingguini?.jumlah ?? 0,
+                total: cardData?.keluarmingguini?.nominal ?? 0,
+                icon: CalendarRange,
+                bg: 'bg-orange-50', border: 'border-orange-200', iconBg: 'bg-orange-100', iconColor: 'text-orange-600',
+                labelColor: 'text-orange-600', valueColor: 'text-orange-800', subColor: 'text-orange-700',
+                subText: 'pembayaran',
+              },
+              {
+                label: 'Pembayaran Bulan Ini',
+                count: cardData?.keluarbulanini?.jumlah ?? 0,
+                total: cardData?.keluarbulanini?.nominal ?? 0,
+                icon: CalendarDays,
+                bg: 'bg-blue-50', border: 'border-blue-200', iconBg: 'bg-blue-100', iconColor: 'text-blue-600',
+                labelColor: 'text-blue-500', valueColor: 'text-blue-700', subColor: 'text-blue-600',
+                subText: 'pembayaran',
+              },
+              {
+                label: 'Pembayaran Tahun Ini',
+                count: cardData?.keluartahunini?.jumlah ?? 0,
+                total: cardData?.keluartahunini?.nominal ?? 0,
+                icon: TrendingUp,
+                bg: 'bg-emerald-50', border: 'border-emerald-200', iconBg: 'bg-emerald-100', iconColor: 'text-emerald-600',
+                labelColor: 'text-emerald-600', valueColor: 'text-emerald-700', subColor: 'text-emerald-600',
+                subText: 'pembayaran',
+              },
+            ].map((c, i) => {
+              const Icon = c.icon;
+              return (
+                <div key={i} className={`rounded-xl border ${c.bg} ${c.border} p-4 shadow-sm transition-all hover:shadow-md`}>
+                  <div className="flex items-start justify-between mb-2">
+                    <div className={`w-9 h-9 rounded-lg ${c.iconBg} flex items-center justify-center`}>
+                      <Icon className={`w-5 h-5 ${c.iconColor}`} />
+                    </div>
+                    <span className={`text-xs font-medium ${c.labelColor}`}>{c.label}</span>
+                  </div>
+                  <div className="space-y-1">
+                    <p className={`text-xs ${c.subColor}`}>
+                      <span className="font-bold text-base">{c.count}</span> {c.subText}
+                    </p>
+                    <p className={`text-lg font-bold ${c.valueColor} truncate`}>
+                      {cardLoading ? '...' : formatRupiah(c.total)}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
         {/* Stats */}
         {activeTab === 'stok' && (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -319,7 +534,7 @@ const PembelianKonsentratPage = () => {
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 text-sm">{error}</div>
         )}
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
           <DataTable
             columns={activeTab === 'histori' ? historiColumns : stokColumns}
             data={data}
@@ -474,6 +689,157 @@ const PembelianKonsentratPage = () => {
               >
                 {cancelLoading ? 'Memproses...' : 'Konfirmasi Cancel'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payment Modal */}
+      {payTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-5 border-b border-gray-200">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                  <Wallet className="w-5 h-5 text-emerald-600" />
+                  Pembayaran Konsentrat
+                </h2>
+                <p className="text-sm text-gray-500 font-mono">{payTarget.nomor_faktur}</p>
+              </div>
+              <button onClick={() => { setPayTarget(null); setPayHistory(null); }} className="text-gray-400 hover:text-gray-600 p-1">
+                <XCircle className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-5">
+              {/* Summary */}
+              {payLoading ? (
+                <div className="animate-pulse space-y-2">
+                  <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+                  <div className="h-8 bg-gray-200 rounded"></div>
+                </div>
+              ) : payHistory ? (
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                    <div className="text-xs font-medium text-gray-500 uppercase">Total Tagihan</div>
+                    <div className="text-sm font-bold text-gray-900 mt-1">{formatRupiah(payHistory.total_tagihan)}</div>
+                  </div>
+                  <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-200">
+                    <div className="text-xs font-medium text-emerald-600 uppercase">Terbayar</div>
+                    <div className="text-sm font-bold text-emerald-700 mt-1">{formatRupiah(payHistory.total_terbayar)}</div>
+                  </div>
+                  <div className="bg-amber-50 rounded-lg p-3 border border-amber-200">
+                    <div className="text-xs font-medium text-amber-600 uppercase">Sisa</div>
+                    <div className="text-sm font-bold text-amber-700 mt-1">{formatRupiah(payHistory.sisa_pembayaran)}</div>
+                  </div>
+                </div>
+              ) : null}
+
+              {/* Payment form — only if not lunas */}
+              {payHistory && Number(payHistory.sisa_pembayaran) > 0 && (
+                <div className="border border-gray-200 rounded-lg p-4 space-y-3">
+                  <h3 className="text-sm font-semibold text-gray-800">Form Pembayaran</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Nominal <span className="text-red-500">*</span></label>
+                      <input
+                        type="number"
+                        min="1"
+                        step="0.01"
+                        value={payForm.nominal_pembayaran}
+                        onChange={(e) => setPayForm((f) => ({ ...f, nominal_pembayaran: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        placeholder="0"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Metode <span className="text-red-500">*</span></label>
+                      <select
+                        value={payForm.metode_pembayaran}
+                        onChange={(e) => setPayForm((f) => ({ ...f, metode_pembayaran: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      >
+                        <option value="tunai">Tunai</option>
+                        <option value="transfer_bank">Transfer Bank</option>
+                        <option value="transfer_cash">Transfer Cash</option>
+                        <option value="cek">Cek</option>
+                        <option value="giro">Giro</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Nama Pembayar</label>
+                      <input
+                        type="text"
+                        value={payForm.nama_pembayar}
+                        onChange={(e) => setPayForm((f) => ({ ...f, nama_pembayar: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        placeholder="Opsional"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Tgl Pembayaran</label>
+                      <input
+                        type="date"
+                        value={payForm.payment_date}
+                        onChange={(e) => setPayForm((f) => ({ ...f, payment_date: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Catatan</label>
+                      <input
+                        type="text"
+                        value={payForm.note}
+                        onChange={(e) => setPayForm((f) => ({ ...f, note: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        placeholder="Opsional"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end">
+                    <button
+                      onClick={submitPayment}
+                      disabled={paySubmitting}
+                      className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+                    >
+                      <Wallet className="w-4 h-4" />
+                      {paySubmitting ? 'Memproses...' : 'Bayar'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* History list */}
+              {payHistory && (payHistory.details || []).length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                    <History className="w-4 h-4" />
+                    Riwayat Pembayaran
+                  </h3>
+                  <div className="border border-gray-200 rounded-lg overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="text-left px-3 py-2 text-xs font-semibold text-gray-600">Tgl</th>
+                          <th className="text-right px-3 py-2 text-xs font-semibold text-gray-600">Nominal</th>
+                          <th className="text-left px-3 py-2 text-xs font-semibold text-gray-600">Metode</th>
+                          <th className="text-left px-3 py-2 text-xs font-semibold text-gray-600">Pembayar</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {payHistory.details.map((d, i) => (
+                          <tr key={i}>
+                            <td className="px-3 py-2 text-gray-700">{d.payment_date || '-'}</td>
+                            <td className="px-3 py-2 text-right font-medium text-emerald-700">{formatRupiah(d.amount)}</td>
+                            <td className="px-3 py-2 text-gray-700">{d.metode_pembayaran || '-'}</td>
+                            <td className="px-3 py-2 text-gray-700">{d.nama_pembayar || '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

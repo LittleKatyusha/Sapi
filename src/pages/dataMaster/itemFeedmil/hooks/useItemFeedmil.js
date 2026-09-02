@@ -84,7 +84,7 @@ const useItemFeedmil = () => {
     setError(null);
     try {
       const item = data.find((d) => d.pid === pid);
-      const actualPid = item?.rawPubid || item?.pid || pid;
+      const actualPid = item?.pid || pid;
       const result = await HttpClient.post(`${API_BASE}/update`, { pid: String(actualPid).trim(), ...payload });
       return { success: true, message: result?.message || 'Data berhasil diperbarui' };
     } catch (err) {
@@ -101,7 +101,7 @@ const useItemFeedmil = () => {
     setError(null);
     try {
       const item = data.find((d) => d.pid === pid);
-      const actualPid = item?.rawPubid || item?.pid || pid;
+      const actualPid = item?.pid || pid;
       const result = await HttpClient.post(`${API_BASE}/hapus`, { pid: String(actualPid).trim() });
       return { success: true, message: result?.message || 'Data berhasil dihapus' };
     } catch (err) {

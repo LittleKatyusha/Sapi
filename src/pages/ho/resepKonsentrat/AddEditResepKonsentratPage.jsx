@@ -5,6 +5,7 @@ import { ArrowLeft, Save, Plus, Trash2, Package, Calculator, AlertCircle } from 
 import useDocumentTitle from '../../../hooks/useDocumentTitle';
 import resepKonsentratService from '../../../services/resepKonsentratService';
 import { useNotification } from '../../../components/shared/Notification';
+import SearchableSelect from '../../../components/shared/SearchableSelect';
 
 const formatRupiah = (v) => {
   const n = Number(v || 0);
@@ -35,13 +36,11 @@ const AddEditResepKonsentratPage = () => {
     id_office: getHoOfficeId() || '',
     name: '',
     tgl_produksi: new Date().toISOString().split('T')[0],
-    markup_type: 'nominal',
-    markup_value: 0,
     keterangan: '',
   });
 
   const [items, setItems] = useState([
-    { id_item: '', jumlah: '', id_satuan: 1, item_name: '', harga: 0, sisa_stok: 0 },
+    { id_item: '', jumlah: '', id_satuan: '', item_name: '', satuan_name: '', harga: 0, sisa_stok: 0, markup_type: 'percent', markup_value: 0 },
   ]);
 
   const [stokOptions, setStokOptions] = useState([]);
@@ -66,25 +65,31 @@ const AddEditResepKonsentratPage = () => {
     fetchStok();
   }, [fetchStok]);
 
+  // Hitung harga jual per kg untuk satu item berdasarkan markup per item.
+  const hargaJualPerKg = (it) => {
+    const hpp = parseFloat(it.harga) || 0;
+    const m = parseFloat(it.markup_value) || 0;
+    return it.markup_type === 'nominal' ? hpp + m : hpp * (1 + m / 100);
+  };
+
   // Preview HPP & harga jual real-time.
   const preview = useMemo(() => {
     let totalBiaya = 0;
     let totalKg = 0;
+    let totalHargaJual = 0;
     items.forEach((it) => {
       const j = parseFloat(it.jumlah) || 0;
       const h = parseFloat(it.harga) || 0;
       if (j > 0) {
         totalKg += j;
         totalBiaya += j * h;
+        totalHargaJual += j * hargaJualPerKg(it);
       }
     });
     const hppPerKg = totalKg > 0 ? totalBiaya / totalKg : 0;
-    const markup = parseFloat(form.markup_value) || 0;
-    const hargaJual = form.markup_type === 'nominal'
-      ? hppPerKg + markup
-      : hppPerKg * (1 + markup / 100);
-    return { totalBiaya, totalKg, hppPerKg, hargaJual };
-  }, [items, form.markup_type, form.markup_value]);
+    const hargaJualPerKgAvg = totalKg > 0 ? totalHargaJual / totalKg : 0;
+    return { totalBiaya, totalKg, hppPerKg, totalHargaJual, hargaJualPerKgAvg };
+  }, [items]);
 
   const handleChange = (field, value) => {
     setForm((f) => ({ ...f, [field]: value }));
@@ -95,18 +100,36 @@ const AddEditResepKonsentratPage = () => {
     setItems((prev) => {
       const next = [...prev];
       next[idx] = { ...next[idx], [field]: value };
-      if (field === 'id_item') {
-        const opt = stokOptions.find((o) => String(o.id_item) === String(value));
-        next[idx].item_name = opt?.item_name || '';
-        next[idx].harga = opt?.harga_min || 0;
-        next[idx].sisa_stok = opt?.sisa_jumlah || 0;
+      if (field === 'stok_key') {
+        // stokKey = "id_item|id_satuan|harga" — composite key dari dropdown.
+        if (!value) {
+          next[idx] = { ...next[idx], id_item: '', id_satuan: '', item_name: '', satuan_name: '', harga: 0, sisa_stok: 0, stokKey: '' };
+        } else {
+          const [idItem, idSat, hrg] = value.split('|');
+          const opt = stokOptions.find((o) => String(o.id_item) === idItem && String(o.id_satuan) === idSat && String(o.harga) === hrg);
+          next[idx].id_item = opt?.id_item || '';
+          next[idx].id_satuan = opt?.id_satuan || '';
+          next[idx].item_name = opt?.item_name || '';
+          next[idx].satuan_name = opt?.satuan_name || '';
+          next[idx].harga = opt?.harga || 0;
+          next[idx].sisa_stok = opt?.sisa_jumlah || 0;
+          next[idx].stokKey = value;
+        }
+      }
+      // Clamp jumlah ke sisa_stok (tidak bisa melebihi stok)
+      if (field === 'jumlah') {
+        const sisa = parseFloat(next[idx].sisa_stok) || 0;
+        const inputVal = parseFloat(value);
+        if (value !== '' && !isNaN(inputVal) && inputVal > sisa) {
+          next[idx].jumlah = String(sisa);
+        }
       }
       return next;
     });
   };
 
   const addItem = () => {
-    setItems((prev) => [...prev, { id_item: '', jumlah: '', id_satuan: 1, item_name: '', harga: 0, sisa_stok: 0 }]);
+    setItems((prev) => [...prev, { id_item: '', jumlah: '', id_satuan: '', item_name: '', satuan_name: '', harga: 0, sisa_stok: 0, stokKey: '', markup_type: 'percent', markup_value: 0 }]);
   };
 
   const removeItem = (idx) => {
@@ -115,16 +138,16 @@ const AddEditResepKonsentratPage = () => {
 
   const validate = () => {
     const e = {};
-    if (!form.id_office) e.id_office = 'Office HO wajib diisi';
+    if (!form.id_office) e.id_office = 'Office HO tidak ditemukan di session user';
     if (!form.name.trim()) e.name = 'Nama resep wajib diisi';
     if (!form.tgl_produksi) e.tgl_produksi = 'Tanggal produksi wajib diisi';
-    if (!['nominal', 'percent'].includes(form.markup_type)) e.markup_type = 'Tipe markup tidak valid';
-    if (form.markup_value === '' || form.markup_value < 0) e.markup_value = 'Markup wajib & >= 0';
     const validItems = items.filter((it) => it.id_item && parseFloat(it.jumlah) > 0);
     if (validItems.length === 0) e.items = 'Minimal 1 bahan baku dengan jumlah > 0';
     validItems.forEach((it, i) => {
       const j = parseFloat(it.jumlah);
       if (j > it.sisa_stok) e[`items[${i}].jumlah`] = `Melebihi stok (${formatNumber(it.sisa_stok)} kg)`;
+      if (!['nominal', 'percent'].includes(it.markup_type)) e[`items[${i}].markup_type`] = 'Tipe markup tidak valid';
+      if (it.markup_value === '' || parseFloat(it.markup_value) < 0) e[`items[${i}].markup_value`] = 'Markup wajib & >= 0';
     });
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -139,8 +162,6 @@ const AddEditResepKonsentratPage = () => {
       id_office: parseInt(form.id_office),
       name: form.name.trim(),
       tgl_produksi: form.tgl_produksi,
-      markup_type: form.markup_type,
-      markup_value: parseFloat(form.markup_value),
       keterangan: form.keterangan?.trim() || null,
       items: items
         .filter((it) => it.id_item && parseFloat(it.jumlah) > 0)
@@ -148,6 +169,9 @@ const AddEditResepKonsentratPage = () => {
           id_item: parseInt(it.id_item),
           jumlah: parseFloat(it.jumlah),
           id_satuan: parseInt(it.id_satuan),
+          harga: parseFloat(it.harga),
+          markup_type: it.markup_type,
+          markup_value: parseFloat(it.markup_value) || 0,
         })),
     };
     setSubmitting(true);
@@ -155,7 +179,7 @@ const AddEditResepKonsentratPage = () => {
     setSubmitting(false);
     if (res.success) {
       showSuccess(res.message || 'Resep konsentrat berhasil dibuat');
-      navigate('/ho/resep-konsentrat', { state: { fromEdit: true } });
+      navigate('/feedmil/resep-konsentrat', { state: { fromEdit: true } });
     } else {
       showError(res.message || 'Gagal menyimpan resep');
     }
@@ -167,7 +191,7 @@ const AddEditResepKonsentratPage = () => {
         {/* Header */}
         <div className="flex items-center gap-3">
           <button
-            onClick={() => navigate('/ho/resep-konsentrat')}
+            onClick={() => navigate('/feedmil/resep-konsentrat')}
             className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -186,18 +210,7 @@ const AddEditResepKonsentratPage = () => {
               Informasi Resep
             </h2>
           </div>
-          <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">ID Office HO <span className="text-red-500">*</span></label>
-              <input
-                type="number"
-                value={form.id_office}
-                onChange={(e) => handleChange('id_office', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.id_office ? 'border-red-300 bg-red-50' : 'border-gray-300'}`}
-                placeholder="Contoh: 1"
-              />
-              {errors.id_office && <p className="text-xs text-red-600 mt-1">{errors.id_office}</p>}
-            </div>
+          <div className="p-5 grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Nama Resep <span className="text-red-500">*</span></label>
               <input
@@ -230,32 +243,6 @@ const AddEditResepKonsentratPage = () => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Opsional"
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Tipe Markup <span className="text-red-500">*</span></label>
-              <select
-                value={form.markup_type}
-                onChange={(e) => handleChange('markup_type', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-              >
-                <option value="nominal">Nominal (Rp/kg)</option>
-                <option value="percent">Persentase (%)</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Nilai Markup {form.markup_type === 'nominal' ? '(Rp/kg)' : '(%)'} <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={form.markup_value}
-                onChange={(e) => handleChange('markup_value', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.markup_value ? 'border-red-300 bg-red-50' : 'border-gray-300'}`}
-                placeholder="0"
-              />
-              {errors.markup_value && <p className="text-xs text-red-600 mt-1">{errors.markup_value}</p>}
             </div>
           </div>
         </div>
@@ -290,26 +277,28 @@ const AddEditResepKonsentratPage = () => {
             )}
             {items.map((it, idx) => (
               <div key={idx} className="grid grid-cols-12 gap-2 items-start p-3 bg-gray-50 rounded-lg">
-                <div className="col-span-12 sm:col-span-5">
+                <div className="col-span-12 sm:col-span-4">
                   <label className="block text-xs font-medium text-gray-600 mb-1">Item Bahan Baku</label>
-                  <select
-                    value={it.id_item}
-                    onChange={(e) => handleItemChange(idx, 'id_item', e.target.value)}
-                    className="w-full px-2.5 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                  >
-                    <option value="">— Pilih bahan baku —</option>
-                    {stokOptions.map((opt) => (
-                      <option key={opt.id_item} value={opt.id_item}>
-                        {opt.item_name} (sisa: {formatNumber(opt.sisa_jumlah)} kg @ {formatRupiah(opt.harga_min)})
-                      </option>
-                    ))}
-                  </select>
+                  <SearchableSelect
+                    options={stokOptions.map((opt) => ({
+                      value: `${opt.id_item}|${opt.id_satuan}|${opt.harga}`,
+                      label: `${opt.item_name} (${opt.satuan_name}) — ${formatRupiah(opt.harga)} [sisa: ${formatNumber(opt.sisa_jumlah)} kg]`,
+                    }))}
+                    value={it.stokKey || null}
+                    onChange={(v) => handleItemChange(idx, 'stok_key', v)}
+                    isClearable={false}
+                    isSearchable
+                    accentColor="blue"
+                    placeholder="— Pilih bahan baku —"
+                    isLoading={stokLoading}
+                  />
                 </div>
-                <div className="col-span-6 sm:col-span-3">
+                <div className="col-span-4 sm:col-span-2">
                   <label className="block text-xs font-medium text-gray-600 mb-1">Jumlah (kg)</label>
                   <input
                     type="number"
                     min="0"
+                    max={it.sisa_stok || 0}
                     step="0.001"
                     value={it.jumlah}
                     onChange={(e) => handleItemChange(idx, 'jumlah', e.target.value)}
@@ -321,15 +310,53 @@ const AddEditResepKonsentratPage = () => {
                   {errors[`items[${idx}].jumlah`] && (
                     <p className="text-xs text-red-600 mt-1">{errors[`items[${idx}].jumlah`]}</p>
                   )}
+                  {it.sisa_stok > 0 && parseFloat(it.jumlah) >= it.sisa_stok && (
+                    <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" /> Maks. stok tercapai
+                    </p>
+                  )}
                 </div>
-                <div className="col-span-4 sm:col-span-3">
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Harga/kg</label>
+                <div className="col-span-4 sm:col-span-2">
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Harga Beli/kg</label>
                   <p className="px-2.5 py-2 text-sm text-gray-700 bg-white border border-gray-200 rounded-md">
                     {formatRupiah(it.harga)}
                   </p>
-                  <p className="text-xs text-gray-400 mt-1">Sisa stok: {formatNumber(it.sisa_stok)} kg</p>
+                  <p className="text-xs text-gray-400 mt-1">Sisa: {formatNumber(it.sisa_stok)} {it.satuan_name || 'kg'}</p>
                 </div>
-                <div className="col-span-2 sm:col-span-1 flex items-end">
+                <div className="col-span-3 sm:col-span-3">
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Markup <span className="text-red-500">*</span></label>
+                  <div className="flex gap-1">
+                    <div style={{ minWidth: '90px' }}>
+                      <SearchableSelect
+                        options={[
+                          { value: 'percent', label: '%' },
+                          { value: 'nominal', label: 'Rp/kg' },
+                        ]}
+                        value={it.markup_type}
+                        onChange={(v) => handleItemChange(idx, 'markup_type', v || 'percent')}
+                        isClearable={false}
+                        isSearchable={false}
+                        accentColor="blue"
+                        placeholder="Tipe"
+                      />
+                    </div>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={it.markup_value}
+                      onChange={(e) => handleItemChange(idx, 'markup_value', e.target.value)}
+                      className={`min-w-0 flex-1 px-2.5 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        errors[`items[${idx}].markup_value`] ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                      }`}
+                      placeholder="0"
+                    />
+                  </div>
+                  {errors[`items[${idx}].markup_value`] && (
+                    <p className="text-xs text-red-600 mt-1">{errors[`items[${idx}].markup_value`]}</p>
+                  )}
+                </div>
+                <div className="col-span-1 sm:col-span-1 flex items-end">
                   <button
                     onClick={() => removeItem(idx)}
                     disabled={items.length === 1}
@@ -338,6 +365,15 @@ const AddEditResepKonsentratPage = () => {
                   >
                     <Trash2 className="w-4 h-4 mx-auto" />
                   </button>
+                </div>
+                <div className="col-span-12 sm:col-span-12">
+                  <div className="flex items-center gap-2 text-xs text-gray-600 bg-blue-50 border border-blue-100 rounded-md px-3 py-1.5">
+                    <span className="text-gray-500">Harga Jual/kg:</span>
+                    <span className="font-semibold text-blue-700">{formatRupiah(hargaJualPerKg(it))}</span>
+                    <span className="text-gray-400">|</span>
+                    <span className="text-gray-500">Subtotal Jual:</span>
+                    <span className="font-semibold text-blue-700">{formatRupiah((parseFloat(it.jumlah) || 0) * hargaJualPerKg(it))}</span>
+                  </div>
                 </div>
               </div>
             ))}
@@ -364,8 +400,8 @@ const AddEditResepKonsentratPage = () => {
                 <p className="text-lg font-bold text-gray-900">{formatRupiah(preview.hppPerKg)}</p>
               </div>
               <div className="bg-white rounded-lg p-3 border border-blue-200 ring-2 ring-blue-100">
-                <p className="text-xs font-medium text-blue-600 uppercase">Harga Jual / kg</p>
-                <p className="text-lg font-bold text-blue-700">{formatRupiah(preview.hargaJual)}</p>
+                <p className="text-xs font-medium text-blue-600 uppercase">Total Harga Jual</p>
+                <p className="text-lg font-bold text-blue-700">{formatRupiah(preview.totalHargaJual)}</p>
               </div>
             </div>
           </div>
@@ -374,7 +410,7 @@ const AddEditResepKonsentratPage = () => {
         {/* Actions */}
         <div className="flex justify-end gap-2">
           <button
-            onClick={() => navigate('/ho/resep-konsentrat')}
+            onClick={() => navigate('/feedmil/resep-konsentrat')}
             className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors"
           >
             Batal

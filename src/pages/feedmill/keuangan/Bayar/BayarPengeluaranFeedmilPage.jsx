@@ -1,24 +1,23 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
-  ArrowLeft, Wallet, Loader2, AlertCircle, Banknote, CheckCircle, Clock, Upload, FileText, X, Eye
+  ArrowLeft, Wallet, Loader2, AlertCircle, Banknote, CheckCircle, Clock, Upload, FileText, X, Eye,
 } from 'lucide-react';
 import DataTable from 'react-data-table-component';
-import HttpClient from '../../../../../services/httpClient';
-import { API_ENDPOINTS } from '../../../../../config/api';
-import { useNotification } from '../../../../../components/shared/Notification';
+import HttpClient from '../../../../services/httpClient';
+import { API_ENDPOINTS } from '../../../../config/api';
+import { useNotification } from '../../../../components/shared/Notification';
+import feedmillKeuanganService from '../../../../services/feedmillKeuanganService';
 
 const formatRupiah = (val) => 'Rp ' + (Number(val) || 0).toLocaleString('id-ID');
 const parseNumber = (str) => parseFloat(String(str || '').replace(/[^0-9]/g, '')) || 0;
 
-const BayarPengeluaranHoPage = () => {
+const BayarPengeluaranFeedmilPage = () => {
   const { pid } = useParams();
   const navigate = useNavigate();
-  const location = useLocation();
   const { showSuccess, showError } = useNotification();
 
-  // Back URL: prefer explicit referrer from feedmill pages, else default HO list.
-  const backUrl = location.state?.from || '/ho/keuangan/pengeluaran';
+  const backUrl = '/feedmil/pembelian-feedmil';
   const goBack = () => navigate(backUrl);
 
   const [pembayaran, setPembayaran] = useState(null);
@@ -42,8 +41,6 @@ const BayarPengeluaranHoPage = () => {
       bukti_pembayaran_url: item.bukti_pembayaran_url || item.bukti_url || null,
     }));
 
-  // Refresh list riwayat via /api/ho/payment/details?id_pembayaran=...
-  // cache:false wajib — HttpClient GET di-cache 5 menit, tanpa ini list tetap stale setelah bayar
   const refreshPaymentDetails = useCallback(async (idPembayaran) => {
     if (!idPembayaran) return null;
     const detailRes = await HttpClient.get(
@@ -65,12 +62,10 @@ const BayarPengeluaranHoPage = () => {
     const mapped = mapHistoryItems(items);
     setHistory(mapped);
 
-    // Header totals sering ada di item[0].pembayaran
     const header = items[0]?.pembayaran || detailRes.pembayaran || {};
     const totalFromList = mapped.reduce((sum, row) => sum + (row.amount || 0), 0);
     const totalTagihan = parseFloat(header.total_tagihan);
     const totalTerbayarHeader = parseFloat(header.total_terbayar);
-    // Prefer sum dari list (source of truth untuk riwayat) bila header kosong/stale
     const nextTerbayar = totalFromList > 0
       ? totalFromList
       : (!Number.isNaN(totalTerbayarHeader) ? totalTerbayarHeader : 0);
@@ -101,20 +96,19 @@ const BayarPengeluaranHoPage = () => {
       setError(null);
     }
     try {
-      const infoRes = await HttpClient.post(API_ENDPOINTS.HO.PENGELUARAN.SHOW, { pid });
-      if (!(infoRes && (infoRes.success || infoRes.status === 'ok'))) {
-        throw new Error(infoRes?.message || 'Gagal memuat data pengeluaran');
+      const res = await feedmillKeuanganService.showPengeluaran(pid);
+      if (!res.success) {
+        throw new Error(res.message || 'Gagal memuat data pengeluaran');
       }
-
-      const info = infoRes.data || {};
+      const info = res.data || {};
       const idPembayaran = info.id_pembayaran;
-      const totalTagihan = parseFloat(info.total_tagihan) || 0;
+      const totalTagihan = parseFloat(info.nominal ?? info.total_tagihan) || 0;
       const totalTerbayar = parseFloat(info.total_terbayar) || 0;
       setPembayaran({
         ...info,
         pid: info.pid || pid,
         id_pembayaran: idPembayaran,
-        no_po: info.nota || info.nota_sistem || '-',
+        no_po: info.nota || info.nota_sistem || info.keterangan || '-',
         total_tagihan: totalTagihan,
         total_terbayar: totalTerbayar,
         sisa_pembayaran: Math.max(0, totalTagihan - totalTerbayar),
@@ -168,7 +162,7 @@ const BayarPengeluaranHoPage = () => {
 
   const handleRemoveFile = () => {
     setSelectedFile(null);
-    const input = document.getElementById('file-pengeluaran-ho');
+    const input = document.getElementById('file-pengeluaran-feedmil');
     if (input) input.value = '';
   };
 
@@ -212,10 +206,9 @@ const BayarPengeluaranHoPage = () => {
         setPaymentDate(new Date().toISOString().split('T')[0]);
         setSelectedFile(null);
         setFormErrors({});
-        const input = document.getElementById('file-pengeluaran-ho');
+        const input = document.getElementById('file-pengeluaran-feedmil');
         if (input) input.value = '';
 
-        // Refresh list via /api/ho/payment/details?id_pembayaran=...
         await refreshPaymentDetails(idPembayaran);
       } else {
         showError(result.message || 'Gagal mencatat pembayaran');
@@ -319,7 +312,7 @@ const BayarPengeluaranHoPage = () => {
           <div>
             <h1 className="text-xl font-bold text-gray-800 flex items-center gap-2">
               <Banknote className="w-6 h-6 text-emerald-600" />
-              Pembayaran Pengeluaran
+              Pembayaran Pengeluaran Feedmill
             </h1>
             <p className="text-gray-500 text-xs mt-0.5">{pembayaran?.no_po || '...'}</p>
           </div>
@@ -433,14 +426,14 @@ const BayarPengeluaranHoPage = () => {
                   <div className="relative">
                     <input
                       type="file"
-                      id="file-pengeluaran-ho"
+                      id="file-pengeluaran-feedmil"
                       accept="image/jpeg,image/jpg,image/png,application/pdf"
                       onChange={handleFileChange}
                       className="hidden"
                       disabled={submitLoading || sisa <= 0}
                     />
                     <label
-                      htmlFor="file-pengeluaran-ho"
+                      htmlFor="file-pengeluaran-feedmil"
                       className={`flex items-center justify-center w-full px-4 py-5 border-2 border-dashed rounded-lg cursor-pointer hover:border-emerald-500 hover:bg-emerald-50 transition-all duration-200 ${
                         submitLoading || sisa <= 0 ? 'opacity-50 cursor-not-allowed border-gray-200' : 'border-gray-300'
                       }`}
@@ -532,4 +525,4 @@ const BayarPengeluaranHoPage = () => {
   );
 };
 
-export default BayarPengeluaranHoPage;
+export default BayarPengeluaranFeedmilPage;

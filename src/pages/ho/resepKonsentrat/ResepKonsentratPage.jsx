@@ -1,7 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import DataTable from 'react-data-table-component';
-import { PlusCircle, Search, Package, Calendar, Boxes, XCircle, AlertCircle } from 'lucide-react';
+import {
+  PlusCircle, Search, Package, Calendar, Boxes, XCircle, AlertCircle,
+  ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Eye, Ban, Layers,
+  ChevronsLeft, ChevronsRight, MoreVertical,
+} from 'lucide-react';
 
 import useDocumentTitle from '../../../hooks/useDocumentTitle';
 import resepKonsentratService from '../../../services/resepKonsentratService';
@@ -40,6 +43,42 @@ const ResepKonsentratPage = () => {
   // Detail modal
   const [detailData, setDetailData] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
+
+  // Sorting state (client-side).
+  const [sortField, setSortField] = useState('tgl_produksi');
+  const [sortDir, setSortDir] = useState('desc');
+  const [openMenu, setOpenMenu] = useState(null);
+
+  const toggleSort = (field) => {
+    if (sortField === field) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortDir('asc');
+    }
+  };
+
+  const sortedData = useMemo(() => {
+    const arr = [...data];
+    arr.sort((a, b) => {
+      const av = a[sortField];
+      const bv = b[sortField];
+      if (av == null && bv == null) return 0;
+      if (av == null) return 1;
+      if (bv == null) return -1;
+      if (typeof av === 'number' && typeof bv === 'number') {
+        return sortDir === 'asc' ? av - bv : bv - av;
+      }
+      return sortDir === 'asc'
+        ? String(av).localeCompare(String(bv))
+        : String(bv).localeCompare(String(av));
+    });
+    return arr;
+  }, [data, sortField, sortDir]);
+
+  const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize));
+  const startIdx = totalRecords === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const endIdx = Math.min(currentPage * pageSize, totalRecords);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -108,86 +147,15 @@ const ResepKonsentratPage = () => {
   };
 
   const columns = [
-    {
-      name: 'Kode',
-      selector: (row) => row.kode,
-      sortable: true,
-      cell: (row) => <span className="font-mono text-xs font-semibold text-gray-800">{row.kode}</span>,
-    },
-    {
-      name: 'Nama Resep',
-      selector: (row) => row.name,
-      sortable: true,
-      wrap: true,
-    },
-    {
-      name: 'Tgl Produksi',
-      selector: (row) => row.tgl_produksi,
-      sortable: true,
-      cell: (row) => <span className="text-sm text-gray-600">{row.tgl_produksi}</span>,
-    },
-    {
-      name: 'Stok Awal (kg)',
-      selector: (row) => row.total_jumlah_awal,
-      right: true,
-      cell: (row) => <span className="text-sm font-medium text-gray-700">{formatNumber(row.total_jumlah_awal)}</span>,
-    },
-    {
-      name: 'Sisa Stok (kg)',
-      selector: (row) => row.total_jumlah,
-      right: true,
-      cell: (row) => (
-        <span className={`text-sm font-semibold ${row.total_jumlah > 0 ? 'text-emerald-700' : 'text-gray-400'}`}>
-          {formatNumber(row.total_jumlah)}
-        </span>
-      ),
-    },
-    {
-      name: 'HPP/kg',
-      selector: (row) => row.hpp_per_kg,
-      right: true,
-      cell: (row) => <span className="text-sm text-gray-700">{formatRupiah(row.hpp_per_kg)}</span>,
-    },
-    {
-      name: 'Harga Jual/kg',
-      selector: (row) => row.harga_jual_per_kg,
-      right: true,
-      cell: (row) => <span className="text-sm font-semibold text-blue-700">{formatRupiah(row.harga_jual_per_kg)}</span>,
-    },
-    {
-      name: 'Status',
-      selector: (row) => row.is_aktif,
-      center: true,
-      cell: (row) => (
-        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-          row.is_aktif === 1 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-gray-100 text-gray-500 border border-gray-200'
-        }`}>
-          {row.is_aktif === 1 ? 'Aktif' : 'Nonaktif'}
-        </span>
-      ),
-    },
-    {
-      name: 'Aksi',
-      center: true,
-      cell: (row) => (
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={() => handleDetail(row)}
-            className="px-2.5 py-1 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors"
-          >
-            Detail
-          </button>
-          {row.is_aktif === 1 && (
-            <button
-              onClick={() => openCancel(row)}
-              className="px-2.5 py-1 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-md transition-colors"
-            >
-              Cancel
-            </button>
-          )}
-        </div>
-      ),
-    },
+    { key: 'kode', label: 'Kode', sortable: true, align: 'left' },
+    { key: 'name', label: 'Nama Resep', sortable: true, align: 'left' },
+    { key: 'tgl_produksi', label: 'Tgl Produksi', sortable: true, align: 'left' },
+    { key: 'total_jumlah_awal', label: 'Stok Awal (kg)', sortable: true, align: 'right' },
+    { key: 'total_jumlah', label: 'Sisa Stok (kg)', sortable: true, align: 'right' },
+    { key: 'hpp_per_kg', label: 'HPP/kg', sortable: true, align: 'right' },
+    { key: 'harga_jual_per_kg', label: 'Harga Jual/kg', sortable: true, align: 'right' },
+    { key: 'is_aktif', label: 'Status', sortable: true, align: 'center' },
+    { key: '_aksi', label: 'Aksi', sortable: false, align: 'center' },
   ];
 
   return (
@@ -280,32 +248,294 @@ const ResepKonsentratPage = () => {
         )}
 
         {/* Table */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          <DataTable
-            columns={columns}
-            data={data}
-            progressPending={loading}
-            pagination
-            paginationServer
-            paginationTotalRows={totalRecords}
-            paginationPerPage={pageSize}
-            paginationDefaultPage={currentPage}
-            onChangePage={(page) => setCurrentPage(page)}
-            onChangeRowsPerPage={(size) => { setPageSize(size); setCurrentPage(1); }}
-            persistTableHead
-            noDataComponent={
-              <div className="py-12 text-center text-gray-400">
-                <Package className="w-10 h-10 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">Belum ada resep konsentrat</p>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+          {/* Table header bar */}
+          <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <Layers className="w-4 h-4 text-gray-400" />
+              <h3 className="text-sm font-semibold text-gray-700">Daftar Resep</h3>
+              <span className="text-xs text-gray-400">({totalRecords} total)</span>
+            </div>
+            {searchQuery && (
+              <span className="text-xs text-gray-500 inline-flex items-center gap-1.5">
+                <Search className="w-3 h-3" />
+                Filter: "<span className="font-medium text-gray-700">{searchQuery}</span>"
+              </span>
+            )}
+          </div>
+
+          {/* Loading skeleton */}
+          {loading ? (
+            <div className="p-5 space-y-3">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="h-12 bg-gray-100 rounded-lg animate-pulse" />
+              ))}
+            </div>
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center py-16 gap-3">
+              <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center">
+                <AlertCircle className="w-6 h-6 text-red-500" />
               </div>
-            }
-            customStyles={{
-              headRow: { style: { backgroundColor: '#f9fafb', borderBottom: '1px solid #e5e7eb', fontWeight: 600 } },
-              rows: { style: { borderBottom: '1px solid #f3f4f6', '&:hover': { backgroundColor: '#f9fafb' } } },
-              headCells: { style: { fontSize: '12px', fontWeight: 600, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.05em' } },
-              cells: { style: { fontSize: '14px', padding: '12px 16px' } },
-            }}
-          />
+              <p className="text-sm text-red-600 font-medium text-center">{error}</p>
+              <button
+                onClick={fetchData}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+              >
+                Coba Lagi
+              </button>
+            </div>
+          ) : sortedData.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+                <Package className="w-7 h-7 text-gray-300" />
+              </div>
+              <p className="text-sm font-medium text-gray-700">Belum ada resep konsentrat</p>
+              <p className="text-xs text-gray-500 mt-0.5 max-w-xs">
+                {searchQuery ? 'Coba kata kunci lain atau reset filter.' : 'Klik "Tambah Resep" untuk membuat resep pertama.'}
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* Desktop table */}
+              <div className="hidden lg:block overflow-visible">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50/80">
+                    <tr>
+                      {columns.map((col) => (
+                        <th
+                          key={col.key}
+                          onClick={() => col.sortable && toggleSort(col.key)}
+                          className={`px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap ${
+                            col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'
+                          } ${col.sortable ? 'cursor-pointer select-none hover:text-gray-700' : ''}`}
+                        >
+                          <span className={`inline-flex items-center gap-1 ${col.align === 'right' ? 'flex-row-reverse' : ''}`}>
+                            {col.label}
+                            {col.sortable && (
+                              <span className="inline-flex flex-col -space-y-1">
+                                <ChevronUp className={`w-3 h-3 ${sortField === col.key && sortDir === 'asc' ? 'text-green-600' : 'text-gray-300'}`} />
+                                <ChevronDown className={`w-3 h-3 ${sortField === col.key && sortDir === 'desc' ? 'text-green-600' : 'text-gray-300'}`} />
+                              </span>
+                            )}
+                          </span>
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {sortedData.map((row) => {
+                      const sisa = Number(row.total_jumlah || 0);
+                      const aktif = row.is_aktif === 1;
+                      return (
+                        <tr key={row.pid} className="hover:bg-gray-50/60 transition-colors group">
+                          <td className="px-4 py-3">
+                            <span className="font-mono text-xs font-semibold text-gray-800 bg-gray-100 px-2 py-0.5 rounded">{row.kode}</span>
+                          </td>
+                          <td className="px-4 py-3 text-sm font-medium text-gray-900 max-w-[220px] truncate" title={row.name}>
+                            {row.name}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
+                            <span className="inline-flex items-center gap-1.5">
+                              <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                              {row.tgl_produksi}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-right text-sm font-medium text-gray-700">{formatNumber(row.total_jumlah_awal)}</td>
+                          <td className="px-4 py-3 text-right">
+                            <span className={`text-sm font-semibold ${sisa > 0 ? 'text-emerald-700' : 'text-gray-400'}`}>
+                              {formatNumber(row.total_jumlah)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-right text-sm text-gray-700">{formatRupiah(row.hpp_per_kg)}</td>
+                          <td className="px-4 py-3 text-right text-sm font-semibold text-blue-700">{formatRupiah(row.harga_jual_per_kg)}</td>
+                          <td className="px-4 py-3 text-center">
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+                              aktif ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-gray-100 text-gray-500 border border-gray-200'
+                            }`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${aktif ? 'bg-emerald-500' : 'bg-gray-400'}`} />
+                              {aktif ? 'Aktif' : 'Nonaktif'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 relative">
+                            <div className="flex items-center justify-center">
+                              <button
+                                onClick={() => setOpenMenu(openMenu === row.pid ? null : row.pid)}
+                                className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors"
+                                title="Aksi"
+                              >
+                                <MoreVertical className="w-4 h-4" />
+                              </button>
+                              {openMenu === row.pid && (
+                                <>
+                                  <div
+                                    className="fixed inset-0 z-10"
+                                    onClick={() => setOpenMenu(null)}
+                                  />
+                                  <div className="absolute right-4 top-full mt-1 z-20 w-40 bg-white rounded-lg shadow-lg border border-gray-200 py-1 origin-top-right">
+                                    <button
+                                      onClick={() => { handleDetail(row); setOpenMenu(null); }}
+                                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors text-left"
+                                    >
+                                      <Eye className="w-4 h-4" />
+                                      Lihat Detail
+                                    </button>
+                                    {aktif && (
+                                      <button
+                                        onClick={() => { openCancel(row); setOpenMenu(null); }}
+                                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors text-left"
+                                      >
+                                        <Ban className="w-4 h-4" />
+                                        Batalkan
+                                      </button>
+                                    )}
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile cards */}
+              <div className="lg:hidden divide-y divide-gray-100">
+                {sortedData.map((row) => {
+                  const sisa = Number(row.total_jumlah || 0);
+                  const aktif = row.is_aktif === 1;
+                  return (
+                    <div key={row.pid} className="p-4 space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <span className="font-mono text-xs font-semibold text-gray-800 bg-gray-100 px-2 py-0.5 rounded">{row.kode}</span>
+                          <p className="text-sm font-semibold text-gray-900 mt-1 truncate">{row.name}</p>
+                          <p className="text-xs text-gray-500 inline-flex items-center gap-1 mt-0.5">
+                            <Calendar className="w-3 h-3" /> {row.tgl_produksi}
+                          </p>
+                        </div>
+                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ${
+                          aktif ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-gray-100 text-gray-500 border border-gray-200'
+                        }`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${aktif ? 'bg-emerald-500' : 'bg-gray-400'}`} />
+                          {aktif ? 'Aktif' : 'Nonaktif'}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="bg-gray-50 rounded-md p-2">
+                          <p className="text-gray-500">Stok Awal</p>
+                          <p className="font-medium text-gray-800">{formatNumber(row.total_jumlah_awal)} kg</p>
+                        </div>
+                        <div className="bg-gray-50 rounded-md p-2">
+                          <p className="text-gray-500">Sisa Stok</p>
+                          <p className={`font-semibold ${sisa > 0 ? 'text-emerald-700' : 'text-gray-400'}`}>{formatNumber(row.total_jumlah)} kg</p>
+                        </div>
+                        <div className="bg-gray-50 rounded-md p-2">
+                          <p className="text-gray-500">HPP/kg</p>
+                          <p className="font-medium text-gray-800">{formatRupiah(row.hpp_per_kg)}</p>
+                        </div>
+                        <div className="bg-gray-50 rounded-md p-2">
+                          <p className="text-gray-500">Harga Jual/kg</p>
+                          <p className="font-semibold text-blue-700">{formatRupiah(row.harga_jual_per_kg)}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-end gap-2 pt-1 relative">
+                        <button
+                          onClick={() => setOpenMenu(openMenu === row.pid ? null : row.pid)}
+                          className="p-2 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors"
+                          title="Aksi"
+                        >
+                          <MoreVertical className="w-5 h-5" />
+                        </button>
+                        {openMenu === row.pid && (
+                          <>
+                            <div
+                              className="fixed inset-0 z-10"
+                              onClick={() => setOpenMenu(null)}
+                            />
+                            <div className="absolute right-0 top-full mt-1 z-20 w-40 bg-white rounded-lg shadow-lg border border-gray-200 py-1 origin-top-right">
+                              <button
+                                onClick={() => { handleDetail(row); setOpenMenu(null); }}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors text-left"
+                              >
+                                <Eye className="w-4 h-4" />
+                                Lihat Detail
+                              </button>
+                              {aktif && (
+                                <button
+                                  onClick={() => { openCancel(row); setOpenMenu(null); }}
+                                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors text-left"
+                                >
+                                  <Ban className="w-4 h-4" />
+                                  Batalkan
+                                </button>
+                              )}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Pagination */}
+              <div className="px-5 py-3 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-sm">
+                <div className="flex items-center gap-3">
+                  <span className="text-gray-600 text-xs">
+                    Menampilkan <span className="font-semibold text-gray-800">{startIdx}</span>–<span className="font-semibold text-gray-800">{endIdx}</span> dari <span className="font-semibold text-gray-800">{totalRecords}</span>
+                  </span>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
+                    className="text-xs border border-gray-200 rounded-md px-2 py-1 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                  >
+                    {[10, 15, 25, 50, 100].map((n) => (
+                      <option key={n} value={n}>{n} / hal</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setCurrentPage(1)}
+                    disabled={currentPage === 1}
+                    className="p-1.5 rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    title="Halaman pertama"
+                  >
+                    <ChevronsLeft className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="p-1.5 rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    title="Sebelumnya"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <span className="text-xs text-gray-600 px-3 py-1.5">
+                    Hal <span className="font-semibold text-gray-800">{currentPage}</span> / {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage >= totalPages}
+                    className="p-1.5 rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    title="Berikutnya"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={currentPage >= totalPages}
+                    className="p-1.5 rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    title="Halaman terakhir"
+                  >
+                    <ChevronsRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
 

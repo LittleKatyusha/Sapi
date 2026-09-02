@@ -166,6 +166,10 @@ const ResepKonsentratPage = lazy(() => import('./pages/ho/resepKonsentrat/ResepK
 const AddEditResepKonsentratPage = lazy(() => import('./pages/ho/resepKonsentrat/AddEditResepKonsentratPage'));
 const PenjualanKonsentratPage = lazy(() => import('./pages/ho/penjualanKonsentrat/PenjualanKonsentratPage'));
 
+// Feedmill Keuangan Pages - Lazy loaded
+const PenerimaanFeedmillPage = lazy(() => import('./pages/feedmill/keuangan/PenerimaanFeedmillPage'));
+const PengeluaranFeedmillPage = lazy(() => import('./pages/feedmill/keuangan/PengeluaranFeedmillPage'));
+
 // RPH Konsentrat Pages - Lazy loaded
 const PembelianKonsentratPage = lazy(() => import('./pages/RPH/Konsentrat/PembelianKonsentratPage'));
 const AddEditPembelianKonsentratPage = lazy(() => import('./pages/RPH/Konsentrat/AddEditPembelianKonsentratPage'));
@@ -228,6 +232,7 @@ const HOKeuanganPage = lazy(() => import('./pages/ho/keuangan/KeuanganPage'));
 const PenerimaanHoPage = lazy(() => import('./pages/ho/keuangan/Penerimaan/PenerimaanHoPage.jsx'));
 const BayarPenerimaanHoPage = lazy(() => import('./pages/ho/keuangan/Penerimaan/Bayar/BayarPage.jsx'));
 const BayarPengeluaranHoPage = lazy(() => import('./pages/ho/keuangan/Pengeluaran/Bayar/BayarPage.jsx'));
+const BayarPengeluaranFeedmilPage = lazy(() => import('./pages/feedmill/keuangan/Bayar/BayarPengeluaranFeedmilPage.jsx'));
 const KeuanganKasDetailPage = lazy(() => import('./pages/ho/keuanganKas/KeuanganKasDetailPage'));
 const KeuanganBankDetailPage = lazy(() => import('./pages/ho/keuanganBank/KeuanganBankDetailPage'));
 
@@ -576,6 +581,9 @@ function AppSecure() {
               <Route path="/ho/keuangan/pengeluaran/bayar/:pid" element={<BayarPengeluaranHoPage />} />
               <Route path="/ho/keuangan/penerimaan" element={<PenerimaanHoPage />} />
               <Route path="/ho/keuangan/penerimaan/bayar/:pid" element={<BayarPenerimaanHoPage />} />
+              {/* Feedmil keuangan bayar redirect → HO (pembelian feedmil = pengeluaran HO, purchase_type=2) */}
+              <Route path="/feedmil/keuangan/pengeluaran/bayar/:pid" element={<BayarPengeluaranFeedmilPage />} />
+              <Route path="/feedmil/keuangan/penerimaan/bayar/:pid" element={<BayarPenerimaanHoPage />} />
               <Route path="/ho/keuangan-kas/detail/:id" element={<KeuanganKasDetailPage />} />
               <Route path="/ho/keuangan-bank/detail/:id" element={<KeuanganBankDetailPage />} />
 
@@ -636,6 +644,9 @@ function AppSecure() {
               <Route path="/feedmil/resep-konsentrat/add" element={<AddEditResepKonsentratPage />} />
               <Route path="/feedmil/resep-konsentrat/edit/:id" element={<AddEditResepKonsentratPage />} />
               <Route path="/feedmil/penjualan-konsentrat" element={<PenjualanKonsentratPage />} />
+              {/* Feedmill Keuangan Routes */}
+              <Route path="/feedmil/keuangan/penerimaan" element={<PenerimaanFeedmillPage />} />
+              <Route path="/feedmil/keuangan/pengeluaran" element={<PengeluaranFeedmillPage />} />
               {/* Backward compat redirects */}
               <Route path="/ho/resep-konsentrat" element={<Navigate to="/feedmil/resep-konsentrat" replace />} />
               <Route path="/ho/resep-konsentrat/add" element={<Navigate to="/feedmil/resep-konsentrat/add" replace />} />

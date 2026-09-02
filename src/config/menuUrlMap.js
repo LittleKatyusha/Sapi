@@ -18,6 +18,8 @@ export const MENU_URL_MAPPING = {
   'pembelian-ovk': '/feedmil/pembelian-ovk',
   'resep-konsentrat': '/feedmil/resep-konsentrat',
   'penjualan-konsentrat': '/feedmil/penjualan-konsentrat',
+  'penerimaan-feedmill': '/feedmil/keuangan/penerimaan',
+  'pengeluaran-feedmill': '/feedmil/keuangan/pengeluaran',
   'keuangan/pengeluaran': '/ho/keuangan/pengeluaran',
   'keuangan-pengeluaran': '/ho/keuangan/pengeluaran',
   'keuangan/penerimaan': '/ho/keuangan/penerimaan',
