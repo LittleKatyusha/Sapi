@@ -9,7 +9,10 @@ import {
   ChevronRight,
   SearchX,
   PlusCircle,
-  Banknote
+  Banknote,
+  Truck,
+  ClipboardList,
+  Receipt
 } from 'lucide-react';
 
 const formatCurrency = (value) => {
@@ -89,7 +92,7 @@ const displayPendingOrValue = (value, status) => {
   return '-';
 };
 
-const TableActionMenu = ({ row, buttonRef, onClose, onDetail, onEdit, onDelete, onBayar }) => {
+const TableActionMenu = ({ row, buttonRef, onClose, onDetail, onEdit, onDelete, onBayar, onDownloadSuratJalan, onDownloadLembarPesanan, onDownloadKwitansi }) => {
   const menuRef = useRef(null);
   const [menuStyle, setMenuStyle] = useState({
     position: 'fixed',
@@ -151,6 +154,8 @@ const TableActionMenu = ({ row, buttonRef, onClose, onDetail, onEdit, onDelete, 
   }, [buttonRef, onClose]);
 
   const showBayar = onBayar && row.status === 'Disetujui' && (row.sisa_pembayaran || 0) > 0 && row.pembayaran_pid;
+  const showDownloads = row.status === 'Disetujui';
+  const showKwitansi = row.status === 'Disetujui' && row.payment_status === 1;
 
   return createPortal(
     <div
@@ -185,6 +190,41 @@ const TableActionMenu = ({ row, buttonRef, onClose, onDetail, onEdit, onDelete, 
           <Banknote className="w-4 h-4" /> Bayar
         </button>
       )}
+      {showDownloads && (
+        <>
+          <div className="border-t border-gray-100 my-1"></div>
+          {onDownloadSuratJalan && (
+            <button
+              type="button"
+              onClick={() => { onDownloadSuratJalan(row); onClose(); }}
+              className="w-full px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 flex items-center gap-2"
+              role="menuitem"
+            >
+              <Truck className="w-4 h-4" /> Surat Jalan
+            </button>
+          )}
+          {onDownloadLembarPesanan && (
+            <button
+              type="button"
+              onClick={() => { onDownloadLembarPesanan(row); onClose(); }}
+              className="w-full px-3 py-2 text-sm text-indigo-600 hover:bg-indigo-50 flex items-center gap-2"
+              role="menuitem"
+            >
+              <ClipboardList className="w-4 h-4" /> Lembar Pesanan
+            </button>
+          )}
+          {showKwitansi && onDownloadKwitansi && (
+            <button
+              type="button"
+              onClick={() => { onDownloadKwitansi(row); onClose(); }}
+              className="w-full px-3 py-2 text-sm text-amber-600 hover:bg-amber-50 flex items-center gap-2"
+              role="menuitem"
+            >
+              <Receipt className="w-4 h-4" /> Kwitansi
+            </button>
+          )}
+        </>
+      )}
       <button
         type="button"
         onClick={() => { onDelete(row); onClose(); }}
@@ -198,7 +238,7 @@ const TableActionMenu = ({ row, buttonRef, onClose, onDetail, onEdit, onDelete, 
   );
 };
 
-const ActionCell = ({ row, openMenuId, setOpenMenuId, onDetail, onEdit, onDelete, onBayar }) => {
+const ActionCell = ({ row, openMenuId, setOpenMenuId, onDetail, onEdit, onDelete, onBayar, onDownloadSuratJalan, onDownloadLembarPesanan, onDownloadKwitansi }) => {
   const buttonRef = useRef(null);
   const rowId = row.id || row.pid || row.encryptedPid || row.pubid;
   const isOpen = openMenuId === rowId;
@@ -227,6 +267,9 @@ const ActionCell = ({ row, openMenuId, setOpenMenuId, onDetail, onEdit, onDelete
           onEdit={onEdit}
           onDelete={onDelete}
           onBayar={onBayar}
+          onDownloadSuratJalan={onDownloadSuratJalan}
+          onDownloadLembarPesanan={onDownloadLembarPesanan}
+          onDownloadKwitansi={onDownloadKwitansi}
         />
       )}
     </div>
@@ -243,7 +286,10 @@ const ModernPembelianSapiTable = ({
   onDelete,
   onDetail,
   onAdd,
-  onBayar
+  onBayar,
+  onDownloadSuratJalan,
+  onDownloadLembarPesanan,
+  onDownloadKwitansi
 }) => {
   const [openMenuId, setOpenMenuId] = useState(null);
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
@@ -474,6 +520,9 @@ const ModernPembelianSapiTable = ({
                         onEdit={onEdit}
                         onDelete={onDelete}
                         onBayar={onBayar}
+                        onDownloadSuratJalan={onDownloadSuratJalan}
+                        onDownloadLembarPesanan={onDownloadLembarPesanan}
+                        onDownloadKwitansi={onDownloadKwitansi}
                       />
                     </td>
                   </tr>

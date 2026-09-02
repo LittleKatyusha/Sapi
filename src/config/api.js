@@ -263,7 +263,10 @@ export const API_ENDPOINTS = {
       STORE: '/api/rph/po/store',
       UPDATE: '/api/rph/po/update',
       DELETE: '/api/rph/po/hapus',
-      EXPORT: '/api/rph/po/export'
+      EXPORT: '/api/rph/po/export',
+      CARD: '/api/rph/po/card',
+      EXPORT_EXCEL: '/api/rph/po/export-excel',
+      EXPORT_REKAP_PDF: '/api/rph/po/export-rekap-pdf'
     },
     QURBAN: {
       BASE: '/api/rph/qurban',

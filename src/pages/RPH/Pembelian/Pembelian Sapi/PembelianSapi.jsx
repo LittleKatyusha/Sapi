@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { PlusCircle, Calendar, CalendarDays, CalendarRange, Truck, CheckCircle2 } from 'lucide-react';
+import { PlusCircle, Calendar, CalendarDays, CalendarRange, Truck, CheckCircle2, Download, Loader2 } from 'lucide-react';
 import HttpClient from '../../../../services/httpClient';
 import { API_ENDPOINTS } from '../../../../config/api';
+import PoRphService from '../../../../services/poRphService';
 
 // Import real hooks
 import usePoRph from './hooks/usePoRph';
@@ -16,6 +17,7 @@ import ModernPembelianSapiTable from './components/ModernPembelianSapiTable';
 // Import modals
 import EditPoRphModal from './modals/EditPoRphModal';
 import DeleteConfirmationModal from './modals/DeleteConfirmationModal';
+import ExportPembelianSapiModal from './modals/ExportPembelianSapiModal';
 // PoRphDetailModal removed - using navigation to detail page instead
 // AddPoRphModal removed - using navigation to add page instead
 
@@ -41,7 +43,7 @@ const Notification = React.memo(({ notification, onClose }) => {
 
     return (
         <div className="fixed top-4 right-4 z-50">
-            <div className={`max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden ${
+            <div className={`max-w-md w-[420px] bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden ${
                 notification.type === 'success' ? 'border-l-4 border-green-400' :
                 notification.type === 'info' ? 'border-l-4 border-blue-400' :
                 'border-l-4 border-red-400'
@@ -67,12 +69,12 @@ const Notification = React.memo(({ notification, onClose }) => {
                                 </div>
                             )}
                         </div>
-                        <div className="ml-3 w-0 flex-1 pt-0.5">
+                        <div className="ml-3 flex-1 pt-0.5 min-w-0">
                             <p className="text-sm font-medium text-gray-900">
                                 {notification.type === 'success' ? 'Berhasil!' :
                                  notification.type === 'info' ? 'Memproses...' : 'Error!'}
                             </p>
-                            <p className="mt-1 text-sm text-gray-500">{notification.message}</p>
+                            <p className="mt-1 text-sm text-gray-500 break-words whitespace-normal">{notification.message}</p>
                         </div>
                         <div className="ml-4 flex-shrink-0 flex">
                             <button
@@ -118,8 +120,12 @@ const PembelianSapi = () => {
     // Modal states
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+    const [exportLoading, setExportLoading] = useState(false);
+    const [downloadingRow, setDownloadingRow] = useState(null);
     // Removed isDetailModalOpen - using navigation instead
     const [selectedItem, setSelectedItem] = useState(null);
+    const [cardData, setCardData] = useState(null);
     
     // Use the real PoRph hook
     const poRphHook = usePoRph();
@@ -308,6 +314,140 @@ const PembelianSapi = () => {
         navigate(`/rph/keuangan/pengeluaran/bayar/${pembayaranPid}`);
     };
 
+    // ===== Export & Download Handlers =====
+
+    // Build filter params from advancedFilters
+    const buildExportParams = (extra = {}) => {
+        const params = {};
+        if (advancedFilters?.start_date) params.start_date = advancedFilters.start_date;
+        if (advancedFilters?.end_date) params.end_date = advancedFilters.end_date;
+        if (advancedFilters?.no_po) params.no_po = advancedFilters.no_po;
+        if (advancedFilters?.nota) params.nota = advancedFilters.nota;
+        if (advancedFilters?.status) params.status = advancedFilters.status;
+        if (advancedFilters?.no_surat_jalan) params.no_surat_jalan = advancedFilters.no_surat_jalan;
+        if (advancedFilters?.no_faktur) params.no_faktur = advancedFilters.no_faktur;
+        return { ...params, ...extra };
+    };
+
+    // Handle export confirm (Excel or PDF Rekap)
+    const handleExportConfirm = async (filters, format) => {
+        setExportLoading(true);
+        try {
+            const params = buildExportParams({
+                start_date: filters.start_date,
+                end_date: filters.end_date,
+                no_po: filters.no_po,
+                status: filters.status,
+                payment_status: filters.payment_status,
+            });
+
+            let blob;
+            let filename;
+            if (format === 'excel') {
+                blob = await PoRphService.exportToExcel(params);
+                filename = `Laporan_Pembelian_Sapi_RPH_${new Date().toISOString().slice(0, 10)}.xlsx`;
+            } else {
+                blob = await PoRphService.exportRekapPdf(params);
+                filename = `Rekap_Pembelian_Sapi_RPH_${new Date().toISOString().slice(0, 10)}.pdf`;
+            }
+
+            // Check if blob is actually an error JSON response
+            if (blob && blob.type && blob.type.includes('application/json')) {
+                const text = await blob.text();
+                try {
+                    const errJson = JSON.parse(text);
+                    throw new Error(errJson.message || 'Export gagal');
+                } catch (e) {
+                    if (e.message === 'Export gagal') throw e;
+                    throw new Error(text || 'Export gagal');
+                }
+            }
+
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+
+            setNotification({ type: 'success', message: `Export ${format === 'excel' ? 'Excel' : 'PDF'} berhasil` });
+            setIsExportModalOpen(false);
+        } catch (error) {
+            console.error('Export error:', error);
+            setNotification({ type: 'error', message: error.message || 'Gagal export data' });
+        } finally {
+            setExportLoading(false);
+        }
+    };
+
+    // Download per-row PDF (Surat Jalan, Lembar Pesanan, Kwitansi)
+    const handleDownloadRowPdf = async (item, reportType) => {
+        // HO report controller expects encrypted 'id' which is the row's pid
+        const pid = item.pid || item.encryptedPid;
+        if (!pid) {
+            setNotification({ type: 'error', message: 'PID tidak ditemukan' });
+            return;
+        }
+        setDownloadingRow({ pid, reportType });
+        try {
+            const blob = await PoRphService.downloadRowPdf(pid, reportType);
+
+            // Check if blob is actually an error JSON response
+            if (blob && blob.type && blob.type.includes('application/json')) {
+                const text = await blob.text();
+                try {
+                    const errJson = JSON.parse(text);
+                    throw new Error(errJson.message || 'Download gagal');
+                } catch (e) {
+                    if (e.message === 'Download gagal') throw e;
+                    throw new Error(text || 'Download gagal');
+                }
+            }
+
+            const labelMap = { delivery: 'Surat_Jalan', handover: 'Lembar_Pesanan', receipt: 'Kwitansi' };
+            const filename = `${labelMap[reportType] || reportType}_${item.no_po || pid}.pdf`;
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+
+            setNotification({ type: 'success', message: `${labelMap[reportType]} berhasil diunduh` });
+        } catch (error) {
+            console.error('Download PDF error:', error);
+            setNotification({ type: 'error', message: error.message || 'Gagal mengunduh PDF' });
+        } finally {
+            setDownloadingRow(null);
+        }
+    };
+
+    const handleDownloadSuratJalan = (item) => handleDownloadRowPdf(item, 'delivery');
+    const handleDownloadLembarPesanan = (item) => handleDownloadRowPdf(item, 'handover');
+    const handleDownloadKwitansi = (item) => handleDownloadRowPdf(item, 'receipt');
+
+    // Fetch card data (server-side stat cards)
+    const fetchCardData = async () => {
+        try {
+            const params = buildExportParams();
+            const result = await PoRphService.getCardData(params);
+            if (result.success) {
+                setCardData(result.data);
+            }
+        } catch (error) {
+            console.error('Card data error:', error);
+        }
+    };
+
+    useEffect(() => {
+        fetchCardData();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [advancedFilters]);
+
     // Pagination handlers for mobile cards
     const handlePageChange = (page) => {
         handleServerPageChange(page);
@@ -453,23 +593,33 @@ const PembelianSapi = () => {
                                     Kelola data pembelian doka & sapi dan ternak
                                 </p>
                             </div>
-                            <button
-                                onClick={handleOpenAddModal}
-                                className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm"
-                            >
-                                <PlusCircle className="w-4 h-4" />
-                                Tambah
-                            </button>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => setIsExportModalOpen(true)}
+                                    disabled={exportLoading || !!downloadingRow}
+                                    className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                                >
+                                    {exportLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                                    Export
+                                </button>
+                                <button
+                                    onClick={handleOpenAddModal}
+                                    className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm"
+                                >
+                                    <PlusCircle className="w-4 h-4" />
+                                    Tambah
+                                </button>
+                            </div>
                         </div>
                     </div>
 
                     {/* Stat Cards */}
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                        <StatCard title="Total PO" value={serverPagination.totalItems} icon={Truck} accentColor="bg-blue-500" />
-                        <StatCard title="Hari Ini" value={stats.todayCount || 0} icon={Calendar} accentColor="bg-emerald-500" />
-                        <StatCard title="Bulan Ini" value={stats.monthCount || 0} icon={CalendarDays} accentColor="bg-amber-500" />
-                        <StatCard title="Tahun Ini" value={stats.yearCount || 0} icon={CalendarRange} accentColor="bg-purple-500" />
-                        <StatCard title="Disetujui" value={stats.approvedCount || 0} icon={CheckCircle2} accentColor="bg-green-500" />
+                        <StatCard title="Total PO" value={cardData?.total_records ?? serverPagination.totalItems ?? 0} icon={Truck} accentColor="bg-blue-500" />
+                        <StatCard title="Total Ekor" value={cardData?.total_ekor ?? 0} icon={Calendar} accentColor="bg-emerald-500" />
+                        <StatCard title="Disetujui" value={cardData?.approved?.count ?? stats.approvedCount ?? 0} icon={CheckCircle2} accentColor="bg-green-500" />
+                        <StatCard title="Lunas" value={cardData?.lunas ?? 0} icon={CalendarDays} accentColor="bg-amber-500" />
+                        <StatCard title="Piutang" value={cardData?.piutang_outstanding ? new Intl.NumberFormat('id-ID', { notation: 'compact' }).format(cardData.piutang_outstanding) : 0} icon={CalendarRange} accentColor="bg-purple-500" />
                     </div>
 
                     {/* Advanced Filter Panel */}
@@ -511,6 +661,9 @@ const PembelianSapi = () => {
                             onDetail={handleDetail}
                             onAdd={handleOpenAddModal}
                             onBayar={handleBayar}
+                            onDownloadSuratJalan={handleDownloadSuratJalan}
+                            onDownloadLembarPesanan={handleDownloadLembarPesanan}
+                            onDownloadKwitansi={handleDownloadKwitansi}
                         />
                     </div>
 
@@ -600,6 +753,14 @@ const PembelianSapi = () => {
                 onConfirm={handleConfirmDelete}
                 onCancel={handleCloseDeleteModal}
                 isDeleting={deleteLoading === (selectedItem?.pid || selectedItem?.encryptedPid)}
+            />
+
+            <ExportPembelianSapiModal
+                isOpen={isExportModalOpen}
+                onClose={() => setIsExportModalOpen(false)}
+                onConfirm={handleExportConfirm}
+                loading={exportLoading}
+                initialFilters={buildExportParams()}
             />
         </>
     );

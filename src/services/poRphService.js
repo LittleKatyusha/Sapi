@@ -367,16 +367,92 @@ class PoRphService {
    */
   static async exportToExcel(params = {}) {
     try {
-      const response = await HttpClient.get(API_ENDPOINTS.RPH?.PO?.EXPORT || `${this.API_BASE}/export`, {
+      const response = await HttpClient.get(API_ENDPOINTS.RPH?.PO?.EXPORT_EXCEL || `${this.API_BASE}/export-excel`, {
         params,
         responseType: 'blob'
       });
-      
+
       return response;
     } catch (error) {
       console.error('Error exporting PO data:', error);
       throw error;
     }
+  }
+
+  /**
+   * Export PO rekap to PDF
+   * @param {Object} params - Export parameters
+   * @returns {Promise} Blob containing PDF file
+   */
+  static async exportRekapPdf(params = {}) {
+    try {
+      const response = await HttpClient.get(API_ENDPOINTS.RPH?.PO?.EXPORT_REKAP_PDF || `${this.API_BASE}/export-rekap-pdf`, {
+        params,
+        responseType: 'blob'
+      });
+
+      return response;
+    } catch (error) {
+      console.error('Error exporting PO rekap PDF:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get card data (server-side aggregated stat cards)
+   * @param {Object} params - Filter parameters
+   * @returns {Promise} API response with card data
+   */
+  static async getCardData(params = {}) {
+    try {
+      const queryParams = {};
+      ['start_date', 'end_date', 'no_po', 'nota', 'status', 'no_surat_jalan', 'no_faktur', 'payment_status'].forEach((key) => {
+        if (params[key] !== undefined && params[key] !== null && params[key] !== '') {
+          queryParams[key] = params[key];
+        }
+      });
+
+      const response = await HttpClient.get(API_ENDPOINTS.RPH?.PO?.CARD || `${this.API_BASE}/card`, {
+        params: queryParams
+      });
+
+      return {
+        success: true,
+        data: response.data || response,
+        message: response.message || 'Card data berhasil dimuat'
+      };
+    } catch (error) {
+      console.error('Error fetching card data:', error);
+      return {
+        success: false,
+        data: null,
+        message: error.message || 'Gagal mengambil card data'
+      };
+    }
+  }
+
+  /**
+   * Download per-row PDF report (Surat Jalan, Lembar Pesanan, Kwitansi)
+   * Reuses HO report endpoints because dt_po_rph.pubid = tr_po_rph.pubid
+   * @param {string} pid - Encrypted PID (decrypted server-side to pubid)
+   * @param {string} reportType - 'delivery' | 'handover' | 'receipt'
+   * @returns {Promise} Blob containing PDF file
+   */
+  static async downloadRowPdf(pid, reportType) {
+    const endpointMap = {
+      delivery: API_ENDPOINTS.REPORT.PENJUALAN.HO_DELIVERY,
+      handover: API_ENDPOINTS.REPORT.PENJUALAN.HO_HANDOVER,
+      receipt: API_ENDPOINTS.REPORT.PENJUALAN.HO_RECEIPT,
+    };
+    const endpoint = endpointMap[reportType];
+    if (!endpoint) throw new Error('Unknown report type: ' + reportType);
+
+    const response = await HttpClient.get(endpoint, {
+      params: { id: pid },
+      responseType: 'blob'
+    });
+
+    return response;
   }
 }
 
