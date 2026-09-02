@@ -1,7 +1,7 @@
-import React, { useRef, useEffect, useState, useLayoutEffect } from 'react';
+import React, { useRef, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Eye, Edit, Copy, Trash2, Download, Loader2, FileText, Tag, Truck } from 'lucide-react';
-import { API_ENDPOINTS, API_BASE_URL } from '../../../../config/api';
+import { Eye, Edit, Trash2, Download, Loader2, FileText, Tag, Truck } from 'lucide-react';
+import { API_ENDPOINTS } from '../../../../config/api';
 import LaporanPembelianService from '../../../../services/laporanPembelianService';
 import HttpClient from '../../../../services/httpClient';
 import { downloadEartagLabelPDF } from '../utils/eartagLabelPDF';
