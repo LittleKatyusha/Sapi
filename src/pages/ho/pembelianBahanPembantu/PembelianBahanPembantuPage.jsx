@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import DataTable from 'react-data-table-component';
-import { PlusCircle, Search, X, Loader2, Package, RefreshCw, Eye, Edit2, Trash2, MoreVertical, AlertCircle } from 'lucide-react';
+import { PlusCircle, Search, X, Loader2, Package, RefreshCw, Eye, Edit2, Trash2, MoreVertical, AlertCircle, Download } from 'lucide-react';
 
 import usePembelianBahanPembantu from '../pembelianLainLain/hooks/usePembelianBahanPembantu';
 import useDivisiData from '../pembelianLainLain/hooks/useDivisiData';
@@ -14,6 +14,7 @@ import enhancedLainLainTableStyles from '../pembelianLainLain/constants/tableSty
 
 import DeleteConfirmationModal from '../pembelianLainLain/modals/DeleteConfirmationModal';
 import AddEditBahanPembantuModal from '../pembelianLainLain/modals/AddEditBahanPembantuModal';
+import ExportBahanPembantuModal from './ExportBahanPembantuModal';
 
 const PembelianBahanPembantuPage = () => {
     const {
@@ -54,6 +55,8 @@ const PembelianBahanPembantuPage = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [openMenuId, setOpenMenuId] = useState(null);
     const [notification, setNotification] = useState(null);
+    const [isExportOpen, setIsExportOpen] = useState(false);
+    const [isExporting, setIsExporting] = useState(false);
 
     useEffect(() => {
         fetchPembelianBahanPembantu();
@@ -202,6 +205,22 @@ const PembelianBahanPembantuPage = () => {
         } catch (err) {
             setNotification({ type: 'error', message: err.message || 'Gagal menghapus data bahan pembantu' });
         }
+    };
+
+    const handleExport = async (format, { startDate, endDate }) => {
+        setIsExporting(true);
+        setNotification({ type: 'info', message: `Memproses rekap bahan pembantu dalam format ${format === 'excel' ? 'Excel' : 'PDF'}...` });
+        try {
+            const blob = await HttpClient.get(format === 'excel' ? API_ENDPOINTS.HO.BAHAN_PEMBANTU.EXPORT_EXCEL : API_ENDPOINTS.HO.BAHAN_PEMBANTU.EXPORT_PDF, { params: { start_date: startDate, end_date: endDate, search: searchTerm }, responseType: 'blob', cache: false });
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `Pembelian_Bahan_Pembantu_${startDate}_${endDate}.${format === 'excel' ? 'xlsx' : 'pdf'}`;
+            link.click();
+            window.URL.revokeObjectURL(url);
+            setIsExportOpen(false);
+            setNotification({ type: 'success', message: `${format === 'excel' ? 'Excel' : 'PDF'} berhasil diunduh.` });
+        } catch (err) { setNotification({ type: 'error', message: err.message || 'Gagal membuat export.' }); } finally { setIsExporting(false); }
     };
 
     const columns = useMemo(() => [
@@ -431,6 +450,7 @@ const PembelianBahanPembantuPage = () => {
                         <RefreshCw size={14} />
                         <span className="hidden sm:inline">Refresh</span>
                     </button>
+                    <button onClick={() => setIsExportOpen(true)} className="flex items-center gap-1.5 px-3 py-2 text-sm text-white bg-slate-700 rounded-lg hover:bg-slate-800 transition-colors"><Download size={14} /><span className="hidden sm:inline">Cetak / Export</span></button>
                     <button
                         onClick={handleOpenAdd}
                         className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-teal-500 rounded-lg hover:bg-teal-600 transition-colors shadow-sm"
@@ -561,6 +581,7 @@ const PembelianBahanPembantuPage = () => {
                 data={selectedItem}
                 loading={loading}
             />
+            <ExportBahanPembantuModal isOpen={isExportOpen} loading={isExporting} onClose={() => setIsExportOpen(false)} onExport={handleExport} />
         </div>
     );
 };

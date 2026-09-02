@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { PlusCircle, Package, Truck, Calendar, CalendarDays, CalendarRange } from 'lucide-react';
+import { PlusCircle, Package, Truck, Calendar, CalendarDays, CalendarRange, Download } from 'lucide-react';
 
 import usePembelianKulit from './hooks/usePembelianKulit';
 import useFarmAPI from './hooks/useFarmAPI';
@@ -10,6 +10,9 @@ import PembelianKulitFilterPanel from './components/PembelianKulitFilterPanel';
 
 // Import modals
 import DeleteConfirmationModal from './modals/DeleteConfirmationModal';
+import ExportKulitModal from './ExportKulitModal';
+import HttpClient from '../../../services/httpClient';
+import { API_ENDPOINTS } from '../../../config/api';
 
 const PembelianKulitPage = () => {
     const navigate = useNavigate();
@@ -17,6 +20,8 @@ const PembelianKulitPage = () => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [selectedPembelian, setSelectedPembelian] = useState(null);
     const [notification, setNotification] = useState(null);
+    const [isExportOpen, setIsExportOpen] = useState(false);
+    const [isExporting, setIsExporting] = useState(false);
     const [lastRefreshTime, setLastRefreshTime] = useState(Date.now());
     const initialFetchDone = useRef(false);
 
@@ -192,6 +197,20 @@ const PembelianKulitPage = () => {
         }
     }, [deletePembelian]);
 
+    const handleExport = async (format, { startDate, endDate }) => {
+        setIsExporting(true);
+        setNotification({ type: 'info', message: `Memproses rekap pembelian kulit dalam format ${format === 'excel' ? 'Excel' : 'PDF'}...` });
+        try {
+            const params = { start_date: startDate, end_date: endDate };
+            const filters = { nota_sistem: 'filter_nota_sistem', nota: 'filter_nota', nama_supplier: 'filter_nama_supplier', plat_nomor: 'filter_plat_nomor', jenis_pembelian: 'filter_jenis_pembelian' };
+            Object.entries(filters).forEach(([key, parameter]) => { if (advancedFilters[key]) params[parameter] = advancedFilters[key]; });
+            const endpoint = format === 'excel' ? API_ENDPOINTS.HO.KULIT.EXPORT_EXCEL : API_ENDPOINTS.HO.KULIT.EXPORT_PDF;
+            const blob = await HttpClient.get(endpoint, { params, responseType: 'blob', cache: false });
+            const url = window.URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = `Pembelian_Kulit_${startDate}_${endDate}.${format === 'excel' ? 'xlsx' : 'pdf'}`; link.click(); window.URL.revokeObjectURL(url);
+            setIsExportOpen(false); setNotification({ type: 'success', message: `${format === 'excel' ? 'Excel' : 'PDF'} berhasil diunduh.` });
+        } catch (err) { setNotification({ type: 'error', message: err.message || 'Gagal membuat export.' }); } finally { setIsExporting(false); }
+    };
+
     // Auto-hide notification
     useEffect(() => {
         if (notification) {
@@ -273,7 +292,8 @@ const PembelianKulitPage = () => {
                         <StatCard title="Tahun Ini" value={stats.thisYear} icon={CalendarRange} accentColor="bg-indigo-500" />
                     </div>
 
-                    <div className="flex justify-end">
+                    <div className="flex justify-end gap-3">
+                        <button onClick={() => setIsExportOpen(true)} className="bg-slate-700 hover:bg-slate-800 text-white px-4 py-2.5 rounded-lg shadow-sm hover:shadow transition-all duration-200 flex items-center gap-2 text-sm font-medium"><Download className="w-4 h-4" />Cetak / Export</button>
                         <button
                             onClick={() => navigate('/ho/pembelian-kulit/add')}
                             className="bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-lg shadow-sm hover:shadow transition-all duration-200 flex items-center gap-2 text-sm font-medium active:scale-[0.98]"
@@ -318,6 +338,7 @@ const PembelianKulitPage = () => {
                             onDelete={handleDelete}
                             onDetail={handleDetail}
                             onBayar={handleBayar}
+                            onNotification={setNotification}
                             getFarmName={getFarmName}
                             getBankName={getBankName}
                         />
@@ -409,6 +430,7 @@ const PembelianKulitPage = () => {
                     loading={loading}
                     type="pembelian"
                 />
+                <ExportKulitModal isOpen={isExportOpen} loading={isExporting} onClose={() => setIsExportOpen(false)} onExport={handleExport} />
             </div>
         </>
     );

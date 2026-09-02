@@ -186,7 +186,9 @@ export const API_ENDPOINTS = {
       PEMBELIAN: '/api/ho/feedmil/pembelian'
     },
     KULIT: {
-      PEMBELIAN: '/api/ho/kulit/pembelian'
+      PEMBELIAN: '/api/ho/kulit/pembelian',
+      EXPORT_EXCEL: '/api/ho/kulit/pembelian/export-excel',
+      EXPORT_PDF: '/api/ho/kulit/pembelian/export-pdf'
     },
     OVK: {
       PEMBELIAN: '/api/ho/ovk/pembelian'
@@ -198,7 +200,9 @@ export const API_ENDPOINTS = {
       PEMBELIAN: '/api/ho/bebanbiaya/pembelian'
     },
     BAHAN_PEMBANTU: {
-      PEMBELIAN: '/api/ho/bahanpembantu/pembelian'
+      PEMBELIAN: '/api/ho/bahanpembantu/pembelian',
+      EXPORT_EXCEL: '/api/ho/bahanpembantu/pembelian/export-excel',
+      EXPORT_PDF: '/api/ho/bahanpembantu/pembelian/export-pdf'
     },
     PAYMENT: {
       BASE: '/api/ho/payment',
