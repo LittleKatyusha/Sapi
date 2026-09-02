@@ -1,14 +1,19 @@
 import React, { useRef, useEffect, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Eye, Edit, Copy, Trash2, Download, Loader2, FileText } from 'lucide-react';
+import { Eye, Edit, Copy, Trash2, Download, Loader2, FileText, Tag, Truck } from 'lucide-react';
 import { API_ENDPOINTS, API_BASE_URL } from '../../../../config/api';
 import LaporanPembelianService from '../../../../services/laporanPembelianService';
+import HttpClient from '../../../../services/httpClient';
+import { downloadEartagLabelPDF } from '../utils/eartagLabelPDF';
+import { downloadSuratJalanPDF } from '../utils/suratJalanPDF';
 
 const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef, apiEndpoint = API_ENDPOINTS.HO.PEMBELIAN, reportType = 'supplier' }) => {
     const menuRef = useRef(null);
     const [menuStyle, setMenuStyle] = useState(null);
     const [fileLoading, setFileLoading] = useState(false);
     const [reportLoading, setReportLoading] = useState(false);
+    const [eartagLoading, setEartagLoading] = useState(false);
+    const [suratJalanLoading, setSuratJalanLoading] = useState(false);
 
     useLayoutEffect(() => {
         function updatePosition() {
@@ -150,6 +155,46 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef, apiEn
         }
     };
 
+    const handleEartagLabel = async (row) => {
+        if (!row.encryptedPid && !row.pid) {
+            alert('ID pembelian tidak tersedia');
+            return;
+        }
+        setEartagLoading(true);
+        try {
+            const pid = row.encryptedPid || row.pid;
+            const result = await HttpClient.post(`${API_ENDPOINTS.HO.PEMBELIAN}/show`, { pid });
+            const details = result?.data || result || [];
+            downloadEartagLabelPDF(row, Array.isArray(details) ? details : []);
+            onClose();
+        } catch (error) {
+            console.error('Error generating eartag labels:', error);
+            alert(error?.message || 'Gagal generate label eartag');
+        } finally {
+            setEartagLoading(false);
+        }
+    };
+
+    const handleSuratJalan = async (row) => {
+        if (!row.encryptedPid && !row.pid) {
+            alert('ID pembelian tidak tersedia');
+            return;
+        }
+        setSuratJalanLoading(true);
+        try {
+            const pid = row.encryptedPid || row.pid;
+            const result = await HttpClient.post(`${API_ENDPOINTS.HO.PEMBELIAN}/show`, { pid });
+            const details = result?.data || result || [];
+            downloadSuratJalanPDF(row, Array.isArray(details) ? details : []);
+            onClose();
+        } catch (error) {
+            console.error('Error generating surat jalan:', error);
+            alert(error?.message || 'Gagal generate surat jalan');
+        } finally {
+            setSuratJalanLoading(false);
+        }
+    };
+
     const actions = [
         {
             label: 'Lihat Detail',
@@ -194,6 +239,30 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onClose, buttonRef, apiEn
             text: 'text-green-600',
             disabled: reportLoading,
             isLoading: reportLoading,
+        },
+        {
+            label: 'Label Eartag',
+            icon: eartagLoading ? Loader2 : Tag,
+            onClick: () => handleEartagLabel(row),
+            className: eartagLoading ? 'text-gray-400' : 'text-gray-700',
+            description: eartagLoading ? 'Memuat...' : 'Cetak label per ekor',
+            bg: 'bg-indigo-100',
+            hoverBg: 'group-hover:bg-indigo-200',
+            text: 'text-indigo-600',
+            disabled: eartagLoading,
+            isLoading: eartagLoading,
+        },
+        {
+            label: 'Surat Jalan',
+            icon: suratJalanLoading ? Loader2 : Truck,
+            onClick: () => handleSuratJalan(row),
+            className: suratJalanLoading ? 'text-gray-400' : 'text-gray-700',
+            description: suratJalanLoading ? 'Memuat...' : 'Cetak delivery order',
+            bg: 'bg-cyan-100',
+            hoverBg: 'group-hover:bg-cyan-200',
+            text: 'text-cyan-600',
+            disabled: suratJalanLoading,
+            isLoading: suratJalanLoading,
         },
         {
             divider: true

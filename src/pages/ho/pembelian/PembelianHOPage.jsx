@@ -8,6 +8,10 @@ import useTipePembelian from './hooks/useTipePembelian';
 import ModernPembelianTable from './components/ModernPembelianTable';
 import PembelianFilterPanel from './components/PembelianFilterPanel';
 import { downloadTandaTerimaPDF } from './utils/tandaTerimaPDF';
+import { downloadEartagLabelPDF } from './utils/eartagLabelPDF';
+import { downloadSuratJalanPDF } from './utils/suratJalanPDF';
+import HttpClient from '../../../services/httpClient';
+import { API_ENDPOINTS } from '../../../config/api';
 
 // Import modals
 import DeleteConfirmationModal from './modals/DeleteConfirmationModal';
@@ -352,6 +356,46 @@ const PembelianHOPage = () => {
             setNotification({
                 type: 'error',
                 message: err.message || 'Gagal generate tanda terima PDF'
+            });
+        }
+    }, []);
+
+    const handleEartagLabel = useCallback(async (pembelian) => {
+        try {
+            const pid = pembelian.encryptedPid || pembelian.pid;
+            if (!pid) throw new Error('ID pembelian tidak tersedia');
+            const result = await HttpClient.post(`${API_ENDPOINTS.HO.PEMBELIAN}/show`, { pid });
+            const details = result?.data || [];
+            downloadEartagLabelPDF(pembelian, Array.isArray(details) ? details : []);
+            setNotification({
+                type: 'success',
+                message: `Label eartag untuk pembelian ${pembelian.nota_sistem || ''} dibuka di dialog print. Pilih "Save as PDF" untuk download.`
+            });
+        } catch (err) {
+            console.error('Error generating eartag label PDF:', err);
+            setNotification({
+                type: 'error',
+                message: err.message || 'Gagal generate label eartag PDF'
+            });
+        }
+    }, []);
+
+    const handleSuratJalan = useCallback(async (pembelian) => {
+        try {
+            const pid = pembelian.encryptedPid || pembelian.pid;
+            if (!pid) throw new Error('ID pembelian tidak tersedia');
+            const result = await HttpClient.post(`${API_ENDPOINTS.HO.PEMBELIAN}/show`, { pid });
+            const details = result?.data || [];
+            downloadSuratJalanPDF(pembelian, Array.isArray(details) ? details : []);
+            setNotification({
+                type: 'success',
+                message: `Surat jalan untuk pembelian ${pembelian.nota_sistem || ''} dibuka di dialog print. Pilih "Save as PDF" untuk download.`
+            });
+        } catch (err) {
+            console.error('Error generating surat jalan PDF:', err);
+            setNotification({
+                type: 'error',
+                message: err.message || 'Gagal generate surat jalan PDF'
             });
         }
     }, []);
@@ -786,6 +830,8 @@ const PembelianHOPage = () => {
                         onBayar={handleBayar}
                         onDownload={handleDownload}
                         onTandaTerima={handleTandaTerima}
+                        onEartagLabel={handleEartagLabel}
+                        onSuratJalan={handleSuratJalan}
                         getJenisPembelianLabel={getJenisPembelianLabel}
                     />
                 </div>

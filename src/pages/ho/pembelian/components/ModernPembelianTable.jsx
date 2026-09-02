@@ -22,7 +22,8 @@ import {
   Info,
   Download,
   Loader2,
-  ClipboardCheck
+  ClipboardCheck,
+  Tag
 } from 'lucide-react';
 
 const formatCurrency = (value) => {
@@ -189,6 +190,8 @@ const RowActionMenu = ({
   onBayar,
   onDownload,
   onTandaTerima,
+  onEartagLabel,
+  onSuratJalan,
   downloadLoadingId,
   handleDownload,
   compact = false
@@ -330,6 +333,26 @@ const RowActionMenu = ({
           <ClipboardCheck className="w-4 h-4" /> Download Tanda Terima
         </button>
       )}
+      {onEartagLabel && (
+        <button
+          type="button"
+          onClick={() => { onEartagLabel(row); onClose(); }}
+          className={`${itemClass} text-indigo-600 hover:bg-indigo-50`}
+          role="menuitem"
+        >
+          <Tag className="w-4 h-4" /> Label Eartag
+        </button>
+      )}
+      {onSuratJalan && (
+        <button
+          type="button"
+          onClick={() => { onSuratJalan(row); onClose(); }}
+          className={`${itemClass} text-cyan-600 hover:bg-cyan-50`}
+          role="menuitem"
+        >
+          <Truck className="w-4 h-4" /> Surat Jalan
+        </button>
+      )}
       {Number(row.payment_status) !== 1 && (
         <button
           type="button"
@@ -358,6 +381,8 @@ const ActionTrigger = ({
   onBayar,
   onDownload,
   onTandaTerima,
+  onEartagLabel,
+  onSuratJalan,
   downloadLoadingId,
   handleDownload,
   compact = false
@@ -395,6 +420,8 @@ const ActionTrigger = ({
           onBayar={onBayar}
           onDownload={onDownload}
           onTandaTerima={onTandaTerima}
+          onEartagLabel={onEartagLabel}
+          onSuratJalan={onSuratJalan}
           downloadLoadingId={downloadLoadingId}
           handleDownload={handleDownload}
           compact={compact}
@@ -416,6 +443,8 @@ const ModernPembelianTable = ({
   onBayar,
   onDownload,
   onTandaTerima,
+  onEartagLabel,
+  onSuratJalan,
   getJenisPembelianLabel
 }) => {
   const navigate = useNavigate();
@@ -673,6 +702,8 @@ const ModernPembelianTable = ({
                           onBayar={onBayar}
                           onDownload={onDownload}
                           onTandaTerima={onTandaTerima}
+                          onEartagLabel={onEartagLabel}
+                          onSuratJalan={onSuratJalan}
                           downloadLoadingId={downloadLoadingId}
                           handleDownload={handleDownload}
                         />
@@ -740,6 +771,8 @@ const ModernPembelianTable = ({
                   onBayar={onBayar}
                   onDownload={onDownload}
                   onTandaTerima={onTandaTerima}
+                  onEartagLabel={onEartagLabel}
+                  onSuratJalan={onSuratJalan}
                   downloadLoadingId={downloadLoadingId}
                   handleDownload={handleDownload}
                   compact
