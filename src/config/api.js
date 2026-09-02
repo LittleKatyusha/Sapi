@@ -171,6 +171,8 @@ export const API_ENDPOINTS = {
     PENJUALAN: '/api/ho/penjualan',
     PENJUALAN_DOKA_SAPI: '/api/ho/penjualandokasapi', // Updated endpoint for Penjualan Doka Sapi
     PENGAJUAN_BIAYA: '/api/ho/pengajuanbiaya', // Pengajuan Biaya endpoint (Cash Budget Request)
+    PENGAJUAN_BIAYA_EXPORT_EXCEL: '/api/ho/pengajuanbiaya/export-excel',
+    PENGAJUAN_BIAYA_EXPORT_PDF: '/api/ho/pengajuanbiaya/export-pdf',
     PENGELUARAN_PENGAJUAN_BIAYA_KAS: '/api/ho/pengeluaranpengajuanbiayakas', // Cash Disbursement/Approval endpoint
     PENGELUARAN_PENGAJUAN_BIAYA_BANK: '/api/ho/pengeluaranpengajuanbiayabank', // Bank Disbursement/Approval endpoint
     BANK_DEPOSIT: {

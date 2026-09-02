@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import DataTable from 'react-data-table-component';
-import { PlusCircle, Search, FileText, X, Loader2, Clock, Calendar } from 'lucide-react';
+import { PlusCircle, Search, FileText, X, Loader2, Clock, Calendar, Download } from 'lucide-react';
 
 import usePengajuan from './hooks/usePengajuan';
 import usePengajuanDisetujui from './hooks/usePengajuanDisetujui';
@@ -15,6 +15,7 @@ import DeleteConfirmationModal from './modals/DeleteConfirmationModal';
 import AddEditPengajuanModal from './modals/AddEditPengajuanModal';
 import PengajuanDetailModal from './modals/PengajuanDetailModal';
 import PengajuanBiayaService from '../../../services/pengajuanBiayaService';
+import ExportPengajuanModal from './modals/ExportPengajuanModal';
 
 const PengajuanPage = () => {
     const location = useLocation();
@@ -27,6 +28,8 @@ const PengajuanPage = () => {
     const [notification, setNotification] = useState(null);
     const [lastRefreshTime, setLastRefreshTime] = useState(Date.now());
     const [activeTab, setActiveTab] = useState('menunggu'); // 'menunggu' | 'disetujui'
+    const [isExportOpen, setIsExportOpen] = useState(false);
+    const [isExporting, setIsExporting] = useState(false);
     
     const {
         pengajuan: filteredData,
@@ -133,6 +136,7 @@ const PengajuanPage = () => {
     const handlePrint = async (pengajuan, type = 'menunggu') => {
         setOpenMenuId(null);
         setIsPrinting(true);
+        setNotification({ type: 'info', message: 'Memproses surat pengajuan...' });
         
         try {
             // Get user from localStorage
@@ -187,6 +191,16 @@ const PengajuanPage = () => {
         } finally {
             setIsPrinting(false);
         }
+    };
+
+    const handleExport = async (format, { startDate, endDate, status }) => {
+        setIsExporting(true);
+        setNotification({ type: 'info', message: `Memproses rekap pengajuan dalam format ${format === 'excel' ? 'Excel' : 'PDF'}...` });
+        try {
+            const blob = await PengajuanBiayaService.exportData(format, { start_date: startDate, end_date: endDate, ...(status ? { status } : {}) });
+            const url = window.URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = `Pengajuan_Biaya_${startDate}_${endDate}.${format === 'excel' ? 'xlsx' : 'pdf'}`; link.click(); window.URL.revokeObjectURL(url);
+            setIsExportOpen(false); setNotification({ type: 'success', message: `${format === 'excel' ? 'Excel' : 'PDF'} berhasil diunduh.` });
+        } catch (error) { setNotification({ type: 'error', message: error.message || 'Gagal membuat export.' }); } finally { setIsExporting(false); }
     };
 
     // Modal handlers
@@ -662,14 +676,11 @@ const PengajuanPage = () => {
                                 <p className="text-xs text-slate-500 truncate hidden sm:block">Kelola data pengajuan biaya</p>
                             </div>
                         </div>
-                        <button
-                            onClick={handleAdd}
-                            className="inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 shrink-0"
-                        >
+                        <div className="flex gap-2 shrink-0"><button onClick={() => setIsExportOpen(true)} className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-800"><Download className="h-4 w-4" /><span className="hidden sm:inline">Cetak / Export</span></button><button onClick={handleAdd} className="inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/30">
                             <PlusCircle className="h-4 w-4" />
                             <span className="hidden sm:inline">Tambah Pengajuan</span>
                             <span className="sm:hidden">Tambah</span>
-                        </button>
+                        </button></div>
                     </div>
                 </header>
 
@@ -961,6 +972,7 @@ const PengajuanPage = () => {
                 onSave={handleSavePengajuan}
                 editingItem={selectedPengajuan}
             />
+            <ExportPengajuanModal isOpen={isExportOpen} loading={isExporting} onClose={() => setIsExportOpen(false)} onExport={handleExport} />
             <PengajuanDetailModal
                 isOpen={isDetailModalOpen}
                 onClose={handleCloseDetailModal}
