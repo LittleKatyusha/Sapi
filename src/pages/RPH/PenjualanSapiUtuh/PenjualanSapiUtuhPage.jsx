@@ -576,30 +576,33 @@ const PenjualanSapiUtuhPage = () => {
   }, [cancel, showNotif, loadData]);
 
   const handlePrintFaktur = useCallback(async (item) => {
+    showNotif('info', 'Memproses faktur penjualan...');
     const result = await printFaktur(item.pid);
     if (result.success) {
-      console.log('Faktur data:', result.data);
-      showNotif('success', 'Data faktur berhasil dimuat');
+      const url = window.URL.createObjectURL(result.data); const link = document.createElement('a'); link.href = url; link.download = `Faktur_${item.no_transaksi || item.pid}.pdf`; link.click(); window.URL.revokeObjectURL(url);
+      showNotif('success', 'Faktur berhasil diunduh');
     } else {
       showNotif('error', result.message || 'Gagal memuat data faktur');
     }
   }, [printFaktur, showNotif]);
 
   const handlePrintInvoice = useCallback(async (item) => {
+    showNotif('info', 'Memproses invoice penjualan...');
     const result = await printInvoice(item.pid);
     if (result.success) {
-      console.log('Invoice data:', result.data);
-      showNotif('success', 'Data invoice berhasil dimuat');
+      const url = window.URL.createObjectURL(result.data); const link = document.createElement('a'); link.href = url; link.download = `Invoice_${item.no_transaksi || item.pid}.pdf`; link.click(); window.URL.revokeObjectURL(url);
+      showNotif('success', 'Invoice berhasil diunduh');
     } else {
       showNotif('error', result.message || 'Gagal memuat data invoice');
     }
   }, [printInvoice, showNotif]);
 
   const handlePrintSuratJalan = useCallback(async (item) => {
+    showNotif('info', 'Memproses surat jalan...');
     const result = await printSuratJalan(item.pid);
     if (result.success) {
-      console.log('Surat Jalan data:', result.data);
-      showNotif('success', 'Data surat jalan berhasil dimuat');
+      const url = window.URL.createObjectURL(result.data); const link = document.createElement('a'); link.href = url; link.download = `Surat_Jalan_${item.no_transaksi || item.pid}.pdf`; link.click(); window.URL.revokeObjectURL(url);
+      showNotif('success', 'Surat jalan berhasil diunduh');
     } else {
       showNotif('error', result.message || 'Gagal memuat data surat jalan');
     }
