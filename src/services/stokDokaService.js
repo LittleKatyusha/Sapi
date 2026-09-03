@@ -130,6 +130,53 @@ class StokDokaService {
       return { success: false, data: null, message };
     }
   }
+
+  /**
+   * Daftar DOKA aktif untuk form pemberian pakan konsentrat.
+   * Endpoint: GET /api/rph/stokdoka/stok-doka-options?tgl_pemberian_pakan=YYYY-MM-DD
+   */
+  static async getStokDokaOptions(tanggal) {
+    try {
+      const response = await HttpClient.get(`${this.API_PREFIX}/stok-doka-options`, {
+        params: { tgl_pemberian_pakan: tanggal },
+        cache: false,
+      });
+      return { success: true, data: response.data, message: 'Data retrieved successfully' };
+    } catch (error) {
+      console.error('StokDokaService.getStokDokaOptions error:', error);
+      return {
+        success: false,
+        data: null,
+        message: error?.data?.message || error?.message || 'Failed to fetch stok doka options',
+      };
+    }
+  }
+
+  /**
+   * Bulk assign kandang ke DOKA terpilih.
+   * Endpoint: POST /api/rph/stokdoka/bulk-assign-kandang
+   */
+  static async bulkAssignKandang(pids, kandangPid) {
+    try {
+      const response = await HttpClient.post(`${this.API_PREFIX}/bulk-assign-kandang`, {
+        pids,
+        kandang_pid: kandangPid,
+      });
+      HttpClient.clearCache('stokdoka');
+      return {
+        success: true,
+        data: response.data,
+        message: response.message || 'Berhasil assign kandang',
+      };
+    } catch (error) {
+      console.error('StokDokaService.bulkAssignKandang error:', error);
+      return {
+        success: false,
+        data: null,
+        message: error?.data?.message || error?.message || 'Gagal assign kandang',
+      };
+    }
+  }
 }
 
 export default StokDokaService;

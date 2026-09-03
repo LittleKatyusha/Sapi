@@ -1,10 +1,12 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Filter, Search, RotateCcw, RefreshCw, AlertCircle, Package, Plus, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { Filter, Search, RotateCcw, RefreshCw, AlertCircle, Package, Plus, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Home, Wheat, CheckCircle2 } from 'lucide-react';
 import useDocumentTitle from '../../../../hooks/useDocumentTitle';
 import StokDokaService from '../../../../services/stokDokaService';
 import { Notification } from '../../../../components/shared/NotificationComponent';
 import ActionButton from '../../StokSapi/components/ActionButton';
+import BeriPakanKonsentratModal from '../../StokSapi/modals/BeriPakanKonsentratModal';
+import BulkAssignKandangModal from '../../StokSapi/modals/BulkAssignKandangModal';
 
 const DEFAULT_PAGE_SIZE = 10;
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
@@ -33,8 +35,11 @@ const StokDokaPage = () => {
 
   const [detailRow, setDetailRow] = useState(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [selectedPids, setSelectedPids] = useState([]);
+  const [bulkKandangModalOpen, setBulkKandangModalOpen] = useState(false);
+  const [beriPakanModalOpen, setBeriPakanModalOpen] = useState(false);
 
-  const rows = data?.rows || [];
+  const rows = useMemo(() => data?.rows || [], [data]);
   const recordsTotal = data?.recordsTotal ?? 0;
   const recordsFiltered = data?.recordsFiltered ?? 0;
   const totalPages = Math.max(1, Math.ceil(recordsFiltered / pageSize));
@@ -45,6 +50,20 @@ const StokDokaPage = () => {
   const showNotification = useCallback((type, message) => {
     setNotification({ type, message });
   }, []);
+
+  const allPids = useMemo(() => rows.map((r) => r.pid).filter(Boolean), [rows]);
+  const allSelected = allPids.length > 0 && selectedPids.length === allPids.length;
+  const someSelected = selectedPids.length > 0 && selectedPids.length < allPids.length;
+
+  const toggleSelectAll = useCallback(() => {
+    setSelectedPids(allSelected ? [] : allPids);
+  }, [allSelected, allPids]);
+
+  const toggleSelect = useCallback((pid) => {
+    setSelectedPids((prev) => (prev.includes(pid) ? prev.filter((p) => p !== pid) : [...prev, pid]));
+  }, []);
+
+  const clearSelection = useCallback(() => setSelectedPids([]), []);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -133,6 +152,30 @@ const StokDokaPage = () => {
     setDetailRow(null);
   };
 
+  const handleBeriPakan = useCallback(() => {
+    setBeriPakanModalOpen(true);
+  }, []);
+
+  const handleBeriPakanClose = useCallback(() => {
+    setBeriPakanModalOpen(false);
+  }, []);
+
+  const handleBeriPakanSuccess = useCallback(() => {
+    setBeriPakanModalOpen(false);
+    setDraw((d) => d + 1);
+  }, []);
+
+  const handleBulkKandangSuccess = useCallback((res) => {
+    setBulkKandangModalOpen(false);
+    setSelectedPids([]);
+    showNotification('success', res?.message || 'Berhasil assign kandang');
+    setDraw((d) => d + 1);
+  }, [showNotification]);
+
+  const handleOvk = useCallback((row) => {
+    navigate('/rph/pemberian-ovk-sapi/add', { state: { cow: row } });
+  }, [navigate]);
+
   const jenisBadge = (jenis) => {
     const upper = String(jenis || '').toUpperCase();
     const isKambing = upper === 'KAMBING';
@@ -164,14 +207,24 @@ const StokDokaPage = () => {
                 <p className="text-sm text-gray-500">Stok Kambing &amp; Domba di RPH</p>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => navigate('/rph/stok-doka/tambah-anakan')}
-              className="inline-flex items-center gap-2 rounded-md border border-emerald-300 bg-emerald-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700"
-            >
-              <Plus className="h-4 w-4" />
-              Tambah Anakan
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleBeriPakan}
+                className="inline-flex items-center gap-2 rounded-md border border-amber-300 bg-amber-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-600"
+              >
+                <Wheat className="h-4 w-4" />
+                Beri Pakan Konsentrat
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/rph/stok-doka/tambah-anakan')}
+                className="inline-flex items-center gap-2 rounded-md border border-emerald-300 bg-emerald-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700"
+              >
+                <Plus className="h-4 w-4" />
+                Tambah Anakan
+              </button>
+            </div>
           </div>
         </div>
 
@@ -248,6 +301,32 @@ const StokDokaPage = () => {
           </div>
         </div>
 
+        {/* Bulk action bar */}
+        {selectedPids.length > 0 && !error && (
+          <div className="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 p-3 shadow-sm">
+            <div className="text-sm text-emerald-800">
+              <span className="font-semibold">{selectedPids.length} DOKA</span> dipilih
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setBulkKandangModalOpen(true)}
+                className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700"
+              >
+                <Home className="h-4 w-4" />
+                Assign Kandang
+              </button>
+              <button
+                type="button"
+                onClick={clearSelection}
+                className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Batal
+              </button>
+            </div>
+          </div>
+        )}
+
         {error && (
           <div className="rounded-lg border border-red-200 bg-red-50 p-4 flex items-start gap-2 shadow-sm">
             <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
@@ -266,21 +345,27 @@ const StokDokaPage = () => {
                   <div className="h-full w-1/3 animate-[shimmer_1.2s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-emerald-500 to-transparent" />
                 </div>
               )}
-              <table className="w-full text-sm border-collapse" style={{ minWidth: '1200px' }}>
+              <table className="w-full text-sm border-collapse" style={{ minWidth: '1400px' }}>
                 <thead>
                   <tr className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white">
+                    <th className="py-2 px-3 text-center font-semibold border border-emerald-500 whitespace-nowrap" style={{ width: '40px' }}>
+                      <input
+                        type="checkbox"
+                        checked={allSelected}
+                        ref={(el) => { if (el) el.indeterminate = someSelected; }}
+                        onChange={toggleSelectAll}
+                        className="h-4 w-4 cursor-pointer accent-emerald-600"
+                        disabled={loading || rows.length === 0}
+                      />
+                    </th>
                     <th className="py-2 px-3 text-center font-semibold border border-emerald-500 whitespace-nowrap" style={{ width: '50px' }}>No</th>
-                    <th className="py-2 px-3 text-center font-semibold border border-emerald-500 whitespace-nowrap" style={{ width: '60px' }}>Aksi</th>
-                    <th className="py-2 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap">Jenis</th>
-                    <th className="py-2 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap">Klasifikasi</th>
-                    <th className="py-2 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap">Eartag</th>
-                    <th className="py-2 px-3 text-center font-semibold border border-emerald-500 whitespace-nowrap">Jenis Kelamin</th>
-                    <th className="py-2 px-3 text-right font-semibold border border-emerald-500 whitespace-nowrap">Bobot (KG)</th>
-                    <th className="py-2 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap">Lokasi</th>
-                    <th className="py-2 px-3 text-right font-semibold border border-emerald-500 whitespace-nowrap">Harga Beli</th>
-                    <th className="py-2 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap">Pemasok</th>
+                    <th className="py-2 px-3 text-center font-semibold border border-emerald-500 whitespace-nowrap" style={{ width: '70px' }}>Aksi</th>
+                    <th className="py-2 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap">DOKA</th>
+                    <th className="py-2 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap">Kandang</th>
                     <th className="py-2 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap">No Nota</th>
-                    <th className="py-2 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap">Tgl Kedatangan</th>
+                    <th className="py-2 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap">Pemeliharaan</th>
+                    <th className="py-2 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap">OVK</th>
+                    <th className="py-2 px-3 text-right font-semibold border border-emerald-500 whitespace-nowrap">Nilai</th>
                     <th className="py-2 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap">Kondisi</th>
                     <th className="py-2 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap">Sumber</th>
                   </tr>
@@ -288,7 +373,7 @@ const StokDokaPage = () => {
                 <tbody className={loading && rows.length > 0 ? 'opacity-50 pointer-events-none' : ''}>
                   {loading && rows.length === 0 && Array.from({ length: Math.min(pageSize, 8) }).map((_, i) => (
                     <tr key={`skeleton-${i}`} className="border-b border-gray-100 bg-white">
-                      {Array.from({ length: 14 }).map((__, j) => (
+                      {Array.from({ length: 11 }).map((__, j) => (
                         <td key={j} className="py-3 px-3 border border-gray-100">
                           <div className="h-4 w-20 rounded bg-gray-100 animate-pulse" />
                         </td>
@@ -297,7 +382,7 @@ const StokDokaPage = () => {
                   ))}
                   {!loading && rows.length === 0 && (
                     <tr className="border-b border-gray-100 bg-white">
-                      <td colSpan={14} className="py-10 px-3 text-center border border-gray-100">
+                      <td colSpan={11} className="py-10 px-3 text-center border border-gray-100">
                         <div className="flex flex-col items-center justify-center text-gray-400">
                           <svg className="h-10 w-10 mb-2 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
@@ -313,6 +398,15 @@ const StokDokaPage = () => {
                       key={row.pid || index}
                       className={`border-b border-gray-100 hover:bg-emerald-50/50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}
                     >
+                      <td className="py-2 px-3 text-center border border-gray-100">
+                        <input
+                          type="checkbox"
+                          checked={row.pid ? selectedPids.includes(row.pid) : false}
+                          onChange={() => row.pid && toggleSelect(row.pid)}
+                          className="h-4 w-4 cursor-pointer accent-emerald-600"
+                          disabled={loading}
+                        />
+                      </td>
                       <td className="py-2 px-3 text-center font-medium text-gray-600 border border-gray-100">{row.no_urut || (currentPage - 1) * pageSize + index + 1}</td>
                       <td className="py-2 px-3 text-center border border-gray-100">
                         <div className="flex items-center justify-center">
@@ -321,30 +415,87 @@ const StokDokaPage = () => {
                             openMenuId={openMenuId}
                             setOpenMenuId={setOpenMenuId}
                             onDetail={() => handleDetail(row)}
+                            onOvk={() => handleOvk(row)}
                           />
                         </div>
                       </td>
-                      <td className="py-2 px-3 border border-gray-100">{jenisBadge(row.jenis_hewan)}</td>
-                      <td className="py-2 px-3 text-gray-700 border border-gray-100">{row.jenis_klasifikasi}</td>
-                      <td className="py-2 px-3 font-medium text-gray-800 border border-gray-100">{row.eartag}</td>
-                      <td className="py-2 px-3 text-center border border-gray-100">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${
-                          row.jenis_kelamin === 'JANTAN'
-                            ? 'bg-blue-100 text-blue-700 border-blue-200'
-                            : row.jenis_kelamin === 'BETINA'
-                              ? 'bg-pink-100 text-pink-700 border-pink-200'
-                              : 'bg-gray-100 text-gray-500 border-gray-200'
-                        }`}>
-                          {row.jenis_kelamin_label || 'Belum Diketahui'}
-                        </span>
+                      <td className="py-2 px-3 border border-gray-100 whitespace-nowrap">
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-1.5">
+                            {jenisBadge(row.jenis_hewan)}
+                            <span className="text-xs text-gray-500">{row.jenis_klasifikasi}</span>
+                          </div>
+                          <div className="font-semibold text-gray-800">{row.eartag}</div>
+                          <div className="text-xs text-gray-500">
+                            <span className="text-gray-400">Eartag Supplier:</span> {row.eartag_supplier || '-'}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            <span className="text-gray-400">Jenis Kelamin:</span>{' '}
+                            {row.jenis_kelamin === 'JANTAN'
+                              ? 'Jantan'
+                              : row.jenis_kelamin === 'BETINA'
+                                ? 'Betina'
+                                : 'Belum Diketahui'}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            <span className="text-gray-400">Bobot:</span> {row.bobot ? `${Number(row.bobot)} KG` : '-'}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            <span className="text-gray-400">RPH:</span> {row.lokasi || '-'}
+                          </div>
+                        </div>
                       </td>
-                      <td className="py-2 px-3 text-right text-gray-700 border border-gray-100">{row.bobot}</td>
-                      <td className="py-2 px-3 text-gray-700 border border-gray-100">{row.lokasi}</td>
-                      <td className="py-2 px-3 text-right text-gray-700 border border-gray-100">{row.harga_beli}</td>
-                      <td className="py-2 px-3 text-gray-700 border border-gray-100">{row.pemasok}</td>
-                      <td className="py-2 px-3 text-gray-700 border border-gray-100">{row.nomor_nota}</td>
-                      <td className="py-2 px-3 text-gray-700 border border-gray-100 whitespace-nowrap">{row.tanggal_kedatangan}</td>
-                      <td className="py-2 px-3 text-gray-700 border border-gray-100">{row.kondisi}</td>
+                      <td className="py-2 px-3 border border-gray-100 whitespace-nowrap">
+                        {row.kandang_kode ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 border border-emerald-200" title={row.kandang_nama}>
+                            {row.kandang_kode}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-gray-400">—</span>
+                        )}
+                      </td>
+                      <td className="py-2 px-3 border border-gray-100 whitespace-nowrap">
+                        <span className="text-xs text-gray-700 font-medium" title={row.nomor_nota}>{row.nomor_nota || '-'}</span>
+                        <div className="text-[10px] text-gray-400">{row.pemasok || '-'}</div>
+                        <div className="text-[10px] text-gray-400 whitespace-normal">{row.tanggal_kedatangan}</div>
+                      </td>
+                      <td className="py-2 px-3 border border-gray-100 whitespace-nowrap">
+                        <div className="space-y-0.5">
+                          <div className="text-xs text-gray-500">
+                            <span className="text-gray-400">Pakan:</span> {row.jumlah_pakan_sesi || 0}x · Rp {row.nilai_pakan || '0'}
+                          </div>
+                          {row.sudah_diberi_pakan_hari_ini && (
+                            <div className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700 border border-emerald-200">
+                              <CheckCircle2 className="h-3 w-3" />
+                              Sudah diberi pakan hari ini{row.sesi_pakan_hari_ini > 1 ? ` (${row.sesi_pakan_hari_ini}x)` : ''}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-2 px-3 border border-gray-100 whitespace-nowrap">
+                        <div className="space-y-0.5">
+                          <div className="text-xs text-gray-600 max-w-[140px] truncate" title={row.ovk}>{row.ovk || '-'}</div>
+                          <div className="text-xs text-gray-500">
+                            <span className="text-gray-400">Nilai:</span> Rp {row.nilai_ovk || '0'}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-2 px-3 border border-gray-100 whitespace-nowrap text-right">
+                        <div className="space-y-0.5">
+                          <div className="text-xs text-gray-500" title="Harga Jual per kg">
+                            <span className="text-gray-400">Jual/kg:</span> Rp {row.harga_jual || '0'}
+                          </div>
+                          <div className="font-semibold text-teal-700" title="(bobot × harga_jual) + pakan + ovk">
+                            Rp {row.total || '0'}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-2 px-3 border border-gray-100">
+                        <div className="text-xs text-gray-700">{row.kondisi}</div>
+                        {row.keterangan && (
+                          <div className="text-[10px] text-gray-400 whitespace-normal">{row.keterangan}</div>
+                        )}
+                      </td>
                       <td className="py-2 px-3 border border-gray-100">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${
                           row.source === 'BIRTH'
@@ -474,8 +625,11 @@ const StokDokaPage = () => {
               <DetailItem label="Jenis Kelamin" value={detailRow.jenis_kelamin_label} />
               <DetailItem label="Bobot (KG)" value={detailRow.bobot} />
               <DetailItem label="Lokasi" value={detailRow.lokasi} />
-              <DetailItem label="Harga Beli" value={detailRow.harga_beli} />
-              <DetailItem label="Total Harga" value={detailRow.total_harga} />
+              <DetailItem label="Harga Jual/kg" value={detailRow.harga_jual ? `Rp ${detailRow.harga_jual}` : '-'} />
+              <DetailItem label="Total Nilai" value={detailRow.total ? `Rp ${detailRow.total}` : '-'} />
+              <DetailItem label="Pakan Konsentrat" value={`${detailRow.jumlah_pakan_sesi || 0}x · Rp ${detailRow.nilai_pakan || '0'}`} />
+              <DetailItem label="OVK" value={detailRow.ovk ? `${detailRow.ovk} (Rp ${detailRow.nilai_ovk || '0'})` : '-'} />
+              <DetailItem label="Kandang" value={detailRow.kandang_kode ? `${detailRow.kandang_kode} — ${detailRow.kandang_nama || ''}` : '-'} />
               <DetailItem label="Pemasok" value={detailRow.pemasok} />
               <DetailItem label="No Nota" value={detailRow.nomor_nota} />
               <DetailItem label="Pengirim" value={detailRow.pengirim} />
@@ -496,6 +650,21 @@ const StokDokaPage = () => {
           </div>
         </div>
       )}
+
+      <BeriPakanKonsentratModal
+        isOpen={beriPakanModalOpen}
+        onClose={handleBeriPakanClose}
+        onSuccess={handleBeriPakanSuccess}
+        animalType="doka"
+      />
+
+      <BulkAssignKandangModal
+        isOpen={bulkKandangModalOpen}
+        onClose={() => setBulkKandangModalOpen(false)}
+        selectedPids={selectedPids}
+        onSuccess={handleBulkKandangSuccess}
+        animalType="doka"
+      />
     </div>
   );
 };

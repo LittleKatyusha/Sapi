@@ -2,8 +2,11 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { X, Home, Loader2 } from 'lucide-react';
 import KandangService from '../../../../services/kandangService';
 import StokSapiService from '../../../../services/stokSapiService';
+import StokDokaService from '../../../../services/stokDokaService';
 
-const BulkAssignKandangModal = ({ isOpen, onClose, selectedPids = [], onSuccess }) => {
+const BulkAssignKandangModal = ({ isOpen, onClose, selectedPids = [], onSuccess, animalType = 'sapi' }) => {
+  const isDoka = animalType === 'doka';
+  const animalLabel = isDoka ? 'DOKA' : 'sapi';
   const [kandangOptions, setKandangOptions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -37,13 +40,15 @@ const BulkAssignKandangModal = ({ isOpen, onClose, selectedPids = [], onSuccess 
       return;
     }
     if (!selectedPids.length) {
-      setError('Tidak ada sapi yang dipilih');
+      setError(`Tidak ada ${animalLabel} yang dipilih`);
       return;
     }
 
     setSubmitting(true);
     setError(null);
-    const res = await StokSapiService.bulkAssignKandang(selectedPids, selectedKandang);
+    const res = isDoka
+      ? await StokDokaService.bulkAssignKandang(selectedPids, selectedKandang)
+      : await StokSapiService.bulkAssignKandang(selectedPids, selectedKandang);
     setSubmitting(false);
 
     if (res.success) {
@@ -78,7 +83,7 @@ const BulkAssignKandangModal = ({ isOpen, onClose, selectedPids = [], onSuccess 
         {/* Body */}
         <div className="space-y-3 p-4">
           <p className="text-sm text-gray-600">
-            Memilih <span className="font-semibold text-emerald-700">{selectedPids.length} sapi</span> untuk
+            Memilih <span className="font-semibold text-emerald-700">{selectedPids.length} {animalLabel}</span> untuk
             dimasukkan ke kandang.
           </p>
 
