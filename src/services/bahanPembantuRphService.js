@@ -13,7 +13,9 @@ class BahanPembantuRphService {
   static API_UPDATE = '/api/rph/bahanpembantu/update';
   static API_DELETE = '/api/rph/bahanpembantu/hapus';
   static API_SUMMARY_DAILY = '/api/rph/bahanpembantu/summary/daily';
-  static API_SUMMARY_MONTHLY = '/api/rph/bahanpembantu/summary/daily';
+  static API_SUMMARY_MONTHLY = '/api/rph/bahanpembantu/summary/monthly';
+  static API_EXPORT_EXCEL = '/api/rph/bahanpembantu/export-excel';
+  static API_EXPORT_PDF = '/api/rph/bahanpembantu/export-pdf';
 
   /**
    * Get DataTable data with search, date filters, and pagination
@@ -214,6 +216,10 @@ class BahanPembantuRphService {
         message: errorData?.message || error?.message || 'Gagal memuat ringkasan bulanan'
       };
     }
+  }
+
+  static async exportData(format, params) {
+    return HttpClient.get(format === 'excel' ? this.API_EXPORT_EXCEL : this.API_EXPORT_PDF, { params, responseType: 'blob', cache: false });
   }
 
   /**

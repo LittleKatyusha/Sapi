@@ -15,6 +15,7 @@ import {
   AlertCircle,
   Filter,
   RotateCcw
+  ,Download
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
@@ -22,6 +23,7 @@ import { enhancedTableStyles } from './constants/tableStyles';
 import BahanPembantuRphService from '../../../services/bahanPembantuRphService';
 import BiayaRphService from '../../../services/biayaRphService';
 import DeleteConfirmationModal from '../../../components/shared/modals/DeleteConfirmationModal';
+import ExportRphModal from './ExportRphModal';
 
 const formatCurrency = (value) => {
   if (!value && value !== 0) return '-';
@@ -319,6 +321,9 @@ const [selectedItem, setSelectedItem] = useState(null);
 const [isDeleting, setIsDeleting] = useState(false);
 const [openMenuIdDesktop, setOpenMenuIdDesktop] = useState(null);
 const [openMenuIdMobile, setOpenMenuIdMobile] = useState(null);
+const [isExportOpen, setIsExportOpen] = useState(false);
+const [isExporting, setIsExporting] = useState(false);
+const [notification, setNotification] = useState(null);
 
 // Server-side pagination
 const [currentPage, setCurrentPage] = useState(1);
@@ -464,6 +469,12 @@ const [appliedFilters, setAppliedFilters] = useState(emptyFilter);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
+  useEffect(() => {
+    if (!notification) return undefined;
+    const timer = setTimeout(() => setNotification(null), 5000);
+    return () => clearTimeout(timer);
+  }, [notification]);
+
   // Pagination info
   const startIdx = filteredRecords === 0 ? 0 : (currentPage - 1) * perPage + 1;
   const endIdx = Math.min(currentPage * perPage, filteredRecords);
@@ -536,6 +547,20 @@ const [appliedFilters, setAppliedFilters] = useState(emptyFilter);
     setOpenMenuIdDesktop(null);
     setOpenMenuIdMobile(null);
     navigate(`/rph/keuangan/pengeluaran/bayar/${row.paymentPid}`);
+  };
+
+  const handleExport = async (format, { startDate, endDate }) => {
+    const isBahan = activeTab === 'pembelian_bahan_pembantu';
+    setIsExporting(true);
+    setNotification({ type: 'info', message: `Memproses rekap ${isBahan ? 'bahan pembantu' : `biaya ${activeTab}`} dalam format ${format === 'excel' ? 'Excel' : 'PDF'}...` });
+    try {
+      const filters = buildFilterParams(appliedFilters);
+      const filterParams = Object.fromEntries(Object.entries(filters).filter(([, value]) => value !== '').map(([key, value]) => [`filters[${key}]`, value]));
+      const params = { start_date: startDate, end_date: endDate, ...filterParams, ...(isBahan ? {} : { jenis_pembelian: activeTab === 'bank' ? 1 : 2 }) };
+      const blob = isBahan ? await BahanPembantuRphService.exportData(format, params) : await BiayaRphService.exportData(format, params);
+      const url = window.URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = `${isBahan ? 'Bahan_Pembantu' : `Biaya_${activeTab}`}_RPH_${startDate}_${endDate}.${format === 'excel' ? 'xlsx' : 'pdf'}`; link.click(); window.URL.revokeObjectURL(url);
+      setIsExportOpen(false); setNotification({ type: 'success', message: `${format === 'excel' ? 'Excel' : 'PDF'} berhasil diunduh.` });
+    } catch (error) { setNotification({ type: 'error', message: error.message || 'Gagal membuat export.' }); } finally { setIsExporting(false); }
   };
 
   const confirmDelete = async () => {
@@ -837,6 +862,7 @@ const [appliedFilters, setAppliedFilters] = useState(emptyFilter);
 
   return (
     <>
+      {notification && <div className="fixed right-4 top-4 z-[100001] max-w-sm rounded-lg border-l-4 bg-white px-4 py-3 text-sm shadow-lg" role="status"><p className="font-semibold text-slate-800">{notification.type === 'info' ? 'Memproses...' : notification.type === 'success' ? 'Berhasil!' : 'Error!'}</p><p className="mt-1 text-slate-600">{notification.message}</p></div>}
       <style>{`
         .bahan-pembantu-rph-tabs::-webkit-scrollbar { height: 4px; }
         .bahan-pembantu-rph-tabs::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
@@ -856,7 +882,7 @@ const [appliedFilters, setAppliedFilters] = useState(emptyFilter);
                 <p className="text-xs text-slate-500 truncate hidden sm:block">Pembelian bahan pembantu & biaya operasional RPH</p>
               </div>
             </div>
-            <button
+            <div className="flex items-center gap-2"><button type="button" onClick={() => setIsExportOpen(true)} className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"><Download className="h-4 w-4" />Cetak / Export</button><button
               type="button"
               onClick={() =>
                 navigate(
@@ -869,7 +895,7 @@ const [appliedFilters, setAppliedFilters] = useState(emptyFilter);
             >
               <Plus className="h-4 w-4" />
               Tambah
-            </button>
+            </button></div>
           </div>
         </header>
 
@@ -1195,6 +1221,7 @@ const [appliedFilters, setAppliedFilters] = useState(emptyFilter);
             : 'Anda yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.'
         }
       />
+      <ExportRphModal isOpen={isExportOpen} title={activeTab === 'pembelian_bahan_pembantu' ? 'Bahan Pembantu RPH' : `Biaya ${activeTab === 'bank' ? 'Bank' : 'Kas'} RPH`} loading={isExporting} onClose={() => setIsExportOpen(false)} onExport={handleExport} />
     </>
   );
 };

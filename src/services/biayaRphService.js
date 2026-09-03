@@ -14,6 +14,8 @@ class BiayaRphService {
   static API_DELETE = '/api/rph/biaya/hapus';
   static API_SUMMARY_DAILY = '/api/rph/biaya/summary/daily';
   static API_SUMMARY_MONTHLY = '/api/rph/biaya/summary/monthly';
+  static API_EXPORT_EXCEL = '/api/rph/biaya/export-excel';
+  static API_EXPORT_PDF = '/api/rph/biaya/export-pdf';
 
   /**
    * Get DataTable data
@@ -80,6 +82,10 @@ class BiayaRphService {
         message: errorData?.message || error?.message || 'Gagal memuat ringkasan harian'
       };
     }
+  }
+
+  static async exportData(format, params) {
+    return HttpClient.get(format === 'excel' ? this.API_EXPORT_EXCEL : this.API_EXPORT_PDF, { params, responseType: 'blob', cache: false });
   }
 
   /**
