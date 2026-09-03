@@ -288,6 +288,9 @@ export const API_ENDPOINTS = {
       UPDATE: '/api/rph/qurban/update',
       DELETE: '/api/rph/qurban/hapus',
       EXPORT: '/api/rph/qurban/export',
+      EXPORT_EXCEL: '/api/rph/qurban/export-excel',
+      EXPORT_PDF: '/api/rph/qurban/export-pdf',
+      DOCUMENT: '/api/rph/qurban/document',
       STATISTIK: '/api/rph/qurban/statistik'
     },
     PEMBELIAN: {

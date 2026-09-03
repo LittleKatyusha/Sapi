@@ -14,6 +14,8 @@ import { enhancedTableStyles } from './constants/tableStyles';
 import SearchableSelect from '../../../../components/shared/SearchableSelect';
 import DeleteConfirmationModal from './modals/DeleteConfirmationModal';
 import UnduhBerkasModal from './modals/UnduhBerkasModal';
+import ExportQurbanModal from './modals/ExportQurbanModal';
+import QurbanService from '../../../../services/qurban/qurbanService';
 
 const NOTIFICATION_TIMEOUT = 5000;
 
@@ -125,6 +127,8 @@ const PembelianSapiQurbanPage = () => {
 
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isUnduhBerkasModalOpen, setIsUnduhBerkasModalOpen] = useState(false);
+    const [isExportOpen, setIsExportOpen] = useState(false);
+    const [isExporting, setIsExporting] = useState(false);
     const [selectedItem, setSelectedItem] = useState(null);
 
     const {
@@ -180,38 +184,15 @@ const PembelianSapiQurbanPage = () => {
 
     const handleAdd = () => navigate('/rph/pembelian-sapi-qurban/add');
 
-    const handleDownloadCSV = () => {
-        if (!filteredData || filteredData.length === 0) {
-            setNotification({ type: 'info', message: 'Tidak ada data untuk diunduh' });
-            return;
-        }
-        const headers = ['No', 'Nota Sistem', 'Nota Sistem HO', 'Nota Pembelian', 'Tanggal Pesanan', 'Jenis Pembelian', 'Jumlah Hewan', 'Total Harga', 'Pemasok', 'Penerima', 'Tempat Tiba', 'Pengirim', 'Plat Nomor'];
-        const rows = filteredData.map((row, i) => [
-            (serverPagination.currentPage - 1) * serverPagination.perPage + i + 1,
-            row.nota_sistem || '',
-            row.nota_sistem_ho || '',
-            row.nota_pembelian || '',
-            row.tanggal_pemesanan || '',
-            row.jenis_pembelian || '',
-            row.jumlah_hewan || 0,
-            row.total_harga || 0,
-            row.pemasok || '',
-            row.nama_penerima || '',
-            row.tempat_tiba || '',
-            row.pengirim || '',
-            row.plat_nomor || ''
-        ]);
-        const csvContent = [headers.join(','), ...rows.map(r => r.map(field => `"${String(field).replace(/"/g, '""')}"`).join(','))].join('\n');
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `pembelian-sapi-qurban-${new Date().toISOString().slice(0,10)}.csv`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        setNotification({ type: 'success', message: 'CSV berhasil diunduh' });
+    const handleExport = async (format, { startDate, endDate }) => {
+        setIsExporting(true);
+        setNotification({ type: 'info', message: `Memproses rekap qurban dalam format ${format === 'excel' ? 'Excel' : 'PDF'}...` });
+        try {
+            const params = { start_date: startDate, end_date: endDate, ...(searchNota ? { search_nota: searchNota } : {}), ...(searchPemasok ? { search_pemasok: searchPemasok } : {}), ...(searchPengirim ? { search_pengirim: searchPengirim } : {}), ...(jenisFilter ? { jenis_pembelian: jenisFilter } : {}), ...(paymentStatus !== 'all' ? { payment_status: paymentStatus } : {}) };
+            const blob = format === 'excel' ? await QurbanService.exportToExcel(params) : await QurbanService.exportToPdf(params);
+            const url = window.URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = `Pembelian_Qurban_${startDate}_${endDate}.${format === 'excel' ? 'xlsx' : 'pdf'}`; link.click(); window.URL.revokeObjectURL(url);
+            setIsExportOpen(false); setNotification({ type: 'success', message: `${format === 'excel' ? 'Excel' : 'PDF'} berhasil diunduh.` });
+        } catch (error) { setNotification({ type: 'error', message: error.message || 'Gagal membuat export.' }); } finally { setIsExporting(false); }
     };
 
     const handleEdit = useCallback((item) => {
@@ -411,9 +392,9 @@ const PembelianSapiQurbanPage = () => {
                             <p className="text-[11px] text-gray-500 mt-0.5">Kelola data Pembelian Sapi Qurban</p>
                         </div>
                         <div className="flex items-center gap-2">
-                            <button onClick={handleDownloadCSV} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-gray-200 hover:border-gray-300 text-gray-700 hover:text-gray-900 rounded-md text-xs font-medium transition-colors">
+                            <button onClick={() => setIsExportOpen(true)} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-gray-200 hover:border-gray-300 text-gray-700 hover:text-gray-900 rounded-md text-xs font-medium transition-colors">
                                 <Download className="w-3.5 h-3.5 text-gray-500" />
-                                <span className="hidden sm:inline">CSV</span>
+                                <span className="hidden sm:inline">Cetak / Export</span>
                             </button>
                             <button onClick={handleAdd} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-xs font-medium transition-colors shadow-sm hover:shadow active:scale-[0.98]">
                                 <PlusCircle className="w-3.5 h-3.5" />
@@ -638,7 +619,8 @@ const PembelianSapiQurbanPage = () => {
 
             {/* Modals */}
             {isDeleteModalOpen && <DeleteConfirmationModal isOpen={isDeleteModalOpen} onClose={() => { setIsDeleteModalOpen(false); setSelectedItem(null); }} onConfirm={handleConfirmDelete} item={selectedItem} />}
-            {isUnduhBerkasModalOpen && <UnduhBerkasModal isOpen={isUnduhBerkasModalOpen} onClose={() => { setIsUnduhBerkasModalOpen(false); setSelectedItem(null); }} item={selectedItem} />}
+            {isUnduhBerkasModalOpen && <UnduhBerkasModal isOpen={isUnduhBerkasModalOpen} onClose={() => { setIsUnduhBerkasModalOpen(false); setSelectedItem(null); }} item={selectedItem} onNotification={setNotification} />}
+            <ExportQurbanModal isOpen={isExportOpen} loading={isExporting} onClose={() => setIsExportOpen(false)} onExport={handleExport} />
         </div>
     );
 };

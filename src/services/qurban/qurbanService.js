@@ -476,7 +476,7 @@ class QurbanService {
   static async exportToExcel(params = {}) {
     try {
       const response = await HttpClient.get(
-        API_ENDPOINTS.RPH?.QURBAN?.EXPORT || `${this.API_BASE}/export`,
+        API_ENDPOINTS.RPH?.QURBAN?.EXPORT_EXCEL || `${this.API_BASE}/export-excel`,
         { params, responseType: 'blob' }
       );
 
@@ -485,6 +485,14 @@ class QurbanService {
       console.error('[QurbanService] Error exporting data:', error);
       throw error;
     }
+  }
+
+  static async exportToPdf(params = {}) {
+    return HttpClient.get(API_ENDPOINTS.RPH?.QURBAN?.EXPORT_PDF || `${this.API_BASE}/export-pdf`, { params, responseType: 'blob', cache: false });
+  }
+
+  static async downloadDocument(pid, type) {
+    return HttpClient.get(API_ENDPOINTS.RPH?.QURBAN?.DOCUMENT || `${this.API_BASE}/document`, { params: { pid, type }, responseType: 'blob', cache: false });
   }
 }
 

@@ -1,7 +1,8 @@
 import React from 'react';
 import { X, FileText, Receipt, Truck, CreditCard, Download } from 'lucide-react';
+import QurbanService from '../../../../../services/qurban/qurbanService';
 
-const UnduhBerkasModal = ({ isOpen, onClose, item }) => {
+const UnduhBerkasModal = ({ isOpen, onClose, item, onNotification }) => {
     if (!isOpen || !item) return null;
 
     const documents = [
@@ -11,11 +12,22 @@ const UnduhBerkasModal = ({ isOpen, onClose, item }) => {
         { id: 'kwitansi', label: 'Kwitansi', icon: CreditCard, color: 'bg-purple-50 text-purple-700 hover:bg-purple-100', description: 'Kwitansi pembayaran' },
     ];
 
-    const handleDownload = (docType) => {
+    const handleDownload = async (docType) => {
         const itemId = item.pid || item.encryptedPid || item.pubid;
-        // Trigger download — adjust URL to match your API
-        const url = `/api/rph/po/download/${itemId}/${docType}`;
-        window.open(url, '_blank');
+        if (!itemId) return onNotification?.({ type: 'error', message: 'ID transaksi tidak tersedia.' });
+        onNotification?.({ type: 'info', message: 'Memproses dokumen qurban...' });
+        try {
+            const blob = await QurbanService.downloadDocument(itemId, docType);
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${docType}_qurban_${item.nota_sistem || itemId}.pdf`;
+            link.click();
+            window.URL.revokeObjectURL(url);
+            onNotification?.({ type: 'success', message: 'Dokumen qurban berhasil diunduh.' });
+        } catch (error) {
+            onNotification?.({ type: 'error', message: error.message || 'Gagal mengunduh dokumen qurban.' });
+        }
     };
 
     return (
