@@ -625,6 +625,15 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, re
                     <div className="text-xs text-gray-500">
                       <span className="text-gray-400">RPH:</span> {row.nama_rph || row.lokasi_sapi || '-'}
                     </div>
+                    <div>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
+                        row.source === 'BIRTH'
+                          ? 'bg-amber-50 text-amber-700 border-amber-200'
+                          : 'bg-slate-50 text-slate-600 border-slate-200'
+                      }`}>
+                        {row.source === 'BIRTH' ? 'Kelahiran' : 'Pembelian'}
+                      </span>
+                    </div>
                   </div>
                 </td>
                 {/* Kandang */}

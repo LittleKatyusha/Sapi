@@ -1,14 +1,18 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Filter, Search, RotateCcw, RefreshCw, AlertCircle, Package, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Filter, Search, RotateCcw, RefreshCw, AlertCircle, Package, Plus, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import useDocumentTitle from '../../../../hooks/useDocumentTitle';
 import StokDokaService from '../../../../services/stokDokaService';
 import { Notification } from '../../../../components/shared/NotificationComponent';
+import ActionButton from '../../StokSapi/components/ActionButton';
 
 const DEFAULT_PAGE_SIZE = 10;
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
 const StokDokaPage = () => {
   useDocumentTitle('Stok DOKA RPH');
+  const navigate = useNavigate();
+  const [openMenuId, setOpenMenuId] = useState(null);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -150,14 +154,24 @@ const StokDokaPage = () => {
       <div className="mx-auto max-w-[1600px] space-y-4 p-3 sm:p-4">
         {/* Header */}
         <div className="rounded-xl border border-emerald-100 bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-emerald-600 p-2.5 text-white">
-              <Package className="h-5 w-5" />
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg bg-emerald-600 p-2.5 text-white">
+                <Package className="h-5 w-5" />
+              </div>
+              <div>
+                <h1 className="text-lg font-bold text-gray-900">Stok DOKA</h1>
+                <p className="text-sm text-gray-500">Stok Kambing &amp; Domba di RPH</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-lg font-bold text-gray-900">Stok DOKA</h1>
-              <p className="text-sm text-gray-500">Stok Kambing &amp; Domba di RPH</p>
-            </div>
+            <button
+              type="button"
+              onClick={() => navigate('/rph/stok-doka/tambah-anakan')}
+              className="inline-flex items-center gap-2 rounded-md border border-emerald-300 bg-emerald-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700"
+            >
+              <Plus className="h-4 w-4" />
+              Tambah Anakan
+            </button>
           </div>
         </div>
 
@@ -252,13 +266,15 @@ const StokDokaPage = () => {
                   <div className="h-full w-1/3 animate-[shimmer_1.2s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-emerald-500 to-transparent" />
                 </div>
               )}
-              <table className="w-full text-sm border-collapse" style={{ minWidth: '900px' }}>
+              <table className="w-full text-sm border-collapse" style={{ minWidth: '1200px' }}>
                 <thead>
                   <tr className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white">
                     <th className="py-2 px-3 text-center font-semibold border border-emerald-500 whitespace-nowrap" style={{ width: '50px' }}>No</th>
+                    <th className="py-2 px-3 text-center font-semibold border border-emerald-500 whitespace-nowrap" style={{ width: '60px' }}>Aksi</th>
                     <th className="py-2 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap">Jenis</th>
                     <th className="py-2 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap">Klasifikasi</th>
                     <th className="py-2 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap">Eartag</th>
+                    <th className="py-2 px-3 text-center font-semibold border border-emerald-500 whitespace-nowrap">Jenis Kelamin</th>
                     <th className="py-2 px-3 text-right font-semibold border border-emerald-500 whitespace-nowrap">Bobot (KG)</th>
                     <th className="py-2 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap">Lokasi</th>
                     <th className="py-2 px-3 text-right font-semibold border border-emerald-500 whitespace-nowrap">Harga Beli</th>
@@ -266,13 +282,13 @@ const StokDokaPage = () => {
                     <th className="py-2 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap">No Nota</th>
                     <th className="py-2 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap">Tgl Kedatangan</th>
                     <th className="py-2 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap">Kondisi</th>
-                    <th className="py-2 px-3 text-center font-semibold border border-emerald-500 whitespace-nowrap">Aksi</th>
+                    <th className="py-2 px-3 text-left font-semibold border border-emerald-500 whitespace-nowrap">Sumber</th>
                   </tr>
                 </thead>
                 <tbody className={loading && rows.length > 0 ? 'opacity-50 pointer-events-none' : ''}>
                   {loading && rows.length === 0 && Array.from({ length: Math.min(pageSize, 8) }).map((_, i) => (
                     <tr key={`skeleton-${i}`} className="border-b border-gray-100 bg-white">
-                      {Array.from({ length: 12 }).map((__, j) => (
+                      {Array.from({ length: 14 }).map((__, j) => (
                         <td key={j} className="py-3 px-3 border border-gray-100">
                           <div className="h-4 w-20 rounded bg-gray-100 animate-pulse" />
                         </td>
@@ -281,7 +297,7 @@ const StokDokaPage = () => {
                   ))}
                   {!loading && rows.length === 0 && (
                     <tr className="border-b border-gray-100 bg-white">
-                      <td colSpan={12} className="py-10 px-3 text-center border border-gray-100">
+                      <td colSpan={14} className="py-10 px-3 text-center border border-gray-100">
                         <div className="flex flex-col items-center justify-center text-gray-400">
                           <svg className="h-10 w-10 mb-2 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
@@ -298,9 +314,30 @@ const StokDokaPage = () => {
                       className={`border-b border-gray-100 hover:bg-emerald-50/50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}
                     >
                       <td className="py-2 px-3 text-center font-medium text-gray-600 border border-gray-100">{row.no_urut || (currentPage - 1) * pageSize + index + 1}</td>
+                      <td className="py-2 px-3 text-center border border-gray-100">
+                        <div className="flex items-center justify-center">
+                          <ActionButton
+                            row={{ id: row.pid || row.no_urut, ...row }}
+                            openMenuId={openMenuId}
+                            setOpenMenuId={setOpenMenuId}
+                            onDetail={() => handleDetail(row)}
+                          />
+                        </div>
+                      </td>
                       <td className="py-2 px-3 border border-gray-100">{jenisBadge(row.jenis_hewan)}</td>
                       <td className="py-2 px-3 text-gray-700 border border-gray-100">{row.jenis_klasifikasi}</td>
                       <td className="py-2 px-3 font-medium text-gray-800 border border-gray-100">{row.eartag}</td>
+                      <td className="py-2 px-3 text-center border border-gray-100">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${
+                          row.jenis_kelamin === 'JANTAN'
+                            ? 'bg-blue-100 text-blue-700 border-blue-200'
+                            : row.jenis_kelamin === 'BETINA'
+                              ? 'bg-pink-100 text-pink-700 border-pink-200'
+                              : 'bg-gray-100 text-gray-500 border-gray-200'
+                        }`}>
+                          {row.jenis_kelamin_label || 'Belum Diketahui'}
+                        </span>
+                      </td>
                       <td className="py-2 px-3 text-right text-gray-700 border border-gray-100">{row.bobot}</td>
                       <td className="py-2 px-3 text-gray-700 border border-gray-100">{row.lokasi}</td>
                       <td className="py-2 px-3 text-right text-gray-700 border border-gray-100">{row.harga_beli}</td>
@@ -308,14 +345,14 @@ const StokDokaPage = () => {
                       <td className="py-2 px-3 text-gray-700 border border-gray-100">{row.nomor_nota}</td>
                       <td className="py-2 px-3 text-gray-700 border border-gray-100 whitespace-nowrap">{row.tanggal_kedatangan}</td>
                       <td className="py-2 px-3 text-gray-700 border border-gray-100">{row.kondisi}</td>
-                      <td className="py-2 px-3 text-center border border-gray-100">
-                        <button
-                          type="button"
-                          onClick={() => handleDetail(row)}
-                          className="inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
-                        >
-                          Detail
-                        </button>
+                      <td className="py-2 px-3 border border-gray-100">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${
+                          row.source === 'BIRTH'
+                            ? 'bg-amber-50 text-amber-700 border-amber-200'
+                            : 'bg-slate-50 text-slate-600 border-slate-200'
+                        }`}>
+                          {row.source_label || 'Pembelian'}
+                        </span>
                       </td>
                     </tr>
                   ))}
@@ -434,6 +471,7 @@ const StokDokaPage = () => {
               <DetailItem label="Jenis Hewan" value={detailRow.jenis_hewan} />
               <DetailItem label="Klasifikasi" value={detailRow.jenis_klasifikasi} />
               <DetailItem label="Eartag" value={detailRow.eartag} />
+              <DetailItem label="Jenis Kelamin" value={detailRow.jenis_kelamin_label} />
               <DetailItem label="Bobot (KG)" value={detailRow.bobot} />
               <DetailItem label="Lokasi" value={detailRow.lokasi} />
               <DetailItem label="Harga Beli" value={detailRow.harga_beli} />
@@ -443,6 +481,7 @@ const StokDokaPage = () => {
               <DetailItem label="Pengirim" value={detailRow.pengirim} />
               <DetailItem label="Tgl Kedatangan" value={detailRow.tanggal_kedatangan} />
               <DetailItem label="Kondisi" value={detailRow.kondisi} />
+              <DetailItem label="Sumber" value={detailRow.source_label} />
               <DetailItem label="Keterangan" value={detailRow.keterangan} />
             </div>
             <div className="flex justify-end border-t border-gray-200 px-5 py-3">
