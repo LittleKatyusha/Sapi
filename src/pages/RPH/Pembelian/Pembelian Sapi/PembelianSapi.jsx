@@ -332,6 +332,7 @@ const PembelianSapi = () => {
     // Handle export confirm (Excel or PDF Rekap)
     const handleExportConfirm = async (filters, format) => {
         setExportLoading(true);
+        setNotification({ type: 'info', message: `Memproses rekap pembelian sapi RPH dalam format ${format === 'excel' ? 'Excel' : 'PDF'}...` });
         try {
             const params = buildExportParams({
                 start_date: filters.start_date,
@@ -391,6 +392,7 @@ const PembelianSapi = () => {
             return;
         }
         setDownloadingRow({ pid, reportType });
+        setNotification({ type: 'info', message: `Memproses ${reportType === 'delivery' ? 'Surat Jalan' : reportType === 'handover' ? 'Lembar Pesanan' : 'Kwitansi'}...` });
         try {
             const blob = await PoRphService.downloadRowPdf(pid, reportType);
 
