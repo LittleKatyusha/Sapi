@@ -140,6 +140,58 @@ class StokSapiService {
     }
   }
 
+  /**
+   * Daftar sapi untuk pilihan induk (parent picker).
+   * Endpoint: GET /api/rph/pemeliharaansapi/parent-options?jenis_kelamin=BETINA&q=...
+   */
+  static async parentOptions(jenisKelamin, q = '') {
+    try {
+      const params = { jenis_kelamin: jenisKelamin };
+      if (q) params.q = q;
+      const response = await HttpClient.get(`${this.API_PREFIX}/parent-options`, { params });
+      return {
+        success: true,
+        data: response.data,
+        message: 'Data retrieved successfully',
+      };
+    } catch (error) {
+      console.error('StokSapiService.parentOptions error:', error);
+      return {
+        success: false,
+        data: null,
+        message: error?.data?.message || error?.message || 'Failed to fetch parent options',
+      };
+    }
+  }
+
+  /**
+   * Simpan sapi baru dari anakan/kelahiran.
+   * Endpoint: POST /api/rph/pemeliharaansapi/store-anakan
+   */
+  static async storeAnakan(payload) {
+    try {
+      const response = await HttpClient.post(`${this.API_PREFIX}/store-anakan`, payload);
+      HttpClient.clearCache('pemeliharaansapi');
+      return {
+        success: true,
+        data: response.data,
+        message: response.message || 'Anakan berhasil ditambahkan',
+      };
+    } catch (error) {
+      console.error('StokSapiService.storeAnakan error:', error);
+      let message = 'Gagal menambahkan anakan';
+      if (error?.data?.data && typeof error.data.data === 'object') {
+        const validationMessages = Object.values(error.data.data).flat();
+        message = validationMessages.join(', ');
+      } else if (error?.data?.message) {
+        message = error.data.message;
+      } else if (error?.message) {
+        message = error.message;
+      }
+      return { success: false, data: null, message };
+    }
+  }
+
   static async bulkAssignKandang(pids, kandangPid) {
     try {
       const response = await HttpClient.post(`${this.API_PREFIX}/bulk-assign-kandang`, {

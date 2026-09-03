@@ -6,9 +6,15 @@ import StokSapiService from '../../../services/stokSapiService';
 import { Notification } from '../../../components/shared/NotificationComponent';
 import SearchableSelect from '../../../components/shared/SearchableSelect';
 
+const JENIS_KELAMIN_OPTIONS = [
+  { value: 'JANTAN', label: 'Jantan' },
+  { value: 'BETINA', label: 'Betina' },
+];
+
 const EMPTY_FORM = {
   berat: '',
   kondisi: '',
+  jenis_kelamin: '',
 };
 
 const formatDateTime = (dt) => {
@@ -80,6 +86,7 @@ const EditStokSapiPage = () => {
       setForm({
         berat: data.bobot ? String(data.bobot) : '',
         kondisi: '',
+        jenis_kelamin: data.jenis_kelamin || '',
       });
 
       if (optionsRes.success && optionsRes.data?.kondisi) {
@@ -120,6 +127,7 @@ const EditStokSapiPage = () => {
       const payload = { pid };
       if (form.berat !== '') payload.berat = Number(form.berat);
       if (form.kondisi !== '') payload.kondisi = form.kondisi;
+      if (form.jenis_kelamin !== '') payload.jenis_kelamin = form.jenis_kelamin;
 
       const result = await StokSapiService.update(payload);
       if (result.success) {
@@ -211,6 +219,14 @@ const EditStokSapiPage = () => {
                     <span className="text-xs font-medium text-gray-500">Kondisi Saat Ini</span>
                     <span className="text-sm text-gray-800">{meta?.kondisi_sapi || '-'}</span>
                   </div>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-xs font-medium text-gray-500">Jenis Kelamin Saat Ini</span>
+                    <span className="text-sm text-gray-800">
+                      {meta?.jenis_kelamin
+                        ? (meta.jenis_kelamin === 'JANTAN' ? 'Jantan' : 'Betina')
+                        : 'Belum diketahui'}
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -219,9 +235,9 @@ const EditStokSapiPage = () => {
                 onSubmit={handleSubmit}
                 className="space-y-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm lg:col-span-2"
               >
-                <h2 className="text-sm font-semibold text-gray-700">Ubah Bobot & Kondisi</h2>
+                <h2 className="text-sm font-semibold text-gray-700">Ubah Bobot, Kondisi & Jenis Kelamin</h2>
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-medium text-gray-500">Bobot (KG)</label>
                     <input
@@ -247,6 +263,20 @@ const EditStokSapiPage = () => {
                       accentColor="green"
                     />
                     <p className="text-xs text-gray-400">Pilih kondisi baru jika ingin mengubah</p>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-medium text-gray-500">Jenis Kelamin</label>
+                    <SearchableSelect
+                      options={JENIS_KELAMIN_OPTIONS}
+                      value={form.jenis_kelamin}
+                      onChange={(val) => handleChange('jenis_kelamin', val || '')}
+                      placeholder="— Tidak ubah —"
+                      isDisabled={saving}
+                      isClearable
+                      accentColor="green"
+                    />
+                    <p className="text-xs text-gray-400">Pilih jenis kelamin jika ingin mengubah</p>
                   </div>
                 </div>
 
