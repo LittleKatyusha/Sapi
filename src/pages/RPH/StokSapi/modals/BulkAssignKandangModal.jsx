@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { X, Home, Loader2 } from 'lucide-react';
+import SearchableSelect from '../../../../components/shared/SearchableSelect';
 import KandangService from '../../../../services/kandangService';
 import StokSapiService from '../../../../services/stokSapiService';
 import StokDokaService from '../../../../services/stokDokaService';
@@ -99,19 +100,17 @@ const BulkAssignKandangModal = ({ isOpen, onClose, selectedPids = [], onSuccess,
           ) : (
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-medium text-gray-500">Pilih Kandang</label>
-              <select
+              <SearchableSelect
+                options={kandangOptions}
                 value={selectedKandang}
-                onChange={(e) => setSelectedKandang(e.target.value)}
-                disabled={submitting}
-                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/30"
-              >
-                <option value="">— Pilih kandang —</option>
-                {kandangOptions.map((k) => (
-                  <option key={k.value} value={k.value}>
-                    {k.label}
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setSelectedKandang(val || '')}
+                placeholder="— Pilih kandang —"
+                isLoading={loading}
+                isDisabled={submitting}
+                isClearable={false}
+                accentColor="green"
+                required
+              />
             </div>
           )}
 
