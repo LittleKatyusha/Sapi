@@ -172,23 +172,26 @@ const PerpindahanTernakPage = () => {
     }
   }, [fetchData, showSuccess, showError]);
 
-  const handleSuratJalan = useCallback((row) => {
+  const handleDocument = useCallback(async (row, type, label) => {
     setOpenMenuId(null);
-    showInfo(`Mencetak Surat Jalan untuk perpindahan ${row.lokasi_asal} → ${row.lokasi_tujuan}`);
-    // TODO: implement actual print/export
-  }, [showInfo]);
+    showInfo(`Memproses ${label}...`);
+    try {
+      const blob = await perpindahanTernakService.downloadDocument(row.pubid, type);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${type}_perpindahan_${row.tanggal_perpindahan}.pdf`;
+      link.click();
+      window.URL.revokeObjectURL(url);
+      showSuccess(`${label} berhasil diunduh.`);
+    } catch (error) {
+      showError(error?.message || `Gagal mengunduh ${label}.`);
+    }
+  }, [showError, showInfo, showSuccess]);
 
-  const handleKwitansi = useCallback((row) => {
-    setOpenMenuId(null);
-    showInfo(`Mencetak Kwitansi Pengiriman untuk perpindahan ${row.lokasi_asal} → ${row.lokasi_tujuan}`);
-    // TODO: implement actual print/export
-  }, [showInfo]);
-
-  const handleSsth = useCallback((row) => {
-    setOpenMenuId(null);
-    showInfo(`Mencetak SSTH untuk perpindahan ${row.lokasi_asal} → ${row.lokasi_tujuan}`);
-    // TODO: implement actual print/export
-  }, [showInfo]);
+  const handleSuratJalan = useCallback((row) => handleDocument(row, 'surat_jalan', 'Surat Jalan'), [handleDocument]);
+  const handleKwitansi = useCallback((row) => handleDocument(row, 'kwitansi', 'Kwitansi Pengiriman'), [handleDocument]);
+  const handleSsth = useCallback((row) => handleDocument(row, 'ssth', 'Surat Serah Terima Hewan'), [handleDocument]);
 
   const formatCurrency = (value) => {
     if (!value) return 'Rp 0';

@@ -95,6 +95,10 @@ const perpindahanTernakService = {
     }
   },
 
+  downloadDocument: async (pid, type) => {
+    return httpClient.get(`${API_BASE}/document`, { params: { pid, type }, responseType: 'blob', cache: false });
+  },
+
   /**
    * Get available sapi list for perpindahan
    */
