@@ -610,6 +610,16 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, re
                       <span className="text-gray-400">Eartag Supplier:</span> {row.eartag_supplier || '-'}
                     </div>
                     <div className="text-xs text-gray-500">
+                      <span className="text-gray-400">Jenis Kelamin:</span>{' '}
+                      {row.jenis_kelamin === 'JANTAN'
+                        ? 'Jantan'
+                        : row.jenis_kelamin === 'BETINA'
+                          ? 'Betina'
+                          : row.jenis_kelamin === 'BELUM_DIKETAHUI'
+                            ? 'Belum Diketahui'
+                            : '-'}
+                    </div>
+                    <div className="text-xs text-gray-500">
                       <span className="text-gray-400">Bobot:</span> {row.bobot ? `${Number(row.bobot)} KG` : '-'}
                     </div>
                     <div className="text-xs text-gray-500">

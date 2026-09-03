@@ -1,14 +1,16 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, Loader2, AlertCircle, Plus } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, AlertCircle, Plus, Search, X } from 'lucide-react';
 import useDocumentTitle from '../../../hooks/useDocumentTitle';
 import StokSapiService from '../../../services/stokSapiService';
 import { Notification } from '../../../components/shared/NotificationComponent';
 import SearchableSelect from '../../../components/shared/SearchableSelect';
+import ParentPickerModal from './modals/ParentPickerModal';
 
 const JENIS_KELAMIN_OPTIONS = [
   { value: 'JANTAN', label: 'Jantan' },
   { value: 'BETINA', label: 'Betina' },
+  { value: 'BELUM_DIKETAHUI', label: 'Belum Diketahui' },
 ];
 
 const getToday = () => {
@@ -30,10 +32,10 @@ const TambahAnakanPage = () => {
     father_pid: '',
     catatan: '',
   });
-  const [motherOptions, setMotherOptions] = useState([]);
-  const [fatherOptions, setFatherOptions] = useState([]);
-  const [loadingMother, setLoadingMother] = useState(false);
-  const [loadingFather, setLoadingFather] = useState(false);
+  const [motherRow, setMotherRow] = useState(null);
+  const [fatherRow, setFatherRow] = useState(null);
+  const [motherModalOpen, setMotherModalOpen] = useState(false);
+  const [fatherModalOpen, setFatherModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [notification, setNotification] = useState(null);
 
@@ -42,43 +44,28 @@ const TambahAnakanPage = () => {
     setTimeout(() => setNotification(null), 4000);
   }, []);
 
-  const fetchMotherOptions = useCallback(async (q = '') => {
-    setLoadingMother(true);
-    const res = await StokSapiService.parentOptions('BETINA', q);
-    if (res.success) {
-      setMotherOptions(res.data.options || []);
-    } else {
-      setMotherOptions([]);
-    }
-    setLoadingMother(false);
-  }, []);
-
-  const fetchFatherOptions = useCallback(async (q = '') => {
-    setLoadingFather(true);
-    const res = await StokSapiService.parentOptions('JANTAN', q);
-    if (res.success) {
-      setFatherOptions(res.data.options || []);
-    } else {
-      setFatherOptions([]);
-    }
-    setLoadingFather(false);
-  }, []);
-
-  useEffect(() => {
-    fetchMotherOptions();
-    fetchFatherOptions();
-  }, [fetchMotherOptions, fetchFatherOptions]);
-
   const handleChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleMotherSearch = (input) => {
-    fetchMotherOptions(input || '');
+  const handleSelectMother = (row) => {
+    setMotherRow(row);
+    handleChange('mother_pid', row.value);
   };
 
-  const handleFatherSearch = (input) => {
-    fetchFatherOptions(input || '');
+  const handleSelectFather = (row) => {
+    setFatherRow(row);
+    handleChange('father_pid', row.value);
+  };
+
+  const clearMother = () => {
+    setMotherRow(null);
+    handleChange('mother_pid', '');
+  };
+
+  const clearFather = () => {
+    setFatherRow(null);
+    handleChange('father_pid', '');
   };
 
   const handleSubmit = async (e) => {
@@ -222,33 +209,73 @@ const TambahAnakanPage = () => {
                 <div className="mt-3 grid gap-4 sm:grid-cols-2">
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-medium text-gray-500">Induk Betina</label>
-                    <SearchableSelect
-                      options={motherOptions}
-                      value={form.mother_pid}
-                      onChange={(val) => handleChange('mother_pid', val || '')}
-                      onInputChange={handleMotherSearch}
-                      placeholder="Pilih sapi betina... (opsional)"
-                      isLoading={loadingMother}
-                      isDisabled={saving}
-                      isClearable
-                      accentColor="green"
-                    />
+                    {motherRow ? (
+                      <div className="flex items-center justify-between rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2">
+                        <div className="text-sm">
+                          <div className="font-medium text-gray-800">
+                            {motherRow.eartag_supplier || motherRow.eartag_kode || '-'}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {motherRow.jenis_sapi || '-'} · {motherRow.jenis_kelamin_label}
+                            {motherRow.berat ? ` · ${motherRow.berat} KG` : ''}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={clearMother}
+                          disabled={saving}
+                          className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-red-500"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setMotherModalOpen(true)}
+                        disabled={saving}
+                        className="flex items-center gap-2 rounded-md border border-dashed border-gray-300 bg-white px-3 py-2 text-sm text-gray-500 hover:border-emerald-400 hover:text-emerald-600 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <Search className="h-4 w-4" />
+                        Pilih sapi betina... (opsional)
+                      </button>
+                    )}
                     <p className="text-xs text-gray-400">Opsional — boleh dikosongkan</p>
                   </div>
 
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-medium text-gray-500">Induk Jantan / Pejantan</label>
-                    <SearchableSelect
-                      options={fatherOptions}
-                      value={form.father_pid}
-                      onChange={(val) => handleChange('father_pid', val || '')}
-                      onInputChange={handleFatherSearch}
-                      placeholder="Pilih sapi jantan... (opsional)"
-                      isLoading={loadingFather}
-                      isDisabled={saving}
-                      isClearable
-                      accentColor="green"
-                    />
+                    {fatherRow ? (
+                      <div className="flex items-center justify-between rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2">
+                        <div className="text-sm">
+                          <div className="font-medium text-gray-800">
+                            {fatherRow.eartag_supplier || fatherRow.eartag_kode || '-'}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {fatherRow.jenis_sapi || '-'} · {fatherRow.jenis_kelamin_label}
+                            {fatherRow.berat ? ` · ${fatherRow.berat} KG` : ''}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={clearFather}
+                          disabled={saving}
+                          className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-red-500"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setFatherModalOpen(true)}
+                        disabled={saving}
+                        className="flex items-center gap-2 rounded-md border border-dashed border-gray-300 bg-white px-3 py-2 text-sm text-gray-500 hover:border-emerald-400 hover:text-emerald-600 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <Search className="h-4 w-4" />
+                        Pilih sapi jantan... (opsional)
+                      </button>
+                    )}
                     <p className="text-xs text-gray-400">Opsional — boleh dikosongkan</p>
                   </div>
                 </div>
@@ -328,6 +355,21 @@ const TambahAnakanPage = () => {
           </div>
         </form>
       </div>
+
+      <ParentPickerModal
+        open={motherModalOpen}
+        onClose={() => setMotherModalOpen(false)}
+        onSelect={handleSelectMother}
+        jenisKelamin="BETINA"
+        title="Pilih Induk Betina"
+      />
+      <ParentPickerModal
+        open={fatherModalOpen}
+        onClose={() => setFatherModalOpen(false)}
+        onSelect={handleSelectFather}
+        jenisKelamin="JANTAN"
+        title="Pilih Induk Jantan"
+      />
     </div>
   );
 };

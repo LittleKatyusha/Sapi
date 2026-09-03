@@ -9,6 +9,7 @@ import SearchableSelect from '../../../components/shared/SearchableSelect';
 const JENIS_KELAMIN_OPTIONS = [
   { value: 'JANTAN', label: 'Jantan' },
   { value: 'BETINA', label: 'Betina' },
+  { value: 'BELUM_DIKETAHUI', label: 'Belum Diketahui' },
 ];
 
 const EMPTY_FORM = {
@@ -222,9 +223,7 @@ const EditStokSapiPage = () => {
                   <div className="flex flex-col gap-0.5">
                     <span className="text-xs font-medium text-gray-500">Jenis Kelamin Saat Ini</span>
                     <span className="text-sm text-gray-800">
-                      {meta?.jenis_kelamin
-                        ? (meta.jenis_kelamin === 'JANTAN' ? 'Jantan' : 'Betina')
-                        : 'Belum diketahui'}
+                      {JENIS_KELAMIN_OPTIONS.find((o) => o.value === meta?.jenis_kelamin)?.label || 'Belum diketahui'}
                     </span>
                   </div>
                 </div>

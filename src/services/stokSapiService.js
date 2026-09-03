@@ -141,14 +141,20 @@ class StokSapiService {
   }
 
   /**
-   * Daftar sapi untuk pilihan induk (parent picker).
-   * Endpoint: GET /api/rph/pemeliharaansapi/parent-options?jenis_kelamin=BETINA&q=...
+   * Daftar sapi untuk pilihan induk (parent picker) - server-side datatable.
+   * Endpoint: GET /api/rph/pemeliharaansapi/parent-options
    */
-  static async parentOptions(jenisKelamin, q = '') {
+  static async parentOptions(jenisKelamin, params = {}) {
     try {
-      const params = { jenis_kelamin: jenisKelamin };
-      if (q) params.q = q;
-      const response = await HttpClient.get(`${this.API_PREFIX}/parent-options`, { params });
+      const query = {
+        jenis_kelamin: jenisKelamin,
+        q: params.q ?? '',
+        jenis_sapi: params.jenisSapi ?? '',
+        start: params.start ?? 0,
+        length: params.length ?? 10,
+        draw: params.draw ?? 1,
+      };
+      const response = await HttpClient.get(`${this.API_PREFIX}/parent-options`, { params: query, cache: false });
       return {
         success: true,
         data: response.data,
