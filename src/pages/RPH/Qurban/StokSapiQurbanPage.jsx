@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import DataTable from 'react-data-table-component';
-import { Beef, Search, Loader2, AlertCircle, FileText, ChevronDown, ChevronUp, SlidersHorizontal, RotateCcw, Tag, Calendar, Weight, CircleDollarSign, Hash, CheckCircle2, RotateCcw as RotateCcwIcon, Undo2, MoreVertical, Info, Scissors, Skull, X } from 'lucide-react';
+import { Beef, Search, Loader2, AlertCircle, FileText, ChevronDown, ChevronUp, SlidersHorizontal, RotateCcw, Tag, Calendar, Weight, CircleDollarSign, Hash, CheckCircle2, RotateCcw as RotateCcwIcon, Undo2, MoreVertical, Info, Scissors, Skull, X, Home, Wheat, Package } from 'lucide-react';
 import HttpClient from '../../../services/httpClient';
 import SearchableSelect from '../../../components/shared/SearchableSelect';
+import BulkAssignKandangModal from '../StokSapi/modals/BulkAssignKandangModal';
+import BeriPakanKonsentratModal from '../StokSapi/modals/BeriPakanKonsentratModal';
+import BeriOvkQurbanModal from './modals/BeriOvkQurbanModal';
 
 const initialAdvanced = { eartag: '', eartag_supplier: '', nota_qurban: '', status: '' };
 
-const ActionMenuCell = ({ row, menuOpen, setMenuOpen, menuPos, setMenuPos, menuButtonRefs, setRestoreTarget, setPotongPaksaTarget, setSapiMatiTarget }) => {
+const ActionMenuCell = ({ row, menuOpen, setMenuOpen, menuPos, setMenuPos, menuButtonRefs, setRestoreTarget, setPotongPaksaTarget, setSapiMatiTarget, setBeriOvkTarget }) => {
   const status = Number(row.status);
   const isReturn = status === 2;
   const isTersedia = status === 0;
@@ -55,6 +58,18 @@ const ActionMenuCell = ({ row, menuOpen, setMenuOpen, menuPos, setMenuPos, menuB
             style={{ top: menuPos.top, left: menuPos.left }}
             onClick={(e) => e.stopPropagation()}
           >
+            {isTersedia && (
+              <>
+                <button
+                  onClick={() => { setBeriOvkTarget(row); setMenuOpen(null); }}
+                  className="w-full px-3 py-2 text-left flex items-center gap-2 text-xs font-medium text-sky-700 hover:bg-sky-50 transition"
+                >
+                  <Package className="w-3.5 h-3.5" />
+                  Beri OVK
+                </button>
+                <div className="my-1 border-t border-gray-100" />
+              </>
+            )}
             <button
               onClick={() => { setPotongPaksaTarget(row); setMenuOpen(null); }}
               className="w-full px-3 py-2 text-left flex items-center gap-2 text-xs font-medium text-amber-700 hover:bg-amber-50 transition"
@@ -159,6 +174,12 @@ const StokSapiQurbanPage = () => {
   });
   const [sebabKematianOptions, setSebabKematianOptions] = useState([]);
   const [submittingSapiMati, setSubmittingSapiMati] = useState(false);
+
+  // Assign Kandang (bulk), Beri Pakan Konsentrat (bulk), Beri OVK (per-row) state
+  const [selectedRows, setSelectedRows] = useState([]);
+  const [assignKandangOpen, setAssignKandangOpen] = useState(false);
+  const [beriPakanOpen, setBeriPakanOpen] = useState(false);
+  const [beriOvkTarget, setBeriOvkTarget] = useState(null);
 
   // Collapsible panels
   const [advancedOpen, setAdvancedOpen] = useState(true);
@@ -437,6 +458,7 @@ const StokSapiQurbanPage = () => {
           setRestoreTarget={setRestoreTarget}
           setPotongPaksaTarget={setPotongPaksaTarget}
           setSapiMatiTarget={setSapiMatiTarget}
+          setBeriOvkTarget={setBeriOvkTarget}
         />
       ),
     },
@@ -860,6 +882,42 @@ const StokSapiQurbanPage = () => {
 
         {tableOpen && (
           <div className="border-t border-gray-100">
+            {/* Bulk Action Toolbar */}
+            {tableData.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2 px-5 py-3 bg-gray-50/60 border-b border-gray-100">
+                <span className="text-xs font-semibold text-gray-600 mr-1">
+                  {selectedRows.length > 0 ? `${selectedRows.length} sapi terpilih` : 'Pilih sapi untuk aksi bulk'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setAssignKandangOpen(true)}
+                  disabled={selectedRows.length === 0}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                >
+                  <Home className="w-3.5 h-3.5" />
+                  Assign Kandang
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBeriPakanOpen(true)}
+                  disabled={selectedRows.length === 0}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600 text-white text-xs font-semibold hover:bg-amber-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                >
+                  <Wheat className="w-3.5 h-3.5" />
+                  Beri Pakan Konsentrat
+                </button>
+                {selectedRows.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedRows([])}
+                    className="ml-auto text-xs text-gray-500 hover:text-gray-700 underline"
+                  >
+                    Kosongkan pilihan
+                  </button>
+                )}
+              </div>
+            )}
+
             {loading && tableData.length === 0 ? (
               <div className="p-12 flex flex-col items-center justify-center text-gray-400">
                 <Loader2 className="w-8 h-8 animate-spin mb-3" />
@@ -880,6 +938,10 @@ const StokSapiQurbanPage = () => {
               <DataTable
                 columns={columns}
                 data={tableData}
+                selectableRows
+                selectableRowsHighlight
+                onSelectedRowsChange={({ selectedRows }) => setSelectedRows(selectedRows)}
+                clearSelectedRows={selectedRows.length === 0 ? 0 : undefined}
                 pagination
                 paginationServer
                 paginationTotalRows={totalRecords}
@@ -1209,6 +1271,43 @@ const StokSapiQurbanPage = () => {
           )}
         </div>
       )}
+
+      {/* Assign Kandang Modal (bulk) */}
+      <BulkAssignKandangModal
+        isOpen={assignKandangOpen}
+        onClose={() => setAssignKandangOpen(false)}
+        selectedPids={selectedRows.map((r) => r.pid_sapi).filter(Boolean)}
+        animalType="sapi"
+        onSuccess={(res) => {
+          setNotif({ type: 'success', message: res?.message || 'Berhasil assign kandang' });
+          setSelectedRows([]);
+          fetchData(currentPage);
+        }}
+      />
+
+      {/* Beri Pakan Konsentrat Modal (bulk) */}
+      <BeriPakanKonsentratModal
+        isOpen={beriPakanOpen}
+        onClose={() => setBeriPakanOpen(false)}
+        animalType="sapi"
+        preSelectedPids={selectedRows.map((r) => r.pid_sapi).filter(Boolean)}
+        onSuccess={(res) => {
+          setNotif({ type: 'success', message: res?.message || 'Pemberian pakan konsentrat berhasil disimpan' });
+          setSelectedRows([]);
+          fetchData(currentPage);
+        }}
+      />
+
+      {/* Beri OVK Modal */}
+      <BeriOvkQurbanModal
+        isOpen={Boolean(beriOvkTarget)}
+        onClose={() => setBeriOvkTarget(null)}
+        row={beriOvkTarget}
+        onSuccess={(res) => {
+          setNotif({ type: 'success', message: res?.message || 'Pemberian OVK berhasil disimpan' });
+          fetchData(currentPage);
+        }}
+      />
 
       {/* Confirm Restore Modal */}
       {restoreTarget && (

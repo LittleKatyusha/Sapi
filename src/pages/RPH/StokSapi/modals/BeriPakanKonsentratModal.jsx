@@ -80,7 +80,7 @@ const Field = ({ label, required = false, helperText, children }) => (
   </div>
 );
 
-const BeriPakanKonsentratModal = ({ isOpen, onClose, onSuccess, animalType = 'sapi' }) => {
+const BeriPakanKonsentratModal = ({ isOpen, onClose, onSuccess, animalType = 'sapi', preSelectedPids = null }) => {
   const isDoka = animalType === 'doka';
   const animalLabel = isDoka ? 'DOKA' : 'sapi';
   const animalLabelCap = isDoka ? 'DOKA' : 'Sapi';
@@ -132,16 +132,27 @@ const BeriPakanKonsentratModal = ({ isOpen, onClose, onSuccess, animalType = 'sa
   }, [isDoka]);
 
   // Default: semua sapi tersedia (yang belum diberi pakan) tercentang saat modal dibuka & data sudah dimuat
+  // When preSelectedPids is provided (array), only pre-select those cattle.
   useEffect(() => {
     if (isOpen && sapiList.length > 0) {
-      const availablePids = new Set(
-        sapiList.filter((s) => allowMultiple || !s.sudah_diberi_pakan).map((s) => s.pid).filter(Boolean)
-      );
-      setSelectedPids(availablePids);
+      if (Array.isArray(preSelectedPids) && preSelectedPids.length > 0) {
+        const pidSet = new Set(preSelectedPids);
+        const targets = sapiList.filter((s) => pidSet.has(s.pid));
+        const next = new Set();
+        targets.forEach((t) => {
+          if (allowMultiple || !t.sudah_diberi_pakan) next.add(t.pid);
+        });
+        setSelectedPids(next);
+      } else {
+        const availablePids = new Set(
+          sapiList.filter((s) => allowMultiple || !s.sudah_diberi_pakan).map((s) => s.pid).filter(Boolean)
+        );
+        setSelectedPids(availablePids);
+      }
     } else if (isOpen) {
       setSelectedPids(new Set());
     }
-  }, [isOpen, sapiList, allowMultiple]);
+  }, [isOpen, sapiList, allowMultiple, preSelectedPids]);
 
   // Fetch stok resep
   const fetchResep = useCallback(async () => {
