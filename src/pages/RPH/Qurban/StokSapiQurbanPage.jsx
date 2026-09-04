@@ -446,6 +446,70 @@ const StokSapiQurbanPage = () => {
       ),
     },
     {
+      name: 'Kandang',
+      sortable: false,
+      width: '120px',
+      cell: (row) => (
+        row.kandang_kode ? (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 border border-emerald-200" title={row.kandang_nama}>
+            {row.kandang_kode}
+          </span>
+        ) : (
+          <span className="text-xs text-gray-400">—</span>
+        )
+      ),
+    },
+    {
+      name: 'Pemeliharaan',
+      sortable: false,
+      minWidth: '200px',
+      cell: (row) => (
+        <div className="space-y-0.5">
+          <div className="text-xs text-gray-500">
+            <span className="text-gray-400">DOF:</span> {row.dof_hari || '-'}
+          </div>
+          <div className="text-xs text-gray-500">
+            <span className="text-gray-400">Pakan:</span> {row.jumlah_pakan_sesi || 0}x · Rp {row.nilai_pakan || '0'}
+          </div>
+          {row.sudah_diberi_pakan_hari_ini && (
+            <div className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700 border border-emerald-200">
+              <CheckCircle2 className="h-3 w-3" />
+              Sudah diberi pakan hari ini{row.sesi_pakan_hari_ini > 1 ? ` (${row.sesi_pakan_hari_ini}x)` : ''}
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      name: 'OVK',
+      sortable: false,
+      minWidth: '150px',
+      cell: (row) => (
+        <div className="space-y-0.5">
+          <div className="text-xs text-gray-600 max-w-[140px] truncate" title={row.ovk}>{row.ovk || '-'}</div>
+          <div className="text-xs text-gray-500">
+            <span className="text-gray-400">Nilai:</span> Rp {row.nilai_ovk || '0'}
+          </div>
+        </div>
+      ),
+    },
+    {
+      name: 'Total',
+      sortable: false,
+      width: '140px',
+      right: true,
+      cell: (row) => (
+        <div className="space-y-0.5 text-right">
+          <div className="text-xs text-gray-500" title="Harga Pokok Pembelian per kg">
+            <span className="text-gray-400">Beli/kg:</span> Rp {row.hpp || '0'}
+          </div>
+          <div className="font-semibold text-teal-700" title="(bobot × hpp) + pakan + ovk">
+            Rp {row.total || '0'}
+          </div>
+        </div>
+      ),
+    },
+    {
       name: 'Aksi',
       sortable: false,
       width: '60px',
