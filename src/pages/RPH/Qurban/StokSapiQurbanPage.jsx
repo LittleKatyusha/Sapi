@@ -348,21 +348,24 @@ const StokSapiQurbanPage = () => {
       cell: (_, idx) => (currentPage - 1) * perPage + idx + 1,
     },
     {
-      name: 'Eartag & Supplier',
+      name: 'Eartag Supplier & Nota',
       sortable: true,
-      sortField: 'tr_pembelian_ho_detail.eartag',
-      minWidth: '240px',
+      sortField: 'tr_pembelian_ho_detail.eartag_supplier',
+      minWidth: '280px',
       cell: (row) => {
         const isReturn = Number(row.status) === 2;
+        const eartagSupplier = row.eartag_supplier && String(row.eartag_supplier).trim() ? row.eartag_supplier : 'T/N';
+        const notaSistem = row.nota_sistem && String(row.nota_sistem).trim() ? row.nota_sistem : '-';
         return (
           <div className="flex flex-col gap-0.5">
             <div className="flex items-center gap-1.5">
               <Tag className={`w-3.5 h-3.5 ${isReturn ? 'text-red-600' : 'text-emerald-600'}`} />
-              <span className={`font-mono font-semibold ${isReturn ? 'text-red-700 line-through' : 'text-gray-800'}`}>{row.eartag || '-'}</span>
+              <span className="text-[10px] font-semibold uppercase text-gray-400">Supplier:</span>
+              <span className={`font-mono font-semibold ${isReturn ? 'text-red-700 line-through' : 'text-gray-800'}`}>{eartagSupplier}</span>
             </div>
             <div className="flex items-center gap-1.5 pl-5">
-              <span className="text-[11px] text-gray-400">Supplier:</span>
-              <span className={`font-mono text-xs ${isReturn ? 'text-gray-400 line-through' : 'text-gray-600'}`}>{row.eartag_supplier || '-'}</span>
+              <span className="text-[10px] font-semibold uppercase text-gray-400">Nota Sistem:</span>
+              <span className="font-mono text-xs text-sky-700">{notaSistem}</span>
             </div>
           </div>
         );
@@ -900,8 +903,7 @@ const StokSapiQurbanPage = () => {
                 <button
                   type="button"
                   onClick={() => setBeriPakanOpen(true)}
-                  disabled={selectedRows.length === 0}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600 text-white text-xs font-semibold hover:bg-amber-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600 text-white text-xs font-semibold hover:bg-amber-700 transition"
                 >
                   <Wheat className="w-3.5 h-3.5" />
                   Beri Pakan Konsentrat
