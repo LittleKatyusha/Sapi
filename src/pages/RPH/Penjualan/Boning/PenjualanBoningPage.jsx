@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import DataTable from 'react-data-table-component';
-import { Calendar, Eye, Loader2, MoreVertical, Pencil, PlusCircle, Search, Trash2, X } from 'lucide-react';
+import { Calendar, Eye, Loader2, MoreVertical, Pencil, PlusCircle, Search, Trash2, Wallet, X } from 'lucide-react';
 import { enhancedTableStyles } from './constants/tableStyles';
 import usePenjualanBoning from './hooks/usePenjualanBoning';
 import AddEditBoningModal from './modals/AddEditBoningModal';
@@ -46,7 +46,9 @@ const STATUS_STYLE = {
   '-': 'bg-slate-100 text-slate-600',
 };
 
-const RowActionMenu = ({ row, anchorRef, onClose, onDetail, onEdit, onDelete }) => {
+const isPaidRow = (row) => Number(row.payment_status) === 1 || String(row.payment_status_label || '').toLowerCase() === 'lunas';
+
+const RowActionMenu = ({ row, anchorRef, onClose, onDetail, onEdit, onDelete, onPay }) => {
   const menuRef = useRef(null);
   const [menuStyle, setMenuStyle] = useState(null);
 
@@ -101,6 +103,17 @@ const RowActionMenu = ({ row, anchorRef, onClose, onDetail, onEdit, onDelete }) 
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Menu Aksi</p>
       </div>
       <div className="p-1.5">
+        {!isPaidRow(row) && (
+          <button
+            type="button"
+            onClick={() => { onPay(row); onClose(); }}
+            className="mt-1 flex w-full items-center rounded-lg px-3 py-2.5 text-left text-sm text-slate-700 transition hover:bg-emerald-50"
+            role="menuitem"
+          >
+            <span className="mr-3 flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600"><Wallet className="h-4 w-4" /></span>
+            <span className="text-xs font-semibold">Bayar</span>
+          </button>
+        )}
         <button
           type="button"
           onClick={() => {
@@ -143,7 +156,7 @@ const RowActionMenu = ({ row, anchorRef, onClose, onDetail, onEdit, onDelete }) 
   );
 };
 
-const RowActionButton = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onDelete }) => {
+const RowActionButton = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onDelete, onPay }) => {
   const buttonRef = useRef(null);
 
   return (
@@ -169,6 +182,7 @@ const RowActionButton = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onD
           onDetail={onDetail}
           onEdit={onEdit}
           onDelete={onDelete}
+          onPay={onPay}
         />
       ) : null}
     </div>
@@ -338,6 +352,7 @@ const PenjualanBoningPage = () => {
             onDetail={handleOpenDetail}
             onEdit={handleOpenEdit}
             onDelete={handleOpenDelete}
+            onPay={(item) => navigate(`/rph/keuangan/penerimaan/bayar/${encodeURIComponent(item.pid)}?jenis=boning`)}
           />
         </div>
       ),

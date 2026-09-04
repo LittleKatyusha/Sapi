@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { createPortal } from 'react-dom';
-import { Eye, Loader2, MoreVertical, Pencil, Plus, Search, Trash2, X } from 'lucide-react';
+import { Eye, Loader2, MoreVertical, Pencil, Plus, Search, Trash2, Wallet, X } from 'lucide-react';
 import PenjualanKarkasService from '../../../../services/penjualanKarkasService';
 import SearchableSelect from '../../../../components/shared/SearchableSelect';
 import { useNotification } from '../../../../components/shared/Notification';
@@ -92,7 +92,7 @@ const Field = ({ label, children, className = '' }) => <label className={`block 
 const Input = (props) => <input {...props} className={`w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-red-500 focus:ring-1 focus:ring-red-500 ${props.className || ''}`} />;
 const MoneyInput = ({ value, onChange, ...props }) => <Input {...props} type="text" inputMode="decimal" value={formatNumberInput(value)} onChange={e => onChange(parseNumberInput(e.target.value))} />;
 
-const RowActionMenu = ({ row, anchorRef, onClose, onDetail, onEdit, onDelete, disabled = false }) => {
+const RowActionMenu = ({ row, anchorRef, onClose, onDetail, onEdit, onDelete, onPay, disabled = false }) => {
   const menuRef = useRef(null);
   const [menuStyle, setMenuStyle] = useState(null);
   const locked = disabled || row.status_transaksi === 'BATAL' || isPaidRow(row);
@@ -136,6 +136,12 @@ const RowActionMenu = ({ row, anchorRef, onClose, onDetail, onEdit, onDelete, di
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Menu Aksi</p>
       </div>
       <div className="p-1.5">
+        {!isPaidRow(row) && row.status_transaksi !== 'BATAL' && (
+          <button type="button" onClick={() => { onPay(row); onClose(); }} disabled={disabled} className="mt-1 flex w-full items-center rounded-lg px-3 py-2.5 text-left text-sm text-slate-700 transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-40" role="menuitem">
+            <span className="mr-3 flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600"><Wallet className="h-4 w-4" /></span>
+            <span className="text-xs font-semibold">Bayar</span>
+          </button>
+        )}
         <button type="button" onClick={() => { onDetail(row); onClose(); }} disabled={disabled} className="mt-1 flex w-full items-center rounded-lg px-3 py-2.5 text-left text-sm text-slate-700 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-40" role="menuitem">
           <span className="mr-3 flex h-7 w-7 items-center justify-center rounded-lg bg-blue-100 text-blue-600"><Eye className="h-4 w-4" /></span>
           <span className="text-xs font-semibold">Detail</span>
@@ -154,7 +160,7 @@ const RowActionMenu = ({ row, anchorRef, onClose, onDetail, onEdit, onDelete, di
   );
 };
 
-const RowActionButton = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onDelete, disabled = false }) => {
+const RowActionButton = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onDelete, onPay, disabled = false }) => {
   const buttonRef = useRef(null);
 
   return (
@@ -174,7 +180,7 @@ const RowActionButton = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onD
         <MoreVertical className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
       </button>
       {isOpen ? (
-        <RowActionMenu row={row} anchorRef={buttonRef} onClose={onClose} onDetail={onDetail} onEdit={onEdit} onDelete={onDelete} disabled={disabled} />
+        <RowActionMenu row={row} anchorRef={buttonRef} onClose={onClose} onDetail={onDetail} onEdit={onEdit} onDelete={onDelete} onPay={onPay} disabled={disabled} />
       ) : null}
     </div>
   );
@@ -464,7 +470,7 @@ export default function PenjualanKarkasPage() {
       <div className="overflow-x-auto overflow-y-visible">
         <table className="min-w-full text-sm">
           <thead className="border-b border-slate-200 bg-white text-left text-xs font-semibold uppercase text-slate-500"><tr><th className="px-5 py-4 text-center">No</th><th className="px-5 py-4 text-center">Aksi</th><th className="px-5 py-4">No. Kwitansi</th><th className="px-5 py-4">Tanggal</th><th className="px-5 py-4">Pedagang</th><th className="px-5 py-4">Sapi</th><th className="px-5 py-4">Total Berat</th><th className="px-5 py-4">Total Tagihan</th><th className="px-5 py-4">Status</th></tr></thead>
-          <tbody className="divide-y divide-slate-100">{loading ? <tr><td colSpan="9" className="p-12 text-center text-slate-500">Memuat data penjualan karkas...</td></tr> : rows.length === 0 ? <tr><td colSpan="9" className="p-12 text-center text-slate-500">Belum ada transaksi penjualan karkas.</td></tr> : rows.map((r, index) => <tr key={r.pid} className="transition hover:bg-rose-50/40"><td className="px-5 py-4 text-center font-semibold text-slate-500">{((page - 1) * perPage) + index + 1}</td><td className="px-5 py-4"><div className="flex justify-center"><RowActionButton row={r} isOpen={openMenuId === r.pid} onToggle={(pid) => setOpenMenuId((current) => (current === pid ? null : pid))} onClose={() => setOpenMenuId(null)} onDetail={openDetail} onEdit={openEdit} onDelete={cancel} disabled={Boolean(actionLoading) || saving} /></div></td><td className="px-5 py-4"><div><span className="rounded-lg bg-rose-50 px-2 py-1 font-mono text-xs text-rose-700">{r.no_kwitansi || '-'}</span><div className="mt-1 text-xs text-slate-500">{r.nama_rph || '-'}</div></div></td><td className="px-5 py-4 text-slate-700">{String(r.tanggal_penjualan || '').slice(0, 10)}</td><td className="px-5 py-4 font-semibold text-slate-800">{r.nama_pedagang || '-'}</td><td className="px-5 py-4 text-slate-700">{r.jumlah_sapi}</td><td className="px-5 py-4 font-medium text-slate-700">{Math.round(Number(r.total_berat || 0))} kg</td><td className="px-5 py-4 font-semibold text-emerald-700">{money(r.total_bayar || r.total_harga)}</td><td className="px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${paymentStatusClass(r)}`}>{paymentStatusLabel(r)}</span></td></tr>)}</tbody>
+          <tbody className="divide-y divide-slate-100">{loading ? <tr><td colSpan="9" className="p-12 text-center text-slate-500">Memuat data penjualan karkas...</td></tr> : rows.length === 0 ? <tr><td colSpan="9" className="p-12 text-center text-slate-500">Belum ada transaksi penjualan karkas.</td></tr> : rows.map((r, index) => <tr key={r.pid} className="transition hover:bg-rose-50/40"><td className="px-5 py-4 text-center font-semibold text-slate-500">{((page - 1) * perPage) + index + 1}</td><td className="px-5 py-4"><div className="flex justify-center"><RowActionButton row={r} isOpen={openMenuId === r.pid} onToggle={(pid) => setOpenMenuId((current) => (current === pid ? null : pid))} onClose={() => setOpenMenuId(null)} onDetail={openDetail} onEdit={openEdit} onDelete={cancel} onPay={(item) => navigate(`/rph/keuangan/penerimaan/bayar/${encodeURIComponent(item.pid)}?jenis=karkas`)} disabled={Boolean(actionLoading) || saving} /></div></td><td className="px-5 py-4"><div><span className="rounded-lg bg-rose-50 px-2 py-1 font-mono text-xs text-rose-700">{r.no_kwitansi || '-'}</span><div className="mt-1 text-xs text-slate-500">{r.nama_rph || '-'}</div></div></td><td className="px-5 py-4 text-slate-700">{String(r.tanggal_penjualan || '').slice(0, 10)}</td><td className="px-5 py-4 font-semibold text-slate-800">{r.nama_pedagang || '-'}</td><td className="px-5 py-4 text-slate-700">{r.jumlah_sapi}</td><td className="px-5 py-4 font-medium text-slate-700">{Math.round(Number(r.total_berat || 0))} kg</td><td className="px-5 py-4 font-semibold text-emerald-700">{money(r.total_bayar || r.total_harga)}</td><td className="px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${paymentStatusClass(r)}`}>{paymentStatusLabel(r)}</span></td></tr>)}</tbody>
         </table>
       </div>
       <div className="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4 lg:flex-row lg:items-center lg:justify-between"><span className="text-sm text-slate-600">Menampilkan <strong>{total ? ((page - 1) * perPage) + 1 : 0}</strong> sampai <strong>{Math.min(page * perPage, total)}</strong> dari <strong>{total}</strong> data</span><div className="flex items-center gap-2"><button disabled={page <= 1 || loading || Boolean(actionLoading)} onClick={() => setPage(p => p - 1)} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-50">Prev</button><span className="text-sm font-medium text-slate-700">{page}</span><button disabled={page * perPage >= total || loading || Boolean(actionLoading)} onClick={() => setPage(p => p + 1)} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-50">Next</button></div></div>

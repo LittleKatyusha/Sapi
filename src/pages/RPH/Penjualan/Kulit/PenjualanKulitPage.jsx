@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { createPortal } from 'react-dom';
-import { Eye, Loader2, MoreVertical, Pencil, Plus, RefreshCcw, Search, Trash2, X } from 'lucide-react';
+import { Eye, Loader2, MoreVertical, Pencil, Plus, RefreshCcw, Search, Trash2, Wallet, X } from 'lucide-react';
 import PenjualanKulitService from '../../../../services/penjualanKulitService';
 import SearchableSelect from '../../../../components/shared/SearchableSelect';
 
@@ -68,7 +68,7 @@ const STATUS_STYLE = {
   '-': 'bg-slate-100 text-slate-600',
 };
 
-function RowActionMenu({ row, anchorRef, onClose, onDetail, onEdit, onDelete }) {
+function RowActionMenu({ row, anchorRef, onClose, onDetail, onEdit, onDelete, onPay }) {
   const menuRef = useRef(null);
   const [menuStyle, setMenuStyle] = useState(null);
   const isPaidOff = Number(row.payment_status) === 1;
@@ -109,6 +109,12 @@ function RowActionMenu({ row, anchorRef, onClose, onDetail, onEdit, onDelete }) 
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Menu Aksi</p>
       </div>
       <div className="p-1.5">
+        {!isPaidOff && (
+          <button type="button" onClick={() => { onPay(row); onClose(); }} className="mt-1 flex w-full items-center rounded-lg px-3 py-2.5 text-left text-sm text-slate-700 transition hover:bg-emerald-50" role="menuitem">
+            <span className="mr-3 flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600"><Wallet className="h-4 w-4" /></span>
+            <span className="text-xs font-semibold">Bayar</span>
+          </button>
+        )}
         <button type="button" onClick={() => { onDetail(row); onClose(); }} className="mt-1 flex w-full items-center rounded-lg px-3 py-2.5 text-left text-sm text-slate-700 transition hover:bg-blue-50" role="menuitem">
           <span className="mr-3 flex h-7 w-7 items-center justify-center rounded-lg bg-blue-100 text-blue-600"><Eye className="h-4 w-4" /></span>
           <span className="text-xs font-semibold">Detail</span>
@@ -141,7 +147,7 @@ function RowActionMenu({ row, anchorRef, onClose, onDetail, onEdit, onDelete }) 
   );
 }
 
-function RowActionButton({ row, isOpen, onToggle, onClose, onDetail, onEdit, onDelete }) {
+function RowActionButton({ row, isOpen, onToggle, onClose, onDetail, onEdit, onDelete, onPay }) {
   const buttonRef = useRef(null);
   return (
     <div className="relative">
@@ -158,7 +164,7 @@ function RowActionButton({ row, isOpen, onToggle, onClose, onDetail, onEdit, onD
       >
         <MoreVertical className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
       </button>
-      {isOpen ? <RowActionMenu row={row} anchorRef={buttonRef} onClose={onClose} onDetail={onDetail} onEdit={onEdit} onDelete={onDelete} /> : null}
+      {isOpen ? <RowActionMenu row={row} anchorRef={buttonRef} onClose={onClose} onDetail={onDetail} onEdit={onEdit} onDelete={onDelete} onPay={onPay} /> : null}
     </div>
   );
 }
@@ -476,15 +482,16 @@ export default function PenjualanKulitPage() {
       </div>
       <div className="overflow-visible rounded-lg border bg-white shadow-sm">
         <table className="min-w-full divide-y divide-slate-200 text-sm">
-          <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500"><tr><th className="px-4 py-3 text-center">Aksi</th><th className="px-4 py-3">No Kwitansi</th><th className="px-4 py-3">Tanggal</th><th className="px-4 py-3">Pedagang</th><th className="px-4 py-3 text-right">Berat</th><th className="px-4 py-3 text-right">Total</th><th className="px-4 py-3">Pembayaran</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Pengiriman</th></tr></thead>
+          <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500"><tr><th className="px-4 py-3 text-center">No</th><th className="px-4 py-3 text-center">Aksi</th><th className="px-4 py-3">No Kwitansi</th><th className="px-4 py-3">Tanggal</th><th className="px-4 py-3">Pedagang</th><th className="px-4 py-3 text-right">Berat</th><th className="px-4 py-3 text-right">Total</th><th className="px-4 py-3">Pembayaran</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Pengiriman</th></tr></thead>
           <tbody className="divide-y divide-slate-100">
-            {loading ? <tr><td colSpan={9} className="px-4 py-10 text-center text-slate-500"><Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin" />Memuat data...</td></tr> : rows.map((row) => (
+            {loading ? <tr><td colSpan={10} className="px-4 py-10 text-center text-slate-500"><Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin" />Memuat data...</td></tr> : rows.map((row, index) => (
               <tr key={row.pid} className="hover:bg-slate-50">
-                <td className="px-4 py-3"><div className="flex justify-center"><RowActionButton row={row} isOpen={openMenuId === row.pid} onToggle={(pid) => setOpenMenuId((current) => (current === pid ? null : pid))} onClose={() => setOpenMenuId(null)} onDetail={openDetail} onEdit={openEdit} onDelete={hapus} /></div></td>
+                <td className="px-4 py-3 text-center font-semibold text-slate-500">{index + 1}</td>
+                <td className="px-4 py-3"><div className="flex justify-center"><RowActionButton row={row} isOpen={openMenuId === row.pid} onToggle={(pid) => setOpenMenuId((current) => (current === pid ? null : pid))} onClose={() => setOpenMenuId(null)} onDetail={openDetail} onEdit={openEdit} onDelete={hapus} onPay={(item) => navigate(`/rph/keuangan/penerimaan/bayar/${encodeURIComponent(item.pid)}?jenis=kulit`)} /></div></td>
                 <td className="px-4 py-3"><div className="font-semibold text-slate-900">{row.no_kwitansi}</div><div className="mt-1 text-xs text-slate-500">{row.nama_rph || '-'}</div></td><td className="px-4 py-3">{row.tanggal_penjualan?.slice(0, 10) || '-'}</td><td className="px-4 py-3">{row.nama_pedagang}</td><td className="px-4 py-3 text-right">{kg(row.total_berat)}</td><td className="px-4 py-3 text-right">{money(row.total_penjualan)}</td><td className="px-4 py-3"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${PAYMENT_STYLE[row.tipe_pembayaran] || 'bg-slate-100 text-slate-600'}`}>{row.tipe_pembayaran_label}</span></td><td className="px-4 py-3"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_STYLE[row.payment_status_label] || STATUS_STYLE['-']}`}>{row.payment_status_label || '-'}</span></td><td className="px-4 py-3"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${SHIPPING_STYLE[row.pengiriman] || 'bg-slate-100 text-slate-600'}`}>{row.pengiriman}</span></td>
               </tr>
             ))}
-            {!loading && !rows.length ? <tr><td colSpan={9} className="px-4 py-10 text-center text-slate-500">Belum ada data penjualan kulit.</td></tr> : null}
+            {!loading && !rows.length ? <tr><td colSpan={10} className="px-4 py-10 text-center text-slate-500">Belum ada data penjualan kulit.</td></tr> : null}
           </tbody>
         </table>
       </div>
