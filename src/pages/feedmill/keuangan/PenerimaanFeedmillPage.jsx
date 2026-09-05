@@ -6,6 +6,13 @@ import { Search, XCircle, TrendingUp, Banknote, Wallet, Eye, MoreVertical, Histo
 import useDocumentTitle from '../../../hooks/useDocumentTitle';
 import feedmillKeuanganService from '../../../services/feedmillKeuanganService';
 import { useNotification } from '../../../components/shared/Notification';
+import SearchableSelect from '../../../components/shared/SearchableSelect';
+
+const JENIS_PEMBELIAN_OPTIONS = [
+  { value: '', label: 'Semua Jenis' },
+  { value: 'feedmill', label: 'Feedmill' },
+  { value: 'ovk', label: 'OVK' },
+];
 
 const formatRupiah = (v) => {
   const n = Number(v || 0);
@@ -50,17 +57,18 @@ const PenerimaanFeedmillPage = () => {
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
   const [cardData, setCardData] = useState(null);
   const [cardLoading, setCardLoading] = useState(false);
+  const [jenisPembelian, setJenisPembelian] = useState('');
   const menuBtnRefs = useRef({});
 
-  const fetchCardData = useCallback(async () => {
+  const fetchCardData = useCallback(async (jenis = jenisPembelian) => {
     setCardLoading(true);
-    const res = await feedmillKeuanganService.getCardDataPenerimaan();
+    const res = await feedmillKeuanganService.getCardDataPenerimaan({ jenis_pembelian: jenis || undefined });
     setCardLoading(false);
     if (res.success) {
       const payload = res.data?.data ?? res.data;
       setCardData(payload);
     }
-  }, []);
+  }, [jenisPembelian]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -70,6 +78,7 @@ const PenerimaanFeedmillPage = () => {
       start: (currentPage - 1) * pageSize,
       length: pageSize,
       search: searchQuery || undefined,
+      jenis_pembelian: jenisPembelian || undefined,
     };
     const res = await feedmillKeuanganService.getPenerimaan(params);
     setLoading(false);
@@ -81,7 +90,7 @@ const PenerimaanFeedmillPage = () => {
       setError(res.message);
       setData([]);
     }
-  }, [currentPage, pageSize, searchQuery]);
+  }, [currentPage, pageSize, searchQuery, jenisPembelian]);
 
   useEffect(() => {
     fetchData();
@@ -96,6 +105,11 @@ const PenerimaanFeedmillPage = () => {
     window.addEventListener('focus', onFocus);
     return () => window.removeEventListener('focus', onFocus);
   }, [fetchCardData]);
+
+  const handleJenisChange = (val) => {
+    setJenisPembelian(val ?? '');
+    setCurrentPage(1);
+  };
 
   useEffect(() => {
     const onClick = () => setOpenMenuId(null);
@@ -130,6 +144,19 @@ const PenerimaanFeedmillPage = () => {
       selector: (row) => row.no_faktur,
       sortable: true,
       cell: (row) => <span className="font-mono text-xs font-semibold text-gray-800">{row.no_faktur || row.no_referensi || row.pid || '-'}</span>,
+    },
+    {
+      name: 'Sumber',
+      selector: (row) => row.sumber,
+      sortable: true,
+      cell: (row) => {
+        const isOvk = row.sumber?.toLowerCase().includes('ovk');
+        return (
+          <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${isOvk ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>
+            {row.sumber || '-'}
+          </span>
+        );
+      },
     },
     {
       name: 'Penjualan Ke',
@@ -320,8 +347,21 @@ const PenerimaanFeedmillPage = () => {
 
         {/* Search */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-          <div className="flex gap-2">
-            <div className="relative flex-1">
+          <div className="flex flex-wrap gap-2 items-end">
+            <div className="flex flex-col gap-1 min-w-[180px]">
+              <label className="text-[11px] font-medium text-gray-500 uppercase tracking-wide">Jenis Penerimaan</label>
+              <SearchableSelect
+                options={JENIS_PEMBELIAN_OPTIONS}
+                value={jenisPembelian}
+                onChange={handleJenisChange}
+                placeholder="Semua Jenis"
+                isClearable={false}
+                isSearchable={false}
+                accentColor="green"
+                className="w-full"
+              />
+            </div>
+            <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
