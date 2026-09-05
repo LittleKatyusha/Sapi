@@ -27,6 +27,9 @@ const AddEditPerpindahanTernakPage = lazy(() => import('../pages/RPH/Perpindahan
 const PembelianKonsentratPage = lazy(() => import('../pages/RPH/Konsentrat/PembelianKonsentratPage'));
 const AddEditPembelianKonsentratPage = lazy(() => import('../pages/RPH/Konsentrat/AddEditPembelianKonsentratPage'));
 
+const PembelianOvkPage = lazy(() => import('../pages/RPH/Ovk/PembelianOvkPage'));
+const AddEditPembelianOvkPage = lazy(() => import('../pages/RPH/Ovk/AddEditPembelianOvkPage'));
+
 export const rphRoutes = [
   {
     path: '/rph/pembelian-sapi',
@@ -141,5 +144,15 @@ export const rphRoutes = [
   {
     path: '/rph/pembelian-konsentrat/add',
     element: <AddEditPembelianKonsentratPage />
+  },
+
+  // RPH OVK
+  {
+    path: '/rph/pembelian-ovk',
+    element: <PembelianOvkPage />
+  },
+  {
+    path: '/rph/pembelian-ovk/add',
+    element: <AddEditPembelianOvkPage />
   }
 ];

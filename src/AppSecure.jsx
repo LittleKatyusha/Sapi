@@ -175,6 +175,10 @@ const PengeluaranFeedmillPage = lazy(() => import('./pages/feedmill/keuangan/Pen
 const PembelianKonsentratPage = lazy(() => import('./pages/RPH/Konsentrat/PembelianKonsentratPage'));
 const AddEditPembelianKonsentratPage = lazy(() => import('./pages/RPH/Konsentrat/AddEditPembelianKonsentratPage'));
 
+// RPH OVK Pages - Lazy loaded
+const PembelianOvkPage = lazy(() => import('./pages/RPH/Ovk/PembelianOvkPage'));
+const AddEditPembelianOvkPage = lazy(() => import('./pages/RPH/Ovk/AddEditPembelianOvkPage'));
+
 // RPH Stok Sapi Page - Lazy loaded
 const StokSapi = lazy(() => import('./pages/RPH/StokSapi/StokSapiPage'));
 const EditStokSapiPage = lazy(() => import('./pages/RPH/StokSapi/EditStokSapiPage'));
@@ -660,6 +664,10 @@ function AppSecure() {
               {/* RPH Konsentrat Routes */}
               <Route path="/rph/pembelian-konsentrat" element={<PembelianKonsentratPage />} />
               <Route path="/rph/pembelian-konsentrat/add" element={<AddEditPembelianKonsentratPage />} />
+
+              {/* RPH OVK Routes */}
+              <Route path="/rph/pembelian-ovk" element={<PembelianOvkPage />} />
+              <Route path="/rph/pembelian-ovk/add" element={<AddEditPembelianOvkPage />} />
 
               {/* System Routes */}
               <Route path="/system/permission-management" element={<PermissionManagementPage />} />

@@ -70,6 +70,7 @@ export const MENU_URL_MAPPING = {
   'stok-doka': '/rph/stok-doka',
   'perpindahan-ternak': '/rph/perpindahan-ternak',
   'pembelian-konsentrat': '/rph/pembelian-konsentrat',
+  'pembelian-ovk-rph': '/rph/pembelian-ovk',
 
   // Reports
   'nota-supplier': '/reports/nota-supplier',
