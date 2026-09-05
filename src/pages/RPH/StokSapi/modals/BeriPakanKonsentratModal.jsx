@@ -3,6 +3,7 @@ import { X, AlertCircle, CheckCircle2, Loader2, Save, Calendar, Wheat, Search, C
 import pemberianPakanKonsentratService from '../../../../services/pemberianPakanKonsentratService';
 import StokSapiService from '../../../../services/stokSapiService';
 import StokDokaService from '../../../../services/stokDokaService';
+import QurbanService from '../../../../services/qurban/qurbanService';
 
 const getToday = () => {
   const d = new Date();
@@ -80,7 +81,7 @@ const Field = ({ label, required = false, helperText, children }) => (
   </div>
 );
 
-const BeriPakanKonsentratModal = ({ isOpen, onClose, onSuccess, animalType = 'sapi', preSelectedPids = null }) => {
+const BeriPakanKonsentratModal = ({ isOpen, onClose, onSuccess, animalType = 'sapi', preSelectedPids = null, useQurbanOptions = false }) => {
   const isDoka = animalType === 'doka';
   const animalLabel = isDoka ? 'DOKA' : 'sapi';
   const animalLabelCap = isDoka ? 'DOKA' : 'Sapi';
@@ -111,7 +112,9 @@ const BeriPakanKonsentratModal = ({ isOpen, onClose, onSuccess, animalType = 'sa
     setLoadingSapi(true);
     const res = isDoka
       ? await StokDokaService.getStokDokaOptions(tgl || getToday())
-      : await StokSapiService.getStokSapiOptions(tgl || getToday());
+      : useQurbanOptions
+        ? await QurbanService.getStokSapiOptions(tgl || getToday())
+        : await StokSapiService.getStokSapiOptions(tgl || getToday());
     setLoadingSapi(false);
     if (res.success && res.data?.rows) {
       setSapiList(res.data.rows.map((r) => ({
@@ -129,7 +132,7 @@ const BeriPakanKonsentratModal = ({ isOpen, onClose, onSuccess, animalType = 'sa
     } else {
       setSapiList([]);
     }
-  }, [isDoka]);
+  }, [isDoka, useQurbanOptions]);
 
   // Default: semua sapi tersedia (yang belum diberi pakan) tercentang saat modal dibuka & data sudah dimuat
   // When preSelectedPids is provided (array), only pre-select those cattle.

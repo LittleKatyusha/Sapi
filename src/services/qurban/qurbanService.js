@@ -494,6 +494,33 @@ class QurbanService {
   static async downloadDocument(pid, type) {
     return HttpClient.get(API_ENDPOINTS.RPH?.QURBAN?.DOCUMENT || `${this.API_BASE}/document`, { params: { pid, type }, responseType: 'blob', cache: false });
   }
+
+  /**
+   * Get qurban cattle options for pemberian pakan konsentrat modal.
+   * Same response shape as StokSapiService.getStokSapiOptions.
+   * @param {string} tglPemberianPakan - YYYY-MM-DD
+   */
+  static async getStokSapiOptions(tglPemberianPakan) {
+    try {
+      const queryParams = new URLSearchParams({
+        tgl_pemberian_pakan: tglPemberianPakan,
+        _t: Date.now(),
+      });
+      const response = await HttpClient.get(`${this.API_BASE}/stok-sapi-options?${queryParams.toString()}`);
+      return {
+        success: true,
+        data: response?.data || { total: 0, total_tersedia: 0, rows: [] },
+        message: response?.message || 'Data berhasil dimuat',
+      };
+    } catch (error) {
+      console.error('[QurbanService] Error getStokSapiOptions:', error);
+      return {
+        success: false,
+        data: { total: 0, total_tersedia: 0, rows: [] },
+        message: error?.message || 'Gagal memuat data',
+      };
+    }
+  }
 }
 
 export default QurbanService;

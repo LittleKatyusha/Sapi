@@ -446,65 +446,38 @@ const StokSapiQurbanPage = () => {
       ),
     },
     {
-      name: 'Kandang',
-      sortable: false,
-      width: '120px',
-      cell: (row) => (
-        row.kandang_kode ? (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 border border-emerald-200" title={row.kandang_nama}>
-            {row.kandang_kode}
-          </span>
-        ) : (
-          <span className="text-xs text-gray-400">—</span>
-        )
-      ),
-    },
-    {
       name: 'Pemeliharaan',
       sortable: false,
       minWidth: '200px',
       cell: (row) => (
-        <div className="space-y-0.5">
-          <div className="text-xs text-gray-500">
-            <span className="text-gray-400">DOF:</span> {row.dof_hari || '-'}
+        <div className="space-y-0.5 py-1">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] font-semibold text-gray-400 w-9">DOF</span>
+            <span className="text-xs text-gray-700">{row.dof_hari || '-'}</span>
+            {row.kandang_kode && (
+              <span className="ml-auto inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200" title={row.kandang_nama}>
+                {row.kandang_kode}
+              </span>
+            )}
           </div>
-          <div className="text-xs text-gray-500">
-            <span className="text-gray-400">Pakan:</span> {row.jumlah_pakan_sesi || 0}x · Rp {row.nilai_pakan || '0'}
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] font-semibold text-gray-400 w-9">Pakan</span>
+            <span className="text-xs text-gray-700">{row.jumlah_pakan_sesi || 0}x · Rp {row.nilai_pakan || '0'}</span>
           </div>
-          {row.sudah_diberi_pakan_hari_ini && (
-            <div className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700 border border-emerald-200">
-              <CheckCircle2 className="h-3 w-3" />
-              Sudah diberi pakan hari ini{row.sesi_pakan_hari_ini > 1 ? ` (${row.sesi_pakan_hari_ini}x)` : ''}
-            </div>
-          )}
-        </div>
-      ),
-    },
-    {
-      name: 'OVK',
-      sortable: false,
-      minWidth: '150px',
-      cell: (row) => (
-        <div className="space-y-0.5">
-          <div className="text-xs text-gray-600 max-w-[140px] truncate" title={row.ovk}>{row.ovk || '-'}</div>
-          <div className="text-xs text-gray-500">
-            <span className="text-gray-400">Nilai:</span> Rp {row.nilai_ovk || '0'}
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] font-semibold text-gray-400 w-9">OVK</span>
+            <span className="text-xs text-gray-700 max-w-[120px] truncate" title={row.ovk}>{row.ovk || '-'}</span>
+            <span className="text-xs text-gray-500 ml-auto">Rp {row.nilai_ovk || '0'}</span>
           </div>
-        </div>
-      ),
-    },
-    {
-      name: 'Total',
-      sortable: false,
-      width: '140px',
-      right: true,
-      cell: (row) => (
-        <div className="space-y-0.5 text-right">
-          <div className="text-xs text-gray-500" title="Harga Pokok Pembelian per kg">
-            <span className="text-gray-400">Beli/kg:</span> Rp {row.hpp || '0'}
-          </div>
-          <div className="font-semibold text-teal-700" title="(bobot × hpp) + pakan + ovk">
-            Rp {row.total || '0'}
+          <div className="flex items-center gap-1.5 pt-0.5 border-t border-gray-100">
+            <span className="text-[10px] font-semibold text-gray-400 w-9">Total</span>
+            <span className="text-xs font-semibold text-teal-700" title="(bobot × hpp) + pakan + ovk">Rp {row.total || '0'}</span>
+            {row.sudah_diberi_pakan_hari_ini && (
+              <span className="ml-auto inline-flex items-center gap-0.5 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 border border-emerald-200" title={`Hari ini: Rp ${row.biaya_pakan_hari_ini || '0'}`}>
+                <CheckCircle2 className="h-2.5 w-2.5" />
+                {row.sesi_pakan_hari_ini > 1 ? `${row.sesi_pakan_hari_ini}x` : '✓'}
+              </span>
+            )}
           </div>
         </div>
       ),
@@ -1356,6 +1329,7 @@ const StokSapiQurbanPage = () => {
         isOpen={beriPakanOpen}
         onClose={() => setBeriPakanOpen(false)}
         animalType="sapi"
+        useQurbanOptions
         preSelectedPids={selectedRows.map((r) => r.pid_sapi).filter(Boolean)}
         onSuccess={(res) => {
           setNotif({ type: 'success', message: res?.message || 'Pemberian pakan konsentrat berhasil disimpan' });
