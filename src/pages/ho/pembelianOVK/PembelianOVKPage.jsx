@@ -133,7 +133,9 @@ const PembelianOVKPage = () => {
             });
             return;
         }
-        navigate('/feedmil/pembelian-ovk', { state: { fromEdit: true } });
+        navigate('/feedmil/keuangan/pengeluaran/bayar/' + encodeURIComponent(id), {
+            state: { from: '/feedmil/pembelian-ovk' }
+        });
     };
 
     const handleDelete = (pembelianItem) => {

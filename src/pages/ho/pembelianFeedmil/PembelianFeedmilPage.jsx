@@ -145,7 +145,9 @@ const PembelianFeedmilPage = () => {
             });
             return;
         }
-        navigate('/feedmil/keuangan/pengeluaran/bayar/' + encodeURIComponent(id));
+        navigate('/feedmil/keuangan/pengeluaran/bayar/' + encodeURIComponent(id), {
+            state: { from: '/feedmil/pembelian-feedmil' }
+        });
     };
 
     const handleDelete = (pembelianItem) => {

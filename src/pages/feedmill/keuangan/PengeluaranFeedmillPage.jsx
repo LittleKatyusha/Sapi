@@ -44,7 +44,13 @@ const TIPE_OPTIONS = [
   { value: '2', label: 'BANK' },
 ];
 
-const EMPTY_FILTERS = { payment_status: '', tipe_pembayaran: '', start_date: '', end_date: '' };
+const JENIS_PEMBELIAN_OPTIONS = [
+  { value: '', label: 'Semua Jenis' },
+  { value: 'feedmill', label: 'Feedmill' },
+  { value: 'ovk', label: 'OVK' },
+];
+
+const EMPTY_FILTERS = { payment_status: '', tipe_pembayaran: '', jenis_pembelian: '', start_date: '', end_date: '' };
 
 const PengeluaranFeedmillPage = () => {
   useDocumentTitle('Feedmill: Pengeluaran');
@@ -70,15 +76,18 @@ const PengeluaranFeedmillPage = () => {
   const [cardData, setCardData] = useState(null);
   const [cardLoading, setCardLoading] = useState(false);
 
-  const fetchCardData = useCallback(async () => {
+  const fetchCardData = useCallback(async (filt = filters) => {
     setCardLoading(true);
-    const res = await feedmillKeuanganService.getCardData();
+    const res = await feedmillKeuanganService.getCardData({
+      tipe_pembayaran: filt.tipe_pembayaran || undefined,
+      jenis_pembelian: filt.jenis_pembelian || undefined,
+    });
     setCardLoading(false);
     if (res.success) {
       const payload = res.data?.data ?? res.data;
       setCardData(payload);
     }
-  }, []);
+  }, [filters]);
 
   const fetchData = useCallback(async (page = currentPage, size = perPage, search = searchTerm, filt = filters) => {
     setLoading(true);
@@ -90,6 +99,7 @@ const PengeluaranFeedmillPage = () => {
       search: search || undefined,
       payment_status: filt.payment_status || undefined,
       tipe_pembayaran: filt.tipe_pembayaran || undefined,
+      jenis_pembelian: filt.jenis_pembelian || undefined,
       start_date: filt.start_date || undefined,
       end_date: filt.end_date || undefined,
     };
@@ -140,6 +150,7 @@ const PengeluaranFeedmillPage = () => {
     setFilters(filterInput);
     setCurrentPage(1);
     fetchData(1, perPage, searchTerm, filterInput);
+    fetchCardData(filterInput);
   };
 
   const handleResetFilter = () => {
@@ -147,6 +158,7 @@ const PengeluaranFeedmillPage = () => {
     setFilters(EMPTY_FILTERS);
     setCurrentPage(1);
     fetchData(1, perPage, searchTerm, EMPTY_FILTERS);
+    fetchCardData(EMPTY_FILTERS);
   };
 
   const handleDetail = async (row) => {
@@ -166,7 +178,7 @@ const PengeluaranFeedmillPage = () => {
   const handleBayar = (row) => {
     navigate(
       `/feedmil/keuangan/pengeluaran/bayar/${encodeURIComponent(row.pid)}`,
-      { state: { from: '/feedmil/pembelian-feedmil' } }
+      { state: { from: '/feedmil/keuangan/pengeluaran' } }
     );
     setOpenMenuId(null);
   };
@@ -289,6 +301,20 @@ const PengeluaranFeedmillPage = () => {
                     value={filterInput.tipe_pembayaran}
                     onChange={(val) => handleFilterChange('tipe_pembayaran', val ?? '')}
                     placeholder="Semua Metode"
+                    isClearable={false}
+                    isSearchable={false}
+                    accentColor="blue"
+                    className="w-full"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1 min-w-[160px]">
+                  <label className="text-[11px] font-medium text-gray-500 uppercase tracking-wide">Jenis Pembelian</label>
+                  <SearchableSelect
+                    options={JENIS_PEMBELIAN_OPTIONS}
+                    value={filterInput.jenis_pembelian}
+                    onChange={(val) => handleFilterChange('jenis_pembelian', val ?? '')}
+                    placeholder="Semua Jenis"
                     isClearable={false}
                     isSearchable={false}
                     accentColor="blue"

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import {
   ArrowLeft, Wallet, Loader2, AlertCircle, Banknote, CheckCircle, Clock, Upload, FileText, X, Eye,
 } from 'lucide-react';
@@ -15,9 +15,10 @@ const parseNumber = (str) => parseFloat(String(str || '').replace(/[^0-9]/g, '')
 const BayarPengeluaranFeedmilPage = () => {
   const { pid } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { showSuccess, showError } = useNotification();
 
-  const backUrl = '/feedmil/pembelian-feedmil';
+  const backUrl = location.state?.from || '/feedmil/keuangan/pengeluaran';
   const goBack = () => navigate(backUrl);
 
   const [pembayaran, setPembayaran] = useState(null);
