@@ -138,6 +138,23 @@ const pemberianPakanKonsentratService = {
       };
     }
   },
+
+  getHistoryBySapi: async (pid, { start = 0, length = 10, draw = 1, search = '' } = {}) => {
+    try {
+      const response = await httpClient.post(`${API_BASE}/history-by-sapi`, { pid, start, length, draw, search });
+      return {
+        success: true,
+        data: response?.data,
+        message: response?.message || 'Data retrieved successfully',
+      };
+    } catch (error) {
+      return {
+        success: false,
+        data: { draw, start, length, total: 0, total_biaya: 0, total_kg: 0, rows: [] },
+        message: error?.data?.message || error?.message || 'Gagal mengambil history pemberian pakan',
+      };
+    }
+  },
 };
 
 export default pemberianPakanKonsentratService;

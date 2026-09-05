@@ -6,6 +6,7 @@ import HttpClient from '../../../services/httpClient';
 import SearchableSelect from '../../../components/shared/SearchableSelect';
 import BulkAssignKandangModal from '../StokSapi/modals/BulkAssignKandangModal';
 import BeriPakanKonsentratModal from '../StokSapi/modals/BeriPakanKonsentratModal';
+import HistoryPakanKonsentratModal from '../StokSapi/modals/HistoryPakanKonsentratModal';
 import BeriOvkQurbanModal from './modals/BeriOvkQurbanModal';
 
 const initialAdvanced = { eartag: '', eartag_supplier: '', nota_qurban: '', status: '' };
@@ -180,6 +181,7 @@ const StokSapiQurbanPage = () => {
   const [assignKandangOpen, setAssignKandangOpen] = useState(false);
   const [beriPakanOpen, setBeriPakanOpen] = useState(false);
   const [beriOvkTarget, setBeriOvkTarget] = useState(null);
+  const [historyPakanTarget, setHistoryPakanTarget] = useState(null);
 
   // Collapsible panels
   const [advancedOpen, setAdvancedOpen] = useState(true);
@@ -450,7 +452,12 @@ const StokSapiQurbanPage = () => {
       sortable: false,
       minWidth: '200px',
       cell: (row) => (
-        <div className="space-y-0.5 py-1">
+        <button
+          type="button"
+          onClick={() => setHistoryPakanTarget(row)}
+          className="w-full text-left space-y-0.5 py-1 px-1 -mx-1 rounded-lg hover:bg-amber-50/60 hover:ring-2 hover:ring-amber-100 transition cursor-pointer"
+          title="Klik untuk lihat history pemberian pakan"
+        >
           <div className="flex items-center gap-1.5">
             <span className="text-[10px] font-semibold text-gray-400 w-9">DOF</span>
             <span className="text-xs text-gray-700">{row.dof_hari || '-'}</span>
@@ -479,7 +486,7 @@ const StokSapiQurbanPage = () => {
               </span>
             )}
           </div>
-        </div>
+        </button>
       ),
     },
     {
@@ -1347,6 +1354,13 @@ const StokSapiQurbanPage = () => {
           setNotif({ type: 'success', message: res?.message || 'Pemberian OVK berhasil disimpan' });
           fetchData(currentPage);
         }}
+      />
+
+      {/* History Pakan Konsentrat Modal */}
+      <HistoryPakanKonsentratModal
+        isOpen={Boolean(historyPakanTarget)}
+        onClose={() => setHistoryPakanTarget(null)}
+        sapi={historyPakanTarget}
       />
 
       {/* Confirm Restore Modal */}

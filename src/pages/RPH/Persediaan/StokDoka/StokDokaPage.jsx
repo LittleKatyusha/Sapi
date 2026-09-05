@@ -7,6 +7,7 @@ import { Notification } from '../../../../components/shared/NotificationComponen
 import ActionButton from '../../StokSapi/components/ActionButton';
 import BeriPakanKonsentratModal from '../../StokSapi/modals/BeriPakanKonsentratModal';
 import BulkAssignKandangModal from '../../StokSapi/modals/BulkAssignKandangModal';
+import HistoryPakanKonsentratModal from '../../StokSapi/modals/HistoryPakanKonsentratModal';
 
 const DEFAULT_PAGE_SIZE = 10;
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
@@ -38,6 +39,7 @@ const StokDokaPage = () => {
   const [selectedPids, setSelectedPids] = useState([]);
   const [bulkKandangModalOpen, setBulkKandangModalOpen] = useState(false);
   const [beriPakanModalOpen, setBeriPakanModalOpen] = useState(false);
+  const [historyPakanTarget, setHistoryPakanTarget] = useState(null);
 
   const rows = useMemo(() => data?.rows || [], [data]);
   const recordsTotal = data?.recordsTotal ?? 0;
@@ -460,7 +462,12 @@ const StokDokaPage = () => {
                         <div className="text-[10px] text-gray-400 whitespace-normal">{row.tanggal_kedatangan}</div>
                       </td>
                       <td className="py-2 px-3 border border-gray-100 whitespace-nowrap">
-                        <div className="space-y-0.5">
+                        <button
+                          type="button"
+                          onClick={() => setHistoryPakanTarget(row)}
+                          className="block text-left space-y-0.5 rounded-lg hover:bg-amber-50/60 hover:ring-2 hover:ring-amber-100 transition cursor-pointer px-1 -mx-1"
+                          title="Klik untuk lihat history pemberian pakan"
+                        >
                           <div className="text-xs text-gray-500">
                             <span className="text-gray-400">Pakan:</span> {row.jumlah_pakan_sesi || 0}x · Rp {row.nilai_pakan || '0'}
                           </div>
@@ -470,7 +477,7 @@ const StokDokaPage = () => {
                               Sudah diberi pakan hari ini{row.sesi_pakan_hari_ini > 1 ? ` (${row.sesi_pakan_hari_ini}x)` : ''}
                             </div>
                           )}
-                        </div>
+                        </button>
                       </td>
                       <td className="py-2 px-3 border border-gray-100 whitespace-nowrap">
                         <div className="space-y-0.5">
@@ -664,6 +671,12 @@ const StokDokaPage = () => {
         selectedPids={selectedPids}
         onSuccess={handleBulkKandangSuccess}
         animalType="doka"
+      />
+
+      <HistoryPakanKonsentratModal
+        isOpen={Boolean(historyPakanTarget)}
+        onClose={() => setHistoryPakanTarget(null)}
+        sapi={historyPakanTarget}
       />
     </div>
   );

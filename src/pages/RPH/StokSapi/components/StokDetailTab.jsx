@@ -4,6 +4,7 @@ import { Filter, Search, RotateCcw, RefreshCw, AlertCircle, Home, ChevronDown, C
 import ActionButton from './ActionButton';
 import StokDetailModal from './StokDetailModal';
 import BulkAssignKandangModal from '../modals/BulkAssignKandangModal';
+import HistoryPakanKonsentratModal from '../modals/HistoryPakanKonsentratModal';
 import StokSapiService from '../../../../services/stokSapiService';
 import { formatNumber } from '../constants/dummyData';
 import { Notification } from '../../../../components/shared/NotificationComponent';
@@ -13,6 +14,7 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, re
   const [openMenuId, setOpenMenuId] = useState(null);
   const [detailRow, setDetailRow] = useState(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [historyPakanTarget, setHistoryPakanTarget] = useState(null);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -652,7 +654,12 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, re
                 </td>
                 {/* Pemeliharaan */}
                 <td className="py-2 px-3 border border-gray-100 whitespace-nowrap">
-                  <div className="space-y-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setHistoryPakanTarget(row)}
+                    className="block text-left space-y-0.5 rounded-lg hover:bg-amber-50/60 hover:ring-2 hover:ring-amber-100 transition cursor-pointer px-1 -mx-1"
+                    title="Klik untuk lihat history pemberian pakan"
+                  >
                     <div className="text-xs text-gray-500">
                       <span className="text-gray-400">DOF:</span> {row.dof_hari || '-'}
                     </div>
@@ -668,7 +675,7 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, re
                         Sudah diberi pakan hari ini{row.sesi_pakan_hari_ini > 1 ? ` (${row.sesi_pakan_hari_ini}x)` : ''}
                       </div>
                     )}
-                  </div>
+                  </button>
                 </td>
                 {/* OVK */}
                 <td className="py-2 px-3 border border-gray-100 whitespace-nowrap">
@@ -785,6 +792,12 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, re
         onClose={() => setBulkKandangModalOpen(false)}
         selectedPids={selectedPids}
         onSuccess={handleBulkKandangSuccess}
+      />
+
+      <HistoryPakanKonsentratModal
+        isOpen={Boolean(historyPakanTarget)}
+        onClose={() => setHistoryPakanTarget(null)}
+        sapi={historyPakanTarget}
       />
 
       <Notification
