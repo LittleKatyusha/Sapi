@@ -583,9 +583,21 @@ const BeriPakanKonsentratModal = ({ isOpen, onClose, onSuccess, animalType = 'sa
                             className="h-4 w-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500 disabled:opacity-40"
                           />
                           <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-4 gap-1 items-center">
-                            <div className="min-w-0">
-                              <p className="text-sm font-semibold text-slate-900 truncate">{s.eartag || 'T/N'}</p>
-                              <p className="text-xs text-slate-400 truncate">Supplier: {s.eartag_supplier || '-'}</p>
+                            <div className="min-w-0 space-y-0.5">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[10px] font-semibold text-slate-400">Eartag Sistem:</span>
+                                <span className="text-sm font-semibold text-slate-900 truncate">{(!s.eartag || s.eartag === '102') ? 'T/N' : s.eartag}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[10px] font-semibold text-slate-400">Eartag Supplier:</span>
+                                <span className="text-xs text-slate-700 truncate">{s.eartag_supplier && s.eartag_supplier !== '-' ? s.eartag_supplier : '-'}</span>
+                              </div>
+                              {s.code_eartag && s.code_eartag !== '-' && (
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-[10px] font-semibold text-slate-400">Nota Sapi:</span>
+                                  <span className="text-[11px] text-slate-500 truncate">{s.code_eartag}</span>
+                                </div>
+                              )}
                             </div>
                             <div className="min-w-0 text-sm text-slate-700 truncate hidden sm:block">
                               {s.jenis_sapi || '-'}
