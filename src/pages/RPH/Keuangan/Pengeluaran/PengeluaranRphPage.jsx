@@ -13,14 +13,12 @@ const JENIS_PEMBELIAN_OPTIONS = [
   { value: 'sapi', label: 'Pembelian Sapi RPH' },
   { value: 'qurban', label: 'Pembelian Sapi Qurban' },
   { value: 'rph_feedmil', label: 'Pembelian Konsentrat' },
-  { value: 'rph_ovk', label: 'Pembelian OVK (RPH)' },
-  { value: 'rph_hewan', label: 'Pembelian Hewan (RPH)' },
   // { value: 'feedmil', label: 'Pembelian Feedmil (HO)' },
   // { value: 'ovk', label: 'Pembelian OVK (HO)' },
   { value: 'lain_lain', label: 'Pembelian Lain-Lain' },
   { value: 'bahan_pembantu_rph', label: 'Pembelian Lain-Lain: Bahan Pembantu RPH' },
   { value: 'kulit', label: 'Pembelian Kulit' },
-  { value: 'rph_ovk', label: 'Pembelian OVK RPH (dari HO)' },
+  { value: 'rph_ovk_ho', label: 'Pembelian OVK RPH (dari HO)' },
   { value: 'rph_hewan', label: 'Pembelian Hewan RPH (dari Vendor)' },
 ];
 
