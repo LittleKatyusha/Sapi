@@ -429,7 +429,7 @@ const PenjualanBoningPage = () => {
         </span>
       ),
     },
-  ]), [openMenuId, serverPagination, handleOpenDetail, handleOpenEdit]);
+  ]), [openMenuId, serverPagination, handleOpenDetail, handleOpenEdit, navigate]);
 
   if (isFormPage) {
     const formData = routePid ? selectedItem : null;

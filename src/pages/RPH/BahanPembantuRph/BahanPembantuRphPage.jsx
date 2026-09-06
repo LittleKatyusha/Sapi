@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import DataTable from 'react-data-table-component';
 import {
   Package,
@@ -519,13 +519,13 @@ const [appliedFilters, setAppliedFilters] = useState(emptyFilter);
     setOpenMenuIdMobile(null);
   };
 
-  const handleDetail = (row) => {
+  const handleDetail = useCallback((row) => {
   setOpenMenuIdDesktop(null);
   setOpenMenuIdMobile(null);
   navigate(`/rph/bahan-pembantu-rph/detail/${row.pid}`);
-  };
+  }, [navigate]);
   
-  const handleEdit = (row) => {
+  const handleEdit = useCallback((row) => {
   setOpenMenuIdDesktop(null);
   setOpenMenuIdMobile(null);
   navigate(
@@ -533,7 +533,7 @@ const [appliedFilters, setAppliedFilters] = useState(emptyFilter);
       ? `/rph/bahan-pembantu-rph/edit/${row.pid}`
       : `/rph/bahan-pembantu-rph/biaya/edit/${row.pid}`
   );
-  };
+  }, [navigate, activeTab]);
 
   const handleDelete = (row) => {
     if (!row) return;
@@ -543,11 +543,11 @@ const [appliedFilters, setAppliedFilters] = useState(emptyFilter);
     setOpenMenuIdMobile(null);
   };
 
-  const handleBayar = (row) => {
+  const handleBayar = useCallback((row) => {
     setOpenMenuIdDesktop(null);
     setOpenMenuIdMobile(null);
     navigate(`/rph/keuangan/pengeluaran/bayar/${row.paymentPid}`);
-  };
+  }, [navigate]);
 
   const handleExport = async (format, { startDate, endDate }) => {
     const isBahan = activeTab === 'pembelian_bahan_pembantu';
@@ -858,7 +858,7 @@ const [appliedFilters, setAppliedFilters] = useState(emptyFilter);
         )
       })
     ];
-  }, [isBiayaTab, openMenuIdDesktop]);
+  }, [isBiayaTab, openMenuIdDesktop, currentPage, perPage, handleBayar, handleDetail, handleEdit]);
 
   return (
     <>
