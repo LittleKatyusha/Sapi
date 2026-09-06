@@ -136,6 +136,11 @@ const AddPenjualanSapiUtuhPage = lazy(() => import('./pages/RPH/PenjualanSapiUtu
 const DetailPenjualanSapiUtuhPage = lazy(() => import('./pages/RPH/PenjualanSapiUtuh/DetailPenjualanSapiUtuhPage'));
 const ReturnPenjualanPage = lazy(() => import('./pages/RPH/PenjualanSapiUtuh/ReturnPenjualanPage'));
 const ReturnHistoryPage = lazy(() => import('./pages/RPH/PenjualanSapiUtuh/ReturnHistoryPage'));
+const PenjualanDokaUtuhPage = lazy(() => import('./pages/RPH/PenjualanDokaUtuh/PenjualanDokaUtuhPage'));
+const AddPenjualanDokaUtuhPage = lazy(() => import('./pages/RPH/PenjualanDokaUtuh/AddPenjualanDokaUtuhPage'));
+const DetailPenjualanDokaUtuhPage = lazy(() => import('./pages/RPH/PenjualanDokaUtuh/DetailPenjualanDokaUtuhPage'));
+const ReturnPenjualanDokaPage = lazy(() => import('./pages/RPH/PenjualanDokaUtuh/ReturnPenjualanDokaPage'));
+const ReturnHistoryDokaPage = lazy(() => import('./pages/RPH/PenjualanDokaUtuh/ReturnHistoryDokaPage'));
 const PenjualanBoningPage = lazy(() => import('./pages/RPH/Penjualan/Boning/PenjualanBoningPage'));
 const PenjualanKarkasPage = lazy(() => import('./pages/RPH/Penjualan/Karkas/PenjualanKarkasPage'));
 const PenjualanKulitPage = lazy(() => import('./pages/RPH/Penjualan/Kulit/PenjualanKulitPage.jsx'));
@@ -147,6 +152,7 @@ const BayarPage = lazy(() => import('./pages/RPH/Keuangan/Penerimaan/Bayar/Bayar
 const PengeluaranRphPage = lazy(() => import('./pages/RPH/Keuangan/Pengeluaran/PengeluaranRphPage.jsx'));
 const BayarPengeluaranPage = lazy(() => import('./pages/RPH/Keuangan/Pengeluaran/Bayar/BayarPage.jsx'));
 const PengirimanPage = lazy(() => import('./pages/RPH/PenjualanSapiUtuh/Pengiriman/PengirimanPage'));
+const PengirimanDokaPage = lazy(() => import('./pages/RPH/PenjualanDokaUtuh/Pengiriman/PengirimanPage'));
 
 // RPH Penawaran Pages - Lazy loaded
 const PenawaranPage = lazy(() => import('./pages/RPH/Penawaran/PenawaranPage'));
@@ -505,6 +511,15 @@ function AppSecure() {
               <Route path="/rph/penjualan-sapi-utuh/edit/:pid" element={<AddPenjualanSapiUtuhPage />} />
               <Route path="/rph/penjualan-sapi-utuh/return/:pid" element={<ReturnPenjualanPage />} />
               <Route path="/rph/penjualan-sapi-utuh/return-history" element={<ReturnHistoryPage />} />
+
+              {/* RPH Penjualan Doka Utuh Routes */}
+              <Route path="/rph/penjualan-doka-utuh" element={<PenjualanDokaUtuhPage />} />
+              <Route path="/rph/penjualan-doka-utuh/add" element={<AddPenjualanDokaUtuhPage />} />
+              <Route path="/rph/penjualan-doka-utuh/detail/:pid" element={<DetailPenjualanDokaUtuhPage />} />
+              <Route path="/rph/penjualan-doka-utuh/edit/:pid" element={<AddPenjualanDokaUtuhPage />} />
+              <Route path="/rph/penjualan-doka-utuh/return/:pid" element={<ReturnPenjualanDokaPage />} />
+              <Route path="/rph/penjualan-doka-utuh/return-history" element={<ReturnHistoryDokaPage />} />
+              <Route path="/rph/penjualan-doka-utuh/pengiriman/:pid" element={<PengirimanDokaPage />} />
               <Route path="/rph/penjualan-boning" element={<PenjualanBoningPage />} />
               <Route path="/rph/penjualan-boning/add" element={<PenjualanBoningPage />} />
               <Route path="/rph/penjualan-boning/edit/:pid" element={<PenjualanBoningPage />} />

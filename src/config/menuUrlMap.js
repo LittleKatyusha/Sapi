@@ -65,6 +65,7 @@ export const MENU_URL_MAPPING = {
 
   // RPH modules
   'penjualan-sapi-utuh': '/rph/penjualan-sapi-utuh',
+  'penjualan-doka-utuh': '/rph/penjualan-doka-utuh',
   'penjualan-kulit': '/rph/penjualan-kulit',
   'penawaran': '/rph/penawaran',
   'stok-sapi-qurban': '/rph/stok-sapi-qurban',
