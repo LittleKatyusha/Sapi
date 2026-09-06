@@ -166,6 +166,7 @@ const AddEditPerpindahanTernakPage = lazy(() => import('./pages/RPH/Perpindahan/
 const ResepKonsentratPage = lazy(() => import('./pages/ho/resepKonsentrat/ResepKonsentratPage'));
 const AddEditResepKonsentratPage = lazy(() => import('./pages/ho/resepKonsentrat/AddEditResepKonsentratPage'));
 const PenjualanKonsentratPage = lazy(() => import('./pages/ho/penjualanKonsentrat/PenjualanKonsentratPage'));
+const PenjualanOvkPage = lazy(() => import('./pages/ho/penjualanOvk/PenjualanOvkPage'));
 
 // Feedmill Keuangan Pages - Lazy loaded
 const PenerimaanFeedmillPage = lazy(() => import('./pages/feedmill/keuangan/PenerimaanFeedmillPage'));
@@ -652,6 +653,7 @@ function AppSecure() {
               <Route path="/feedmil/resep-konsentrat/add" element={<AddEditResepKonsentratPage />} />
               <Route path="/feedmil/resep-konsentrat/edit/:id" element={<AddEditResepKonsentratPage />} />
               <Route path="/feedmil/penjualan-konsentrat" element={<PenjualanKonsentratPage />} />
+              <Route path="/feedmil/penjualan-ovk" element={<PenjualanOvkPage />} />
               {/* Feedmill Keuangan Routes */}
               <Route path="/feedmil/keuangan/penerimaan" element={<PenerimaanFeedmillPage />} />
               <Route path="/feedmil/keuangan/pengeluaran" element={<PengeluaranFeedmillPage />} />
@@ -660,6 +662,7 @@ function AppSecure() {
               <Route path="/ho/resep-konsentrat/add" element={<Navigate to="/feedmil/resep-konsentrat/add" replace />} />
               <Route path="/ho/resep-konsentrat/edit/:id" element={<Navigate to="/feedmil/resep-konsentrat/edit/:id" replace />} />
               <Route path="/ho/penjualan-konsentrat" element={<Navigate to="/feedmil/penjualan-konsentrat" replace />} />
+              <Route path="/ho/penjualan-ovk" element={<Navigate to="/feedmil/penjualan-ovk" replace />} />
 
               {/* RPH Konsentrat Routes */}
               <Route path="/rph/pembelian-konsentrat" element={<PembelianKonsentratPage />} />
