@@ -476,7 +476,7 @@ class QurbanService {
   static async exportToExcel(params = {}) {
     try {
       const response = await HttpClient.get(
-        API_ENDPOINTS.RPH?.QURBAN?.EXPORT || `${this.API_BASE}/export`,
+        API_ENDPOINTS.RPH?.QURBAN?.EXPORT_EXCEL || `${this.API_BASE}/export-excel`,
         { params, responseType: 'blob' }
       );
 
@@ -484,6 +484,41 @@ class QurbanService {
     } catch (error) {
       console.error('[QurbanService] Error exporting data:', error);
       throw error;
+    }
+  }
+
+  static async exportToPdf(params = {}) {
+    return HttpClient.get(API_ENDPOINTS.RPH?.QURBAN?.EXPORT_PDF || `${this.API_BASE}/export-pdf`, { params, responseType: 'blob', cache: false });
+  }
+
+  static async downloadDocument(pid, type) {
+    return HttpClient.get(API_ENDPOINTS.RPH?.QURBAN?.DOCUMENT || `${this.API_BASE}/document`, { params: { pid, type }, responseType: 'blob', cache: false });
+  }
+
+  /**
+   * Get qurban cattle options for pemberian pakan konsentrat modal.
+   * Same response shape as StokSapiService.getStokSapiOptions.
+   * @param {string} tglPemberianPakan - YYYY-MM-DD
+   */
+  static async getStokSapiOptions(tglPemberianPakan) {
+    try {
+      const queryParams = new URLSearchParams({
+        tgl_pemberian_pakan: tglPemberianPakan,
+        _t: Date.now(),
+      });
+      const response = await HttpClient.get(`${this.API_BASE}/stok-sapi-options?${queryParams.toString()}`);
+      return {
+        success: true,
+        data: response?.data || { total: 0, total_tersedia: 0, rows: [] },
+        message: response?.message || 'Data berhasil dimuat',
+      };
+    } catch (error) {
+      console.error('[QurbanService] Error getStokSapiOptions:', error);
+      return {
+        success: false,
+        data: { total: 0, total_tersedia: 0, rows: [] },
+        message: error?.message || 'Gagal memuat data',
+      };
     }
   }
 }

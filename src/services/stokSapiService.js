@@ -90,6 +90,114 @@ class StokSapiService {
     }
   }
 
+  /**
+   * Update data pemeliharaan sapi (eartag, berat, kondisi, keterangan_kondisi).
+   * Endpoint: POST /api/rph/pemeliharaansapi/update
+   */
+  static async update(payload) {
+    try {
+      const response = await HttpClient.post(`${this.API_PREFIX}/update`, payload);
+      HttpClient.clearCache('pemeliharaansapi');
+      return {
+        success: true,
+        data: response.data,
+        message: response.message || 'Data berhasil diperbarui',
+      };
+    } catch (error) {
+      console.error('StokSapiService.update error:', error);
+      let message = 'Gagal memperbarui data';
+      if (error?.data?.data && typeof error.data.data === 'object') {
+        const validationMessages = Object.values(error.data.data).flat();
+        message = validationMessages.join(', ');
+      } else if (error?.data?.message) {
+        message = error.data.message;
+      } else if (error?.message) {
+        message = error.message;
+      }
+      return { success: false, data: null, message };
+    }
+  }
+
+  /**
+   * Riwayat perubahan (berat & kondisi) untuk sapi tertentu.
+   * Endpoint: POST /api/rph/pemeliharaansapi/history
+   */
+  static async history(pid) {
+    try {
+      const response = await HttpClient.post(`${this.API_PREFIX}/history`, { pid });
+      return {
+        success: true,
+        data: response.data,
+        message: 'Data retrieved successfully',
+      };
+    } catch (error) {
+      console.error('StokSapiService.history error:', error);
+      return {
+        success: false,
+        data: null,
+        message: error?.data?.message || error?.message || 'Failed to fetch history',
+      };
+    }
+  }
+
+  /**
+   * Daftar sapi untuk pilihan induk (parent picker) - server-side datatable.
+   * Endpoint: GET /api/rph/pemeliharaansapi/parent-options
+   */
+  static async parentOptions(jenisKelamin, params = {}) {
+    try {
+      const query = {
+        jenis_kelamin: jenisKelamin,
+        q: params.q ?? '',
+        jenis_sapi: params.jenisSapi ?? '',
+        start: params.start ?? 0,
+        length: params.length ?? 10,
+        draw: params.draw ?? 1,
+      };
+      const response = await HttpClient.get(`${this.API_PREFIX}/parent-options`, { params: query, cache: false });
+      return {
+        success: true,
+        data: response.data,
+        message: 'Data retrieved successfully',
+      };
+    } catch (error) {
+      console.error('StokSapiService.parentOptions error:', error);
+      return {
+        success: false,
+        data: null,
+        message: error?.data?.message || error?.message || 'Failed to fetch parent options',
+      };
+    }
+  }
+
+  /**
+   * Simpan sapi baru dari anakan/kelahiran.
+   * Endpoint: POST /api/rph/pemeliharaansapi/store-anakan
+   */
+  static async storeAnakan(payload) {
+    try {
+      const response = await HttpClient.post(`${this.API_PREFIX}/store-anakan`, payload);
+      HttpClient.clearCache('pemeliharaansapi');
+      return {
+        success: true,
+        data: response.data,
+        message: response.message || 'Anakan berhasil ditambahkan',
+      };
+    } catch (error) {
+      console.error('StokSapiService.storeAnakan error:', error);
+      let message = 'Gagal menambahkan anakan';
+      if (error?.data?.data && typeof error.data.data === 'object') {
+        const validationMessages = Object.values(error.data.data).flat();
+        message = validationMessages.join(', ');
+      } else if (error?.data?.message) {
+        message = error.data.message;
+      } else if (error?.message) {
+        message = error.message;
+      }
+      return { success: false, data: null, message };
+    }
+  }
+
   static async bulkAssignKandang(pids, kandangPid) {
     try {
       const response = await HttpClient.post(`${this.API_PREFIX}/bulk-assign-kandang`, {
@@ -160,7 +268,13 @@ class StokSapiService {
 
   static async sapiMati(data) {
     try {
-      const response = await HttpClient.post('/api/rph/persediaan/sapimati/store', data);
+      const payload = data.file instanceof File
+        ? Object.entries(data).reduce((formData, [key, value]) => {
+            if (value !== null && value !== undefined) formData.append(key, value);
+            return formData;
+          }, new FormData())
+        : data;
+      const response = await HttpClient.post('/api/rph/persediaan/sapimati/store', payload);
       HttpClient.clearCache('sapimati');
       return { success: true, data: response.data, message: response.data?.message || response.message || 'Data created successfully' };
     } catch (error) {
@@ -278,6 +392,35 @@ class StokSapiService {
         message: error?.data?.message || error?.message || 'Failed to fetch sapi mati data',
       };
     }
+  }
+
+  static async updateSapiMati(data) {
+    try {
+      const payload = data.file instanceof File
+        ? Object.entries(data).reduce((formData, [key, value]) => {
+            if (value !== null && value !== undefined) formData.append(key, value);
+            return formData;
+          }, new FormData())
+        : data;
+      const response = await HttpClient.post('/api/rph/persediaan/sapimati/update', payload);
+      HttpClient.clearCache('sapimati');
+      return { success: true, data: response.data, message: response.data?.message || response.message || 'Data updated successfully' };
+    } catch (error) {
+      console.error('StokSapiService.updateSapiMati error:', error);
+      const validationErrors = error?.data?.data;
+      const message = validationErrors
+        ? Object.values(validationErrors).flat().join(', ')
+        : error?.data?.message || error?.message || 'Gagal memperbarui data sapi mati';
+      return { success: false, data: null, message };
+    }
+  }
+
+  static async downloadBuktiSapiMati(pid) {
+    return HttpClient.get('/api/rph/persediaan/sapimati/download', {
+      cache: false,
+      responseType: 'blob',
+      params: { pid },
+    });
   }
 
   static async potongSapiBiasa(data) {

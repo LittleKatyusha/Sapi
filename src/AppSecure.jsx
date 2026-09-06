@@ -136,6 +136,11 @@ const AddPenjualanSapiUtuhPage = lazy(() => import('./pages/RPH/PenjualanSapiUtu
 const DetailPenjualanSapiUtuhPage = lazy(() => import('./pages/RPH/PenjualanSapiUtuh/DetailPenjualanSapiUtuhPage'));
 const ReturnPenjualanPage = lazy(() => import('./pages/RPH/PenjualanSapiUtuh/ReturnPenjualanPage'));
 const ReturnHistoryPage = lazy(() => import('./pages/RPH/PenjualanSapiUtuh/ReturnHistoryPage'));
+const PenjualanDokaUtuhPage = lazy(() => import('./pages/RPH/PenjualanDokaUtuh/PenjualanDokaUtuhPage'));
+const AddPenjualanDokaUtuhPage = lazy(() => import('./pages/RPH/PenjualanDokaUtuh/AddPenjualanDokaUtuhPage'));
+const DetailPenjualanDokaUtuhPage = lazy(() => import('./pages/RPH/PenjualanDokaUtuh/DetailPenjualanDokaUtuhPage'));
+const ReturnPenjualanDokaPage = lazy(() => import('./pages/RPH/PenjualanDokaUtuh/ReturnPenjualanDokaPage'));
+const ReturnHistoryDokaPage = lazy(() => import('./pages/RPH/PenjualanDokaUtuh/ReturnHistoryDokaPage'));
 const PenjualanBoningPage = lazy(() => import('./pages/RPH/Penjualan/Boning/PenjualanBoningPage'));
 const PenjualanKarkasPage = lazy(() => import('./pages/RPH/Penjualan/Karkas/PenjualanKarkasPage'));
 const PenjualanKulitPage = lazy(() => import('./pages/RPH/Penjualan/Kulit/PenjualanKulitPage.jsx'));
@@ -147,6 +152,7 @@ const BayarPage = lazy(() => import('./pages/RPH/Keuangan/Penerimaan/Bayar/Bayar
 const PengeluaranRphPage = lazy(() => import('./pages/RPH/Keuangan/Pengeluaran/PengeluaranRphPage.jsx'));
 const BayarPengeluaranPage = lazy(() => import('./pages/RPH/Keuangan/Pengeluaran/Bayar/BayarPage.jsx'));
 const PengirimanPage = lazy(() => import('./pages/RPH/PenjualanSapiUtuh/Pengiriman/PengirimanPage'));
+const PengirimanDokaPage = lazy(() => import('./pages/RPH/PenjualanDokaUtuh/Pengiriman/PengirimanPage'));
 
 // RPH Penawaran Pages - Lazy loaded
 const PenawaranPage = lazy(() => import('./pages/RPH/Penawaran/PenawaranPage'));
@@ -156,13 +162,34 @@ const DetailPenawaranPage = lazy(() => import('./pages/RPH/Penawaran/DetailPenaw
 // RPH Qurban Pages - Lazy loaded
 const StokSapiQurbanPage = lazy(() => import('./pages/RPH/Qurban/StokSapiQurbanPage'));
 const StokDokaPage = lazy(() => import('./pages/RPH/Persediaan/StokDoka/StokDokaPage'));
+const TambahAnakanDokaPage = lazy(() => import('./pages/RPH/Persediaan/StokDoka/TambahAnakanDokaPage'));
 
 // RPH Perpindahan Ternak Page - Lazy loaded
 const PerpindahanTernakPage = lazy(() => import('./pages/RPH/Perpindahan/PerpindahanTernakPage'));
 const AddEditPerpindahanTernakPage = lazy(() => import('./pages/RPH/Perpindahan/AddEditPerpindahanTernakPage'));
 
+// HO Konsentrat Pages - Lazy loaded
+const ResepKonsentratPage = lazy(() => import('./pages/ho/resepKonsentrat/ResepKonsentratPage'));
+const AddEditResepKonsentratPage = lazy(() => import('./pages/ho/resepKonsentrat/AddEditResepKonsentratPage'));
+const PenjualanKonsentratPage = lazy(() => import('./pages/ho/penjualanKonsentrat/PenjualanKonsentratPage'));
+const PenjualanOvkPage = lazy(() => import('./pages/ho/penjualanOvk/PenjualanOvkPage'));
+
+// Feedmill Keuangan Pages - Lazy loaded
+const PenerimaanFeedmillPage = lazy(() => import('./pages/feedmill/keuangan/PenerimaanFeedmillPage'));
+const PengeluaranFeedmillPage = lazy(() => import('./pages/feedmill/keuangan/PengeluaranFeedmillPage'));
+
+// RPH Konsentrat Pages - Lazy loaded
+const PembelianKonsentratPage = lazy(() => import('./pages/RPH/Konsentrat/PembelianKonsentratPage'));
+const AddEditPembelianKonsentratPage = lazy(() => import('./pages/RPH/Konsentrat/AddEditPembelianKonsentratPage'));
+
+// RPH OVK Pages - Lazy loaded
+const PembelianOvkPage = lazy(() => import('./pages/RPH/Ovk/PembelianOvkPage'));
+const AddEditPembelianOvkPage = lazy(() => import('./pages/RPH/Ovk/AddEditPembelianOvkPage'));
+
 // RPH Stok Sapi Page - Lazy loaded
 const StokSapi = lazy(() => import('./pages/RPH/StokSapi/StokSapiPage'));
+const EditStokSapiPage = lazy(() => import('./pages/RPH/StokSapi/EditStokSapiPage'));
+const TambahAnakanPage = lazy(() => import('./pages/RPH/StokSapi/TambahAnakanPage'));
 const PemberianOvkSapiPage = lazy(() => import('./pages/RPH/StokSapi/PemberianOvkSapiPage'));
 const AddEditPemberianOvkSapiPage = lazy(() => import('./pages/RPH/StokSapi/AddEditPemberianOvkSapiPage'));
 
@@ -192,6 +219,7 @@ const ReportRphPage = lazy(() => import('./pages/reporting/rph/ReportRphPage'));
 const PembelianFeedmilPage = lazy(() => import('./pages/ho/pembelianFeedmil/PembelianFeedmilPage'));
 const AddEditPembelianFeedmilPage = lazy(() => import('./pages/ho/pembelianFeedmil/AddEditPembelianFeedmilPage'));
 const PembelianFeedmilDetailPage = lazy(() => import('./pages/ho/pembelianFeedmil/PembelianFeedmilDetailPage'));
+const StokFeedmilPage = lazy(() => import('./pages/ho/pembelianFeedmil/StokFeedmilPage'));
 const PembelianOVKPage = lazy(() => import('./pages/ho/pembelianOVK/PembelianOVKPage'));
 const AddEditPembelianOVKPage = lazy(() => import('./pages/ho/pembelianOVK/addEditPembelianOVK'));
 const PembelianOVKDetailPage = lazy(() => import('./pages/ho/pembelianOVK/PembelianOVKDetailPage'));
@@ -216,6 +244,7 @@ const HOKeuanganPage = lazy(() => import('./pages/ho/keuangan/KeuanganPage'));
 const PenerimaanHoPage = lazy(() => import('./pages/ho/keuangan/Penerimaan/PenerimaanHoPage.jsx'));
 const BayarPenerimaanHoPage = lazy(() => import('./pages/ho/keuangan/Penerimaan/Bayar/BayarPage.jsx'));
 const BayarPengeluaranHoPage = lazy(() => import('./pages/ho/keuangan/Pengeluaran/Bayar/BayarPage.jsx'));
+const BayarPengeluaranFeedmilPage = lazy(() => import('./pages/feedmill/keuangan/Bayar/BayarPengeluaranFeedmilPage.jsx'));
 const KeuanganKasDetailPage = lazy(() => import('./pages/ho/keuanganKas/KeuanganKasDetailPage'));
 const KeuanganBankDetailPage = lazy(() => import('./pages/ho/keuanganBank/KeuanganBankDetailPage'));
 
@@ -435,6 +464,8 @@ function AppSecure() {
 
               {/* RPH Stok Sapi Route */}
               <Route path="/rph/stok-sapi" element={<StokSapi />} />
+              <Route path="/rph/stok-sapi/edit/:pid" element={<EditStokSapiPage />} />
+              <Route path="/rph/stok-sapi/tambah-anakan" element={<TambahAnakanPage />} />
               <Route path="/rph/pemberian-ovk-sapi" element={<PemberianOvkSapiPage />} />
               <Route path="/rph/pemberian-ovk-sapi/add" element={<AddEditPemberianOvkSapiPage />} />
               <Route path="/rph/pemberian-ovk-sapi/edit/:pid" element={<AddEditPemberianOvkSapiPage />} />
@@ -480,6 +511,15 @@ function AppSecure() {
               <Route path="/rph/penjualan-sapi-utuh/edit/:pid" element={<AddPenjualanSapiUtuhPage />} />
               <Route path="/rph/penjualan-sapi-utuh/return/:pid" element={<ReturnPenjualanPage />} />
               <Route path="/rph/penjualan-sapi-utuh/return-history" element={<ReturnHistoryPage />} />
+
+              {/* RPH Penjualan Doka Utuh Routes */}
+              <Route path="/rph/penjualan-doka-utuh" element={<PenjualanDokaUtuhPage />} />
+              <Route path="/rph/penjualan-doka-utuh/add" element={<AddPenjualanDokaUtuhPage />} />
+              <Route path="/rph/penjualan-doka-utuh/detail/:pid" element={<DetailPenjualanDokaUtuhPage />} />
+              <Route path="/rph/penjualan-doka-utuh/edit/:pid" element={<AddPenjualanDokaUtuhPage />} />
+              <Route path="/rph/penjualan-doka-utuh/return/:pid" element={<ReturnPenjualanDokaPage />} />
+              <Route path="/rph/penjualan-doka-utuh/return-history" element={<ReturnHistoryDokaPage />} />
+              <Route path="/rph/penjualan-doka-utuh/pengiriman/:pid" element={<PengirimanDokaPage />} />
               <Route path="/rph/penjualan-boning" element={<PenjualanBoningPage />} />
               <Route path="/rph/penjualan-boning/add" element={<PenjualanBoningPage />} />
               <Route path="/rph/penjualan-boning/edit/:pid" element={<PenjualanBoningPage />} />
@@ -508,21 +548,32 @@ function AppSecure() {
               {/* RPH Qurban Routes */}
               <Route path="/rph/stok-sapi-qurban" element={<StokSapiQurbanPage />} />
               <Route path="/rph/stok-doka" element={<StokDokaPage />} />
+              <Route path="/rph/stok-doka/tambah-anakan" element={<TambahAnakanDokaPage />} />
 
               {/* RPH Perpindahan Ternak Route */}
               <Route path="/rph/perpindahan-ternak" element={<PerpindahanTernakPage />} />
               <Route path="/rph/perpindahan-ternak/tambah" element={<AddEditPerpindahanTernakPage />} />
               <Route path="/rph/perpindahan-ternak/edit/:pid" element={<AddEditPerpindahanTernakPage />} />
 
-              {/* HO Feedmil and OVK Routes */}
-              <Route path="/ho/pembelian-feedmil" element={<PembelianFeedmilPage />} />
-              <Route path="/ho/pembelian-feedmil/add" element={<AddEditPembelianFeedmilPage />} />
-              <Route path="/ho/pembelian-feedmil/edit/:id" element={<AddEditPembelianFeedmilPage />} />
-              <Route path="/ho/pembelian-feedmil/detail/:id" element={<PembelianFeedmilDetailPage />} />
-              <Route path="/ho/pembelian-ovk" element={<PembelianOVKPage />} />
-              <Route path="/ho/pembelian-ovk/add" element={<AddEditPembelianOVKPage />} />
-              <Route path="/ho/pembelian-ovk/edit/:id" element={<AddEditPembelianOVKPage />} />
-              <Route path="/ho/pembelian-ovk/detail/:id" element={<PembelianOVKDetailPage />} />
+              {/* Feedmil Routes */}
+              <Route path="/feedmil/pembelian-feedmil" element={<PembelianFeedmilPage />} />
+              <Route path="/feedmil/pembelian-feedmil/add" element={<AddEditPembelianFeedmilPage />} />
+              <Route path="/feedmil/pembelian-feedmil/edit/:id" element={<AddEditPembelianFeedmilPage />} />
+              <Route path="/feedmil/pembelian-feedmil/detail/:id" element={<PembelianFeedmilDetailPage />} />
+              <Route path="/feedmil/stok-feedmil" element={<StokFeedmilPage />} />
+              <Route path="/feedmil/pembelian-ovk" element={<PembelianOVKPage />} />
+              <Route path="/feedmil/pembelian-ovk/add" element={<AddEditPembelianOVKPage />} />
+              <Route path="/feedmil/pembelian-ovk/edit/:id" element={<AddEditPembelianOVKPage />} />
+              <Route path="/feedmil/pembelian-ovk/detail/:id" element={<PembelianOVKDetailPage />} />
+              {/* Backward compat redirects */}
+              <Route path="/ho/pembelian-feedmil" element={<Navigate to="/feedmil/pembelian-feedmil" replace />} />
+              <Route path="/ho/pembelian-feedmil/add" element={<Navigate to="/feedmil/pembelian-feedmil/add" replace />} />
+              <Route path="/ho/pembelian-feedmil/edit/:id" element={<Navigate to="/feedmil/pembelian-feedmil/edit/:id" replace />} />
+              <Route path="/ho/pembelian-feedmil/detail/:id" element={<Navigate to="/feedmil/pembelian-feedmil/detail/:id" replace />} />
+              <Route path="/ho/pembelian-ovk" element={<Navigate to="/feedmil/pembelian-ovk" replace />} />
+              <Route path="/ho/pembelian-ovk/add" element={<Navigate to="/feedmil/pembelian-ovk/add" replace />} />
+              <Route path="/ho/pembelian-ovk/edit/:id" element={<Navigate to="/feedmil/pembelian-ovk/edit/:id" replace />} />
+              <Route path="/ho/pembelian-ovk/detail/:id" element={<Navigate to="/feedmil/pembelian-ovk/detail/:id" replace />} />
               
               {/* HO Pembelian Kulit Routes */}
               <Route path="/ho/pembelian-kulit" element={<PembelianKulitPage />} />
@@ -554,6 +605,9 @@ function AppSecure() {
               <Route path="/ho/keuangan/pengeluaran/bayar/:pid" element={<BayarPengeluaranHoPage />} />
               <Route path="/ho/keuangan/penerimaan" element={<PenerimaanHoPage />} />
               <Route path="/ho/keuangan/penerimaan/bayar/:pid" element={<BayarPenerimaanHoPage />} />
+              {/* Feedmil keuangan bayar redirect → HO (pembelian feedmil = pengeluaran HO, purchase_type=2) */}
+              <Route path="/feedmil/keuangan/pengeluaran/bayar/:pid" element={<BayarPengeluaranFeedmilPage />} />
+              <Route path="/feedmil/keuangan/penerimaan/bayar/:pid" element={<BayarPenerimaanHoPage />} />
               <Route path="/ho/keuangan-kas/detail/:id" element={<KeuanganKasDetailPage />} />
               <Route path="/ho/keuangan-bank/detail/:id" element={<KeuanganBankDetailPage />} />
 
@@ -608,6 +662,30 @@ function AppSecure() {
               <Route path="/ho/penjualan-sapi" element={<PenjualanSapiHOPage />} />
               <Route path="/penjualan-sapi" element={<Navigate to="/ho/penjualan-sapi" replace />} />
               {/* Add and Edit routes removed - handled by modals in the main page */}
+
+              {/* Feedmil Konsentrat Routes */}
+              <Route path="/feedmil/resep-konsentrat" element={<ResepKonsentratPage />} />
+              <Route path="/feedmil/resep-konsentrat/add" element={<AddEditResepKonsentratPage />} />
+              <Route path="/feedmil/resep-konsentrat/edit/:id" element={<AddEditResepKonsentratPage />} />
+              <Route path="/feedmil/penjualan-konsentrat" element={<PenjualanKonsentratPage />} />
+              <Route path="/feedmil/penjualan-ovk" element={<PenjualanOvkPage />} />
+              {/* Feedmill Keuangan Routes */}
+              <Route path="/feedmil/keuangan/penerimaan" element={<PenerimaanFeedmillPage />} />
+              <Route path="/feedmil/keuangan/pengeluaran" element={<PengeluaranFeedmillPage />} />
+              {/* Backward compat redirects */}
+              <Route path="/ho/resep-konsentrat" element={<Navigate to="/feedmil/resep-konsentrat" replace />} />
+              <Route path="/ho/resep-konsentrat/add" element={<Navigate to="/feedmil/resep-konsentrat/add" replace />} />
+              <Route path="/ho/resep-konsentrat/edit/:id" element={<Navigate to="/feedmil/resep-konsentrat/edit/:id" replace />} />
+              <Route path="/ho/penjualan-konsentrat" element={<Navigate to="/feedmil/penjualan-konsentrat" replace />} />
+              <Route path="/ho/penjualan-ovk" element={<Navigate to="/feedmil/penjualan-ovk" replace />} />
+
+              {/* RPH Konsentrat Routes */}
+              <Route path="/rph/pembelian-konsentrat" element={<PembelianKonsentratPage />} />
+              <Route path="/rph/pembelian-konsentrat/add" element={<AddEditPembelianKonsentratPage />} />
+
+              {/* RPH OVK Routes */}
+              <Route path="/rph/pembelian-ovk" element={<PembelianOvkPage />} />
+              <Route path="/rph/pembelian-ovk/add" element={<AddEditPembelianOvkPage />} />
 
               {/* System Routes */}
               <Route path="/system/permission-management" element={<PermissionManagementPage />} />

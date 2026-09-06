@@ -12,7 +12,6 @@ import SearchableSelect from '../../../../components/shared/SearchableSelect';
 const JENIS_PEMBELIAN_OPTIONS = [
   { value: 'sapi', label: 'Pembelian Sapi RPH' },
   { value: 'qurban', label: 'Pembelian Sapi Qurban' },
-  { value: 'feedmil', label: 'Pembelian Feedmil' },
   { value: 'ovk', label: 'Pembelian OVK' },
   { value: 'lain_lain', label: 'Pembelian Lain-Lain' },
 ];

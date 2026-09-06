@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     ArrowLeft, Save, Loader2, AlertCircle, CheckCircle2, FileText,
-    Building2, User, StickyNote, X, Info,
+    Building2, User, StickyNote, X, Info, Beef, Scale, Tag,
 } from 'lucide-react';
 import SearchableSelect from '../../../../components/shared/SearchableSelect';
 import useParameterSelect from '../Pembelian Sapi/hooks/useParameterSelect';
@@ -11,6 +11,16 @@ import PoRphService from '../../../../services/poRphService';
 import PilihNotaModal from './modals/PilihNotaModal';
 
 const NOTIFICATION_TIMEOUT = 5000;
+
+const formatRupiah = (v) => {
+    const n = Number(v || 0);
+    return 'Rp ' + n.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+};
+
+const formatNumber = (v, dec = 2) => {
+    const n = Number(v || 0);
+    return n.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: dec });
+};
 
 const Field = ({ label, icon: Icon, required, error, children, hint }) => (
     <div>
@@ -47,6 +57,8 @@ const AddPoRphPage = () => {
         catatan: '',
     });
     const [selectedNota, setSelectedNota] = useState(null);
+    const [notaDetail, setNotaDetail] = useState(null);
+    const [loadingDetail, setLoadingDetail] = useState(false);
     const [errors, setErrors] = useState({});
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isNotaModalOpen, setIsNotaModalOpen] = useState(false);
@@ -73,11 +85,38 @@ const AddPoRphPage = () => {
         setErrors(prev => (prev[field] ? { ...prev, [field]: null } : prev));
     }, []);
 
+    const fetchNotaDetail = useCallback(async (idNota) => {
+        if (!idNota) {
+            setNotaDetail(null);
+            return;
+        }
+        setLoadingDetail(true);
+        try {
+            const res = await PoRphService.getNotaDetail(idNota);
+            if (res.success) {
+                setNotaDetail(res.data);
+            } else {
+                setNotaDetail(null);
+                setNotification({ type: 'error', message: res.message || 'Gagal memuat detail nota' });
+            }
+        } catch (err) {
+            setNotaDetail(null);
+            setNotification({ type: 'error', message: err.message || 'Gagal memuat detail nota' });
+        } finally {
+            setLoadingDetail(false);
+        }
+    }, []);
+
     const handleSelectNota = useCallback((notaItem) => {
         setSelectedNota(notaItem);
         handleChange('nota', notaItem?.nota || '');
         setIsNotaModalOpen(false);
-    }, [handleChange]);
+        if (notaItem?.id) {
+            fetchNotaDetail(notaItem.id);
+        } else {
+            setNotaDetail(null);
+        }
+    }, [handleChange, fetchNotaDetail]);
 
     const validateForm = useCallback(() => {
         const newErrors = {};
@@ -250,6 +289,97 @@ const AddPoRphPage = () => {
                                     <p className="text-[10px] font-bold text-gray-400 uppercase">Jenis Pembelian</p>
                                     <p className="text-xs font-medium text-gray-900">{selectedNota.jenis_pembelian || '-'}</p>
                                 </div>
+                            </div>
+                        )}
+
+                        {/* Detail Item Nota — tampil setelah nota dipilih */}
+                        {selectedNota && (
+                            <div className="mt-3 rounded-lg border border-emerald-100 overflow-hidden">
+                                <div className="px-3 py-2 bg-emerald-50/60 border-b border-emerald-100 flex items-center justify-between">
+                                    <p className="text-xs font-semibold text-emerald-800 flex items-center gap-1.5">
+                                        <Beef className="w-3.5 h-3.5" />
+                                        Detail Item Nota (Sapi)
+                                    </p>
+                                    {notaDetail && !loadingDetail && (
+                                        <div className="flex items-center gap-3 text-[11px] text-emerald-700">
+                                            <span>{notaDetail.total_ekor} ekor</span>
+                                            <span className="text-emerald-300">•</span>
+                                            <span className="flex items-center gap-1"><Scale className="w-3 h-3" />{formatNumber(notaDetail.total_berat)} kg</span>
+                                            <span className="text-emerald-300">•</span>
+                                            <span>{formatRupiah(notaDetail.total_nilai)}</span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {loadingDetail ? (
+                                    <div className="flex items-center justify-center py-8 bg-white">
+                                        <Loader2 className="w-5 h-5 text-emerald-500 animate-spin" />
+                                        <span className="ml-2 text-xs text-gray-500">Memuat detail item...</span>
+                                    </div>
+                                ) : !notaDetail || !notaDetail.details || notaDetail.details.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center py-8 bg-white text-center">
+                                        <FileText className="w-7 h-7 text-gray-300 mb-1.5" />
+                                        <p className="text-xs font-medium text-gray-700">Tidak ada detail item</p>
+                                        <p className="text-[11px] text-gray-400 mt-0.5">Nota ini belum memiliki data sapi detail</p>
+                                    </div>
+                                ) : (
+                                    <div className="max-h-72 overflow-auto bg-white">
+                                        <table className="w-full text-xs">
+                                            <thead className="bg-gray-50/80 border-b border-gray-100 sticky top-0 z-10">
+                                                <tr>
+                                                    <th className="px-3 py-2 text-left text-[10px] font-bold text-gray-500 uppercase w-8">#</th>
+                                                    <th className="px-3 py-2 text-left text-[10px] font-bold text-gray-500 uppercase">Eartag</th>
+                                                    <th className="px-3 py-2 text-left text-[10px] font-bold text-gray-500 uppercase">Jenis Hewan</th>
+                                                    <th className="px-3 py-2 text-left text-[10px] font-bold text-gray-500 uppercase">Klasifikasi</th>
+                                                    <th className="px-3 py-2 text-left text-[10px] font-bold text-gray-500 uppercase">Kandang</th>
+                                                    <th className="px-3 py-2 text-right text-[10px] font-bold text-gray-500 uppercase">Berat (kg)</th>
+                                                    <th className="px-3 py-2 text-right text-[10px] font-bold text-gray-500 uppercase">Harga/kg</th>
+                                                    <th className="px-3 py-2 text-right text-[10px] font-bold text-gray-500 uppercase">Total</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-50">
+                                                {notaDetail.details.map((d, idx) => (
+                                                    <tr key={d.id || idx} className="hover:bg-gray-50/60">
+                                                        <td className="px-3 py-2 text-gray-400">{idx + 1}</td>
+                                                        <td className="px-3 py-2">
+                                                            <div className="flex flex-col gap-0.5">
+                                                                <span className="font-mono font-semibold text-gray-900">{d.eartag || '-'}</span>
+                                                                {d.eartag_supplier && (
+                                                                    <span className="font-mono text-[10px] text-gray-400">{d.eartag_supplier}</span>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-3 py-2">
+                                                            {d.nama_jenis_hewan ? (
+                                                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700">
+                                                                    <Tag className="w-2.5 h-2.5" />
+                                                                    {d.nama_jenis_hewan}
+                                                                </span>
+                                                            ) : <span className="text-gray-400">-</span>}
+                                                        </td>
+                                                        <td className="px-3 py-2 text-gray-700">{d.nama_klasifikasi || '-'}</td>
+                                                        <td className="px-3 py-2 text-gray-700">
+                                                            {d.kode_kandang ? (
+                                                                <span className="font-mono text-[11px]">{d.kode_kandang}</span>
+                                                            ) : <span className="text-gray-400">-</span>}
+                                                        </td>
+                                                        <td className="px-3 py-2 text-right font-semibold text-gray-900">{formatNumber(d.berat, 2)}</td>
+                                                        <td className="px-3 py-2 text-right text-gray-700">{formatRupiah(d.harga)}</td>
+                                                        <td className="px-3 py-2 text-right font-semibold text-gray-900">{formatRupiah(d.total_harga)}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                            <tfoot className="bg-gray-50/80 border-t border-gray-200">
+                                                <tr>
+                                                    <td colSpan={5} className="px-3 py-2 text-right text-[10px] font-bold text-gray-500 uppercase">Total</td>
+                                                    <td className="px-3 py-2 text-right font-bold text-gray-900">{formatNumber(notaDetail.total_berat, 2)}</td>
+                                                    <td className="px-3 py-2"></td>
+                                                    <td className="px-3 py-2 text-right font-bold text-emerald-700">{formatRupiah(notaDetail.total_nilai)}</td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>

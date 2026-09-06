@@ -320,11 +320,11 @@ class PenjualanSapiUtuhService {
    */
   static async printFaktur(pid) {
     try {
-      const response = await HttpClient.post(`${BASE_URL}/print-faktur`, { pid });
+      const response = await HttpClient.post(`${BASE_URL}/print-faktur`, { pid }, { responseType: 'blob' });
       return {
         success: true,
-        data: response?.data ?? response,
-        message: response?.message || 'Data faktur berhasil dimuat',
+        data: response,
+        message: 'Faktur berhasil diunduh',
       };
     } catch (error) {
       const errorData = error?.data ?? error?.response?.data ?? null;
@@ -343,11 +343,11 @@ class PenjualanSapiUtuhService {
    */
   static async printInvoice(pid) {
     try {
-      const response = await HttpClient.post(`${BASE_URL}/print-invoice`, { pid });
+      const response = await HttpClient.post(`${BASE_URL}/print-invoice`, { pid }, { responseType: 'blob' });
       return {
         success: true,
-        data: response?.data ?? response,
-        message: response?.message || 'Data invoice berhasil dimuat',
+        data: response,
+        message: 'Invoice berhasil diunduh',
       };
     } catch (error) {
       const errorData = error?.data ?? error?.response?.data ?? null;
@@ -366,11 +366,11 @@ class PenjualanSapiUtuhService {
    */
   static async printSuratJalan(pid) {
     try {
-      const response = await HttpClient.post(`${BASE_URL}/print-surat-jalan`, { pid });
+      const response = await HttpClient.post(`${BASE_URL}/print-surat-jalan`, { pid }, { responseType: 'blob' });
       return {
         success: true,
-        data: response?.data ?? response,
-        message: response?.message || 'Data surat jalan berhasil dimuat',
+        data: response,
+        message: 'Surat jalan berhasil diunduh',
       };
     } catch (error) {
       const errorData = error?.data ?? error?.response?.data ?? null;

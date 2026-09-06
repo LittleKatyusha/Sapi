@@ -5,6 +5,13 @@ import { formatCurrency } from './ModernKeuanganTable';
 
 const formatDate = (dateString) => {
     if (!dateString) return '-';
+    // Handle d-m-Y format (e.g. "02-09-2026" = 2 Sept 2026) — JS parses as MM-DD by default
+    if (typeof dateString === 'string' && /^\d{2}-\d{2}-\d{4}$/.test(dateString)) {
+        const [dd, mm, yyyy] = dateString.split('-');
+        const d = new Date(`${yyyy}-${mm}-${dd}`);
+        if (isNaN(d.getTime())) return dateString;
+        return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
     const d = new Date(dateString);
     if (isNaN(d.getTime())) return dateString;
     return d.toLocaleDateString('id-ID', {

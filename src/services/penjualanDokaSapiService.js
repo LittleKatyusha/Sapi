@@ -37,6 +37,15 @@ class PenjualanDokaSapiService {
       if (params.end_date) {
         queryParams.end_date = params.end_date;
       }
+      if (params.status && params.status !== 'all') {
+        queryParams.status = params.status;
+      }
+      if (params.rph) {
+        queryParams.rph = params.rph;
+      }
+      if (params.payment_status && params.payment_status !== 'all') {
+        queryParams.payment_status = params.payment_status;
+      }
 
       const response = await HttpClient.get(`${API_ENDPOINTS.HO.PENJUALAN_DOKA_SAPI}/data`, {
         params: queryParams
@@ -55,6 +64,38 @@ class PenjualanDokaSapiService {
       console.error('Error fetching Penjualan Doka Sapi data:', error);
       throw error;
     }
+  }
+
+  /**
+   * Get stat cards data (server-side accurate aggregation)
+   * @returns {Promise} API response with card data
+   */
+  static async getCardData() {
+    try {
+      const response = await HttpClient.get(`${API_ENDPOINTS.HO.PENJUALAN_DOKA_SAPI}/card`);
+      return response;
+    } catch (error) {
+      console.error('Error fetching Penjualan Doka Sapi card data:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Build export URL with filters for Excel/PDF download.
+   * @param {Object} filters - { start_date, end_date, status, rph, payment_status }
+   * @param {string} type - 'export-excel' | 'export-rekap-pdf'
+   * @returns {string} Full URL with query params
+   */
+  static buildExportUrl(filters = {}, type = 'export-excel') {
+    const base = `${API_ENDPOINTS.HO.PENJUALAN_DOKA_SAPI}/${type}`;
+    const params = new URLSearchParams();
+    if (filters.start_date) params.append('start_date', filters.start_date);
+    if (filters.end_date) params.append('end_date', filters.end_date);
+    if (filters.status && filters.status !== 'all') params.append('status', filters.status);
+    if (filters.rph) params.append('rph', filters.rph);
+    if (filters.payment_status && filters.payment_status !== 'all') params.append('payment_status', filters.payment_status);
+    const qs = params.toString();
+    return qs ? `${base}?${qs}` : base;
   }
 
   /**
@@ -101,7 +142,11 @@ class PenjualanDokaSapiService {
       };
     } catch (error) {
       console.error('Error approving Penjualan Doka Sapi:', error);
-      throw error;
+      const message = this._extractErrorMessage(error, 'Gagal menyetujui pesanan');
+      const wrapped = new Error(message);
+      wrapped.data = error.data;
+      wrapped.status = error.status;
+      throw wrapped;
     }
   }
 
@@ -128,8 +173,41 @@ class PenjualanDokaSapiService {
       };
     } catch (error) {
       console.error('Error rejecting Penjualan Doka Sapi:', error);
-      throw error;
+      const message = this._extractErrorMessage(error, 'Gagal menolak pesanan');
+      const wrapped = new Error(message);
+      wrapped.data = error.data;
+      wrapped.status = error.status;
+      throw wrapped;
     }
+  }
+
+  /**
+   * Extract a user-friendly message from an HttpClient error.
+   * Backend validation errors come back as:
+   *   { status: 'no', message: 'Validasi gagal', data: { catatan: ['...'] }, code: 400 }
+   * HttpClient stores the parsed body in error.data and sets error.message to the raw message.
+   */
+  static _extractErrorMessage(error, fallback) {
+    const data = error?.data;
+    if (data && typeof data === 'object') {
+      // Laravel validation messages: { field: ['msg1', 'msg2', ...] }
+      const fieldMessages = [];
+      Object.keys(data).forEach((field) => {
+        const v = data[field];
+        if (Array.isArray(v) && v.length > 0) {
+          fieldMessages.push(`${field}: ${v.join(', ')}`);
+        } else if (typeof v === 'string') {
+          fieldMessages.push(`${field}: ${v}`);
+        }
+      });
+      if (fieldMessages.length > 0) {
+        return fieldMessages.join(' | ');
+      }
+      if (typeof data.message === 'string' && data.message) {
+        return data.message;
+      }
+    }
+    return error?.message || fallback;
   }
 
   /**

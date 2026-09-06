@@ -313,6 +313,7 @@ const ModernPembelianKulitTable = ({
   onDelete,
   onDetail,
   onBayar,
+  onNotification,
   getFarmName,
   getBankName
 }) => {
@@ -344,6 +345,7 @@ const ModernPembelianKulitTable = ({
     const rowId = row.id || row.encryptedPid;
     setDownloadLoadingId(rowId);
     setOpenMenuId(null);
+    onNotification?.({ type: 'info', message: 'Memproses nota pembelian kulit...' });
     try {
       const blob = await LaporanPembelianService.downloadReportNotaKulit(id);
       const url = window.URL.createObjectURL(blob);
@@ -354,8 +356,10 @@ const ModernPembelianKulitTable = ({
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
+      onNotification?.({ type: 'success', message: 'Nota pembelian kulit berhasil diunduh.' });
     } catch (error) {
       console.error('Download kulit report error:', error);
+      onNotification?.({ type: 'error', message: error.message || 'Gagal mengunduh nota pembelian kulit.' });
     } finally {
       setDownloadLoadingId(null);
     }

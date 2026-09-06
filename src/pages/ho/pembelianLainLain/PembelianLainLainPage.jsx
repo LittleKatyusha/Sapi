@@ -13,7 +13,6 @@ import useBanksAPILazy from '../../../hooks/useBanksAPILazy';
 import useSatuanAPI from './hooks/useSatuanAPI';
 import useJenisPembelianAPI from './hooks/useJenisPembelianAPI';
 import useInfoCardsPembelianLainLain from './hooks/useInfoCardsPembelianLainLain';
-import useAuth from '../../../hooks/useAuth';
 import PortalActionDropdown from './components/PortalActionDropdown';
 import InfoCardLainLain from './components/InfoCardLainLain';
 import PembelianLainLainTabs from './components/PembelianLainLainTabs';
@@ -25,9 +24,8 @@ import LaporanPembelianService from '../../../services/laporanPembelianService';
 import DeleteConfirmationModal from './modals/DeleteConfirmationModal';
 import AddEditBebanModal from './modals/AddEditBebanModal';
 import AddEditBahanPembantuModal from './modals/AddEditBahanPembantuModal';
-import ReportParameterModal from './modals/ReportParameterModal';
-import ReportBahanPembantuModal from './modals/ReportBahanPembantuModal';
-import ReportBebanModal from './modals/ReportBebanModal';
+import ExportAsetModal from './modals/ExportAsetModal';
+import ExportTransaksiModal from './modals/ExportTransaksiModal';
 
 const formatCurrency = (value) => {
     if (!value || value === 0) return 'Rp 0';
@@ -54,13 +52,11 @@ const PembelianLainLainPage = () => {
     const [isBahanPembantuSubmitting, setIsBahanPembantuSubmitting] = useState(false);
     const [selectedBahanPembantuItem, setSelectedBahanPembantuItem] = useState(null);
     const [isBahanPembantuDetailMode, setIsBahanPembantuDetailMode] = useState(false);
-    const [isDownloadingReport, setIsDownloadingReport] = useState(false);
-    const [isReportModalOpen, setIsReportModalOpen] = useState(false);
-    const [reportModalType, setReportModalType] = useState('beban'); // 'aset' or 'beban'
-    const [isBahanPembantuReportModalOpen, setIsBahanPembantuReportModalOpen] = useState(false);
-    const [isBebanReportModalOpen, setIsBebanReportModalOpen] = useState(false);
+    const [isAsetExportOpen, setIsAsetExportOpen] = useState(false);
+    const [isAsetExporting, setIsAsetExporting] = useState(false);
+    const [exportType, setExportType] = useState(null);
+    const [isExporting, setIsExporting] = useState(false);
     const [activeTab, setActiveTab] = useState('aset'); // 'aset' | 'biaya' | 'bahan'
-    const { user } = useAuth();
     
     const {
         pembelian: filteredData,
@@ -263,6 +259,17 @@ const PembelianLainLainPage = () => {
         }
         navigate(`/ho/keuangan/pengeluaran/bayar/${encodeURIComponent(id)}`);
     }, [navigate, setNotification]);
+
+    const handleDownloadNota = useCallback(async (row) => {
+        const id = row.pid || row.encryptedPid || row.id;
+        if (!id) return setNotification({ type: 'error', message: 'ID transaksi tidak tersedia untuk nota.' });
+        setNotification({ type: 'info', message: 'Memproses nota transaksi...' });
+        try {
+            const blob = await LaporanPembelianService.downloadReportNotaLainLain(id);
+            const url = window.URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = `Nota_${row.nota_sistem || id}.pdf`; link.click(); window.URL.revokeObjectURL(url);
+            setNotification({ type: 'success', message: 'Nota transaksi berhasil diunduh.' });
+        } catch (error) { setNotification({ type: 'error', message: error.message || 'Gagal mengunduh nota transaksi.' }); }
+    }, []);
 
     // Handler khusus untuk edit beban
     const handleEditBeban = async (beban) => {
@@ -570,247 +577,38 @@ const PembelianLainLainPage = () => {
         }
     };
 
-    // Download report handlers
-    const handleOpenReportModal = async (type = 'beban') => {
-        // Fetch lazy-loaded options FIRST before opening modal
-        await fetchTipePembayaran();
-        setReportModalType(type);
-        setIsReportModalOpen(true);
-    };
-
-    const handleCloseReportModal = () => {
-        setIsReportModalOpen(false);
-    };
-
-    const handleDownloadReport = async (params) => {
-        setIsDownloadingReport(true);
+    const handleAsetExport = async (format, { startDate, endDate }) => {
+        setIsAsetExporting(true);
+        setNotification({ type: 'info', message: `Memproses rekap pembelian aset dalam format ${format === 'excel' ? 'Excel' : 'PDF'}...` });
         try {
-            const { reportType, divisi, id_tipe_pembayaran, tgl_input, bulan, tahun } = params;
-            
-            let reportDescription = '';
-            let reportTypeLabel = reportModalType === 'aset' ? 'Aset' : 'Beban';
-            
-            if (reportType === 'harian') {
-                reportDescription = `laporan harian ${reportTypeLabel} (${tgl_input})`;
-            } else {
-                const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-                reportDescription = `laporan bulanan ${reportTypeLabel} (${monthNames[bulan - 1]} ${tahun})`;
-            }
-            
-            setNotification({
-                type: 'info',
-                message: `Mengunduh ${reportDescription}...`
-            });
-
-            // Calculate date range
-            let startDate, endDate;
-            if (reportType === 'harian') {
-                startDate = tgl_input;
-                endDate = tgl_input;
-            } else {
-                const firstDay = new Date(tahun, bulan - 1, 1);
-                const lastDay = new Date(tahun, bulan, 0);
-                startDate = firstDay.toISOString().split('T')[0];
-                endDate = lastDay.toISOString().split('T')[0];
-            }
-
-            // Determine report type code: 1 for aset, 2 for beban
-            const reportTypeCode = reportModalType === 'aset' ? 1 : 2;
-
-            const blob = await LaporanPembelianService.downloadReportOtherHo(
-                startDate,
-                endDate,
-                reportTypeCode
-            );
-
-            const url = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            
-            const filename = reportType === 'harian'
-                ? `Laporan_${reportTypeLabel}_Harian_${tgl_input}_${divisi}_${id_tipe_pembayaran}.pdf`
-                : `Laporan_${reportTypeLabel}_Bulanan_${tahun}-${String(bulan).padStart(2, '0')}_${divisi}_${id_tipe_pembayaran}.pdf`;
-            
-            link.download = filename;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
-
-            setNotification({
-                type: 'success',
-                message: `${reportDescription} berhasil diunduh!`
-            });
-            
-            handleCloseReportModal();
-        } catch (error) {
-            console.error('Error downloading report:', error);
-            setNotification({
-                type: 'error',
-                message: error.message || 'Gagal mengunduh laporan'
-            });
-        } finally {
-            setIsDownloadingReport(false);
-        }
+            const params = { start_date: startDate, end_date: endDate };
+            const filters = { nota_sistem: 'filter_nota_sistem', nota: 'filter_nota', nama_supplier: 'filter_nama_supplier', plat_nomor: 'filter_plat_nomor', jenis_pembelian: 'filter_jenis_pembelian' };
+            Object.entries(filters).forEach(([key, parameter]) => { if (advancedFilters[key]) params[parameter] = advancedFilters[key]; });
+            const endpoint = format === 'excel' ? API_ENDPOINTS.HO.LAINLAIN.EXPORT_EXCEL : API_ENDPOINTS.HO.LAINLAIN.EXPORT_PDF;
+            const blob = await HttpClient.get(endpoint, { params, responseType: 'blob', cache: false });
+            const url = window.URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = `Pembelian_Aset_${startDate}_${endDate}.${format === 'excel' ? 'xlsx' : 'pdf'}`; link.click(); window.URL.revokeObjectURL(url);
+            setIsAsetExportOpen(false); setNotification({ type: 'success', message: `${format === 'excel' ? 'Excel' : 'PDF'} berhasil diunduh.` });
+        } catch (error) { setNotification({ type: 'error', message: error.message || 'Gagal membuat export.' }); } finally { setIsAsetExporting(false); }
     };
 
     // Bahan Pembantu Report handlers
-    const handleOpenBahanPembantuReportModal = async () => {
-        // Fetch lazy-loaded options FIRST before opening modal
-        await fetchTipePembayaran();
-        setIsBahanPembantuReportModalOpen(true);
-    };
-
-    const handleCloseBahanPembantuReportModal = () => {
-        setIsBahanPembantuReportModalOpen(false);
-    };
-
-    const handleDownloadBahanPembantuReport = async (params) => {
-        setIsDownloadingReport(true);
+    const handleTabExport = async (format, { startDate, endDate }) => {
+        const config = exportType === 'bahan'
+            ? { title: 'bahan pembantu', endpoint: API_ENDPOINTS.HO.BAHAN_PEMBANTU, filters: bahanPembantuFilters }
+            : { title: 'biaya-biaya', endpoint: API_ENDPOINTS.HO.BEBAN_BIAYA, filters: bebanFilters };
+        setIsExporting(true);
+        setNotification({ type: 'info', message: `Memproses rekap ${config.title} dalam format ${format === 'excel' ? 'Excel' : 'PDF'}...` });
         try {
-            const { reportType, divisi, id_tipe_pembayaran, petugas, tgl_pembelian, bulan, tahun } = params;
-            
-            let reportDescription = '';
-            
-            if (reportType === 'harian') {
-                reportDescription = `laporan harian Bahan Pembantu (${tgl_pembelian})`;
-            } else {
-                const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-                const selectedMonthsStr = bulan.map(m => monthNames[m - 1]).join(', ');
-                reportDescription = `laporan bulanan Bahan Pembantu (${selectedMonthsStr} ${tahun})`;
-            }
-            
-            setNotification({
-                type: 'info',
-                message: `Mengunduh ${reportDescription}...`
-            });
-
-            let blob;
-            let filename;
-
-            if (reportType === 'harian') {
-                blob = await LaporanPembelianService.downloadReportBahanPembantuDaily(
-                    tgl_pembelian,
-                    divisi,
-                    id_tipe_pembayaran,
-                    petugas
-                );
-                filename = `Laporan_Bahan_Pembantu_Harian_${tgl_pembelian}_${divisi}.pdf`;
-            } else {
-                blob = await LaporanPembelianService.downloadReportBahanPembantuMonthly(
-                    bulan,
-                    tahun,
-                    divisi,
-                    id_tipe_pembayaran,
-                    petugas
-                );
-                const monthsStr = bulan.join('-');
-                filename = `Laporan_Bahan_Pembantu_Bulanan_${tahun}-${monthsStr}_${divisi}.pdf`;
-            }
-
-            const url = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = filename;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
-
-            setNotification({
-                type: 'success',
-                message: `${reportDescription} berhasil diunduh!`
-            });
-            
-            handleCloseBahanPembantuReportModal();
-        } catch (error) {
-            console.error('Error downloading report:', error);
-            setNotification({
-                type: 'error',
-                message: error.message || 'Gagal mengunduh laporan'
-            });
-        } finally {
-            setIsDownloadingReport(false);
-        }
-    };
-
-    // Beban Report handlers
-    const handleOpenBebanReportModal = async () => {
-        // Fetch lazy-loaded options FIRST before opening modal
-        await fetchTipePembayaran();
-        setIsBebanReportModalOpen(true);
-    };
-
-    const handleCloseBebanReportModal = () => {
-        setIsBebanReportModalOpen(false);
-    };
-
-    const handleDownloadBebanReport = async (params) => {
-        setIsDownloadingReport(true);
-        try {
-            const { reportType, division, id_tipe_pembayaran, input_date, month, year } = params;
-            const petugas = user?.name || 'User';
-            
-            let reportDescription = '';
-            
-            if (reportType === 'harian') {
-                reportDescription = `laporan harian Biaya-Biaya (${input_date})`;
-            } else {
-                const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-                reportDescription = `laporan bulanan Biaya-Biaya (${monthNames[month - 1]} ${year})`;
-            }
-            
-            setNotification({
-                type: 'info',
-                message: `Mengunduh ${reportDescription}...`
-            });
-
-            let blob;
-            let filename;
-
-            if (reportType === 'harian') {
-                blob = await LaporanPembelianService.downloadReportBebanDaily(
-                    input_date,
-                    division,
-                    id_tipe_pembayaran,
-                    petugas
-                );
-                filename = `Laporan_Biaya_Biaya_Harian_${input_date}_${division}.pdf`;
-            } else {
-                blob = await LaporanPembelianService.downloadReportBebanMonthly(
-                    year,
-                    month,
-                    division,
-                    id_tipe_pembayaran,
-                    petugas
-                );
-                filename = `Laporan_Biaya_Biaya_Bulanan_${year}-${String(month).padStart(2, '0')}_${division}.pdf`;
-            }
-
-            const url = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = filename;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
-
-            setNotification({
-                type: 'success',
-                message: `${reportDescription} berhasil diunduh!`
-            });
-            
-            handleCloseBebanReportModal();
-        } catch (error) {
-            console.error('Error downloading report:', error);
-            setNotification({
-                type: 'error',
-                message: error.message || 'Gagal mengunduh laporan'
-            });
-        } finally {
-            setIsDownloadingReport(false);
-        }
+            const params = { start_date: startDate, end_date: endDate };
+            const filterMap = exportType === 'bahan'
+                ? { nama_office: 'filter_nama_office', nama_produk: 'filter_nama_produk', peruntukan: 'filter_peruntukan', pemasok: 'filter_pemasok', tipe_pembayaran: 'filter_tipe_pembayaran' }
+                : { nama_office: 'filter_nama_office', peruntukan: 'filter_peruntukan', nama_pembayar: 'filter_nama_pembayar', tipe_pembayaran: 'filter_tipe_pembayaran', nama_item: 'filter_nama_item' };
+            Object.entries(filterMap).forEach(([key, parameter]) => { if (config.filters[key]) params[parameter] = config.filters[key]; });
+            const endpoint = format === 'excel' ? config.endpoint.EXPORT_EXCEL : config.endpoint.EXPORT_PDF;
+            const blob = await HttpClient.get(endpoint, { params, responseType: 'blob', cache: false });
+            const url = window.URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = `Pembelian_${exportType === 'bahan' ? 'Bahan_Pembantu' : 'Biaya'}_${startDate}_${endDate}.${format === 'excel' ? 'xlsx' : 'pdf'}`; link.click(); window.URL.revokeObjectURL(url);
+            setExportType(null); setNotification({ type: 'success', message: `${format === 'excel' ? 'Excel' : 'PDF'} berhasil diunduh.` });
+        } catch (error) { setNotification({ type: 'error', message: error.message || 'Gagal membuat export.' }); } finally { setIsExporting(false); }
     };
 
     // Helper functions for number formatting
@@ -952,13 +750,14 @@ const PembelianLainLainPage = () => {
                             onDelete={(item) => handleDelete({...item, reportType: 'beban'})}
                             onDetail={handleDetailBeban}
                             onBayar={handleBayar}
+                            onDownload={handleDownloadNota}
                             labels={{ tandaTerimaTitle: 'TANDA TERIMA BARANG - BIAYA-BIAYA' }}
                         />
                     </div>
                 );
             },
         },
-    ], [bebanPagination.currentPage, bebanPagination.perPage, handleBayar]);
+    ], [bebanPagination.currentPage, bebanPagination.perPage, handleBayar, handleDownloadNota]);
 
     // Handler khusus untuk delete bahan pembantu
     const handleDeleteBahanPembantu = useCallback((bahanPembantu) => {
@@ -1116,13 +915,14 @@ const PembelianLainLainPage = () => {
                             onDelete={handleDeleteBahanPembantu}
                             onDetail={handleDetailBahanPembantu}
                             onBayar={handleBayar}
+                            onDownload={handleDownloadNota}
                             labels={{ tandaTerimaTitle: 'TANDA TERIMA BARANG - BAHAN PEMBANTU' }}
                         />
                     </div>
                 );
             },
         },
-    ], [bahanPembantuPagination.currentPage, bahanPembantuPagination.perPage, handleEditBahanPembantu, handleDeleteBahanPembantu, handleDetailBahanPembantu, handleBayar]);
+    ], [bahanPembantuPagination.currentPage, bahanPembantuPagination.perPage, handleEditBahanPembantu, handleDeleteBahanPembantu, handleDetailBahanPembantu, handleBayar, handleDownloadNota]);
 
     return (
         <>
@@ -1469,8 +1269,8 @@ const PembelianLainLainPage = () => {
                     getBankName={getBankName}
                     bankOptions={bankOptions}
                     onAsetAdd={() => navigate('/ho/pembelian-lain-lain/add')}
-                    onAsetReport={() => handleOpenReportModal('aset')}
-                    isDownloadingReport={isDownloadingReport}
+                    onAsetReport={() => setIsAsetExportOpen(true)}
+                    onAsetNotification={setNotification}
                     biayaData={pembelianBeban}
                     biayaLoading={bebanLoading}
                     biayaError={bebanError}
@@ -1481,7 +1281,7 @@ const PembelianLainLainPage = () => {
                     onBiayaPageChange={handleBebanPageChange}
                     onBiayaPerPageChange={handleBebanPerPageChange}
                     onBiayaAdd={handleOpenBebanModal}
-                    onBiayaReport={handleOpenBebanReportModal}
+                    onBiayaReport={() => setExportType('biaya')}
                     biayaColumns={columnsBiaya}
                     bahanData={pembelianBahanPembantu}
                     bahanLoading={bahanPembantuLoading}
@@ -1493,7 +1293,7 @@ const PembelianLainLainPage = () => {
                     onBahanPageChange={handleBahanPembantuPageChange}
                     onBahanPerPageChange={handleBahanPembantuPerPageChange}
                     onBahanAdd={handleOpenBahanPembantuModal}
-                    onBahanReport={handleOpenBahanPembantuReportModal}
+                    onBahanReport={() => setExportType('bahan')}
                     bahanColumns={columnsBahanPembantu}
                 />
                 </div>
@@ -1628,42 +1428,9 @@ const PembelianLainLainPage = () => {
                 isDetailMode={isBahanPembantuDetailMode}
             />
 
-            {/* Report Parameter Modal */}
-            <ReportParameterModal
-                isOpen={isReportModalOpen}
-                onClose={handleCloseReportModal}
-                onDownload={handleDownloadReport}
-                divisiOptions={divisiOptions}
-                tipePembayaranOptions={tipePembayaranOptions}
-                divisiLoading={divisiLoading}
-                tipePembayaranLoading={tipePembayaranLoading}
-                isDownloading={isDownloadingReport}
-                reportTitle={reportModalType === 'aset' ? 'Pembelian Aset' : 'Pembelian Biaya-Biaya'}
-            />
+            <ExportAsetModal isOpen={isAsetExportOpen} loading={isAsetExporting} onClose={() => setIsAsetExportOpen(false)} onExport={handleAsetExport} />
 
-            {/* Report Bahan Pembantu Modal */}
-            <ReportBahanPembantuModal
-                isOpen={isBahanPembantuReportModalOpen}
-                onClose={handleCloseBahanPembantuReportModal}
-                onDownload={handleDownloadBahanPembantuReport}
-                divisiOptions={divisiOptions}
-                tipePembayaranOptions={tipePembayaranOptions}
-                divisiLoading={divisiLoading}
-                tipePembayaranLoading={tipePembayaranLoading}
-                isDownloading={isDownloadingReport}
-            />
-
-            {/* Report Beban Modal */}
-            <ReportBebanModal
-                isOpen={isBebanReportModalOpen}
-                onClose={handleCloseBebanReportModal}
-                onDownload={handleDownloadBebanReport}
-                divisiOptions={divisiOptions}
-                tipePembayaranOptions={tipePembayaranOptions}
-                divisiLoading={divisiLoading}
-                tipePembayaranLoading={tipePembayaranLoading}
-                isDownloading={isDownloadingReport}
-            />
+            <ExportTransaksiModal isOpen={Boolean(exportType)} title={exportType === 'bahan' ? 'Pembelian Bahan Pembantu' : 'Pembelian Biaya-Biaya'} loading={isExporting} onClose={() => setExportType(null)} onExport={handleTabExport} />
     </>
 );
 };

@@ -1,13 +1,17 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import DataTable from 'react-data-table-component';
-import { Beef, Search, Loader2, AlertCircle, FileText, ChevronDown, ChevronUp, SlidersHorizontal, RotateCcw, Tag, Calendar, Weight, CircleDollarSign, Hash, CheckCircle2, RotateCcw as RotateCcwIcon, Undo2, MoreVertical, Info, Scissors, Skull, X } from 'lucide-react';
+import { Beef, Search, Loader2, AlertCircle, FileText, ChevronDown, ChevronUp, SlidersHorizontal, RotateCcw, Tag, Calendar, Weight, CircleDollarSign, Hash, CheckCircle2, RotateCcw as RotateCcwIcon, Undo2, MoreVertical, Info, Scissors, Skull, X, Home, Wheat, Package } from 'lucide-react';
 import HttpClient from '../../../services/httpClient';
 import SearchableSelect from '../../../components/shared/SearchableSelect';
+import BulkAssignKandangModal from '../StokSapi/modals/BulkAssignKandangModal';
+import BeriPakanKonsentratModal from '../StokSapi/modals/BeriPakanKonsentratModal';
+import HistoryPakanKonsentratModal from '../StokSapi/modals/HistoryPakanKonsentratModal';
+import BeriOvkQurbanModal from './modals/BeriOvkQurbanModal';
 
 const initialAdvanced = { eartag: '', eartag_supplier: '', nota_qurban: '', status: '' };
 
-const ActionMenuCell = ({ row, menuOpen, setMenuOpen, menuPos, setMenuPos, menuButtonRefs, setRestoreTarget, setPotongPaksaTarget, setSapiMatiTarget }) => {
+const ActionMenuCell = ({ row, menuOpen, setMenuOpen, menuPos, setMenuPos, menuButtonRefs, setRestoreTarget, setPotongPaksaTarget, setSapiMatiTarget, setBeriOvkTarget }) => {
   const status = Number(row.status);
   const isReturn = status === 2;
   const isTersedia = status === 0;
@@ -55,6 +59,18 @@ const ActionMenuCell = ({ row, menuOpen, setMenuOpen, menuPos, setMenuPos, menuB
             style={{ top: menuPos.top, left: menuPos.left }}
             onClick={(e) => e.stopPropagation()}
           >
+            {isTersedia && (
+              <>
+                <button
+                  onClick={() => { setBeriOvkTarget(row); setMenuOpen(null); }}
+                  className="w-full px-3 py-2 text-left flex items-center gap-2 text-xs font-medium text-sky-700 hover:bg-sky-50 transition"
+                >
+                  <Package className="w-3.5 h-3.5" />
+                  Beri OVK
+                </button>
+                <div className="my-1 border-t border-gray-100" />
+              </>
+            )}
             <button
               onClick={() => { setPotongPaksaTarget(row); setMenuOpen(null); }}
               className="w-full px-3 py-2 text-left flex items-center gap-2 text-xs font-medium text-amber-700 hover:bg-amber-50 transition"
@@ -159,6 +175,13 @@ const StokSapiQurbanPage = () => {
   });
   const [sebabKematianOptions, setSebabKematianOptions] = useState([]);
   const [submittingSapiMati, setSubmittingSapiMati] = useState(false);
+
+  // Assign Kandang (bulk), Beri Pakan Konsentrat (bulk), Beri OVK (per-row) state
+  const [selectedRows, setSelectedRows] = useState([]);
+  const [assignKandangOpen, setAssignKandangOpen] = useState(false);
+  const [beriPakanOpen, setBeriPakanOpen] = useState(false);
+  const [beriOvkTarget, setBeriOvkTarget] = useState(null);
+  const [historyPakanTarget, setHistoryPakanTarget] = useState(null);
 
   // Collapsible panels
   const [advancedOpen, setAdvancedOpen] = useState(true);
@@ -327,21 +350,24 @@ const StokSapiQurbanPage = () => {
       cell: (_, idx) => (currentPage - 1) * perPage + idx + 1,
     },
     {
-      name: 'Eartag & Supplier',
+      name: 'Eartag Supplier & Nota',
       sortable: true,
-      sortField: 'tr_pembelian_ho_detail.eartag',
-      minWidth: '240px',
+      sortField: 'tr_pembelian_ho_detail.eartag_supplier',
+      minWidth: '280px',
       cell: (row) => {
         const isReturn = Number(row.status) === 2;
+        const eartagSupplier = row.eartag_supplier && String(row.eartag_supplier).trim() ? row.eartag_supplier : 'T/N';
+        const notaSistem = row.nota_sistem && String(row.nota_sistem).trim() ? row.nota_sistem : '-';
         return (
           <div className="flex flex-col gap-0.5">
             <div className="flex items-center gap-1.5">
               <Tag className={`w-3.5 h-3.5 ${isReturn ? 'text-red-600' : 'text-emerald-600'}`} />
-              <span className={`font-mono font-semibold ${isReturn ? 'text-red-700 line-through' : 'text-gray-800'}`}>{row.eartag || '-'}</span>
+              <span className="text-[10px] font-semibold uppercase text-gray-400">Supplier:</span>
+              <span className={`font-mono font-semibold ${isReturn ? 'text-red-700 line-through' : 'text-gray-800'}`}>{eartagSupplier}</span>
             </div>
             <div className="flex items-center gap-1.5 pl-5">
-              <span className="text-[11px] text-gray-400">Supplier:</span>
-              <span className={`font-mono text-xs ${isReturn ? 'text-gray-400 line-through' : 'text-gray-600'}`}>{row.eartag_supplier || '-'}</span>
+              <span className="text-[10px] font-semibold uppercase text-gray-400">Nota Sistem:</span>
+              <span className="font-mono text-xs text-sky-700">{notaSistem}</span>
             </div>
           </div>
         );
@@ -422,6 +448,48 @@ const StokSapiQurbanPage = () => {
       ),
     },
     {
+      name: 'Pemeliharaan',
+      sortable: false,
+      minWidth: '200px',
+      cell: (row) => (
+        <button
+          type="button"
+          onClick={() => setHistoryPakanTarget(row)}
+          className="w-full text-left space-y-0.5 py-1 px-1 -mx-1 rounded-lg hover:bg-amber-50/60 hover:ring-2 hover:ring-amber-100 transition cursor-pointer"
+          title="Klik untuk lihat history pemberian pakan"
+        >
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] font-semibold text-gray-400 w-9">DOF</span>
+            <span className="text-xs text-gray-700">{row.dof_hari || '-'}</span>
+            {row.kandang_kode && (
+              <span className="ml-auto inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200" title={row.kandang_nama}>
+                {row.kandang_kode}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] font-semibold text-gray-400 w-9">Pakan</span>
+            <span className="text-xs text-gray-700">{row.jumlah_pakan_sesi || 0}x · Rp {row.nilai_pakan || '0'}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] font-semibold text-gray-400 w-9">OVK</span>
+            <span className="text-xs text-gray-700 max-w-[120px] truncate" title={row.ovk}>{row.ovk || '-'}</span>
+            <span className="text-xs text-gray-500 ml-auto">Rp {row.nilai_ovk || '0'}</span>
+          </div>
+          <div className="flex items-center gap-1.5 pt-0.5 border-t border-gray-100">
+            <span className="text-[10px] font-semibold text-gray-400 w-9">Total</span>
+            <span className="text-xs font-semibold text-teal-700" title="(bobot × hpp) + pakan + ovk">Rp {row.total || '0'}</span>
+            {row.sudah_diberi_pakan_hari_ini && (
+              <span className="ml-auto inline-flex items-center gap-0.5 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 border border-emerald-200" title={`Hari ini: Rp ${row.biaya_pakan_hari_ini || '0'}`}>
+                <CheckCircle2 className="h-2.5 w-2.5" />
+                {row.sesi_pakan_hari_ini > 1 ? `${row.sesi_pakan_hari_ini}x` : '✓'}
+              </span>
+            )}
+          </div>
+        </button>
+      ),
+    },
+    {
       name: 'Aksi',
       sortable: false,
       width: '60px',
@@ -437,6 +505,7 @@ const StokSapiQurbanPage = () => {
           setRestoreTarget={setRestoreTarget}
           setPotongPaksaTarget={setPotongPaksaTarget}
           setSapiMatiTarget={setSapiMatiTarget}
+          setBeriOvkTarget={setBeriOvkTarget}
         />
       ),
     },
@@ -860,6 +929,41 @@ const StokSapiQurbanPage = () => {
 
         {tableOpen && (
           <div className="border-t border-gray-100">
+            {/* Bulk Action Toolbar */}
+            {tableData.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2 px-5 py-3 bg-gray-50/60 border-b border-gray-100">
+                <span className="text-xs font-semibold text-gray-600 mr-1">
+                  {selectedRows.length > 0 ? `${selectedRows.length} sapi terpilih` : 'Pilih sapi untuk aksi bulk'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setAssignKandangOpen(true)}
+                  disabled={selectedRows.length === 0}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                >
+                  <Home className="w-3.5 h-3.5" />
+                  Assign Kandang
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBeriPakanOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600 text-white text-xs font-semibold hover:bg-amber-700 transition"
+                >
+                  <Wheat className="w-3.5 h-3.5" />
+                  Beri Pakan Konsentrat
+                </button>
+                {selectedRows.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedRows([])}
+                    className="ml-auto text-xs text-gray-500 hover:text-gray-700 underline"
+                  >
+                    Kosongkan pilihan
+                  </button>
+                )}
+              </div>
+            )}
+
             {loading && tableData.length === 0 ? (
               <div className="p-12 flex flex-col items-center justify-center text-gray-400">
                 <Loader2 className="w-8 h-8 animate-spin mb-3" />
@@ -880,6 +984,10 @@ const StokSapiQurbanPage = () => {
               <DataTable
                 columns={columns}
                 data={tableData}
+                selectableRows
+                selectableRowsHighlight
+                onSelectedRowsChange={({ selectedRows }) => setSelectedRows(selectedRows)}
+                clearSelectedRows={selectedRows.length === 0 ? 0 : undefined}
                 pagination
                 paginationServer
                 paginationTotalRows={totalRecords}
@@ -1209,6 +1317,51 @@ const StokSapiQurbanPage = () => {
           )}
         </div>
       )}
+
+      {/* Assign Kandang Modal (bulk) */}
+      <BulkAssignKandangModal
+        isOpen={assignKandangOpen}
+        onClose={() => setAssignKandangOpen(false)}
+        selectedPids={selectedRows.map((r) => r.pid_sapi).filter(Boolean)}
+        animalType="sapi"
+        onSuccess={(res) => {
+          setNotif({ type: 'success', message: res?.message || 'Berhasil assign kandang' });
+          setSelectedRows([]);
+          fetchData(currentPage);
+        }}
+      />
+
+      {/* Beri Pakan Konsentrat Modal (bulk) */}
+      <BeriPakanKonsentratModal
+        isOpen={beriPakanOpen}
+        onClose={() => setBeriPakanOpen(false)}
+        animalType="sapi"
+        useQurbanOptions
+        preSelectedPids={selectedRows.map((r) => r.pid_sapi).filter(Boolean)}
+        onSuccess={(res) => {
+          setNotif({ type: 'success', message: res?.message || 'Pemberian pakan konsentrat berhasil disimpan' });
+          setSelectedRows([]);
+          fetchData(currentPage);
+        }}
+      />
+
+      {/* Beri OVK Modal */}
+      <BeriOvkQurbanModal
+        isOpen={Boolean(beriOvkTarget)}
+        onClose={() => setBeriOvkTarget(null)}
+        row={beriOvkTarget}
+        onSuccess={(res) => {
+          setNotif({ type: 'success', message: res?.message || 'Pemberian OVK berhasil disimpan' });
+          fetchData(currentPage);
+        }}
+      />
+
+      {/* History Pakan Konsentrat Modal */}
+      <HistoryPakanKonsentratModal
+        isOpen={Boolean(historyPakanTarget)}
+        onClose={() => setHistoryPakanTarget(null)}
+        sapi={historyPakanTarget}
+      />
 
       {/* Confirm Restore Modal */}
       {restoreTarget && (

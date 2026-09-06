@@ -11,7 +11,7 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onOvk, onPotongPaksa, onP
       if (buttonRef?.current) {
         const btnRect = buttonRef.current.getBoundingClientRect();
         const menuWidth = 224;
-        const menuHeight = 290;
+        const menuHeight = 240;
         const gap = 8;
 
         // Default position below the button, left-aligned
@@ -70,7 +70,6 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onOvk, onPotongPaksa, onP
           onClose();
         },
         className: 'text-gray-700',
-        description: 'Informasi lengkap',
         bg: 'bg-blue-100',
         hoverBg: 'group-hover:bg-blue-200',
         text: 'text-blue-600',
@@ -85,7 +84,6 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onOvk, onPotongPaksa, onP
           onClose();
         },
         className: 'text-gray-700',
-        description: 'Ubah data',
         bg: 'bg-amber-100',
         hoverBg: 'group-hover:bg-amber-200',
         text: 'text-amber-600',
@@ -100,7 +98,6 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onOvk, onPotongPaksa, onP
           onClose();
         },
         className: 'text-emerald-700',
-        description: 'Beri obat/vitamin/konsentrat',
         bg: 'bg-emerald-100',
         hoverBg: 'group-hover:bg-emerald-200',
         text: 'text-emerald-600',
@@ -115,7 +112,6 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onOvk, onPotongPaksa, onP
           onClose();
         },
         className: 'text-indigo-700',
-        description: 'Potong sapi biasa',
         bg: 'bg-indigo-100',
         hoverBg: 'group-hover:bg-indigo-200',
         text: 'text-indigo-600',
@@ -130,7 +126,6 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onOvk, onPotongPaksa, onP
           onClose();
         },
         className: 'text-red-700',
-        description: 'Potong paksa sapi',
         bg: 'bg-red-100',
         hoverBg: 'group-hover:bg-red-200',
         text: 'text-red-600',
@@ -145,28 +140,26 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onOvk, onPotongPaksa, onP
           onClose();
         },
         className: 'text-slate-700',
-        description: 'Lihat data sapi mati',
         bg: 'bg-slate-100',
         hoverBg: 'group-hover:bg-slate-200',
         text: 'text-slate-600',
       }
     ] : []),
-    {
-      divider: true,
-    },
-    {
-      label: 'Hapus',
-      icon: Trash2,
-      onClick: () => {
-        onDelete(row);
-        onClose();
+    ...(onDelete ? [
+      { divider: true },
+      {
+        label: 'Hapus',
+        icon: Trash2,
+        onClick: () => {
+          onDelete(row);
+          onClose();
+        },
+        className: 'text-red-600',
+        bg: 'bg-red-100',
+        hoverBg: 'group-hover:bg-red-200',
+        text: 'text-red-600',
       },
-      className: 'text-red-600',
-      description: 'Hapus data',
-      bg: 'bg-red-100',
-      hoverBg: 'group-hover:bg-red-200',
-      text: 'text-red-600',
-    },
+    ] : []),
   ];
 
   // Render menu hanya jika posisi sudah didapat
@@ -207,7 +200,6 @@ const ActionMenu = ({ row, onEdit, onDelete, onDetail, onOvk, onPotongPaksa, onP
               </div>
               <div className="flex-1 min-w-0">
                 <span className="font-medium block text-sm leading-tight">{action.label}</span>
-                <p className="text-xs text-gray-500 leading-tight">{action.description}</p>
               </div>
             </button>
           )

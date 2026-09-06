@@ -211,7 +211,7 @@ const PembelianFeedmilDetailPage = () => {
     }, [pembelianData?.id_farm, pembelianData?.id_syarat_pembelian, farmData, banks, getFarmName, getBankName]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleBack = () => {
-        navigate('/ho/pembelian-feedmil');
+        navigate('/feedmil/pembelian-feedmil');
     };
 
     // Auto hide notification

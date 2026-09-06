@@ -34,6 +34,10 @@ const BayarPengeluaranHoPage = lazy(() => import('../pages/ho/keuangan/Pengeluar
 
 const PenjualanSapiHOPage = lazy(() => import('../pages/ho/penjualan/penjualanSapi/PenjualanSapiHOPage'));
 
+const ResepKonsentratPage = lazy(() => import('../pages/ho/resepKonsentrat/ResepKonsentratPage'));
+const AddEditResepKonsentratPage = lazy(() => import('../pages/ho/resepKonsentrat/AddEditResepKonsentratPage'));
+const PenjualanKonsentratPage = lazy(() => import('../pages/ho/penjualanKonsentrat/PenjualanKonsentratPage'));
+
 export const hoRoutes = [
   // General HO Pembelian
   {
@@ -53,39 +57,39 @@ export const hoRoutes = [
     element: <PembelianDetailPage />
   },
 
-  // HO Feedmil Pembelian
+  // Feedmil Pembelian
   {
-    path: '/ho/pembelian-feedmil',
+    path: '/feedmil/pembelian-feedmil',
     element: <PembelianFeedmilPage />
   },
   {
-    path: '/ho/pembelian-feedmil/add',
+    path: '/feedmil/pembelian-feedmil/add',
     element: <AddEditPembelianFeedmilPage />
   },
   {
-    path: '/ho/pembelian-feedmil/edit/:id',
+    path: '/feedmil/pembelian-feedmil/edit/:id',
     element: <AddEditPembelianFeedmilPage />
   },
   {
-    path: '/ho/pembelian-feedmil/detail/:id',
+    path: '/feedmil/pembelian-feedmil/detail/:id',
     element: <PembelianFeedmilDetailPage />
   },
 
-  // HO OVK Pembelian
+  // Feedmil OVK Pembelian
   {
-    path: '/ho/pembelian-ovk',
+    path: '/feedmil/pembelian-ovk',
     element: <PembelianOVKPage />
   },
   {
-    path: '/ho/pembelian-ovk/add',
+    path: '/feedmil/pembelian-ovk/add',
     element: <AddEditPembelianOVKPage />
   },
   {
-    path: '/ho/pembelian-ovk/edit/:id',
+    path: '/feedmil/pembelian-ovk/edit/:id',
     element: <AddEditPembelianOVKPage />
   },
   {
-    path: '/ho/pembelian-ovk/detail/:id',
+    path: '/feedmil/pembelian-ovk/detail/:id',
     element: <PembelianOVKDetailPage />
   },
 
@@ -161,5 +165,23 @@ export const hoRoutes = [
   {
     path: '/ho/penjualan-sapi',
     element: <PenjualanSapiHOPage />
+  },
+
+  // HO Konsentrat
+  {
+    path: '/ho/resep-konsentrat',
+    element: <ResepKonsentratPage />
+  },
+  {
+    path: '/ho/resep-konsentrat/add',
+    element: <AddEditResepKonsentratPage />
+  },
+  {
+    path: '/ho/resep-konsentrat/edit/:id',
+    element: <AddEditResepKonsentratPage />
+  },
+  {
+    path: '/ho/penjualan-konsentrat',
+    element: <PenjualanKonsentratPage />
   }
 ];

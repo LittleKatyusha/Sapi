@@ -144,6 +144,10 @@ class PengajuanBiayaService {
     }
   }
 
+  static async exportData(format, params) {
+    return HttpClient.get(format === 'excel' ? API_ENDPOINTS.HO.PENGAJUAN_BIAYA_EXPORT_EXCEL : API_ENDPOINTS.HO.PENGAJUAN_BIAYA_EXPORT_PDF, { params, responseType: 'blob', cache: false });
+  }
+
   /**
    * Create new Pengajuan Biaya
    * @param {Object} data - Pengajuan Biaya data

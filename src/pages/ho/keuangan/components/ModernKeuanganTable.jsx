@@ -14,6 +14,20 @@ const formatCurrency = (value) => {
 
 const formatDate = (dateString) => {
     if (!dateString) return '-';
+    // Backend returns d-m-Y (e.g. "02-09-2026" = 2 Sept 2026).
+    // JS new Date() parses as MM-DD-YYYY (US) → swaps day/month.
+    // Parse d-m-Y manually to avoid ambiguity.
+    if (typeof dateString === 'string' && /^\d{2}-\d{2}-\d{4}$/.test(dateString)) {
+        const [dd, mm, yyyy] = dateString.split('-');
+        const d = new Date(`${yyyy}-${mm}-${dd}`);
+        if (isNaN(d.getTime())) return dateString;
+        return d.toLocaleDateString('id-ID', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+        });
+    }
+    // Fallback for ISO or other formats
     const d = new Date(dateString);
     if (isNaN(d.getTime())) return dateString;
     return d.toLocaleDateString('id-ID', {
@@ -74,9 +88,9 @@ const ModernKeuanganTable = ({
                 actions.push({ key: 'bayar', label: 'Bayar', onClick: onBayar });
             }
         }
-        // Lunas (1) → bisa download
-        if (status === 1 && onDownload) {
-            actions.push({ key: 'download', label: 'Download', onClick: onDownload });
+        // Semua status → bisa download bukti (tagihan/pembayaran)
+        if (onDownload) {
+            actions.push({ key: 'download', label: row.payment_status === 1 ? 'Download Bukti' : 'Cetak Bukti', onClick: onDownload });
         }
         return actions;
     };

@@ -11,11 +11,17 @@ const AddPenjualanSapiUtuhPage = lazy(() => import('../pages/RPH/PenjualanSapiUt
 const DetailPenjualanSapiUtuhPage = lazy(() => import('../pages/RPH/PenjualanSapiUtuh/DetailPenjualanSapiUtuhPage'));
 const ReturnPenjualanPage = lazy(() => import('../pages/RPH/PenjualanSapiUtuh/ReturnPenjualanPage'));
 const ReturnHistoryPage = lazy(() => import('../pages/RPH/PenjualanSapiUtuh/ReturnHistoryPage'));
+const PenjualanDokaUtuhPage = lazy(() => import('../pages/RPH/PenjualanDokaUtuh/PenjualanDokaUtuhPage'));
+const AddPenjualanDokaUtuhPage = lazy(() => import('../pages/RPH/PenjualanDokaUtuh/AddPenjualanDokaUtuhPage'));
+const DetailPenjualanDokaUtuhPage = lazy(() => import('../pages/RPH/PenjualanDokaUtuh/DetailPenjualanDokaUtuhPage'));
+const ReturnPenjualanDokaPage = lazy(() => import('../pages/RPH/PenjualanDokaUtuh/ReturnPenjualanDokaPage'));
+const ReturnHistoryDokaPage = lazy(() => import('../pages/RPH/PenjualanDokaUtuh/ReturnHistoryDokaPage'));
 const PenerimaanRphPage = lazy(() => import('../pages/RPH/Keuangan/Penerimaan/PenerimaanRphPage'));
 const BayarPage = lazy(() => import('../pages/RPH/Keuangan/Penerimaan/Bayar/BayarPage'));
 const PengeluaranRphPage = lazy(() => import('../pages/RPH/Keuangan/Pengeluaran/PengeluaranRphPage'));
 const BayarPengeluaranPage = lazy(() => import('../pages/RPH/Keuangan/Pengeluaran/Bayar/BayarPage'));
 const PengirimanPage = lazy(() => import('../pages/RPH/PenjualanSapiUtuh/Pengiriman/PengirimanPage'));
+const PengirimanDokaPage = lazy(() => import('../pages/RPH/PenjualanDokaUtuh/Pengiriman/PengirimanPage'));
 const PenawaranPage = lazy(() => import('../pages/RPH/Penawaran/PenawaranPage'));
 const AddEditPenawaranPage = lazy(() => import('../pages/RPH/Penawaran/AddEditPenawaranPage'));
 const DetailPenawaranPage = lazy(() => import('../pages/RPH/Penawaran/DetailPenawaranPage'));
@@ -23,6 +29,12 @@ const StokSapiQurbanPage = lazy(() => import('../pages/RPH/Qurban/StokSapiQurban
 const StokDokaPage = lazy(() => import('../pages/RPH/Persediaan/StokDoka/StokDokaPage'));
 const PerpindahanTernakPage = lazy(() => import('../pages/RPH/Perpindahan/PerpindahanTernakPage'));
 const AddEditPerpindahanTernakPage = lazy(() => import('../pages/RPH/Perpindahan/AddEditPerpindahanTernakPage'));
+
+const PembelianKonsentratPage = lazy(() => import('../pages/RPH/Konsentrat/PembelianKonsentratPage'));
+const AddEditPembelianKonsentratPage = lazy(() => import('../pages/RPH/Konsentrat/AddEditPembelianKonsentratPage'));
+
+const PembelianOvkPage = lazy(() => import('../pages/RPH/Ovk/PembelianOvkPage'));
+const AddEditPembelianOvkPage = lazy(() => import('../pages/RPH/Ovk/AddEditPembelianOvkPage'));
 
 export const rphRoutes = [
   {
@@ -72,6 +84,34 @@ export const rphRoutes = [
   {
     path: '/rph/penjualan-sapi-utuh/return-history',
     element: <ReturnHistoryPage />
+  },
+  {
+    path: '/rph/penjualan-doka-utuh',
+    element: <PenjualanDokaUtuhPage />
+  },
+  {
+    path: '/rph/penjualan-doka-utuh/add',
+    element: <AddPenjualanDokaUtuhPage />
+  },
+  {
+    path: '/rph/penjualan-doka-utuh/detail/:pid',
+    element: <DetailPenjualanDokaUtuhPage />
+  },
+  {
+    path: '/rph/penjualan-doka-utuh/edit/:pid',
+    element: <AddPenjualanDokaUtuhPage />
+  },
+  {
+    path: '/rph/penjualan-doka-utuh/return/:pid',
+    element: <ReturnPenjualanDokaPage />
+  },
+  {
+    path: '/rph/penjualan-doka-utuh/return-history',
+    element: <ReturnHistoryDokaPage />
+  },
+  {
+    path: '/rph/penjualan-doka-utuh/pengiriman/:pid',
+    element: <PengirimanDokaPage />
   },
   {
     path: '/rph/keuangan/penerimaan',
@@ -128,5 +168,25 @@ export const rphRoutes = [
   {
     path: '/rph/perpindahan-ternak/edit/:pid',
     element: <AddEditPerpindahanTernakPage />
+  },
+
+  // RPH Konsentrat
+  {
+    path: '/rph/pembelian-konsentrat',
+    element: <PembelianKonsentratPage />
+  },
+  {
+    path: '/rph/pembelian-konsentrat/add',
+    element: <AddEditPembelianKonsentratPage />
+  },
+
+  // RPH OVK
+  {
+    path: '/rph/pembelian-ovk',
+    element: <PembelianOvkPage />
+  },
+  {
+    path: '/rph/pembelian-ovk/add',
+    element: <AddEditPembelianOvkPage />
   }
 ];

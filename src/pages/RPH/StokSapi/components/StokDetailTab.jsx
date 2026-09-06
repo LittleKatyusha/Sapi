@@ -1,16 +1,20 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import { Filter, Search, RotateCcw, RefreshCw, AlertCircle, Home, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Filter, Search, RotateCcw, RefreshCw, AlertCircle, Home, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, CheckCircle2 } from 'lucide-react';
 import ActionButton from './ActionButton';
 import StokDetailModal from './StokDetailModal';
 import BulkAssignKandangModal from '../modals/BulkAssignKandangModal';
+import HistoryPakanKonsentratModal from '../modals/HistoryPakanKonsentratModal';
 import StokSapiService from '../../../../services/stokSapiService';
 import { formatNumber } from '../constants/dummyData';
 import { Notification } from '../../../../components/shared/NotificationComponent';
 
 const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, refreshTrigger = 0 }) => {
+  const navigate = useNavigate();
   const [openMenuId, setOpenMenuId] = useState(null);
   const [detailRow, setDetailRow] = useState(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [historyPakanTarget, setHistoryPakanTarget] = useState(null);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -585,10 +589,10 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, re
                        openMenuId={openMenuId}
                        setOpenMenuId={setOpenMenuId}
                        onDetail={() => handleDetail(row)}
-                       onEdit={() => console.log('Edit', row)}
+                       onEdit={() => navigate(`/rph/stok-sapi/edit/${row.pid}`)}
                        onDelete={() => console.log('Delete', row)}
                         onOvk={() => onOvk(row)}
-                        onPotongPaksa={() => onPotongPaksa(row)}
+                       onPotongPaksa={() => onPotongPaksa(row)}
                         onPotongSapiBiasa={() => onPotongSapiBiasa(row)}
                         onSapiMati={() => onSapiMati(row)}
                     />
@@ -608,10 +612,29 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, re
                       <span className="text-gray-400">Eartag Supplier:</span> {row.eartag_supplier || '-'}
                     </div>
                     <div className="text-xs text-gray-500">
+                      <span className="text-gray-400">Jenis Kelamin:</span>{' '}
+                      {row.jenis_kelamin === 'JANTAN'
+                        ? 'Jantan'
+                        : row.jenis_kelamin === 'BETINA'
+                          ? 'Betina'
+                          : row.jenis_kelamin === 'BELUM_DIKETAHUI'
+                            ? 'Belum Diketahui'
+                            : '-'}
+                    </div>
+                    <div className="text-xs text-gray-500">
                       <span className="text-gray-400">Bobot:</span> {row.bobot ? `${Number(row.bobot)} KG` : '-'}
                     </div>
                     <div className="text-xs text-gray-500">
                       <span className="text-gray-400">RPH:</span> {row.nama_rph || row.lokasi_sapi || '-'}
+                    </div>
+                    <div>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
+                        row.source === 'BIRTH'
+                          ? 'bg-amber-50 text-amber-700 border-amber-200'
+                          : 'bg-slate-50 text-slate-600 border-slate-200'
+                      }`}>
+                        {row.source === 'BIRTH' ? 'Kelahiran' : 'Pembelian'}
+                      </span>
                     </div>
                   </div>
                 </td>
@@ -631,7 +654,12 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, re
                 </td>
                 {/* Pemeliharaan */}
                 <td className="py-2 px-3 border border-gray-100 whitespace-nowrap">
-                  <div className="space-y-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setHistoryPakanTarget(row)}
+                    className="block text-left space-y-0.5 rounded-lg hover:bg-amber-50/60 hover:ring-2 hover:ring-amber-100 transition cursor-pointer px-1 -mx-1"
+                    title="Klik untuk lihat history pemberian pakan"
+                  >
                     <div className="text-xs text-gray-500">
                       <span className="text-gray-400">DOF:</span> {row.dof_hari || '-'}
                     </div>
@@ -641,7 +669,13 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, re
                     <div className="text-xs text-gray-700 font-medium">
                       total: Rp {row.nilai_pakan || '0'}
                     </div>
-                  </div>
+                    {row.sudah_diberi_pakan_hari_ini && (
+                      <div className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700 border border-emerald-200">
+                        <CheckCircle2 className="h-3 w-3" />
+                        Sudah diberi pakan hari ini{row.sesi_pakan_hari_ini > 1 ? ` (${row.sesi_pakan_hari_ini}x)` : ''}
+                      </div>
+                    )}
+                  </button>
                 </td>
                 {/* OVK */}
                 <td className="py-2 px-3 border border-gray-100 whitespace-nowrap">
@@ -758,6 +792,12 @@ const StokDetailTab = ({ onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, re
         onClose={() => setBulkKandangModalOpen(false)}
         selectedPids={selectedPids}
         onSuccess={handleBulkKandangSuccess}
+      />
+
+      <HistoryPakanKonsentratModal
+        isOpen={Boolean(historyPakanTarget)}
+        onClose={() => setHistoryPakanTarget(null)}
+        sapi={historyPakanTarget}
       />
 
       <Notification

@@ -1,9 +1,13 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { X, Home, Loader2 } from 'lucide-react';
+import SearchableSelect from '../../../../components/shared/SearchableSelect';
 import KandangService from '../../../../services/kandangService';
 import StokSapiService from '../../../../services/stokSapiService';
+import StokDokaService from '../../../../services/stokDokaService';
 
-const BulkAssignKandangModal = ({ isOpen, onClose, selectedPids = [], onSuccess }) => {
+const BulkAssignKandangModal = ({ isOpen, onClose, selectedPids = [], onSuccess, animalType = 'sapi' }) => {
+  const isDoka = animalType === 'doka';
+  const animalLabel = isDoka ? 'DOKA' : 'sapi';
   const [kandangOptions, setKandangOptions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -37,13 +41,15 @@ const BulkAssignKandangModal = ({ isOpen, onClose, selectedPids = [], onSuccess 
       return;
     }
     if (!selectedPids.length) {
-      setError('Tidak ada sapi yang dipilih');
+      setError(`Tidak ada ${animalLabel} yang dipilih`);
       return;
     }
 
     setSubmitting(true);
     setError(null);
-    const res = await StokSapiService.bulkAssignKandang(selectedPids, selectedKandang);
+    const res = isDoka
+      ? await StokDokaService.bulkAssignKandang(selectedPids, selectedKandang)
+      : await StokSapiService.bulkAssignKandang(selectedPids, selectedKandang);
     setSubmitting(false);
 
     if (res.success) {
@@ -78,7 +84,7 @@ const BulkAssignKandangModal = ({ isOpen, onClose, selectedPids = [], onSuccess 
         {/* Body */}
         <div className="space-y-3 p-4">
           <p className="text-sm text-gray-600">
-            Memilih <span className="font-semibold text-emerald-700">{selectedPids.length} sapi</span> untuk
+            Memilih <span className="font-semibold text-emerald-700">{selectedPids.length} {animalLabel}</span> untuk
             dimasukkan ke kandang.
           </p>
 
@@ -94,19 +100,17 @@ const BulkAssignKandangModal = ({ isOpen, onClose, selectedPids = [], onSuccess 
           ) : (
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-medium text-gray-500">Pilih Kandang</label>
-              <select
+              <SearchableSelect
+                options={kandangOptions}
                 value={selectedKandang}
-                onChange={(e) => setSelectedKandang(e.target.value)}
-                disabled={submitting}
-                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/30"
-              >
-                <option value="">— Pilih kandang —</option>
-                {kandangOptions.map((k) => (
-                  <option key={k.value} value={k.value}>
-                    {k.label}
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setSelectedKandang(val || '')}
+                placeholder="— Pilih kandang —"
+                isLoading={loading}
+                isDisabled={submitting}
+                isClearable={false}
+                accentColor="green"
+                required
+              />
             </div>
           )}
 

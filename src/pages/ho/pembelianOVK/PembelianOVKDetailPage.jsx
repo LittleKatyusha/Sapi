@@ -56,6 +56,7 @@ const PembelianOVKDetailPage = () => {
     const [pembelianData, setPembelianData] = useState(null);
     const [detailData, setDetailData] = useState([]);
     const [notification, setNotification] = useState(null);
+    // eslint-disable-next-line no-unused-vars
     const [scrollPosition, setScrollPosition] = useState({ canScrollLeft: false, canScrollRight: false });
     
     // Pagination state
@@ -261,6 +262,7 @@ const PembelianOVKDetailPage = () => {
         if (id && !pembelianData) {
             fetchDetail();
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id, getPembelianDetail]); // Removed pembelianList dependency to prevent duplicate calls
 
     // Update farm and syarat_pembelian when farm/bank data becomes available
@@ -283,10 +285,11 @@ const PembelianOVKDetailPage = () => {
                 return prev;
             });
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [pembelianData?.id_farm, pembelianData?.id_syarat_pembelian, farmData, banks, getFarmName, getBankName]);
 
     const handleBack = () => {
-        navigate('/ho/pembelian-ovk');
+        navigate('/feedmil/pembelian-ovk');
     };
 
     // Auto hide notification

@@ -68,7 +68,8 @@ const PenjualanBoningService = {
   async getBoning(idOffice) {
     try {
       const query = idOffice ? `?id_office=${idOffice}` : '';
-      const res = await HttpClient.get(`${EP.GET_BONING}${query}`);
+      const separator = query ? '&' : '?';
+      const res = await HttpClient.get(`${EP.GET_BONING}${query}${separator}_t=${Date.now()}`, { cache: false });
       return { success: true, data: res.data || [] };
     } catch (err) {
       return { success: false, data: [], message: mapError(err, 'Gagal memuat item boning') };

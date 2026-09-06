@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import {
   ArrowLeft, Wallet, Loader2, AlertCircle, Banknote, CheckCircle, Clock, Upload, FileText, X, Eye
 } from 'lucide-react';
@@ -14,7 +14,12 @@ const parseNumber = (str) => parseFloat(String(str || '').replace(/[^0-9]/g, '')
 const BayarPengeluaranHoPage = () => {
   const { pid } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { showSuccess, showError } = useNotification();
+
+  // Back URL: prefer explicit referrer from feedmill pages, else default HO list.
+  const backUrl = location.state?.from || '/ho/keuangan/pengeluaran';
+  const goBack = () => navigate(backUrl);
 
   const [pembayaran, setPembayaran] = useState(null);
   const [history, setHistory] = useState([]);
@@ -291,7 +296,7 @@ const BayarPengeluaranHoPage = () => {
           <h2 className="text-lg font-bold text-gray-800 mb-1">Data Tidak Ditemukan</h2>
           <p className="text-gray-500 text-sm mb-4">{error}</p>
           <button
-            onClick={() => navigate('/ho/keuangan/pengeluaran')}
+            onClick={goBack}
             className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-bold hover:bg-emerald-700 transition"
           >
             Kembali ke Daftar
@@ -306,7 +311,7 @@ const BayarPengeluaranHoPage = () => {
       <div className="max-w-[1400px] mx-auto space-y-5">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => navigate('/ho/keuangan/pengeluaran')}
+            onClick={goBack}
             className="p-2 rounded-lg text-gray-500 hover:bg-white hover:text-gray-800 transition"
           >
             <ArrowLeft className="w-5 h-5" />

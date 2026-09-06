@@ -61,19 +61,27 @@ const AddEditPembelianQurbanPage = () => {
                 const start = list.find(x => x.name === 'start_date')?.value || '';
                 const end = list.find(x => x.name === 'end_date')?.value || '';
                 setPeriodeQurban({ start, end });
+                // Default tanggal ke awal periode Qurban (bukan hari ini) saat mode tambah.
+                if (!isEditMode && start) {
+                    setFormData(prev => ({
+                        ...prev,
+                        tanggal_pemesanan: prev.tanggal_pemesanan || start,
+                        tanggal_kedatangan_sapi: prev.tanggal_kedatangan_sapi || start,
+                    }));
+                }
             } catch (err) {
                 console.error('Gagal memuat periode Qurban:', err);
                 setPeriodeQurban({ start: '', end: '' });
             }
         })();
-    }, []);
+    }, [isEditMode]);
 
     const [isPilihNotaOpen, setIsPilihNotaOpen] = useState(false);
 
     const [formData, setFormData] = useState({
         id_pemasok: '', nama_penerima: '',
-        tanggal_pemesanan: new Date().toISOString().split('T')[0],
-        tanggal_kedatangan_sapi: new Date().toISOString().split('T')[0],
+        tanggal_pemesanan: '',
+        tanggal_kedatangan_sapi: '',
         id_nota: '', id_persetujuan_rph: '', tipe_pembayaran: '1',
         id_syarat_pembayaran: 1, note: '',
     });
@@ -107,7 +115,7 @@ const AddEditPembelianQurbanPage = () => {
                         id_pemasok: d.id_pemasok || '',
                         nama_penerima: d.nama_penerima || '',
                         tanggal_pemesanan: d.tanggal_pemesanan ? d.tanggal_pemesanan.split(' ')[0] : '',
-                        tanggal_kedatangan_sapi: d.tanggal_kedatangan_sapi ? d.tanggal_kedatangan_sapi.split(' ')[0] : new Date().toISOString().split('T')[0],
+                        tanggal_kedatangan_sapi: d.tanggal_kedatangan_sapi ? d.tanggal_kedatangan_sapi.split(' ')[0] : '',
                         id_nota: d.id_nota || '', id_persetujuan_rph: d.id_persetujuan_rph || '',
                         tipe_pembayaran: d.tipe_pembayaran ? String(d.tipe_pembayaran) : '1',
                         id_syarat_pembayaran: d.id_syarat_pembayaran || '', note: d.note || '',

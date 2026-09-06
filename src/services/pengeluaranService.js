@@ -200,6 +200,68 @@ export const downloadReportBuktiSetor = async (tglDari, sampaiTgl, petugas) => {
     }
 };
 
+/**
+ * Export pengeluaran to Excel with filters
+ * @param {Object} filters - { start_date, end_date, purchase_type, payment_status, tipe_pembayaran }
+ * @returns {Promise<Blob>} Excel blob
+ */
+export const exportPengeluaranExcel = async (filters = {}) => {
+    try {
+        const response = await HttpClient.get(`${BASE_URL}/export-excel`, {
+            params: filters,
+            responseType: 'blob',
+            cache: false,
+        });
+        return response;
+    } catch (error) {
+        console.error('Error exporting pengeluaran Excel:', error);
+        throw error;
+    }
+};
+
+/**
+ * Export rekap pengeluaran as PDF with filters
+ * @param {Object} filters - { start_date, end_date, purchase_type, payment_status, tipe_pembayaran }
+ * @returns {Promise<Blob>} PDF blob
+ */
+export const exportPengeluaranRekapPdf = async (filters = {}) => {
+    try {
+        const response = await HttpClient.get(`${BASE_URL}/export-rekap-pdf`, {
+            params: filters,
+            responseType: 'blob',
+            cache: false,
+        });
+        return response;
+    } catch (error) {
+        console.error('Error exporting pengeluaran rekap PDF:', error);
+        throw error;
+    }
+};
+
+/**
+ * Helper: parse blob response for error detection.
+ * Backend may return JSON error (e.g. validation/500) instead of file blob.
+ * @param {Blob} blob
+ * @returns {Promise<{ isError: boolean, message?: string, data?: any }>}
+ */
+export const inspectBlobResponse = async (blob) => {
+    // If blob is JSON, it's likely an error response
+    if (!blob || blob.type === 'application/json' || blob.type === 'text/plain') {
+        try {
+            const text = await blob.text();
+            const parsed = JSON.parse(text);
+            return {
+                isError: true,
+                message: parsed.message || parsed.error || 'Terjadi kesalahan dari server',
+                data: parsed,
+            };
+        } catch {
+            return { isError: true, message: 'Response tidak valid dari server' };
+        }
+    }
+    return { isError: false };
+};
+
 const pengeluaranService = {
     getPengeluaran,
     getPengeluaranSummary,
@@ -209,7 +271,10 @@ const pengeluaranService = {
     calculateSisaTagihan,
     downloadReportPengajuan,
     downloadReportPembelian,
-    downloadReportBuktiSetor
+    downloadReportBuktiSetor,
+    exportPengeluaranExcel,
+    exportPengeluaranRekapPdf,
+    inspectBlobResponse,
 };
 
 export default pengeluaranService;

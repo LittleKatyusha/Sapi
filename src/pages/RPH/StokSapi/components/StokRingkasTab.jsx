@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Filter, Search, RotateCcw, AlertCircle } from 'lucide-react';
 import ActionButton from './ActionButton';
 import StokSapiService from '../../../../services/stokSapiService';
@@ -15,6 +16,7 @@ const formatDateLabel = (dateStr) => {
 };
 
 const StokRingkasTab = () => {
+  const navigate = useNavigate();
   const [openMenuId, setOpenMenuId] = useState(null);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -287,7 +289,7 @@ const StokRingkasTab = () => {
                       openMenuId={openMenuId}
                       setOpenMenuId={setOpenMenuId}
                       onDetail={() => console.log('Detail', row)}
-                      onEdit={() => console.log('Edit', row)}
+                      onEdit={() => navigate(`/rph/stok-sapi/edit/${row.pid}`)}
                       onDelete={() => console.log('Delete', row)}
                     />
                   </div>

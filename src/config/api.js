@@ -171,6 +171,8 @@ export const API_ENDPOINTS = {
     PENJUALAN: '/api/ho/penjualan',
     PENJUALAN_DOKA_SAPI: '/api/ho/penjualandokasapi', // Updated endpoint for Penjualan Doka Sapi
     PENGAJUAN_BIAYA: '/api/ho/pengajuanbiaya', // Pengajuan Biaya endpoint (Cash Budget Request)
+    PENGAJUAN_BIAYA_EXPORT_EXCEL: '/api/ho/pengajuanbiaya/export-excel',
+    PENGAJUAN_BIAYA_EXPORT_PDF: '/api/ho/pengajuanbiaya/export-pdf',
     PENGELUARAN_PENGAJUAN_BIAYA_KAS: '/api/ho/pengeluaranpengajuanbiayakas', // Cash Disbursement/Approval endpoint
     PENGELUARAN_PENGAJUAN_BIAYA_BANK: '/api/ho/pengeluaranpengajuanbiayabank', // Bank Disbursement/Approval endpoint
     BANK_DEPOSIT: {
@@ -186,19 +188,27 @@ export const API_ENDPOINTS = {
       PEMBELIAN: '/api/ho/feedmil/pembelian'
     },
     KULIT: {
-      PEMBELIAN: '/api/ho/kulit/pembelian'
+      PEMBELIAN: '/api/ho/kulit/pembelian',
+      EXPORT_EXCEL: '/api/ho/kulit/pembelian/export-excel',
+      EXPORT_PDF: '/api/ho/kulit/pembelian/export-pdf'
     },
     OVK: {
       PEMBELIAN: '/api/ho/ovk/pembelian'
     },
     LAINLAIN: {
-      PEMBELIAN: '/api/ho/lainlain/pembelian'
+      PEMBELIAN: '/api/ho/lainlain/pembelian',
+      EXPORT_EXCEL: '/api/ho/lainlain/pembelian/export-excel',
+      EXPORT_PDF: '/api/ho/lainlain/pembelian/export-pdf'
     },
     BEBAN_BIAYA: {
-      PEMBELIAN: '/api/ho/bebanbiaya/pembelian'
+      PEMBELIAN: '/api/ho/bebanbiaya/pembelian',
+      EXPORT_EXCEL: '/api/ho/bebanbiaya/pembelian/export-excel',
+      EXPORT_PDF: '/api/ho/bebanbiaya/pembelian/export-pdf'
     },
     BAHAN_PEMBANTU: {
-      PEMBELIAN: '/api/ho/bahanpembantu/pembelian'
+      PEMBELIAN: '/api/ho/bahanpembantu/pembelian',
+      EXPORT_EXCEL: '/api/ho/bahanpembantu/pembelian/export-excel',
+      EXPORT_PDF: '/api/ho/bahanpembantu/pembelian/export-pdf'
     },
     PAYMENT: {
       BASE: '/api/ho/payment',
@@ -258,12 +268,16 @@ export const API_ENDPOINTS = {
     PO: {
       BASE: '/api/rph/po',
       NOTA: '/api/rph/po/getnota',
+      NOTA_DETAIL: '/api/rph/po/getnota/detail',
       DATA: '/api/rph/po/data',
       SHOW: '/api/rph/po/show',
       STORE: '/api/rph/po/store',
       UPDATE: '/api/rph/po/update',
       DELETE: '/api/rph/po/hapus',
-      EXPORT: '/api/rph/po/export'
+      EXPORT: '/api/rph/po/export',
+      CARD: '/api/rph/po/card',
+      EXPORT_EXCEL: '/api/rph/po/export-excel',
+      EXPORT_REKAP_PDF: '/api/rph/po/export-rekap-pdf'
     },
     QURBAN: {
       BASE: '/api/rph/qurban',
@@ -274,6 +288,9 @@ export const API_ENDPOINTS = {
       UPDATE: '/api/rph/qurban/update',
       DELETE: '/api/rph/qurban/hapus',
       EXPORT: '/api/rph/qurban/export',
+      EXPORT_EXCEL: '/api/rph/qurban/export-excel',
+      EXPORT_PDF: '/api/rph/qurban/export-pdf',
+      DOCUMENT: '/api/rph/qurban/document',
       STATISTIK: '/api/rph/qurban/statistik'
     },
     PEMBELIAN: {
@@ -372,6 +389,25 @@ export const API_ENDPOINTS = {
       DELETE: '/api/rph/penjualan-sapi-utuh/hapus',
     },
     RETURN_PENJUALAN_SAPI_UTUH: '/api/rph/return-penjualan-sapi-utuh',
+    PENJUALAN_DOKA_UTUH: {
+      BASE: '/api/rph/penjualan-doka-utuh',
+      DATA: '/api/rph/penjualan-doka-utuh/data',
+      AVAILABLE_DOKA: '/api/rph/penjualan-doka-utuh/available-doka',
+      SHOW: '/api/rph/penjualan-doka-utuh/show',
+      STORE: '/api/rph/penjualan-doka-utuh/store',
+      UPDATE: '/api/rph/penjualan-doka-utuh/update',
+      DELETE: '/api/rph/penjualan-doka-utuh/hapus',
+      CONFIRM: '/api/rph/penjualan-doka-utuh/confirm',
+      CANCEL: '/api/rph/penjualan-doka-utuh/cancel',
+      BAYAR: '/api/rph/penjualan-doka-utuh/bayar',
+      PEMBAYARAN_HISTORY: '/api/rph/penjualan-doka-utuh/pembayaran-history',
+      PENERIMAAN_HISTORY: '/api/rph/penjualan-doka-utuh/penerimaan-history',
+      UPDATE_DELIVERY: '/api/rph/penjualan-doka-utuh/update-delivery',
+      PRINT_FAKTUR: '/api/rph/penjualan-doka-utuh/print-faktur',
+      PRINT_INVOICE: '/api/rph/penjualan-doka-utuh/print-invoice',
+      PRINT_SURAT_JALAN: '/api/rph/penjualan-doka-utuh/print-surat-jalan',
+    },
+    RETURN_PENJUALAN_DOKA_UTUH: '/api/rph/return-penjualan-doka-utuh',
     PENAWARAN: {
       BASE: '/api/rph/penawaran',
       DATA: '/api/rph/penawaran/data',

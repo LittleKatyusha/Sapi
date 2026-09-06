@@ -1016,8 +1016,15 @@ const PedagangPage = () => {
         onCetak={async ({ pid, bulan, tahun, nama_alias }) => {
           try {
             const PedagangService = (await import('../../../services/pedagangService')).default;
+            showNotification(`Memproses rekening ${nama_alias}...`, 'info');
             const result = await PedagangService.cetakRekening({ pid, bulan, tahun });
             if (result.success) {
+              const url = window.URL.createObjectURL(result.data);
+              const link = document.createElement('a');
+              link.href = url;
+              link.download = `Rekening_${nama_alias}_${tahun}-${String(bulan).padStart(2, '0')}.pdf`;
+              link.click();
+              window.URL.revokeObjectURL(url);
               showNotification(`Rekening ${nama_alias} periode ${bulan}/${tahun} berhasil dicetak`);
               setShowRekeningModal(false);
               setRekeningData(null);
