@@ -23,7 +23,7 @@ const PenjualanKarkasService = {
   async optionsBank() { return unwrap(await HttpClient.get(`${BASE}/options/bank`, { cache: false })); },
   async optionsPengirim() { return unwrap(await HttpClient.get(`${BASE}/options/pengirim`, { cache: false })); },
   async optionsKendaraan() { return unwrap(await HttpClient.get(`${BASE}/options/kendaraan`, { cache: false })); },
-  async getHarga(id_pedagang) { return HttpClient.post(`${BASE}/getharga`, { id_pedagang, id_item_potong: 27 }); },
+  async getHarga(id_pedagang, id_item_potong = 27) { return HttpClient.post(`${BASE}/getharga`, { id_pedagang, id_item_potong }); },
   async bayar(payload) {
     try {
       const res = await HttpClient.post(`${BASE}/bayar`, payload);
