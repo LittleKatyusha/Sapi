@@ -36,6 +36,14 @@ const AddEditPembelianKonsentratPage = lazy(() => import('../pages/RPH/Konsentra
 const PembelianOvkPage = lazy(() => import('../pages/RPH/Ovk/PembelianOvkPage'));
 const AddEditPembelianOvkPage = lazy(() => import('../pages/RPH/Ovk/AddEditPembelianOvkPage'));
 
+// P3 — Anti-shrinkage audit module
+const RphDashboardPage = lazy(() => import('../pages/RPH/Slaughter/RphDashboardPage'));
+const RphAlertCenterPage = lazy(() => import('../pages/RPH/Slaughter/RphAlertCenterPage'));
+const SlaughterBatchPage = lazy(() => import('../pages/RPH/Slaughter/SlaughterBatchPage'));
+const YieldBaselinePage = lazy(() => import('../pages/RPH/Slaughter/YieldBaselinePage'));
+const InventoryReconciliationPage = lazy(() => import('../pages/RPH/Slaughter/InventoryReconciliationPage'));
+const AuditCenterPage = lazy(() => import('../pages/RPH/Slaughter/AuditCenterPage'));
+
 export const rphRoutes = [
   {
     path: '/rph/pembelian-sapi',
@@ -188,5 +196,31 @@ export const rphRoutes = [
   {
     path: '/rph/pembelian-ovk/add',
     element: <AddEditPembelianOvkPage />
+  },
+
+  // P3 — Anti-shrinkage audit module (consolidated tabbed page)
+  {
+    path: '/rph/audit-center',
+    element: <AuditCenterPage />
+  },
+  {
+    path: '/rph/control-center',
+    element: <RphDashboardPage />
+  },
+  {
+    path: '/rph/alert-center',
+    element: <RphAlertCenterPage />
+  },
+  {
+    path: '/rph/slaughter-batch',
+    element: <SlaughterBatchPage />
+  },
+  {
+    path: '/rph/yield-baseline',
+    element: <YieldBaselinePage />
+  },
+  {
+    path: '/rph/inventory-reconciliation',
+    element: <InventoryReconciliationPage />
   }
 ];
