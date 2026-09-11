@@ -96,6 +96,7 @@ const PotongSapiBiasaModal = ({
   recordPid = null,
 }) => {
   const [tglPotong, setTglPotong] = useState(getToday());
+  const [beratKarkas, setBeratKarkas] = useState('');
   const [details, setDetails] = useState([createEmptyDetail()]);
   const [itemPotongOptions, setItemPotongOptions] = useState([]);
   const [loadingItemPotong, setLoadingItemPotong] = useState(false);
@@ -130,6 +131,7 @@ const PotongSapiBiasaModal = ({
     if (!isOpen) return;
     if (mode === 'edit' && initialData) {
       setTglPotong(initialData?.header?.tgl_potong_raw || getToday());
+      setBeratKarkas(initialData?.header?.berat_karkas != null ? String(initialData.header.berat_karkas) : '');
       setDetails(
         Array.isArray(initialData?.detail) && initialData.detail.length > 0
           ? initialData.detail.map((detail) => ({
@@ -142,6 +144,7 @@ const PotongSapiBiasaModal = ({
       );
     } else {
       setTglPotong(getToday());
+      setBeratKarkas('');
       setDetails([createEmptyDetail()]);
     }
     setNotification(null);
@@ -200,6 +203,7 @@ const PotongSapiBiasaModal = ({
   const handleClose = () => {
     if (isSubmitting) return;
     setTglPotong(getToday());
+    setBeratKarkas('');
     setDetails([createEmptyDetail()]);
     setNotification(null);
     onClose();
@@ -210,6 +214,11 @@ const PotongSapiBiasaModal = ({
 
     if (!tglPotong) {
       setNotification({ type: 'error', message: 'Tanggal potong wajib diisi.' });
+      return;
+    }
+
+    if (!beratKarkas || Number.isNaN(Number(beratKarkas)) || Number(beratKarkas) < 0) {
+      setNotification({ type: 'error', message: 'Berat karkas wajib diisi (minimal 0 kg).' });
       return;
     }
 
@@ -275,6 +284,7 @@ const PotongSapiBiasaModal = ({
     const payload = {
       pid: mode === 'edit' ? recordPid : cowData?.pid,
       tgl_potong: tglPotong,
+      berat_karkas: Number(beratKarkas),
       detail: details.map(detail => ({
         id_jenis_potong: Number(detail.id_jenis_potong),
         id_item_potong: Number(detail.id_item_potong),
@@ -360,6 +370,23 @@ const PotongSapiBiasaModal = ({
                       type="date"
                       value={tglPotong}
                       onChange={(e) => setTglPotong(e.target.value)}
+                      className="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 transition-all focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                      required
+                    />
+                  </div>
+                </Field>
+
+                <Field label="Berat Karkas (KG)" required helperText="Berat karkas hasil pemotongan untuk mass-balance anti-fraud">
+                  <div className="relative">
+                    <Scale className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="number"
+                      value={beratKarkas}
+                      onChange={(e) => setBeratKarkas(e.target.value)}
+                      placeholder="0"
+                      min="0"
+                      step="0.001"
+                      max={beratSapi || undefined}
                       className="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 transition-all focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                       required
                     />
@@ -470,6 +497,10 @@ const PotongSapiBiasaModal = ({
                   <div className="rounded-xl bg-slate-50 p-3">
                     <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Tanggal</p>
                     <p className="mt-1 text-sm font-semibold text-slate-800">{tglPotong || '-'}</p>
+                  </div>
+                  <div className="rounded-xl bg-slate-50 p-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Berat Karkas</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-800">{beratKarkas || '-'} kg</p>
                   </div>
                   <div className="rounded-xl bg-slate-50 p-3">
                     <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Detail</p>
