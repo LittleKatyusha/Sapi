@@ -186,6 +186,14 @@ const AddEditPembelianKonsentratPage = lazy(() => import('./pages/RPH/Konsentrat
 const PembelianOvkPage = lazy(() => import('./pages/RPH/Ovk/PembelianOvkPage'));
 const AddEditPembelianOvkPage = lazy(() => import('./pages/RPH/Ovk/AddEditPembelianOvkPage'));
 
+// P3 — Anti-shrinkage audit module
+const RphDashboardPage = lazy(() => import('./pages/RPH/Slaughter/RphDashboardPage'));
+const RphAlertCenterPage = lazy(() => import('./pages/RPH/Slaughter/RphAlertCenterPage'));
+const SlaughterBatchPage = lazy(() => import('./pages/RPH/Slaughter/SlaughterBatchPage'));
+const YieldBaselinePage = lazy(() => import('./pages/RPH/Slaughter/YieldBaselinePage'));
+const InventoryReconciliationPage = lazy(() => import('./pages/RPH/Slaughter/InventoryReconciliationPage'));
+const AuditCenterPage = lazy(() => import('./pages/RPH/Slaughter/AuditCenterPage'));
+
 // RPH Stok Sapi Page - Lazy loaded
 const StokSapi = lazy(() => import('./pages/RPH/StokSapi/StokSapiPage'));
 const EditStokSapiPage = lazy(() => import('./pages/RPH/StokSapi/EditStokSapiPage'));
@@ -686,6 +694,14 @@ function AppSecure() {
               {/* RPH OVK Routes */}
               <Route path="/rph/pembelian-ovk" element={<PembelianOvkPage />} />
               <Route path="/rph/pembelian-ovk/add" element={<AddEditPembelianOvkPage />} />
+
+              {/* P3 — Anti-shrinkage audit module (consolidated tabbed page) */}
+              <Route path="/rph/audit-center" element={<AuditCenterPage />} />
+              <Route path="/rph/control-center" element={<RphDashboardPage />} />
+              <Route path="/rph/alert-center" element={<RphAlertCenterPage />} />
+              <Route path="/rph/slaughter-batch" element={<SlaughterBatchPage />} />
+              <Route path="/rph/yield-baseline" element={<YieldBaselinePage />} />
+              <Route path="/rph/inventory-reconciliation" element={<InventoryReconciliationPage />} />
 
               {/* System Routes */}
               <Route path="/system/permission-management" element={<PermissionManagementPage />} />
