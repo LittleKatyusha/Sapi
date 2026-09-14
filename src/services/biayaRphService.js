@@ -17,6 +17,16 @@ class BiayaRphService {
   static API_EXPORT_EXCEL = '/api/rph/biaya/export-excel';
   static API_EXPORT_PDF = '/api/rph/biaya/export-pdf';
 
+  static async downloadDocument(pid, jenisPembelian) {
+    if (typeof pid !== 'string' || !pid.trim()) throw new Error('PID tidak ditemukan');
+    if (![1, 2].includes(jenisPembelian)) throw new Error('Jenis biaya tidak valid');
+    const blob = await HttpClient.get('/api/rph/biaya/document', { params: { pid, jenis_pembelian: jenisPembelian }, responseType: 'blob', cache: false });
+    if (!(blob instanceof Blob) || !blob.size || await blob.slice(0, 5).text() !== '%PDF-') {
+      throw new Error('Respons server bukan dokumen PDF yang valid');
+    }
+    return blob;
+  }
+
   /**
    * Get DataTable data
    * @param {Object} params

@@ -17,6 +17,15 @@ class BahanPembantuRphService {
   static API_EXPORT_EXCEL = '/api/rph/bahanpembantu/export-excel';
   static API_EXPORT_PDF = '/api/rph/bahanpembantu/export-pdf';
 
+  static async downloadDocument(pid) {
+    if (typeof pid !== 'string' || !pid.trim()) throw new Error('PID tidak ditemukan');
+    const blob = await HttpClient.get('/api/rph/bahanpembantu/document', { params: { pid }, responseType: 'blob', cache: false });
+    if (!(blob instanceof Blob) || !blob.size || await blob.slice(0, 5).text() !== '%PDF-') {
+      throw new Error('Respons server bukan dokumen PDF yang valid');
+    }
+    return blob;
+  }
+
   /**
    * Get DataTable data with search, date filters, and pagination
    * @param {Object} params - DataTable query parameters
