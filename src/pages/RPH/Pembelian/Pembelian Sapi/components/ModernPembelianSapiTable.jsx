@@ -12,7 +12,8 @@ import {
   Banknote,
   Truck,
   ClipboardList,
-  Receipt
+  Receipt,
+  Loader2
 } from 'lucide-react';
 
 const formatCurrency = (value) => {
@@ -46,7 +47,7 @@ const normalizeStatus = (status) => {
   if (status === null || status === undefined || status === '') return null;
   const num = Number(status);
   if (!isNaN(num)) return num;
-  const str = String(status).toLowerCase();
+  const str = String(status).trim().toLowerCase();
   if (str === 'disetujui' || str === 'approved' || str === 'setuju') return 2;
   if (str === 'ditolak' || str === 'rejected' || str === 'tolak') return 3;
   if (str === 'menunggu' || str === 'pending') return 1;
@@ -92,7 +93,7 @@ const displayPendingOrValue = (value, status) => {
   return '-';
 };
 
-const TableActionMenu = ({ row, buttonRef, onClose, onDetail, onEdit, onDelete, onBayar, onDownloadSuratJalan, onDownloadLembarPesanan, onDownloadKwitansi }) => {
+const TableActionMenu = ({ row, buttonRef, onClose, onDetail, onEdit, onDelete, onBayar, onDownloadSuratJalan, onDownloadLembarPesanan, onDownloadKwitansi, downloadingRow }) => {
   const menuRef = useRef(null);
   const [menuStyle, setMenuStyle] = useState({
     position: 'fixed',
@@ -154,8 +155,12 @@ const TableActionMenu = ({ row, buttonRef, onClose, onDetail, onEdit, onDelete, 
   }, [buttonRef, onClose]);
 
   const showBayar = onBayar && row.status === 'Disetujui' && (row.sisa_pembayaran || 0) > 0 && row.pembayaran_pid;
-  const showDownloads = row.status === 'Disetujui';
-  const showKwitansi = row.status === 'Disetujui' && row.payment_status === 1;
+  const showDownloads = normalizeStatus(row.status ?? row.persetujuan) === 2 && !!(row.pid || row.encryptedPid);
+  const showKwitansi = showDownloads && Number(row.payment_status) === 1;
+
+  useEffect(() => {
+    menuRef.current?.querySelector('button')?.focus();
+  }, []);
 
   return createPortal(
     <div
@@ -163,6 +168,26 @@ const TableActionMenu = ({ row, buttonRef, onClose, onDetail, onEdit, onDelete, 
       style={menuStyle}
       className="bg-white rounded-lg shadow-lg border border-gray-100 py-1"
       role="menu"
+      aria-label={`Aksi PO ${row.no_po || ''}`}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          onClose();
+          buttonRef.current?.focus();
+        }
+        if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+          event.preventDefault();
+          const buttons = [...menuRef.current.querySelectorAll('button:not(:disabled)')];
+          const index = buttons.indexOf(document.activeElement);
+          const next = event.key === 'Home' ? 0 : event.key === 'End' ? buttons.length - 1
+            : (index + (event.key === 'ArrowDown' ? 1 : -1) + buttons.length) % buttons.length;
+          buttons[next]?.focus();
+        }
+        if (event.key === 'Tab') {
+          onClose();
+          buttonRef.current?.focus();
+        }
+      }}
     >
       <button
         type="button"
@@ -196,8 +221,9 @@ const TableActionMenu = ({ row, buttonRef, onClose, onDetail, onEdit, onDelete, 
           {onDownloadSuratJalan && (
             <button
               type="button"
-              onClick={() => { onDownloadSuratJalan(row); onClose(); }}
-              className="w-full px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 flex items-center gap-2"
+              onClick={() => onDownloadSuratJalan(row)}
+              disabled={!!downloadingRow}
+              className="w-full px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 flex items-center gap-2 disabled:opacity-50 disabled:cursor-wait"
               role="menuitem"
             >
               <Truck className="w-4 h-4" /> Surat Jalan
@@ -206,8 +232,9 @@ const TableActionMenu = ({ row, buttonRef, onClose, onDetail, onEdit, onDelete, 
           {onDownloadLembarPesanan && (
             <button
               type="button"
-              onClick={() => { onDownloadLembarPesanan(row); onClose(); }}
-              className="w-full px-3 py-2 text-sm text-indigo-600 hover:bg-indigo-50 flex items-center gap-2"
+              onClick={() => onDownloadLembarPesanan(row)}
+              disabled={!!downloadingRow}
+              className="w-full px-3 py-2 text-sm text-indigo-600 hover:bg-indigo-50 flex items-center gap-2 disabled:opacity-50 disabled:cursor-wait"
               role="menuitem"
             >
               <ClipboardList className="w-4 h-4" /> Lembar Pesanan
@@ -216,14 +243,20 @@ const TableActionMenu = ({ row, buttonRef, onClose, onDetail, onEdit, onDelete, 
           {showKwitansi && onDownloadKwitansi && (
             <button
               type="button"
-              onClick={() => { onDownloadKwitansi(row); onClose(); }}
-              className="w-full px-3 py-2 text-sm text-amber-600 hover:bg-amber-50 flex items-center gap-2"
+              onClick={() => onDownloadKwitansi(row)}
+              disabled={!!downloadingRow}
+              className="w-full px-3 py-2 text-sm text-amber-600 hover:bg-amber-50 flex items-center gap-2 disabled:opacity-50 disabled:cursor-wait"
               role="menuitem"
             >
               <Receipt className="w-4 h-4" /> Kwitansi
             </button>
           )}
         </>
+      )}
+      {downloadingRow && (
+        <div role="status" className="px-3 py-2 text-xs text-gray-500 flex items-center gap-2">
+          <Loader2 aria-hidden="true" className="w-4 h-4 animate-spin" /> Mengunduh PDF...
+        </div>
       )}
       <button
         type="button"
@@ -238,7 +271,7 @@ const TableActionMenu = ({ row, buttonRef, onClose, onDetail, onEdit, onDelete, 
   );
 };
 
-const ActionCell = ({ row, openMenuId, setOpenMenuId, onDetail, onEdit, onDelete, onBayar, onDownloadSuratJalan, onDownloadLembarPesanan, onDownloadKwitansi }) => {
+const ActionCell = ({ row, openMenuId, setOpenMenuId, onDetail, onEdit, onDelete, onBayar, onDownloadSuratJalan, onDownloadLembarPesanan, onDownloadKwitansi, downloadingRow }) => {
   const buttonRef = useRef(null);
   const rowId = row.id || row.pid || row.encryptedPid || row.pubid;
   const isOpen = openMenuId === rowId;
@@ -254,6 +287,7 @@ const ActionCell = ({ row, openMenuId, setOpenMenuId, onDetail, onEdit, onDelete
         }}
         className="p-2 rounded-md hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-colors"
         aria-label="Menu Aksi"
+        aria-haspopup="menu"
         aria-expanded={isOpen}
       >
         <MoreHorizontal className="w-4 h-4" />
@@ -270,6 +304,7 @@ const ActionCell = ({ row, openMenuId, setOpenMenuId, onDetail, onEdit, onDelete
           onDownloadSuratJalan={onDownloadSuratJalan}
           onDownloadLembarPesanan={onDownloadLembarPesanan}
           onDownloadKwitansi={onDownloadKwitansi}
+          downloadingRow={downloadingRow}
         />
       )}
     </div>
@@ -289,7 +324,8 @@ const ModernPembelianSapiTable = ({
   onBayar,
   onDownloadSuratJalan,
   onDownloadLembarPesanan,
-  onDownloadKwitansi
+  onDownloadKwitansi,
+  downloadingRow
 }) => {
   const [openMenuId, setOpenMenuId] = useState(null);
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
@@ -523,6 +559,7 @@ const ModernPembelianSapiTable = ({
                         onDownloadSuratJalan={onDownloadSuratJalan}
                         onDownloadLembarPesanan={onDownloadLembarPesanan}
                         onDownloadKwitansi={onDownloadKwitansi}
+                        downloadingRow={downloadingRow}
                       />
                     </td>
                   </tr>

@@ -459,25 +459,28 @@ class PoRphService {
 
   /**
    * Download per-row PDF report (Surat Jalan, Lembar Pesanan, Kwitansi)
-   * Reuses HO report endpoints because dt_po_rph.pubid = tr_po_rph.pubid
+   * Uses RPH permission and office scope with the existing HO PDF templates.
    * @param {string} pid - Encrypted PID (decrypted server-side to pubid)
    * @param {string} reportType - 'delivery' | 'handover' | 'receipt'
    * @returns {Promise} Blob containing PDF file
    */
   static async downloadRowPdf(pid, reportType) {
-    const endpointMap = {
-      delivery: API_ENDPOINTS.REPORT.PENJUALAN.HO_DELIVERY,
-      handover: API_ENDPOINTS.REPORT.PENJUALAN.HO_HANDOVER,
-      receipt: API_ENDPOINTS.REPORT.PENJUALAN.HO_RECEIPT,
-    };
-    const endpoint = endpointMap[reportType];
-    if (!endpoint) throw new Error('Unknown report type: ' + reportType);
+    if (!['delivery', 'handover', 'receipt'].includes(reportType)) throw new Error('Jenis dokumen tidak valid');
+    if (typeof pid !== 'string' || !pid.trim()) throw new Error('PID tidak ditemukan');
 
-    const response = await HttpClient.get(endpoint, {
+    const response = await HttpClient.get(`${this.API_BASE}/document/${reportType}`, {
       params: { id: pid },
+      cache: false,
       responseType: 'blob'
     });
 
+    if (!(response instanceof Blob) || !response.size) throw new Error('Dokumen PDF kosong atau tidak valid');
+    if (response.type.includes('json')) {
+      let error;
+      try { error = JSON.parse(await response.text()); } catch { /* Invalid JSON is not a PDF. */ }
+      throw new Error(typeof error?.message === 'string' ? error.message : 'Gagal mengunduh PDF');
+    }
+    if (await response.slice(0, 5).text() !== '%PDF-') throw new Error('Respons server bukan dokumen PDF');
     return response;
   }
 }
