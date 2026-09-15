@@ -18,7 +18,8 @@ const AddEditPembelianLainLainPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
-    const basePath = location.pathname.startsWith('/feedmil/') ? '/feedmil/pembelian-lain-lain' : '/ho/pembelian-lain-lain';
+    const isFeedmillContext = location.pathname.startsWith('/feedmil/');
+    const basePath = isFeedmillContext ? '/feedmil/pembelian-lain-lain' : '/ho/pembelian-lain-lain';
     const isEdit = Boolean(id);
     
     // Flag to prevent multiple API calls in edit mode
@@ -37,12 +38,22 @@ const AddEditPembelianLainLainPage = () => {
         error: parameterError
     } = useParameterSelect(isEdit, { kategoriSupplier: 5 }, [], null, ['supplier', 'office']);
 
+    const feedmillOffice = useMemo(() => officeOptions.find(option => {
+        const label = String(option.label || '').toLowerCase().replace(/[^a-z]/g, '');
+        return label === 'feedmil' || label === 'feedmill';
+    }), [officeOptions]);
+
     // Farm data integration - uses PARAMETER_SELECT endpoint for farm-only data
     const {
         farmOptions,
         loading: farmLoading,
         error: farmError
     } = useFarmAPI();
+
+    const feedmillFarm = useMemo(() => farmOptions.find(option => {
+        const label = String(option.label || '').toLowerCase().replace(/[^a-z]/g, '');
+        return label === 'feedmil' || label === 'feedmill';
+    }), [farmOptions]);
 
     // Item Lain-Lain data integration - now supports filtering by classification
     const [selectedKlasifikasiForItems, setSelectedKlasifikasiForItems] = useState(null);
@@ -118,6 +129,16 @@ const AddEditPembelianLainLainPage = () => {
         due_date: '', // Added: Jatuh tempo payment
         note: '' // Added: Required note field
     });
+
+    useEffect(() => {
+        if (isFeedmillContext && feedmillOffice && feedmillFarm) {
+            setHeaderData(prev => ({
+                ...prev,
+                idOffice: feedmillOffice.value,
+                farm: feedmillFarm.value
+            }));
+        }
+    }, [feedmillFarm, feedmillOffice, isFeedmillContext]);
 
     // Detail items state
     const [detailItems, setDetailItems] = useState([]);
@@ -997,6 +1018,16 @@ const AddEditPembelianLainLainPage = () => {
     const validateForm = () => {
         const errors = [];
 
+        if (isFeedmillContext && !feedmillOffice) {
+            errors.push('Office Feedmill tidak ditemukan');
+        } else if (!headerData.idOffice) {
+            errors.push('Office harus dipilih');
+        }
+
+        if (isFeedmillContext && !feedmillFarm) {
+            errors.push('Farm Feedmill tidak ditemukan');
+        }
+
         if (!headerData.nota.trim()) {
             errors.push('Nomor Nota Supplier harus diisi');
         }
@@ -1107,13 +1138,13 @@ const AddEditPembelianLainLainPage = () => {
             // Map frontend fields to backend expected format
             const submissionData = {
                 // Header data mapping to backend format
-                id_office: parseInt(headerData.idOffice) || 1, // Use selected office ID
+                id_office: parseInt(isFeedmillContext ? feedmillOffice.value : headerData.idOffice),
                 nota: headerData.nota,
                 nama_supplier: headerData.idSupplier, // Now using text directly
                 tgl_masuk: headerData.tgl_masuk,
                 jumlah: parseFloat(headerData.jumlah) || null,
                 biaya_lain: headerData.biaya_lain !== null && headerData.biaya_lain !== undefined && headerData.biaya_lain !== '' ? parseFloat(headerData.biaya_lain) : 0,
-                id_farm: headerData.farm ? parseInt(headerData.farm) : null,
+                id_farm: isFeedmillContext ? parseInt(feedmillFarm.value) : (headerData.farm ? parseInt(headerData.farm) : null),
                 id_syarat_pembelian: headerData.syarat_pembelian ? parseInt(headerData.syarat_pembelian) : null,
                 nota_ho: headerData.nota_ho || '',
                 biaya_total: parseFloat(headerData.biaya_total) || null,
@@ -1346,10 +1377,13 @@ const AddEditPembelianLainLainPage = () => {
                                 options={officeOptions}
                                 placeholder={parameterLoading ? 'Loading offices...' : parameterError ? 'Error loading offices' : 'Pilih Office'}
                                 isLoading={parameterLoading}
-                                isDisabled={parameterLoading || parameterError}
+                                isDisabled={isFeedmillContext || parameterLoading || Boolean(parameterError)}
                                 required
                                 className="w-full"
                             />
+                            {isFeedmillContext && (
+                                <p className="text-xs text-gray-600 mt-1">Office terkunci ke Feedmill.</p>
+                            )}
                             {parameterError && (
                                 <p className="text-xs text-red-500 mt-1">
                                     ⚠️ Error loading offices: {parameterError}
@@ -1471,10 +1505,13 @@ const AddEditPembelianLainLainPage = () => {
                                 onChange={(value) => handleHeaderChange('farm', value)}
                                 placeholder={farmLoading ? 'Loading farms...' : farmError ? 'Error loading farms' : 'Pilih farm'}
                                 isLoading={farmLoading}
-                                isDisabled={farmLoading || farmError}
+                                isDisabled={isFeedmillContext || farmLoading || Boolean(farmError)}
                                 required={true}
                                 className="w-full"
                             />
+                            {isFeedmillContext && (
+                                <p className="text-xs text-gray-600 mt-1">Farm terkunci ke Feedmill.</p>
+                            )}
                             {farmError && (
                                 <p className="text-xs text-red-500 mt-1">
                                     ⚠️ Error loading farms: {farmError}

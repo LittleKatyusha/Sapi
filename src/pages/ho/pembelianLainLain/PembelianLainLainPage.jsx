@@ -40,7 +40,8 @@ const formatCurrency = (value) => {
 const PembelianLainLainPage = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const basePath = location.pathname.startsWith('/feedmil/') ? '/feedmil/pembelian-lain-lain' : '/ho/pembelian-lain-lain';
+    const isFeedmillContext = location.pathname.startsWith('/feedmil/');
+    const basePath = isFeedmillContext ? '/feedmil/pembelian-lain-lain' : '/ho/pembelian-lain-lain';
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [selectedPembelian, setSelectedPembelian] = useState(null);
     const [notification, setNotification] = useState(null);
@@ -71,7 +72,7 @@ const PembelianLainLainPage = () => {
         handlePageChange: handleServerPageChange,
         handlePerPageChange: handleServerPerPageChange,
         deletePembelian,
-    } = usePembelianLainLain();
+    } = usePembelianLainLain(isFeedmillContext ? 'feedmill' : 'ho');
 
     // Pembelian Beban hook integration
     const {
