@@ -261,6 +261,16 @@ export const API_ENDPOINTS = {
       DATA: '/api/ho/stok/ovk/data',
       SUMMARY: '/api/ho/stok/ovk/summary',
     },
+    OPNAME_FEEDMIL: {
+      DATA: '/api/ho/opname/feedmil/data',
+      STORE: '/api/ho/opname/feedmil/store',
+      DELETE: '/api/ho/opname/feedmil/hapus',
+    },
+    OPNAME_OVK: {
+      DATA: '/api/ho/opname/ovk/data',
+      STORE: '/api/ho/opname/ovk/store',
+      DELETE: '/api/ho/opname/ovk/hapus',
+    },
   },
 
   // RPH (Rumah Potong Hewan)
