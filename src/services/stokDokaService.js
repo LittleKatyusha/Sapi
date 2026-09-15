@@ -8,6 +8,20 @@ import HttpClient from './httpClient';
 class StokDokaService {
   static API_PREFIX = '/api/rph/stokdoka';
 
+  static async downloadDocument(type, params = {}) {
+    if (!['card', 'recap'].includes(type)) throw new Error('Jenis dokumen tidak valid');
+    if (type === 'card' && (typeof params.pid !== 'string' || !params.pid.trim())) throw new Error('PID tidak ditemukan');
+    const options = { responseType: 'blob', cache: false };
+    const blob = type === 'card'
+      ? await HttpClient.post(`${this.API_PREFIX}/card-document`, { pid: params.pid }, options)
+      : await HttpClient.get(`${this.API_PREFIX}/recap-document`, { ...options, params: {
+        start_date: params.start_date || null, end_date: params.end_date || null, search: params.search || null,
+      } });
+    if (!(blob instanceof Blob) || !blob.size || (blob.type && !['application/pdf', 'application/octet-stream'].includes(blob.type.toLowerCase()))
+      || await blob.slice(0, 5).text() !== '%PDF-') throw new Error('Respons server bukan dokumen PDF yang valid');
+    return blob;
+  }
+
   static async getData({
     startDate = null,
     endDate = null,

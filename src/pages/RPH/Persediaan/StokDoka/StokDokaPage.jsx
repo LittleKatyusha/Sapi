@@ -5,6 +5,7 @@ import useDocumentTitle from '../../../../hooks/useDocumentTitle';
 import StokDokaService from '../../../../services/stokDokaService';
 import { Notification } from '../../../../components/shared/NotificationComponent';
 import ActionButton from '../../StokSapi/components/ActionButton';
+import useStokSapiDocument from '../../StokSapi/useStokSapiDocument';
 import BeriPakanKonsentratModal from '../../StokSapi/modals/BeriPakanKonsentratModal';
 import BulkAssignKandangModal from '../../StokSapi/modals/BulkAssignKandangModal';
 import HistoryPakanKonsentratModal from '../../StokSapi/modals/HistoryPakanKonsentratModal';
@@ -20,6 +21,7 @@ const StokDokaPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [notification, setNotification] = useState(null);
+  const { download, downloading, downloadError } = useStokSapiDocument(StokDokaService);
 
   // Filters
   const [startDate, setStartDate] = useState('');
@@ -209,7 +211,19 @@ const StokDokaPage = () => {
                 <p className="text-sm text-gray-500">Stok Kambing &amp; Domba di RPH</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                disabled={Boolean(downloading)}
+                onClick={() => download('recap', 'all', {
+                  start_date: startDateRef.current || null,
+                  end_date: endDateRef.current || null,
+                  search: searchRef.current || '',
+                }, 'Stok_Doka')}
+                className="inline-flex items-center gap-2 rounded-md border border-emerald-300 bg-white px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 disabled:opacity-50"
+              >
+                {downloading === 'recap:all' ? 'Mengunduh PDF...' : 'Rekap Stok Doka PDF'}
+              </button>
               <button
                 type="button"
                 onClick={handleBeriPakan}
@@ -230,6 +244,7 @@ const StokDokaPage = () => {
           </div>
         </div>
 
+        {downloadError && <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{downloadError}</p>}
         {/* Filter */}
         <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
@@ -414,6 +429,9 @@ const StokDokaPage = () => {
                         <div className="flex items-center justify-center">
                           <ActionButton
                             row={{ id: row.pid || row.no_urut, ...row }}
+                            downloadLabel="Kartu Ternak Doka PDF"
+                            downloading={downloading === `card:${row.pid}`}
+                            onDownload={() => download('card', row.pid, { pid: row.pid }, `Doka_${row.eartag || 'Ternak'}`)}
                             openMenuId={openMenuId}
                             setOpenMenuId={setOpenMenuId}
                             onDetail={() => handleDetail(row)}

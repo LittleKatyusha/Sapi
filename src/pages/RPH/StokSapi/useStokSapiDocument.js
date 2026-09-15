@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import StokSapiService from '../../../services/stokSapiService';
 
-export default function useStokSapiDocument() {
+export default function useStokSapiDocument(service = StokSapiService) {
   const lock = useRef(false);
   const [downloading, setDownloading] = useState(null);
   const [downloadError, setDownloadError] = useState('');
@@ -11,7 +11,7 @@ export default function useStokSapiDocument() {
     setDownloading(`${type}:${pid}`);
     setDownloadError('');
     try {
-      const blob = await StokSapiService.downloadDocument(type, params);
+      const blob = await service.downloadDocument(type, params);
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       try {
