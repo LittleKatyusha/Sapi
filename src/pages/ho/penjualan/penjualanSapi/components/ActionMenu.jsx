@@ -1,8 +1,8 @@
 import React, { useRef, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { ClipboardCheck, Download } from 'lucide-react';
+import { ClipboardCheck, Download, Printer } from 'lucide-react';
 
-const ActionMenu = ({ row, onDetail, onDownloadOrder, onDownloadSuratJalan, onClose, buttonRef }) => {
+const ActionMenu = ({ row, onDetail, onDownloadOrder, onDownloadSuratJalan, onDownloadInvoice, onPrintInvoice, onClose, buttonRef }) => {
     const menuRef = useRef(null);
     const [menuStyle, setMenuStyle] = useState(null);
 
@@ -45,6 +45,26 @@ const ActionMenu = ({ row, onDetail, onDownloadOrder, onDownloadSuratJalan, onCl
             bg: 'bg-blue-100',
             hoverBg: 'group-hover:bg-blue-200',
             text: 'text-blue-600',
+        },
+        {
+            label: 'Unduh Invoice',
+            icon: Download,
+            onClick: () => { if (onDownloadInvoice) onDownloadInvoice(row); onClose(); },
+            className: 'text-gray-700',
+            description: 'Download invoice PDF',
+            bg: 'bg-amber-100',
+            hoverBg: 'group-hover:bg-amber-200',
+            text: 'text-amber-600',
+        },
+        {
+            label: 'Cetak Invoice',
+            icon: Printer,
+            onClick: () => { if (onPrintInvoice) onPrintInvoice(row); onClose(); },
+            className: 'text-gray-700',
+            description: 'Buka dialog cetak invoice',
+            bg: 'bg-cyan-100',
+            hoverBg: 'group-hover:bg-cyan-200',
+            text: 'text-cyan-600',
         },
         {
             label: 'Unduh Surat Jalan',

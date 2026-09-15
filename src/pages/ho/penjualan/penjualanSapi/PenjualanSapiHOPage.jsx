@@ -212,7 +212,7 @@ const PenjualanSapiHOPage = () => {
         return () => clearTimeout(timer);
     }, [notification]);
 
-    const downloadReport = async (row, type, label) => {
+    const downloadReport = async (row, type, label, print = false) => {
         const id = row.pid || row.pubid;
         if (!id || String(id).startsWith('TEMP-')) {
             setNotification({ type: 'error', message: 'Data ini tidak dapat diunduh karena belum tersimpan dengan benar' });
@@ -223,7 +223,12 @@ const PenjualanSapiHOPage = () => {
             setNotification({ type: 'error', message: 'Token autentikasi tidak ditemukan. Silakan login kembali.' });
             return;
         }
-        setNotification({ type: 'info', message: `Mengunduh ${label}...` });
+        const printWindow = print ? window.open('', '_blank') : null;
+        if (print && !printWindow) {
+            setNotification({ type: 'error', message: 'Popup diblokir browser. Izinkan popup untuk mencetak invoice.' });
+            return;
+        }
+        setNotification({ type: 'info', message: `${print ? 'Menyiapkan cetak' : 'Mengunduh'} ${label}...` });
         try {
             const url = `${API_BASE_URL}/api/report/penjualan/${type}?id=${encodeURIComponent(id)}`;
             const response = await fetch(url, {
@@ -252,6 +257,13 @@ const PenjualanSapiHOPage = () => {
                 }
             }
             const blobUrl = window.URL.createObjectURL(blob);
+            if (print) {
+                printWindow.location.href = blobUrl;
+                printWindow.addEventListener('load', () => printWindow.print(), { once: true });
+                setTimeout(() => window.URL.revokeObjectURL(blobUrl), 60000);
+                setNotification({ type: 'success', message: `${label} siap dicetak` });
+                return;
+            }
             const link = document.createElement('a');
             link.href = blobUrl;
             link.download = `${label}_${row.nota || id}.pdf`;
@@ -261,6 +273,7 @@ const PenjualanSapiHOPage = () => {
             window.URL.revokeObjectURL(blobUrl);
             setNotification({ type: 'success', message: `${label} berhasil diunduh` });
         } catch (error) {
+            printWindow?.close();
             console.error('Download error:', error);
             setNotification({ type: 'error', message: `Gagal mengunduh ${label}: ${error.message}` });
         }
@@ -268,6 +281,8 @@ const PenjualanSapiHOPage = () => {
 
     const handleDownloadSuratJalan = (row) => downloadReport(row, 'ho-delivery', 'Surat Jalan');
     const handleDownloadLembarPesanan = (row) => downloadReport(row, 'ho-handover', 'Lembar Pesanan');
+    const handleDownloadInvoice = (row) => downloadReport(row, 'ho-receipt', 'Invoice');
+    const handlePrintInvoice = (row) => downloadReport(row, 'ho-receipt', 'Invoice', true);
 
     const detailFetchingRef = useRef(false);
 
@@ -761,6 +776,8 @@ const PenjualanSapiHOPage = () => {
                                                                 onDetail={handleDetail}
                                                                 onDownloadOrder={handleDownloadLembarPesanan}
                                                                 onDownloadSuratJalan={handleDownloadSuratJalan}
+                                                                onDownloadInvoice={handleDownloadInvoice}
+                                                                onPrintInvoice={handlePrintInvoice}
                                                                 isActive={openActionMenu === (row.pid || row.pubid)}
                                                             />
                                                         </div>
@@ -853,6 +870,8 @@ const PenjualanSapiHOPage = () => {
                                     onDetail={handleDetail}
                                     onDownloadOrder={handleDownloadLembarPesanan}
                                     onDownloadSuratJalan={handleDownloadSuratJalan}
+                                    onDownloadInvoice={handleDownloadInvoice}
+                                    onPrintInvoice={handlePrintInvoice}
                                 />
                             ))}
                             <CustomPagination
