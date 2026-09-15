@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Save, Plus, Trash2, Edit2, Building2, Calendar, Hash, Package, X, AlertCircle, Weight, DollarSign, Upload } from 'lucide-react';
 import usePembelianLainLain from './hooks/usePembelianLainLain';
 import useParameterSelect from '../pembelian/hooks/useParameterSelect';
@@ -17,6 +17,8 @@ import AddEditDetailModal from './modals/AddEditDetailModal';
 const AddEditPembelianLainLainPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
+    const basePath = location.pathname.startsWith('/feedmil/') ? '/feedmil/pembelian-lain-lain' : '/ho/pembelian-lain-lain';
     const isEdit = Boolean(id);
     
     // Flag to prevent multiple API calls in edit mode
@@ -1210,7 +1212,7 @@ const AddEditPembelianLainLainPage = () => {
                     sessionStorage.setItem('lainlain-should-refresh', 'true');
                     // Dispatch custom event
                     window.dispatchEvent(new CustomEvent('lainlain-data-updated'));
-                    navigate('/ho/pembelian-lain-lain', { state: { fromEdit: true } });
+                    navigate(basePath, { state: { fromEdit: true } });
                 }, 1500);
             } else {
                 setNotification({
@@ -1234,7 +1236,7 @@ const AddEditPembelianLainLainPage = () => {
         sessionStorage.setItem('lainlain-should-refresh', 'true');
         // Dispatch custom event
         window.dispatchEvent(new CustomEvent('lainlain-data-updated'));
-        navigate('/ho/pembelian-lain-lain', { state: { fromEdit: true } });
+        navigate(basePath, { state: { fromEdit: true } });
     };
 
     // Auto-hide notification

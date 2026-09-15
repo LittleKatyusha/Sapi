@@ -40,6 +40,7 @@ const formatCurrency = (value) => {
 const PembelianLainLainPage = () => {
     const navigate = useNavigate();
     const location = useLocation();
+    const basePath = location.pathname.startsWith('/feedmil/') ? '/feedmil/pembelian-lain-lain' : '/ho/pembelian-lain-lain';
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [selectedPembelian, setSelectedPembelian] = useState(null);
     const [notification, setNotification] = useState(null);
@@ -233,7 +234,7 @@ const PembelianLainLainPage = () => {
             });
             return;
         }
-        navigate(`/ho/pembelian-lain-lain/edit/${encodeURIComponent(id)}`);
+        navigate(`${basePath}/edit/${encodeURIComponent(id)}`);
     };
 
     const handleDetail = (pembelian) => {
@@ -245,7 +246,7 @@ const PembelianLainLainPage = () => {
             });
             return;
         }
-        navigate(`/ho/pembelian-lain-lain/detail/${encodeURIComponent(id)}`);
+        navigate(`${basePath}/detail/${encodeURIComponent(id)}`);
     };
 
     const handleBayar = useCallback((pembelian) => {
@@ -257,8 +258,9 @@ const PembelianLainLainPage = () => {
             });
             return;
         }
-        navigate(`/ho/keuangan/pengeluaran/bayar/${encodeURIComponent(id)}`);
-    }, [navigate, setNotification]);
+        const paymentPath = basePath.startsWith('/feedmil/') ? '/feedmil/keuangan/pengeluaran/bayar' : '/ho/keuangan/pengeluaran/bayar';
+        navigate(`${paymentPath}/${encodeURIComponent(id)}`, { state: { from: basePath } });
+    }, [basePath, navigate, setNotification]);
 
     const handleDownloadNota = useCallback(async (row) => {
         const id = row.pid || row.encryptedPid || row.id;
@@ -1268,7 +1270,7 @@ const PembelianLainLainPage = () => {
                     getFarmName={getFarmName}
                     getBankName={getBankName}
                     bankOptions={bankOptions}
-                    onAsetAdd={() => navigate('/ho/pembelian-lain-lain/add')}
+                    onAsetAdd={() => navigate(`${basePath}/add`)}
                     onAsetReport={() => setIsAsetExportOpen(true)}
                     onAsetNotification={setNotification}
                     biayaData={pembelianBeban}

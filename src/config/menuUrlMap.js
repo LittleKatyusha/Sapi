@@ -16,6 +16,7 @@ export const MENU_URL_MAPPING = {
   // Feedmil modules (top-level parent)
   'pembelian-feedmil': '/feedmil/pembelian-feedmil',
   'pembelian-ovk': '/feedmil/pembelian-ovk',
+  'pembelian-lain-lain-feedmil': '/feedmil/pembelian-lain-lain',
   'resep-konsentrat': '/feedmil/resep-konsentrat',
   'penjualan-konsentrat': '/feedmil/penjualan-konsentrat',
   'penjualan-ovk-ho': '/feedmil/penjualan-ovk',

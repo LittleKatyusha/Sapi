@@ -573,6 +573,10 @@ function AppSecure() {
               <Route path="/feedmil/pembelian-ovk/add" element={<AddEditPembelianOVKPage />} />
               <Route path="/feedmil/pembelian-ovk/edit/:id" element={<AddEditPembelianOVKPage />} />
               <Route path="/feedmil/pembelian-ovk/detail/:id" element={<PembelianOVKDetailPage />} />
+              <Route path="/feedmil/pembelian-lain-lain" element={<PembelianLainLainPage />} />
+              <Route path="/feedmil/pembelian-lain-lain/add" element={<AddEditPembelianLainLainPage />} />
+              <Route path="/feedmil/pembelian-lain-lain/edit/:id" element={<AddEditPembelianLainLainPage />} />
+              <Route path="/feedmil/pembelian-lain-lain/detail/:id" element={<PembelianLainLainDetailPage />} />
               {/* Backward compat redirects */}
               <Route path="/ho/pembelian-feedmil" element={<Navigate to="/feedmil/pembelian-feedmil" replace />} />
               <Route path="/ho/pembelian-feedmil/add" element={<Navigate to="/feedmil/pembelian-feedmil/add" replace />} />
