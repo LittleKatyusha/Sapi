@@ -6,6 +6,7 @@ import usePersediaanPakan from '../hooks/usePersediaanPakan';
 import BuatResepPakanModal from '../modals/BuatResepPakanModal';
 import CopyResepPakanModal from '../modals/CopyResepPakanModal';
 import PersediaanPakanActionButton from './PersediaanPakanActionButton';
+import usePersediaanDocument from '../hooks/usePersediaanDocument';
 import CustomPagination from './CustomPagination';
 import { enhancedTableStyles } from '../constants/tableStyles';
 import PersediaanPakanService from '../../../../../services/persediaanPakanService';
@@ -314,6 +315,7 @@ const DetailResepPakanModal = ({ isOpen, onClose, item, detail, loading, formatC
 };
 
 const PersediaanPakanTab = () => {
+    const { download, downloading, downloadError } = usePersediaanDocument();
     const [openMenuId, setOpenMenuId] = useState(null);
     const [notification, setNotification] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -564,6 +566,8 @@ const PersediaanPakanTab = () => {
             cell: row => (
                 <div className="flex justify-center w-full">
                     <PersediaanPakanActionButton
+                        onDownload={(row) => download('recipe', row.pid, { pid: row.pid }, row.kode || row.name)}
+                        downloading={downloading}
                         row={row}
                         openMenuId={openMenuId}
                         setOpenMenuId={setOpenMenuId}
@@ -688,11 +692,12 @@ const PersediaanPakanTab = () => {
                 </div>
             ),
         },
-    ], [openMenuId, serverPagination, handleBeriMakanClick, handleRiwayatPemberianClick]);
+    ], [openMenuId, serverPagination, handleBeriMakanClick, handleRiwayatPemberianClick, downloading, download]);
 
     return (
         <div className="space-y-3">
             <Notification notification={notification} onClose={() => setNotification(null)} />
+            {downloadError && <p role="alert" className="text-sm text-red-700">{downloadError}</p>}
 
             {!searchError && persediaanData && persediaanData.length > 0 && <ResepSummaryCard data={persediaanData} />}
 
@@ -985,6 +990,8 @@ const PersediaanPakanTab = () => {
                                     )}
                                 </div>
                                 <PersediaanPakanActionButton
+                                    onDownload={(row) => download('recipe', row.pid, { pid: row.pid }, row.kode || row.name)}
+                                    downloading={downloading}
                                     row={row}
                                     openMenuId={openMenuId}
                                     setOpenMenuId={setOpenMenuId}

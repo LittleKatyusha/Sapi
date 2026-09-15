@@ -6,6 +6,17 @@
 import HttpClient from './httpClient';
 
 class PersediaanOvkService {
+  static async downloadDocument(type, params) {
+    if (!['recipe', 'stock', 'ledger'].includes(type)) throw new Error('Jenis dokumen tidak valid');
+    if (type === 'recipe' && (typeof params?.pid !== 'string' || !params.pid.trim())) throw new Error('PID tidak ditemukan');
+    const module = type === 'recipe' ? 'pakan' : 'ovk';
+    const url = `/api/rph/persediaan/${module}/${type}-document`;
+    const blob = type === 'recipe'
+      ? await HttpClient.post(url, params, { responseType: 'blob', cache: false })
+      : await HttpClient.get(url, { params, responseType: 'blob', cache: false });
+    if (!(blob instanceof Blob) || !blob.size || await blob.slice(0, 5).text() !== '%PDF-') throw new Error('Respons server bukan dokumen PDF yang valid');
+    return blob;
+  }
   // API endpoints — matched to backend PersediaanRphController routes
   static API_DATA = '/api/rph/persediaan/ovk/data';
   static API_REKAP = '/api/rph/persediaan/ovk/datarekap';
@@ -19,7 +30,7 @@ class PersediaanOvkService {
    * @param {string} [options.search=''] - Search value
    * @param {number} [options.draw=1] - DataTable draw counter
    * @param {number} [options.start=0] - Pagination offset
-   * @param {number} [options.length=-1] - Page size (-1 = all records, omitted from request)
+    * @param {number} [options.length=-1] - Page size (-1 = all records)
    * @returns {Promise} API response with usage data
    */
   static async getPenggunaData({ startDate, endDate, search = '', draw = 1, start = 0, length = -1 } = {}) {
@@ -29,7 +40,7 @@ class PersediaanOvkService {
       if (endDate) params.append('end_date', endDate);
       params.append('draw', draw);
       params.append('start', start);
-      if (length !== -1) params.append('length', length);
+      params.append('length', length);
       if (search) params.append('search[value]', search);
 
       const response = await HttpClient.get(`${this.API_DATA}?${params.toString()}`);

@@ -16,7 +16,7 @@ const DateColumnPicker = ({
     const current = new Date(from + 'T00:00:00');
     const end = new Date(to + 'T00:00:00');
     while (current <= end) {
-      const dateStr = current.toISOString().split('T')[0];
+      const dateStr = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}-${String(current.getDate()).padStart(2, '0')}`;
       if (availableDates.includes(dateStr)) {
         dates.push(dateStr);
       }
@@ -83,10 +83,11 @@ const DateColumnPicker = ({
       {/* Date Range Inputs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-2.5">
         <div>
-          <label className="block text-xs font-semibold text-slate-500 mb-1">
+          <label htmlFor="ovk-start-date" className="block text-xs font-semibold text-slate-500 mb-1">
             Dari Tanggal
           </label>
           <input
+            id="ovk-start-date"
             type="date"
             value={startDate}
             min={minDate}
@@ -98,10 +99,11 @@ const DateColumnPicker = ({
           />
         </div>
         <div>
-          <label className="block text-xs font-semibold text-slate-500 mb-1">
+          <label htmlFor="ovk-end-date" className="block text-xs font-semibold text-slate-500 mb-1">
             Sampai Tanggal
           </label>
           <input
+            id="ovk-end-date"
             type="date"
             value={endDate}
             min={minDate}

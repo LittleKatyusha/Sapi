@@ -3,6 +3,7 @@ import { AlertCircle, RefreshCw, ArrowDownToLine, ArrowUpFromLine, Minus } from 
 import usePenggunaOvk from '../hooks/usePenggunaOvk';
 import DateColumnPicker from './DateColumnPicker';
 import PenggunaOvkTable from './PenggunaOvkTable';
+import usePersediaanDocument from '../hooks/usePersediaanDocument';
 
 const RiwayatSummaryCard = ({ data, selectedDates }) => {
   const stats = useMemo(() => {
@@ -56,6 +57,7 @@ const RiwayatSummaryCard = ({ data, selectedDates }) => {
 };
 
 const PenggunaOvkTab = () => {
+  const { download, downloading, downloadError } = usePersediaanDocument();
   const {
     selectedDates,
     loading,
@@ -70,6 +72,13 @@ const PenggunaOvkTab = () => {
 
   return (
     <div className="space-y-3">
+      <button type="button" disabled={!!downloading || loading || !selectedDates.length} aria-busy={!!downloading}
+        onClick={() => download('ledger', selectedDates.join('_'), { start_date: selectedDates[0], end_date: selectedDates[selectedDates.length - 1] }, `${selectedDates[0]}_${selectedDates[selectedDates.length - 1]}`)}
+        className="rounded-lg border border-emerald-300 px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 disabled:opacity-50">
+        {downloading ? 'Mengunduh PDF...' : 'Kartu Stok Periode Terpilih PDF'}
+      </button>
+      <p className="text-xs text-slate-500">Seluruh produk, seluruh hari dalam periode terpilih. Berdasarkan batch dan pemakaian aktif tersimpan, bukan jejak audit pembatalan.</p>
+      {downloadError && <p role="alert" className="text-sm text-red-700">{downloadError}</p>}
       {!error && penggunaData.length > 0 && <RiwayatSummaryCard data={penggunaData} selectedDates={selectedDates} />}
 
       <DateColumnPicker
