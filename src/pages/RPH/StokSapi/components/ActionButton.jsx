@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { MoreVertical } from 'lucide-react';
 import ActionMenu from './ActionMenu';
 
-const ActionButton = ({ row, openMenuId, setOpenMenuId, onEdit, onDelete, onDetail, onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, isActive }) => {
+const ActionButton = ({ row, openMenuId, setOpenMenuId, onEdit, onDelete, onDetail, onOvk, onPotongPaksa, onPotongSapiBiasa, onSapiMati, isActive, onDownload, downloadLabel, downloading }) => {
   const buttonRef = useRef(null);
   const [isAnimating, setIsAnimating] = useState(false);
 
@@ -29,6 +29,7 @@ const ActionButton = ({ row, openMenuId, setOpenMenuId, onEdit, onDelete, onDeta
   return (
     <div className={`relative ${isActive ? 'active-row' : ''}`}>
       <button
+        type="button"
         ref={buttonRef}
         onClick={handleAction}
         onKeyDown={handleKeyDown}
@@ -37,6 +38,8 @@ const ActionButton = ({ row, openMenuId, setOpenMenuId, onEdit, onDelete, onDeta
           openMenuId === (row.id || row.encryptedPid) ? 'bg-blue-50 text-blue-600 border-blue-400 shadow-md scale-105' : ''
         } ${isAnimating ? 'animate-pulse' : ''}`}
         aria-label="Menu Aksi"
+        aria-haspopup="menu"
+        aria-busy={Boolean(downloading)}
         aria-expanded={openMenuId === (row.id || row.encryptedPid)}
       >
         <MoreVertical
@@ -56,6 +59,9 @@ const ActionButton = ({ row, openMenuId, setOpenMenuId, onEdit, onDelete, onDeta
           onPotongPaksa={onPotongPaksa}
           onPotongSapiBiasa={onPotongSapiBiasa}
           onSapiMati={onSapiMati}
+          onDownload={onDownload}
+          downloadLabel={downloadLabel}
+          downloading={downloading}
           onClose={() => setOpenMenuId(null)}
           buttonRef={buttonRef}
         />

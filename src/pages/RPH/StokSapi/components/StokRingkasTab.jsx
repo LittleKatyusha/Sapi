@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Filter, Search, RotateCcw, AlertCircle } from 'lucide-react';
 import ActionButton from './ActionButton';
+import useStokSapiDocument from '../useStokSapiDocument';
 import StokSapiService from '../../../../services/stokSapiService';
 import { formatCurrency, formatNumber } from '../constants/dummyData';
 
@@ -16,7 +16,8 @@ const formatDateLabel = (dateStr) => {
 };
 
 const StokRingkasTab = () => {
-  const navigate = useNavigate();
+  const { download, downloading, downloadError } = useStokSapiDocument();
+  const [appliedDates, setAppliedDates] = useState(null);
   const [openMenuId, setOpenMenuId] = useState(null);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -63,6 +64,7 @@ const StokRingkasTab = () => {
       const response = await StokSapiService.getStokByJenis(start, end);
       if (response.success) {
         setData(response.data);
+        setAppliedDates({ start_date: start, end_date: end });
       } else {
         setError(response.message || 'Gagal memuat data');
         setData(null);
@@ -87,6 +89,7 @@ const StokRingkasTab = () => {
     setEndDate('');
     setHasSearched(false);
     setData(null);
+    setAppliedDates(null);
     setError(null);
   };
 
@@ -94,6 +97,12 @@ const StokRingkasTab = () => {
 
   return (
     <div className="space-y-4">
+      {downloadError && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{downloadError}</p>}
+      {appliedDates && data && <button type="button" disabled={loading || downloading === 'recap:all'}
+        onClick={() => download('recap', 'all', appliedDates, `${appliedDates.start_date}_${appliedDates.end_date}`)}
+        className="rounded-md border border-emerald-300 bg-white px-3 py-2 text-sm font-medium text-emerald-700 disabled:opacity-50">
+        {downloading === 'recap:all' ? 'Mengunduh PDF...' : 'Rekap Stok PDF (Semua Klasifikasi)'}
+      </button>}
       <style>{`
         .stok-ringkas-table-wrapper::-webkit-scrollbar {
           height: 6px;
@@ -285,12 +294,12 @@ const StokRingkasTab = () => {
                 >
                   <div className="flex items-center justify-center">
                     <ActionButton
-                      row={{ id: row.action || row.no_urut, ...row }}
+                      row={{ ...row, id: row.action || row.no_urut }}
                       openMenuId={openMenuId}
                       setOpenMenuId={setOpenMenuId}
-                      onDetail={() => console.log('Detail', row)}
-                      onEdit={() => navigate(`/rph/stok-sapi/edit/${row.pid}`)}
-                      onDelete={() => console.log('Delete', row)}
+                      onDownload={() => download('recap', row.action, appliedDates, `${appliedDates.start_date}_${appliedDates.end_date}`)}
+                      downloadLabel="Rekap Semua Klasifikasi PDF"
+                      downloading={downloading === `recap:${row.action}`}
                     />
                   </div>
                 </td>

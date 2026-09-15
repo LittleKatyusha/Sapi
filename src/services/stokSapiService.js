@@ -8,6 +8,24 @@ import HttpClient from './httpClient';
 class StokSapiService {
   static API_PREFIX = '/api/rph/pemeliharaansapi';
 
+  static async downloadDocument(type, params) {
+    const urls = {
+      card: `${this.API_PREFIX}/card-document`,
+      recap: `${this.API_PREFIX}/recap-document`,
+      potongpaksa: '/api/rph/persediaan/potongpaksa/document',
+      sapimati: '/api/rph/persediaan/sapimati/document',
+    };
+    if (!Object.hasOwn(urls, type)) throw new Error('Jenis dokumen tidak valid');
+    if (type !== 'recap' && (typeof params?.pid !== 'string' || !params.pid.trim())) throw new Error('PID tidak ditemukan');
+    const options = { responseType: 'blob', cache: false };
+    const blob = type === 'card'
+      ? await HttpClient.post(urls[type], { pid: params.pid }, options)
+      : await HttpClient.get(urls[type], { ...options, params });
+    if (!(blob instanceof Blob) || !blob.size || (blob.type && !['application/pdf', 'application/octet-stream'].includes(blob.type.toLowerCase()))
+      || await blob.slice(0, 5).text() !== '%PDF-') throw new Error('Respons server bukan dokumen PDF yang valid');
+    return blob;
+  }
+
   static async getStokByJenis(startDate, endDate) {
     try {
       const response = await HttpClient.get(`${this.API_PREFIX}/stoksapibyjenis`, {

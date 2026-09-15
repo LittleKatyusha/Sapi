@@ -3,8 +3,10 @@ import { AlertCircle, Loader2, RefreshCw, AlertTriangle, Filter, Search, RotateC
 import StokSapiService from '../../../../services/stokSapiService';
 import SapiMatiModal from '../modals/SapiMatiModal';
 import ActionButton from './ActionButton';
+import useStokSapiDocument from '../useStokSapiDocument';
 
 const SapiMatiTab = () => {
+  const { download, downloading, downloadError } = useStokSapiDocument();
   const [openMenuId, setOpenMenuId] = useState(null);
 
   const [data, setData] = useState([]);
@@ -139,6 +141,7 @@ const SapiMatiTab = () => {
 
   return (
     <div className="space-y-3">
+      {downloadError && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{downloadError}</p>}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <h3 className="text-base font-semibold text-slate-800">Riwayat Sapi Mati</h3>
         <button
@@ -252,7 +255,10 @@ const SapiMatiTab = () => {
                   <td className="px-3 py-2 text-center border-gray-100 whitespace-nowrap">
                     <div className="flex items-center justify-center">
                       <ActionButton
-                        row={{ id: item.pid || index, ...item }}
+                        row={{ ...item, id: item.pid }}
+                        onDownload={() => download('sapimati', item.pid, { pid: item.pid }, item.sapi)}
+                        downloadLabel="Laporan Sapi Mati PDF"
+                        downloading={downloading === `sapimati:${item.pid}`}
                         openMenuId={openMenuId}
                         setOpenMenuId={setOpenMenuId}
                         onEdit={() => handleEdit(item)}
