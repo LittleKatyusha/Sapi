@@ -1,10 +1,11 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import DataTable from 'react-data-table-component';
-import { PlusCircle, Search, ShoppingCart, Eye, Edit2, CheckCircle, XCircle, MoreVertical, Truck, Beef, ChevronDown, ChevronUp, Banknote, Package, Calendar, User, FileText, Receipt, RotateCcw, AlertTriangle, Bell, Filter, Hash, Tag } from 'lucide-react';
+import { PlusCircle, Search, ShoppingCart, Eye, Edit2, CheckCircle, XCircle, MoreVertical, Truck, Beef, ChevronDown, ChevronUp, Banknote, Package, Calendar, User, FileText, RotateCcw, AlertTriangle, Bell, Filter, Hash, Tag } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import usePenjualanDokaUtuh from '../../../hooks/usePenjualanDokaUtuh';
+import PenjualanDokaUtuhService from '../../../services/penjualanDokaUtuhService';
 import DeleteConfirmationModal from '../../../components/shared/modals/DeleteConfirmationModal';
 import Notification from '../../../components/shared/Notification';
 import SearchableSelect from '../../../components/shared/SearchableSelect';
@@ -220,7 +221,7 @@ const ExpandableRow = ({ data }) => {
 };
 
 // Standalone action menu cell with portal to escape table overflow clipping
-const ActionMenuCell = ({ row, setDeleteData, handleConfirm, handleCancel, handlePrintFaktur, handlePrintInvoice, handlePrintSuratJalan, handleReturnClick, confirmingPid }) => {
+const ActionMenuCell = ({ row, setDeleteData, handleConfirm, handleCancel, handlePrint, printing, handleReturnClick, confirmingPid }) => {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
@@ -267,7 +268,18 @@ const ActionMenuCell = ({ row, setDeleteData, handleConfirm, handleCancel, handl
       }
     };
     document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') {
+        setIsOpen(false);
+        buttonRef.current?.focus();
+      }
+    };
+    menuRef.current?.querySelector('button')?.focus();
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
   }, [isOpen]);
 
   const menuContent = (
@@ -334,22 +346,20 @@ const ActionMenuCell = ({ row, setDeleteData, handleConfirm, handleCancel, handl
             </button>
           )}
           <button
-            onClick={() => { setIsOpen(false); handlePrintFaktur(row); }}
-            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-indigo-50 flex items-center gap-2 transition"
+            onClick={() => handlePrint(row, 'invoice')}
+            disabled={printing.has(`invoice:${row.pid}`)}
+            aria-busy={printing.has(`invoice:${row.pid}`)}
+            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-violet-50 flex items-center gap-2 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <FileText className="w-4 h-4 text-indigo-500" /> Faktur
+            <FileText className="w-4 h-4 shrink-0 text-violet-500" /> {printing.has(`invoice:${row.pid}`) ? 'Memproses invoice...' : 'Faktur Penjualan (Invoice)'}
           </button>
           <button
-            onClick={() => { setIsOpen(false); handlePrintInvoice(row); }}
-            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-violet-50 flex items-center gap-2 transition"
+            onClick={() => handlePrint(row, 'surat-jalan')}
+            disabled={printing.has(`surat-jalan:${row.pid}`)}
+            aria-busy={printing.has(`surat-jalan:${row.pid}`)}
+            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-teal-50 flex items-center gap-2 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Receipt className="w-4 h-4 text-violet-500" /> Invoice
-          </button>
-          <button
-            onClick={() => { setIsOpen(false); handlePrintSuratJalan(row); }}
-            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-teal-50 flex items-center gap-2 transition"
-          >
-            <Truck className="w-4 h-4 text-teal-500" /> Surat Jalan
+            <Truck className="w-4 h-4 shrink-0 text-teal-500" /> {printing.has(`surat-jalan:${row.pid}`) ? 'Memproses surat jalan...' : 'Surat Jalan PDF'}
           </button>
           <button
             onClick={() => { setIsOpen(false); handleReturnClick(row); }}
@@ -377,6 +387,8 @@ const ActionMenuCell = ({ row, setDeleteData, handleConfirm, handleCancel, handl
         onClick={toggleMenu}
         className={`p-2 rounded-lg transition ${isOpen ? 'bg-gray-100 text-gray-800' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'}`}
         title="Menu"
+        aria-label={`Menu ${row.no_transaksi}`}
+        aria-expanded={isOpen}
       >
         <MoreVertical className="w-5 h-5" />
       </button>
@@ -476,6 +488,8 @@ const PenjualanDokaUtuhPage = () => {
   const [tableData, setTableData] = useState([]);
   const [statusFilter, setStatusFilter] = useState('');
   const [rowExpanded, setRowExpanded] = useState({});
+  const printLocks = useRef(new Set());
+  const [printing, setPrinting] = useState(new Set());
 
   // Advanced filter states
   const [noTransaksiFilter, setNoTransaksiFilter] = useState('');
@@ -489,7 +503,7 @@ const PenjualanDokaUtuhPage = () => {
   const [statsExpanded, setStatsExpanded] = useState(true);
   const [filtersExpanded, setFiltersExpanded] = useState(true);
 
-  const { loading, error, fetchData, remove, confirm, cancel, printFaktur, printInvoice, printSuratJalan } = usePenjualanDokaUtuh();
+  const { loading, error, fetchData, remove, confirm, cancel } = usePenjualanDokaUtuh();
 
   const loadData = useCallback(async () => {
     const params = { length: 1000 };
@@ -575,38 +589,41 @@ const PenjualanDokaUtuhPage = () => {
     }
   }, [cancel, showNotif, loadData]);
 
-  const handlePrintFaktur = useCallback(async (item) => {
-    showNotif('info', 'Memproses faktur penjualan...');
-    const result = await printFaktur(item.pid);
-    if (result.success) {
-      const url = window.URL.createObjectURL(result.data); const link = document.createElement('a'); link.href = url; link.download = `Faktur_${item.no_transaksi || item.pid}.pdf`; link.click(); window.URL.revokeObjectURL(url);
-      showNotif('success', 'Faktur berhasil diunduh');
-    } else {
-      showNotif('error', result.message || 'Gagal memuat data faktur');
+  const handlePrint = useCallback(async (item, type) => {
+    const key = `${type}:${item.pid}`;
+    if (item.status_transaksi !== 'confirmed' || printLocks.current.has(key)) return;
+    printLocks.current.add(key);
+    setPrinting(new Set(printLocks.current));
+    let url;
+    let link;
+    try {
+      const result = await (type === 'invoice'
+        ? PenjualanDokaUtuhService.printInvoice(item.pid)
+        : PenjualanDokaUtuhService.printSuratJalan(item.pid));
+      if (!result.success) throw new Error(result.message || 'Gagal mengunduh dokumen');
+      const blob = result.data;
+      if (!(blob instanceof Blob) || blob.type.split(';')[0].toLowerCase() !== 'application/pdf'
+        || await blob.slice(0, 5).text() !== '%PDF-') {
+        throw new Error('Respons bukan PDF yang valid. Dokumen tidak diunduh.');
+      }
+      url = window.URL.createObjectURL(blob);
+      link = document.createElement('a');
+      link.href = url;
+      const number = String(item.no_transaksi || 'penjualan').replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 100);
+      link.download = `${type === 'invoice' ? 'Invoice' : 'Surat_Jalan'}_${number}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      showNotif('success', `${type === 'invoice' ? 'Faktur penjualan' : 'Surat jalan'} berhasil diunduh`);
+    } catch (err) {
+      showNotif('error', err.message || 'Gagal mengunduh dokumen');
+    } finally {
+      link?.remove();
+      // Allow the browser to consume the download before releasing its URL.
+      if (url) window.setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+      printLocks.current.delete(key);
+      setPrinting(new Set(printLocks.current));
     }
-  }, [printFaktur, showNotif]);
-
-  const handlePrintInvoice = useCallback(async (item) => {
-    showNotif('info', 'Memproses invoice penjualan...');
-    const result = await printInvoice(item.pid);
-    if (result.success) {
-      const url = window.URL.createObjectURL(result.data); const link = document.createElement('a'); link.href = url; link.download = `Invoice_${item.no_transaksi || item.pid}.pdf`; link.click(); window.URL.revokeObjectURL(url);
-      showNotif('success', 'Invoice berhasil diunduh');
-    } else {
-      showNotif('error', result.message || 'Gagal memuat data invoice');
-    }
-  }, [printInvoice, showNotif]);
-
-  const handlePrintSuratJalan = useCallback(async (item) => {
-    showNotif('info', 'Memproses surat jalan...');
-    const result = await printSuratJalan(item.pid);
-    if (result.success) {
-      const url = window.URL.createObjectURL(result.data); const link = document.createElement('a'); link.href = url; link.download = `Surat_Jalan_${item.no_transaksi || item.pid}.pdf`; link.click(); window.URL.revokeObjectURL(url);
-      showNotif('success', 'Surat jalan berhasil diunduh');
-    } else {
-      showNotif('error', result.message || 'Gagal memuat data surat jalan');
-    }
-  }, [printSuratJalan, showNotif]);
+  }, [showNotif]);
 
   const handleReturnClick = useCallback((row) => {
     navigate(`/rph/penjualan-doka-utuh/return/${row.pid}`);
@@ -637,9 +654,8 @@ const PenjualanDokaUtuhPage = () => {
           setDeleteData={setDeleteData}
           handleConfirm={handleConfirm}
           handleCancel={handleCancel}
-          handlePrintFaktur={handlePrintFaktur}
-          handlePrintInvoice={handlePrintInvoice}
-          handlePrintSuratJalan={handlePrintSuratJalan}
+          handlePrint={handlePrint}
+          printing={printing}
           handleReturnClick={handleReturnClick}
           confirmingPid={confirmingPid}
         />
@@ -858,7 +874,7 @@ const PenjualanDokaUtuhPage = () => {
         );
       },
     },
-  ], [handleConfirm, handleCancel, handlePrintFaktur, handlePrintInvoice, handlePrintSuratJalan, handleReturnClick, rowExpanded, confirmingPid]);
+  ], [handleConfirm, handleCancel, handlePrint, printing, handleReturnClick, rowExpanded, confirmingPid]);
 
   const customTableStyles = {
     table: {
