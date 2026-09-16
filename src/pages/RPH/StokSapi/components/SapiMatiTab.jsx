@@ -223,20 +223,21 @@ const SapiMatiTab = () => {
               <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Tanggal & Pelapor</th>
               <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Sapi</th>
               <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Sebab & Keterangan</th>
+              <th className="px-3 py-2 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Kerugian</th>
               <th className="px-3 py-2 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">Bukti</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
             {loading ? (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center">
+                <td colSpan={7} className="px-4 py-10 text-center">
                   <Loader2 className="h-8 w-8 animate-spin text-slate-400 mx-auto" />
                   <p className="mt-2 text-sm text-slate-500">Memuat data...</p>
                 </td>
               </tr>
             ) : !loading && data.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-3 py-8 text-center">
+                <td colSpan={7} className="px-3 py-8 text-center">
                   <div className="flex flex-col items-center justify-center">
                     <div className="rounded-full bg-slate-100 p-3 mb-2">
                       <AlertTriangle className="h-8 w-8 text-slate-400" />
@@ -289,6 +290,9 @@ const SapiMatiTab = () => {
                       </div>
                       <div className="text-sm text-slate-600" title={item.keterangan}>{item.keterangan || '-'}</div>
                     </div>
+                  </td>
+                  <td className="px-3 py-2 text-right whitespace-nowrap">
+                    {item.kerugian ? `Rp ${Number(item.kerugian.total_kerugian).toLocaleString('id-ID')}` : '-'}
                   </td>
                   <td className="px-3 py-2 text-center whitespace-nowrap">
                     {item.file ? (

@@ -1152,6 +1152,7 @@ const StokSapiQurbanPage = () => {
                     <th className="px-4 py-3">Status Sapi</th>
                     <th className="px-4 py-3">Sapi Pengganti</th>
                     <th className="px-4 py-3">Mengetahui</th>
+                    <th className="px-4 py-3 text-right">Kerugian</th>
                     <th className="px-4 py-3">Keterangan</th>
                   </tr>
                 </thead>
@@ -1180,6 +1181,7 @@ const StokSapiQurbanPage = () => {
                         )}
                       </td>
                       <td className="px-4 py-3 text-xs text-gray-600">{row.mengetahui || '-'}</td>
+                      <td className="px-4 py-3 text-xs text-right font-semibold text-red-700">{row.kerugian ? `Rp ${Number(row.kerugian.total_kerugian).toLocaleString('id-ID')}` : '-'}</td>
                       <td className="px-4 py-3 text-xs text-gray-500 max-w-xs truncate" title={row.keterangan}>{row.keterangan || '-'}</td>
                     </tr>
                   ))}
