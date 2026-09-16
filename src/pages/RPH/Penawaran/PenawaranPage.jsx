@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -10,22 +10,56 @@ import {
 } from 'lucide-react';
 import usePenawaranPenjualan from '../../../hooks/usePenawaranPenjualan';
 import SearchableSelect from '../../../components/shared/SearchableSelect';
+import usePenawaranDocument from './usePenawaranDocument';
 
-const ActionMenuPortal = ({ row, menuPos, onClose, onDetail, onEdit, onAjukan, onSetujui, onDelete }) => (
+const ActionMenuPortal = ({ row, menuPos, onClose, onDetail, onEdit, onAjukan, onSetujui, onDelete, onDownload, downloading }) => {
+  const menuRef = useRef(null);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+  useEffect(() => {
+    const trigger = document.activeElement;
+    const menu = menuRef.current;
+    menu.querySelector('button')?.focus();
+    const close = (event) => {
+      if (event.key === 'Escape') { event.preventDefault(); closeRef.current(); }
+    };
+    document.addEventListener('keydown', close);
+    return () => { document.removeEventListener('keydown', close); if (trigger?.isConnected) trigger.focus(); };
+  }, [row.pid]);
+  return (
   <>
     <div className="fixed inset-0 z-[99998]" onClick={onClose} />
     <div
-      style={{ position: 'fixed', left: menuPos.left, top: menuPos.top, zIndex: 99999 }}
+      ref={menuRef}
+      role="menu"
+      aria-label={`Aksi ${row.nomor_spp}`}
+      onKeyDown={(event) => {
+        const buttons = [...menuRef.current.querySelectorAll('button:not(:disabled)')];
+        const index = buttons.indexOf(document.activeElement);
+        if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+          event.preventDefault();
+          const next = event.key === 'Home' ? 0 : event.key === 'End' ? buttons.length - 1 : (index + (event.key === 'ArrowDown' ? 1 : -1) + buttons.length) % buttons.length;
+          buttons[next]?.focus();
+        }
+        if (event.key === 'Tab') onClose();
+      }}
+      style={{ position: 'fixed', left: Math.max(8, Math.min(menuPos.left, window.innerWidth - 184)), top: Math.max(8, Math.min(menuPos.top, window.innerHeight - 280)), zIndex: 99999, maxHeight: 'calc(100vh - 16px)', overflowY: 'auto' }}
       className="w-44 bg-white rounded-lg shadow-xl border border-gray-100 overflow-hidden"
     >
-      <button
+      <button role="menuitem"
         onClick={() => onDetail(row.pid)}
         className="w-full text-left flex items-center gap-2 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition"
       >
         <Eye className="w-3.5 h-3.5 text-blue-500" /> Lihat Detail
       </button>
+      <button role="menuitem" disabled={Boolean(downloading)} aria-busy={downloading === `dispensasi:${row.pid}`}
+        onClick={() => onDownload(row)}
+        className="w-full text-left flex items-center gap-2 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed">
+        {downloading === `dispensasi:${row.pid}` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileText className="w-3.5 h-3.5" />}
+        {downloading === `dispensasi:${row.pid}` ? 'Mengunduh PDF...' : 'Unduh Surat PDF'}
+      </button>
       {row.status === 'draft' && (
-        <button
+        <button role="menuitem"
           onClick={() => onEdit(row.pid)}
           className="w-full text-left flex items-center gap-2 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition"
         >
@@ -33,7 +67,7 @@ const ActionMenuPortal = ({ row, menuPos, onClose, onDetail, onEdit, onAjukan, o
         </button>
       )}
       {row.status === 'draft' && (
-        <button
+        <button role="menuitem"
           onClick={() => onAjukan(row)}
           className="w-full text-left flex items-center gap-2 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition"
         >
@@ -41,7 +75,7 @@ const ActionMenuPortal = ({ row, menuPos, onClose, onDetail, onEdit, onAjukan, o
         </button>
       )}
       {row.status === 'diajukan' && (
-        <button
+        <button role="menuitem"
           onClick={() => onSetujui(row)}
           className="w-full text-left flex items-center gap-2 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition"
         >
@@ -51,7 +85,7 @@ const ActionMenuPortal = ({ row, menuPos, onClose, onDetail, onEdit, onAjukan, o
       {row.status === 'draft' && (
         <>
           <div className="border-t border-gray-100 my-1" />
-          <button
+          <button role="menuitem"
             onClick={() => onDelete(row)}
             className="w-full text-left flex items-center gap-2 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 transition"
           >
@@ -61,7 +95,8 @@ const ActionMenuPortal = ({ row, menuPos, onClose, onDetail, onEdit, onAjukan, o
       )}
     </div>
   </>
-);
+  );
+};
 
 const STATUS_CONFIG = {
   draft: { label: 'Draft', bg: 'bg-gray-50', text: 'text-gray-600', border: 'border-gray-200', dot: 'bg-gray-400' },
@@ -84,6 +119,7 @@ const STATUS_OPTIONS = [
 const PenawaranPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { download, downloading, downloadError } = usePenawaranDocument();
   const [tableData, setTableData] = useState([]);
   const [totalRecords, setTotalRecords] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
@@ -336,6 +372,8 @@ const PenawaranPage = () => {
         <ActionMenuPortal
           row={tableData.find(r => r.pid === openMenuId)}
           menuPos={menuPos}
+          onDownload={download}
+          downloading={downloading}
           onClose={() => { setOpenMenuId(null); setMenuPos(null); }}
           onDetail={(pid) => { navigate(`/rph/penawaran/detail/${pid}`); setOpenMenuId(null); setMenuPos(null); }}
           onEdit={(pid) => { navigate(`/rph/penawaran/edit/${pid}`); setOpenMenuId(null); setMenuPos(null); }}
@@ -350,6 +388,7 @@ const PenawaranPage = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6 md:p-8">
       <div className="w-full space-y-6">
+        {downloadError && <div role="alert" className="rounded-lg border border-red-200 bg-white p-4 text-sm text-red-700">{downloadError}</div>}
         {/* Notification Toast */}
         {notification && (
           <div className="fixed top-4 right-4 z-[100001] animate-slide-in-right">
@@ -709,6 +748,9 @@ const PenawaranPage = () => {
                               </td>
                               <td className="px-4 py-3.5 text-right">
                                 <button
+                                  aria-label={`Aksi ${row.nomor_spp}`}
+                                  aria-haspopup="menu"
+                                  aria-expanded={openMenuId === row.pid}
                                   onClick={(e) => {
                                     const rect = e.currentTarget.getBoundingClientRect();
                                     if (openMenuId === row.pid) {
@@ -798,6 +840,9 @@ const PenawaranPage = () => {
                             <div className="text-xs text-gray-500 mt-1">RPH: {row.nama_rph || '-'}</div>
                           </div>
                           <button
+                            aria-label={`Aksi ${row.nomor_spp}`}
+                            aria-haspopup="menu"
+                            aria-expanded={openMenuId === row.pid}
                             onClick={(e) => {
                               const rect = e.currentTarget.getBoundingClientRect();
                               if (openMenuId === row.pid) {

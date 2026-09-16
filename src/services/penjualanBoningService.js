@@ -16,6 +16,14 @@ const buildTableQuery = (params = {}, defaults = {}) => new URLSearchParams({
 });
 
 const PenjualanBoningService = {
+  async downloadDocument(type, { pid } = {}) {
+    if (!['nota', 'surat-jalan'].includes(type) || typeof pid !== 'string' || !pid.trim()) throw new Error('PID atau jenis dokumen tidak valid');
+    const blob = await HttpClient.post('/api/rph/penjualan/boning/document', { pid, type }, { responseType: 'blob' });
+    if (!(blob instanceof Blob) || !blob.size || (blob.type && !['application/pdf', 'application/octet-stream'].includes(blob.type.toLowerCase()))
+      || await blob.slice(0, 5).text() !== '%PDF-') throw new Error('Respons server bukan dokumen PDF yang valid');
+    return blob;
+  },
+
   async getData(params = {}) {
     try {
       const query = buildTableQuery(params, { length: 10, orderColumn: 6, orderDir: 'desc' });

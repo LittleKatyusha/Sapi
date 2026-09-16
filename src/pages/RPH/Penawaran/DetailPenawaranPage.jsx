@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Handshake, Calendar, Users, FileText, Loader2, AlertCircle, CheckCircle2, Send, User } from 'lucide-react';
 import usePenawaranPenjualan from '../../../hooks/usePenawaranPenjualan';
+import usePenawaranDocument from './usePenawaranDocument';
 
 const STATUS_CONFIG = {
   draft: { label: 'Draft', bg: 'bg-gray-50', text: 'text-gray-600', border: 'border-gray-200', icon: FileText },
@@ -25,6 +26,7 @@ const DetailPenawaranPage = () => {
   const navigate = useNavigate();
   const { loading, error, fetchDetail } = usePenawaranPenjualan();
   const [data, setData] = useState(null);
+  const { download, downloading, downloadError } = usePenawaranDocument();
 
   useEffect(() => {
     if (pid) {
@@ -69,6 +71,13 @@ const DetailPenawaranPage = () => {
 
   return (
     <div className="space-y-5">
+      {downloadError && <div role="alert" className="rounded-lg border border-red-200 bg-white p-4 text-sm text-red-700">{downloadError}</div>}
+      <button disabled={Boolean(downloading)} aria-busy={downloading === `dispensasi:${pid}`}
+        onClick={() => download({ ...data, pid })}
+        className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed">
+        {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+        {downloading ? 'Mengunduh PDF...' : 'Unduh Surat PDF'}
+      </button>
       {/* Header */}
       <div className="flex items-center gap-3">
         <button onClick={() => navigate(-1)} className="p-2 rounded-lg text-gray-500 hover:bg-white hover:text-gray-800 transition">

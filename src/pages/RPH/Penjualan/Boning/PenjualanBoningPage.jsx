@@ -5,6 +5,7 @@ import DataTable from 'react-data-table-component';
 import { Calendar, Eye, Loader2, MoreVertical, Pencil, PlusCircle, Search, Trash2, Wallet, X } from 'lucide-react';
 import { enhancedTableStyles } from './constants/tableStyles';
 import usePenjualanBoning from './hooks/usePenjualanBoning';
+import useBoningDocument from './hooks/useBoningDocument';
 import AddEditBoningModal from './modals/AddEditBoningModal';
 import DetailBoningModal from './modals/DetailBoningModal';
 import DeleteConfirmBoningModal from './modals/DeleteConfirmBoningModal';
@@ -48,7 +49,7 @@ const STATUS_STYLE = {
 
 const isPaidRow = (row) => Number(row.payment_status) === 1 || String(row.payment_status_label || '').toLowerCase() === 'lunas';
 
-const RowActionMenu = ({ row, anchorRef, onClose, onDetail, onEdit, onDelete, onPay }) => {
+const RowActionMenu = ({ row, anchorRef, onClose, onDetail, onEdit, onDelete, onPay, download, downloading }) => {
   const menuRef = useRef(null);
   const [menuStyle, setMenuStyle] = useState(null);
 
@@ -60,7 +61,7 @@ const RowActionMenu = ({ row, anchorRef, onClose, onDetail, onEdit, onDelete, on
       const rect = anchor.getBoundingClientRect();
       setMenuStyle({
         position: 'fixed',
-        top: rect.bottom + 8,
+        top: Math.max(8, Math.min(rect.bottom + 8, window.innerHeight - 380)),
         left: Math.max(12, rect.right - 192),
         zIndex: 200,
       });
@@ -94,8 +95,19 @@ const RowActionMenu = ({ row, anchorRef, onClose, onDetail, onEdit, onDelete, on
   return createPortal(
     <div
       ref={menuRef}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') { event.preventDefault(); onClose(); anchorRef.current?.focus(); }
+        if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+          event.preventDefault();
+          const buttons = [...menuRef.current.querySelectorAll('button:not(:disabled)')];
+          const index = buttons.indexOf(document.activeElement);
+          const next = event.key === 'Home' ? 0 : event.key === 'End' ? buttons.length - 1 : (index + (event.key === 'ArrowDown' ? 1 : -1) + buttons.length) % buttons.length;
+          buttons[next]?.focus();
+        }
+      }}
+      onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget) && event.relatedTarget !== anchorRef.current) onClose(); }}
       style={menuStyle}
-      className="w-48 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl"
+      className="max-h-[calc(100vh-16px)] w-48 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-xl"
       role="menu"
       aria-label="Menu aksi"
     >
@@ -103,6 +115,15 @@ const RowActionMenu = ({ row, anchorRef, onClose, onDetail, onEdit, onDelete, on
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Menu Aksi</p>
       </div>
       <div className="p-1.5">
+        {['nota', 'surat-jalan'].map((type) => (
+          <button key={type} type="button" role="menuitem" disabled={!!downloading}
+            aria-busy={downloading === `${type}:${row.pid}`}
+            autoFocus={type === 'nota'}
+            onClick={() => download(type, row)}
+            className="mt-1 flex w-full items-center rounded-lg px-3 py-2.5 text-left text-xs font-semibold text-slate-700 hover:bg-emerald-50 focus-visible:outline focus-visible:outline-2 disabled:opacity-50">
+            {downloading === `${type}:${row.pid}` ? 'Mengunduh...' : type === 'nota' ? 'Nota Penjualan PDF' : 'Surat Jalan PDF'}
+          </button>
+        ))}
         {!isPaidRow(row) && (
           <button
             type="button"
@@ -156,7 +177,7 @@ const RowActionMenu = ({ row, anchorRef, onClose, onDetail, onEdit, onDelete, on
   );
 };
 
-const RowActionButton = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onDelete, onPay }) => {
+export const RowActionButton = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onDelete, onPay, download, downloading }) => {
   const buttonRef = useRef(null);
 
   return (
@@ -171,6 +192,7 @@ const RowActionButton = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onD
         className={`rounded-lg border p-2 text-slate-600 shadow-sm transition-all hover:bg-rose-50 hover:text-rose-600 ${isOpen ? 'border-rose-400 bg-rose-50 text-rose-600' : 'border-slate-300 bg-white'}`}
         aria-label={`Menu aksi ${row.nama_pedagang || 'penjualan boning'}`}
         aria-expanded={isOpen}
+        aria-haspopup="menu"
       >
         <MoreVertical className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
       </button>
@@ -183,6 +205,8 @@ const RowActionButton = ({ row, isOpen, onToggle, onClose, onDetail, onEdit, onD
           onEdit={onEdit}
           onDelete={onDelete}
           onPay={onPay}
+          download={download}
+          downloading={downloading}
         />
       ) : null}
     </div>
@@ -208,6 +232,7 @@ const PenjualanBoningPage = () => {
   } = usePenjualanBoning();
 
   const [notification, setNotification] = useState(null);
+  const { download, downloading, downloadError } = useBoningDocument();
   const [openMenuId, setOpenMenuId] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
@@ -227,13 +252,6 @@ const PenjualanBoningPage = () => {
     const timer = setTimeout(() => setNotification(null), 5000);
     return () => clearTimeout(timer);
   }, [notification]);
-
-  useEffect(() => {
-    if (!openMenuId) return undefined;
-    const closeMenu = () => setOpenMenuId(null);
-    document.addEventListener('click', closeMenu);
-    return () => document.removeEventListener('click', closeMenu);
-  }, [openMenuId]);
 
   const handleOpenAdd = async () => {
     if (!pedagangList.length || !boningItems.length || !bankOptions.length || !pengirimOptions.length || !kendaraanOptions.length) {
@@ -350,6 +368,8 @@ const PenjualanBoningPage = () => {
             onToggle={(pid) => setOpenMenuId((current) => (current === pid ? null : pid))}
             onClose={() => setOpenMenuId(null)}
             onDetail={handleOpenDetail}
+            download={download}
+            downloading={downloading}
             onEdit={handleOpenEdit}
             onDelete={handleOpenDelete}
             onPay={(item) => navigate(`/rph/keuangan/penerimaan/bayar/${encodeURIComponent(item.pid)}?jenis=boning`)}
@@ -429,7 +449,7 @@ const PenjualanBoningPage = () => {
         </span>
       ),
     },
-  ]), [openMenuId, serverPagination, handleOpenDetail, handleOpenEdit, navigate]);
+  ]), [openMenuId, serverPagination, handleOpenDetail, handleOpenEdit, navigate, download, downloading]);
 
   if (isFormPage) {
     const formData = routePid ? selectedItem : null;
@@ -441,6 +461,7 @@ const PenjualanBoningPage = () => {
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="space-y-6 px-4 py-5 sm:px-6 lg:px-8">
+        {downloadError && <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{downloadError}</div>}
         <div className="rounded-3xl border border-white/60 bg-white/90 p-6 shadow-xl shadow-rose-100/50">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
