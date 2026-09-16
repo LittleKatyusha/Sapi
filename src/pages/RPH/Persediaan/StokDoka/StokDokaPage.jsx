@@ -10,6 +10,7 @@ import BeriPakanKonsentratModal from '../../StokSapi/modals/BeriPakanKonsentratM
 import BulkAssignKandangModal from '../../StokSapi/modals/BulkAssignKandangModal';
 import HistoryPakanKonsentratModal from '../../StokSapi/modals/HistoryPakanKonsentratModal';
 import SapiMatiModal from '../../StokSapi/modals/SapiMatiModal';
+import SapiMatiTab from '../../StokSapi/components/SapiMatiTab';
 
 const DEFAULT_PAGE_SIZE = 10;
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
@@ -44,6 +45,7 @@ const StokDokaPage = () => {
   const [beriPakanModalOpen, setBeriPakanModalOpen] = useState(false);
   const [historyPakanTarget, setHistoryPakanTarget] = useState(null);
   const [deathTarget, setDeathTarget] = useState(null);
+  const [activeTab, setActiveTab] = useState('stock');
 
   const rows = useMemo(() => data?.rows || [], [data]);
   const recordsTotal = data?.recordsTotal ?? 0;
@@ -246,6 +248,25 @@ const StokDokaPage = () => {
           </div>
         </div>
 
+        <div className="flex gap-1 border-b border-gray-200" role="tablist" aria-label="Data stok DOKA">
+          {[
+            ['stock', 'Stok DOKA'],
+            ['history', 'Riwayat DOKA Mati'],
+          ].map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === id}
+              onClick={() => setActiveTab(id)}
+              className={`border-b-2 px-4 py-2 text-sm font-semibold ${activeTab === id ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {activeTab === 'stock' ? <>
         {downloadError && <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{downloadError}</p>}
         {/* Filter */}
         <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
@@ -630,6 +651,7 @@ const StokDokaPage = () => {
             onClose={() => setNotification(null)}
           />
         )}
+        </> : <SapiMatiTab animalGroup="doka" animalLabel="DOKA" />}
       </div>
 
       {/* Detail Modal */}

@@ -5,7 +5,7 @@ import SapiMatiModal from '../modals/SapiMatiModal';
 import ActionButton from './ActionButton';
 import useStokSapiDocument from '../useStokSapiDocument';
 
-const SapiMatiTab = () => {
+const SapiMatiTab = ({ animalGroup, animalLabel = 'Sapi' }) => {
   const { download, downloading, downloadError } = useStokSapiDocument();
   const [openMenuId, setOpenMenuId] = useState(null);
 
@@ -40,6 +40,7 @@ const SapiMatiTab = () => {
       };
       if (start) params.start_date = start;
       if (end) params.end_date = end;
+      if (animalGroup) params.animal_group = animalGroup;
 
       const response = await StokSapiService.getSapiMatiData(params);
 
@@ -61,7 +62,7 @@ const SapiMatiTab = () => {
     } finally {
       setLoading(false);
     }
-  }, [startDate, endDate]);
+  }, [startDate, endDate, animalGroup]);
 
   const handleSearch = () => {
     if (startDate && endDate) {
@@ -106,7 +107,7 @@ const SapiMatiTab = () => {
   };
 
   const handleDelete = async (pid) => {
-    if (!window.confirm('Apakah Anda yakin ingin menghapus data sapi mati ini?')) {
+    if (!window.confirm(`Apakah Anda yakin ingin menghapus data ${animalLabel} mati ini?`)) {
       return;
     }
     
@@ -131,7 +132,7 @@ const SapiMatiTab = () => {
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `bukti-sapi-mati-${item.sapi || 'dokumen'}`;
+      link.download = `bukti-${animalLabel.toLowerCase()}-mati-${item.sapi || 'dokumen'}`;
       link.click();
       URL.revokeObjectURL(url);
     } catch (err) {
@@ -143,7 +144,7 @@ const SapiMatiTab = () => {
     <div className="space-y-3">
       {downloadError && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{downloadError}</p>}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-        <h3 className="text-base font-semibold text-slate-800">Riwayat Sapi Mati</h3>
+        <h3 className="text-base font-semibold text-slate-800">Riwayat {animalLabel} Mati</h3>
         <button
           onClick={handleRefresh}
           disabled={loading}
@@ -221,7 +222,7 @@ const SapiMatiTab = () => {
               <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider w-12">No</th>
               <th className="px-3 py-2 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider w-20">Aksi</th>
               <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Tanggal & Pelapor</th>
-              <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Sapi</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">{animalLabel}</th>
               <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Sebab & Keterangan</th>
               <th className="px-3 py-2 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Kerugian</th>
               <th className="px-3 py-2 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">Bukti</th>
@@ -242,8 +243,8 @@ const SapiMatiTab = () => {
                     <div className="rounded-full bg-slate-100 p-3 mb-2">
                       <AlertTriangle className="h-8 w-8 text-slate-400" />
                     </div>
-                    <p className="text-base font-medium text-slate-700 mb-1">Belum Ada Data Sapi Mati</p>
-                    <p className="text-sm text-slate-500">Data sapi mati akan muncul di sini setelah dicatat.</p>
+                    <p className="text-base font-medium text-slate-700 mb-1">Belum Ada Data {animalLabel} Mati</p>
+                    <p className="text-sm text-slate-500">Data {animalLabel} mati akan muncul di sini setelah dicatat.</p>
                   </div>
                 </td>
               </tr>
@@ -324,6 +325,7 @@ const SapiMatiTab = () => {
           onSuccess={handleEditSuccess}
           cowData={selectedRecord?.cowData}
           editData={selectedRecord}
+          animalLabel={animalLabel}
         />
       )}
     </div>

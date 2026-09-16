@@ -9,6 +9,7 @@ jest.mock('../../StokSapi/modals/BeriPakanKonsentratModal', () => () => null);
 jest.mock('../../StokSapi/modals/BulkAssignKandangModal', () => () => null);
 jest.mock('../../StokSapi/modals/HistoryPakanKonsentratModal', () => () => null);
 jest.mock('../../StokSapi/modals/SapiMatiModal', () => ({ isOpen, cowData, animalLabel }) => isOpen ? <div data-testid="death-modal">{animalLabel}:{cowData.pid}</div> : null);
+jest.mock('../../StokSapi/components/SapiMatiTab', () => (props) => <div data-testid="death-history">{props.animalGroup}:{props.animalLabel}</div>);
 jest.mock('../../../../services/stokDokaService', () => ({ __esModule: true, default: { getData: jest.fn(), downloadDocument: jest.fn() } }));
 beforeEach(() => {
   jest.clearAllMocks();
@@ -79,4 +80,11 @@ test('DOKA death action opens death module with selected PID', async () => {
   fireEvent.click((await screen.findAllByRole('button', { name: 'Menu Aksi' }))[1]);
   fireEvent.click(screen.getByText('DOKA Mati'));
   expect(screen.getByTestId('death-modal')).toHaveTextContent('DOKA:two');
+});
+
+test('Riwayat DOKA Mati tab uses the shared history with DOKA filter', async () => {
+  render(<StokDokaPage />);
+  fireEvent.click(screen.getByRole('tab', { name: 'Riwayat DOKA Mati' }));
+  expect(screen.getByTestId('death-history')).toHaveTextContent('doka:DOKA');
+  expect(screen.getByRole('tab', { name: 'Riwayat DOKA Mati' })).toHaveAttribute('aria-selected', 'true');
 });
