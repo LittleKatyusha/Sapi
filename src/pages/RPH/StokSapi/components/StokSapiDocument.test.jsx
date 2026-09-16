@@ -79,6 +79,12 @@ test.each([[PotongPaksaTab, 'getPotongPaksaData', 'potongpaksa', 'Laporan Potong
   if (type === 'sapimati') expect(screen.getAllByRole('button', { name: 'Unduh bukti kematian Sama' })).toHaveLength(2);
 });
 
+test('sapi death history sends the sapi animal filter', async () => {
+  service.getSapiMatiData.mockResolvedValue({ success: true, data: [] });
+  render(<SapiMatiTab animalGroup="sapi" />);
+  await waitFor(() => expect(service.getSapiMatiData).toHaveBeenCalledWith(expect.objectContaining({ animal_group: 'sapi' })));
+});
+
 test('Ringkas sends applied filters, never browser rows or pagination', async () => {
   service.getStokByJenis.mockResolvedValue({ success: true, data: { dates: [], rows: [{ action: 'class-one', jenis_sapi: 'Sama' }] } });
   service.downloadDocument.mockRejectedValue(new Error('Gagal PDF'));

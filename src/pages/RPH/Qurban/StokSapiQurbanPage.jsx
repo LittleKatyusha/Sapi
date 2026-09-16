@@ -1310,11 +1310,11 @@ const StokSapiQurbanPage = () => {
                   <tr className="text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider">
                     <th className="px-4 py-3">Eartag</th>
                     <th className="px-4 py-3">Tgl Kematian</th>
-                    <th className="px-4 py-3">Aksi</th>
                     <th className="px-4 py-3">Sebab</th>
                     <th className="px-4 py-3">Sapi Pengganti</th>
                     <th className="px-4 py-3">Mengetahui</th>
                     <th className="px-4 py-3">Keterangan</th>
+                    <th className="px-4 py-3">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -1325,8 +1325,6 @@ const StokSapiQurbanPage = () => {
                         <div className="text-[10px] text-gray-400">{row.eartag_supplier}</div>
                       </td>
                       <td className="px-4 py-3 text-xs text-gray-600">{row.tgl_kematian || '-'}</td>
-                      <td className="px-4 py-3"><ActionMenuCell row={row} documentType="sapi-mati" download={download} downloading={downloading}
-                        {...{ menuOpen, setMenuOpen, menuPos, setMenuPos, menuButtonRefs }} /></td>
                       <td className="px-4 py-3"><span className="px-2 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-700">{row.sebab_kematian || '-'}</span></td>
                       <td className="px-4 py-3">
                         {row.eartag_pengganti ? (
@@ -1340,6 +1338,8 @@ const StokSapiQurbanPage = () => {
                       </td>
                       <td className="px-4 py-3 text-xs text-gray-600">{row.mengetahui || '-'}</td>
                       <td className="px-4 py-3 text-xs text-gray-500 max-w-xs truncate" title={row.keterangan}>{row.keterangan || '-'}</td>
+                      <td className="px-4 py-3"><ActionMenuCell row={row} documentType="sapi-mati" download={download} downloading={downloading}
+                        {...{ menuOpen, setMenuOpen, menuPos, setMenuPos, menuButtonRefs }} /></td>
                     </tr>
                   ))}
                 </tbody>
